@@ -12,6 +12,7 @@ venv/
 secrets.*
 *.secret
 *.token
+*.log
 node_modules/
 dist/
 build/

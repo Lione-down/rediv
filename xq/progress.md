@@ -6,6 +6,11 @@
 
 - 新增产品需求总览，重新定义当前 MVP 范围、核心模块和第一版不做事项。
 - 新增技术设计文档，统一认证、Admin、额度、资产和安全规则。
+- 新增前端项目开发文档，明确 Vue 3 + TypeScript + Vite + Pinia + Leafer UI + Naive UI + Anime.js 的正式选型，以及现有 `/ui` 原型迁移到 Vue 工程的路径。
+- 初始化 `frontend/` Vue 3 + Vite + TypeScript 前端工程。
+- 安装 Pinia、Vue Router、Axios、Leafer UI、Naive UI、Anime.js、SCSS、Lucide 图标依赖。
+- 完成前端基础骨架：路由、Pinia stores、API 请求层、全局 design tokens、首页、工作流页、个人空间页和 Admin 占位页。
+- 完成 `npm run build` 验证，前端工程可正常构建。
 - 将用户系统从 email/password 注册调整为微信 OAuth 自动注册。
 - 明确第一版不做 SMS、email、用户名密码注册和找回密码。
 - 补充游客模式边界：可体验画布，不可保存个人资产、导出视频或领取正式额度。
@@ -23,6 +28,7 @@
 - 将内存存储替换为数据库模型和持久化迁移。
 - 实现真实 Agnes 生成任务、额度扣减、失败返还。
 - 实现 Admin 后台前端页面。
+- 按 `xq/11_frontend_project_development.md` 继续把现有 `/ui` 高保真交互细节迁移到 `frontend/`。
 - 实现游客草稿转正式账号资产绑定。
 
 ### 当前状态
