@@ -10,6 +10,7 @@
 - 初始化 `frontend/` Vue 3 + Vite + TypeScript 前端工程。
 - 安装 Pinia、Vue Router、Axios、Leafer UI、Naive UI、Anime.js、SCSS、Lucide 图标依赖。
 - 完成前端基础骨架：路由、Pinia stores、API 请求层、全局 design tokens、首页、工作流页、个人空间页和 Admin 占位页。
+- 固定前端开发端口为 `9080`，与项目端口约定保持一致。
 - 完成 `npm run build` 验证，前端工程可正常构建。
 - 将用户系统从 email/password 注册调整为微信 OAuth 自动注册。
 - 明确第一版不做 SMS、email、用户名密码注册和找回密码。
