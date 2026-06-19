@@ -19,7 +19,7 @@
 ### 2.1 核心栈
 
 - 构建工具：Vite
-- 开发端口：9080
+- 开发端口：9099
 - 前端框架：Vue 3
 - 语言：TypeScript
 - 路由：Vue Router
@@ -385,7 +385,7 @@ Naive UI 主要用于 Admin 后台和通用表单控件。
 
 - 创建 `frontend/`。
 - 安装 Vue 3、Vite、TypeScript、Pinia、Vue Router、Axios、Leafer UI、Naive UI、Anime.js、SCSS。
-- 固定 Vite 开发端口为 `9080`，避免默认 `5173` 与项目约定不一致。
+- 固定 Vite 开发端口为 `9099`，避免默认 `5173` 与项目约定不一致。
 - 建立全局样式 token。
 - 建立路由和基础 layout。
 

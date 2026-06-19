@@ -1,16 +1,8 @@
 <script setup lang="ts">
-import { Hand, Image, MousePointer2, Plus, Sparkles, Type } from '@lucide/vue'
+import { Plus } from 'lucide-vue-next'
 import { useCanvasStore } from '../../store/canvas'
 
 const canvasStore = useCanvasStore()
-
-const tools = [
-  { key: 'select', label: '选择', icon: MousePointer2 },
-  { key: 'hand', label: '移动', icon: Hand },
-  { key: 'text', label: '文本', icon: Type },
-  { key: 'image', label: '图片', icon: Image },
-  { key: 'generate', label: '生成', icon: Sparkles },
-] as const
 
 function nodeCenter(nodeId: string) {
   const node = canvasStore.nodes.find((item) => item.id === nodeId)
@@ -26,21 +18,6 @@ function nodeCenter(nodeId: string) {
 
 <template>
   <section class="workspace-stage" aria-label="Revid 无限画布工作区">
-    <aside class="tool-rail" aria-label="画布工具">
-      <button
-        v-for="tool in tools"
-        :key="tool.key"
-        class="tool-button focus-ring"
-        :class="{ active: canvasStore.mode === tool.key }"
-        type="button"
-        :aria-label="tool.label"
-        :aria-pressed="canvasStore.mode === tool.key"
-        @click="canvasStore.setMode(tool.key)"
-      >
-        <component :is="tool.icon" :size="19" />
-      </button>
-    </aside>
-
     <div class="canvas-surface">
       <svg class="connection-layer" aria-hidden="true">
         <path
@@ -75,7 +52,11 @@ function nodeCenter(nodeId: string) {
       </article>
 
       <div class="minimap" aria-label="小地图">
-        <span v-for="node in canvasStore.nodes" :key="node.id" :style="{ left: `${node.x / 9}px`, top: `${node.y / 7}px` }" />
+        <span
+          v-for="node in canvasStore.nodes"
+          :key="node.id"
+          :style="{ left: `${node.x / 9}px`, top: `${node.y / 7}px` }"
+        />
       </div>
     </div>
   </section>
@@ -84,53 +65,24 @@ function nodeCenter(nodeId: string) {
 <style scoped lang="scss">
 .workspace-stage {
   position: relative;
-  min-height: calc(100dvh - 56px);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   background:
-    linear-gradient(oklch(88% 0.006 92 / 0.36) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(88% 0.006 92 / 0.36) 1px, transparent 1px),
-    radial-gradient(circle at 45% 42%, oklch(91% 0.025 175 / 0.62), transparent 34%),
+    linear-gradient(oklch(88% 0.006 92 / 0.45) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(88% 0.006 92 / 0.45) 1px, transparent 1px),
+    radial-gradient(circle at 42% 38%, oklch(92% 0.024 175 / 0.46), transparent 33%),
     var(--bg-canvas);
-  background-size: 28px 28px, 28px 28px, auto, auto;
-}
-
-.tool-rail {
-  position: absolute;
-  top: 22px;
-  left: 22px;
-  z-index: 5;
-  display: grid;
-  gap: 8px;
-  padding: 8px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 18px;
-  background: oklch(100% 0.004 92 / 0.78);
-  box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(16px);
-}
-
-.tool-button {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border: 0;
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  background: transparent;
-}
-
-.tool-button:hover,
-.tool-button.active {
-  color: var(--text-primary);
-  background: oklch(58% 0.115 252 / 0.12);
+  background-size: 24px 24px, 24px 24px, auto, auto;
 }
 
 .canvas-surface {
   position: relative;
-  width: 1440px;
-  height: 760px;
-  transform-origin: left top;
+  width: max(100%, 1440px);
+  min-width: 100%;
+  height: 100%;
+  min-height: 760px;
 }
 
 .connection-layer {
@@ -144,7 +96,7 @@ function nodeCenter(nodeId: string) {
 
 path {
   fill: none;
-  stroke: oklch(37% 0.014 245 / 0.5);
+  stroke: oklch(37% 0.014 245 / 0.44);
   stroke-width: 1.6;
 }
 
@@ -160,12 +112,21 @@ path.active {
   border-radius: var(--radius-lg);
   padding: 14px;
   color: var(--text-primary);
-  background: oklch(100% 0.004 92 / 0.9);
+  background: oklch(100% 0.004 92 / 0.92);
   box-shadow: 0 18px 42px oklch(24% 0.02 245 / 0.1);
+  transition:
+    box-shadow 120ms ease,
+    border-color 120ms ease,
+    transform 120ms ease,
+    opacity 120ms ease;
+}
+
+.canvas-node:hover {
+  transform: translateY(-1px);
 }
 
 .canvas-node.selected {
-  border-color: var(--accent-select);
+  border: 2px solid var(--accent-select);
   box-shadow: 0 0 0 3px oklch(58% 0.115 252 / 0.14), 0 18px 42px oklch(24% 0.02 245 / 0.1);
 }
 
@@ -208,11 +169,20 @@ path.active {
   color: var(--text-muted);
   background: white;
   opacity: 0;
+  transition:
+    opacity 120ms ease,
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
 }
 
 .canvas-node:hover .node-port,
 .canvas-node.selected .node-port {
   opacity: 1;
+}
+
+.node-port:active {
+  transform: translateY(-50%) scale(0.96);
 }
 
 .node-port.left {
@@ -224,9 +194,9 @@ path.active {
 }
 
 .minimap {
-  position: fixed;
-  right: 22px;
-  bottom: 22px;
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
   width: 160px;
   height: 104px;
   border: 1px solid var(--border-subtle);
@@ -249,18 +219,23 @@ path.active {
   }
 }
 
-@media (max-width: 720px) {
-  .tool-rail {
-    top: auto;
-    right: 12px;
-    bottom: 14px;
-    left: 12px;
-    display: flex;
-    justify-content: center;
+@media (max-width: 920px) {
+  .canvas-surface {
+    min-height: calc(100dvh - 260px);
   }
 
+  .minimap {
+    right: 14px;
+    bottom: 14px;
+    width: 128px;
+    height: 86px;
+  }
+}
+
+@media (max-width: 720px) {
   .canvas-surface {
-    transform: scale(0.72);
+    width: max(100%, 1180px);
+    min-height: calc(100dvh - 280px);
   }
 
   .minimap {

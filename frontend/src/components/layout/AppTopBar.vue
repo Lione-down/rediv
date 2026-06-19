@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import { Shield, UserRound, Workflow } from '@lucide/vue'
+import { Shield, UserRound, Workflow } from 'lucide-vue-next'
 import { useAuthStore } from '../../store/auth'
 
 const authStore = useAuthStore()
@@ -41,11 +41,11 @@ const authStore = useAuthStore()
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 56px;
-  padding: 0 22px;
+  height: 52px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--border-subtle);
-  background: oklch(100% 0.004 92 / 0.86);
-  backdrop-filter: blur(18px);
+  background: oklch(100% 0.004 92 / 0.82);
+  backdrop-filter: blur(14px);
 }
 
 .brand,
@@ -66,7 +66,7 @@ const authStore = useAuthStore()
   place-items: center;
   border-radius: 10px;
   color: white;
-  background: var(--text-primary);
+  background: linear-gradient(135deg, var(--text-primary), oklch(36% 0.03 245));
   font-weight: 700;
 }
 
@@ -85,12 +85,21 @@ const authStore = useAuthStore()
 }
 
 .nav-link {
-  min-height: 40px;
+  min-height: 38px;
   gap: 7px;
   padding: 0 12px;
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   color: var(--text-secondary);
   font-size: 14px;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
+}
+
+.nav-link:active {
+  transform: scale(0.96);
 }
 
 .nav-link:hover,

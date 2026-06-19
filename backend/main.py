@@ -1,8 +1,28 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.router import include_routers
+from controllers.store import DatabaseStore, InMemoryStore, configure_store
+from core.agnes_provider import AgnesProvider
+from database import init_db
 from settings.config import settings
+
+if settings.use_sqlite:
+    init_db(settings.db_path)
+    configure_store(DatabaseStore())
+else:
+    configure_store(InMemoryStore())
+
+from api.router import include_routers
+
+_agnes = AgnesProvider(
+    api_key=settings.agnes_api_key,
+    base_url=settings.agnes_base_url,
+)
+
+
+def get_agnes() -> AgnesProvider:
+    """获取 Agnes Provider 实例（供各 router 注入使用）。"""
+    return _agnes
 
 
 app = FastAPI(title=settings.app_name)
