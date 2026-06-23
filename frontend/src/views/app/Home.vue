@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import axios from 'axios'
+import { useMessage } from 'naive-ui'
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
@@ -23,6 +24,7 @@ import type { Asset } from '../../types/asset'
 
 const authStore = useAuthStore()
 const assetStore = useAssetStore()
+const message = useMessage()
 const isAuthenticating = ref(false)
 const authError = ref('')
 const assetError = ref('')
@@ -159,15 +161,15 @@ async function loadAssets() {
   }
 }
 
-async function handleMockLogin() {
+async function handleWechatLogin() {
   isAuthenticating.value = true
   authError.value = ''
 
   try {
-    await authStore.loginWithMockWechat()
-    await authStore.loadCurrentUser()
+    await authStore.loginWithWechat()
   } catch (error) {
     authError.value = getErrorMessage(error, '登录失败，请检查后端服务后重试。')
+    message.error(authError.value)
   } finally {
     isAuthenticating.value = false
   }
@@ -238,12 +240,12 @@ onMounted(async () => {
                 class="action secondary focus-ring"
                 type="button"
                 :disabled="isAuthenticating"
-                @click="handleMockLogin"
+                @click="handleWechatLogin"
               >
                 <LoaderCircle v-if="isAuthenticating" :size="18" class="is-spinning" />
                 <CheckCircle2 v-else-if="authStore.isLoggedIn" :size="18" />
                 <WandSparkles v-else :size="18" />
-                {{ authStore.isLoggedIn ? '重新同步账户' : '微信 mock 登录' }}
+                {{ authStore.isLoggedIn ? '重新同步账户' : '微信登录' }}
               </button>
               <RouterLink class="action primary focus-ring" to="/app/workspace">
                 进入工作流
@@ -389,6 +391,7 @@ onMounted(async () => {
 .status-card {
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-soft);
+  min-width: 0;
 }
 
 .hero-main {
@@ -406,14 +409,16 @@ onMounted(async () => {
 .hero-label {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0 0 18px;
-  padding: 8px 12px;
-  border-radius: 999px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
   color: var(--accent-generate-hover);
+  /* Keep this soft translucent badge tone; no direct token with matching alpha exists. */
   background: oklch(99% 0.008 92 / 0.92);
   border: 1px solid oklch(88% 0.016 175 / 0.55);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
+  line-height: var(--line-height-hint);
   font-weight: 600;
 }
 
@@ -436,12 +441,13 @@ h1 {
 .account-banner {
   display: inline-grid;
   grid-template-columns: auto 1fr;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
   min-width: min(100%, 360px);
   margin-top: 22px;
-  padding: 14px 16px;
+  padding: 14px var(--space-4);
   border-radius: 18px;
+  /* Keep this elevated account surface tone; no direct token with matching alpha exists. */
   background: oklch(99% 0.007 92 / 0.94);
   border: 1px solid oklch(87% 0.014 175 / 0.48);
 }
@@ -458,7 +464,7 @@ h1 {
 
 .account-banner__copy {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .account-banner__copy strong,
@@ -468,13 +474,14 @@ h1 {
 
 .account-banner__copy span {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
+  line-height: var(--line-height-hint);
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-3);
   margin-top: 28px;
 }
 
@@ -483,7 +490,7 @@ h1 {
   min-height: 46px;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   border-radius: 14px;
   padding: 0 18px;
   border: 1px solid transparent;
@@ -501,7 +508,7 @@ h1 {
 .action.primary {
   color: white;
   background: var(--accent-generate);
-  box-shadow: 0 12px 24px oklch(62% 0.105 175 / 0.18);
+  box-shadow: var(--shadow-accent);
 }
 
 .action.primary:hover {
@@ -527,7 +534,7 @@ h1 {
 .quick-start-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .quick-start-card {
@@ -560,7 +567,7 @@ h1 {
 
 .quick-start-card span {
   color: oklch(94% 0.008 92 / 0.78);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
   line-height: 1.65;
 }
 
@@ -616,11 +623,12 @@ h1 {
 .status-copy h2,
 .status-copy span {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .status-copy p {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
 }
 
 .status-copy h2 {
@@ -634,7 +642,7 @@ h1 {
   display: block;
   margin-top: 14px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
 }
 
 .data-grid {
@@ -656,7 +664,7 @@ h1 {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .section-heading p,
@@ -667,7 +675,8 @@ h1 {
 
 .section-heading p {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
+  line-height: var(--line-height-hint);
 }
 
 .section-heading h2 {
@@ -679,20 +688,20 @@ h1 {
 
 .section-heading span {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
   white-space: nowrap;
 }
 
 .quota-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
   margin-top: 20px;
 }
 
 .quota-pill {
   min-height: 124px;
-  padding: 16px;
+  padding: var(--space-4);
   border-radius: 18px;
   display: grid;
   align-content: space-between;
@@ -701,7 +710,7 @@ h1 {
 }
 
 .quota-pill span {
-  font-size: 12px;
+  font-size: var(--font-size-hint);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   opacity: 0.8;
@@ -727,10 +736,10 @@ h1 {
 .ghost-action {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 34px;
-  padding: 0 12px;
-  border-radius: 999px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   background: var(--bg-panel);
@@ -752,10 +761,10 @@ h1 {
 .inline-feedback {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin: 16px 0 0;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-number);
 }
 
 .inline-feedback.is-danger {
@@ -764,16 +773,16 @@ h1 {
 
 .asset-list {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   margin-top: 18px;
 }
 
 .asset-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: center;
-  padding: 16px;
+  padding: var(--space-4);
   border-radius: 18px;
   border: 1px solid var(--border-subtle);
   background: linear-gradient(180deg, oklch(99% 0.004 92), oklch(97% 0.006 92));
@@ -797,13 +806,13 @@ h1 {
 .asset-meta b,
 .asset-empty p {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
 }
 
 .asset-meta b {
   display: inline-flex;
-  padding: 8px 10px;
-  border-radius: 999px;
+  padding: var(--space-2) 10px;
+  border-radius: var(--radius-pill);
   color: var(--accent-generate-hover);
   background: oklch(96% 0.018 175);
 }
@@ -878,7 +887,7 @@ h1 {
 @media (max-width: 560px) {
   .page-shell {
     width: min(100%, calc(100% - 20px));
-    padding-bottom: 24px;
+    padding-bottom: var(--space-6);
   }
 
   .hero-main {
@@ -914,6 +923,29 @@ h1 {
 
   .ghost-action {
     width: fit-content;
+  }
+
+  .section-heading span {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-label,
+  .account-banner,
+  .asset-row,
+  .asset-empty {
+    border-radius: 16px;
+  }
+
+  .quick-start-card,
+  .status-card,
+  .data-card {
+    padding: 16px;
+  }
+
+  .ghost-action {
+    width: 100%;
   }
 }
 </style>

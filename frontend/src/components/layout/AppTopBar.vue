@@ -44,6 +44,7 @@ const authStore = useAuthStore()
   height: 52px;
   padding: 0 20px;
   border-bottom: 1px solid var(--border-subtle);
+  /* Keep translucent panel chrome; no exact alpha token in design-direction. */
   background: oklch(100% 0.004 92 / 0.82);
   backdrop-filter: blur(14px);
 }
@@ -57,15 +58,17 @@ const authStore = useAuthStore()
 
 .brand {
   gap: 10px;
+  min-width: 0;
 }
 
 .brand-mark {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: var(--space-8);
+  height: var(--space-8);
   place-items: center;
   border-radius: 10px;
   color: white;
+  /* Keep the brand mark gradient; no matching design token is defined. */
   background: linear-gradient(135deg, var(--text-primary), oklch(36% 0.03 245));
   font-weight: 700;
 }
@@ -75,22 +78,30 @@ const authStore = useAuthStore()
   display: block;
 }
 
+.brand strong {
+  line-height: 1.1;
+}
+
 .brand small {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
+  line-height: var(--line-height-hint);
 }
 
 .top-actions {
-  gap: 8px;
+  gap: var(--space-2);
+  flex-shrink: 0;
 }
 
 .nav-link {
   min-height: 38px;
   gap: 7px;
-  padding: 0 12px;
-  border-radius: 12px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-lg);
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-body);
+  line-height: var(--line-height-body);
   transition:
     color 120ms ease,
     background-color 120ms ease,
@@ -120,6 +131,40 @@ const authStore = useAuthStore()
   .nav-link {
     padding: 0 9px;
     font-size: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .top-bar {
+    padding: 0 10px;
+    gap: var(--space-2);
+  }
+
+  .brand {
+    gap: var(--space-2);
+  }
+
+  .brand strong {
+    font-size: 14px;
+  }
+
+  .top-actions {
+    gap: var(--space-1);
+  }
+
+  .nav-link {
+    min-height: 34px;
+    padding: 0 var(--space-2);
+  }
+}
+
+@media (max-width: 420px) {
+  .brand strong {
+    display: none;
+  }
+
+  .nav-link {
+    padding: 0 7px;
   }
 }
 </style>

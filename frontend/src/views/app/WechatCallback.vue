@@ -1,20 +1,59 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useMessage } from 'naive-ui'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
 
+const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const message = useMessage()
+
+function readQueryValue(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value : ''
+}
 
 onMounted(async () => {
-  await authStore.loginWithMockWechat()
-  router.replace('/app/workspace')
+  const code = readQueryValue(route.query.code)
+  const state = readQueryValue(route.query.state)
+  const invitationCode = readQueryValue(route.query.invitation_code)
+  const expectedState = sessionStorage.getItem('revid_wechat_state') || ''
+
+  if (!code) {
+    message.error('缺少微信授权 code，请重新发起登录。')
+    await router.replace('/')
+    return
+  }
+
+  if (expectedState && state && expectedState !== state) {
+    message.error('登录状态校验失败，请重新发起微信登录。')
+    authStore.clearSession()
+    await router.replace('/')
+    return
+  }
+
+  try {
+    await authStore.completeWechatLogin(code, state || undefined, invitationCode || undefined)
+    message.success('微信登录成功，正在进入工作流。')
+    await router.replace('/app/workspace')
+  } catch (error) {
+    let detail = '微信登录失败，请稍后重试。'
+    if (typeof error === 'object' && error && 'response' in error) {
+      const response = (error as { response?: { data?: { detail?: unknown } } }).response
+      if (typeof response?.data?.detail === 'string' && response.data.detail.trim()) {
+        detail = response.data.detail
+      }
+    }
+    message.error(detail)
+    authStore.clearSession()
+    await router.replace('/')
+  }
 })
 </script>
 
 <template>
   <main class="callback-page">
-    <p>正在完成微信登录...</p>
+    <p>正在完成微信登录并同步账户信息...</p>
   </main>
 </template>
 

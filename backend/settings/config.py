@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     db_name: str = "revid_db"
     db_user: str = "root"
     db_password: str = ""
+    db_pool_recycle: int = 3600
 
     # === Agnes AI API ===
     agnes_api_key: str = ""
@@ -29,6 +30,8 @@ class Settings(BaseSettings):
     agnes_model_video: str = "agnes-video-v2.0"
 
     # === WeChat OAuth ===
+    # Real OAuth callback exchanges use these env vars:
+    # REVID_WECHAT_APP_ID / REVID_WECHAT_APP_SECRET / REVID_WECHAT_REDIRECT_URI
     wechat_app_id: str = ""
     wechat_app_secret: str = ""
     wechat_redirect_uri: str = "http://localhost:8000/auth/wechat/callback"

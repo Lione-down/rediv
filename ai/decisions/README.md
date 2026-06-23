@@ -24,9 +24,13 @@ Accepted / Superseded / Deprecated
 
 ## 已记录决策
 
-> 暂无。随着开发推进，在此记录重要架构决策。
+| ADR | 标题 | 状态 |
+|---|---|---|
+| ADR-001 | 本地 MySQL 8.0 作为 Revid 主数据库 | Accepted |
+| ADR-002 | v3.1 重整技术栈 | Accepted |
+| ADR-003 | T4-002 使用专用 disposable MySQL 测试环境 | Accepted |
 
 ---
 
 *维护者：Project Master Controller (System Architect)*
-*最后更新：2026-06-18*
+*最后更新：2026-06-23*

@@ -1,12 +1,25 @@
 import { request } from './request'
 import type { AuthResponse, CurrentUserResponse } from '../types/auth'
 
-export function mockWechatLogin() {
-  return request.post<AuthResponse>('/auth/wechat/mock', {
-    openid: `mock-${Date.now()}`,
-    nickname: '测试创作者',
-    invitation_code: 'TEST2026',
+export interface WechatAuthorizeResponse {
+  authorize_url: string
+  mock: boolean
+}
+
+export interface WechatCallbackPayload {
+  code: string
+  state?: string
+  invitation_code?: string
+}
+
+export function getWechatAuthorize(state: string) {
+  return request.get<WechatAuthorizeResponse>('/auth/wechat/authorize', {
+    params: { state },
   })
+}
+
+export function exchangeWechatCode(payload: WechatCallbackPayload) {
+  return request.post<AuthResponse>('/auth/wechat/callback', payload)
 }
 
 export function fetchCurrentUser() {

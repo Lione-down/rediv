@@ -1,5 +1,7 @@
 from urllib.parse import urlencode
 
+import requests
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from controllers.store import store
@@ -10,11 +12,89 @@ from settings.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 me_router = APIRouter(tags=["auth"])
+WECHAT_TIMEOUT_SECONDS = 10
 
 
 def _issue_auth(user: dict) -> AuthResponse:
     token = create_token({"sub": user["id"], "role": user["role"]})
     return AuthResponse(token=token, user=user, quotas=store.quotas[user["id"]])
+
+
+def _ensure_wechat_credentials_configured() -> None:
+    if settings.wechat_app_id and settings.wechat_app_secret:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Wechat OAuth credentials are not configured",
+    )
+
+
+def _wechat_get(url: str, params: dict[str, str]) -> dict:
+    try:
+        response = requests.get(url, params=params, timeout=WECHAT_TIMEOUT_SECONDS)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Wechat OAuth request failed",
+        ) from exc
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Wechat OAuth returned invalid JSON",
+        ) from exc
+
+    if payload.get("errcode"):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Wechat OAuth error: {payload.get('errmsg', 'unknown error')}",
+        )
+    return payload
+
+
+def _fetch_wechat_profile(code: str) -> dict:
+    _ensure_wechat_credentials_configured()
+    token_payload = _wechat_get(
+        "https://api.weixin.qq.com/sns/oauth2/access_token",
+        {
+            "appid": settings.wechat_app_id,
+            "secret": settings.wechat_app_secret,
+            "code": code,
+            "grant_type": "authorization_code",
+        },
+    )
+    access_token = token_payload.get("access_token")
+    openid = token_payload.get("openid")
+    if not access_token or not openid:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Wechat OAuth response missing access_token or openid",
+        )
+
+    userinfo_payload = _wechat_get(
+        "https://api.weixin.qq.com/sns/userinfo",
+        {
+            "access_token": access_token,
+            "openid": openid,
+            "lang": "zh_CN",
+        },
+    )
+    if not userinfo_payload.get("openid"):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Wechat userinfo response missing openid",
+        )
+
+    return {
+        "openid": userinfo_payload["openid"],
+        "nickname": userinfo_payload.get("nickname", "Wechat User"),
+        "avatar_url": userinfo_payload.get("headimgurl", ""),
+        "unionid": userinfo_payload.get("unionid"),
+        "raw_profile": userinfo_payload,
+    }
 
 
 def _login_or_register_wechat(profile: dict, invitation_code: str | None) -> AuthResponse:
@@ -62,7 +142,8 @@ def wechat_callback(payload: WechatCallbackRequest):
     if settings.wechat_mock_enabled:
         profile = {"openid": payload.code, "nickname": "Mock Wechat User", "avatar_url": "", "unionid": None}
         return _login_or_register_wechat(profile, payload.invitation_code)
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Real Wechat token exchange is not configured yet")
+    profile = _fetch_wechat_profile(payload.code)
+    return _login_or_register_wechat(profile, payload.invitation_code)
 
 
 @router.post("/guest", response_model=GuestResponse)

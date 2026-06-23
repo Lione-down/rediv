@@ -1,4 +1,4 @@
-# Revid — Kanban 自动化设计方案
+# Revid: Kanban 自动化设计方案
 
 > 本文档描述 Revid 项目的多 Agent 协作架构、Kanban 任务流、Profile 配置和工作机制。
 > 
@@ -14,7 +14,7 @@
 │                                                             │
 │  ┌──────────┐  ┌───────────┐  ┌───────────┐  ┌──────────┐ │
 │  │  revid-pm │  │revid-     │  │revid-     │  │revid-    │ │
-│  │ (PM)     │  │frontend   │  │backend    │  │reviewer  │ │
+│  │(Coordinator)│ │frontend   │  │backend    │  │reviewer  │ │
 │  │          │  │(Worker)   │  │(Worker)   │  │(QA)      │ │
 │  └──────────┘  └───────────┘  └───────────┘  └──────────┘ │
 │       │              │              │              │         │
@@ -22,7 +22,7 @@
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              Kanban Board: revid                     │    │
 │  │                                                      │    │
-│  │  Triage → Todo → Ready → Running → Review → Done     │    │
+│  │ Ready → Running → Review → PMC Review → Done          │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -31,22 +31,22 @@
 
 ## 2. Profile 配置
 
-### 2.1 revid-pm (Project Master Controller)
+### 2.1 revid-pm (Execution Coordinator)
 
 **位置**: `~/.hermes/profiles/revid-pm/`
 
 **职责**:
-- 理解产品需求（xq/*）和技术设计
-- 维护项目状态（ai/state/CURRENT.md, ROADMAP.md）
-- 将 Phase 拆解为独立的垂直切片任务
-- 将任务发布到 Kanban Board
-- 分配任务给 Frontend / Backend Worker
-- 维护架构一致性和技术设计文档
+- 读取 CURRENT、ROADMAP 和已批准的 Ready task
+- 检查依赖、Scope、Worker 类型和工作区冲突
+- 只派发用户或 Codex Project Master Controller 指定的 Task ID
+- 收集 Worker REPORT 和 Reviewer REVIEW
+- Reviewer PASS 后生成 PMC handoff
 
 **约束**:
-- ❌ 不写业务代码
-- ❌ 不跳过审查流程
-- ✅ 每个任务完成后必须经 Reviewer 验收
+- 不写业务代码
+- 不创建或修改 Task、ADR、CURRENT、ROADMAP
+- 不替代 Codex Project Master Controller 做产品、架构和最终验收决策
+- 不跳过 Reviewer，也不把 PASS 直接标记为 done
 
 ### 2.2 revid-frontend (Frontend Worker)
 
@@ -54,13 +54,14 @@
 
 **职责**:
 - 执行 PM 分配的 Frontend 任务
-- 修改 frontend/ 下的业务代码
-- 保持与 ui/ 原型和设计文档的一致性
-- 自测：`npm run build` 必须通过
+- 只修改 task Scope 点名的 frontend、UI docs、tests 和报告文件
+- 保持与 `ui/design-system.md` 和 ADR 一致
+- 运行 `npm run build` 和 task 指定的真实浏览器验证
 
 **约束**:
-- ✅ 只修改 frontend/ 下的文件
-- ✅ 构建失败 = 任务未完成
+- 不修改 backend 或 API contract，除非 task 明确允许
+- 不引入第二套 UI、Canvas 或状态管理 framework
+- build 或浏览器验证失败时任务未完成
 
 ### 2.3 revid-backend (Backend Worker)
 
@@ -68,13 +69,14 @@
 
 **职责**:
 - 执行 PM 分配的 Backend 任务
-- 修改 backend/ 下的业务代码
-- 保持与技术设计文档的一致性
-- 自测：后端冒烟测试必须通过
+- 只修改 task Scope 点名的 backend、scripts、migrations、tests 和报告文件
+- 保持与 ADR、Alembic chain 和 API contract 一致
+- 运行专项测试、全量测试和 task 指定的 MySQL/Navicat 验证
 
 **约束**:
-- ✅ 只修改 backend/ 下的文件
-- ✅ 冒烟测试失败 = 任务未完成
+- 不修改 frontend，除非 task 明确允许
+- 不删除 SQLite 数据，不把 MySQL 失败降级成 InMemoryStore
+- 专项或全量测试失败时任务未完成
 
 ### 2.4 revid-reviewer (QA Reviewer)
 
@@ -83,11 +85,13 @@
 **职责**:
 - 独立审查 Executor 的工作成果
 - 对照 acceptance criteria 逐项验证
-- 输出审查结论：✅ 通过 / ❌ 打回
+- 输出 PASS、REWORK 或 BLOCKED
+- 将 PASS 交回 Codex Project Master Controller 做最终验收
 
 **约束**:
-- ✅ 审查必须独立
-- ❌ 不修改业务代码
+- 审查必须独立复跑可执行验证
+- 不修改业务代码，不替 Worker 修复
+- 不修改 CURRENT、ROADMAP、ADR，不直接把任务移入 done
 
 ---
 
@@ -108,38 +112,43 @@
                               │  Review      │── reviewer assesses
                               └──────┬──────┘
                                      │
-                        ┌────────────┼────────────┐
-                        ▼            ▼            ▼
-                   ┌────────┐  ┌──────────┐  ┌──────────┐
-                   │  Done  │  │ Blocked  │  │ Re-work  │
-                   └────────┘  └────┬─────┘  └────┬─────┘
-                                    │ fix          │ re-claim
-                                    └──────────────┘
+                         ┌────────────┼────────────┐
+                         ▼            ▼            ▼
+                 ┌────────────┐ ┌──────────┐  ┌──────────┐
+                 │ PMC Review │ │ Blocked  │  │ Re-work  │
+                 └─────┬──────┘ └────┬─────┘  └────┬─────┘
+                       │ accept      │ fix          │ re-claim
+                       ▼             └──────────────┘
+                 ┌────────┐
+                 │  Done  │
+                 └────────┘
 ```
 
 ### 3.1 状态说明
 
 | 状态 | 负责人 | 操作 |
 |------|--------|------|
-| **Triage** | PM | 评估任务，分类（bug/enhancement），确定优先级 |
-| **Todo** | PM | 撰写详细任务规格（title + body + AC + scope） |
-| **Ready** | Dispatcher | 任务已就绪，等待 Worker 认领 |
+| **Triage** | Codex Project Master Controller | 评估任务、确定优先级和方向 |
+| **Todo** | Codex Project Master Controller | 撰写详细任务规格和验收标准 |
+| **Ready** | Codex Project Master Controller | 任务已批准，可由 Coordinator 派发 |
 | **Running** | Worker (Frontend/Backend) | 执行任务，完成后提交报告 |
-| **Review** | Reviewer | 独立审查，评分 1-5 |
-| **Done** | — | 任务完成，归档 |
-| **Blocked** | PM | 审查不通过或阻塞，需修复 |
+| **Review** | Reviewer | 独立审查，输出 PASS/REWORK/BLOCKED |
+| **PMC Review** | Codex Project Master Controller | 最终验收、事实源更新和流转决策 |
+| **Done** | Codex Project Master Controller | 任务完成，归档 |
+| **Blocked** | Codex Project Master Controller | 决定等待、返工或调整计划 |
 | **Re-work** | Worker | 根据审查意见修改后重新提交 |
 
 ### 3.2 流转规则
 
-1. **Triage → Todo**: PM 完成需求分析后撰写详细规格
-2. **Todo → Ready**: PM 确认规格完整，promote 到 Ready
-3. **Ready → Running**: Dispatcher 自动将 Ready 任务分配给合适的 Worker
+1. **Triage → Todo**: Codex Project Master Controller 完成需求分析并撰写任务
+2. **Todo → Ready**: Codex Project Master Controller 审批任务规格
+3. **Ready → Running**: 用户或 Codex PMC 指定 Task ID 后，由 Coordinator 派发
 4. **Running → Review**: Worker 完成自测后提交报告，状态转为 Review
-5. **Review → Done**: Reviewer 评分 ≥ 4，任务完成
-6. **Review → Blocked**: Reviewer 评分 < 4，打回并说明问题
-7. **Blocked → Re-work**: Worker 根据审查意见修改
-8. **Re-work → Review**: 修改后重新提交审查
+5. **Review → PMC Review**: Reviewer 给出 PASS，并提交可追溯证据
+6. **PMC Review → Done**: Codex Project Master Controller 最终验收并更新事实源
+7. **Review → Blocked**: Reviewer 给出 BLOCKED，并说明环境、权限或决策阻塞
+8. **Review → Re-work**: Reviewer 给出 REWORK，并写明复现步骤和预期结果
+9. **Blocked/Re-work → Review**: Worker 处理后重新提交审查
 
 ---
 
@@ -194,44 +203,44 @@ P0 (critical) | P1 (high) | P2 (medium) | P3 (low)
 
 ## 5. 自动化机制
 
-### 5.1 Dispatcher 自动分发
+### 5.1 受控派发
 
-Gateway 的内置 dispatcher 每 60 秒自动扫描 Ready 任务：
+Revid 禁用无条件自动认领。用户或 Codex Project Master Controller 指定 Task ID 后，Execution Coordinator 才能派发：
 
 ```yaml
 # config.yaml kanban 配置
 kanban:
-  dispatch_in_gateway: true
+  dispatch_in_gateway: false
   dispatch_interval_seconds: 60
   failure_limit: 2
 ```
 
 ### 5.2 任务认领流程
 
-1. Dispatcher 找到 Ready 状态的任务
-2. 根据 `assigned_to` 字段匹配 Profile
-3. 原子性 claim 任务（防止竞态）
+1. 用户或 Codex Project Master Controller 指定 Ready Task ID
+2. Execution Coordinator 检查依赖、Scope、Git 状态和文件冲突
+3. 根据 `assigned_to` 字段匹配 Profile，并原子性 claim 任务
 4. Worker 开始执行，状态变为 Running
 5. Worker 完成后提交报告，状态变为 Review
 
 ### 5.3 审查流程
 
-1. Dispatcher 将 Review 状态的任务分配给 revid-reviewer
-2. Reviewer 独立执行 4 阶段审查
-3. 评分 ≥ 4 → 标记 Done
-4. 评分 < 4 → 标记 Blocked，附审查意见
+1. Execution Coordinator 将 Review 状态的任务分配给 `revid-reviewer`
+2. Reviewer 独立复跑可执行验证，输出 PASS、REWORK 或 BLOCKED
+3. PASS 进入 PMC Review，等待 Codex Project Master Controller 最终验收
+4. REWORK 退回 Worker，BLOCKED 记录具体环境、权限或决策阻塞
 
 ### 5.4 失败重试
 
 - 连续 2 次失败 → 任务自动 Block
-- PM 介入审查失败原因
+- Codex Project Master Controller 审查失败原因
 - 修复后重新 Promote 到 Ready
 
 ---
 
 ## 6. 任务来源映射
 
-所有任务来源于 `xq/*` 和 `ai/state/ROADMAP.md`：
+历史任务来源于 `xq/*` 和旧 ROADMAP。Phase 4 只使用已批准的 v3.1、当前 ROADMAP、ADR 和 T4 task：
 
 ### Phase 1 — 后端核心 API
 
@@ -273,6 +282,26 @@ kanban:
 | T3-006 | 额度展示联调 | 08_wechat_auth_quota_plan | Frontend |
 | T3-007 | 任务状态 + 失败提示 | 11_frontend_project_development | Frontend |
 
+### Phase 4 — Personal Integration Edition
+
+Phase 4 的唯一权威来源为 `REVID_RESTRUCTURE_PLAN_V3_1.md`、`ai/state/ROADMAP.md` 和对应 `ai/tasks/todo/TASK-T4-*.md`。Executor 不得再从已归档的 v1 需求推导新范围。
+
+| 编号 | 任务 | 来源文档 | 分配 |
+|------|------|---------|------|
+| T4-001 | MySQL 8 引擎、模型备注与 Alembic baseline | ADR-001, v3.1 | Backend |
+| T4-002 | SQLite → MySQL 数据迁移工具 | ADR-001, v3.1 | Backend |
+| T4-003 | MySQL runtime 切换与 Navicat 验收 | ADR-001, v3.1 | Backend |
+| T4-004 | 内部账号密码认证与 Admin bootstrap | ADR-002, v3.1 | Backend |
+| T4-005 | 真实 Agnes API 联调与诊断信息 | AGNES_INTEGRATION.md, v3.1 | Backend |
+| T4-006 | 暗色 design system 与 Naive UI provider | v3, ADR-002 | Frontend |
+| T4-007 | 登录/注册入口与路由鉴权 | T4-004, T4-006 | Frontend |
+| T4-008 | Home 项目/资产概览页重构 | T4-003, T4-006 | Frontend |
+| T4-009 | Space 个人资产页重构 | T4-003, T4-006 | Frontend |
+| T4-010 | Workspace 组件拆分与目标布局 | T4-006 | Frontend |
+| T4-011 | Canvas connection 后端持久化 | T4-003 | Backend |
+| T4-012 | Canvas 交互与前后端持久化联调 | T4-010, T4-011 | Frontend |
+| T4-013 | 完整 E2E、视觉 QA 与文档收口 | Phase 4 prior reports | Reviewer |
+
 ---
 
 ## 7. 目录结构
@@ -286,7 +315,8 @@ D:/works/codexWorks/project_revid/
 ├── ai/
 │   ├── decisions/                     # 架构决策记录
 │   ├── prompts/
-│   │   ├── hermes_system_prompt.md    # PM 角色定义
+│   │   ├── hermes_system_prompt.md    # Hermes 项目级约束
+│   │   ├── hermes-desktop-profiles.md # 四个 Hermes profile
 │   │   ├── codex_executor_prompt.md   # Executor 执行规范
 │   │   └── review_prompt.md           # 审查规范
 │   ├── reports/                       # 任务完成报告
@@ -294,7 +324,7 @@ D:/works/codexWorks/project_revid/
 │   │   ├── CURRENT.md                 # 当前项目状态
 │   │   └── ROADMAP.md                 # 开发路线图
 │   └── tasks/
-│       ├── todo/                      # PM 创建的待办任务
+│       ├── todo/                      # Codex PMC 创建的待办任务
 │       ├── doing/                     # 正在执行的任务
 │       └── done/                      # 已完成的任务
 ├── backend/                           # FastAPI 后端
@@ -306,26 +336,11 @@ D:/works/codexWorks/project_revid/
 │   ├── api/
 │   │   └── router.py                  # 路由挂载
 │   └── AGNES_INTEGRATION.md           # Agnes 集成说明
-├── frontend/                          # Vue 3 前端
-│   └── src/                           # 待迁移
-├── ui/                                # 原型和设计文档
-│   ├── design-direction.md            # UI 基调方案
-│   ├── revid-prototype.html           # 画布原型
-│   └── revid-space.html               # 空间原型
-├── xq/                                # 产品需求文档
-│   ├── 00_product_requirements.md      # 产品需求总览
-│   ├── 01_user_system.md              # 用户系统
-│   ├── 02_project_system.md           # 项目系统
-│   ├── 03_canvas_node_system.md       # 画布节点
-│   ├── 04_canvas_frontend.md          # 画布前端
-│   ├── 05_asset_system.md             # 资产系统
-│   ├── 06_template_system.md          # 模板系统
-│   ├── 07_admin_system.md             # 管理员系统
-│   ├── 08_wechat_auth_quota_plan.md   # 微信登录与额度
-│   ├── 09_technical_design.md         # 技术设计
-│   ├── 10_ui_prototype_plan.md        # UI 原型计划
-│   ├── 11_frontend_project_development.md # 前端开发文档
-│   └── progress.md                    # 开发进度记录
+├── frontend/                          # Vue 3 当前前端源码
+├── ui/                                # 当前 UI 资产与 design system
+├── xq/                                # 当前模块需求和进度记录
+├── REVID_RESTRUCTURE_PLAN_V3_1.md     # Phase 4 已批准计划
+├── _archive/                          # 过时文档，只用于追溯
 └── kanban-design.md                   # 本文档
 ```
 
@@ -335,10 +350,10 @@ D:/works/codexWorks/project_revid/
 
 | Profile | 角色 | 工作区 | 技能 |
 |---------|------|--------|------|
-| `revid-pm` | 项目管理 + 架构 | `D:/works/codexWorks/project_revid` | to-prd, to-issues, triage, grill, domain-modeling, codebase-design |
-| `revid-frontend` | 前端开发 | `D:/works/codexWorks/project_revid` | implement, tdd, prototype |
-| `revid-backend` | 后端开发 | `D:/works/codexWorks/project_revid` | implement, tdd, spike |
-| `revid-reviewer` | 质量审查 | `D:/works/codexWorks/project_revid` | diagnosing-bugs, codebase-design |
+| `revid-pm` | 执行协调，不做项目决策 | `D:/works/codexWorks/project_revid` | dependency-check, scope-check, dispatch, handoff |
+| `revid-frontend` | 前端、UI、Canvas 执行 | `D:/works/codexWorks/project_revid` | Vue, browser-verification, build |
+| `revid-backend` | Backend、MySQL、API 执行 | `D:/works/codexWorks/project_revid` | FastAPI, SQLAlchemy, Alembic, tests |
+| `revid-reviewer` | 独立验证，不做最终流转 | `D:/works/codexWorks/project_revid` | diff-review, test-rerun, evidence-audit |
 
 ---
 
@@ -355,32 +370,32 @@ hermes kanban boards switch revid
 # 2. 启动 Gateway（含 Dispatcher）
 hermes gateway start
 
-# 3. PM 创建第一批任务
-hermes kanban create --title "T1-001: 数据库持久化迁移" --assignee revid-backend --priority P0 ...
+# 3. 查看 Codex PMC 已批准的 Ready tasks
+# 当前为 T4-001 和 T4-006，不在 Hermes 中创建新任务
 ```
 
 ### 9.2 日常流程
 
 ```
-1. PM 在 Kanban 创建任务 → Todo
-2. PM 完善规格 → Ready
-3. Dispatcher 自动分配 → Running
-4. Worker 执行 + 自测 → Review
-5. Reviewer 审查 → Done / Blocked
-6. PM 根据审查结果决定下一步
+1. 用户或 Codex PMC 指定 Ready Task ID
+2. Execution Coordinator 检查后派发到 Running
+3. Worker 执行、自测并提交 REPORT，进入 Review
+4. Reviewer 独立验证，输出 PASS/REWORK/BLOCKED
+5. PASS 进入 PMC Review
+6. Codex PMC 最终验收，决定 Done、返工或阻塞
 ```
 
 ---
 
 ## 10. 安全规则
 
-- ✅ `.env` 已在 `.gitignore` 中排除
-- ✅ API Key 通过环境变量注入
-- ✅ Admin 路由仅限 admin 角色访问
-- ✅ 用户只能访问自己的资产
-- ✅ 审查结论独立记录，不可被 Executor 修改
+- `.env` 必须在 `.gitignore` 中排除，真实 secret 不进入 Git、日志和报告。
+- API key、password、token 和证书只通过环境变量或本地未跟踪文件提供。
+- 数据库 drop、truncate、覆盖、删除和 reset 必须获得用户明确确认。
+- 真实 Agnes 调用只有在 task 明确允许并使用显式 execute flag 时执行。
+- 审查结论独立记录，Executor 不得修改 REVIEW。
 
 ---
 
 *创建日期: 2026-06-19*
-*最后更新: 2026-06-19*
+*最后更新: 2026-06-21*

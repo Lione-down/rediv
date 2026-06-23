@@ -60,14 +60,15 @@ const entryChips = [
 <style scoped lang="scss">
 .composer {
   height: 100%;
-  padding: 12px;
+  padding: var(--space-3);
   border-radius: 24px;
   color: white;
   background:
+    /* Keep the dark accent wash; no exact design token is defined for this feature surface. */
     radial-gradient(circle at top right, oklch(70% 0.08 175 / 0.16), transparent 24%),
     linear-gradient(180deg, oklch(23% 0.018 245), oklch(17% 0.012 245));
   border: 1px solid oklch(100% 0.004 92 / 0.12);
-  box-shadow: 0 26px 72px oklch(10% 0.02 245 / 0.24);
+  box-shadow: var(--shadow-strong);
   display: grid;
   gap: 14px;
 }
@@ -77,7 +78,7 @@ const entryChips = [
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
-  padding: 12px 12px 4px;
+  padding: var(--space-3) var(--space-3) var(--space-1);
 }
 
 .composer-copy h2,
@@ -88,9 +89,9 @@ const entryChips = [
 .composer-kicker {
   display: inline-flex;
   width: fit-content;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: oklch(92% 0.02 175 / 0.9);
   background: oklch(100% 0.004 92 / 0.08);
   border: 1px solid oklch(100% 0.004 92 / 0.1);
@@ -100,7 +101,8 @@ const entryChips = [
 }
 
 .composer-copy h2 {
-  font-size: 24px;
+  font-size: var(--font-size-page-heading);
+  font-weight: var(--font-weight-page-heading);
   line-height: 1.3;
   letter-spacing: -0.02em;
 }
@@ -128,9 +130,9 @@ const entryChips = [
 
 .composer-entry-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
 }
 
 .entry-chip,
@@ -140,7 +142,7 @@ const entryChips = [
   min-height: 40px;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   border-radius: 14px;
   padding: 0 14px;
   transition:
@@ -168,18 +170,19 @@ const entryChips = [
 }
 
 .composer-box {
-  margin: 0 4px 4px;
-  padding: 16px;
+  margin: 0 var(--space-1) var(--space-1);
+  padding: var(--space-4);
   border-radius: 22px;
   background: oklch(19% 0.012 245 / 0.9);
   border: 1px solid oklch(100% 0.004 92 / 0.08);
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 label {
   color: oklch(84% 0.012 245 / 0.78);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
+  line-height: var(--line-height-hint);
 }
 
 textarea {
@@ -215,7 +218,7 @@ textarea::placeholder {
 .send {
   color: white;
   background: var(--accent-generate);
-  box-shadow: 0 12px 24px oklch(62% 0.105 175 / 0.18);
+  box-shadow: var(--shadow-accent);
   font-weight: 650;
 }
 
@@ -248,6 +251,10 @@ textarea::placeholder {
 
   .composer-box {
     padding: 14px;
+  }
+
+  textarea {
+    min-height: 148px;
   }
 
   .composer-actions > * {

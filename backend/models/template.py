@@ -10,10 +10,11 @@ from models.base import Base, utc_now
 
 class Template(Base):
     __tablename__ = "templates"
+    __table_args__ = {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4", "comment": "模板表"}
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    node_data: Mapped[list[dict]] = mapped_column(JSON, nullable=False, default=list)
-    node_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, comment="模板唯一标识")
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True, comment="所属用户ID")
+    name: Mapped[str] = mapped_column(String(255), nullable=False, comment="模板名称")
+    node_data: Mapped[list[dict]] = mapped_column(JSON, nullable=False, default=list, comment="节点数据JSON")
+    node_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="节点数量")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False, comment="创建时间")

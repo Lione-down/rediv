@@ -408,8 +408,9 @@ function setActiveTab(tab: SpaceTab) {
 .section-card {
   border: 1px solid var(--border-subtle);
   border-radius: 24px;
+  /* Keep translucent card surface to preserve current depth hierarchy. */
   background: oklch(100% 0.004 92 / 0.84);
-  box-shadow: 0 22px 50px oklch(24% 0.016 245 / 0.06);
+  box-shadow: var(--shadow-elevated);
   animation: page-enter 420ms ease both;
 }
 
@@ -455,15 +456,15 @@ function setActiveTab(tab: SpaceTab) {
 .stat-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  border-radius: 999px;
-  font-size: 12px;
+  gap: var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-hint);
 }
 
 .hero-kicker {
   min-height: 32px;
   width: fit-content;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   color: var(--accent-generate-hover);
   background: oklch(96% 0.022 175);
 }
@@ -484,7 +485,7 @@ function setActiveTab(tab: SpaceTab) {
 .result-cover p {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   line-height: 1.7;
 }
 
@@ -496,6 +497,7 @@ function setActiveTab(tab: SpaceTab) {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  min-width: 0;
 }
 
 .hero-action {
@@ -503,12 +505,12 @@ function setActiveTab(tab: SpaceTab) {
   min-height: 44px;
   align-items: center;
   justify-content: center;
-  padding: 0 16px;
+  padding: 0 var(--space-4);
   border: 0;
   border-radius: 12px;
   background: var(--bg-panel-subtle);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   transition:
     color 120ms ease,
     background-color 120ms ease,
@@ -572,7 +574,7 @@ function setActiveTab(tab: SpaceTab) {
 .stat-card {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   min-height: 112px;
   padding: 18px;
   border-radius: 20px;
@@ -586,9 +588,9 @@ function setActiveTab(tab: SpaceTab) {
 .stat-label {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-number);
 }
 
 .stat-copy strong {
@@ -600,7 +602,7 @@ function setActiveTab(tab: SpaceTab) {
 .stat-copy p {
   margin: 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
   line-height: 1.55;
 }
 
@@ -628,7 +630,7 @@ function setActiveTab(tab: SpaceTab) {
   display: block;
   margin-top: 6px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
   line-height: 1.5;
 }
 
@@ -639,7 +641,7 @@ function setActiveTab(tab: SpaceTab) {
 .management-chip,
 .section-chip {
   min-height: 34px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-subtle);
   background: var(--bg-panel-subtle);
   color: var(--text-secondary);
@@ -664,6 +666,7 @@ function setActiveTab(tab: SpaceTab) {
   display: grid;
   gap: 12px;
   min-height: 188px;
+  min-width: 0;
   padding: 18px;
   border-radius: 20px;
   text-align: left;
@@ -701,7 +704,7 @@ function setActiveTab(tab: SpaceTab) {
   gap: 6px;
   margin-top: auto;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-number);
 }
 
 .section-switcher {
@@ -709,7 +712,7 @@ function setActiveTab(tab: SpaceTab) {
 }
 
 .section-chip {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transition:
     color 120ms ease,
     background-color 120ms ease,
@@ -783,15 +786,15 @@ function setActiveTab(tab: SpaceTab) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 16px 18px;
+  gap: var(--space-3);
+  padding: var(--space-4) 18px;
   border-radius: 18px;
 }
 
 .asset-item p {
   margin: 4px 0 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
 }
 
 .item-pill {
@@ -826,10 +829,10 @@ function setActiveTab(tab: SpaceTab) {
   min-height: 28px;
   align-items: center;
   padding: 0 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--accent-generate-hover);
   background: oklch(96% 0.022 175);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
 }
 
 @media (max-width: 1040px) {
@@ -881,6 +884,7 @@ function setActiveTab(tab: SpaceTab) {
     overflow-x: auto;
     flex-wrap: nowrap;
     padding-bottom: 4px;
+    scrollbar-width: none;
   }
 
   .section-chip {
@@ -896,6 +900,44 @@ function setActiveTab(tab: SpaceTab) {
 
   .item-pill {
     align-self: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .space-wrap {
+    width: min(100%, calc(100% - 16px));
+    padding: 16px 0 24px;
+  }
+
+  .section-card,
+  .hero-main,
+  .result-cover,
+  .nav-card,
+  .content-card,
+  .asset-item,
+  .history-item {
+    border-radius: 18px;
+  }
+
+  .space-hero,
+  .nav-section,
+  .space-panel {
+    padding: 12px;
+  }
+
+  .hero-main {
+    padding: 16px;
+  }
+
+  .hero-main h1 {
+    font-size: clamp(24px, 10vw, 32px);
+  }
+
+  .management-strip {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    scrollbar-width: none;
   }
 }
 

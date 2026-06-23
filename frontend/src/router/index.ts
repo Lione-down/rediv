@@ -25,6 +25,11 @@ export const router = createRouter({
       component: () => import('../views/app/WechatCallback.vue'),
     },
     {
+      path: '/smoke',
+      name: 'smoke-test',
+      component: () => import('../views/smoke/SmokeTest.vue'),
+    },
+    {
       path: '/admin',
       name: 'admin-dashboard',
       component: () => import('../views/admin/Dashboard.vue'),

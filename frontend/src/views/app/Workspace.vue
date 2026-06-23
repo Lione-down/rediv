@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { isAxiosError } from 'axios'
 import { computed, ref } from 'vue'
+import { NButton, NTag, useMessage } from 'naive-ui'
 import {
+  AlertTriangle,
   Database,
   Hand,
   Image as ImageIcon,
@@ -11,18 +14,36 @@ import {
   Type,
   WandSparkles,
 } from 'lucide-vue-next'
+import { request } from '../../api/request'
 import AppTopBar from '../../components/layout/AppTopBar.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
 import { useAssetStore } from '../../store/assets'
 import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
+import type { Asset } from '../../types/asset'
+import type { CanvasNode } from '../../types/canvas'
 
+type WorkspaceTab = 'assets' | 'templates' | 'properties'
+type QuotaType = 'text' | 'image' | 'video'
+
+interface GenerationOutcome {
+  asset?: Asset
+  successMessage: string
+  updatedContent?: string
+}
+
+const PROJECT_NAME = '午夜车站概念片'
+
+const message = useMessage()
 const authStore = useAuthStore()
 const assetStore = useAssetStore()
 const canvasStore = useCanvasStore()
 
-const activeTab = ref<'assets' | 'templates' | 'properties'>('assets')
+const activeTab = ref<WorkspaceTab>('assets')
 const isMobilePanelOpen = ref(false)
+const isGenerating = ref(false)
+const lastErrorMessage = ref('')
+const lastSuccessMessage = ref('')
 
 const tools = [
   { key: 'select', label: '选择', icon: MousePointer2 },
@@ -38,19 +59,164 @@ const templates = [
   { id: 'tpl-output', name: '生成链路', description: '把素材、模型和结果收成一条链。' },
 ]
 
-const selectedTitle = computed(() => canvasStore.selectedNode?.title || '未选中节点')
-const selectedNodeType = computed(() => canvasStore.selectedNode?.type || '未选择')
-const selectedNodeStatus = computed(() => canvasStore.selectedNode?.status || 'idle')
+const statusTextMap: Record<NonNullable<CanvasNode['status']>, string> = {
+  idle: '待生成',
+  selected: '已选中',
+  running: '运行中',
+  success: '已完成',
+  warning: '需处理',
+}
+
+const selectedNode = computed(() => canvasStore.selectedNode)
+const selectedTitle = computed(() => selectedNode.value?.title || '未选中节点')
+const selectedNodeType = computed(() => selectedNode.value?.type || '未选择')
+const selectedNodeStatus = computed(() => {
+  const status = selectedNode.value?.status || 'idle'
+  return statusTextMap[status]
+})
 const visibleAssets = computed(() => assetStore.items.slice(0, 4))
 const activeToolLabel = computed(() => tools.find((tool) => tool.key === canvasStore.mode)?.label || '选择')
+const selectedQuotaType = computed<QuotaType | null>(() => getQuotaType(selectedNode.value))
+const selectedQuotaRemaining = computed(() => {
+  if (!selectedQuotaType.value) return null
 
-function setActiveTab(tab: 'assets' | 'templates' | 'properties') {
+  return authStore.quotas[selectedQuotaType.value]
+})
+const isQuotaInsufficient = computed(() => {
+  if (selectedQuotaRemaining.value == null) return false
+
+  return selectedQuotaRemaining.value < 1
+})
+const generationButtonLabel = computed(() => (isGenerating.value ? '生成中' : '立即生成'))
+
+function setActiveTab(tab: WorkspaceTab) {
   activeTab.value = tab
   isMobilePanelOpen.value = true
 }
 
 function toggleMobilePanel() {
   isMobilePanelOpen.value = !isMobilePanelOpen.value
+}
+
+function getQuotaType(node: CanvasNode | null): QuotaType | null {
+  if (!node) return null
+  if (node.type === 'image' || node.type === 'model') return 'image'
+  if (node.type === 'video') return 'video'
+  if (node.type === 'text') return 'text'
+
+  return null
+}
+
+function buildPrompt(node: CanvasNode) {
+  return node.content?.trim() || node.title.trim()
+}
+
+function extractErrorMessage(error: unknown) {
+  if (isAxiosError<{ detail?: string }>(error)) {
+    return error.response?.data?.detail || error.message || '生成失败，请稍后重试。'
+  }
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return '生成失败，请稍后重试。'
+}
+
+function prependAsset(asset?: Asset) {
+  if (!asset?.id) return
+
+  assetStore.items = [asset, ...assetStore.items.filter((item) => item.id !== asset.id)]
+}
+
+function consumeQuota(quotaType: QuotaType) {
+  authStore.quotas = {
+    ...authStore.quotas,
+    [quotaType]: Math.max(0, authStore.quotas[quotaType] - 1),
+  }
+}
+
+async function requestGeneration(node: CanvasNode): Promise<GenerationOutcome> {
+  const prompt = buildPrompt(node)
+
+  if (node.type === 'text') {
+    throw new Error('当前工作流页尚未接入真实 project_id，文本节点暂不能直连 Agnes 文本生成接口。')
+  }
+
+  if (node.type === 'image' || node.type === 'model') {
+    const response = await request.post('/api/image-generate', { prompt })
+    const asset = response.data.asset as Asset | undefined
+
+    return {
+      asset,
+      successMessage: '图片生成完成，结果已写入资产区。',
+      updatedContent: asset?.url ? '关键帧已生成，可在 Assets 面板查看。' : '图片生成已完成。',
+    }
+  }
+
+  if (node.type === 'video') {
+    const response = await request.post('/api/video-generate', { prompt })
+    const asset = response.data.asset as Asset | undefined
+
+    return {
+      asset,
+      successMessage: '视频生成完成，结果已写入资产区。',
+      updatedContent: asset?.url ? '视频任务已完成，可在 Assets 面板查看。' : '视频生成已完成。',
+    }
+  }
+
+  throw new Error('当前节点类型暂不支持生成。')
+}
+
+async function handleGenerate() {
+  const node = selectedNode.value
+  const quotaType = selectedQuotaType.value
+
+  if (!node) {
+    message.warning('请先选择一个节点。')
+    return
+  }
+
+  if (!quotaType) {
+    canvasStore.setNodeStatus(node.id, 'warning')
+    lastErrorMessage.value = '当前节点类型暂不支持生成。'
+    lastSuccessMessage.value = ''
+    message.warning(lastErrorMessage.value)
+    return
+  }
+
+  if (isQuotaInsufficient.value) {
+    canvasStore.setNodeStatus(node.id, 'warning')
+    lastErrorMessage.value = `${quotaType} quota 不足，当前生成已阻止。`
+    lastSuccessMessage.value = ''
+    message.warning(lastErrorMessage.value)
+    return
+  }
+
+  isGenerating.value = true
+  lastErrorMessage.value = ''
+  lastSuccessMessage.value = ''
+  canvasStore.setNodeStatus(node.id, 'running')
+
+  try {
+    const outcome = await requestGeneration(node)
+    prependAsset(outcome.asset)
+    consumeQuota(quotaType)
+    canvasStore.setNodeStatus(node.id, 'success')
+
+    if (outcome.updatedContent) {
+      canvasStore.setNodeContent(node.id, outcome.updatedContent)
+    }
+
+    lastSuccessMessage.value = outcome.successMessage
+    message.success(outcome.successMessage)
+  } catch (error) {
+    const detail = extractErrorMessage(error)
+    canvasStore.setNodeStatus(node.id, 'warning')
+    lastErrorMessage.value = detail
+    message.error(detail)
+  } finally {
+    isGenerating.value = false
+  }
 }
 </script>
 
@@ -79,7 +245,7 @@ function toggleMobilePanel() {
         <div class="canvas-chrome">
           <div>
             <p class="eyebrow">当前项目</p>
-            <h1>午夜车站概念片</h1>
+            <h1>{{ PROJECT_NAME }}</h1>
           </div>
           <div class="canvas-status">
             <span class="status-pill">{{ activeToolLabel }}模式</span>
@@ -192,8 +358,21 @@ function toggleMobilePanel() {
                   <span>模式</span>
                   <strong>{{ activeToolLabel }}</strong>
                 </div>
+                <div v-if="selectedQuotaType" class="property-row">
+                  <span>剩余额度</span>
+                  <strong>{{ selectedQuotaRemaining }}</strong>
+                </div>
               </div>
               <p class="muted">后续节点参数、模型配置和输出控制会在这里继续承接。</p>
+
+              <div v-if="lastErrorMessage" class="inline-feedback inline-feedback-error">
+                <AlertTriangle :size="15" />
+                <span>{{ lastErrorMessage }}</span>
+              </div>
+              <div v-else-if="lastSuccessMessage" class="inline-feedback inline-feedback-success">
+                <Sparkles :size="15" />
+                <span>{{ lastSuccessMessage }}</span>
+              </div>
             </section>
           </template>
         </div>
@@ -217,17 +396,34 @@ function toggleMobilePanel() {
     <footer class="prompt-dock">
       <div class="dock-copy">
         <WandSparkles :size="18" />
-        <span>继续当前流程，下一步生成关键帧。</span>
+        <span>{{ selectedNode ? `继续处理「${selectedTitle}」节点的生成任务。` : '请选择一个节点后开始生成。' }}</span>
       </div>
       <div class="dock-actions">
+        <div v-if="isQuotaInsufficient" class="quota-warning">
+          <n-tag type="warning" size="small" round>
+            额度不足
+          </n-tag>
+        </div>
         <button class="panel-action focus-ring" type="button" @click="toggleMobilePanel">
           <PanelsTopLeft :size="16" />
           面板
         </button>
-        <button class="generate-action focus-ring" type="button">
-          <Play :size="17" />
-          立即生成
-        </button>
+        <n-button
+          class="generate-action focus-ring"
+          strong
+          :loading="isGenerating"
+          :disabled="!selectedNode"
+          @click="handleGenerate"
+        >
+          <template #icon>
+            <Play :size="17" />
+          </template>
+          {{ generationButtonLabel }}
+        </n-button>
+      </div>
+      <div v-if="lastErrorMessage" class="dock-feedback dock-feedback-error">
+        <AlertTriangle :size="15" />
+        <span>{{ lastErrorMessage }}</span>
       </div>
     </footer>
   </main>
@@ -249,8 +445,8 @@ function toggleMobilePanel() {
   display: grid;
   align-content: start;
   justify-items: center;
-  gap: 8px;
-  padding: 12px 8px;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
   border-right: 1px solid var(--border-subtle);
   background: var(--bg-panel);
 }
@@ -292,8 +488,9 @@ function toggleMobilePanel() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px 18px 12px;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: 14px 18px var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
   background: oklch(100% 0.004 92 / 0.64);
 }
@@ -302,20 +499,23 @@ function toggleMobilePanel() {
 .panel-label {
   margin: 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
+  line-height: var(--line-height-hint);
 }
 
 .canvas-chrome h1,
 .right-panel h2 {
   margin: 4px 0 0;
-  font-size: 15px;
-  line-height: 1.35;
+  font-size: var(--font-size-panel-heading);
+  font-weight: var(--font-weight-panel-heading);
+  line-height: var(--line-height-panel-heading);
 }
 
 .canvas-status {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .status-pill,
@@ -323,11 +523,11 @@ function toggleMobilePanel() {
   display: inline-flex;
   min-height: 28px;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0 10px;
   background: var(--bg-panel-subtle);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
 }
 
 .stage-frame {
@@ -350,8 +550,9 @@ function toggleMobilePanel() {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  padding: 14px 16px 12px;
+  padding: 14px var(--space-4) var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
+  min-width: 0;
 }
 
 .panel-tab {
@@ -374,21 +575,20 @@ function toggleMobilePanel() {
 
 .panel-tab:active,
 .mobile-panel-toggle:active,
-.panel-action:active,
-.generate-action:active {
+.panel-action:active {
   transform: scale(0.96);
 }
 
 .panel-body {
   min-height: 0;
   overflow: auto;
-  padding: 16px;
+  padding: var(--space-4);
 }
 
 .panel-section {
   display: grid;
   gap: 14px;
-  padding: 16px;
+  padding: var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -408,8 +608,8 @@ function toggleMobilePanel() {
 .asset-card,
 .template-card {
   display: grid;
-  gap: 8px;
-  padding: 12px;
+  gap: var(--space-2);
+  padding: var(--space-3);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--bg-panel-subtle);
@@ -438,7 +638,7 @@ function toggleMobilePanel() {
 .property-row span {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
   line-height: 1.55;
 }
 
@@ -452,9 +652,31 @@ function toggleMobilePanel() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.inline-feedback,
+.dock-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.inline-feedback-error,
+.dock-feedback-error {
+  color: var(--danger);
+  background: color-mix(in oklch, var(--danger) 12%, white 88%);
+}
+
+.inline-feedback-success {
+  color: var(--success);
+  background: color-mix(in oklch, var(--success) 12%, white 88%);
 }
 
 .quota-section {
@@ -464,7 +686,7 @@ function toggleMobilePanel() {
 .quota-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .quota-grid span {
@@ -474,21 +696,22 @@ function toggleMobilePanel() {
   border-radius: var(--radius-sm);
   background: var(--bg-panel-subtle);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-hint);
   text-align: center;
 }
 
 .mobile-panel-toggle,
-.panel-action,
-.generate-action {
+.panel-action {
   display: inline-flex;
   min-height: 38px;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   border: 0;
   border-radius: var(--radius-sm);
-  padding: 0 12px;
+  padding: 0 var(--space-3);
+  color: var(--text-secondary);
+  background: var(--bg-panel-subtle);
   transition:
     color 120ms ease,
     background-color 120ms ease,
@@ -496,19 +719,23 @@ function toggleMobilePanel() {
     transform 120ms ease;
 }
 
-.mobile-panel-toggle,
-.panel-action {
-  color: var(--text-secondary);
-  background: var(--bg-panel-subtle);
-}
-
 .generate-action {
-  color: white;
-  background: var(--accent-generate);
-}
-
-.generate-action:hover {
-  background: var(--accent-generate-hover);
+  --n-border: none;
+  --n-border-hover: none;
+  --n-border-pressed: none;
+  --n-border-focus: none;
+  --n-color: var(--accent-generate);
+  --n-color-hover: var(--accent-generate-hover);
+  --n-color-pressed: var(--accent-generate-hover);
+  --n-color-focus: var(--accent-generate-hover);
+  --n-text-color: white;
+  --n-text-color-hover: white;
+  --n-text-color-pressed: white;
+  --n-text-color-focus: white;
+  --n-border-radius: var(--radius-sm);
+  --n-padding: 0 14px;
+  --n-height: 38px;
+  --n-font-weight: 600;
 }
 
 .prompt-dock {
@@ -517,12 +744,11 @@ function toggleMobilePanel() {
   bottom: 18px;
   left: 88px;
   z-index: 12;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 14px;
   min-height: 58px;
-  padding: 9px 10px 9px 16px;
+  padding: 9px 10px 9px var(--space-4);
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
   background: oklch(100% 0.004 92 / 0.88);
@@ -533,7 +759,7 @@ function toggleMobilePanel() {
 .dock-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .dock-copy {
@@ -548,12 +774,29 @@ function toggleMobilePanel() {
   text-overflow: ellipsis;
 }
 
+.dock-actions {
+  justify-content: flex-end;
+}
+
+.quota-warning {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dock-feedback {
+  grid-column: 1 / -1;
+}
+
 .mobile-panel-toggle,
 .panel-action {
   display: none;
 }
 
 @media (max-width: 920px) {
+  .workspace-page {
+    padding-bottom: 166px;
+  }
+
   .workspace-shell {
     grid-template-columns: 1fr;
   }
@@ -613,7 +856,7 @@ function toggleMobilePanel() {
   }
 
   .panel-body {
-    padding-bottom: 24px;
+    padding-bottom: var(--space-6);
   }
 
   .asset-grid {
@@ -624,8 +867,7 @@ function toggleMobilePanel() {
     right: 12px;
     bottom: 86px;
     left: 12px;
-    align-items: stretch;
-    flex-direction: column;
+    grid-template-columns: 1fr;
     padding: 12px;
   }
 
@@ -634,8 +876,50 @@ function toggleMobilePanel() {
     width: 100%;
   }
 
+  .dock-actions {
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
   .dock-actions > * {
     flex: 1;
+  }
+}
+
+@media (max-width: 560px) {
+  .canvas-chrome {
+    gap: 12px;
+    padding: 12px 12px 10px;
+  }
+
+  .canvas-status {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .panel-tabs {
+    padding: 12px 12px 10px;
+  }
+
+  .panel-body,
+  .panel-section {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .asset-grid,
+  .quota-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .prompt-dock {
+    bottom: 84px;
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .dock-copy {
+    font-size: 13px;
   }
 }
 </style>

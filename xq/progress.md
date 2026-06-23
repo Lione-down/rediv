@@ -324,3 +324,74 @@ T2-003 审查通过，已移入 done/。下一步生成 T2-004 任务。
 ### 当前状态
 
 T2-004 审查通过，已移入 done/。Phase 2 剩余任务：2.7 前端基础联调、2.8 响应式验证。
+
+## 2026-06-30 T3-004 Agnes 文本生成接入 — 审查通过
+
+### 已完成
+
+- Project Master Controller 审查了 T3-004 完成报告，确认 PASS（评分 5/5）
+- 新增 `backend/api/text_generate.py`：POST `/api/text-generate` 接口，支持项目/节点归属校验、`agnes-2.0-flash` 文本生成、`text` 额度扣减、失败返还与 prompt 资产自动入库
+- 修改 `backend/api/router.py`：注册 text_generate 路由
+- 新增 `backend/tests/test_text_generate.py`：4 个专项测试全部通过（成功路径、Agnes 失败不扣额度、asset 失败返还、额度不足拒绝）
+- 已更新 CURRENT.md、ROADMAP.md，T3-004 移入 done/
+- 生成 T3-005 任务文件到 ai/tasks/todo/
+- Next Task: T3-005 — Agnes 图片生成接入（文生图/图生图）
+
+### 当前状态
+
+T3-004 审查通过，已移入 done/。Phase 3 进度：3.1~3.4 全部完成。下一步为 3.5 Agnes 图片生成接入。
+
+## 2026-06-30 T3-006 Agnes 视频任务接入 — 审查通过
+
+### 已完成
+
+- Project Master Controller 审查了 T3-006 完成报告，确认 PASS（评分 5/5）
+- 新增 `backend/api/video_generate.py`：POST `/api/video-generate` 接口
+  - 支持 Agnes 视频任务创建（agnes-video-v2.0）
+  - 5秒间隔轮询，最多120次（10分钟超时）
+  - 额度扣减/失败返还逻辑完备
+  - 生成结果保存为 video 类型 asset
+- 修改 `backend/api/router.py`：注册 video_generate 路由
+- 新增 `backend/tests/test_video_generate.py`：7 个专项测试全部通过
+- 任务文件从 doing/ 移入 done/
+- 更新 CURRENT.md（Completed Tasks 表格新增 T3-006）
+- 更新 ROADMAP.md（3.6 标记为完成）
+- 生成 T3-007 任务文件到 ai/tasks/todo/
+- Next Task: T3-007 — 任务状态 + 失败提示 + 额度提示
+
+## 2026-06-20 T3-007 任务状态 + 失败提示 + 额度提示
+
+### 已完成
+
+- 接管 doing 中断任务，补齐 `ai/tasks/doing/TASK-T3-007-PLAN.md` 与 `TASK-T3-007-PROGRESS.md`。
+- 重构 `frontend/src/store/canvas.ts`，补充 `setNodeStatus`、`setNodeContent` 和稳定的节点更新逻辑，确保状态切换可触发视图更新。
+- 重构 `frontend/src/components/canvas/CanvasStage.vue`，补充 `running / success / warning` 三种节点状态的边框高亮、状态徽标、spinner 和 pulse 动效。
+- 重构 `frontend/src/views/app/Workspace.vue`，补充生成按钮 loading、失败提示区域、额度不足标签、节点状态流转和最小生成调用闭环。
+- 额外修改 `frontend/src/App.vue`，挂载 `NMessageProvider` 以支持 Naive UI `Message` 提示。
+- 完成 `npm run build` 验证，前端构建通过。
+
+### 风险与说明
+
+- 当前工作流页缺少真实 `project_id` 上下文，因此文本节点暂未直连 `/api/text-generate`，本次保持最小改动，没有扩展到项目上下文接入。
+- 已尝试做本地浏览器响应式验证，但企业策略阻止 Browser Use 访问本地 `127.0.0.1:4173`，本轮仅完成构建验证与样式逻辑自检。
+
+### 当前状态
+
+T3-007 已完成开发与构建验证，保留在 `ai/tasks/doing/`，等待 Hermes 审查。
+
+## 2026-07-02 T3-010 Agnes 图片/视频端到端测试 — 审查通过
+
+### 已完成
+
+- Project Master Controller 审查了 T3-010 完成报告，确认 PASS（评分 4/5）
+- 新增 `backend/tests/test_image_e2e.py`（220 行）：覆盖文生图成功、图生图成功、生成失败不扣额、落库失败 refund、额度不足拒绝、资产双重持久化校验
+- 新增 `backend/tests/test_video_e2e.py`（233 行）：覆盖创建+轮询成功、轮询失败不扣额、超时不扣额、落库失败 refund、额度不足拒绝、资产双重持久化校验
+- 测试全部使用 TemporaryDirectory + SQLite 隔离，Agnes API 全 mock
+- 报告中诚实记录了"视频额度预扣+返还"文案与实际实现不一致的问题，测试按真实实现编写
+- 任务文件从 doing/ 移入 done/
+- **Phase 3 全部完成（T3-001 ~ T3-010 共 10 个子任务全部通过审查）**
+- 更新 CURRENT.md、ROADMAP.md
+
+### 当前状态
+
+Phase 3 全部完成。等待 Hermes 规划下一阶段（Phase 4）。
