@@ -8,7 +8,7 @@
 | Task | 标题 | 状态 | 依赖 |
 |---|---|---|---|
 | T4-001 | MySQL 8 引擎、模型备注与 Alembic baseline | done | 无 |
-| T4-002 | SQLite → MySQL 数据迁移工具 | rework | T4-001 ✅ |
+| T4-002 | SQLite → MySQL 数据迁移工具 | blocked（secret / dispatch） | T4-001 ✅ |
 | T4-003 | MySQL runtime 切换与 Navicat 验收 | blocked | T4-002 |
 
 ## Phase 4B — 认证与真实 API
@@ -22,11 +22,11 @@
 
 | Task | 标题 | 状态 | 依赖 |
 |---|---|---|---|
-| T4-006 | 暗色 design system 与 Naive UI provider | rework | 无 |
+| T4-006 | 暗色 design system 与 Naive UI provider | done ✅ | 无 |
 | T4-007 | 登录/注册入口与路由鉴权 | blocked | T4-004、T4-006 |
 | T4-008 | Home 项目/资产概览页重构 | blocked | T4-003、T4-006 |
 | T4-009 | Space 个人资产页重构 | blocked | T4-003、T4-006 |
-| T4-010 | Workspace 组件拆分与目标布局 | blocked | T4-006 |
+| T4-010 | Workspace 组件拆分与目标布局 | ready（待批准） | T4-006 ✅ |
 
 ## Phase 4D — Canvas 与最终联调
 

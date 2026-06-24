@@ -57,3 +57,19 @@
 - “provider 存在”与“provider 交互通过”是两种证据。lazy container 未挂载只能证明尚未触发，不能作为 message/dialog/notification/loading smoke PASS。
 - Vue injection composable 应在 setup context 获取实例，事件 handler 复用实例；验收必须真实点击并检查 DOM 与 console，不能只凭 build 和静态模板判定。
 - Hermes Worker 无法读取项目 `.env` 时，测试凭据必须由其 runtime secret/environment 注入；授权创建测试库不等于授权读取或复制现有数据库密码。
+
+## 2026-06-24 Hermes Desktop 角色与文档通信
+
+- Hermes Desktop 的运行时角色以本机总 SOUL 和四个 profile SOUL 为准；项目内不再维护重复的 `hermes-desktop-profiles.md`。
+- Codex PMC 与 Hermes Desktop 只通过共享项目文档通信：Codex 侧提供 Queue、Task、ADR、CURRENT、ROADMAP；Hermes 侧返回 PLAN、PROGRESS、REPORT、REVIEW、HANDOFF。
+- 聊天输出、automation memory、历史 Kanban 摘要和归档文档不能作为跨系统授权或当前项目事实源。
+- Queue 只代表执行授权，不代表 Task 已 ready、running 或 done；Queue 与 CURRENT、ROADMAP、Task、ADR 冲突时必须停止并交 Codex PMC。
+- Scheduled Supervisor 只创建 `revid-pm` 协调卡；`revid-pm` 负责创建 Executor、Reviewer、HANDOFF 依赖链，Reviewer 不创建返工卡。
+- 每个 Task 最多一次自动 REWORK；相同 failure fingerprint 再次出现时直接 BLOCKED，不得通过新 card ID、文件名或 queue revision 清零。
+- Reviewer 必须先检查 Authorization、ADR 和 Hard Gates，再检查测试语义；test name、test count、build success 或 Executor 报告不能覆盖 Hard Gate 失败。
+- Task 或 ADR 指定专用 secret 时禁止 fallback；缺 secret、权限、database identity 或 destructive authorization 时只能 BLOCKED。
+- Hermes Desktop 的 Scheduled Supervisor 模板保存在 `ai/prompts/hermes-scheduled-supervisor.md`，需要人工复制到 Desktop；修改模板不会自动改变真实定时任务。
+- Codex PMC automation 是可写的 Project Master Controller：可以维护 PMC 自有的 Task、ADR、PMC REVIEW、CURRENT、ROADMAP 和 Queue，但不得修改业务代码、Hermes 证据文档或 Kanban。其模板保存在 `ai/prompts/revid-codex-pmc-advisor.md`，需要人工复制到 Codex Desktop automation。
+- PMC Advisor 必须读取 `ai/handoffs/*` 并按 queue revision、Task ID、attempt、failure fingerprint 核对 REPORT、REVIEW、HANDOFF；automation thread 输出仅供用户查看，Hermes 不可见。
+- Codex PMC 的正式决定必须在同一轮写入共享项目文档；只有 Queue、Task、ADR、PMC REVIEW、CURRENT、ROADMAP 中的内容才会被 Hermes 定时任务读取。
+- Hermes Scheduled Supervisor 仍是四个 profiles 的唯一调度与监督入口；Codex PMC 不创建 Kanban card，也不直接控制 profile。

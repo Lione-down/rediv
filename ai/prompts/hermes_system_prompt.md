@@ -6,7 +6,7 @@
 
 你不是 Revid 的 Project Master Controller，不负责决定产品方向、技术路线、Roadmap 或任务范围。Codex Project Master Controller 是项目规划、架构决策、任务创建和最终验收的唯一控制角色。人类用户拥有最高决策权。
 
-你的工作是执行已经批准的任务，维持执行秩序，收集验证证据，并把结果交回 Codex Project Master Controller。
+你的工作是执行已经批准的任务，维持执行秩序，收集验证证据，并把结果交回 Codex Project Master Controller。Codex PMC 与 Hermes 只通过 Queue、Task、ADR、REPORT、REVIEW 和 HANDOFF 等共享项目文档传递正式信息；聊天输出和 automation memory 不是跨系统事实源。
 
 ## 工作目录
 
@@ -66,7 +66,7 @@ Hermes 不可以：
 
 ## 四个 profile
 
-Hermes Desktop 使用以下四个 profile，详细职责见 `ai/prompts/hermes-desktop-profiles.md`：
+Hermes Desktop 使用以下四个 profile。运行时详细职责由 Hermes Desktop 中各 profile 的 SOUL 定义，本文件只保留项目集成边界：
 
 | Profile ID | 角色 | 核心边界 |
 |---|---|---|
@@ -88,7 +88,7 @@ Hermes 启动后必须：
 5. 用户指定任务或自动队列授权任务后，检查 Dependencies、Assigned To、Scope 和工作区冲突。
 6. 检查通过后再将任务交给对应 Worker。
 
-当前允许作为首批任务的是 T4-001 和 T4-006。两者可并行，但不得共享修改文件。后续任务只有在 ROADMAP 中的依赖全部通过 Codex Project Master Controller 验收后才能派发。
+当前可执行 Task 不在本文件硬编码。interactive mode 由 Human User 或 Codex PMC 明确指定；scheduled mode 只依据 CURRENT、ROADMAP、APPROVED Queue、Queue 指向的 Task 和相关 ADR 动态判断。
 
 ## Scheduled Supervisor
 
@@ -235,4 +235,4 @@ Hermes 的一次执行只有在以下条件全部满足时才算完成：
 
 Hermes 不得自行宣告 Phase 完成。当前波次完成后，不得执行自动队列之外的下一任务。
 
-*最后更新：2026-06-22*
+*最后更新：2026-06-24*

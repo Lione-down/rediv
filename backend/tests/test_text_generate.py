@@ -1,0 +1,177 @@
+from __future__ import annotations
+
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import main as backend_main
+from api.router import include_routers
+from controllers.store import DatabaseStore, configure_store, store
+from core.security import create_token
+from database import close_db, init_db
+
+
+class _FakeAgnesProvider:
+    def __init__(self, response: dict | None = None, error: Exception | None = None) -> None:
+        self.response = response or {"choices": [{"message": {"content": "Generated storyboard"}}]}
+        self.error = error
+        self.calls: list[dict] = []
+
+    async def chat(self, model: str, messages: list[dict], **kwargs) -> dict:
+        self.calls.append({"model": model, "messages": messages, "kwargs": kwargs})
+        if self.error is not None:
+            raise self.error
+        return self.response
+
+
+class TextGenerateApiTestCase(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = TemporaryDirectory()
+        db_path = str(Path(self.temp_dir.name) / "test-revid.db")
+        init_db(db_path)
+        configure_store(DatabaseStore())
+
+        app = FastAPI()
+        include_routers(app)
+        self.client = TestClient(app)
+
+        store.registration_settings["registration_mode"] = "open"
+        auth_payload = self._register_user("text-generate-user").json()
+        self.user = auth_payload["user"]
+        self.project = store.create_project(self.user["id"], "Text Generation Project")
+        self.node = store.create_node(
+            self.project["id"],
+            self.user["id"],
+            "text",
+            {"text": "Node content"},
+            100,
+            200,
+            320,
+            180,
+        )
+
+    def tearDown(self) -> None:
+        self.client.close()
+        close_db()
+        self.temp_dir.cleanup()
+
+    def test_text_generate_success_creates_prompt_asset_and_deducts_quota(self) -> None:
+        fake_provider = _FakeAgnesProvider(
+            response={"choices": [{"message": {"content": "Scene 1: Opening shot"}}]},
+        )
+        original_quota = store.quotas[self.user["id"]]["text"]
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/text-generate",
+                json={
+                    "project_id": self.project["id"],
+                    "node_id": self.node["id"],
+                    "prompt": "Write a short video script",
+                },
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(200, response.status_code)
+        payload = response.json()
+        self.assertEqual("Scene 1: Opening shot", payload["content"])
+        self.assertEqual("prompt", payload["asset"]["type"])
+        self.assertEqual("generation", payload["asset"]["source"])
+        self.assertEqual("agnes-2.0-flash", payload["asset"]["source_model"])
+        self.assertEqual(self.project["id"], payload["asset"]["project_id"])
+        self.assertEqual(self.node["id"], payload["asset"]["canvas_node_id"])
+        self.assertEqual(original_quota - 1, store.quotas[self.user["id"]]["text"])
+        self.assertEqual("agnes-2.0-flash", fake_provider.calls[0]["model"])
+        self.assertEqual("Write a short video script", fake_provider.calls[0]["messages"][0]["content"])
+
+    def test_text_generate_failure_does_not_deduct_quota(self) -> None:
+        fake_provider = _FakeAgnesProvider(error=RuntimeError("provider failed"))
+        original_quota = store.quotas[self.user["id"]]["text"]
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/text-generate",
+                json={
+                    "project_id": self.project["id"],
+                    "node_id": self.node["id"],
+                    "prompt": "Fail this request",
+                },
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(500, response.status_code)
+        self.assertEqual("Agnes text generation failed", response.json()["detail"])
+        self.assertEqual(original_quota, store.quotas[self.user["id"]]["text"])
+
+    def test_text_generate_asset_failure_refunds_quota(self) -> None:
+        fake_provider = _FakeAgnesProvider()
+        original_quota = store.quotas[self.user["id"]]["text"]
+
+        def failing_create_asset(*args, **kwargs):
+            raise RuntimeError("db write failed")
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            with patch.object(store, "create_asset", side_effect=failing_create_asset):
+                response = self.client.post(
+                    "/api/text-generate",
+                    json={
+                        "project_id": self.project["id"],
+                        "node_id": self.node["id"],
+                        "prompt": "Generate then fail saving",
+                    },
+                    headers=self._auth_headers(self.user["id"]),
+                )
+
+        self.assertEqual(500, response.status_code)
+        self.assertEqual("Failed to save generated asset", response.json()["detail"])
+        self.assertEqual(original_quota, store.quotas[self.user["id"]]["text"])
+        refund_records = [
+            record
+            for record in store.quota_ledger
+            if record["user_id"] == self.user["id"] and record["reason"] == "text_generate_refund"
+        ]
+        self.assertEqual(1, len(refund_records))
+
+    def test_text_generate_requires_available_quota(self) -> None:
+        store.grant_quota(self.user["id"], "text", -store.quotas[self.user["id"]]["text"], "drain_for_test", None)
+
+        response = self.client.post(
+            "/api/text-generate",
+            json={
+                "project_id": self.project["id"],
+                "node_id": self.node["id"],
+                "prompt": "Try without quota",
+            },
+            headers=self._auth_headers(self.user["id"]),
+        )
+
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("Insufficient text quota", response.json()["detail"])
+
+    def _register_user(self, openid: str):
+        return self.client.post(
+            "/auth/wechat/mock",
+            json={
+                "openid": openid,
+                "nickname": f"user-{openid}",
+                "avatar_url": "",
+                "unionid": None,
+                "invitation_code": None,
+            },
+        )
+
+    @staticmethod
+    def _auth_headers(user_id: str) -> dict[str, str]:
+        token = create_token({"sub": user_id, "role": "user"})
+        return {"Authorization": f"Bearer {token}"}
+
+
+if __name__ == "__main__":
+    unittest.main()
