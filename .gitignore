@@ -17,3 +17,24 @@ node_modules/
 dist/
 build/
 .DS_Store
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+
+# One-off root diagnostics and verification scripts
+/_check_*.py
+/_run_*.py
+/_test_*.py
+/_simple.py
+
+# One-off backend diagnostics and verification scripts
+/backend/_test_*.py
+/backend/debug_*.py
+/backend/test_*_debug.py
+/backend/verify_*.py
+/backend/setup_test_db.py
+
+# Windows reserved-name artifact
+/nul

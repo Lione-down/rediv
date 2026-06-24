@@ -6,20 +6,34 @@ T4-002
 ## Current Attempt
 
 - Human-approved Revision：`phase4-wave2-manual-rework-2026-06-24-01`
-- Governance Revision：`phase4-wave2-blocked-2026-06-24-02`
-- Status：`BLOCKED — NOT DISPATCHED`
+- Dispatch Revision：`phase4-wave2-manual-rework-2026-06-24-03`
+- Governance Revision：`phase4-wave2-dispatch-blocked-2026-06-24-04`
+- Redispatch Revision：`phase4-wave2-manual-rework-2026-06-24-05`
+- Blocking Governance Revision：`phase4-wave2-executor-blocked-2026-06-24-06`
+- Recovery Dispatch Revision：`phase4-wave2-recovery-dispatch-2026-06-24-07`
+- Status：`APPROVED — READY FOR HERMES RECOVERY DISPATCH`
 - Approved By：Human User
 - PMC Review：`ai/reviews/REVIEW-T4-002-PMC-2026-06-24.md`
-- Blocking Review：`ai/reviews/REVIEW-T4-002-PMC-BLOCKED-2026-06-24.md`
+- Dispatch Review：`ai/reviews/REVIEW-T4-002-PMC-DISPATCH-2026-06-24.md`
+- Blocking Review：`ai/reviews/REVIEW-T4-002-PMC-DISPATCH-BLOCKED-2026-06-24.md`
+- Redispatch Review：`ai/reviews/REVIEW-T4-002-PMC-REDISPATCH-2026-06-24.md`
+- Running Checkpoint：`ai/reviews/REVIEW-T4-002-PMC-CHECKPOINT-2026-06-24.md`
+- Executor Blocking Review：`ai/reviews/REVIEW-T4-002-PMC-EXECUTOR-BLOCKED-2026-06-24.md`
+- Recovery Dispatch Review：`ai/reviews/REVIEW-T4-002-PMC-RECOVERY-DISPATCH-2026-06-24.md`
 - Safety Decision：`ai/decisions/ADR-003-t4-002-disposable-mysql-test-environment.md`
 
-本轮是重复 failure fingerprint 后的一次性人工返工授权。该授权仍有效，但 Hermes 未成功派发 Executor，且运行时缺少专用 secret，因此当前未进入新的 Executor attempt。旧 PLAN、PROGRESS、REPORT、REVIEW、HANDOFF 仅作历史证据，不得作为本轮完成证明。
+本轮由 Codex PMC 根据 Human User 的明确推进指令发布 recovery dispatch。Hermes 必须基于 revision `phase4-wave2-recovery-dispatch-2026-06-24-07` 创建全新执行链。旧 PLAN、PROGRESS、REPORT、REVIEW、HANDOFF 仅作历史证据，不得作为本轮完成证明。
 
-## Current Blockers
+当前执行链：Coordinator `t_f53b3c08` 已完成调度；Executor `t_68c68e4e` attempt 0 的 run `#72` 与 retry run `#73` 均因 `pid not alive` crash，dispatcher 已 `gave_up`。当前 revision 没有 REPORT、Independent REVIEW 或 HANDOFF；现有 partial implementation 不构成完成证据。
 
-1. Hermes runtime 未设置 `REVID_TEST_MYSQL_ADMIN_URL`；缺失时不得执行 CREATE/DROP 或连接替代数据库。
-2. revision `phase4-wave2-manual-rework-2026-06-24-01` 的 Coordinator idempotency key 已被错误完成，不能复用。
-3. 解除后必须由 Codex PMC 发布全新的 APPROVED Queue revision，Hermes 才能派发新的 Executor attempt。
+## Recovery Dispatch Conditions
+
+1. Hermes 下一轮必须为 revision `-07` 创建全新的 Coordinator/Executor chain 和 revision-based idempotency key，不得返回旧 Queue 的 IDLE 结论。
+2. 禁止手工 claim、promote、unblock 或复用 `t_d626b42d`、`t_4a89bb5e`、`t_f53b3c08`、`t_68c68e4e`。
+3. 新 Executor 必须先审计现有 `backend/scripts/migrate_sqlite_to_mysql.py` 与 `backend/tests/test_migration_tool.py` partial diff，再完成实现；不得把未报告修改直接视为通过。
+4. 使用 revision `-07` 专属 PLAN/PROGRESS，并按 missing-secret/cleanup、conflict/rollback、integration、REPORT 四个短 checkpoint 落盘证据。
+5. destructive verification 前必须确认 `REVID_TEST_MYSQL_ADMIN_URL` presence、权限与 database identity 精确为 `revid_test_t4_002`；任一 Hard Gate 失败时立即 BLOCKED。
+6. 本 revision 允许 infrastructure retry 一次；若新 chain 连续两次 `pid not alive`，再记录 BLOCKED。
 
 ## Phase
 Phase 4A — MySQL 主数据库
@@ -85,9 +99,9 @@ python -m unittest discover -s tests -p "test_*migration*.py"
 
 ## Deliverables
 - 迁移 CLI 与测试。
-- `ai/tasks/doing/TASK-T4-002-PLAN.md`
-- `ai/tasks/doing/TASK-T4-002-PROGRESS.md`
-- `ai/reports/REPORT-T4-002.md`
+- `ai/tasks/doing/TASK-T4-002-PLAN-phase4-wave2-recovery-dispatch-2026-06-24-07.md`
+- `ai/tasks/doing/TASK-T4-002-PROGRESS-phase4-wave2-recovery-dispatch-2026-06-24-07.md`
+- 后续 APPROVED revision 的新 REPORT 文件；必须在正文声明 revision、attempt 和 failure fingerprint，不得覆盖现有旧 revision REPORT。
 - 本 revision 的全新 Independent REVIEW 与 HANDOFF；文件内容必须明确 revision、attempt 和 failure fingerprint。
 
 ## Codex Prompt

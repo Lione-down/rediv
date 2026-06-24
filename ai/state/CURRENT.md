@@ -1,7 +1,7 @@
 # Revid — 当前项目状态
 
 > 更新时间：2026-06-24
-> 状态来源：Codex PMC 自动治理与 Human User 人工返工授权
+> 状态来源：Codex PMC 自动治理、Hermes scheduled reports 与 fresh source/diff audit
 
 ## Current Phase
 
@@ -9,7 +9,7 @@
 
 ## Current Task
 
-- `T4-002`：BLOCKED，Human User 的一次人工返工授权仍有效，但尚未进入 Executor attempt；当前治理 revision 为 `phase4-wave2-blocked-2026-06-24-02`。
+- `T4-002`：Executor attempt 0 dispatched — Queue revision `phase4-wave2-recovery-dispatch-2026-06-24-07`。Coordinator `t_e23d9043` → Executor `t_748c116d` (attempt 0)。
 
 ## Latest PMC Verdicts
 
@@ -17,7 +17,10 @@
 |---|---|---|
 | T4-001 | PASS，进入 done | MySQL 8.0.43；Alembic head；12/12 InnoDB + utf8mb4；12/12 table comments；90/90 column comments；97 tests |
 | T4-006 | PMC PASS，进入 done | `ai/reviews/REVIEW-T4-006-PMC-2026-06-24.md` |
-| T4-002 | PMC BLOCKED — not dispatched | `ai/reviews/REVIEW-T4-002-PMC-BLOCKED-2026-06-24.md`；Hermes runtime secret 缺失，旧 revision idempotency key 已被错误完成 |
+| T4-002 | PMC REDISPATCH — Human approved | `ai/reviews/REVIEW-T4-002-PMC-REDISPATCH-2026-06-24.md`；Queue revision `phase4-wave2-manual-rework-2026-06-24-05` |
+| T4-002 | PMC CHECKPOINT — Executor running，尚不可验收 | `ai/reviews/REVIEW-T4-002-PMC-CHECKPOINT-2026-06-24.md`；Executor `t_68c68e4e` |
+| T4-002 | PMC BLOCKED — Executor retries exhausted，partial implementation unverified | `ai/reviews/REVIEW-T4-002-PMC-EXECUTOR-BLOCKED-2026-06-24.md` |
+| T4-002 | PMC RECOVERY DISPATCH — 新 revision 已批准 | `ai/reviews/REVIEW-T4-002-PMC-RECOVERY-DISPATCH-2026-06-24.md`；Queue revision `phase4-wave2-recovery-dispatch-2026-06-24-07` |
 
 ## Verified Baseline
 
@@ -29,18 +32,20 @@
 
 ## Ready / Running
 
-- 当前无可派发或运行中的 Task。
+- T4-002 已获准 recovery dispatch；Hermes 下一轮应基于 revision `-07` 创建全新 Coordinator 与 Executor。
 - T4-010 — T4-006 dependency 已满足，但尚未进入 APPROVED Queue，不得执行。
 
 ## Blockers
 
 - T4-003 继续依赖 T4-002 完成与 PMC 验收。
-- T4-002 的 Coordinator `t_64d6db92` 已错误完成且未派发 Executor；相同 idempotency key 不能复用。
+- T4-002 旧 Executor `t_68c68e4e` 的 run `#72`、`#73` 均因 `pid not alive` crash，旧 chain 已作废且禁止复用；该历史不再阻止 revision `-07` 创建新 chain。
+- 当前 revision 只有 PLAN 和未完成 PROGRESS，没有 REPORT、Independent REVIEW 或 HANDOFF；allowed files 中的 substantial partial diff 未经归属与完成度证明。
+- 旧 Coordinator `t_d626b42d` 与 Executor child `t_4a89bb5e` 已作废；禁止手工恢复、claim、promote、unblock 或复用。
+- PMC 已基于 Gateway UP、无 active worker 与 Human User 明确推进指令接受一次 recovery dispatch 风险；不再等待额外 worker stability 证明。
 - 禁止在用户现有数据库执行 downgrade/drop/truncate；destructive 验证只能在专用测试库并获得明确授权。
-- 用户已授权 T4-002 创建/销毁唯一专用数据库 `revid_test_t4_002`；Hermes 调度报告确认运行时缺少 `REVID_TEST_MYSQL_ADMIN_URL`，因此保持 BLOCKED。
-- T4-002 当前代码仍存在 credential fallback、手写 schema、identity/cleanup gate 缺失和无效 rollback test；必须按 2026-06-24 PMC review 返工。
+- T4-002 partial implementation 仍存在 test secret skip、cleanup exception swallowing、same-PK 覆盖成功断言和无真实失败的 rollback test；必须按最新 PMC BLOCKED review 继续返工。
 
 ## Next Review Gate
 
-- T4-002：先由 Human User / Hermes runtime owner 注入专用 secret；Hermes 记录 readiness 证据后，Codex PMC 发布全新 APPROVED Queue revision。随后严格 secret gate、structured URL、database identity、Alembic setup、可靠 cleanup、same-PK conflict、真实 partial rollback 和 12-table consistency 全部完成后复审。
+- T4-002：Executor `t_748c116d` (attempt 0) 已派发，正在执行四个 checkpoint。完成后生成 revision `-07` 新 REPORT，进入 Independent Review。
 - T4-006：已完成并归档。依赖 T4-006 的 Task 仅视为该 dependency 已满足；是否执行仍由后续 Queue revision 决定。

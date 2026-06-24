@@ -1,0 +1,52 @@
+Task ID: T4-002
+Queue Revision: phase4-wave2-manual-rework-2026-06-24-05
+Project Task File: ai/tasks/todo/TASK-T4-002.md
+Executor Profile: revid-backend
+Review Profile: revid-reviewer
+
+Objective: Provide a dry-run capable, repeatable, verifiable ETL tool to migrate existing data from revid.db (SQLite) to MySQL schema created by Alembic.
+
+Scope:
+- Allowed new files: scripts/migrate_sqlite_to_mysql.py, migration-specific tests, pure count/checksum report templates
+- Allowed modifications: backend/models/** only for confirmed cross-database type compatibility issues
+- Prohibited: frontend, business API, original revid.db, MySQL credentials
+
+Acceptance Criteria:
+1. Dry-run does not change MySQL data
+2. Full migration succeeds on temporary SQLite/MySQL test data
+3. Row count and business values remain unchanged after second run
+4. Script fails with specific table name on FK orphan or PK duplicate
+5. Original revid.db is not overwritten or deleted
+6. Migration report proves 12-table data consistency between SQLite and MySQL
+7. Fixture only accepts REVID_TEST_MYSQL_ADMIN_URL; BLOCKED on missing secret
+8. Structured URL API used; database identity proven as revid_test_t4_002
+9. Test schema created by Alembic upgrade head, no handwritten 12-table DDL
+10. Same-PK different-value conflict triggers non-zero exit, existing data untouched
+11. Partial rollback test proves no partial submission on batch failure
+12. Cleanup failure visible and causes BLOCKED, no silent exception swallowing
+
+Dependencies: T4-001 (done, PMC PASS)
+
+Parallel Rules: serial-t4-002 group; no parallel execution.
+
+Stop Conditions: Missing secret, permission denied, database identity mismatch, scope drift, unknown file modifications, repeated failure fingerprint, runtime exceeded.
+
+Allowed Files: scripts/migrate_sqlite_to_mysql.py, backend/models/** (compatibility only), migration tests, PLAN/PROGRESS/REPORT/REVIEW/HANDOFF
+
+Hard Gates:
+- REVID_TEST_MYSQL_ADMIN_URL required; no fallback to .env or revid_db
+- CREATE/DROP only on exact name revid_test_t4_002
+- Test schema via Alembic upgrade head only
+- CLI default dry-run, --execute required for writes
+- No printing/writing credentials or full connection URLs
+- Migration must be idempotent; non-zero exit on any validation failure
+- Destructive ops only with --execute flag and explicit authorization
+
+Previous Attempt / Failure Fingerprint:
+- Old coordinators t_64d6db92 (rev 01), t_2eef8ceb (rev 02), t_d626b42d (rev 03) all failed
+- Rev 02: credential fallback, handwritten schema, identity/cleanup gate missing, invalid rollback test
+- Rev 03: Coordinator crashed twice (pids 29992, 15692); Executor card t_4a89bb5e never claimed by dispatcher
+- Same failure fingerprint across revisions: credential fallback, handwritten schema, identity/cleanup gate missing, invalid rollback test
+- Human User confirmed REVID_TEST_MYSQL_ADMIN_URL set and dispatched manual REWORK for revision 05
+- All old evidence files are historical only, NOT completion proof for this revision
+- Revision 05 is a fresh start — no old cards, no old evidence, no old attempts count toward REWORK limit

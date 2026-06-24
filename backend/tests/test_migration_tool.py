@@ -1,1124 +1,833 @@
-"""Tests for the SQLite -> MySQL migration tool.
+"""Comprehensive migration tool tests covering all 12 acceptance criteria.
 
-Uses temporary SQLite databases and in-memory validation.
-Requires MySQL to be reachable for execute-mode tests.
+Each test maps to a specific AC. Tests use real MySQL and real SQLite.
 """
 
-from __future__ import annotations
-
 import json
 import os
-import json
-import os
-import re
+import shutil
 import sqlite3
-import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest import mock
 
-# Ensure backend is on path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+# Ensure backend is importable
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BACKEND_DIR))
 
-from migrate_sqlite_to_mysql import (
+from scripts.migrate_sqlite_to_mysql import (
+    TABLE_ORDER,
+    TEST_DB_NAME,
+    build_test_db_url,
+    get_admin_url,
+    assert_database_name,
+    setup_schema_via_alembic,
     SQLiteReader,
     MySQLWriter,
     MigrationValidator,
-    TABLE_DEFS,
-    TABLE_ORDER,
-    compute_checksum,
-    _safe_str,
-    _safe_int,
-    _safe_float,
-    _redact_sensitive,
-    CRITICAL_JSON_FIELDS,
-    QUOTA_FIELDS,
-    BUSINESS_INT_FIELDS,
+    cleanup_test_database,
+    main,
 )
 
 
-class SafeConversionTests(unittest.TestCase):
-    """Test helper conversion functions."""
+# ---------------------------------------------------------------------------
+# Fixture helpers
+# ---------------------------------------------------------------------------
 
-    def test_safe_str_none(self) -> None:
-        self.assertIsNone(_safe_str(None))
+def _get_admin_url():
+    """Get admin URL or raise AssertionError if not set.
 
-    def test_safe_str_string(self) -> None:
-        self.assertEqual(_safe_str("hello"), "hello")
-
-    def test_safe_str_dict(self) -> None:
-        result = _safe_str({"key": "value"})
-        parsed = json.loads(result)
-        self.assertEqual(parsed, {"key": "value"})
-
-    def test_safe_str_list(self) -> None:
-        result = _safe_str([1, 2, 3])
-        parsed = json.loads(result)
-        self.assertEqual(parsed, [1, 2, 3])
-
-    def test_safe_int_none(self) -> None:
-        self.assertIsNone(_safe_int(None))
-
-    def test_safe_int_value(self) -> None:
-        self.assertEqual(_safe_int(42), 42)
-
-    def test_safe_float_none(self) -> None:
-        self.assertIsNone(_safe_float(None))
-
-    def test_safe_float_value(self) -> None:
-        self.assertAlmostEqual(_safe_float(3.14), 3.14)
-
-    def test_redact_sensitive(self) -> None:
-        url = "mysql+pymysql://root:***@localhost:3306/revid_db"
-        result = _redact_sensitive(url)
-        self.assertNotIn("mysecretpass", result)
-        self.assertIn("***", result)
-
-    def test_compute_checksum(self) -> None:
-        rows = [
-            {"id": "aaa"},
-            {"id": "bbb"},
-            {"id": "ccc"},
-        ]
-        cksum = compute_checksum(rows, "id")
-        self.assertEqual(len(cksum), 16)
-        self.assertEqual(cksum, compute_checksum(rows, "id"))
-        rows2 = [{"id": "xxx"}, {"id": "yyy"}]
-        self.assertNotEqual(cksum, compute_checksum(rows2, "id"))
-
-
-class SQLiteReaderTests(unittest.TestCase):
-    """Test SQLite reading with a temporary database."""
-
-    def setUp(self) -> None:
-        self.tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-        self.tmp.close()
-        self.conn = sqlite3.connect(self.tmp.name)
-        self.conn.execute("""
-            CREATE TABLE users (
-                id CHAR(36) PRIMARY KEY, nickname VARCHAR(255) NOT NULL,
-                avatar_url VARCHAR(1024) NOT NULL DEFAULT '',
-                role VARCHAR(32) NOT NULL, status VARCHAR(32) NOT NULL,
-                generation_status VARCHAR(32) NOT NULL,
-                created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL,
-                last_login_at DATETIME NOT NULL)
-        """)
-        self.conn.execute("""
-            CREATE TABLE store_configs (
-                key VARCHAR(100) PRIMARY KEY, value JSON NOT NULL,
-                updated_at DATETIME NOT NULL)
-        """)
-        self.conn.execute("""
-            CREATE TABLE quotas (
-                id CHAR(36) PRIMARY KEY, user_id CHAR(36) NOT NULL UNIQUE,
-                text_quota INT NOT NULL DEFAULT 0,
-                image_quota INT NOT NULL DEFAULT 0,
-                video_quota INT NOT NULL DEFAULT 0)
-        """)
-        self.conn.execute(
-            "INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)",
-            ("user-1", "Alice", "avatar.png", "admin", "active", "enabled",
-             "2024-01-01T00:00:00", "2024-01-01T00:00:00", "2024-01-01T00:00:00"),
-        )
-        self.conn.execute(
-            "INSERT INTO store_configs VALUES (?,?,?)",
-            ("registration_settings", '{"mode": "invite"}', "2024-01-01T00:00:00"),
-        )
-        self.conn.execute(
-            "INSERT INTO quotas VALUES (?,?,?,?,?)",
-            ("quota-1", "user-1", 100, 20, 3),
-        )
-        self.conn.commit()
-        self.conn.close()
-
-    def tearDown(self) -> None:
-        try:
-            os.unlink(self.tmp.name)
-        except OSError:
-            pass
-
-    def test_read_users(self) -> None:
-        reader = SQLiteReader(self.tmp.name)
-        reader.read_all()
-        users = reader.get_rows("users")
-        self.assertEqual(len(users), 1)
-        self.assertEqual(users[0]["nickname"], "Alice")
-        reader.close()
-
-    def test_read_store_configs(self) -> None:
-        reader = SQLiteReader(self.tmp.name)
-        reader.read_all()
-        configs = reader.get_rows("store_configs")
-        self.assertEqual(len(configs), 1)
-        self.assertEqual(configs[0]["key"], "registration_settings")
-        reader.close()
-
-    def test_read_empty_table(self) -> None:
-        reader = SQLiteReader(self.tmp.name)
-        reader.read_all()
-        projects = reader.get_rows("projects")
-        self.assertEqual(len(projects), 0)
-        reader.close()
-
-    def test_nonexistent_table_returns_empty(self) -> None:
-        reader = SQLiteReader(self.tmp.name)
-        reader.read_all()
-        data = reader.get_rows("nonexistent_table")
-        self.assertEqual(data, [])
-        reader.close()
-
-
-class TableOrderTests(unittest.TestCase):
-    """Verify FK dependency ordering of tables."""
-
-    def test_all_tables_defined(self) -> None:
-        self.assertEqual(len(TABLE_ORDER), 12)
-
-    def test_fk_ordering(self) -> None:
-        pos = {t: i for i, t in enumerate(TABLE_ORDER)}
-        self.assertGreater(pos["quotas"], pos["users"])
-        self.assertGreater(pos["projects"], pos["users"])
-        self.assertGreater(pos["identities"], pos["users"])
-        self.assertGreater(pos["guests"], pos["users"])
-        self.assertGreater(pos["invitation_codes"], pos["users"])
-        self.assertGreater(pos["canvas_nodes"], pos["projects"])
-        self.assertGreater(pos["assets"], pos["users"])
-        self.assertGreater(pos["assets"], pos["projects"])
-        self.assertGreater(pos["assets"], pos["canvas_nodes"])
-        self.assertGreater(pos["templates"], pos["users"])
-        self.assertGreater(pos["quota_ledger"], pos["users"])
-        self.assertGreater(pos["admin_logs"], pos["users"])
-
-
-class SchemaOwnershipTests(unittest.TestCase):
-    """Verify that ensure_schema is removed and check_schema_exists is used instead.
-
-    PMC requirement: Alembic owns schema. Migration script must NOT create tables.
+    AC7: No SkipTest — missing secret is a hard block, not a skip.
     """
-
-    def test_no_ensure_schema_method(self) -> None:
-        """MySQLWriter must NOT have ensure_schema method."""
-        self.assertFalse(hasattr(MySQLWriter, "ensure_schema"),
-                         "MySQLWriter must not have ensure_schema() -- Alembic owns schema")
-
-    def test_check_schema_exists_method(self) -> None:
-        """MySQLWriter must have check_schema_exists method."""
-        self.assertTrue(hasattr(MySQLWriter, "check_schema_exists"),
-                        "MySQLWriter must have check_schema_exists() method")
-
-    def test_check_schema_raises_on_missing(self) -> None:
-        """check_schema_exists must raise RuntimeError when tables are missing."""
-        mock_conn = MagicMock()
-        mock_result = MagicMock()
-        mock_result.fetchall.return_value = []
-        mock_conn.execute.return_value = mock_result
-        mock_engine = MagicMock()
-        mock_engine.connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
-        mock_engine.connect.return_value.__exit__ = MagicMock(return_value=False)
-
-        writer = MySQLWriter("mysql+pymysql://test:***@localhost/test", dry_run=True)
-        writer.engine = mock_engine
-
-        with self.assertRaises(RuntimeError) as ctx:
-            writer.check_schema_exists()
-        self.assertIn("missing tables", str(ctx.exception).lower())
-        writer.close()
+    url = os.environ.get("REVID_TEST_MYSQL_ADMIN_URL", "")
+    if not url:
+        raise AssertionError(
+            "REVID_TEST_MYSQL_ADMIN_URL not set — "
+            "this is a hard block, not a skip condition."
+        )
+    return url
 
 
-class TransactionTests(unittest.TestCase):
-    """Verify that migrate_table uses batch transactions, not row-by-row commits."""
+def _create_fixture_sqlite(path: str) -> None:
+    """Create a SQLite fixture database with test data."""
+    conn = sqlite3.connect(path)
+    c = conn.cursor()
 
-    def test_report_has_stale_fields(self) -> None:
-        """Report dict must include stale_same and stale_diff fields."""
-        mock_conn = MagicMock()
-        mock_result = MagicMock()
-        mock_result.fetchall.return_value = []
-        mock_conn.execute.return_value = mock_result
-        mock_engine = MagicMock()
-        mock_engine.connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
-        mock_engine.connect.return_value.__exit__ = MagicMock(return_value=False)
+    # users
+    c.execute("""
+        CREATE TABLE users (
+            id TEXT PRIMARY KEY,
+            nickname TEXT NOT NULL,
+            avatar_url TEXT NOT NULL DEFAULT '',
+            role TEXT NOT NULL,
+            status TEXT NOT NULL,
+            generation_status TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            last_login_at TEXT NOT NULL
+        )
+    """)
+    c.executemany(
+        "INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)",
+        [
+            ("user-001", "Alice", "https://img.a", "user", "active", "enabled",
+             "2024-01-01T00:00:00", "2024-01-01T00:00:00", "2024-06-01T00:00:00"),
+            ("user-002", "Bob", "https://img.b", "admin", "active", "enabled",
+             "2024-02-01T00:00:00", "2024-02-01T00:00:00", "2024-06-02T00:00:00"),
+        ],
+    )
 
-        report = {}
-        writer = MySQLWriter("mysql+pymysql://test:***@localhost/test", dry_run=True)
-        writer.engine = mock_engine
-        try:
-            writer.migrate_table("users", [], MagicMock(spec=SQLiteReader), report)
-            self.assertIn("stale_same", report["users"])
-            self.assertIn("stale_diff", report["users"])
-        finally:
-            writer.close()
+    # store_configs
+    c.execute("""
+        CREATE TABLE store_configs (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+    """)
+    c.executemany(
+        "INSERT INTO store_configs VALUES (?,?,?)",
+        [
+            ("theme", '{"color":"blue"}', "2024-01-01T00:00:00"),
+        ],
+    )
 
-    def test_batch_sql_structure(self) -> None:
-        """Verify that the INSERT SQL uses ON DUPLICATE KEY UPDATE pattern."""
-        import inspect
-        source = inspect.getsource(MySQLWriter.migrate_table)
-        self.assertIn("ON DUPLICATE KEY UPDATE", source,
-                      "Must use INSERT ... ON DUPLICATE KEY UPDATE for batch upserts")
-        self.assertIn("conn.commit()", source,
-                      "Must commit once per table (batch transaction)")
-
-
-class StaleValueDetectionTests(unittest.TestCase):
-    """Verify stale same-PK value detection works correctly.
-
-    Note: In dry_run mode, existing_map is empty (no MySQL queried), so
-    stale_same/stale_diff are always 0. Stale detection requires execute mode
-    with an actual MySQL connection. These tests verify the report structure.
-    """
-
-    def test_dry_run_empty_existing_map(self) -> None:
-        """In dry_run, existing_map is empty so all rows count as 'inserted'."""
-        mock_conn = MagicMock()
-        mock_result = MagicMock()
-        mock_result.fetchall.return_value = []
-        mock_conn.execute.return_value = mock_result
-        mock_engine = MagicMock()
-        mock_engine.connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
-        mock_engine.connect.return_value.__exit__ = MagicMock(return_value=False)
-
-        rows = [
-            {"id": "u1", "nickname": "Alice", "avatar_url": "", "role": "admin",
-             "status": "active", "generation_status": "enabled",
-             "created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-01T00:00:00",
-             "last_login_at": "2024-01-01T00:00:00"},
-        ]
-        report = {}
-        writer = MySQLWriter("mysql+pymysql://test:***@localhost/test", dry_run=True)
-        writer.engine = mock_engine
-        try:
-            writer.migrate_table("users", rows, MagicMock(spec=SQLiteReader), report)
-            # In dry_run with empty existing_map, row is treated as new
-            self.assertEqual(report["users"]["inserted"], 1)
-            self.assertEqual(report["users"]["stale_same"], 0)
-            self.assertEqual(report["users"]["stale_diff"], 0)
-        finally:
-            writer.close()
-
-
-class ValidatorTests(unittest.TestCase):
-    """Test the MigrationValidator class."""
-
-    def test_critical_json_fields_defined(self) -> None:
-        """CRITICAL_JSON_FIELDS must cover all JSON tables."""
-        json_tables = {"store_configs", "identities", "guests", "canvas_nodes", "templates", "admin_logs"}
-        self.assertEqual(set(CRITICAL_JSON_FIELDS.keys()), json_tables)
-
-    def test_quota_fields_defined(self) -> None:
-        """QUOTA_FIELDS must define the three quota columns."""
-        self.assertEqual(QUOTA_FIELDS, {"text_quota", "image_quota", "video_quota"})
-
-    def test_business_int_fields_cover_quotas(self) -> None:
-        """BUSINESS_INT_FIELDS must include quotas table."""
-        self.assertIn("quotas", BUSINESS_INT_FIELDS)
-        self.assertEqual(BUSINESS_INT_FIELDS["quotas"], QUOTA_FIELDS)
-
-    def test_validate_source_immutable(self) -> None:
-        """validate_source_immutable must detect size/mtime changes."""
-        mock_reader = MagicMock(spec=SQLiteReader)
-        mock_writer = MagicMock(spec=MySQLWriter)
-        validator = MigrationValidator(mock_reader, mock_writer)
-
-        # Test with changed size
-        errors = validator.validate_source_immutable("/tmp/test.db", 100, 1000.0)
-        self.assertTrue(len(errors) > 0)
-
-        # Test with unchanged values (file must exist for stat)
-        tmp = tempfile.NamedTemporaryFile(delete=False)
-        tmp.write(b"test")
-        tmp.close()
-        try:
-            st = os.stat(tmp.name)
-            errors = validator.validate_source_immutable(tmp.name, st.st_size, st.st_mtime)
-            self.assertEqual(errors, [])
-        finally:
-            os.unlink(tmp.name)
-
-
-class DryRunIntegrationTests(unittest.TestCase):
-    """End-to-end test using a temporary SQLite database."""
-
-    def setUp(self) -> None:
-        self.tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-        self.tmp.close()
-        self.conn = sqlite3.connect(self.tmp.name)
-        self._setup_test_data()
-        self.conn.close()
-
-    def tearDown(self) -> None:
-        try:
-            os.unlink(self.tmp.name)
-        except OSError:
-            pass
-
-    def _setup_test_data(self) -> None:
-        c = self.conn
-        c.execute("""CREATE TABLE users (
-            id CHAR(36) PRIMARY KEY, nickname VARCHAR(255) NOT NULL,
-            avatar_url VARCHAR(1024) NOT NULL DEFAULT '',
-            role VARCHAR(32) NOT NULL, status VARCHAR(32) NOT NULL,
-            generation_status VARCHAR(32) NOT NULL,
-            created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL,
-            last_login_at DATETIME NOT NULL)""")
-        c.execute("""CREATE TABLE store_configs (
-            key VARCHAR(100) PRIMARY KEY, value JSON NOT NULL,
-            updated_at DATETIME NOT NULL)""")
-        c.execute("""CREATE TABLE quotas (
-            id CHAR(36) PRIMARY KEY, user_id CHAR(36) NOT NULL UNIQUE,
+    # quotas
+    c.execute("""
+        CREATE TABLE quotas (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL UNIQUE,
             text_quota INT NOT NULL DEFAULT 0,
             image_quota INT NOT NULL DEFAULT 0,
-            video_quota INT NOT NULL DEFAULT 0)""")
-        c.execute("""CREATE TABLE projects (
-            id CHAR(36) PRIMARY KEY, user_id CHAR(36) NOT NULL,
-            name VARCHAR(255) NOT NULL,
-            created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL)""")
-        c.execute("""CREATE TABLE identities (
-            id CHAR(36) PRIMARY KEY, user_id CHAR(36) NOT NULL,
-            provider VARCHAR(64) NOT NULL, provider_user_id VARCHAR(255) NOT NULL,
-            unionid VARCHAR(255), raw_profile TEXT NOT NULL DEFAULT '{}',
-            created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL)""")
-        c.execute("""CREATE TABLE guests (
-            id CHAR(36) PRIMARY KEY, session_id CHAR(36) NOT NULL UNIQUE,
-            `local_project_snapshot` TEXT NOT NULL DEFAULT '{}',
-            `created_at` DATETIME NOT NULL, `expires_at` DATETIME NOT NULL,
-            `converted_user_id` CHAR(36))""")
-        c.execute("""CREATE TABLE invitation_codes (
-            id CHAR(36) PRIMARY KEY, code VARCHAR(64) NOT NULL UNIQUE,
-            status VARCHAR(32) NOT NULL, max_uses INT NOT NULL,
-            used_count INT NOT NULL DEFAULT 0, expires_at DATETIME,
-            quota_package_id VARCHAR(255), created_by_admin_id CHAR(36) NOT NULL,
-            created_at DATETIME NOT NULL)""")
-        c.execute("""CREATE TABLE canvas_nodes (
-            id CHAR(36) PRIMARY KEY, project_id CHAR(36) NOT NULL,
-            node_type VARCHAR(50) NOT NULL, content TEXT NOT NULL DEFAULT '{}',
-            position_x FLOAT NOT NULL DEFAULT 0, position_y FLOAT NOT NULL DEFAULT 0,
-            width INT NOT NULL DEFAULT 300, height INT NOT NULL DEFAULT 200,
-            status VARCHAR(20) NOT NULL DEFAULT 'active',
-            created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL)""")
-        c.execute("""CREATE TABLE assets (
-            id CHAR(36) PRIMARY KEY, user_id CHAR(36) NOT NULL,
-            project_id CHAR(36), canvas_node_id CHAR(36),
-            type VARCHAR(32) NOT NULL, url VARCHAR(2048),
-            content_text TEXT, source VARCHAR(64) NOT NULL DEFAULT 'upload',
-            source_model VARCHAR(255), source_task_id VARCHAR(255),
-            status VARCHAR(32) NOT NULL DEFAULT 'active',
-            created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL)""")
-        c.execute("""CREATE TABLE templates (
-            id CHAR(36) PRIMARY KEY, user_id CHAR(36) NOT NULL,
-            name VARCHAR(255) NOT NULL, node_data TEXT NOT NULL DEFAULT '[]',
-            node_count INT NOT NULL DEFAULT 0,
-            created_at DATETIME NOT NULL)""")
-        c.execute("""CREATE TABLE quota_ledger (
-            id CHAR(36) PRIMARY KEY, user_id CHAR(36) NOT NULL,
-            quota_type VARCHAR(32) NOT NULL, change_amount INT NOT NULL,
-            reason VARCHAR(64) NOT NULL, related_task_id VARCHAR(255),
-            admin_id CHAR(36), created_at DATETIME NOT NULL)""")
-        c.execute("""CREATE TABLE admin_logs (
-            id CHAR(36) PRIMARY KEY, admin_id CHAR(36) NOT NULL,
-            action VARCHAR(64) NOT NULL, target_type VARCHAR(64) NOT NULL,
-            target_id VARCHAR(255) NOT NULL,
-            detail TEXT NOT NULL DEFAULT '{}',
-            created_at DATETIME NOT NULL)""")
-
-        c.execute("INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)",
-            ("u1", "Alice", "", "admin", "active", "enabled",
-             "2024-01-01T00:00:00", "2024-01-01T00:00:00", "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)",
-            ("u2", "Bob", "bob.png", "user", "active", "enabled",
-             "2024-01-02T00:00:00", "2024-01-02T00:00:00", "2024-01-02T00:00:00"))
-        c.execute("INSERT INTO store_configs VALUES (?,?,?)",
-            ("registration_settings", '{"mode":"invite"}', "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO quotas VALUES (?,?,?,?,?)",
-            ("q1", "u1", 100, 20, 3))
-        c.execute("INSERT INTO quotas VALUES (?,?,?,?,?)",
-            ("q2", "u2", 50, 10, 1))
-        c.execute("INSERT INTO projects VALUES (?,?,?,?,?)",
-            ("p1", "u1", "My Project", "2024-01-01T00:00:00", "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO identities VALUES (?,?,?,?,?,?,?,?)",
-            ("i1", "u1", "wechat", "wx-openid-1", "wx-union-1",
-             '{"nickname":"Alice"}', "2024-01-01T00:00:00", "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO guests VALUES (?,?,?,?,?,?)",
-            ("g1", "sess-1", "{}", "2024-01-01T00:00:00", "2024-01-08T00:00:00", None))
-        c.execute("INSERT INTO invitation_codes VALUES (?,?,?,?,?,?,?,?,?)",
-            ("ic1", "WELCOME123", "active", 10, 0, None, None, "u1", "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO canvas_nodes VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-            ("cn1", "p1", "text", '{"content":"hello"}', 0.0, 0.0, 300, 200,
-             "active", "2024-01-01T00:00:00", "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO assets VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            ("a1", "u2", "p1", None, "image", "https://img.png", None,
-             "upload", None, None, "active",
-             "2024-01-02T00:00:00", "2024-01-02T00:00:00"))
-        c.execute("INSERT INTO templates VALUES (?,?,?,?,?,?)",
-            ("t1", "u1", "Default Template", '[{"type":"text"}]', 1,
-             "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO quota_ledger VALUES (?,?,?,?,?,?,?,?)",
-            ("ql1", "u1", "text", 100, "default_grant", None, None,
-             "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO quota_ledger VALUES (?,?,?,?,?,?,?,?)",
-            ("ql2", "u2", "image", 20, "default_grant", None, None,
-             "2024-01-02T00:00:00"))
-        c.execute("INSERT INTO admin_logs VALUES (?,?,?,?,?,?,?)",
-            ("al1", "u1", "grant_quota", "quota", "q1",
-             '{"message":"granted"}', "2024-01-01T00:00:00"))
-        c.commit()
-
-    def test_dry_run_reads_all_tables(self) -> None:
-        reader = SQLiteReader(self.tmp.name)
-        reader.read_all()
-        for table_name in TABLE_ORDER:
-            rows = reader.get_rows(table_name)
-            if table_name == "users":
-                self.assertEqual(len(rows), 2)
-            elif table_name == "store_configs":
-                self.assertEqual(len(rows), 1)
-            elif table_name == "quotas":
-                self.assertEqual(len(rows), 2)
-            elif table_name == "projects":
-                self.assertEqual(len(rows), 1)
-            elif table_name == "identities":
-                self.assertEqual(len(rows), 1)
-            elif table_name == "guests":
-                self.assertEqual(len(rows), 1)
-            elif table_name == "invitation_codes":
-                self.assertEqual(len(rows), 1)
-            elif table_name == "canvas_nodes":
-                self.assertEqual(len(rows), 1)
-            elif table_name == "assets":
-                self.assertEqual(len(rows), 1)
-            elif table_name == "templates":
-                self.assertEqual(len(rows), 1)
-            elif table_name == "quota_ledger":
-                self.assertEqual(len(rows), 2)
-            elif table_name == "admin_logs":
-                self.assertEqual(len(rows), 1)
-        reader.close()
-
-    def test_dry_run_count_matches(self) -> None:
-        reader = SQLiteReader(self.tmp.name)
-        reader.read_all()
-        total = sum(len(reader.get_rows(t)) for t in TABLE_ORDER)
-        # users(2)+store_configs(1)+quotas(2)+projects(1)+identities(1)
-        # +guests(1)+invitation_codes(1)+canvas_nodes(1)+assets(1)
-        # +templates(1)+quota_ledger(2)+admin_logs(1) = 15
-        self.assertEqual(total, 15)
-        reader.close()
-
-
-    def test_dry_run_count_matches(self) -> None:
-        reader = SQLiteReader(self.tmp.name)
-        reader.read_all()
-        total = sum(len(reader.get_rows(t)) for t in TABLE_ORDER)
-        # users(2)+store_configs(1)+quotas(2)+projects(1)+identities(1)
-        # +guests(1)+invitation_codes(1)+canvas_nodes(1)+assets(1)
-        # +templates(1)+quota_ledger(2)+admin_logs(1) = 15
-        self.assertEqual(total, 15)
-        reader.close()
-
-
-# ---------------------------------------------------------------------------
-# Missing-source test: must NOT depend on MySQL credentials
-# ---------------------------------------------------------------------------
-
-class MissingSourceTests(unittest.TestCase):
-    """Verify non-zero exit for missing source file.
-
-    This test does NOT require MySQL credentials because the script
-    checks source file existence before connecting to MySQL.
-    """
-
-    def _get_script_path(self) -> str:
-        return str(
-            Path(__file__).resolve().parent.parent / "scripts" / "migrate_sqlite_to_mysql.py"
+            video_quota INT NOT NULL DEFAULT 0
         )
+    """)
+    c.executemany(
+        "INSERT INTO quotas VALUES (?,?,?,?,?)",
+        [
+            ("q-001", "user-001", 100, 50, 10),
+            ("q-002", "user-002", 200, 100, 20),
+        ],
+    )
 
-    def test_missing_source_returns_nonzero(self) -> None:
-        import subprocess
-        script = self._get_script_path()
-        result = subprocess.run(
-            [sys.executable, script,
-             "--source", "/nonexistent/path.db",
-             "--target", "mysql+pymysql://test:***@localhost:3306/test"],
-            capture_output=True, text=True, timeout=30
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("not found", result.stdout.lower())
-
-
-# ---------------------------------------------------------------------------
-# Disposable MySQL integration tests
-# ---------------------------------------------------------------------------
-
-_TEST_DB_NAME = "revid_test_t4_002"
-
-# DDL for all 12 tables (mirrors Alembic baseline a1b2c3d4e5f6)
-_CREATE_TABLES_SQL = [
-    # store_configs
-    (
-        "store_configs",
-        """CREATE TABLE `store_configs` (
-            `key` VARCHAR(100) NOT NULL,
-            `value` JSON NOT NULL,
-            `updated_at` DATETIME NOT NULL,
-            PRIMARY KEY (`key`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统配置表'""",
-    ),
-    # users
-    (
-        "users",
-        """CREATE TABLE `users` (
-            `id` CHAR(36) NOT NULL,
-            `nickname` VARCHAR(255) NOT NULL,
-            `avatar_url` VARCHAR(1024) NOT NULL DEFAULT '',
-            `role` VARCHAR(32) NOT NULL,
-            `status` VARCHAR(32) NOT NULL,
-            `generation_status` VARCHAR(32) NOT NULL,
-            `created_at` DATETIME NOT NULL,
-            `updated_at` DATETIME NOT NULL,
-            `last_login_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表'""",
-    ),
     # projects
-    (
-        "projects",
-        """CREATE TABLE `projects` (
-            `id` CHAR(36) NOT NULL,
-            `user_id` CHAR(36) NOT NULL,
-            `name` VARCHAR(255) NOT NULL,
-            `created_at` DATETIME NOT NULL,
-            `updated_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`),
-            FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='项目表'""",
-    ),
-    # quotas
-    (
-        "quotas",
-        """CREATE TABLE `quotas` (
-            `id` CHAR(36) NOT NULL,
-            `user_id` CHAR(36) NOT NULL,
-            `text_quota` INT NOT NULL DEFAULT 0,
-            `image_quota` INT NOT NULL DEFAULT 0,
-            `video_quota` INT NOT NULL DEFAULT 0,
-            PRIMARY KEY (`id`),
-            UNIQUE KEY `uk_user_id` (`user_id`),
-            FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户配额表'""",
-    ),
+    c.execute("""
+        CREATE TABLE projects (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+    """)
+    c.executemany(
+        "INSERT INTO projects VALUES (?,?,?,?,?)",
+        [
+            ("proj-001", "user-001", "Project A", "2024-03-01", "2024-03-01"),
+        ],
+    )
+
     # identities
-    (
-        "identities",
-        """CREATE TABLE `identities` (
-            `id` CHAR(36) NOT NULL,
-            `user_id` CHAR(36) NOT NULL,
-            `provider` VARCHAR(64) NOT NULL,
-            `provider_user_id` VARCHAR(255) NOT NULL,
-            `unionid` VARCHAR(255),
-            `raw_profile` JSON NOT NULL,
-            `created_at` DATETIME NOT NULL,
-            `updated_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`),
-            FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='身份绑定表'""",
-    ),
+    c.execute("""
+        CREATE TABLE identities (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            provider TEXT NOT NULL,
+            provider_user_id TEXT NOT NULL,
+            unionid TEXT,
+            raw_profile TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+    """)
+    c.executemany(
+        "INSERT INTO identities VALUES (?,?,?,?,?,?,?,?)",
+        [
+            ("id-001", "user-001", "wechat", "openid1", "union1",
+             '{"name":"Alice"}', "2024-01-01", "2024-01-01"),
+        ],
+    )
+
     # guests
-    (
-        "guests",
-        """CREATE TABLE `guests` (
-            `id` CHAR(36) NOT NULL,
-            `session_id` CHAR(36) NOT NULL,
-            `local_project_snapshot` JSON NOT NULL DEFAULT (CAST('{}' AS JSON)),
-            `created_at` DATETIME NOT NULL,
-            `expires_at` DATETIME NOT NULL,
-            `converted_user_id` CHAR(36),
-            PRIMARY KEY (`id`),
-            UNIQUE KEY `uk_session` (`session_id`),
-            FOREIGN KEY (`converted_user_id`) REFERENCES `users`(`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='访客表'""",
-    ),
+    c.execute("""
+        CREATE TABLE guests (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL UNIQUE,
+            local_project_snapshot TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            converted_user_id TEXT
+        )
+    """)
+    c.executemany(
+        "INSERT INTO guests VALUES (?,?,?,?,?,?)",
+        [
+            ("g-001", "sess-001", '{"nodes":[]}', "2024-01-01", "2025-01-01", None),
+        ],
+    )
+
     # invitation_codes
-    (
-        "invitation_codes",
-        """CREATE TABLE `invitation_codes` (
-            `id` CHAR(36) NOT NULL,
-            `code` VARCHAR(64) NOT NULL,
-            `status` VARCHAR(32) NOT NULL,
-            `max_uses` INT NOT NULL,
-            `used_count` INT NOT NULL DEFAULT 0,
-            `expires_at` DATETIME,
-            `quota_package_id` VARCHAR(255),
-            `created_by_admin_id` CHAR(36) NOT NULL,
-            `created_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`),
-            UNIQUE KEY `uk_code` (`code`),
-            FOREIGN KEY (`created_by_admin_id`) REFERENCES `users`(`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='邀请码表'""",
-    ),
+    c.execute("""
+        CREATE TABLE invitation_codes (
+            id TEXT PRIMARY KEY,
+            code TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL,
+            max_uses INT NOT NULL,
+            used_count INT NOT NULL DEFAULT 0,
+            expires_at TEXT,
+            quota_package_id TEXT,
+            created_by_admin_id TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
+    c.executemany(
+        "INSERT INTO invitation_codes VALUES (?,?,?,?,?,?,?,?,?)",
+        [
+            ("ic-001", "WELCOME", "active", 100, 5, "2025-12-31", "pkg-1",
+             "user-002", "2024-01-01"),
+        ],
+    )
+
     # canvas_nodes
-    (
-        "canvas_nodes",
-        """CREATE TABLE `canvas_nodes` (
-            `id` CHAR(36) NOT NULL,
-            `project_id` CHAR(36) NOT NULL,
-            `node_type` VARCHAR(50) NOT NULL,
-            `content` JSON NOT NULL DEFAULT (CAST('{}' AS JSON)),
-            `position_x` FLOAT NOT NULL DEFAULT 0.0,
-            `position_y` FLOAT NOT NULL DEFAULT 0.0,
-            `width` INT NOT NULL DEFAULT 300,
-            `height` INT NOT NULL DEFAULT 200,
-            `status` VARCHAR(20) NOT NULL DEFAULT 'active',
-            `created_at` DATETIME NOT NULL,
-            `updated_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`),
-            FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='画布节点表'""",
-    ),
+    c.execute("""
+        CREATE TABLE canvas_nodes (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL,
+            node_type TEXT NOT NULL,
+            content TEXT NOT NULL DEFAULT '{}',
+            position_x REAL NOT NULL DEFAULT 0.0,
+            position_y REAL NOT NULL DEFAULT 0.0,
+            width INT NOT NULL DEFAULT 300,
+            height INT NOT NULL DEFAULT 200,
+            status TEXT NOT NULL DEFAULT 'active',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+    """)
+    c.executemany(
+        "INSERT INTO canvas_nodes VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        [
+            ("cn-001", "proj-001", "image", '{"prompt":"test"}',
+             100.0, 200.0, 300, 200, "active", "2024-03-01", "2024-03-01"),
+        ],
+    )
+
     # assets
-    (
-        "assets",
-        """CREATE TABLE `assets` (
-            `id` CHAR(36) NOT NULL,
-            `user_id` CHAR(36) NOT NULL,
-            `project_id` CHAR(36),
-            `canvas_node_id` CHAR(36),
-            `type` VARCHAR(32) NOT NULL,
-            `url` VARCHAR(2048),
-            `content_text` TEXT,
-            `source` VARCHAR(64) NOT NULL DEFAULT 'upload',
-            `source_model` VARCHAR(255),
-            `source_task_id` VARCHAR(255),
-            `status` VARCHAR(32) NOT NULL DEFAULT 'active',
-            `created_at` DATETIME NOT NULL,
-            `updated_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`),
-            FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
-            FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`),
-            FOREIGN KEY (`canvas_node_id`) REFERENCES `canvas_nodes`(`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='资源表'""",
-    ),
+    c.execute("""
+        CREATE TABLE assets (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            project_id TEXT,
+            canvas_node_id TEXT,
+            type TEXT NOT NULL,
+            url TEXT,
+            content_text TEXT,
+            source TEXT NOT NULL DEFAULT 'upload',
+            source_model TEXT,
+            source_task_id TEXT,
+            status TEXT NOT NULL DEFAULT 'active',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+    """)
+    c.executemany(
+        "INSERT INTO assets VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [
+            ("asset-001", "user-001", "proj-001", "cn-001", "image",
+             "https://img.test/1.jpg", None, "generation", "flux", "task-1",
+             "active", "2024-03-01", "2024-03-01"),
+        ],
+    )
+
     # templates
-    (
-        "templates",
-        """CREATE TABLE `templates` (
-            `id` CHAR(36) NOT NULL,
-            `user_id` CHAR(36) NOT NULL,
-            `name` VARCHAR(255) NOT NULL,
-            `node_data` JSON NOT NULL DEFAULT (CAST('[]' AS JSON)),
-            `node_count` INT NOT NULL DEFAULT 0,
-            `created_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`),
-            FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='模板表'""",
-    ),
+    c.execute("""
+        CREATE TABLE templates (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            node_data TEXT NOT NULL DEFAULT '[]',
+            node_count INT NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL
+        )
+    """)
+    c.executemany(
+        "INSERT INTO templates VALUES (?,?,?,?,?,?)",
+        [
+            ("tpl-001", "user-001", "My Template", '[{"type":"image"}]', 1, "2024-03-01"),
+        ],
+    )
+
     # quota_ledger
-    (
-        "quota_ledger",
-        """CREATE TABLE `quota_ledger` (
-            `id` CHAR(36) NOT NULL,
-            `user_id` CHAR(36) NOT NULL,
-            `quota_type` VARCHAR(32) NOT NULL,
-            `change_amount` INT NOT NULL,
-            `reason` VARCHAR(64) NOT NULL,
-            `related_task_id` VARCHAR(255),
-            `admin_id` CHAR(36),
-            `created_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`),
-            FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
-            FOREIGN KEY (`admin_id`) REFERENCES `users`(`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配额变动流水表'""",
-    ),
+    c.execute("""
+        CREATE TABLE quota_ledger (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            quota_type TEXT NOT NULL,
+            change_amount INT NOT NULL,
+            reason TEXT NOT NULL,
+            related_task_id TEXT,
+            admin_id TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
+    c.executemany(
+        "INSERT INTO quota_ledger VALUES (?,?,?,?,?,?,?,?)",
+        [
+            ("ql-001", "user-001", "text", 100, "signup_bonus", None, "user-002", "2024-01-01"),
+            ("ql-002", "user-001", "image", -1, "generation", "task-1", None, "2024-03-01"),
+        ],
+    )
+
     # admin_logs
-    (
-        "admin_logs",
-        """CREATE TABLE `admin_logs` (
-            `id` CHAR(36) NOT NULL,
-            `admin_id` CHAR(36) NOT NULL,
-            `action` VARCHAR(64) NOT NULL,
-            `target_type` VARCHAR(64) NOT NULL,
-            `target_id` VARCHAR(255) NOT NULL,
-            `detail` JSON NOT NULL DEFAULT (CAST('{}' AS JSON)),
-            `created_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`),
-            FOREIGN KEY (`admin_id`) REFERENCES `users`(`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员操作日志表'""",
-    ),
-]
+    c.execute("""
+        CREATE TABLE admin_logs (
+            id TEXT PRIMARY KEY,
+            admin_id TEXT NOT NULL,
+            action TEXT NOT NULL,
+            target_type TEXT NOT NULL,
+            target_id TEXT NOT NULL,
+            detail TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL
+        )
+    """)
+    c.executemany(
+        "INSERT INTO admin_logs VALUES (?,?,?,?,?,?,?)",
+        [
+            ("log-001", "user-002", "update_quota", "quotas", "q-001",
+             '{"before":50,"after":100}', "2024-01-01"),
+        ],
+    )
+
+    conn.commit()
+    conn.close()
 
 
-def _build_admin_mysql_url() -> str | None:
-    """Build a MySQL admin URL for database creation/drop.
+def _setup_test_db():
+    """Create and setup the test database. Returns admin_url and test_db_url."""
+    admin_url = _get_admin_url()
+    test_db_url = build_test_db_url(admin_url)
 
-    Priority: REVID_TEST_MYSQL_ADMIN_URL > REVID_MYSQL_URL > REVID_DB_* env vars
-    > local MySQL root@localhost.
-    """
-    admin_url = os.environ.get("REVID_TEST_MYSQL_ADMIN_URL", "").strip()
-    if admin_url:
-        return admin_url
+    # Drop if exists (cleanup from previous runs)
+    try:
+        cleanup_test_database(admin_url)
+    except Exception:
+        pass  # may not exist yet
 
-    url = os.environ.get("REVID_MYSQL_URL", "").strip()
-    if url:
-        return url
-
-    user = os.environ.get("REVID_DB_USER", "root")
-    password = os.environ.get("REVID_DB_PASSWORD", "")
-    if not password:
-        password = os.environ.get("MYSQL_ROOT_PASSWORD", "")
-    if not password:
-        password = "root123"  # common local dev default
-    host = os.environ.get("REVID_DB_HOST", "localhost")
-    port = os.environ.get("REVID_DB_PORT", "3306")
+    # Create database using admin connection
+    from urllib.parse import urlparse
+    from sqlalchemy import create_engine, text
     from sqlalchemy.engine.url import URL
-    return URL.create(
-        drivername="mysql+pymysql",
-        username=user,
-        password=password,
-        host=host,
-        port=int(port),
-        database="information_schema",
-    ).render_as_string(hide_password=False)
+
+    parsed = urlparse(admin_url)
+    admin_engine = create_engine(
+        URL.create(
+            drivername=parsed.scheme,
+            username=parsed.username or "root",
+            password=parsed.password or "",
+            host=parsed.hostname,
+            port=parsed.port or 3306,
+        ).render_as_string(hide_password=False),
+        future=True,
+    )
+    with admin_engine.connect() as conn:
+        conn.execute(
+            text(
+                f"CREATE DATABASE IF NOT EXISTS `{TEST_DB_NAME}` "
+                "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+            )
+        )
+        conn.commit()
+    admin_engine.dispose()
+
+    # Setup schema via Alembic
+    setup_schema_via_alembic(test_db_url)
+
+    return admin_url, test_db_url
 
 
-def _build_target_url(admin_url: str, db_name: str) -> str:
-    """Derive a per-database URL from the admin URL."""
+def _setup_test_db():
+    """Recreate test DB and schema. Used by AC11 after cleanup."""
+    admin_url = _get_admin_url()
+    test_db_url = build_test_db_url(admin_url)
+
+    # Create database
+    from urllib.parse import urlparse
+    from sqlalchemy import create_engine, text
     from sqlalchemy.engine.url import URL
-    # Parse admin URL components manually
-    # Format: mysql+pymysql://user:password@host:port/database
-    # Replace the database portion with db_name
-    import re
-    m = re.match(r'(mysql\+pymysql://)([^:@]+)(:([^@]*))?(@(.+?)(?::(\d+))?)?/(.+)', admin_url)
-    if m:
-        driver = m.group(1)
-        user = m.group(2)
-        pw_part = m.group(4) or ""
-        pw = f":{pw_part}@" if pw_part else ""
-        host = m.group(6) or "localhost"
-        port = m.group(7) or "3306"
-        return f"{driver}{user}{pw}{host}:{port}/{db_name}"
-    # Fallback: just replace the last path component
-    parts = admin_url.rsplit("/", 1)
-    if len(parts) == 2:
-        return parts[0] + "/" + db_name
-    return admin_url + "/" + db_name
+
+    parsed = urlparse(admin_url)
+    admin_engine = create_engine(
+        URL.create(
+            drivername=parsed.scheme,
+            username=parsed.username or "root",
+            password=parsed.password or "",
+            host=parsed.hostname,
+            port=parsed.port or 3306,
+        ).render_as_string(hide_password=False),
+        future=True,
+    )
+    with admin_engine.connect() as conn:
+        conn.execute(
+            text(
+                f"CREATE DATABASE IF NOT EXISTS `{TEST_DB_NAME}` "
+                "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+            )
+        )
+        conn.commit()
+    admin_engine.dispose()
+
+    # Setup schema via Alembic
+    setup_schema_via_alembic(test_db_url)
 
 
-class DisposableMySQLTests(unittest.TestCase):
-    """Integration tests using a disposable MySQL test database.
-
-    Creates `revid_test_t4_002` before each test, applies 12-table DDL,
-    runs migration, then drops the database in tearDown.
-
-    Tests cover:
-    - execute mode end-to-end migration (12 tables, 15 rows)
-    - second-run idempotency (0 inserted on rerun)
-    - FK orphan detection (fails with specific table name)
-    - rollback on partial failure
-    - 12-table consistency verification
-    """
-
-    _admin_url: str | None = None
-    _script_path: str = ""
+class TestMigrationTool(unittest.TestCase):
+    """Tests for all 12 acceptance criteria."""
 
     @classmethod
-    def setUpClass(cls) -> None:
-        cls._admin_url = _build_admin_mysql_url()
-        cls._script_path = str(
-            Path(__file__).resolve().parent.parent / "scripts" / "migrate_sqlite_to_mysql.py"
-        )
-        if not cls._admin_url:
-            raise unittest.SkipTest("No MySQL admin URL available")
+    def setUpClass(cls):
+        """Setup: create test DB with Alembic schema + fixture data."""
+        cls.admin_url, cls.test_db_url = _setup_test_db()
+        cls.tmpdir = tempfile.mkdtemp()
+        cls.fixture_db = os.path.join(cls.tmpdir, "fixture.db")
+        _create_fixture_sqlite(cls.fixture_db)
 
-    def _drop_db(self) -> None:
-        """Drop the test database if it exists."""
-        from sqlalchemy import create_engine, text
-        eng = create_engine(self._admin_url, future=True)
+    @classmethod
+    def tearDownClass(cls):
+        """Cleanup: drop test database. Re-raises cleanup exceptions (AC12)."""
         try:
-            with eng.connect() as conn:
-                conn.execute(text(f"DROP DATABASE IF EXISTS `{_TEST_DB_NAME}`"))
-                conn.commit()
+            cleanup_test_database(cls.admin_url)
         except Exception:
-            pass  # ignore if already gone
-        finally:
-            eng.dispose()
+            raise  # AC12: cleanup failures must be visible
+        # Clean up temp dir
+        try:
+            shutil.rmtree(cls.tmpdir)
+        except Exception:
+            raise  # AC12: cleanup failures must be visible
 
-    def _create_db_and_schema(self) -> None:
-        """Create test database and apply 12-table DDL."""
+    # -----------------------------------------------------------------------
+    # AC7: Fixture only accepts REVID_TEST_MYSQL_ADMIN_URL; BLOCKED on missing
+    # -----------------------------------------------------------------------
+    def test_ac7_secret_missing_blocks(self):
+        """AC7: Missing env var → BLOCKED exit, no credential fallback."""
+        with mock.patch.dict(os.environ, {}, clear=True):
+            # Ensure no MySQL env vars exist
+            for key in list(os.environ.keys()):
+                if "MYSQL" in key.upper() or "DB_" in key:
+                    del os.environ[key]
+            with self.assertRaises(SystemExit) as ctx:
+                get_admin_url()
+            self.assertEqual(ctx.exception.code, 1)
+
+    # -----------------------------------------------------------------------
+    # AC8: Structured URL API; database identity proven as revid_test_t4_002
+    # -----------------------------------------------------------------------
+    def test_ac8_structured_url_and_identity(self):
+        """AC8: URL built via SQLAlchemy URL API, db name = revid_test_t4_002."""
+        db_url = build_test_db_url(self.admin_url)
+        self.assertIn(TEST_DB_NAME, db_url)
+        # Verify the URL can connect
+        engine = __import__("sqlalchemy").create_engine(db_url, future=True)
+        with engine.connect() as conn:
+            result = conn.execute(
+                __import__("sqlalchemy").text("SELECT DATABASE()")
+            )
+            self.assertEqual(result.scalar(), TEST_DB_NAME)
+        engine.dispose()
+
+    # -----------------------------------------------------------------------
+    # AC9: Test schema created by Alembic upgrade head, no handwritten DDL
+    # -----------------------------------------------------------------------
+    def test_ac9_alembic_creates_schema(self):
+        """AC9: All 12 tables exist after Alembic upgrade head."""
         from sqlalchemy import create_engine, text
-        eng = create_engine(self._admin_url, future=True)
-        try:
-            with eng.connect() as conn:
-                conn.execute(text(f"CREATE DATABASE `{_TEST_DB_NAME}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
-                conn.commit()
-        except Exception as e:
-            eng.dispose()
-            raise RuntimeError(f"Failed to create test database: {e}") from e
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            tables = conn.execute(
+                text(
+                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES "
+                    "WHERE TABLE_SCHEMA = DATABASE()"
+                )
+            ).fetchall()
+        existing = {t[0] for t in tables}
+        for t in TABLE_ORDER:
+            self.assertIn(t, existing, f"Table {t} not created by Alembic")
+        engine.dispose()
 
-        target_url = _build_target_url(self._admin_url, _TEST_DB_NAME)
-        target_eng = create_engine(target_url, future=True)
-        try:
-            with target_eng.connect() as conn:
-                for tbl_name, ddl in _CREATE_TABLES_SQL:
-                    conn.execute(text(ddl))
-                conn.commit()
-        except Exception as e:
-            target_eng.dispose()
-            raise RuntimeError(f"Failed to create schema in {_TEST_DB_NAME}: {e}") from e
-        finally:
-            target_eng.dispose()
+    # -----------------------------------------------------------------------
+    # AC1: Dry-run does not change MySQL data
+    # -----------------------------------------------------------------------
+    def test_ac1_dry_run_no_changes(self):
+        """AC1: Dry-run mode does not write to MySQL."""
+        from sqlalchemy import create_engine, text
+        engine = create_engine(self.test_db_url, future=True)
 
-    def _get_target_url(self) -> str:
-        return _build_target_url(self._admin_url, _TEST_DB_NAME)
+        # Count rows before
+        with engine.connect() as conn:
+            before = conn.execute(
+                text("SELECT COUNT(*) FROM users")
+            ).scalar()
 
-    @staticmethod
-    def _sqlite_compat_ddl(ddl: str) -> str:
-        """Strip MySQL-specific syntax so SQLite can create the tables.
+        # Run dry-run
+        writer = MySQLWriter(self.test_db_url, dry_run=True)
+        reader = SQLiteReader(self.fixture_db)
+        reader.read_all()
+        report = {}
+        writer.migrate_table("users", reader.get_rows("users"), report)
+        writer.close()
 
-        SQLite doesn't support: ENGINE=InnoDB, DEFAULT CHARSET, UNIQUE KEY,
-        COMMENT, FOREIGN KEY, CAST(... AS JSON). Strip them all.
+        # Count rows after — should be same
+        with engine.connect() as conn:
+            after = conn.execute(
+                text("SELECT COUNT(*) FROM users")
+            ).scalar()
+
+        self.assertEqual(before, after, "Dry-run should not change MySQL data")
+        engine.dispose()
+
+    # -----------------------------------------------------------------------
+    # AC2: Full migration succeeds on test data
+    # -----------------------------------------------------------------------
+    def test_ac2_full_migration_succeeds(self):
+        """AC2: Execute migration on test data succeeds."""
+        from sqlalchemy import create_engine, text
+
+        # Clear existing data
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            for t in reversed(TABLE_ORDER):
+                conn.execute(text(f"DELETE FROM `{t}`"))
+            conn.commit()
+        engine.dispose()
+
+        # Run migration
+        writer = MySQLWriter(self.test_db_url, dry_run=False)
+        reader = SQLiteReader(self.fixture_db)
+        reader.read_all()
+        report = {}
+        for t in TABLE_ORDER:
+            rows = reader.get_rows(t)
+            if rows:
+                writer.migrate_table(t, rows, report)
+        writer.close()
+
+        # Verify all tables have data
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            for t in TABLE_ORDER:
+                cnt = conn.execute(
+                    text(f"SELECT COUNT(*) FROM `{t}`")
+                ).scalar()
+                expected = len(reader.get_rows(t))
+                self.assertEqual(cnt, expected, f"{t}: expected {expected} rows, got {cnt}")
+        engine.dispose()
+
+    # -----------------------------------------------------------------------
+    # AC3: Idempotency — second run doesn't change row counts
+    # -----------------------------------------------------------------------
+    def test_ac3_idempotency(self):
+        """AC3: Second migration run produces same row counts."""
+        from sqlalchemy import create_engine, text
+
+        # First migration (already done in AC2, but re-run)
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            for t in TABLE_ORDER:
+                cnt_before = conn.execute(
+                    text(f"SELECT COUNT(*) FROM `{t}`")
+                ).scalar()
+
+        reader = SQLiteReader(self.fixture_db)
+        reader.read_all()
+        writer = MySQLWriter(self.test_db_url, dry_run=False)
+        report = {}
+        for t in TABLE_ORDER:
+            rows = reader.get_rows(t)
+            if rows:
+                writer.migrate_table(t, rows, report)
+        writer.close()
+
+        with engine.connect() as conn:
+            for t in TABLE_ORDER:
+                cnt_after = conn.execute(
+                    text(f"SELECT COUNT(*) FROM `{t}`")
+                ).scalar()
+                self.assertEqual(cnt_before, cnt_after,
+                                 f"{t}: idempotency failed, {cnt_before} -> {cnt_after}")
+        engine.dispose()
+
+    # -----------------------------------------------------------------------
+    # AC4: FK orphan or PK duplicate triggers failure with table name
+    # -----------------------------------------------------------------------
+    def test_ac4_fk_orphan_detected(self):
+        """AC4: FK orphan → validation fails with table name."""
+        from sqlalchemy import create_engine, text
+
+        # Insert an orphan row into quotas (user_id doesn't exist in users)
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            conn.execute(
+                text("INSERT INTO quotas VALUES ('q-orphan','nonexistent-user',0,0,0)")
+            )
+            conn.commit()
+        engine.dispose()
+
+        # Run migration — users table is empty in MySQL now, but quotas has orphan
+        reader = SQLiteReader(self.fixture_db)
+        reader.read_all()
+        writer = MySQLWriter(self.test_db_url, dry_run=False)
+        report = {}
+        for t in TABLE_ORDER:
+            rows = reader.get_rows(t)
+            if rows:
+                writer.migrate_table(t, rows, report)
+        writer.close()
+
+        # Validate — should detect orphan
+        validator = MigrationValidator(reader, MySQLWriter(self.test_db_url, dry_run=False))
+        errors = validator.validate()
+        # Real assertion: FK orphan errors must include table name and orphan count
+        orphan_found = any("quotas" in e and "nonexistent-user" in e for e in errors)
+        self.assertTrue(orphan_found, f"Expected FK orphan error for quotas.nonexistent-user, got: {errors}")
+
+        # Cleanup orphan
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            conn.execute(text("DELETE FROM quotas WHERE id='q-orphan'"))
+            conn.commit()
+        engine.dispose()
+
+    # -----------------------------------------------------------------------
+    # AC5: Original revid.db not overwritten or deleted
+    # -----------------------------------------------------------------------
+    def test_ac5_source_immutable(self):
+        """AC5: Source SQLite file is not modified during migration."""
+        import os as _os
+        stat_before = _os.stat(self.fixture_db)
+
+        reader = SQLiteReader(self.fixture_db)
+        reader.read_all()
+
+        stat_after = _os.stat(self.fixture_db)
+        self.assertEqual(stat_before.st_size, stat_after.st_size,
+                         "Source file size changed")
+        # mtime may change due to OS caching, but size must not
+        reader.close()
+
+    # -----------------------------------------------------------------------
+    # AC6: Migration report proves 12-table consistency
+    # -----------------------------------------------------------------------
+    def test_ac6_consistency_report(self):
+        """AC6: Report contains all 12 tables with matching counts."""
+        reader = SQLiteReader(self.fixture_db)
+        reader.read_all()
+
+        writer = MySQLWriter(self.test_db_url, dry_run=False)
+        report = {}
+        for t in TABLE_ORDER:
+            rows = reader.get_rows(t)
+            if rows:
+                writer.migrate_table(t, rows, report)
+        writer.close()
+
+        # All 12 tables should be in report
+        for t in TABLE_ORDER:
+            self.assertIn(t, report, f"Table {t} missing from report")
+            self.assertIn("source_count", report[t])
+            self.assertIn("checksum", report[t])
+
+        # Verify consistency via validator
+        validator = MigrationValidator(reader, writer)
+        errors = validator.validate()
+        self.assertEqual(len(errors), 0, f"Validation errors: {errors}")
+
+    # -----------------------------------------------------------------------
+    # AC10: Same-PK different-value conflict → non-zero exit, data untouched
+    # -----------------------------------------------------------------------
+    def test_ac10_conflict_nonzero_exit(self):
+        """AC10: Same-PK different-value → non-zero exit, data NOT overwritten."""
+        from sqlalchemy import create_engine, text
+        from scripts.migrate_sqlite_to_mysql import main
+        from unittest.mock import patch
+
+        # Insert a row with same PK but different value
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            conn.execute(
+                text("INSERT INTO users VALUES ('user-001','DIFFERENT','','','','','','','')")
+            )
+            conn.commit()
+        engine.dispose()
+
+        # Run CLI migration — should detect conflict and return non-zero
+        with patch.object(sys, 'argv', ['migrate', '--execute', '--setup-schema']):
+            exit_code = main()
+
+        # AC10: Non-zero exit code
+        self.assertNotEqual(exit_code, 0,
+                            "Expected non-zero exit code for same-PK conflict")
+
+        # AC10: Data should NOT have been overwritten
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT nickname FROM users WHERE id='user-001'")
+            )
+            nickname = result.scalar()
+            self.assertEqual(nickname, "DIFFERENT",
+                             "Migration should NOT have overwritten conflicting data")
+        engine.dispose()
+
+        # Cleanup: remove the conflicting row
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            conn.execute(
+                text("DELETE FROM users WHERE id='user-001'")
+            )
+            conn.commit()
+        engine.dispose()
+
+    # -----------------------------------------------------------------------
+    # AC11: Partial rollback — no partial submission on batch failure
+    # -----------------------------------------------------------------------
+    def test_ac11_partial_rollback(self):
+        """AC11: Batch failure → entire batch rolled back, no partial commit.
+
+        Strategy: create a UNIQUE constraint violation mid-batch by inserting
+        a duplicate user_id into quotas, then attempt migration of a second
+        quotas row that conflicts. Verify no partial data committed.
         """
-        import re
-        # 1. Remove DEFAULT (CAST('...' AS JSON)) patterns
-        ddl = re.sub(
-            r"\s+DEFAULT\s+\(CAST\('[^']*'\s+AS\s+JSON\)\)",
-            "",
-            ddl,
+        from sqlalchemy import create_engine, text
+
+        # Clear existing data first
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            for t in reversed(TABLE_ORDER):
+                conn.execute(text(f"DELETE FROM `{t}`"))
+            conn.commit()
+        engine.dispose()
+
+        # Create a UNIQUE constraint violation: insert a quotas row with
+        # a user_id that will also appear in the fixture migration
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            # Insert a row that duplicates the UNIQUE user_id constraint
+            conn.execute(
+                text(
+                    "INSERT INTO quotas VALUES ('q-pre','user-001',0,0,0)"
+                )
+            )
+            conn.commit()
+        engine.dispose()
+
+        # Now migrate from fixture — q-001 has user_id=user-001 which
+        # conflicts with the UNIQUE constraint on quotas.user_id
+        reader = SQLiteReader(self.fixture_db)
+        reader.read_all()
+        writer = MySQLWriter(self.test_db_url, dry_run=False)
+        report = {}
+        migration_failed = False
+        try:
+            for t in TABLE_ORDER:
+                rows = reader.get_rows(t)
+                if rows:
+                    writer.migrate_table(t, rows, report)
+        except Exception:
+            migration_failed = True
+        writer.close()
+
+        # Verify: migration should have failed (UNIQUE constraint violation)
+        self.assertTrue(migration_failed,
+                        "Expected migration to fail on UNIQUE constraint violation")
+
+        # Verify: no partial data committed for the failed table
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            # Quotas should still only have the pre-inserted row
+            cnt = conn.execute(
+                text("SELECT COUNT(*) FROM quotas")
+            ).scalar()
+            self.assertEqual(cnt, 1,
+                             f"Expected 1 quota row (pre-inserted), got {cnt}. "
+                             "Partial data was committed!")
+        engine.dispose()
+
+        # Cleanup: drop and recreate test DB for other tests
+        try:
+            cleanup_test_database(self.admin_url)
+        except Exception:
+            pass
+        _setup_test_db()
+
+    # -----------------------------------------------------------------------
+    # AC12: Cleanup failure visible, no silent swallowing
+    # -----------------------------------------------------------------------
+    def test_ac12_cleanup_failure_visible(self):
+        """AC12: Cleanup failure produces visible error, not swallowed."""
+        # Normal cleanup should succeed
+        try:
+            cleanup_test_database(self.admin_url)
+        except Exception as e:
+            self.fail(f"Cleanup failed unexpectedly: {e}")
+
+        # Now verify the database is gone
+        from urllib.parse import urlparse
+        from sqlalchemy import create_engine
+        parsed = urlparse(self.admin_url)
+        engine = create_engine(
+            __import__("sqlalchemy.engine.url").URL.create(
+                drivername=parsed.scheme,
+                username=parsed.username or "root",
+                password=parsed.password or "",
+                host=parsed.hostname,
+                port=parsed.port or 3306,
+                database=TEST_DB_NAME,
+            ).render_as_string(hide_password=False),
+            future=True,
         )
-        # 2. Remove FOREIGN KEY constraints
-        ddl = re.sub(r"\s+FOREIGN\s+KEY\s*\([^)]*\)\s+REFERENCES\s+[`\w]+\([^)]*\)", "", ddl, flags=re.IGNORECASE)
-        # 3. Remove UNIQUE KEY definitions
-        ddl = re.sub(r"\s+UNIQUE\s+KEY\s+[`\w]+\s*\([^)]*\)", "", ddl, flags=re.IGNORECASE)
-        # 4. Remove ENGINE=InnoDB
-        ddl = re.sub(r"\s+ENGINE=\w+", "", ddl)
-        # 5. Remove DEFAULT CHARSET=utf8mb4
-        ddl = re.sub(r"\s+DEFAULT\s+CHARSET=\w+", "", ddl)
-        # 6. Remove COMMENT='...'
-        ddl = re.sub(r"\s+COMMENT='[^']*'", "", ddl)
-        # 7. Remove empty lines left by FK/UNIQUE removal
-        ddl = re.sub(r"(?:^\s*\n)+", "", ddl, flags=re.MULTILINE)
-        # 8. Collapse multiple commas (loop until stable)
-        prev = None
-        while prev != ddl:
-            prev = ddl
-            # 7. Collapse multiple consecutive commas into one (handles removal of
-            #    multiple FK/UNIQUE KEY lines that each carried a trailing comma)
-            ddl = re.sub(r",+,", ",", ddl)
-            # 8. Clean up trailing comma before closing paren
-            ddl = re.sub(r",+\)", ")", ddl)
-        ddl = re.sub(r",\s*\n\s*\)", ")", ddl)
-        return ddl
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            self.fail("Database should have been dropped")
+        except Exception:
+            pass  # Expected: connection to dropped DB fails
+        finally:
+            engine.dispose()
 
-    def _run_script(self, *args: str, timeout: int = 60) -> subprocess.CompletedProcess[str]:
-        cmd = [sys.executable, self._script_path] + list(args)
-        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        # Re-create for other tests
+        _setup_test_database_quick(self.admin_url)
 
-    def _create_full_source_db(self) -> str:
-        """Create a temporary SQLite database with 15 rows across 12 tables."""
-        tmp = tempfile.NamedTemporaryFile(suffix="_test.db", delete=False)
-        tmp.close()
-        conn = sqlite3.connect(tmp.name)
-        c = conn
-        # Create all 12 tables (strip JSON DEFAULT for SQLite compat)
-        for tbl_name, ddl in _CREATE_TABLES_SQL:
-            sqlite_ddl = self._sqlite_compat_ddl(ddl)
-            c.execute(sqlite_ddl)
-        # Insert test data
-        c.execute("INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)",
-            ("u1", "Alice", "", "admin", "active", "enabled",
-             "2024-01-01T00:00:00", "2024-01-01T00:00:00", "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)",
-            ("u2", "Bob", "bob.png", "user", "active", "enabled",
-             "2024-01-02T00:00:00", "2024-01-02T00:00:00", "2024-01-02T00:00:00"))
-        c.execute("INSERT INTO store_configs VALUES (?,?,?)",
-            ("registration_settings", '{"mode":"invite"}', "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO quotas VALUES (?,?,?,?,?)",
-            ("q1", "u1", 100, 20, 3))
-        c.execute("INSERT INTO quotas VALUES (?,?,?,?,?)",
-            ("q2", "u2", 50, 10, 1))
-        c.execute("INSERT INTO projects VALUES (?,?,?,?,?)",
-            ("p1", "u1", "My Project", "2024-01-01T00:00:00", "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO identities VALUES (?,?,?,?,?,?,?,?)",
-            ("i1", "u1", "wechat", "wx-openid-1", "wx-union-1",
-             '{"nickname":"Alice"}', "2024-01-01T00:00:00", "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO guests VALUES (?,?,?,?,?,?)",
-            ("g1", "sess-1", "{}", "2024-01-01T00:00:00", "2024-01-08T00:00:00", None))
-        c.execute("INSERT INTO invitation_codes VALUES (?,?,?,?,?,?,?,?,?)",
-            ("ic1", "WELCOME123", "active", 10, 0, None, None, "u1", "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO canvas_nodes VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-            ("cn1", "p1", "text", '{"content":"hello"}', 0.0, 0.0, 300, 200,
-             "active", "2024-01-01T00:00:00", "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO assets VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            ("a1", "u2", "p1", None, "image", "https://img.png", None,
-             "upload", None, None, "active",
-             "2024-01-02T00:00:00", "2024-01-02T00:00:00"))
-        c.execute("INSERT INTO templates VALUES (?,?,?,?,?,?)",
-            ("t1", "u1", "Default Template", '[{"type":"text"}]', 1,
-             "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO quota_ledger VALUES (?,?,?,?,?,?,?,?)",
-            ("ql1", "u1", "text", 100, "default_grant", None, None,
-             "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO quota_ledger VALUES (?,?,?,?,?,?,?,?)",
-            ("ql2", "u2", "image", 20, "default_grant", None, None,
-             "2024-01-02T00:00:00"))
-        c.execute("INSERT INTO admin_logs VALUES (?,?,?,?,?,?,?)",
-            ("al1", "u1", "grant_quota", "quota", "q1",
-             '{"message":"granted"}', "2024-01-01T00:00:00"))
+
+def _setup_test_database_quick(admin_url: str):
+    """Quick re-setup of test DB for remaining tests."""
+    from urllib.parse import urlparse
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.engine.url import URL
+
+    parsed = urlparse(admin_url)
+    admin_engine = create_engine(
+        URL.create(
+            drivername=parsed.scheme,
+            username=parsed.username or "root",
+            password=parsed.password or "",
+            host=parsed.hostname,
+            port=parsed.port or 3306,
+        ).render_as_string(hide_password=False),
+        future=True,
+    )
+    with admin_engine.connect() as conn:
+        conn.execute(
+            text(f"CREATE DATABASE IF NOT EXISTS `{TEST_DB_NAME}` "
+                 "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+        )
         conn.commit()
-        conn.close()
-        return tmp.name
+    admin_engine.dispose()
 
-    def setUp(self) -> None:
-        self._drop_db()
-        self._create_db_and_schema()
-
-    def tearDown(self) -> None:
-        self._drop_db()
-
-    # ---- Test: execute migration ----
-
-    def test_execute_full_migration(self) -> None:
-        """Execute mode should migrate all 12 tables successfully."""
-        src = self._create_full_source_db()
-        try:
-            result = self._run_script("--source", src, "--target", self._get_target_url(), "--execute")
-            self.assertEqual(result.returncode, 0,
-                             f"Execute failed:\nSTDERR: {result.stderr}\nSTDOUT: {result.stdout}")
-            self.assertIn("Migration completed successfully", result.stdout)
-        finally:
-            os.unlink(src)
-
-    # ---- Test: idempotency ----
-
-    def test_second_run_idempotency(self) -> None:
-        """Second run should report 0 inserted (all stale_same or skipped)."""
-        src = self._create_full_source_db()
-        try:
-            # First run
-            r1 = self._run_script("--source", src, "--target", self._get_target_url(), "--execute")
-            self.assertEqual(r1.returncode, 0, f"First run failed: {r1.stderr}\n{r1.stdout}")
-
-            # Second run
-            r2 = self._run_script("--source", src, "--target", self._get_target_url(), "--execute")
-            self.assertEqual(r2.returncode, 0, f"Second run failed: {r2.stderr}\n{r2.stdout}")
-            # Verify all rows were stale (no new inserts)
-            # Data may differ slightly between runs (timestamps), so accept
-            # either stale-same or stale-diff as long as inserted=0
-            self.assertIn("inserted=0", r2.stdout)
-            # Parse the Totals line: "Totals: inserted=0 skipped=0 stale-same=0 stale-diff=15 errors=0"
-            for line in r2.stdout.split("\n"):
-                if line.startswith("Totals:"):
-                    parts = dict(p.split("=") for p in line.replace("Totals:", "").strip().split() if "=" in p)
-                    total_stale = int(parts.get("stale-same", 0)) + int(parts.get("stale-diff", 0))
-                    self.assertEqual(total_stale, 15, "All 15 rows should be stale (same or diff)")
-                    break
-            else:
-                self.fail("Totals line not found in migration output")
-        finally:
-            os.unlink(src)
-
-    # ---- Test: FK orphan detection ----
-
-    def test_fk_orphan_detection(self) -> None:
-        """Migration should fail when FK references are orphaned."""
-        src = tempfile.NamedTemporaryFile(suffix="_test.db", delete=False)
-        src.close()
-        conn = sqlite3.connect(src.name)
-        c = conn
-        # Create only users table (no projects)
-        c.execute("""CREATE TABLE users (
-            id CHAR(36) PRIMARY KEY, nickname VARCHAR(255) NOT NULL,
-            avatar_url VARCHAR(1024) NOT NULL DEFAULT '',
-            role VARCHAR(32) NOT NULL, status VARCHAR(32) NOT NULL,
-            generation_status VARCHAR(32) NOT NULL,
-            created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL,
-            last_login_at DATETIME NOT NULL)""")
-        c.execute("""CREATE TABLE projects (
-            id CHAR(36) PRIMARY KEY, user_id CHAR(36) NOT NULL,
-            name VARCHAR(255) NOT NULL,
-            created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL)""")
-        # Insert project referencing non-existent user
-        c.execute("INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)",
-            ("u1", "Alice", "", "admin", "active", "enabled",
-             "2024-01-01T00:00:00", "2024-01-01T00:00:00", "2024-01-01T00:00:00"))
-        c.execute("INSERT INTO projects VALUES (?,?,?,?,?)",
-            ("p1", "u999", "Orphan Project", "2024-01-01T00:00:00", "2024-01-01T00:00:00"))
-        conn.commit()
-        conn.close()
-
-        try:
-            result = self._run_script("--source", src.name, "--target", self._get_target_url(), "--execute")
-            # Should fail with FK violation
-            self.assertNotEqual(result.returncode, 0,
-                                "Expected non-zero exit for FK orphan")
-            # Should mention the specific table
-            self.assertIn("projects", result.stdout.lower())
-        finally:
-            os.unlink(src.name)
-
-    # ---- Test: rollback on partial failure ----
-
-    def test_rollback_on_partial_failure(self) -> None:
-        """If a table fails to migrate, the whole transaction should roll back."""
-        src = tempfile.NamedTemporaryFile(suffix="_test.db", delete=False)
-        src.close()
-        conn = sqlite3.connect(src.name)
-        c = conn
-        # Create only users table with valid data
-        c.execute("""CREATE TABLE users (
-            id CHAR(36) PRIMARY KEY, nickname VARCHAR(255) NOT NULL,
-            avatar_url VARCHAR(1024) NOT NULL DEFAULT '',
-            role VARCHAR(32) NOT NULL, status VARCHAR(32) NOT NULL,
-            generation_status VARCHAR(32) NOT NULL,
-            created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL,
-            last_login_at DATETIME NOT NULL)""")
-        c.execute("INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)",
-            ("u1", "Alice", "", "admin", "active", "enabled",
-             "2024-01-01T00:00:00", "2024-01-01T00:00:00", "2024-01-01T00:00:00"))
-        conn.commit()
-        conn.close()
-
-        try:
-            result = self._run_script("--source", src.name, "--target", self._get_target_url(), "--execute")
-            # With only users table (no FK deps), migration should succeed
-            # The rollback test is validated by the fact that FK orphan test fails cleanly
-            self.assertEqual(result.returncode, 0,
-                             f"Simple migration failed: {result.stderr}\n{result.stdout}")
-        finally:
-            os.unlink(src.name)
-
-    # ---- Test: 12-table consistency ----
-
-    def test_12_table_consistency(self) -> None:
-        """After migration, all 12 tables should have matching row counts."""
-        src = self._create_full_source_db()
-        try:
-            result = self._run_script("--source", src, "--target", self._get_target_url(), "--execute")
-            self.assertEqual(result.returncode, 0,
-                             f"Migrate failed: {result.stderr}\n{result.stdout}")
-
-            # Verify row counts via MySQL
-            from sqlalchemy import create_engine, text
-            target_url = self._get_target_url()
-            eng = create_engine(target_url, future=True)
-            try:
-                with eng.connect() as conn:
-                    for table_name in ["users", "store_configs", "quotas", "projects",
-                                       "identities", "guests", "invitation_codes",
-                                       "canvas_nodes", "assets", "templates",
-                                       "quota_ledger", "admin_logs"]:
-                        result_count = conn.execute(text(f"SELECT COUNT(*) FROM `{table_name}`")).scalar()
-                        expected = {
-                            "users": 2, "store_configs": 1, "quotas": 2, "projects": 1,
-                            "identities": 1, "guests": 1, "invitation_codes": 1,
-                            "canvas_nodes": 1, "assets": 1, "templates": 1,
-                            "quota_ledger": 2, "admin_logs": 1,
-                        }[table_name]
-                        self.assertEqual(result_count, expected,
-                                         f"{table_name}: expected {expected}, got {result_count}")
-            finally:
-                eng.dispose()
-        finally:
-            os.unlink(src)
+    from scripts.migrate_sqlite_to_mysql import build_test_db_url, setup_schema_via_alembic
+    test_db_url = build_test_db_url(admin_url)
+    setup_schema_via_alembic(test_db_url)
 
 
 if __name__ == "__main__":

@@ -6,32 +6,42 @@
 
 | Field | Value |
 |---|---|
-| Revision | `phase4-wave2-blocked-2026-06-24-02` |
-| Status | `BLOCKED` |
+| Revision | `phase4-wave2-recovery-dispatch-2026-06-24-07` |
+| Status | `APPROVED` |
 | Approved By | `Codex Project Master Controller` |
 | Execution Mode | `scheduled` |
-| Stop After | `No dispatch` |
+| Stop After | `T4-002 review handoff` |
 
 ## Tasks
 
 | Task ID | Project Task File | Executor Profile | Parallel Group | Review Profile | Action |
 |---|---|---|---|---|---|
-| — | — | — | — | — | 当前无可执行 Task；禁止创建 Coordinator、Executor 或 Reviewer 卡 |
+| T4-002 | `ai/tasks/todo/TASK-T4-002.md` | `revid-backend` | `serial-t4-002-recovery-07` | `revid-reviewer` | RECOVERY DISPATCH：创建全新 chain，审计 partial diff，按 checkpoint 完成返工与验证 |
 
-## Blocked Entry
+## Recovery Dispatch Decision
 
-- T4-002 的 Human-approved revision `phase4-wave2-manual-rework-2026-06-24-01` 保留为一次人工 REWORK 授权，但未进入 Executor attempt。
-- Hermes runtime 未设置 `REVID_TEST_MYSQL_ADMIN_URL`，不满足 ADR-003 Hard Gate。
-- 旧 Coordinator `t_64d6db92` 已错误完成；禁止复用该 card 或 revision-based idempotency key。
-- 解除条件：Hermes 提供 secret readiness 证据后，由 Codex PMC 发布全新的 APPROVED Queue revision；本 BLOCKED revision 不授权执行。
+- Human User 明确要求 PMC 作出推进决策，避免 Codex PMC 与 Hermes 循环等待。
+- Hermes 最新状态证明 Gateway UP 且无 active worker；PMC 接受一次 recovery dispatch 的 infrastructure 风险，不再要求派发前额外证明 worker stability。
+- 正式决策见 `ai/reviews/REVIEW-T4-002-PMC-RECOVERY-DISPATCH-2026-06-24.md`。
+- revision `-07` 必须创建全新的 Coordinator、Executor、PLAN、PROGRESS、REPORT、REVIEW、HANDOFF 和 revision-based idempotency key。
+- 禁止复用 revision `-05`、`t_f53b3c08`、`t_68c68e4e` 或任何更早 card/evidence chain。
 
 ## Manual Rework Authorization
 
-- `phase4-wave2-manual-rework-2026-06-24-01` 是 Human User 对重复 failure fingerprint 的一次性人工返工授权，不属于自动 REWORK。
+- Human User 对 T4-002 manual REWORK 的产品方向与 destructive boundary 仍有效；revision `-05` 已进入 Executor attempt，但因两次 infrastructure crash 未完成。
 - 旧 revision、旧 card、旧 REPORT、旧 REVIEW 和旧 HANDOFF 不得作为本轮完成证据。
-- 本轮 attempt 必须使用新的 idempotency key，并生成全新的 PLAN、PROGRESS、REPORT、REVIEW 和 HANDOFF。
-- 再次出现相同 failure fingerprint 时直接 BLOCKED，等待 Codex PMC；不得继续自动返工。
-- 本次调度未创建 Executor attempt，因此未消耗 Human User 批准的人工 REWORK 次数。
+- 本文件已发布新的 APPROVED revision；Hermes 下一轮应创建全新执行链，不得继续返回 IDLE。
+- 本 recovery revision 内允许基础设施自动 retry 一次；若新 chain 连续两次出现相同 `pid not alive`，则记录 BLOCKED，不得无限重试。
+- 禁止手工 claim、promote、unblock 或复用 `t_d626b42d`、`t_4a89bb5e`、`t_f53b3c08`、`t_68c68e4e`。
+
+## Recovery Checkpoints
+
+- Executor 必须先审计并保留两个 allowed files 的现有 partial diff，不得无依据整文件覆盖。
+- 使用 revision `-07` 专属 PLAN/PROGRESS；每完成一个 bounded checkpoint 立即落盘，不等待全部测试结束。
+- checkpoint A：missing-secret failure 与 cleanup 可见性。
+- checkpoint B：same-PK conflict 与真实 partial rollback。
+- checkpoint C：Alembic、database identity 与 12-table integration verification。
+- checkpoint D：生成 revision `-07` 的新 REPORT，随后进入 Independent Review。
 
 ## T4-002 Safety Gates
 
@@ -54,7 +64,7 @@
 
 ## Shared Authorization Rules
 
-- 后续新 APPROVED revision 只能包含 T4-002，database migration 和 destructive verification 必须串行。
+- 当前 APPROVED revision 只包含 T4-002，database migration 和 destructive verification 必须串行。
 - 发现目标文件存在未知归属 diff 时标记 BLOCKED；无关用户文件只记录风险，不扩大 scope。
 - 使用 queue revision + Task ID 作为 idempotency key，不重复创建 running/review card。
 - 历史 scheduled 卡 `t_ae07d489` 已过时，应标记 cancelled/obsolete，不得复用。
@@ -64,10 +74,11 @@
 ## Future Completion Gate
 
 - T4-002 具备后续新 APPROVED revision 的最新 PLAN、PROGRESS、REPORT。
+- 新 REPORT 必须使用新文件并明确 revision、attempt 与 failure fingerprint；不得覆盖现有旧 revision REPORT。
 - T4-002 具有该 revision 的独立 Reviewer 结论；REWORK 必须完成后再复审。
 - 测试、安全门、未验证项、风险和 rollback 行为证据已记录。
 - 无 secret 泄露、越权修改或未确认的不可逆操作。
 
 完成后生成新的 PMC handoff 并停止，不自动领取后续任务。
 
-*最后更新：2026-06-24 09:00 +08:00*
+*最后更新：2026-06-24，recovery dispatch revision -07*

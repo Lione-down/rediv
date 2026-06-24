@@ -2,6 +2,7 @@
 
 Supports both SQLite (testing) and MySQL (production) via environment variable.
 """
+import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -29,10 +30,19 @@ def get_url():
 
     Respects REVID_USE_SQLITE for test environments.
     """
-    use_sqlite = getattr(settings, "use_sqlite", True)
-    env_val = config.get_main_option("use_sqlite", str(use_sqlite)).lower()
-    use_sqlite = env_val == "true"
-
+    # Check Alembic config first
+    alembic_use_sqlite = config.get_main_option("use_sqlite", None)
+    if alembic_use_sqlite is not None:
+        use_sqlite = alembic_use_sqlite.lower() == "true"
+    else:
+        # Fall back to environment variable
+        env_use_sqlite = os.environ.get("REVID_USE_SQLITE", "").lower()
+        if env_use_sqlite:
+            use_sqlite = env_use_sqlite == "true"
+        else:
+            # Final fallback to settings
+            use_sqlite = getattr(settings, "use_sqlite", True)
+    
     if use_sqlite:
         db_path = getattr(settings, "db_path", "revid.db")
         from models.base import build_sqlite_url

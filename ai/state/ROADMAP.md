@@ -8,7 +8,7 @@
 | Task | 标题 | 状态 | 依赖 |
 |---|---|---|---|
 | T4-001 | MySQL 8 引擎、模型备注与 Alembic baseline | done | 无 |
-| T4-002 | SQLite → MySQL 数据迁移工具 | blocked（secret / dispatch） | T4-001 ✅ |
+| T4-002 | SQLite → MySQL 数据迁移工具 | ready（recovery dispatch revision -07 APPROVED） | T4-001 ✅ |
 | T4-003 | MySQL runtime 切换与 Navicat 验收 | blocked | T4-002 |
 
 ## Phase 4B — 认证与真实 API

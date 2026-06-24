@@ -73,3 +73,25 @@
 - PMC Advisor 必须读取 `ai/handoffs/*` 并按 queue revision、Task ID、attempt、failure fingerprint 核对 REPORT、REVIEW、HANDOFF；automation thread 输出仅供用户查看，Hermes 不可见。
 - Codex PMC 的正式决定必须在同一轮写入共享项目文档；只有 Queue、Task、ADR、PMC REVIEW、CURRENT、ROADMAP 中的内容才会被 Hermes 定时任务读取。
 - Hermes Scheduled Supervisor 仍是四个 profiles 的唯一调度与监督入口；Codex PMC 不创建 Kanban card，也不直接控制 profile。
+
+## 2026-06-24 Git ignore 清理边界
+
+- 本地 database 文件、项目根目录一次性诊断脚本、backend 根目录 debug/verify 脚本和 Windows `nul` 产物不进入版本管理。
+- 一次性脚本规则必须使用 anchored path；禁止使用宽泛的 `test_*.py`，避免误伤 `backend/tests/` 中的正式测试。
+- `.gitignore` 只阻止未跟踪文件进入 Git；已经 tracked 的文件不能靠新增 ignore 规则自动移出版本管理。
+
+## 2026-06-24 七角色与双 Automation 协同协议
+
+- Revid 固定为 7 个角色：Human Owner、Codex PMC、Hermes Scheduled Supervisor、`revid-pm`、`revid-backend`、`revid-frontend`、`revid-reviewer`；每个项目动作只能有一个 Accountable 角色。
+- Codex PMC 是唯一项目规划、Task/ADR 定义、Queue 发布和最终验收角色；Hermes 只消费批准 Queue、调度和监督执行，不做项目决策。
+- `revid-pm` 只协调单个 execution chain；Backend/Frontend 只实现和自证；Reviewer 只独立验证。Reviewer PASS 必须经过 HANDOFF 和 Codex PMC 最终验收。
+- 两个 automation 使用单写者文件避免冲突：Codex 独占 CURRENT、ROADMAP、Task、ADR、PMC REVIEW、Queue；Hermes 独占 `HERMES-EXECUTION-STATUS.md`。
+- Queue revision 表示 Scope/AC/授权变化；attempt 表示同 revision 的实现/返工；process retry 表示同 card 的 crash/timeout。三者必须分开统计。
+- 同一 Task 只能有一个 active revision 和一条 active execution chain；业务 REWORK 最多一次，process retry 最多一次，相同 failure fingerprint 第二次出现立即熔断。
+- Codex 和 Hermes 都必须保存 evidence cursor。没有 Queue、execution state、REPORT、REVIEW、HANDOFF 或 fingerprint 变化时，Codex 输出 `IDLE`，Hermes 输出 `[SILENT]`，不得写重复报告或发送通知。
+- Hermes 主体 cron 不应每 20 分钟向所有 channel 固定 delivery；推荐每小时 `:15/:45` 运行，只对真实状态事件 delivery，避免重复报告和 rate limit。
+- 项目内 SOUL/prompt 是部署模板，不会自动修改 Hermes Desktop；外部 profile 配置必须按部署映射单独同步和验证。
+- 新 execution status 协议上线时，若 matching revision chain 已由旧 Supervisor cycle 创建，新 Supervisor 必须按 idempotency key 接管并回填真实 card IDs，不能因 status 尚未 ACK 再建平行 chain。
+- Windows PowerShell 5 把多行变量传给 `hermes cron edit --prompt` 时可能只保存首行；应折叠为语义等价的单行参数，并直接复查 `jobs.json` 的 prompt length、关键规则和 workdir。
+- Agent 可能在“接管已有 chain”时构造看似合理的 card ID 或自创 State；execution status 必须要求 Kanban JSON + `show` 双证据、固定枚举，并同步到已验证的最深实际阶段。
+- 修改 cron schedule/prompt 不会自动清理旧 `slash_worker`；部署时必须检查同一 job 的残留 Supervisor 会话，保证只有一个 status writer。协议迁移期若旧会话已写入伪状态，可基于结构化证据做一次性 bootstrap 修复并记录例外，随后恢复单写者约束。
