@@ -95,3 +95,18 @@
 - Windows PowerShell 5 把多行变量传给 `hermes cron edit --prompt` 时可能只保存首行；应折叠为语义等价的单行参数，并直接复查 `jobs.json` 的 prompt length、关键规则和 workdir。
 - Agent 可能在“接管已有 chain”时构造看似合理的 card ID 或自创 State；execution status 必须要求 Kanban JSON + `show` 双证据、固定枚举，并同步到已验证的最深实际阶段。
 - 修改 cron schedule/prompt 不会自动清理旧 `slash_worker`；部署时必须检查同一 job 的残留 Supervisor 会话，保证只有一个 status writer。协议迁移期若旧会话已写入伪状态，可基于结构化证据做一次性 bootstrap 修复并记录例外，随后恢复单写者约束。
+
+## 2026-06-25 Hermes 输出语言规则
+
+- Hermes Desktop 的系统 delivery 提示是英文，若项目 prompt 没有更高优先级的中文输出硬规则，scheduled supervisor 容易沿用英文写报告。
+- `ai/prompts/hermes-scheduled-supervisor.md` 必须明确要求面向 Human Owner 的最终回复、scheduled event report 和 runtime readiness report 使用中文；技术枚举、card ID、路径和 fingerprint 可保留英文原文。
+- `[SILENT]` 是互斥静默信号：无事件时只能输出精确 `[SILENT]`，不能先写任何英文/中文摘要再附加 `[SILENT]`。
+- 修改项目内 Hermes prompt 模板不会自动更新 Hermes Desktop 已存在的 cron；必须按 `ai/prompts/HERMES-ROLE-DEPLOYMENT.md` 重新部署，并验证实际 cron prompt 包含 `语言与交付硬规则` 和中文事件模板。
+
+## 2026-06-25 Hermes 到 Codex PMC 介入信号
+
+- Hermes 需要 Codex PMC 介入时，不应直接反复提醒 Human Owner；应在 `HERMES-EXECUTION-STATUS.md` 写 `PMC Action Required` marker。
+- `PMC Action Required = YES` 只代表 Codex PMC 要处理，不等于需要用户决策；只有 `Human Decision Candidate = YES` 且满足付费、secret、不可逆、重大产品/contract 或安全阻塞条件时，才通知 Human Owner。
+- Codex PMC automation 必须把 PMC action marker 纳入 evidence cursor；即使 Queue、REPORT、REVIEW、HANDOFF hash 未变化，只要 marker 变为 YES 就不能输出 `IDLE`。
+- Hermes 只因 PMC-only marker 变化时，应写共享状态文档并对 Human Owner 保持 `[SILENT]`，避免把项目内协作任务变成人肉转发。
+- 修改项目内 prompt 后必须同步真实 Hermes Desktop cron，并验证 cron prompt 包含 `PMC Action Required` 与 `Human Decision Candidate`。

@@ -285,6 +285,29 @@ Codex 在 Queue 已 ACK 且 chain 未进入终态时不得发布同 Task 新 rev
 
 Reviewer PASS 后，`revid-pm` 写 HANDOFF；Hermes status 转为 `HANDOFF_READY`。Hermes 不关闭项目 Task，不自动启动下一任务。
 
+### 6.3.1 Hermes → Codex：PMC Action Signal
+
+当 Hermes 判断需要 Codex PMC 介入，但不满足 Human Owner 升级条件时，必须只在 `ai/automation/HERMES-EXECUTION-STATUS.md` 写入 PMC action marker，不向 Human Owner delivery。
+
+`HERMES-EXECUTION-STATUS.md` 必须包含或更新以下字段：
+
+```text
+PMC Action Required: YES/NO
+PMC Action Type: FINAL_ACCEPTANCE | QUEUE_DECISION | RUNTIME_ADVISORY | REWORK_DECISION | STATE_CONFLICT | NONE
+PMC Action Reason: <简短原因>
+PMC Evidence Paths: <REPORT/REVIEW/HANDOFF/status/report path>
+Human Decision Candidate: YES/NO
+Human Escalation Reason: NONE 或具体最高级别原因
+```
+
+规则：
+
+- `PMC Action Required = YES` 是给 Codex PMC 的工作信号，不等于 Human Owner 决策。
+- 只有 `Human Decision Candidate = YES` 且问题满足 Human Owner 升级规则时，Codex PMC 才联系 Human Owner。
+- HANDOFF_READY、INFRASTRUCTURE_BLOCKED、SECURITY_BLOCKED、HUMAN_DECISION_REQUIRED、状态冲突、重复 failure fingerprint、需要新 Queue/continuation/rework verdict 时，Hermes 应写 PMC action marker。
+- 普通 running/monitoring、无新证据、等待 Worker、等待 Reviewer 时，不写 PMC action marker 或保持 `NO`。
+- 如果只有 PMC action marker 变化，Hermes 可以更新 execution status，但人类可见输出仍应保持静默，除非同时满足 Human escalation。
+
 ### 6.4 Codex → Hermes：Verdict Event
 
 Codex 审查 HANDOFF 后：
@@ -383,7 +406,7 @@ Hermes status 中的 card ID 必须来自 `hermes kanban ... --json` 并经 `sho
 
 ## 11. Evidence Cursor 与静默规则
 
-Codex cursor：last queue revision、execution status transition、report hash、review hash、handoff hash、PMC verdict。
+Codex cursor：last queue revision、execution status transition、report hash、review hash、handoff hash、PMC verdict、PMC action marker。
 
 Hermes cursor：last queue revision、Coordinator card、attempt、Kanban state、report/review/handoff path、failure fingerprint。
 
@@ -393,7 +416,7 @@ Hermes cursor：last queue revision、Coordinator card、attempt、Kanban state�
 - Hermes 输出 `[SILENT]`。
 - 不创建报告、不修改状态文件、不发送通知。
 
-只有以下事件允许通知 Human Owner：HUMAN_DECISION_REQUIRED、SECURITY_BLOCKED、不可逆操作待授权、付费资源待授权、项目阶段完成或连续基础设施故障导致项目无法推进。
+只有以下事件允许通知 Human Owner：HUMAN_DECISION_REQUIRED、SECURITY_BLOCKED、不可逆操作待授权、付费资源待授权、项目阶段完成或连续基础设施故障导致项目无法推进。仅需要 Codex PMC 介入的事件必须写入 `HERMES-EXECUTION-STATUS.md` 的 PMC action marker，不直接通知 Human Owner。
 
 ## 12. 完成定义
 

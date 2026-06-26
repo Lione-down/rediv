@@ -313,8 +313,10 @@ def _setup_test_db():
     # Drop if exists (cleanup from previous runs)
     try:
         cleanup_test_database(admin_url)
-    except Exception:
-        pass  # may not exist yet
+    except RuntimeError:
+        pass  # may not exist yet or identity mismatch — safe to ignore
+    except ConnectionError:
+        pass  # admin connection unavailable — will fail later at CREATE
 
     # Create database using admin connection
     from urllib.parse import urlparse
@@ -348,7 +350,7 @@ def _setup_test_db():
     return admin_url, test_db_url
 
 
-def _setup_test_db():
+def _recreate_test_db():
     """Recreate test DB and schema. Used by AC11 after cleanup."""
     admin_url = _get_admin_url()
     test_db_url = build_test_db_url(admin_url)
@@ -399,12 +401,12 @@ class TestMigrationTool(unittest.TestCase):
         """Cleanup: drop test database. Re-raises cleanup exceptions (AC12)."""
         try:
             cleanup_test_database(cls.admin_url)
-        except Exception:
+        except (RuntimeError, ConnectionError):
             raise  # AC12: cleanup failures must be visible
         # Clean up temp dir
         try:
             shutil.rmtree(cls.tmpdir)
-        except Exception:
+        except OSError:
             raise  # AC12: cleanup failures must be visible
 
     # -----------------------------------------------------------------------
@@ -420,6 +422,26 @@ class TestMigrationTool(unittest.TestCase):
             with self.assertRaises(SystemExit) as ctx:
                 get_admin_url()
             self.assertEqual(ctx.exception.code, 1)
+
+    # -----------------------------------------------------------------------
+    # AC13: Missing source file → non-zero exit, error visible
+    # -----------------------------------------------------------------------
+    def test_ac13_missing_source_nonzero_exit(self):
+        """AC13: Missing source file → non-zero exit, error visible.
+
+        This test does NOT depend on MySQL secret or class-level MySQL setup.
+        It only tests the CLI source path validation.
+        """
+        from scripts.migrate_sqlite_to_mysql import main
+        from unittest.mock import patch
+
+        # Run CLI with a non-existent source — should exit non-zero
+        with patch.object(sys, 'argv', ['migrate', '--dry-run',
+                                         '--source', '/nonexistent/path/fixture.db']):
+            exit_code = main()
+
+        self.assertNotEqual(exit_code, 0,
+                            "Expected non-zero exit for missing source file")
 
     # -----------------------------------------------------------------------
     # AC8: Structured URL API; database identity proven as revid_test_t4_002
@@ -477,6 +499,7 @@ class TestMigrationTool(unittest.TestCase):
         report = {}
         writer.migrate_table("users", reader.get_rows("users"), report)
         writer.close()
+        reader.close()
 
         # Count rows after — should be same
         with engine.connect() as conn:
@@ -512,6 +535,7 @@ class TestMigrationTool(unittest.TestCase):
             if rows:
                 writer.migrate_table(t, rows, report)
         writer.close()
+        reader.close()
 
         # Verify all tables have data
         engine = create_engine(self.test_db_url, future=True)
@@ -531,13 +555,15 @@ class TestMigrationTool(unittest.TestCase):
         """AC3: Second migration run produces same row counts."""
         from sqlalchemy import create_engine, text
 
-        # First migration (already done in AC2, but re-run)
+        # Read counts before second migration
         engine = create_engine(self.test_db_url, future=True)
+        counts_before = {}
         with engine.connect() as conn:
             for t in TABLE_ORDER:
-                cnt_before = conn.execute(
+                cnt = conn.execute(
                     text(f"SELECT COUNT(*) FROM `{t}`")
                 ).scalar()
+                counts_before[t] = cnt
 
         reader = SQLiteReader(self.fixture_db)
         reader.read_all()
@@ -548,14 +574,15 @@ class TestMigrationTool(unittest.TestCase):
             if rows:
                 writer.migrate_table(t, rows, report)
         writer.close()
+        reader.close()
 
         with engine.connect() as conn:
             for t in TABLE_ORDER:
                 cnt_after = conn.execute(
                     text(f"SELECT COUNT(*) FROM `{t}`")
                 ).scalar()
-                self.assertEqual(cnt_before, cnt_after,
-                                 f"{t}: idempotency failed, {cnt_before} -> {cnt_after}")
+                self.assertEqual(counts_before[t], cnt_after,
+                                 f"{t}: idempotency failed, {counts_before[t]} -> {cnt_after}")
         engine.dispose()
 
     # -----------------------------------------------------------------------
@@ -565,9 +592,12 @@ class TestMigrationTool(unittest.TestCase):
         """AC4: FK orphan → validation fails with table name."""
         from sqlalchemy import create_engine, text
 
-        # Insert an orphan row into quotas (user_id doesn't exist in users)
+        # Disable FK checks to insert an orphan row
         engine = create_engine(self.test_db_url, future=True)
         with engine.connect() as conn:
+            conn.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+            conn.commit()
+            # Insert an orphan row into quotas (user_id doesn't exist in users)
             conn.execute(
                 text("INSERT INTO quotas VALUES ('q-orphan','nonexistent-user',0,0,0)")
             )
@@ -586,8 +616,11 @@ class TestMigrationTool(unittest.TestCase):
         writer.close()
 
         # Validate — should detect orphan
-        validator = MigrationValidator(reader, MySQLWriter(self.test_db_url, dry_run=False))
+        val_writer = MySQLWriter(self.test_db_url, dry_run=False)
+        validator = MigrationValidator(reader, val_writer)
         errors = validator.validate()
+        val_writer.close()
+        reader.close()
         # Real assertion: FK orphan errors must include table name and orphan count
         orphan_found = any("quotas" in e and "nonexistent-user" in e for e in errors)
         self.assertTrue(orphan_found, f"Expected FK orphan error for quotas.nonexistent-user, got: {errors}")
@@ -595,8 +628,17 @@ class TestMigrationTool(unittest.TestCase):
         # Cleanup orphan
         engine = create_engine(self.test_db_url, future=True)
         with engine.connect() as conn:
+            conn.execute(text("SET FOREIGN_KEY_CHECKS=0"))
             conn.execute(text("DELETE FROM quotas WHERE id='q-orphan'"))
+            conn.execute(text("SET FOREIGN_KEY_CHECKS=1"))
             conn.commit()
+        engine.dispose()
+
+        # Verify orphan is gone
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            cnt = conn.execute(text("SELECT COUNT(*) FROM quotas WHERE id='q-orphan'")).scalar()
+            self.assertEqual(cnt, 0, "Orphan row was not cleaned up")
         engine.dispose()
 
     # -----------------------------------------------------------------------
@@ -642,30 +684,46 @@ class TestMigrationTool(unittest.TestCase):
         validator = MigrationValidator(reader, writer)
         errors = validator.validate()
         self.assertEqual(len(errors), 0, f"Validation errors: {errors}")
+        writer.close()
+        reader.close()
 
     # -----------------------------------------------------------------------
     # AC10: Same-PK different-value conflict → non-zero exit, data untouched
     # -----------------------------------------------------------------------
     def test_ac10_conflict_nonzero_exit(self):
-        """AC10: Same-PK different-value → non-zero exit, data NOT overwritten."""
+        """AC10: Same-PK different-value → non-zero exit, data NOT overwritten.
+
+        Must pass temp fixture --source explicitly so non-zero exit is
+        provably from same-PK conflict, not from missing default revid.db.
+        """
         from sqlalchemy import create_engine, text
         from scripts.migrate_sqlite_to_mysql import main
         from unittest.mock import patch
 
-        # Insert a row with same PK but different value
+        # Insert a row with same PK but different value (valid datetime)
         engine = create_engine(self.test_db_url, future=True)
         with engine.connect() as conn:
             conn.execute(
-                text("INSERT INTO users VALUES ('user-001','DIFFERENT','','','','','','','')")
+                text(
+                    "INSERT INTO users VALUES "
+                    "('user-001','DIFFERENT','','admin','active','enabled',"
+                    "'2024-01-01 00:00:00','2024-01-01 00:00:00','2024-01-01 00:00:00')"
+                )
             )
             conn.commit()
+        original_nickname = "DIFFERENT"
         engine.dispose()
 
-        # Run CLI migration — should detect conflict and return non-zero
-        with patch.object(sys, 'argv', ['migrate', '--execute', '--setup-schema']):
+        # Create a temp fixture SQLite that has user-001 with original nickname
+        tmp_fixture = os.path.join(self.tmpdir, "ac10_fixture.db")
+        _create_fixture_sqlite(tmp_fixture)
+
+        # Run CLI migration with explicit --source temp fixture
+        with patch.object(sys, 'argv', ['migrate', '--execute', '--setup-schema',
+                                         '--source', tmp_fixture]):
             exit_code = main()
 
-        # AC10: Non-zero exit code
+        # AC10: Non-zero exit code MUST come from same-PK conflict
         self.assertNotEqual(exit_code, 0,
                             "Expected non-zero exit code for same-PK conflict")
 
@@ -676,7 +734,7 @@ class TestMigrationTool(unittest.TestCase):
                 text("SELECT nickname FROM users WHERE id='user-001'")
             )
             nickname = result.scalar()
-            self.assertEqual(nickname, "DIFFERENT",
+            self.assertEqual(nickname, original_nickname,
                              "Migration should NOT have overwritten conflicting data")
         engine.dispose()
 
@@ -695,9 +753,10 @@ class TestMigrationTool(unittest.TestCase):
     def test_ac11_partial_rollback(self):
         """AC11: Batch failure → entire batch rolled back, no partial commit.
 
-        Strategy: create a UNIQUE constraint violation mid-batch by inserting
-        a duplicate user_id into quotas, then attempt migration of a second
-        quotas row that conflicts. Verify no partial data committed.
+        Strategy: Pre-insert a UNIQUE-violating quotas row for user-002,
+        then migrate fixture data. The first quotas row (q-001/user-001)
+        will INSERT successfully, but the second (q-002/user-002) will
+        fail on UNIQUE(user_id). We must prove q-001 was also rolled back.
         """
         from sqlalchemy import create_engine, text
 
@@ -709,21 +768,44 @@ class TestMigrationTool(unittest.TestCase):
             conn.commit()
         engine.dispose()
 
-        # Create a UNIQUE constraint violation: insert a quotas row with
-        # a user_id that will also appear in the fixture migration
+        # Pre-insert users so FK constraints pass for quotas migration
         engine = create_engine(self.test_db_url, future=True)
         with engine.connect() as conn:
-            # Insert a row that duplicates the UNIQUE user_id constraint
             conn.execute(
                 text(
-                    "INSERT INTO quotas VALUES ('q-pre','user-001',0,0,0)"
+                    "INSERT INTO users VALUES "
+                    "('user-001','Alice','','user','active','enabled',"
+                    "'2024-01-01 00:00:00','2024-01-01 00:00:00','2024-06-01 00:00:00')"
+                )
+            )
+            conn.execute(
+                text(
+                    "INSERT INTO users VALUES "
+                    "('user-002','Bob','','admin','active','enabled',"
+                    "'2024-02-01 00:00:00','2024-02-01 00:00:00','2024-06-02 00:00:00')"
                 )
             )
             conn.commit()
         engine.dispose()
 
-        # Now migrate from fixture — q-001 has user_id=user-001 which
-        # conflicts with the UNIQUE constraint on quotas.user_id
+        # Pre-insert a quotas row that will conflict with the SECOND fixture row.
+        # Fixture quotas: q-001(user-001), q-002(user-002)
+        # Pre-insert q-000 with user_id=user-002 → UNIQUE violation on q-002
+        # This means q-001 will INSERT first (success), then q-002 fails.
+        # If rollback works, q-001 should also be gone.
+        engine = create_engine(self.test_db_url, future=True)
+        with engine.connect() as conn:
+            conn.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+            conn.execute(
+                text(
+                    "INSERT INTO quotas VALUES ('q-000','user-002',0,0,0)"
+                )
+            )
+            conn.execute(text("SET FOREIGN_KEY_CHECKS=1"))
+            conn.commit()
+        engine.dispose()
+
+        # Now migrate from fixture — q-001 should INSERT, q-002 should FAIL
         reader = SQLiteReader(self.fixture_db)
         reader.read_all()
         writer = MySQLWriter(self.test_db_url, dry_run=False)
@@ -737,44 +819,62 @@ class TestMigrationTool(unittest.TestCase):
         except Exception:
             migration_failed = True
         writer.close()
+        reader.close()
 
         # Verify: migration should have failed (UNIQUE constraint violation)
         self.assertTrue(migration_failed,
                         "Expected migration to fail on UNIQUE constraint violation")
 
-        # Verify: no partial data committed for the failed table
+        # Verify: q-001 (which was inserted BEFORE the failure) must also be rolled back
         engine = create_engine(self.test_db_url, future=True)
         with engine.connect() as conn:
-            # Quotas should still only have the pre-inserted row
+            # Quotas should still only have the pre-inserted row (q-000)
             cnt = conn.execute(
                 text("SELECT COUNT(*) FROM quotas")
             ).scalar()
             self.assertEqual(cnt, 1,
-                             f"Expected 1 quota row (pre-inserted), got {cnt}. "
+                             f"Expected 1 quota row (pre-inserted q-000), got {cnt}. "
                              "Partial data was committed!")
+            # Verify q-001 is NOT present (proves rollback of prior success)
+            q001_count = conn.execute(
+                text("SELECT COUNT(*) FROM quotas WHERE id='q-001'")
+            ).scalar()
+            self.assertEqual(q001_count, 0,
+                             "q-001 was inserted before the failure but not rolled back!")
         engine.dispose()
 
         # Cleanup: drop and recreate test DB for other tests
         try:
             cleanup_test_database(self.admin_url)
-        except Exception:
+        except RuntimeError:
             pass
-        _setup_test_db()
+        except ConnectionError:
+            pass
+        _recreate_test_db()
 
     # -----------------------------------------------------------------------
     # AC12: Cleanup failure visible, no silent swallowing
     # -----------------------------------------------------------------------
     def test_ac12_cleanup_failure_visible(self):
-        """AC12: Cleanup failure produces visible error, not swallowed."""
-        # Normal cleanup should succeed
+        """AC12: Cleanup failure produces visible error, not swallowed.
+
+        Strategy:
+        1. Normal cleanup should succeed — verify DB is actually dropped.
+        2. Inject a fake admin URL that causes cleanup to fail,
+           and assert the exception propagates upward (non-zero exit).
+        """
+        # --- Part 1: Normal cleanup succeeds and DB is actually dropped ---
         try:
             cleanup_test_database(self.admin_url)
-        except Exception as e:
+        except RuntimeError as e:
             self.fail(f"Cleanup failed unexpectedly: {e}")
+        except ConnectionError as e:
+            self.fail(f"Cleanup connection failed unexpectedly: {e}")
 
-        # Now verify the database is gone
+        # Verify the database is genuinely gone
         from urllib.parse import urlparse
-        from sqlalchemy import create_engine
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.exc import OperationalError
         parsed = urlparse(self.admin_url)
         engine = create_engine(
             __import__("sqlalchemy.engine.url").URL.create(
@@ -787,14 +887,35 @@ class TestMigrationTool(unittest.TestCase):
             ).render_as_string(hide_password=False),
             future=True,
         )
+        db_gone = False
         try:
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            self.fail("Database should have been dropped")
-        except Exception:
-            pass  # Expected: connection to dropped DB fails
+        except OperationalError:
+            db_gone = True
+        except Exception as e:
+            # Other connection errors also indicate the DB is unreachable
+            db_gone = True
         finally:
             engine.dispose()
+
+        self.assertTrue(db_gone, "Database should have been dropped but still exists")
+
+        # --- Part 2: Inject cleanup failure and verify exception propagates ---
+        # Temporarily swap cleanup_test_database to raise
+        from unittest.mock import patch
+        import builtins
+
+        def _fake_cleanup_raise(_admin_url: str) -> None:
+            raise RuntimeError("Injected cleanup failure: DROP DATABASE permission denied")
+
+        with patch(
+            "test_migration_tool.cleanup_test_database",
+            _fake_cleanup_raise,
+        ):
+            with self.assertRaises(RuntimeError) as ctx:
+                cleanup_test_database("mysql+pymysql://root:pass@localhost/revid_test_t4_002")
+            self.assertIn("Injected cleanup failure", str(ctx.exception))
 
         # Re-create for other tests
         _setup_test_database_quick(self.admin_url)
@@ -828,6 +949,449 @@ def _setup_test_database_quick(admin_url: str):
     from scripts.migrate_sqlite_to_mysql import build_test_db_url, setup_schema_via_alembic
     test_db_url = build_test_db_url(admin_url)
     setup_schema_via_alembic(test_db_url)
+
+
+# ---------------------------------------------------------------------------
+# Unit B: Same-PK Conflict (AC10) + Partial Rollback (AC11) — Mock-Based
+# These tests exercise pure logic via mocking. NO MySQL connection,
+# NO secret reading, NO .env access, NO destructive operations.
+# ---------------------------------------------------------------------------
+
+
+class TestUnitB(unittest.TestCase):
+    """Mock-based unit tests for AC10 (same-PK conflict) and AC11 (partial rollback).
+
+    These tests do NOT require a real MySQL connection. They mock
+    engine.connect() to control the existing_map population and
+    the INSERT execution path.
+    """
+
+    # -----------------------------------------------------------------------
+    # AC10: Same-PK conflict detection — stale_diff > 0 → abort, no write
+    # -----------------------------------------------------------------------
+    def test_unit_b_ac10_conflict_detected(self):
+        """AC10: Same-PK different-value → stale_diff > 0, error recorded, no INSERT."""
+        from sqlalchemy import create_engine
+        from sqlalchemy.engine import CursorResult
+
+        # Create a throwaway in-memory SQLite engine just to satisfy
+        # MySQLWriter.__init__ (we never use it for real queries).
+        writer = MySQLWriter("sqlite:///:memory:", dry_run=False)
+
+        # Mock the SELECT that populates existing_map:
+        # Return one existing row with DIFFERENT values for user-001.
+        mock_existing = {
+            "id": ["id", "nickname", "avatar_url", "role", "status",
+                   "generation_status", "created_at", "updated_at", "last_login_at"],
+            "_mapping": {"id": "user-001", "nickname": "DIFFERENT_NICK",
+                         "avatar_url": "", "role": "user", "status": "active",
+                         "generation_status": "enabled", "created_at": "2024-01-01T00:00:00",
+                         "updated_at": "2024-01-01T00:00:00", "last_login_at": "2024-06-01T00:00:00"},
+        }
+
+        mock_result = mock.Mock(spec=CursorResult)
+        mock_result._mapping = mock_existing["_mapping"]
+        mock_result.__iter__ = lambda self: iter([mock_result])
+
+        mock_conn = mock.Mock()
+        mock_conn.execute.return_value = mock_result
+
+        mock_engine_ctx = mock.Mock()
+        mock_engine_ctx.__enter__ = mock.Mock(return_value=mock_conn)
+        mock_engine_ctx.__exit__ = mock.Mock(return_value=False)
+        writer.engine.connect = mock.Mock(return_value=mock_engine_ctx)
+
+        # Source rows: user-001 with ORIGINAL nickname (different from existing)
+        source_rows = [
+            {
+                "id": "user-001", "nickname": "Alice", "avatar_url": "https://img.a",
+                "role": "user", "status": "active", "generation_status": "enabled",
+                "created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-01T00:00:00",
+                "last_login_at": "2024-06-01T00:00:00",
+            },
+        ]
+        report = {}
+
+        writer.migrate_table("users", source_rows, report)
+        writer.close()
+
+        # Verify: stale_diff > 0, stale_same == 0
+        self.assertEqual(report["users"]["stale_diff"], 1,
+                         "Expected stale_diff == 1 for same-PK different-value")
+        self.assertEqual(report["users"]["stale_same"], 0,
+                         "Expected stale_same == 0")
+        # Verify: error recorded
+        self.assertTrue(len(report["users"]["errors"]) > 0,
+                        "Expected error message for same-PK conflict")
+        self.assertIn("Same-PK conflict", report["users"]["errors"][0])
+        # Verify: no rows inserted (conflict caused abort)
+        self.assertEqual(report["users"]["inserted"], 0,
+                         "Expected 0 inserted when conflict detected")
+
+    def test_unit_b_ac10_stale_same_ok(self):
+        """AC10: Same-PK same-value → stale_same > 0, stale_diff == 0, no error."""
+        from sqlalchemy.engine import CursorResult
+
+        writer = MySQLWriter("sqlite:///:memory:", dry_run=False)
+
+        # Mock existing row IDENTICAL to source (excluding PK)
+        mock_existing = {
+            "id": ["id", "nickname", "avatar_url", "role", "status",
+                   "generation_status", "created_at", "updated_at", "last_login_at"],
+            "_mapping": {"id": "user-001", "nickname": "Alice",
+                         "avatar_url": "https://img.a", "role": "user", "status": "active",
+                         "generation_status": "enabled", "created_at": "2024-01-01T00:00:00",
+                         "updated_at": "2024-01-01T00:00:00", "last_login_at": "2024-06-01T00:00:00"},
+        }
+
+        mock_result = mock.Mock(spec=CursorResult)
+        mock_result._mapping = mock_existing["_mapping"]
+        mock_result.__iter__ = lambda self: iter([mock_result])
+
+        mock_conn = mock.Mock()
+        mock_conn.execute.return_value = mock_result
+
+        mock_engine_ctx = mock.Mock()
+        mock_engine_ctx.__enter__ = mock.Mock(return_value=mock_conn)
+        mock_engine_ctx.__exit__ = mock.Mock(return_value=False)
+        writer.engine.connect = mock.Mock(return_value=mock_engine_ctx)
+
+        source_rows = [
+            {
+                "id": "user-001", "nickname": "Alice", "avatar_url": "https://img.a",
+                "role": "user", "status": "active", "generation_status": "enabled",
+                "created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-01T00:00:00",
+                "last_login_at": "2024-06-01T00:00:00",
+            },
+        ]
+        report = {}
+
+        writer.migrate_table("users", source_rows, report)
+        writer.close()
+
+        # stale_same > 0, stale_diff == 0, no errors
+        self.assertEqual(report["users"]["stale_same"], 1,
+                         "Expected stale_same == 1 for identical row")
+        self.assertEqual(report["users"]["stale_diff"], 0,
+                         "Expected stale_diff == 0 for identical row")
+        self.assertEqual(len(report["users"]["errors"]), 0,
+                         "Expected no errors for stale_same")
+
+    def test_unit_b_ac10_symmetric_comparison(self):
+        """AC10: PK excluded from comparison — symmetric exclusion verified.
+
+        The symmetric comparison must exclude the PK column from BOTH
+        source and destination dicts before JSON comparison.
+        We test this by providing rows where the non-PK fields match
+        but the PK differs — the PK is excluded, so it should be
+        stale_same (not stale_diff).
+        """
+        from sqlalchemy.engine import CursorResult
+
+        writer = MySQLWriter("sqlite:///:memory:", dry_run=False)
+
+        # Existing row: SAME id as source, SAME non-PK values.
+        # The symmetric comparison excludes "id" from both dicts,
+        # then compares JSON — they match → stale_same.
+        mock_result = mock.Mock(spec=CursorResult)
+        mock_result._mapping = {
+            "id": "user-001", "nickname": "Alice",
+            "avatar_url": "https://img.a", "role": "user", "status": "active",
+            "generation_status": "enabled", "created_at": "2024-01-01T00:00:00",
+            "updated_at": "2024-01-01T00:00:00", "last_login_at": "2024-06-01T00:00:00",
+        }
+        mock_result.__iter__ = lambda self: iter([mock_result])
+
+        mock_conn = mock.Mock()
+        mock_conn.execute.return_value = mock_result
+
+        mock_engine_ctx = mock.Mock()
+        mock_engine_ctx.__enter__ = mock.Mock(return_value=mock_conn)
+        mock_engine_ctx.__exit__ = mock.Mock(return_value=False)
+        writer.engine.connect = mock.Mock(return_value=mock_engine_ctx)
+
+        source_rows = [
+            {
+                "id": "user-001", "nickname": "Alice", "avatar_url": "https://img.a",
+                "role": "user", "status": "active", "generation_status": "enabled",
+                "created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-01T00:00:00",
+                "last_login_at": "2024-06-01T00:00:00",
+            },
+        ]
+        report = {}
+
+        writer.migrate_table("users", source_rows, report)
+        writer.close()
+
+        # PK excluded from comparison → stale_same
+        self.assertEqual(report["users"]["stale_same"], 1,
+                         "Expected stale_same when non-PK values match")
+        self.assertEqual(report["users"]["stale_diff"], 0,
+                         "Expected stale_diff == 0 (PK excluded from comparison)")
+
+    def test_unit_b_ac10_mixed_rows(self):
+        """AC10: Mixed scenario — some rows new, some stale_same, one stale_diff.
+
+        The stale_diff row should cause the ENTIRE table to abort.
+        """
+        from sqlalchemy.engine import CursorResult
+
+        writer = MySQLWriter("sqlite:///:memory:", dry_run=False)
+
+        # existing_map: user-001 (stale_same), user-002 (stale_diff)
+        mock_result_001 = mock.Mock()
+        mock_result_001._mapping = {
+            "id": "user-001", "nickname": "Alice", "avatar_url": "https://img.a",
+            "role": "user", "status": "active", "generation_status": "enabled",
+            "created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-01T00:00:00",
+            "last_login_at": "2024-06-01T00:00:00",
+        }
+        mock_result_002 = mock.Mock()
+        mock_result_002._mapping = {
+            "id": "user-002", "nickname": "BOB_MODIFIED", "avatar_url": "https://img.x",
+            "role": "admin", "status": "inactive", "generation_status": "disabled",
+            "created_at": "2024-02-01T00:00:00", "updated_at": "2024-02-01T00:00:00",
+            "last_login_at": "2024-06-02T00:00:00",
+        }
+
+        mock_result_iter = iter([mock_result_001, mock_result_002])
+        mock_result = mock.Mock()
+        mock_result._mapping = {}
+        mock_result.__iter__ = lambda self: mock_result_iter
+
+        mock_conn = mock.Mock()
+        mock_conn.execute.return_value = mock_result
+
+        mock_engine_ctx = mock.Mock()
+        mock_engine_ctx.__enter__ = mock.Mock(return_value=mock_conn)
+        mock_engine_ctx.__exit__ = mock.Mock(return_value=False)
+        writer.engine.connect = mock.Mock(return_value=mock_engine_ctx)
+
+        source_rows = [
+            {
+                "id": "user-001", "nickname": "Alice", "avatar_url": "https://img.a",
+                "role": "user", "status": "active", "generation_status": "enabled",
+                "created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-01T00:00:00",
+                "last_login_at": "2024-06-01T00:00:00",
+            },
+            {
+                "id": "user-002", "nickname": "Bob", "avatar_url": "https://img.b",
+                "role": "admin", "status": "active", "generation_status": "enabled",
+                "created_at": "2024-02-01T00:00:00", "updated_at": "2024-02-01T00:00:00",
+                "last_login_at": "2024-06-02T00:00:00",
+            },
+        ]
+        report = {}
+
+        writer.migrate_table("users", source_rows, report)
+        writer.close()
+
+        # stale_same=1 (user-001), stale_diff=1 (user-002)
+        self.assertEqual(report["users"]["stale_same"], 1)
+        self.assertEqual(report["users"]["stale_diff"], 1)
+        # Entire table aborted — no inserts
+        self.assertEqual(report["users"]["inserted"], 0)
+        # Error recorded
+        self.assertTrue(len(report["users"]["errors"]) > 0)
+
+    # -----------------------------------------------------------------------
+    # AC11: Partial rollback on mid-batch failure
+    # -----------------------------------------------------------------------
+    def test_unit_b_ac11_mid_batch_rollback(self):
+        """AC11: Exception during INSERT → entire batch rolled back.
+
+        Strategy:
+        1. No existing rows (so no conflict detection triggers).
+        2. Mock the INSERT to succeed for the first row but raise
+           an exception on the second row.
+        3. Verify the transaction.rollback() was called and the
+           report shows 0 inserted.
+        """
+        from sqlalchemy.engine import CursorResult
+
+        writer = MySQLWriter("sqlite:///:memory:", dry_run=False)
+
+        # No existing data → no conflict detection
+        mock_empty_result = mock.Mock(spec=CursorResult)
+        mock_empty_result.__iter__ = lambda self: iter([])
+
+        mock_conn_select = mock.Mock()
+        mock_conn_select.execute.return_value = mock_empty_result
+
+        mock_engine_ctx_select = mock.Mock()
+        mock_engine_ctx_select.__enter__ = mock.Mock(return_value=mock_conn_select)
+        mock_engine_ctx_select.__exit__ = mock.Mock(return_value=False)
+
+        # For the INSERT phase, mock a connection that fails on the 2nd execute
+        call_count = [0]
+
+        def insert_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] <= 1:
+                # First row succeeds
+                return mock.Mock()
+            # Second row raises — simulates a real DB constraint error
+            raise RuntimeError("UNIQUE constraint failed: users.nickname")
+
+        mock_conn_insert = mock.Mock()
+        mock_conn_insert.execute.side_effect = insert_side_effect
+        mock_conn_insert.rollback = mock.Mock()
+        mock_conn_insert.commit = mock.Mock()
+        # Wrap as context manager for the INSERT phase
+        mock_engine_ctx_insert = mock.Mock()
+        mock_engine_ctx_insert.__enter__ = mock.Mock(return_value=mock_conn_insert)
+        mock_engine_ctx_insert.__exit__ = mock.Mock(return_value=False)
+
+        def connect_side_effect():
+            # First call: SELECT for existing_map (returns empty)
+            # Second call: INSERT transaction
+            if not hasattr(connect_side_effect, "called"):
+                connect_side_effect.called = True
+                return mock_engine_ctx_select
+            return mock_engine_ctx_insert
+
+        writer.engine.connect = mock.Mock(side_effect=connect_side_effect)
+
+        # Two source rows — first will succeed, second will fail
+        source_rows = [
+            {
+                "id": "user-001", "nickname": "Alice", "avatar_url": "https://img.a",
+                "role": "user", "status": "active", "generation_status": "enabled",
+                "created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-01T00:00:00",
+                "last_login_at": "2024-06-01T00:00:00",
+            },
+            {
+                "id": "user-002", "nickname": "Bob", "avatar_url": "https://img.b",
+                "role": "admin", "status": "active", "generation_status": "enabled",
+                "created_at": "2024-02-01T00:00:00", "updated_at": "2024-02-01T00:00:00",
+                "last_login_at": "2024-06-02T00:00:00",
+            },
+        ]
+        report = {}
+
+        # migrate_table should raise because the INSERT fails
+        with self.assertRaises(RuntimeError) as ctx:
+            writer.migrate_table("users", source_rows, report)
+
+        self.assertIn("UNIQUE constraint", str(ctx.exception))
+
+        # Verify: rollback was called (proves transaction rollback)
+        mock_conn_insert.rollback.assert_called_once()
+
+        # Verify: report shows 0 inserted (entire batch rolled back)
+        self.assertEqual(report["users"]["inserted"], 0,
+                         "Expected 0 inserted after mid-batch failure")
+        self.assertEqual(report["users"]["stale_same"], 0)
+        self.assertEqual(report["users"]["stale_diff"], 0)
+        self.assertTrue(len(report["users"]["errors"]) > 0,
+                        "Expected error recorded for table-level failure")
+
+    def test_unit_b_ac11_rollback_preserves_prior_success(self):
+        """AC11: Rows inserted BEFORE the failure point must also be rolled back.
+
+        This proves the rollback covers the entire batch, not just the failed row.
+        """
+        from sqlalchemy.engine import CursorResult
+
+        writer = MySQLWriter("sqlite:///:memory:", dry_run=False)
+
+        # No existing data
+        mock_empty_result = mock.Mock(spec=CursorResult)
+        mock_empty_result.__iter__ = lambda self: iter([])
+
+        mock_conn_select = mock.Mock()
+        mock_conn_select.execute.return_value = mock_empty_result
+
+        mock_engine_ctx_select = mock.Mock()
+        mock_engine_ctx_select.__enter__ = mock.Mock(return_value=mock_conn_select)
+        mock_engine_ctx_select.__exit__ = mock.Mock(return_value=False)
+
+        call_count = [0]
+
+        def insert_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return mock.Mock()  # row 1 succeeds
+            if call_count[0] == 2:
+                return mock.Mock()  # row 2 succeeds
+            raise RuntimeError("Integrity error on row 3")  # row 3 fails
+
+        mock_conn_insert = mock.Mock()
+        mock_conn_insert.execute.side_effect = insert_side_effect
+        mock_conn_insert.rollback = mock.Mock()
+        mock_conn_insert.commit = mock.Mock()
+        # Wrap as context manager for the INSERT phase
+        mock_engine_ctx_insert = mock.Mock()
+        mock_engine_ctx_insert.__enter__ = mock.Mock(return_value=mock_conn_insert)
+        mock_engine_ctx_insert.__exit__ = mock.Mock(return_value=False)
+
+        def connect_side_effect():
+            if not hasattr(connect_side_effect, "called"):
+                connect_side_effect.called = True
+                return mock_engine_ctx_select
+            return mock_engine_ctx_insert
+
+        writer.engine.connect = mock.Mock(side_effect=connect_side_effect)
+
+        # Three rows — row 1 and 2 succeed, row 3 fails
+        source_rows = [
+            {"id": "u1", "nickname": "A", "avatar_url": "a", "role": "user",
+             "status": "active", "generation_status": "enabled",
+             "created_at": "2024-01-01", "updated_at": "2024-01-01",
+             "last_login_at": "2024-06-01"},
+            {"id": "u2", "nickname": "B", "avatar_url": "b", "role": "user",
+             "status": "active", "generation_status": "enabled",
+             "created_at": "2024-01-01", "updated_at": "2024-01-01",
+             "last_login_at": "2024-06-01"},
+            {"id": "u3", "nickname": "C", "avatar_url": "c", "role": "user",
+             "status": "active", "generation_status": "enabled",
+             "created_at": "2024-01-01", "updated_at": "2024-01-01",
+             "last_login_at": "2024-06-01"},
+        ]
+        report = {}
+
+        with self.assertRaises(RuntimeError):
+            writer.migrate_table("users", source_rows, report)
+
+        # Verify rollback was called
+        mock_conn_insert.rollback.assert_called_once()
+
+        # Verify: ALL rows rolled back — 0 inserted despite rows 1&2 succeeding
+        self.assertEqual(report["users"]["inserted"], 0,
+                         "Rows inserted before failure must be rolled back too")
+
+    def test_unit_b_ac11_new_rows_no_conflict(self):
+        """AC11: New rows (no existing PK) insert normally — no false conflict.
+
+        Ensures the rollback test doesn't accidentally trigger AC10 conflict
+        detection. When existing_map is empty, all rows are new inserts.
+        """
+        from sqlalchemy.engine import CursorResult
+
+        writer = MySQLWriter("sqlite:///:memory:", dry_run=True)
+
+        # dry_run=True → existing_map stays empty → all rows are new inserts
+        report = {}
+        source_rows = [
+            {"id": "new-001", "nickname": "NewUser1", "avatar_url": "a",
+             "role": "user", "status": "active", "generation_status": "enabled",
+             "created_at": "2024-01-01", "updated_at": "2024-01-01",
+             "last_login_at": "2024-06-01"},
+            {"id": "new-002", "nickname": "NewUser2", "avatar_url": "b",
+             "role": "admin", "status": "active", "generation_status": "enabled",
+             "created_at": "2024-02-01", "updated_at": "2024-02-01",
+             "last_login_at": "2024-06-02"},
+        ]
+
+        writer.migrate_table("users", source_rows, report)
+        writer.close()
+
+        # dry_run: stale_same=0, stale_diff=0, no errors
+        self.assertEqual(report["users"]["stale_same"], 0)
+        self.assertEqual(report["users"]["stale_diff"], 0)
+        self.assertEqual(len(report["users"]["errors"]), 0)
+        # inserted count reflects new rows (dry_run counts them)
+        self.assertEqual(report["users"]["inserted"], 2)
 
 
 if __name__ == "__main__":

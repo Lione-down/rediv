@@ -17,6 +17,7 @@
 4. 使用 `hermes profile describe` 为四个 profiles 设置英文 description。
 5. 将主体 cron prompt 替换为 scheduled supervisor 模板，schedule 改为 `15,45 * * * *`。
    - Windows PowerShell 5 调用 `hermes cron edit --prompt` 时，多行变量可能只保存第一行；部署脚本应将模板折叠为语义等价的单行参数，再从 `jobs.json` 验证 prompt length 和关键标记。
+   - 必须验证实际 cron prompt 包含 `语言与交付硬规则`、`PMC Action Required`、`Human Decision Candidate`、`【Hermes 执行事件】` 和 `[SILENT]` 静默规则；只修改项目模板不会改变已经存在的 Desktop cron。
 6. 将 delivery 改为仅事件通知；无事件 `[SILENT]`。
 7. 运行 `hermes profile show/describe`、`hermes cron list` 和一次手动 dry scheduled cycle。
 8. 确认没有重复 card、没有业务文件修改，恢复 cron。

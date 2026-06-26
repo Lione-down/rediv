@@ -401,12 +401,14 @@ class MySQLWriter:
         for row in rows:
             pk_value = str(row[pk_col])
             if pk_value in existing_map:
+                # Symmetric comparison: exclude PK from BOTH source and dest dicts
+                src_excluded = {k: row[k] for k in row.keys() if k != pk_col}
+                dst_excluded = {k: existing_map[pk_value][k] for k in existing_map[pk_value].keys() if k != pk_col}
                 src_json = json.dumps(
-                    {k: row[k] for k in row.keys() if k != pk_col},
-                    sort_keys=True, default=str,
+                    src_excluded, sort_keys=True, default=str,
                 )
                 dst_json = json.dumps(
-                    existing_map[pk_value], sort_keys=True, default=str,
+                    dst_excluded, sort_keys=True, default=str,
                 )
                 if src_json == dst_json:
                     stale_same += 1
@@ -570,8 +572,8 @@ class MigrationValidator:
                         try:
                             src_parsed = json.loads(src_val) if src_val else None
                             dst_parsed = json.loads(dst_val) if dst_val else None
-                            src_val = json.dumps(src_parsed, separators=(",", ":"), ensure_ascii=False)
-                            dst_val = json.dumps(dst_parsed, separators=(",", ":"), ensure_ascii=False)
+                            src_val = json.dumps(src_parsed, separators=(",", ":"), ensure_ascii=False, sort_keys=True)
+                            dst_val = json.dumps(dst_parsed, separators=(",", ":"), ensure_ascii=False, sort_keys=True)
                         except (json.JSONDecodeError, TypeError):
                             pass
                         if src_val != dst_val:
@@ -648,30 +650,73 @@ def cleanup_test_database(admin_url: str) -> None:
     """DROP the test database. Asserts identity before dropping.
 
     Failure is visible and raises — no silent swallowing.
+    Connects to admin URL first to check existence, avoiding
+    OperationalError when the DB hasn't been created yet.
     """
     from urllib.parse import urlparse
+    from sqlalchemy.exc import OperationalError
 
     parsed = urlparse(admin_url)
-    conn_url = URL.create(
+    # Connect to admin URL (no database) to check existence
+    admin_conn_url = URL.create(
         drivername=parsed.scheme,
         username=parsed.username or "root",
         password=parsed.password or "",
         host=parsed.hostname,
         port=parsed.port or 3306,
-        database=TEST_DB_NAME,
     )
-    engine = create_engine(conn_url.render_as_string(hide_password=False), future=True)
+    admin_engine = create_engine(
+        admin_conn_url.render_as_string(hide_password=False), future=True
+    )
     try:
-        assert_database_name(engine, TEST_DB_NAME)
-        with engine.connect() as conn:
-            conn.execute(text(f"DROP DATABASE `{TEST_DB_NAME}`"))
-            conn.commit()
-            print(f"[cleanup] Database {TEST_DB_NAME} dropped successfully.")
+        # Check if the test database exists
+        db_exists = False
+        with admin_engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA "
+                     "WHERE SCHEMA_NAME = :name"),
+                {"name": TEST_DB_NAME},
+            )
+            db_exists = result.scalar() is not None
+
+        if not db_exists:
+            print(f"[cleanup] Database {TEST_DB_NAME} does not exist — nothing to drop.")
+            return
+
+        # DB exists: assert identity and drop
+        conn_url = URL.create(
+            drivername=parsed.scheme,
+            username=parsed.username or "root",
+            password=parsed.password or "",
+            host=parsed.hostname,
+            port=parsed.port or 3306,
+            database=TEST_DB_NAME,
+        )
+        engine = create_engine(
+            conn_url.render_as_string(hide_password=False), future=True
+        )
+        try:
+            assert_database_name(engine, TEST_DB_NAME)
+            with engine.connect() as conn:
+                conn.execute(text(f"DROP DATABASE `{TEST_DB_NAME}`"))
+                conn.commit()
+                print(f"[cleanup] Database {TEST_DB_NAME} dropped successfully.")
+        except Exception as e:
+            print(f"[cleanup] ERROR dropping {TEST_DB_NAME}: {e}")
+            raise
+        finally:
+            engine.dispose()
+    except OperationalError as e:
+        # Admin connection failure is VISIBLE and fatal — cleanup cannot
+        # silently assume the DB does not exist when the admin URL itself
+        # is unreachable.  Re-raise so the caller sees the failure.
+        print(f"[cleanup] Admin connection failed: {e}")
+        raise
     except Exception as e:
-        print(f"[cleanup] ERROR dropping {TEST_DB_NAME}: {e}")
+        print(f"[cleanup] Unexpected error during cleanup: {e}")
         raise
     finally:
-        engine.dispose()
+        admin_engine.dispose()
 
 
 # ---------------------------------------------------------------------------
@@ -728,7 +773,22 @@ def main() -> int:
     if args.execute:
         args.dry_run = False
 
-    # Step 0: Validate secret
+    # Step 0: Validate source file BEFORE secret gate
+    source_path = os.path.abspath(args.source)
+
+    if not os.path.isfile(source_path):
+        print(f"ERROR: Source SQLite database not found: {source_path}")
+        return 1
+
+    try:
+        source_stat = os.stat(source_path)
+    except OSError as e:
+        print(f"ERROR: Cannot stat source database: {e}")
+        return 1
+    source_size = source_stat.st_size
+    source_mtime = source_stat.st_mtime
+
+    # Step 0.5: Validate secret (only reached if source exists)
     admin_url = get_admin_url()
     test_db_url = build_test_db_url(admin_url)
 
@@ -738,7 +798,7 @@ def main() -> int:
     print(f"Target DB: {TEST_DB_NAME} (asserted)")
     print("=" * 60)
 
-    # Step 0.5: Setup schema via Alembic if requested
+    # Step 0.6: Setup schema via Alembic if requested
     if args.setup_schema:
         print("\n[0.5] Setting up schema via Alembic upgrade head...")
         try:
@@ -747,16 +807,6 @@ def main() -> int:
         except Exception as e:
             print(f"[0.5] Schema setup failed: {e}")
             return 1
-
-    # Safety: verify source is not production DB
-    source_path = os.path.abspath(args.source)
-    source_stat = os.stat(source_path)
-    source_size = source_stat.st_size
-    source_mtime = source_stat.st_mtime
-
-    if not os.path.isfile(source_path):
-        print(f"ERROR: Source SQLite database not found: {source_path}")
-        return 1
 
     # Step 1: Read SQLite
     print("\n[1/5] Reading SQLite database...")
@@ -824,22 +874,29 @@ def main() -> int:
     # Step 4: Validate
     print(f"\n[4/5] Validating migration...")
     validation_errors: list[str] = []
-    if not args.dry_run and table_failures == 0:
+    if args.dry_run:
+        print("  Skipping validation (dry-run mode).")
+    elif table_failures > 0:
+        validation_errors.append(
+            f"Skipping validation: {table_failures} table(s) failed during migration"
+        )
+        print(f"  SKIPPED: {table_failures} table(s) failed, validation skipped.")
+    else:
+        # Only validate when migration succeeded for all tables.
+        # Re-read source for validation (reader was closed).
         validator = MigrationValidator(SQLiteReader(source_path), writer)
-        # Re-read source for validation (reader was closed)
         try:
             validator.reader.read_all()
-        except Exception:
-            pass
-        validation_errors = validator.validate()
+        except Exception as e:
+            print(f"ERROR: Failed to re-read source for validation: {e}")
+            validation_errors.append(f"Source re-read failed: {e}")
+        validate_errors = validator.validate()
+        validation_errors.extend(validate_errors)
         immutability_errors = validator.validate_source_immutable(
             source_path, source_size, source_mtime
         )
         validation_errors.extend(immutability_errors)
-    elif not args.dry_run:
-        validation_errors.append(
-            f"Skipping validation: {table_failures} table(s) failed during migration"
-        )
+        print(f"  Validation passed.")
     writer.close()
 
     # Step 5: Report

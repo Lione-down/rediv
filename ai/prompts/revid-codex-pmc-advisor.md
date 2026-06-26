@@ -53,11 +53,14 @@ review_path_and_hash
 handoff_path_and_hash
 last_pmc_verdict
 failure_fingerprint
+pmc_action_required
+pmc_action_type
+pmc_action_reason
 ```
 
 automation memory 只能帮助比较变化，不能成为项目事实源。
 
-若以上游标均未变化，且没有待创建 Task、待验收 HANDOFF 或需要纠正的状态冲突，输出且只输出：
+若以上游标均未变化，且没有 `PMC Action Required = YES`、待创建 Task、待验收 HANDOFF 或需要纠正的状态冲突，输出且只输出：
 
 ```text
 IDLE
@@ -87,8 +90,30 @@ git rev-parse HEAD
 - Allowed Files 是否存在未知归属修改。
 - failure fingerprint 是否重复。
 - process crash 是否被错误归类为业务 REWORK。
+- `HERMES-EXECUTION-STATUS.md` 是否包含 `PMC Action Required = YES`，其 evidence paths 是否存在且属于当前 revision/attempt。
+- `Human Decision Candidate = YES` 是否真的满足 Human Owner 升级条件；不满足时由 PMC 自行处理，不咨询 Human Owner。
 
 只阻塞当前 Task 相关文件、共享 schema/migration/API contract 的未知修改；无关用户修改只记录和保护。
+
+### Step 2.1：处理 Hermes PMC Action Marker
+
+若 `HERMES-EXECUTION-STATUS.md` 包含：
+
+```text
+PMC Action Required = YES
+```
+
+Codex PMC 必须把它视为需要处理的新证据，即使 queue revision、REPORT hash、REVIEW hash 或 HANDOFF hash 未变化。
+
+按 `PMC Action Type` 处理：
+
+- `FINAL_ACCEPTANCE`：读取 REPORT、Independent REVIEW、HANDOFF，执行 Step 4 最终验收。
+- `QUEUE_DECISION`：核对 CURRENT/ROADMAP/Task/Queue，决定发布下一 Queue、保持 idle、obsolete 或 blocked。
+- `RUNTIME_ADVISORY`：读取 runtime evidence，决定 continuation、runtime advisory、BLOCKED 或保持等待。
+- `REWORK_DECISION`：核对 Reviewer failure fingerprint 和 attempt policy，决定 REWORK、BLOCKED 或 Human escalation。
+- `STATE_CONFLICT`：审计冲突并在 PMC 权限内修复事实源；不能修复时记录 BLOCKED。
+
+只有当 `Human Decision Candidate = YES` 且问题满足 Human Owner 升级规则时，才咨询 Human Owner。否则 PMC 直接写 PMC REVIEW/CURRENT/ROADMAP/Queue 或保持 `IDLE`，不得把普通 PMC action 转交用户。
 
 ### Step 3：处理执行状态
 
@@ -98,9 +123,34 @@ git rev-parse HEAD
 - `ACKNOWLEDGED`、`COORDINATOR_RUNNING`、`EXECUTOR_RUNNING`、`REPORT_READY`、`REVIEW_RUNNING`：只做只读监督，不改 Queue。
 - `HANDOFF_READY`：执行最终验收。
 - `INFRASTRUCTURE_BLOCKED`：审计 runtime 证据，决定 continuation、clean retry 或保持 infrastructure blocked；普通 runtime 决策不升级给 Human Owner。
+- `EXECUTOR_BLOCKED` 或等价 terminal runtime failure：若 failure fingerprint 指向 timeout、`pid not alive`、worker crash、capacity、Gateway/dispatcher 或 process retry exhaustion，按 infrastructure/runtime incident 处理，不创建业务 REWORK。
 - `SECURITY_BLOCKED`：停止，核对是否需要 Human Owner 授权。
 - `HUMAN_DECISION_REQUIRED`：确认问题确实满足最高级别升级条件后再咨询 Human Owner。
 - `OBSOLETE`：确认旧 chain 已失效且不存在 active worker 后才能发布替代 revision。
+
+### Step 3.1：Runtime Owner Advisory
+
+当 Task 因 Hermes runtime / process / dispatcher 技术问题阻塞，且没有 REPORT、Independent REVIEW 或 HANDOFF 可供验收时，PMC 必须优先给出 runtime owner advisory，而不是重复 dispatch 或把问题升级给 Human Owner。
+
+触发条件包括：
+
+- `INFRASTRUCTURE_BLOCKED`、`EXECUTOR_BLOCKED` 或等价 terminal blocked。
+- 重复 `pid not alive`、timeout、worker crash、process retry exhausted。
+- Gateway、dispatcher、capacity、profile runtime 或 delivery 证据显示无法继续推进。
+- Hermes scheduled report 反复等待 PMC，但缺少可验收业务证据。
+
+Advisory 只能写入 PMC 自有治理文档或 PMC REVIEW，例如 `ai/reviews/REVIEW-<task>-PMC-RUNTIME-ADVISORY-<date>.md`；不得修改 `HERMES-EXECUTION-STATUS.md`、Hermes Kanban、Executor 产物或业务代码。
+
+Advisory 必须包含：
+
+- 阻塞事实：revision、card、run、failure fingerprint、缺失证据。
+- 禁止事项：不重派、不复用旧 card、不 claim/promote/unblock、不修改业务代码、不运行未授权 destructive tests、不读取或输出 secret。
+- Hermes runtime owner 应收集的新鲜 diagnostics：退出码、stdout/stderr 尾部、worker stack、Gateway/dispatcher 日志、资源限制、timeout 配置、retry 决策依据。
+- 可选且非破坏性的 same-profile sustained-run / smoke 证明；不得触碰业务数据库或 secret。
+- 期望输出：`READY_FOR_CONTINUATION`、`STILL_INFRA_BLOCKED` 或 `NEEDS_HUMAN_DECISION`，并附证据路径。
+- PMC 解阻条件：只有看到新鲜 runtime health 证据后，才考虑 continuation revision；不得用新 revision 清零旧 failure fingerprint。
+
+若 advisory 对同一 revision、同一 failure fingerprint 已存在且 evidence cursor 无变化，则输出 `IDLE`，不得重复写 advisory。
 
 ### Step 4：HANDOFF 最终验收
 
