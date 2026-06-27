@@ -18,7 +18,11 @@ T4-002
 - Unit A Coordinator Budget Revision：`phase4-wave2-unit-a-static-fixes-coordinator-budget-2026-06-26-12`
 - Unit A PMC Rework Revision：`phase4-wave2-unit-a-static-fixes-pmc-rework-2026-06-26-13`
 - Unit B Unit Tests Revision：`phase4-wave2-unit-b-unit-tests-2026-06-26-14`
-| Status：`UNIT B APPROVED — Unit A correction revision -13 passed PMC; Unit B same-PK and rollback unit-test semantics queued` |
+- Unit B Bounded Continuation Revision：`phase4-wave2-unit-b-unit-tests-bounded-continuation-2026-06-26-15`
+- Unit C MySQL Integration Revision：`phase4-wave2-unit-c-mysql-integration-2026-06-26-16`
+- Unit C1 Fixture Preflight Revision：`phase4-wave2-unit-c1-fixture-preflight-2026-06-27-17`
+- Unit C1 Runtime-Enforced Revision：`phase4-wave2-unit-c1-runtime-enforced-2026-06-28-18`
+| Status：`UNIT C1 REVISION -18 APPROVED — waiting for Hermes ACK` |
 | Approved By：Codex Project Master Controller（继承 Human User 的 T4-002 product/destructive authorization） |
 | Previous Coordinator Card：`t_b788cdb9` (blocked; timed_out run #82) |
 | Previous Executor Card：`t_3769f8ec` (attempt 1 continuation; crashed run #83; retry blocked by parent) |
@@ -40,6 +44,16 @@ T4-002
 - Unit A Correction Blocking Review：`ai/reviews/REVIEW-T4-002-PMC-UNIT-A-CORRECTION-BLOCKED-2026-06-26.md`
 - Unit A Evidence Correction Request：`ai/reviews/REVIEW-T4-002-PMC-EVIDENCE-CORRECTION-REQUEST-2026-06-26.md`
 - Unit A Correction PASS：`ai/reviews/REVIEW-T4-002-PMC-UNIT-A-CORRECTION-PASS-2026-06-26.md`
+- Unit B Runtime Diagnostic Rev14：`ai/reports/DIAGNOSTIC-T4-002-RUNTIME-OWNER-REV14-2026-06-26.md`
+- Unit B Bounded Continuation Approval：`ai/reviews/REVIEW-T4-002-PMC-UNIT-B-BOUNDED-CONTINUATION-2026-06-26.md`
+- Unit B Rev15 PMC PASS：`ai/reviews/REVIEW-T4-002-PMC-UNIT-B-REV15-PASS-2026-06-26.md`
+- Unit C MySQL Integration Approval：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C-MYSQL-INTEGRATION-APPROVAL-2026-06-26.md`
+- Unit C Revision -16 Runtime Advisory：`ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV16-2026-06-26.md`
+- Unit C1 Bounded Continuation Approval：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C1-BOUNDED-CONTINUATION-APPROVAL-2026-06-27.md`
+- Unit C1 Revision -17 Runtime Advisory：`ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV17-2026-06-27.md`
+- Unit C1 Revision -17 Runtime Diagnostic Review：`ai/reviews/REVIEW-T4-002-PMC-RUNTIME-DIAGNOSTIC-REV17-2026-06-28.md`
+- Unit C1 Revision -17 Root-Cause Review：`ai/reviews/REVIEW-T4-002-PMC-ROOT-CAUSE-REV17-2026-06-28.md`
+- Unit C1 Runtime Remediation Guidance：`ai/reviews/REVIEW-T4-002-PMC-RUNTIME-REMEDIATION-GUIDANCE-2026-06-28.md`
 - Safety Decision：`ai/decisions/ADR-003-t4-002-disposable-mysql-test-environment.md`
 
 revision `phase4-wave2-recovery-dispatch-2026-06-24-07` 已终止：Coordinator `t_e23d9043` done；Executor `t_748c116d` attempt 0 的 run `#75` crash、run `#76` gave_up，process retry `2/2 exhausted`，且没有 REPORT、Independent REVIEW 或 HANDOFF。
@@ -58,14 +72,31 @@ revision `phase4-wave2-unit-a-static-fixes-pmc-rework-2026-06-26-13` 已由 PMC 
 
 revision `phase4-wave2-unit-b-unit-tests-2026-06-26-14` 已由 PMC 批准：这是 T4-002 bounded work unit split 的第二个 executable revision。Unit B 仅覆盖 same-PK conflict 与 partial rollback 的 unit-test 语义，不需要 MySQL，不允许读取 `.env` 或 database credential，不允许执行 CREATE/DROP/TRUNCATE/DELETE/migration write。
 
+revision `phase4-wave2-unit-b-unit-tests-2026-06-26-14` 已终止且不可复用：Coordinator `t_bbbf72bd` timeout 302s，Executor `t_7275328d` timeout 847s/848s 且 retry exhausted；REPORT 存在但 Executor card 未完成，Independent REVIEW 与 HANDOFF 缺失。runtime diagnostic 证明 `TestUnitB` 本地快速通过，blocker 是 runtime/dispatcher completion 而非业务测试耗时。
+
+revision `phase4-wave2-unit-b-unit-tests-bounded-continuation-2026-06-26-15` 已由 PMC 批准：这是 Unit B fresh bounded continuation，只允许最小验证链，不允许 MySQL、secret、`.env`、CREATE/DROP/TRUNCATE/DELETE、migration write、Unit C 或 attempt 2。必须产出 completed Executor card、Independent REVIEW、HANDOFF 后才能进入 PMC final acceptance。
+
+revision `phase4-wave2-unit-b-unit-tests-bounded-continuation-2026-06-26-15` 已由 PMC 最终验收通过：Hermes status 已同步到 `HANDOFF_READY_REV15`，REPORT/Independent REVIEW/HANDOFF 均属同一 revision，fresh PMC verification 通过。
+
+revision `phase4-wave2-unit-c-mysql-integration-2026-06-26-16` 已由 PMC 批准：这是 Unit C disposable MySQL integration verification。仅允许使用 ADR-003 授权的 `revid_test_t4_002` 专用测试库；若 secret、权限或 identity hard gate 失败，必须 BLOCKED，不得读取 `.env`、不得回退 `revid_db`、不得触碰用户数据库。
+
+revision `phase4-wave2-unit-c-mysql-integration-2026-06-26-16` 已因 runtime failure 终止：Coordinator `t_aeaefef4` 在 Executor dispatch 前 300s timeout，process retry `1/1` exhausted，且没有 PLAN、PROGRESS、REPORT、Independent REVIEW 或 HANDOFF。Human Owner 指示将 Unit C 拆为更小 work units；PMC 发布精简 Unit C1 fixture/schema preflight revision `phase4-wave2-unit-c1-fixture-preflight-2026-06-27-17`。Revision `-17` 继承全部历史 fingerprints，不得复用 `t_aeaefef4` 或任何旧 card。
+
+revision `phase4-wave2-unit-c1-fixture-preflight-2026-06-27-17` 已因重复 runtime failure 终止：Coordinator `t_3e1f6a06` run `#101` 在 Executor dispatch 前 120s timeout，process retry `1/1` exhausted；没有 Executor、PLAN、PROGRESS、REPORT、Independent REVIEW 或 HANDOFF。PMC 保持 infrastructure blocked，不发布 revision `-18`；必须先取得 fresh runtime diagnostics 与 same-profile health evidence。
+
+Hermes thin-dispatcher remediation report 已由 PMC 审阅并判定未通过 re-enable gate：Smoke 1 `t_20945c04` crash，只有两次成功 dispatch；negative run `#107` 未实际触发禁止操作；缺少逐步数值 timing；worker logs 显示 allowlist 外工具仍可调用；status 使用非枚举 READY state。正式 verdict 见 `ai/reviews/REVIEW-T4-002-PMC-THIN-DISPATCHER-REMEDIATION-2026-06-28.md`。
+
+Codex 已按 Human Owner 明确指令直接修复 Hermes runtime：为 `Action: DISPATCH_ONLY` 增加 mode-specific exact tool policy、schema filtering 和 invalid-call fast fail，同时保留 HANDOFF 等其他 lifecycle mode。Final-config isolated smokes `#9/#11/#13` 分别 41s/42s/40s，均只使用 show/create/show/complete；runtime gate 已 PMC PASS，revision `phase4-wave2-unit-c1-runtime-enforced-2026-06-28-18` 已批准。正式证据见 `ai/reviews/REVIEW-T4-002-PMC-THIN-DISPATCHER-RUNTIME-FIX-PASS-2026-06-28.md`。
+
 ## Current Continuation Conditions
 
 1. Queue revision `phase4-wave2-unit-a-static-fixes-pmc-rework-2026-06-26-13` 已 PMC PASS，仅作为 Unit A correction 完成证据；不得重复 ACK 或 dispatch。
 2. business attempt ordinal 仍为 `1`；禁止 attempt 2，禁止通过 revision 清零任何 infrastructure/business fingerprint。
-3. 当前 executable revision 为 `phase4-wave2-unit-b-unit-tests-2026-06-26-14`；Hermes Coordinator 必须短生命周期 dispatch 后 done，Executor target 800s。
-4. Unit B 必须保留并审计两个 allowed files 的 partial diff，聚焦 AC10 same-PK conflict 与 AC11 partial rollback unit-test 语义；不得进入 Unit C 或 MySQL integration。
-5. 禁止手工 claim、promote、unblock、重试或复用 revision `-08` 及更早 card。
-6. Unit B 必须继承全部历史 failure fingerprints，尤其是 `T4-002-SEMANTICS: IDEMPOTENCY_COMPARISON + FALSE_POSITIVE_CONFLICT + NON_MID_BATCH_ROLLBACK + SWALLOWED_CLEANUP + MISSING_SOURCE_COVERAGE`。
+3. 当前唯一 executable revision 是 `phase4-wave2-unit-c1-runtime-enforced-2026-06-28-18`；revision `-17` 已 terminal，不得创建第二个旧 Coordinator 或复用旧 idempotency key。
+4. Revision `-18` Coordinator card 必须含精确 `Action: DISPATCH_ONLY`，使用 120s budget 和 runtime exact allowlist；只创建一个 `revid-backend` Executor child并立即完成。
+5. Unit C1 仍只允许 structured URL/database identity 与 Alembic 12-table schema 两个真实 MySQL tests，业务文件 read-only；不得进入 Unit C2/C3、Unit D/E、T4-003 或 T4-010。
+6. 禁止手工 claim、promote、unblock、重试或复用 revision `-08` 及更早 card。
+7. Unit C 必须继承全部历史 failure fingerprints，尤其是 `T4-002-SEMANTICS: IDEMPOTENCY_COMPARISON + FALSE_POSITIVE_CONFLICT + NON_MID_BATCH_ROLLBACK + SWALLOWED_CLEANUP + MISSING_SOURCE_COVERAGE`。
 
 ## Bounded Work Units
 
@@ -73,12 +104,15 @@ revision `phase4-wave2-unit-b-unit-tests-2026-06-26-14` 已由 PMC 批准：这�
 |---|---|---|---:|
 | A | PMC PASS via correction revision `-13` | Static fixes for validation order, cleanup failure visibility, idempotency comparison and rollback test preparation | No |
 | A-correction | PMC PASS revision `-13` | Missing-source before secret gate, AC12 actual patch binding, Unit A evidence correction | No |
-| B | approved executable revision `-14` | Same-PK and rollback unit tests | No |
-| C | planned only | Disposable MySQL integration tests under ADR-003 | Yes |
+| B | PMC PASS revision `-15` | Same-PK and rollback unit tests, minimal bounded verification chain | No |
+| C | revision `-16` runtime blocked/terminal | Original full disposable MySQL integration dispatch；Coordinator retry exhausted before Executor | Yes |
+| C1 | revision `-18` approved / waiting ACK | Runtime-enforced fixture identity + Alembic schema preflight | Yes |
+| C2 | planned only | Dry-run、full migration、second-run idempotency、source immutability | Yes |
+| C3 | planned only | Conflict、FK orphan、partial rollback、consistency、cleanup failure visibility | Yes |
 | D | planned only | Consolidated final REPORT | No |
 | E | planned only | Independent REVIEW and HANDOFF | No |
 
-Units C-E require separate PMC Queue approval after Unit B evidence is reviewed.
+Units D-E require separate PMC Queue approval after Unit C evidence is reviewed.
 
 ## Historical Final Business Rework Conditions (revision -08, terminal)
 
@@ -171,6 +205,24 @@ python -m unittest discover -s tests -p "test_*migration*.py"
   - `ai/reports/REPORT-T4-002-UNIT-B.md`
   - `ai/reviews/REVIEW-T4-002-UNIT-B.md`
   - `ai/handoffs/HANDOFF-T4-002-UNIT-B.md`
+- Unit B revision `-15` artifacts:
+  - `ai/tasks/doing/TASK-T4-002-UNIT-B-REV15-PLAN.md`
+  - `ai/tasks/doing/TASK-T4-002-UNIT-B-REV15-PROGRESS.md`
+  - `ai/reports/REPORT-T4-002-UNIT-B-REV15.md`
+  - `ai/reviews/REVIEW-T4-002-UNIT-B-REV15.md`
+  - `ai/handoffs/HANDOFF-T4-002-UNIT-B-REV15.md`
+- Unit C revision `-16` artifacts:
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C-REV16-PLAN.md`
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C-REV16-PROGRESS.md`
+  - `ai/reports/REPORT-T4-002-UNIT-C-REV16.md`
+  - `ai/reviews/REVIEW-T4-002-UNIT-C-REV16.md`
+  - `ai/handoffs/HANDOFF-T4-002-UNIT-C-REV16.md`
+- Unit C1 revision `-17` artifacts:
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C1-REV17-PLAN.md`
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C1-REV17-PROGRESS.md`
+  - `ai/reports/REPORT-T4-002-UNIT-C1-REV17.md`
+  - `ai/reviews/REVIEW-T4-002-UNIT-C1-REV17.md`
+  - `ai/handoffs/HANDOFF-T4-002-UNIT-C1-REV17.md`
 
 ## Codex Prompt
 先读取 T4-001 报告及 Alembic revision。禁止解析 `sqlite_master` 后字符串替换 DDL；使用 SQLAlchemy 做 data ETL。编码前创建 PLAN/PROGRESS，完成 dry-run、execute、幂等和一致性测试后提交 REPORT。不得删除或覆盖任何数据库。

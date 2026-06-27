@@ -39,3 +39,9 @@
 ## 下一步
 - 提交代码审查
 - T4-003 可以继续（依赖 T4-002）
+# 2026-06-28 revision -18 lifecycle continuation
+
+- Unit C1 Executor `t_b3cfb6ce` completed; two scoped MySQL tests passed in 1.41s and REPORT exists.
+- Initial `DISPATCH_ONLY` Coordinator correctly created only the Executor. The missing Reviewer was caused by an absent post-REPORT lifecycle stage, not by a failed Kanban create permission.
+- PMC approved Queue `phase4-wave2-unit-c1-rev18-review-dispatch-2026-06-28-18r1` for `REVIEW_DISPATCH_ONLY`, followed by dependent `HANDOFF_ONLY` after Reviewer completion.
+- Executor-created pre-review HANDOFF is non-canonical; final acceptance still requires Independent REVIEW and post-review HANDOFF.

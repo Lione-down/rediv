@@ -110,3 +110,10 @@
 - Codex PMC automation 必须把 PMC action marker 纳入 evidence cursor；即使 Queue、REPORT、REVIEW、HANDOFF hash 未变化，只要 marker 变为 YES 就不能输出 `IDLE`。
 - Hermes 只因 PMC-only marker 变化时，应写共享状态文档并对 Human Owner 保持 `[SILENT]`，避免把项目内协作任务变成人肉转发。
 - 修改项目内 prompt 后必须同步真实 Hermes Desktop cron，并验证 cron prompt 包含 `PMC Action Required` 与 `Human Decision Candidate`。
+
+## 2026-06-28 Coordinator pre-dispatch timeout 决策
+
+- 当 bounded work unit 已足够小，但 Coordinator 在创建 Executor 前 timeout，不能继续把业务 Scope 拆分当作默认修复；必须先定位 Queue parse、Task read、idempotency lookup、profile resolution 或 Executor creation 的实际 failure point。
+- 单独提高 runtime budget 不是 root-cause fix。若同一阶段已经在更高 budget 下失败，新的 budget 必须由 fresh same-profile runtime health proof 支撑。
+- Runtime incident 没有 PLAN、REPORT、Independent REVIEW 或 HANDOFF 时，不得创建 business REWORK；保持 infrastructure blocked，由 runtime owner 提交 diagnostic 后再决定 continuation。
+- T4-002 revision `-17` 因此选择重评 Hermes execution route；Unit C1a/C1b 仅是收到 `READY_FOR_CONTINUATION` 后的条件设计，不是当前执行授权。
