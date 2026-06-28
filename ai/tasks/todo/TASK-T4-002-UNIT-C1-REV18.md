@@ -8,6 +8,8 @@
 - Business Attempt: `1 continuation`（不是 attempt 2）
 - Executor: `revid-backend`
 - Reviewer: `revid-reviewer`
+- Status: `PMC_PASS — 2026-06-28`
+- PMC Final Review: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C1-REV18-PASS-2026-06-28.md`
 
 ## Objective
 
@@ -103,3 +105,7 @@ Runtime fix evidence：`ai/reviews/REVIEW-T4-002-PMC-THIN-DISPATCHER-RUNTIME-FIX
 ## Stop Condition
 
 生成 Unit C1 REPORT、Independent REVIEW 与 canonical post-review `UNIT_C1_HANDOFF_READY_REV18` 后停止，等待 Codex PMC 最终验收。
+
+## Final Acceptance
+
+Unit C1 revision `-18` 已由 Codex PMC 最终验收通过。后续只允许按独立 Queue 执行 Unit C2；不得重复 dispatch revision `-18` 或 `-18r1`。

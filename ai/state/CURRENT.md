@@ -5,11 +5,11 @@
 
 ## Current Phase
 
-`Phase 4 - Personal Integration Edition（执行中，T4-002 Unit B revision -15 已 PMC PASS；Unit C1 runtime-enforced revision -18 已批准）`
+`Phase 4 - Personal Integration Edition（执行中，T4-002 Unit C1 revision -18 已 PMC PASS；Unit C2 revision -20 已批准）`
 
 ## Current Task
 
-- `T4-002`：Unit A revision `-13` 与 Unit B revision `-15` 已 PMC PASS。Unit C1 revision `-18` Executor 已完成，两项真实 MySQL tests 通过；当前已发布 `REVIEW_DISPATCH_ONLY` lifecycle continuation，等待 Independent Review 与 post-review HANDOFF。
+- `T4-002`：Unit A revision `-13`、Unit B revision `-15` 与 Unit C1 revision `-18` 已 PMC PASS。Unit C2 revision `-19` terminal；Hermes worker finalization remediation 已 PMC PASS。新的 bounded continuation revision `-20` 已批准并等待 Hermes ACK。
 
 ## Latest PMC Verdicts
 
@@ -49,6 +49,14 @@
 | T4-002 | **PMC BLOCKED — thin-dispatcher remediation evidence invalid** | `ai/reviews/REVIEW-T4-002-PMC-THIN-DISPATCHER-REMEDIATION-2026-06-28.md`；仅 2 次成功 smoke，negative path 未执行，无 numeric step timings，status 仍使用非法 READY state |
 | T4-002 | **PMC PASS — runtime remediation verified; revision -18 approved** | `ai/reviews/REVIEW-T4-002-PMC-THIN-DISPATCHER-RUNTIME-FIX-PASS-2026-06-28.md`；runtime exact policy + 94 tests + final smokes 3/3；Queue `phase4-wave2-unit-c1-runtime-enforced-2026-06-28-18` |
 | T4-002 | **PMC CONTINUATION APPROVED — revision -18 review-dispatch lifecycle stage** | `ai/reviews/REVIEW-T4-002-PMC-REV18-LIFECYCLE-GAP-2026-06-28.md`；Executor 2/2 PASS，Reviewer stage 缺失，Queue `phase4-wave2-unit-c1-rev18-review-dispatch-2026-06-28-18r1` |
+| T4-002 | **PMC PASS — Unit C1 revision `-18`** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C1-REV18-PASS-2026-06-28.md`；Executor 2/2 real MySQL tests PASS，Independent Reviewer 2/2 PASS，canonical post-review HANDOFF complete，business diff empty |
+| T4-002 | **PMC APPROVED — Unit C2 migration core revision `-19`** | `ai/tasks/todo/TASK-T4-002-UNIT-C2-REV19.md`；Queue `phase4-wave2-unit-c2-migration-core-2026-06-28-19` |
+| T4-002 | **PMC RUNTIME ADVISORY — Unit C2 revision `-19` Coordinator crash** | `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV19-2026-06-28.md`；`t_b493a47f` run `#113` `pid not alive`，retry `1/1` exhausted；无 Executor/REPORT/REVIEW/HANDOFF |
+| T4-002 | **PMC BLOCKED — revision `-19` runtime diagnostic reviewed** | `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-DIAGNOSTIC-REV19-2026-06-28.md`；direct logs 证明 worker text/partial exit 未写 terminal transition，Windows dispatcher 丢失 return code 并在下一 60 秒 tick 泛化为 `pid not alive` |
+| T4-002 | **PMC BLOCKED — revision `-19` escalation rejected** | `ai/reviews/REVIEW-T4-002-PMC-ESCALATION-REV19-2026-06-28.md`；Hermes 复用了旧 94 tests/3+1 smoke，未实现 worker terminal finalization 或 Windows exit-code capture，也没有 fresh post-fix evidence |
+| T4-002 | **PMC BLOCKED — runtime fix report remains analysis-only** | `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-FIX-REPORT-REV19-2026-06-28.md`；报告声明未修改 runtime，且没有 fresh tests/smokes；Popen handle/poll 根因仍缺直接证据 |
+| T4-002 | **PMC RUNTIME FIX PASS — ready for bounded continuation** | `ai/reviews/REVIEW-T4-002-PMC-HERMES-WORKER-FINALIZATION-FIX-PASS-2026-06-28.md`；真实根因是 `chat -q` 缺少 terminal finalization；targeted tests 与 isolated 3+1 smokes 通过 |
+| T4-002 | **PMC CONTINUATION APPROVED — Unit C2 revision `-20`** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV20-CONTINUATION-APPROVAL-2026-06-28.md`；原 four-selector scope，继承全部 fingerprints，等待 Hermes ACK |
 
 ## Verified Baseline
 
@@ -60,13 +68,15 @@
 
 ## Ready / Running
 
-- 当前 executable Queue 为同一 business revision -18 的 lifecycle continuation `phase4-wave2-unit-c1-rev18-review-dispatch-2026-06-28-18r1`。Hermes 只应创建一个 `REVIEW_DISPATCH_ONLY` Coordinator stage，由该 stage 派发 Reviewer 与 dependent `HANDOFF_ONLY` stage。
+- 当前唯一 executable Queue 为 Unit C2 revision `-20`。Revision `-19` 旧 chain 保持 terminal；等待 Hermes ACK，并在 `REPORT_READY` 前只做只读监督。
+- Hermes 中文输出：`REPORT-SOUL-DEPLOYMENT-2026-06-28.md` 声明五个 SOUL 已部署并通过 marker 检查；execution profile 的实际 Kanban sample output 尚未验证。当前 paused cron 不得自动恢复。
 - T4-010 — T4-006 dependency 已满足，但尚未进入 APPROVED Queue，不得执行。
-- Unit C2/C3 与 Units D-E 仅作为后续顺序计划，尚未进入 APPROVED Queue；必须等待 Unit C1 Independent REVIEW verdict 与 PMC final PASS。
+- Unit C3 与 Units D-E 仍仅为后续顺序计划；必须等待 Unit C2 REPORT、后续 Independent REVIEW/HANDOFF 与 PMC final PASS。
 
 ## Blockers
 
-- T4-003 继续依赖 T4-002 完成与 PMC 验收。
+- T4-003 继续依赖完整 T4-002 完成与 PMC 验收；Unit C1 PASS 不单独解锁 T4-003。
+- T4-002 Unit C1 revision `-18` 与 lifecycle continuation `-18r1`：PMC final acceptance 已通过；不得重复 dispatch 或复用该 chain。Executor 的 premature HANDOFF 为 non-canonical historical evidence。
 - T4-002 Unit B revision `-15`：PMC final acceptance 已通过；不得重复 dispatch 或复用 rev15 chain。
 - T4-002 Unit A revision `-11`：Coordinator `t_083a9aab` run `#84` 在 121s timeout，未创建 Executor/Reviewer；该 chain 已终止，不得复用。
 - T4-002 revision `-10`：Coordinator `t_b788cdb9` run `#82` 在 908s timeout；Executor `t_3769f8ec` run `#83` `pid not alive` crash 后因 parent blocked 无法 claim retry；REPORT/Independent REVIEW/HANDOFF 均不存在。
@@ -78,6 +88,8 @@
 - T4-002 Unit C revision `-16`：Coordinator `t_aeaefef4` 在 Executor dispatch 前 300s timeout，process retry `1/1` exhausted；没有 PLAN、PROGRESS、REPORT、Independent REVIEW 或 HANDOFF。该 chain 已终止，不得复用或重试。
 - T4-002 Unit C1 revision `-17`：Coordinator dispatch target 为 120s；若再次 pre-dispatch timeout，转 infrastructure blocked，不自动发布 rev18。若 `REVID_TEST_MYSQL_ADMIN_URL` 缺失、权限不足或 identity 不明，必须 BLOCKED；禁止回退 `.env` 或触碰 `revid_db`。
 - T4-002 Unit C1 revision `-17` 已触发上述 stop condition：Coordinator `t_3e1f6a06` run `#101` 在 Executor dispatch 前 120s timeout，process retry `1/1` exhausted；没有 Executor、PLAN、PROGRESS、REPORT、Independent REVIEW 或 HANDOFF。不得重复 dispatch 或自动发布 rev18。
+- T4-002 Unit C2 revision `-19`：Coordinator `t_b493a47f` run `#113` 未创建 Executor；该旧 chain terminal 且不得复用。Hermes worker finalization 已由后续 PMC runtime fix 修复并通过 fresh tests/smokes；revision `-20` 是唯一获批 continuation。
+- Hermes revision `-19` escalation 未通过 PMC：`94 tests + 3 positive smokes + 1 negative smoke` 属于旧 thin-dispatcher policy evidence，不证明新识别的 terminal-transition/Windows exit-status 缺陷已修复；card-body、board、OOM、segfault 推测没有直接证据。
 - T4-002 thin-dispatcher remediation：Smoke 1 `t_20945c04` crash，只有 runs `#103/#105` 两次成功；run `#107` 未实际尝试违规操作；metadata 只有 timing step 名称而无数值 elapsed；worker logs 出现 allowlist 外的 navigate/skills/cron/terminal；当前不能证明 runtime tool boundary。
 - 上述 Hermes 自报 remediation blocker 已由后续 Codex direct runtime fix supersede：mode-specific exact policy 已进入 worker spawn、schema filtering 和 invalid-call fast fail；旧 failure fingerprint 仍由 revision `-18` 继承，不得删除。
 - T4-002 revision `-08`：Executor run `#78` timeout，retry run `#79` `pid not alive`；process retry `1/1` exhausted，REPORT/Independent REVIEW/HANDOFF 均不存在。
@@ -93,5 +105,6 @@
 
 ## Next Review Gate
 
-- T4-002：等待 Hermes ACK revision `-18`，随后核对 Coordinator 只创建一个 `revid-backend` child；最终 gate 仍是两个真实 MySQL tests、revision `-18` REPORT、Independent REVIEW、HANDOFF 与 PMC final acceptance。
+- T4-002：Unit C2 revision `-20` 已批准。Hermes 下一步只能 ACK 当前 Queue，创建新的 Coordinator/card/idempotency；不得复用 revision `-19` chain。Executor 完成 REPORT 后停止，等待 PMC 决定 review-dispatch lifecycle continuation。
+- Hermes language：五个 SOUL 模板已部署（default + 4 execution profiles），中文 marker 验证通过，profile descriptions 已更新。Revid cron 保持 paused。
 - T4-006：已完成并归档。依赖 T4-006 的 Task 仅视为该 dependency 已满足；是否执行仍由后续 Queue revision 决定。

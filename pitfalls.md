@@ -117,3 +117,18 @@
 - 单独提高 runtime budget 不是 root-cause fix。若同一阶段已经在更高 budget 下失败，新的 budget 必须由 fresh same-profile runtime health proof 支撑。
 - Runtime incident 没有 PLAN、REPORT、Independent REVIEW 或 HANDOFF 时，不得创建 business REWORK；保持 infrastructure blocked，由 runtime owner 提交 diagnostic 后再决定 continuation。
 - T4-002 revision `-17` 因此选择重评 Hermes execution route；Unit C1a/C1b 仅是收到 `READY_FOR_CONTINUATION` 后的条件设计，不是当前执行授权。
+
+## 2026-06-28 Windows Kanban worker 退出分类
+
+- Windows 上不能依赖 `os.waitpid` 或只保存 PID 来判断 detached worker 的退出原因；必须保留 Popen result 或由 watcher 记录 return code，否则 clean/nonzero/partial exit 会被错误归类为 `pid not alive`。
+- dispatcher interval 恰好为 60 秒时，worker 在 5–30 秒内退出、下一 tick 才发现 dead PID，不等于 worker 存在 60 秒 health-check timeout；必须结合 worker log、agent log 与 source semantics 判断。
+- Kanban worker 返回普通文本、invalid-tool partial 或 provider error，但未调用 `kanban_complete` / `kanban_block` 时，runtime 必须确定性写入 blocked/protocol outcome；禁止把退出当成功，也不能只等 liveness reconciliation。
+- 旧 runtime policy tests/smoke 只能证明当时的 tool boundary，不能证明后续新识别的 worker-finalization 或 exit-code-capture 缺陷已修复；新 failure fingerprint 必须有 post-fix regression 和 fresh card/run evidence。
+- 项目 prompt 模板、实际 profile SOUL 与实际 cron prompt 是三个独立部署面；只修改其中一个不会自动约束另外两个。语言规则验收必须覆盖实际 SOUL marker 与每个 profile 的 Human Owner 可见 sample output。
+## 2026-06-28 — Windows worker finalization 不能只靠 PID/Popen 推断
+
+- 现象：Kanban worker 返回 plain text 后 card 留在 `running`，下一 dispatcher tick 报 `pid not alive`。
+- 误区：静态看到 `proc.poll()` fallback 后，直接推断 Windows `poll()` 对已退出进程返回 `None`。Fresh 同 flags probe 实际返回 `0`。
+- 根因：dispatcher 使用 `chat -q` single-query 入口；该入口在 agent 返回后没有验证 terminal Kanban transition。
+- 规则：生命周期 bug 必须沿真实 entry point 做 runtime probe；worker 进程应在退出前确定性 finalization，Popen waiter/exit registry 只作为 abnormal-exit fallback。
+- 验证：新增 regression tests，并使用 isolated board 完成 3 次 positive dispatch 与 1 次 plain-text negative direct block。

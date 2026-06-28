@@ -4,19 +4,19 @@
 
 | Field | Value |
 |---|---|
-| State | REPORT_READY — Executor t_b3cfb6ce completed (2/2 tests passed in 1.41s), REPORT/PLAN/PROGRESS created, awaiting Independent Review |
+| State | INFRASTRUCTURE_BLOCKED — Coordinator t_b493a47f crashed (pid 30648 not alive), process retry 1/1 exhausted. Awaiting Codex PMC new continuation revision for Unit C2. |
 | Last Updated | 2026-06-28 |
-| Revision | 18 |
+| Revision | 19 (Unit C2 migration core, DISPATCH_ONLY) |
 | Task ID | T4-002 |
-| Task File | ai/tasks/todo/TASK-T4-002-UNIT-C1-REV18.md |
-| Queue Entry | APPROVED (rev -18, Codex PMC) |
-| Coordinator Card | t_3bfbe611 (done — completed dispatch, created Executor t_b3cfb6ce) |
-| Executor Card | t_b3cfb6ce (blocked/review-required — 2/2 tests passed in 1.41s, REPORT/PLAN/PROGRESS created) |
+| Task File | ai/tasks/todo/TASK-T4-002-UNIT-C2-REV19.md |
+| Queue Entry | APPROVED (phase4-wave2-unit-c2-migration-core-2026-06-28-19, Codex PMC) |
+| Business Coordinator | t_b493a47f (BLOCKED — crashed run #113, pid 30648 not alive, retry exhausted 1/1) |
+| Executor Card | PENDING — Coordinator crashed before dispatch |
 | Executor Attempt | 1 (continuation) |
-| Reviewer Card | — (to be created for Independent Review of Unit C1 revision -18) |
-| Handoff Card | — (not yet created) |
-| Last Executed | 2026-06-28 — Executor completed Unit C1: test_ac8 PASS, test_ac9 PASS, 2/2 in 1.41s, cleanup verified, REPORT created |
-| Failure Fingerprint | T4-002-UNIT-A-PMC-REWORK: all 3 defects corrected (rev -13); all inherited fingerprints carried forward + REV14_COORDINATOR_TIMEOUT: 302s > 300s + REV14_EXECUTOR_TIMEOUT: 847s/848s > 800s × 2 + REV14_NO_REVIEW_OR_HANDOFF + REV16_COORDINATOR_TIMEOUT: t_aeaefef4 timed out at 300s (run #100) + REV16_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + REV16_TERMINAL: revision -16 chain terminated, DO NOT REUSE + REV17_COORDINATOR_TIMEOUT: t_3e1f6a06 timed out at 120s (run #101) + REV17_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + COORDINATOR_ROLE_COLLAPSE: t_1a9f1d32 run #96 executed Executor work instead of dispatch-only + THIN_DISPATCHER_RUNTIME_FIX: mode-specific exact tool policy enforced + 3 positive smokes passed (41s/42s/40s) + 1 negative test passed (ROLE_BOUNDARY_VIOLATION) |
+| Reviewer Card | PENDING — not authorized for this revision (lifecycle continuation required) |
+| Handoff Card | PENDING — not authorized for this revision |
+| Last Executed | 2026-06-28 — Unit C1 revision -18 chain fully complete (Executor t_b3cfb6ce PASS, Reviewer t_8f3b60ff PASS, Handoff t_b918a49e DONE). Revision -19 Coordinator t_b493a47f claimed (run #113) but crashed at 60s (pid 30648 not alive). Process retry exhausted. Fresh diagnostics at 2026-06-28: run #113 step_key=null, summary=null, worker_pid=null — process failure (not policy failure); same pattern as smoke test run #102 (pid 28404, 60s). Conclusion: STILL_INFRA_BLOCKED. |
+| Failure Fingerprint | T4-002-UNIT-A-PMC-REWORK: all 3 defects corrected (rev -13); all inherited fingerprints carried forward + REV14_COORDINATOR_TIMEOUT: 302s > 300s + REV14_EXECUTOR_TIMEOUT: 847s/848s > 800s × 2 + REV14_NO_REVIEW_OR_HANDOFF + REV16_COORDINATOR_TIMEOUT: t_aeaefef4 timed out at 300s (run #100) + REV16_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + REV16_TERMINAL: revision -16 chain terminated, DO NOT REUSE + REV17_COORDINATOR_TIMEOUT: t_3e1f6a06 timed out at 120s (run #101) + REV17_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + COORDINATOR_ROLE_COLLAPSE: t_1a9f1d32 run #96 executed Executor work instead of dispatch-only + THIN_DISPATCHER_RUNTIME_FIX: mode-specific exact tool policy enforced + 3 positive smokes passed (41s/42s/40s) + 1 negative test passed (ROLE_BOUNDARY_VIOLATION) + REV18_LIFECYCLE_STAGE_GAP: Independent Review stage missing after Executor completion — CLOSED by stage Coordinator t_bd6172b7 dispatch + REV19_COORDINATOR_CRASH: t_b493a47f run #113 crashed at 60s (pid 30648 not alive), process retry 1/1 exhausted |
 
 ## Unit A Correction — Revision -13 (COMPLETE)
 
@@ -51,9 +51,10 @@ Unit A revision `-13` evidence chain is complete and consistent. PMC final accep
 
 ## Queued Items
 
-|| # | Revision | Task | Action | Status | Approved By |
+||| # | Revision | Task | Action | Status | Approved By |
 |---|---|---|---|---|---|
-| 1 | 18 | T4-002 | Unit C1 fixture/schema preflight under ADR-003 (runtime-enforced) | REPORT_READY — Executor t_b3cfb6ce completed (2/2 in 1.41s), awaiting Independent Review | Codex PMC |
+| 1 | 18r1 | T4-002 | Lifecycle continuation: Independent Review dispatch for Unit C1 rev -18 (REVIEW_DISPATCH_ONLY) | HANDOFF_READY — Full chain complete; HANDOFF file written; awaiting Codex PMC final acceptance | Codex PMC |
+| 2 | 19 | T4-002 | Unit C2 migration core verification (DISPATCH_ONLY) | INFRASTRUCTURE_BLOCKED — Coordinator t_b493a47f crashed run #113 (pid 30648 not alive, 60s), process retry 1/1 exhausted. Awaiting Codex PMC new continuation revision. | Codex PMC |
 
 ## Superseded Chains (DO NOT REUSE)
 
@@ -69,8 +70,10 @@ Unit A revision `-13` evidence chain is complete and consistent. PMC final accep
 | -14 | t_bbbf72bd (blocked, timeout) | t_7275328d (blocked, timeout×2) | — | INFRA_BLOCKED (Gateway DOWN) |
 | -15 | t_1a9f1d32 (done) | t_1a9f1d32 (done) | t_6b4b7bc8 (done, PASS) | ROLE_COLLAPSE — Coordinator ran Executor work, not dispatch-only |
 | -16 | t_aeaefef4 (blocked, timed out 300s, retry exhausted) | — | — | COORDINATOR_RETRY_EXHAUSTED_REV16 — TERMINAL, DO NOT REUSE |
-|| -17 | t_3e1f6a06 (blocked, timed out 120s, retry exhausted) | — | — | INFRASTRUCTURE_BLOCKED_REV17 — Coordinator timed out before Executor dispatch, process retry exhausted; per Queue: no auto rev18 |
-|| -18 | t_3bfbe611 (done, dispatched Executor t_b3cfb6ce) | t_b3cfb6ce (blocked/review-required, 2/2 passed in 1.41s) | — | REPORT_READY — Executor completed Unit C1, REPORT/PLAN/PROGRESS created, awaiting Independent Review |
+| -17 | t_3e1f6a06 (blocked, timed out 120s, retry exhausted) | — | — | INFRASTRUCTURE_BLOCKED_REV17 — Coordinator timed out before Executor dispatch, process retry exhausted; per Queue: no auto rev18 |
+| -18 | t_3bfbe611 (done, dispatched Executor t_b3cfb6ce) | t_b3cfb6ce (done, PASS 2/2 in 1.41s) | — | REPORT_READY → REVIEW_DONE → HANDOFF_READY |
+|| -18r1 | t_bd6172b7 (done, dispatched Reviewer t_8f3b60ff + Handoff t_b918a49e in 83s) | t_8f3b60ff (done, PASS) | t_b918a49e (done, HANDOFF_ONLY) | HANDOFF_READY — Full chain complete; awaiting Codex PMC final acceptance |
+|| -19 | t_b493a47f (blocked, crashed run #113 pid 30648 not alive at 60s, retry exhausted) | — | — | INFRASTRUCTURE_BLOCKED_REV19 — Coordinator crashed before Executor dispatch, process retry exhausted |
 
 ## Stale Cards (Superseded — Do Not Reuse)
 
@@ -109,9 +112,9 @@ Gateway DOWN detected at 2026-06-26 08:30 UTC — first detection. Gateway resto
 
 | Field | Value |
 |---|---|
-| PMC Action Required | `NO` |
-| PMC Action Type | `NONE` |
-| PMC Action Reason | `Executor t_b3cfb6ce completed Unit C1 (2/2 tests passed in 1.41s). REPORT/PLAN/PROGRESS created. Waiting for Independent Review verdict, then HANDOFF, then Codex PMC final acceptance.` |
-| PMC Evidence Paths | `ai/reports/REPORT-T4-002-UNIT-C1-REV18.md, kanban card t_3bfbe611 (Coordinator done), kanban card t_b3cfb6ce (Executor blocked/review-required)` |
+| PMC Action Required | `YES` |
+| PMC Action Type | `INFRASTRUCTURE_BLOCKED` / `ESCALATION` |
+| PMC Action Reason | `1) Unit C1 revision -18 chain fully complete: Executor PASS (2/2 in 1.41s), Independent Reviewer PASS (2/2 in 1.16s), Handoff stage DONE. HANDOFF file written. Ready for Codex PMC final acceptance. 2) Unit C2 revision -19 Coordinator t_b493a47f crashed at run #113 (pid 30648 not alive, 60s runtime). Process retry 1/1 exhausted. Chain INFRASTRUCTURE_BLOCKED. 3) Smoke test card t_20945c04 also crashed (pid 28404 not alive, run #102) — same 60s pattern. Suggests systemic revid-pm worker instability on the revid business board. 4) PMC has already applied thin-dispatcher fix (94 tests passed, 3 smokes passed on diagnostic board), but revision -19 on business board still crashes. Escalation report written to ai/reports/ESCALATION-T4-002-REV19-WORKER-CRASH-2026-06-28.md. 5) Requires Codex PMC to: (a) investigate Gateway logs for run #113 and #102, (b) compare diagnostic board vs business board worker spawn configs, (c) determine if 60s crash is Windows-specific or board-specific, (d) decide whether to release a new continuation revision or fix the underlying worker issue.` |
+| PMC Evidence Paths | `ai/reports/REPORT-T4-002-UNIT-C1-REV18.md, ai/reviews/REVIEW-T4-002-UNIT-C1-REV18.md, ai/handoffs/HANDOFF-T4-002-UNIT-C1-REV18-POST-REVIEW.md, ai/reports/DIAGNOSTIC-T4-002-RUNTIME-REV19-2026-06-28.md, ai/reports/ESCALATION-T4-002-REV19-WORKER-CRASH-2026-06-28.md, kanban t_b493a47f (crashed run #113), kanban t_20945c04 (crashed run #102), kanban t_b3cfb6ce (Unit C1 Executor PASS), kanban t_3bfbe611 (Unit C1 Coordinator SUCCESS — for comparison)` |
 | Human Decision Candidate | `NO` |
-| Human Escalation Reason | `NONE` |
+| Human Escalation Reason | `NONE — this is a runtime/infrastructure issue that requires Codex PMC investigation, not Human Owner decision` |
