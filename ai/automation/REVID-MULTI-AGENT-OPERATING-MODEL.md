@@ -16,12 +16,13 @@ Codex Project Master Controller
     │ Task / ADR / APPROVED Queue
     v
 Hermes Scheduled Supervisor（default profile）
-    │ 创建唯一 Coordinator card
+    │ 创建唯一 Dispatcher card
     v
-revid-pm（Execution Coordinator）
+revid-dispatcher（Thin Executor Dispatcher）
     ├── revid-backend（Backend Executor）
     ├── revid-frontend（Frontend Executor）
-    └── revid-reviewer（Independent Reviewer）
+    └── REPORT_READY 后交回 revid-pm lifecycle
+             └── revid-reviewer（Independent Reviewer）
              │
              v
          HANDOFF
@@ -124,7 +125,7 @@ Codex PMC 最终验收与项目流转
 负责：
 
 - 验证 Queue 授权、依赖、Task path、profile、capacity 和 idempotency。
-- 对新 revision 写入 ACK，并创建唯一 `revid-pm` Coordinator card。
+- 对新 revision 写入 ACK，并按 Queue Action 创建唯一入口 card：`DISPATCH_ONLY -> revid-dispatcher`；`REVIEW_DISPATCH_ONLY -> revid-pm`。Action 必须原样持久化，不得转换。
 - 监控 execution chain 的状态转移，不代替任何 Worker 工作。
 - 只在状态变化时更新 `HERMES-EXECUTION-STATUS.md`。
 - 对 runtime crash、timeout、capacity 和 delivery 故障分类。
@@ -147,9 +148,19 @@ Codex PMC 最终验收与项目流转
 
 正式输出：Queue ACK、Coordinator card ID、execution state transition、runtime incident 或 HANDOFF_READY。
 
-### 3.4 `revid-pm` Execution Coordinator
+### 3.4 `revid-dispatcher` Thin Executor Dispatcher
+
+身份：一个 approved revision 的初始 Executor dispatch worker。
+
+负责：读取精确 Task、创建且 read-back 校验一个 Executor child，然后立即完成。禁止 Review、REWORK、HANDOFF、业务 preflight 和项目文件写入。
+
+正式输出：`DISPATCH_COMPLETE` 或稳定 infrastructure fingerprint。
+
+### 3.5 `revid-pm` Lifecycle Coordinator
 
 身份：一个 approved execution chain 的流程协调者。
+
+只接受 `REVIEW_DISPATCH_ONLY` 与 `HANDOFF_ONLY`。`revid-pm` 不再拥有 `DISPATCH_ONLY`，不得创建 Executor。Review dispatch 只创建一个 `INDEPENDENT_REVIEW_ONLY` Reviewer 与一个依赖该 Reviewer 的 `HANDOFF_ONLY` child。
 
 负责：
 
@@ -268,6 +279,18 @@ Codex 只有在以下条件满足时发布新 revision：
 
 Queue event 必须包含：revision、Task ID、精确 Task path、Action、Executor Profile、Reviewer Profile、attempt policy、parallel group、stop-after、approval source 和 previous failure fingerprint。
 
+Canonical Action/profile contract：
+
+| Action | Exact profile | Allowed output |
+|---|---|---|
+| `DISPATCH_ONLY` | `revid-dispatcher` | 一个 `IMPLEMENT_AND_TEST_ONLY` Executor child |
+| `REVIEW_DISPATCH_ONLY` | `revid-pm` | 一个 `INDEPENDENT_REVIEW_ONLY` Reviewer + 一个依赖 Reviewer 的 `HANDOFF_ONLY` child |
+| `IMPLEMENT_AND_TEST_ONLY` | Queue 指定的 `revid-backend` 或 `revid-frontend` | PLAN/PROGRESS/REPORT 与业务 diff |
+| `INDEPENDENT_REVIEW_ONLY` | `revid-reviewer` | Independent REVIEW |
+| `HANDOFF_ONLY` | `revid-pm` | HANDOFF |
+
+所有 worker card 必须有且仅有一个 standalone `Action:`。profile 配置必须为每个允许 Action 定义 exact `worker_tool_policies`；Action 缺失、重复、未知或与 profile 不匹配时，dispatcher 必须在 spawn 前 fail-closed。
+
 ### 6.2 Hermes → Codex：ACK/Execution Event
 
 Hermes 消费新 revision 后，将以下内容写入 `HERMES-EXECUTION-STATUS.md`。若 revision 对应的 matching idempotency chain 已由旧 Supervisor cycle 创建，必须 adopt 该 chain 并回填真实 card IDs，不得因 status 尚未 ACK 而重复创建：
@@ -355,12 +378,12 @@ Hermes status 中的 card ID 必须来自 `hermes kanban ... --json` 并经 `sho
 
 ## 9. 并发与锁
 
-- `revid-pm` 全局 capacity = 1。
+- `revid-dispatcher` 全局 capacity = 1；`revid-pm` lifecycle capacity = 1。
 - 当前项目默认 Backend capacity = 1，Frontend capacity = 1，Reviewer capacity = 1。
 - 只有 Codex 在 Queue 明确声明 parallel group 且文件、schema、contract 不重叠时才允许并行。
 - Database migration、runtime cutover、destructive operation 永远串行。
 - 同一 schema、migration chain、API contract、Vue SFC、store 或 design token 文件不可并行修改。
-- Scheduler 只创建 Coordinator；Coordinator 再按 Queue 创建 Worker，避免双重派发。
+- Scheduler 只创建 Dispatcher 或已获 PMC 批准的 lifecycle Coordinator；对应角色再创建下游 Worker，避免双重派发。
 
 ## 10. 定时任务设计
 
@@ -372,11 +395,12 @@ Hermes status 中的 card ID 必须来自 `hermes kanban ... --json` 并经 `sho
 
 1. 读取治理规则、CURRENT、ROADMAP、Queue、Hermes execution status。
 2. 读取仅自上次 evidence cursor 后新增或变化的 REPORT、REVIEW、HANDOFF。
-3. 若 HANDOFF_READY，执行最终验收并写 PMC verdict。
-4. 若没有 active Queue，选择一个依赖已满足且可独立验证的下一 Task，必要时创建/完善 Task。
-5. 只有 execution chain 不 active 时才发布新 Queue revision。
-6. 若 BLOCKED，先在 PMC 权限内决策；仅满足 Human escalation 条件时咨询用户。
-7. 无新证据、无待验收、无可发布 Task 时严格输出 `IDLE`，不写文件。
+3. 若 REPORT_READY，必须读取 REPORT 并作 queue decision：失败则 REWORK/BLOCKED 并创建有界修复路径；通过但未授权 Reviewer/HANDOFF 则发布 review lifecycle continuation；不得永久只读等待。
+4. 若 HANDOFF_READY，执行最终验收并写 PMC verdict。
+5. 若没有 active Queue，选择一个依赖已满足且可独立验证的下一 Task，必要时创建/完善 Task。
+6. 只有 execution chain 不 active 时才发布新 Queue revision；已达到 Queue `Stop After` 且 Worker terminal 的 stage 不再视为 active，但必须先记录 PMC 收口决定。
+7. 若 BLOCKED，先在 PMC 权限内决策；仅满足 Human escalation 条件时咨询用户。
+8. 无新证据、无待处理 REPORT_READY、无待验收、无可发布 Task 时严格输出 `IDLE`，不写文件。
 
 ### 10.2 Hermes Supervisor Automation
 
@@ -386,10 +410,10 @@ Hermes status 中的 card ID 必须来自 `hermes kanban ... --json` 并经 `sho
 
 1. 检查 Gateway 和 `revid` board。
 2. 读取 Queue 与当前 execution status。
-3. 新 revision 未 ACK：写 ACK 并创建唯一 Coordinator。
+3. 新 revision 未 ACK：写 ACK，并按 Queue Action/profile canonical matrix 创建唯一入口 card；不支持或不匹配时 fail-closed。
 4. 已 ACK：只监控已有 chain，不重复创建。
-5. REPORT_READY 且无 Reviewer：由 Coordinator 创建 Reviewer。
-6. REVIEW PASS 且无 HANDOFF：由 Coordinator创建 HANDOFF。
+5. `REVIEW_DISPATCH_ONLY`：`revid-pm` 创建唯一 Reviewer 与依赖 Reviewer 的 HANDOFF；不得创建 Executor，不得把 Action 改写为 `DISPATCH_ONLY`。
+6. `HANDOFF_ONLY`：Reviewer 完成后由 `revid-pm` 写 HANDOFF；不得在 review-dispatch action 中提前写 HANDOFF。
 7. crash/timeout：按 process retry policy 处理；重复 fingerprint 转 `INFRASTRUCTURE_BLOCKED`。
 8. 只有状态变化时更新 execution status；无变化严格输出 `[SILENT]`，不写 scheduled report、不 delivery。
 

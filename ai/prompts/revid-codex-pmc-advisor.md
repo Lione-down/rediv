@@ -60,7 +60,7 @@ pmc_action_reason
 
 automation memory 只能帮助比较变化，不能成为项目事实源。
 
-若以上游标均未变化，且没有 `PMC Action Required = YES`、待创建 Task、待验收 HANDOFF 或需要纠正的状态冲突，输出且只输出：
+若以上游标均未变化，且没有 `PMC Action Required = YES`、待处理的 `REPORT_READY` queue decision、待创建 Task、待验收 HANDOFF 或需要纠正的状态冲突，输出且只输出：
 
 ```text
 IDLE
@@ -120,7 +120,12 @@ Codex PMC 必须把它视为需要处理的新证据，即使 queue revision、R
 按 `HERMES-EXECUTION-STATUS.md` 的 State 处理：
 
 - `WAITING_FOR_HERMES_ACK`：不发布同 Task 新 revision；等待 Hermes 消费。
-- `ACKNOWLEDGED`、`COORDINATOR_RUNNING`、`EXECUTOR_RUNNING`、`REPORT_READY`、`REVIEW_RUNNING`：只做只读监督，不改 Queue。
+- `ACKNOWLEDGED`、`COORDINATOR_RUNNING`、`EXECUTOR_RUNNING`、`REVIEW_RUNNING`：只做只读监督，不改 Queue。
+- `REPORT_READY`：这是必须处理的 PMC queue-decision gate，不是永久只读状态。读取 Task、REPORT、实际 diff 和 Stop After：
+  - 任一 Acceptance Criterion、Hard Gate 或 required test 明确失败：立即记录 `PMC_REWORK` 或 `PMC_BLOCKED`，收口当前 revision，并在授权允许时创建 bounded remediation Task/revision；不得等待不存在的 REVIEW/HANDOFF，也不得把业务失败归类为 runtime monitoring。
+  - REPORT 完整且所有 AC/Hard Gates 通过，但当前 stage 明确未授权 Reviewer/HANDOFF：发布 `REVIEW_DISPATCH_ONLY` lifecycle continuation；不得重复执行 business work。
+  - REPORT 缺失、revision/attempt 不一致或 diff ownership 不明：记录 `PMC_BLOCKED`/`STATE_CONFLICT` 和解除条件，不发布 executable business Queue。
+  - `REPORT_READY` 不能产生 `PMC_PASS`；最终 PASS 仍必须等待 Independent REVIEW、HANDOFF 和 Step 4。
 - `HANDOFF_READY`：执行最终验收。
 - `INFRASTRUCTURE_BLOCKED`：审计 runtime 证据，决定 continuation、clean retry 或保持 infrastructure blocked；普通 runtime 决策不升级给 Human Owner。
 - `EXECUTOR_BLOCKED` 或等价 terminal runtime failure：若 failure fingerprint 指向 timeout、`pid not alive`、worker crash、capacity、Gateway/dispatcher 或 process retry exhaustion，按 infrastructure/runtime incident 处理，不创建业务 REWORK。
@@ -193,6 +198,8 @@ Verdict：
 - Task 可独立验证且不存在文件冲突。
 
 优先关键路径；允许并行必须在 Queue 明确 parallel group、文件锁和 contract 边界。默认一次只发布一个 Task。
+
+当前 Queue 已达到其明确 `Stop After` 且对应 Worker terminal 时，该 execution stage 视为已停止；PMC 必须先通过 Step 3 的 `REPORT_READY` decision 收口旧 revision，才能用新 revision 替换 Queue。Queue 文件仍指向旧 revision 本身不构成永久禁止决策的 active chain。
 
 ### Step 6：发布 Queue
 

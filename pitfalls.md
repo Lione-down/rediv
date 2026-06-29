@@ -132,3 +132,41 @@
 - 根因：dispatcher 使用 `chat -q` single-query 入口；该入口在 agent 返回后没有验证 terminal Kanban transition。
 - 规则：生命周期 bug 必须沿真实 entry point 做 runtime probe；worker 进程应在退出前确定性 finalization，Popen waiter/exit registry 只作为 abnormal-exit fallback。
 - 验证：新增 regression tests，并使用 isolated board 完成 3 次 positive dispatch 与 1 次 plain-text negative direct block。
+
+## 2026-06-29 REPORT_READY 不是永久只读状态
+
+- Queue 以 `Stop After: REPORT_READY` 分阶段执行时，Hermes 正常停止后，PMC 必须读取 REPORT 并作 queue decision。
+- REPORT 已明确失败时，不需要等待未授权的 Independent REVIEW/HANDOFF 才能判定未通过；应收口为 `PMC_REWORK` 或 `PMC_BLOCKED`，再发布有界修复路径。
+- REPORT 全部通过但 Reviewer/HANDOFF 未授权时，PMC 必须发布 lifecycle continuation，不能连续多轮输出 `IDLE`。
+- `REPORT_READY` 不能直接产生 `PMC_PASS`；最终 PASS 仍需 Independent REVIEW、HANDOFF 和 PMC fresh verification。
+
+## 2026-06-29 Bash 嵌套 PowerShell 与伪截断诊断
+
+- Persisted card body 只有 `@Task.md` 不足以证明 CLI 截断；必须读取原始 tool call，确认调用方实际传入了什么。
+- 在 MSYS Bash 中用 double quotes 包裹 `powershell -Command` 时，Bash 会先展开 `$hermesExe`、`$env`、`$body` 等 PowerShell variables，导致脚本到达 PowerShell 前已损坏。
+- transport 失败后严禁降级成 `hermes kanban create --body "@Task.md"`；这会把调用方缺陷伪装成 CLI truncation，并永久占用 idempotency key。
+- Coordinator body 由 project-owned Python launcher 从 scalar args 构造，再通过 subprocess argv list 传给 direct `hermes.exe`；create 前后都必须验证 standalone action marker 和 persisted body equality。
+- Terminal incident card 必须保留为证据，不通过 delete/archive 清理故障历史；continuation 使用新 revision 和 fresh idempotency key。
+
+## 2026-06-29 Dispatcher 角色拆分与 profile secret 审计
+
+- 初始 Executor dispatch 与 Review/HANDOFF lifecycle 必须分离：`revid-dispatcher` 只读指定 Task、创建并校验一个 child 后立即退出，`revid-pm` 不再承担初始 dispatch。
+- 单纯增加 Coordinator budget 不能修复 pre-dispatch role/context 膨胀；rev16 在 300s、rev24 在 120s 均耗尽后，应改为职责隔离和最小 runtime policy。
+- Hermes profile `config.yaml` 可能包含明文 `api_key`；任何配置审计都必须只读取结构键、hash 或经过 redaction 的字段，禁止全量 dump。
+- clone profile 会复制 `.env`、SOUL、skills 和 config；新角色部署后必须立即替换 SOUL、关闭 memory/delegation/curator，并把 action policy 收窄到所需工具。
+
+## 2026-06-29 DISPATCH_ONLY 必须原子提交 parent/child
+
+- `kanban_create` 与 `kanban_complete` 分成两个 transaction 时，wall-clock timeout 可在 child commit 后强杀 worker，留下 `parent=blocked`、`child=todo` 的永久依赖死锁；增加 timeout 不能消除该状态窗口。
+- standalone `Action: DISPATCH_ONLY` 必须在一个 SQLite transaction 内完成 child create/link、parent run completion、failure-counter reset 与 child promotion；任一步失败必须整体 rollback。
+- idempotency retry 只能接管字段和 parent link 完全一致的 child；contract mismatch、多个 children、错误 run 或额外 parent 必须 fail closed。
+- parent 在 tool call 内完成后，agent loop 必须使用 durable run summary 直接结束，禁止再发 follow-up model call；否则 worker process 会脱离 `status='running'` timeout 监管。
+- live smoke 必须同时验证 parent `done`、唯一 child `ready`、run metadata `atomic_dispatch=true`、follow-up model call skipped 和 worker process count 归零。
+
+## 2026-06-30 Hermes Action/Profile Contract
+
+- Queue Action、coordinator profile、persisted card Action、child role、runtime tool policy 与 output contract 必须来自同一个 canonical matrix；任何一层不得自行 hard-code 或转换 Action。
+- 每个 execution profile 都必须配置 exact `kanban.worker_tool_policies`。缺失、重复、未知或 cross-role Action 必须在 worker spawn 前 fail-closed，不能回退到完整 `hermes-cli` tool surface。
+- `revid-dispatcher` 独占 `DISPATCH_ONLY`；`revid-pm` 只拥有 `REVIEW_DISPATCH_ONLY` 与 `HANDOFF_ONLY`；Backend/Frontend 只实现；Reviewer 只验证，三者均不得创建 child card。
+- `max_retries` 必须按 runtime 真实语义持久化：`2` 表示 initial attempt 加一次 retry，`1` 不等于“一次 retry”。Review dispatch 低于 180 秒应在创建前拒绝。
+- Profile config 审计只允许读取并输出 policy key/tool list 或 hash，不得完整 dump。若 credential 进入任何工具输出，必须立即停止新 Queue 发布并要求轮换，且不得在报告中复制该值。

@@ -25,7 +25,14 @@ T4-002
 - Unit C1 Review Lifecycle Revision：`phase4-wave2-unit-c1-rev18-review-dispatch-2026-06-28-18r1`
 - Unit C2 Migration Core Revision：`phase4-wave2-unit-c2-migration-core-2026-06-28-19`
 - Unit C2 Migration Core Continuation Revision：`phase4-wave2-unit-c2-migration-core-continuation-2026-06-28-20`
-| Status：`UNIT C1 REVISION -18 PMC PASS — UNIT C2 REVISION -20 APPROVED` |
+- Unit C2 Policy-Handoff Revision：`phase4-wave2-unit-c2-migration-core-policy-handoff-fixed-2026-06-29-21`
+- Unit C2 Child-Contract Revision：`phase4-wave2-unit-c2-child-contract-corrected-2026-06-29-22`
+- Unit C2 AC3 Remediation Revision：`phase4-wave2-unit-c2-ac3-stale-same-remediation-2026-06-29-23`
+- Unit C2 AC3 Transport-Fixed Revision：`phase4-wave2-unit-c2-ac3-stale-same-remediation-transport-fixed-2026-06-29-24`
+- Unit C2 Dedicated Dispatcher Revision：`phase4-wave2-unit-c2-ac3-stale-same-remediation-dispatcher-2026-06-29-25`
+- Unit C2 Atomic Dispatch Revision：`phase4-wave2-unit-c2-ac3-stale-same-remediation-atomic-dispatch-2026-06-29-26`
+- Unit C2 Review Lifecycle Revision：`phase4-wave2-unit-c2-rev26-review-dispatch-2026-06-29-26r1`
+| Status：`UNIT C1 REVISION -18 PMC PASS — UNIT C2 REVISION -26 REPORT_READY — REVIEW LIFECYCLE -26r1 TERMINAL INFRASTRUCTURE_BLOCKED` |
 | Approved By：Codex Project Master Controller（继承 Human User 的 T4-002 product/destructive authorization） |
 | Previous Coordinator Card：`t_b788cdb9` (blocked; timed_out run #82) |
 | Previous Executor Card：`t_3769f8ec` (attempt 1 continuation; crashed run #83; retry blocked by parent) |
@@ -59,6 +66,12 @@ T4-002
 - Unit C1 Runtime Remediation Guidance：`ai/reviews/REVIEW-T4-002-PMC-RUNTIME-REMEDIATION-GUIDANCE-2026-06-28.md`
 - Unit C1 Rev18 PMC PASS：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C1-REV18-PASS-2026-06-28.md`
 - Unit C2 Rev20 Continuation Approval：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV20-CONTINUATION-APPROVAL-2026-06-28.md`
+- Unit C2 Rev20 Runtime Advisory：`ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV20-2026-06-28.md`
+- Unit C2 Rev22 PMC Rework：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV22-REWORK-2026-06-29.md`
+- Unit C2 Rev23 Runtime Transport Review：`ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV23-2026-06-29.md`
+- Unit C2 Rev25 Runtime Advisory：`ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV25-2026-06-29.md`
+- Hermes Atomic Dispatch Fix Report：`ai/reports/REPORT-HERMES-ATOMIC-DISPATCH-FIX-2026-06-29.md`
+- Hermes Atomic Dispatch PMC PASS：`ai/reviews/REVIEW-T4-002-PMC-HERMES-ATOMIC-DISPATCH-FIX-PASS-2026-06-29.md`
 - Safety Decision：`ai/decisions/ADR-003-t4-002-disposable-mysql-test-environment.md`
 
 revision `phase4-wave2-recovery-dispatch-2026-06-24-07` 已终止：Coordinator `t_e23d9043` done；Executor `t_748c116d` attempt 0 的 run `#75` crash、run `#76` gave_up，process retry `2/2 exhausted`，且没有 REPORT、Independent REVIEW 或 HANDOFF。
@@ -99,13 +112,31 @@ revision `phase4-wave2-unit-c2-migration-core-2026-06-28-19` 的 Coordinator `t_
 
 revision `phase4-wave2-unit-c2-migration-core-continuation-2026-06-28-20` 已由 PMC 批准：保持原 Unit C2 four-selector scope、ADR-003 boundary、120s dispatch-only Coordinator 与 1800s Executor budget。该 revision 继承 `REV19_COORDINATOR_CRASH` 及全部历史 fingerprints，不复用旧 card，Stop After 为 `UNIT_C2_REPORT_READY_REV20`。
 
+revision `-20` 已因 Supervisor card-body contract 缺陷终止：Coordinator `t_1617a921` 的 card body 只有 `@Task.md` 引用，缺少 standalone `Action: DISPATCH_ONLY`，导致 exact tool policy 未激活；run `#114` 执行 allowlist 外探索并在 121s timeout，retry `1/1` exhausted，未创建 Executor。该问题与 Unit C2 business scope 无关；不提高 budget、不继续拆分、不发布 revision `-21`，等待 fail-closed runtime remediation 与 fresh scheduled-path smoke。
+
+revision `-21` 已因 child payload contract 冲突终止；revision `-22` 随后完成四项真实 MySQL verification。AC1、AC2、AC5 通过，AC3 因 `stale_same` rows 仍进入 INSERT loop 而失败。PMC 已以 `AC3_STALE_SAME_DUPLICATE_INSERT` 收口为 `PMC_REWORK`，revision `-22` 不得复用。
+
+revision `phase4-wave2-unit-c2-ac3-stale-same-remediation-2026-06-29-23` 已由 PMC 批准：只允许过滤 stale-same INSERT execution set、保留 stale-diff fail-closed semantics、补直接 regression evidence，并在 ADR-003 disposable database 复跑 AC1/AC2/AC3/AC5。该 revision 是 scope 改变后的新 remediation revision，不是 rev22 attempt 2。
+
+revision `-23` 在 Executor dispatch 前因 Supervisor transport failure 终止。Raw cron session 证明 Supervisor 的 Bash terminal 先破坏了 double-quoted nested PowerShell variables，随后显式 fallback 为 `--body "@...REV23.md"`；不是 CLI 截断了已传入的完整 body。Coordinator `t_1dea37a2` run `#120` 以 `MISSING_WORKER_ACTION_MARKER` gave_up，且无 Executor/business artifacts。该 card 保留为 terminal evidence，不删除、不复用。
+
+PMC 已增加 project-owned `ai/runtime/create-hermes-coordinator.py`，用 scalar args 构造 canonical body 并通过 subprocess argv list 调用 direct `hermes.exe`；4 个 regression tests 与 dry-run transport proof 通过。Revision `-24` 是业务 Scope 不变、transport 修复后的 fresh continuation。
+
+Revision `-25` Dispatcher `t_cc15e296` 在 child `t_25ac2145` commit 后、parent completion 前 timeout，暴露 split-transaction deadlock。PMC 已验收 Hermes atomic dispatch runtime fix：future `DISPATCH_ONLY` child create/link、parent complete 与 child promote 在同一 SQLite transaction 提交，terminal transition 后 agent loop 不再发 follow-up model call。Live Gateway smoke parent `t_9f0ea8f5` / child `t_cff37a21` 通过且 worker process 归零。旧 rev25 chain 仍 terminal，不得复用。
+
+Revision `-26` 已由 PMC 发布为 fresh bounded continuation：Task `ai/tasks/todo/TASK-T4-002-UNIT-C2-REV26.md`，Queue revision `phase4-wave2-unit-c2-ac3-stale-same-remediation-atomic-dispatch-2026-06-29-26`。它使用 fresh dispatch/executor cards 与 idempotency keys，继承全部历史 fingerprints，等待 Hermes ACK；rev25 cards 保持不变。
+
+Revision `-26` Executor `t_9f24648e` 已完成并产出 REPORT，execution state 为 `REPORT_READY`。PMC 已审计 REPORT 与 actual diff，未发现必须在 Independent Review 前收口的明确 AC failure；revision `phase4-wave2-unit-c2-rev26-review-dispatch-2026-06-29-26r1` 仅授权 `REVIEW_DISPATCH_ONLY` 与 dependent `HANDOFF_ONLY` lifecycle，不允许重复 business work。
+
+Revision `-26r1` Coordinator `t_f46c8d6e` run `#126` persisted `Action: DISPATCH_ONLY` instead of the authorized `REVIEW_DISPATCH_ONLY`, then timed out at `121s > 120s` with retry exhausted and no children. The chain is terminal `INFRASTRUCTURE_BLOCKED`; formal closure is `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV26R1-2026-06-30.md`. No replacement Queue is authorized until fresh runtime health evidence passes the advisory gates.
+
 ## Current Continuation Conditions
 
 1. Queue revision `phase4-wave2-unit-a-static-fixes-pmc-rework-2026-06-26-13` 已 PMC PASS，仅作为 Unit A correction 完成证据；不得重复 ACK 或 dispatch。
 2. business attempt ordinal 仍为 `1`；禁止 attempt 2，禁止通过 revision 清零任何 infrastructure/business fingerprint。
 3. Revision `-18` 与 `-18r1` 已 PMC PASS，不得重复 ACK、dispatch 或复用其 cards/idempotency keys。
-4. 当前唯一 executable revision 是 `phase4-wave2-unit-c2-migration-core-continuation-2026-06-28-20`；Coordinator 必须使用 `Action: DISPATCH_ONLY`、120s budget 和 exact allowlist，只创建一个 `revid-backend` Executor child 后立即完成。
-5. Unit C2 只允许 dry-run、full migration、second-run idempotency、source immutability 四个现有真实 MySQL tests；业务文件 read-only；不得进入 Unit C3、Unit D/E、T4-003 或 T4-010。
+4. 当前没有 executable Queue；revision `-26r1` 与 revisions `-20` through `-25` 均 terminal，revision `-26` business execution 已停止在 REPORT_READY，均不得重复执行或复用 cards/idempotency keys。
+5. Review lifecycle 必须使用 fresh `revid-pm` / Reviewer / HANDOFF-only cards 与 keys，继承全部 fingerprints，且不得进入 Unit C3、Unit D/E、T4-003 或 T4-010。
 6. 禁止手工 claim、promote、unblock、重试或复用 revision `-08` 及更早 card。
 7. Unit C 必须继承全部历史 failure fingerprints，尤其是 `T4-002-SEMANTICS: IDEMPOTENCY_COMPARISON + FALSE_POSITIVE_CONFLICT + NON_MID_BATCH_ROLLBACK + SWALLOWED_CLEANUP + MISSING_SOURCE_COVERAGE`。
 
@@ -118,7 +149,7 @@ revision `phase4-wave2-unit-c2-migration-core-continuation-2026-06-28-20` 已由
 | B | PMC PASS revision `-15` | Same-PK and rollback unit tests, minimal bounded verification chain | No |
 | C | revision `-16` runtime blocked/terminal | Original full disposable MySQL integration dispatch；Coordinator retry exhausted before Executor | Yes |
 | C1 | PMC PASS revision `-18` / lifecycle `-18r1` | Runtime-enforced fixture identity + Alembic schema preflight | Yes |
-| C2 | revision `-19` terminal；revision `-20` approved | Dry-run、full migration、second-run idempotency、source immutability | Yes |
+| C2 | revision `-26` REPORT_READY；review lifecycle `-26r1` terminal infrastructure blocked | Dry-run、full migration、second-run idempotency、source immutability | Yes |
 | C3 | planned only | Conflict、FK orphan、partial rollback、consistency、cleanup failure visibility | Yes |
 | D | planned only | Consolidated final REPORT | No |
 | E | planned only | Independent REVIEW and HANDOFF | No |
@@ -242,8 +273,20 @@ python -m unittest discover -s tests -p "test_*migration*.py"
   - `ai/tasks/doing/TASK-T4-002-UNIT-C2-REV20-PLAN.md`
   - `ai/tasks/doing/TASK-T4-002-UNIT-C2-REV20-PROGRESS.md`
   - `ai/reports/REPORT-T4-002-UNIT-C2-REV20.md`
+- Unit C2 revision `-23` artifacts:
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C2-REV23-PLAN.md`
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C2-REV23-PROGRESS.md`
+  - `ai/reports/REPORT-T4-002-UNIT-C2-REV23.md`
+- Unit C2 revision `-24` artifacts:
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C2-REV24-PLAN.md`
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C2-REV24-PROGRESS.md`
+  - `ai/reports/REPORT-T4-002-UNIT-C2-REV24.md`
+- Unit C2 revision `-25` artifacts（均未创建）:
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C2-REV25-PLAN.md`
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C2-REV25-PROGRESS.md`
+  - `ai/reports/REPORT-T4-002-UNIT-C2-REV25.md`
 
-Independent REVIEW 与 HANDOFF 需等待 Unit C2 REPORT_READY 后的单独 lifecycle continuation 授权。
+Independent REVIEW 与 HANDOFF 需等待 revision `-24` REPORT_READY 后的单独 lifecycle continuation 授权；PMC automation 必须在该节点作明确 queue decision，不得再次永久只读等待。
 
 ## Codex Prompt
 先读取 T4-001 报告及 Alembic revision。禁止解析 `sqlite_master` 后字符串替换 DDL；使用 SQLAlchemy 做 data ETL。编码前创建 PLAN/PROGRESS，完成 dry-run、execute、幂等和一致性测试后提交 REPORT。不得删除或覆盖任何数据库。

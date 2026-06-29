@@ -4,19 +4,20 @@
 
 | Field | Value |
 |---|---|
-| State | INFRASTRUCTURE_BLOCKED — Coordinator t_b493a47f crashed (pid 30648 not alive), process retry 1/1 exhausted. Awaiting Codex PMC new continuation revision for Unit C2. |
-| Last Updated | 2026-06-28 |
-| Revision | 19 (Unit C2 migration core, DISPATCH_ONLY) |
+| State | INFRASTRUCTURE_BLOCKED — revision 26r1 Coordinator t_f46c8d6e (revid-pm) timed out at 121s > 120s budget (run #126), process retry exhausted (1/1), gave_up. No Reviewer or HANDOFF card created. This is a fresh revision -26r1 with new idempotency key; Coordinator pre-dispatch timeout repeats the historical pattern seen across revisions -16 through -26. Requires Codex PMC decision: a) increase Coordinator budget for review-dispatch stage, b) split review into smaller bounded unit, or c) release continuation revision. |
+| Last Updated | 2026-06-29 |
+| Revision | 26 (Unit C2 AC3 stale-same remediation, atomic dispatch, DISPATCH_ONLY) |
 | Task ID | T4-002 |
-| Task File | ai/tasks/todo/TASK-T4-002-UNIT-C2-REV19.md |
-| Queue Entry | APPROVED (phase4-wave2-unit-c2-migration-core-2026-06-28-19, Codex PMC) |
-| Business Coordinator | t_b493a47f (BLOCKED — crashed run #113, pid 30648 not alive, retry exhausted 1/1) |
-| Executor Card | PENDING — Coordinator crashed before dispatch |
-| Executor Attempt | 1 (continuation) |
-| Reviewer Card | PENDING — not authorized for this revision (lifecycle continuation required) |
-| Handoff Card | PENDING — not authorized for this revision |
-| Last Executed | 2026-06-28 — Unit C1 revision -18 chain fully complete (Executor t_b3cfb6ce PASS, Reviewer t_8f3b60ff PASS, Handoff t_b918a49e DONE). Revision -19 Coordinator t_b493a47f claimed (run #113) but crashed at 60s (pid 30648 not alive). Process retry exhausted. Fresh diagnostics at 2026-06-28: run #113 step_key=null, summary=null, worker_pid=null — process failure (not policy failure); same pattern as smoke test run #102 (pid 28404, 60s). Conclusion: STILL_INFRA_BLOCKED. |
-| Failure Fingerprint | T4-002-UNIT-A-PMC-REWORK: all 3 defects corrected (rev -13); all inherited fingerprints carried forward + REV14_COORDINATOR_TIMEOUT: 302s > 300s + REV14_EXECUTOR_TIMEOUT: 847s/848s > 800s × 2 + REV14_NO_REVIEW_OR_HANDOFF + REV16_COORDINATOR_TIMEOUT: t_aeaefef4 timed out at 300s (run #100) + REV16_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + REV16_TERMINAL: revision -16 chain terminated, DO NOT REUSE + REV17_COORDINATOR_TIMEOUT: t_3e1f6a06 timed out at 120s (run #101) + REV17_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + COORDINATOR_ROLE_COLLAPSE: t_1a9f1d32 run #96 executed Executor work instead of dispatch-only + THIN_DISPATCHER_RUNTIME_FIX: mode-specific exact tool policy enforced + 3 positive smokes passed (41s/42s/40s) + 1 negative test passed (ROLE_BOUNDARY_VIOLATION) + REV18_LIFECYCLE_STAGE_GAP: Independent Review stage missing after Executor completion — CLOSED by stage Coordinator t_bd6172b7 dispatch + REV19_COORDINATOR_CRASH: t_b493a47f run #113 crashed at 60s (pid 30648 not alive), process retry 1/1 exhausted |
+| Task File | ai/tasks/todo/TASK-T4-002-UNIT-C2-REV26.md |
+| Queue Entry | APPROVED (phase4-wave2-unit-c2-rev26-review-dispatch-2026-06-29-26r1, Codex PMC) — REVIEW_DISPATCH_ONLY |
+| Coordinator Card | t_f46c8d6e (INFRASTRUCTURE_BLOCKED — run #126 timed out at 121s > 120s, retry exhausted, no children created) |
+| Previous Dispatcher | t_c14aa473 (DONE — run #124 completed successfully, created Executor child t_9f24648e) |
+| Executor Card | t_9f24648e (DONE — 8/8 tests pass, revid-backend, parent t_c14aa473) |
+| Executor Attempt | 1 (t_9f24648e completed, 8/8 tests pass) |
+| Reviewer Card | MISSING — Coordinator t_f46c8d6e timed out before creation |
+| Handoff Card | MISSING — Coordinator t_f46c8d6e timed out before creation |
+| Last Executed | 2026-06-29 — rev26 Dispatcher t_c14aa473 created at epoch 1782724560. Run #124 completed (~77s). Executor t_9f24648e completed run #125 (1323s, 8/8 tests pass). REPORT-T4-002-UNIT-C2-REV26.md exists. rev26r1 Coordinator t_f46c8d6e created at epoch 1782739170, run #126 timed out at 121s > 120s (process retry exhausted 1/1, gave_up, no children created). rev25 Dispatcher t_cc15e296 run #122 terminal. rev24 Coordinator t_53630896 run #121 terminal. rev23 Coordinator t_1dea37a2 run #120 terminal. |
+| Failure Fingerprint | T4-002-UNIT-A-PMC-REWORK: all 3 defects corrected (rev -13); all inherited fingerprints carried forward + REV14_COORDINATOR_TIMEOUT: 302s > 300s + REV14_EXECUTOR_TIMEOUT: 847s/848s > 800s × 2 + REV14_NO_REVIEW_OR_HANDOFF + REV16_COORDINATOR_TIMEOUT: t_aeaefef4 timed out at 300s (run #100) + REV16_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + REV16_TERMINAL: revision -16 chain terminated, DO NOT REUSE + REV17_COORDINATOR_TIMEOUT: t_3e1f6a06 timed out at 120s (run #101) + REV17_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + COORDINATOR_ROLE_COLLAPSE: t_1a9f1d32 run #96 executed Executor work instead of dispatch-only + THIN_DISPATCHER_RUNTIME_FIX: mode-specific exact tool policy enforced + 3 positive smokes passed (41s/42s/40s) + 1 negative test passed (ROLE_BOUNDARY_VIOLATION) + REV18_LIFECYCLE_STAGE_GAP: Independent Review stage missing after Executor completion — CLOSED by stage Coordinator t_bd6172b7 dispatch + REV19_COORDINATOR_CRASH: t_b493a47f run #113 crashed at 60s (pid 30648 not alive), process retry 1/1 exhausted + REV20_MISSING_ACTION_POLICY_BYPASS + WINDOWS_CMD_MULTILINE_BODY_TRUNCATION + REV21_COORDINATOR_CHILD_CONTRACT_INVALID: child body forbids required tests, persisted runtime not pinned + REV23_COORDINATOR_MISSING_ACTION_MARKER: t_1dea37a2 run #120 failed instantly (0s) with MISSING_WORKER_ACTION_MARKER, retry exhausted, idempotency collision prevented recreation + REV24_COORDINATOR_PRE_DISPATCH_TIMEOUT: t_53630896 run #121 timed out at 121s > 120s budget, no Executor child created, process retry 1/1 exhausted + REV25_DISPATCHER_TIMEOUT_WITH_CHILD: t_cc15e296 run #122 timed out at 121s > 120s, but Executor child t_25ac2145 was created before timeout; parent gave_up blocks Executor claim + REV26_DISPATCHER_PRE_DISPATCH_TIMEOUT: t_3a287a75 run #123 timed out at 121s > 120s, no Executor child created, process retry 1/1 exhausted + REV26_ATOMIC_DISPATCH_SUCCESS: t_c14aa473 retry completed in ~77s, created Executor child t_9f24648e atomically |
 
 ## Unit A Correction — Revision -13 (COMPLETE)
 
@@ -51,10 +52,18 @@ Unit A revision `-13` evidence chain is complete and consistent. PMC final accep
 
 ## Queued Items
 
-||| # | Revision | Task | Action | Status | Approved By |
+| # | Revision | Task | Action | Status | Approved By |
 |---|---|---|---|---|---|
 | 1 | 18r1 | T4-002 | Lifecycle continuation: Independent Review dispatch for Unit C1 rev -18 (REVIEW_DISPATCH_ONLY) | HANDOFF_READY — Full chain complete; HANDOFF file written; awaiting Codex PMC final acceptance | Codex PMC |
-| 2 | 19 | T4-002 | Unit C2 migration core verification (DISPATCH_ONLY) | INFRASTRUCTURE_BLOCKED — Coordinator t_b493a47f crashed run #113 (pid 30648 not alive, 60s), process retry 1/1 exhausted. Awaiting Codex PMC new continuation revision. | Codex PMC |
+| 2 | 19 | T4-002 | Unit C2 migration core verification (DISPATCH_ONLY) | TERMINAL — Coordinator t_b493a47f crashed; do not reuse. | Codex PMC |
+| 3 | 20 | T4-002 | Unit C2 migration core continuation (DISPATCH_ONLY) | TERMINAL — t_1617a921 missing action policy bypass; do not reuse. | Codex PMC |
+| 4 | 21 | T4-002 | Unit C2 migration core policy-handoff-fixed continuation | TERMINAL — Coordinator completed, child t_689f993e reclaimed and blocked for invalid payload contract. | Codex PMC |
+| 5 | 22 | T4-002 | Unit C2 child-contract-corrected continuation | REPORT_READY — Executor t_4f178d0c completed: 3/4 selectors passed (AC1, AC2, AC5), AC3 idempotency failed (stale_same rows not filtered). No Reviewer card created. TERMINAL. | Codex PMC |
+| 6 | 23 | T4-002 | Unit C2 AC3 stale-same remediation | INFRASTRUCTURE_BLOCKED — Coordinator t_1dea37a2 run #120 failed instantly (MISSING_WORKER_ACTION_MARKER, retry exhausted). Idempotency key collision prevented recreation. Requires Codex PMC to delete terminal card and re-issue Queue with fresh idempotency key or provide alternative body-passing mechanism. | Codex PMC |
+| 7 | 24 | T4-002 | Unit C2 AC3 stale-same remediation (transport-fixed) | INFRASTRUCTURE_BLOCKED — Coordinator t_53630896 run #121 timed out at 121s > 120s budget before Executor dispatch. No Executor child created. Process retry exhausted (1/1). Same pre-dispatch timeout pattern as rev16/rev17/rev19. Requires Codex PMC to increase Coordinator budget. | Codex PMC |
+| 8 | 25 | T4-002 | Unit C2 AC3 stale-same remediation (dedicated dispatcher) | INFRASTRUCTURE_BLOCKED — Dispatcher t_cc15e296 run #122 timed out at 121s > 120s. Process retry exhausted 1/1, gave_up. Executor child t_25ac2145 created but unclaimable (parent gave_up). Same timeout pattern. | Codex PMC |
+| 9 | 26 | T4-002 | Unit C2 AC3 stale-same remediation (atomic dispatcher) | REPORT_READY — rev26 Dispatcher t_c14aa473 (retry) completed run #124 in ~77s. Executor child t_9f24648e completed run #125: 8/8 tests pass (4 unit + 4 real MySQL integration). REPORT exists. No Reviewer card created (per Queue Stop After: UNIT_C2_AC3_REMEDIATION_REPORT_READY_REV26). Awaiting lifecycle continuation. | Codex PMC |
+| 10 | 26r1 | T4-002 | Review lifecycle dispatch for Unit C2 revision 26 (REVIEW_DISPATCH_ONLY) | INFRASTRUCTURE_BLOCKED — Coordinator t_f46c8d6e (revid-pm, run #126) timed out at 121s > 120s budget, process retry exhausted (1/1), gave_up. No Reviewer or HANDOFF card created. Same pre-dispatch timeout pattern as rev16/rev17/rev19/rev20/rev24/rev25. Requires Codex PMC decision on budget increase or bounded split. | Codex PMC |
 
 ## Superseded Chains (DO NOT REUSE)
 
@@ -72,8 +81,13 @@ Unit A revision `-13` evidence chain is complete and consistent. PMC final accep
 | -16 | t_aeaefef4 (blocked, timed out 300s, retry exhausted) | — | — | COORDINATOR_RETRY_EXHAUSTED_REV16 — TERMINAL, DO NOT REUSE |
 | -17 | t_3e1f6a06 (blocked, timed out 120s, retry exhausted) | — | — | INFRASTRUCTURE_BLOCKED_REV17 — Coordinator timed out before Executor dispatch, process retry exhausted; per Queue: no auto rev18 |
 | -18 | t_3bfbe611 (done, dispatched Executor t_b3cfb6ce) | t_b3cfb6ce (done, PASS 2/2 in 1.41s) | — | REPORT_READY → REVIEW_DONE → HANDOFF_READY |
-|| -18r1 | t_bd6172b7 (done, dispatched Reviewer t_8f3b60ff + Handoff t_b918a49e in 83s) | t_8f3b60ff (done, PASS) | t_b918a49e (done, HANDOFF_ONLY) | HANDOFF_READY — Full chain complete; awaiting Codex PMC final acceptance |
-|| -19 | t_b493a47f (blocked, crashed run #113 pid 30648 not alive at 60s, retry exhausted) | — | — | INFRASTRUCTURE_BLOCKED_REV19 — Coordinator crashed before Executor dispatch, process retry exhausted |
+| -18r1 | t_bd6172b7 (done, dispatched Reviewer t_8f3b60ff + Handoff t_b918a49e in 83s) | t_8f3b60ff (done, PASS) | t_b918a49e (done, HANDOFF_ONLY) | HANDOFF_READY — Full chain complete; awaiting Codex PMC final acceptance |
+| -19 | t_b493a47f (blocked, crashed run #113 pid 30648 not alive at 60s, retry exhausted) | — | — | INFRASTRUCTURE_BLOCKED_REV19 — Coordinator crashed before Executor dispatch, process retry exhausted |
+| -21 | t_14b8871f (done) | t_689f993e (blocked, COORDINATOR_CHILD_CONTRACT_INVALID) | — | TERMINAL — child body forbids required tests, runtime not pinned |
+| -22 | t_971a76d5 (done) | t_4f178d0c (done, 3/4 passed, AC3 failed) | — | REPORT_READY — AC3 idempotency failed (stale_same rows not filtered), no Reviewer card created |
+| -23 | t_1dea37a2 (blocked) | — | — | INFRASTRUCTURE_BLOCKED — run #120 failed instantly: MISSING_WORKER_ACTION_MARKER, retry exhausted 1/1. Body was @TASK reference without standalone Action: DISPATCH_ONLY. Idempotency key collision prevented recreation. |
+| -24 | t_53630896 (blocked) | — | — | INFRASTRUCTURE_BLOCKED — run #121 timed out at 121s > 120s budget before Executor dispatch. No Executor child created. Process retry exhausted 1/1. Same pre-dispatch timeout pattern as rev16/rev17/rev19. |
+| -26 | t_3a287a75 (blocked, timed out 121s, retry exhausted) | — | — | INFRASTRUCTURE_BLOCKED_REV26 — Dispatcher timed out at 121s > 120s before Executor child creation, process retry exhausted. Same pre-dispatch timeout pattern as rev16/rev17/rev19/rev24/rev25. |
 
 ## Stale Cards (Superseded — Do Not Reuse)
 
@@ -96,25 +110,22 @@ Unit A revision `-13` evidence chain is complete and consistent. PMC final accep
 |---|---|
 | Event | Gateway process restored after revision -14 timeout diagnostics |
 | Previous State | UP (last verified operational) |
-| Current State | UP — Gateway process running at PID 6692 |
-| Impact | Revision -15 Coordinator t_1a9f1d32 created and claimed by dispatcher (run #96) — but run #96 performed Executor work (role collapse), not dispatch-only |
+| Current State | UP — Gateway process running at PID 40504 |
+| Impact | Atomic dispatch fix verified: rev26 Dispatcher t_c14aa473 created Executor child t_9f24648e atomically in ~77s |
 | First Detected | 2026-06-26 08:30 UTC |
-| Action Required | None — revision -15 chain completed but identified as role collapse; revision -16 Coordinator t_aeaefef4 timed out at 300s, process retry exhausted |
+| Action Required | None — Gateway UP, atomic dispatch runtime fix verified |
 
 ## Timestamp Note
 
-Last verified execution: 2026-06-26 06:42:08 UTC (reviewer `t_c1f5c0b8` completed at epoch 1782427328).
-Coordinator `t_bbbf72bd` (rev -14) timed out at 2026-06-26 13:15 UTC (run #93, 302s > 300s).
-Executor `t_7275328d` (rev -14) timed out twice at 2026-06-26 13:29 UTC (run #94, 847s) and 2026-06-26 13:44 UTC (run #95, 848s).
-Gateway DOWN detected at 2026-06-26 08:30 UTC — first detection. Gateway restored manually after rev -14 queue was placed on runtime hold. PMC then approved fresh bounded continuation revision -15.
+Last verified execution: 2026-06-29 — rev26 Dispatcher t_c14aa473 run #124 completed in ~77s (epoch 1782724637), created Executor child t_9f24648e. Executor t_9f24648e run #125 completed in 1323s with 8/8 tests pass. rev26r1 Coordinator t_f46c8d6e created at epoch 1782739170, run #126 timed out at 121s > 120s (process retry exhausted 1/1). State: INFRASTRUCTURE_BLOCKED, awaiting Codex PMC decision on Coordinator budget or bounded split for review-dispatch stage.
 
 ## PMC Attention
 
 | Field | Value |
 |---|---|
 | PMC Action Required | `YES` |
-| PMC Action Type | `INFRASTRUCTURE_BLOCKED` / `ESCALATION` |
-| PMC Action Reason | `1) Unit C1 revision -18 chain fully complete: Executor PASS (2/2 in 1.41s), Independent Reviewer PASS (2/2 in 1.16s), Handoff stage DONE. HANDOFF file written. Ready for Codex PMC final acceptance. 2) Unit C2 revision -19 Coordinator t_b493a47f crashed at run #113 (pid 30648 not alive, 60s runtime). Process retry 1/1 exhausted. Chain INFRASTRUCTURE_BLOCKED. 3) Smoke test card t_20945c04 also crashed (pid 28404 not alive, run #102) — same 60s pattern. Suggests systemic revid-pm worker instability on the revid business board. 4) PMC has already applied thin-dispatcher fix (94 tests passed, 3 smokes passed on diagnostic board), but revision -19 on business board still crashes. Escalation report written to ai/reports/ESCALATION-T4-002-REV19-WORKER-CRASH-2026-06-28.md. 5) Requires Codex PMC to: (a) investigate Gateway logs for run #113 and #102, (b) compare diagnostic board vs business board worker spawn configs, (c) determine if 60s crash is Windows-specific or board-specific, (d) decide whether to release a new continuation revision or fix the underlying worker issue.` |
-| PMC Evidence Paths | `ai/reports/REPORT-T4-002-UNIT-C1-REV18.md, ai/reviews/REVIEW-T4-002-UNIT-C1-REV18.md, ai/handoffs/HANDOFF-T4-002-UNIT-C1-REV18-POST-REVIEW.md, ai/reports/DIAGNOSTIC-T4-002-RUNTIME-REV19-2026-06-28.md, ai/reports/ESCALATION-T4-002-REV19-WORKER-CRASH-2026-06-28.md, kanban t_b493a47f (crashed run #113), kanban t_20945c04 (crashed run #102), kanban t_b3cfb6ce (Unit C1 Executor PASS), kanban t_3bfbe611 (Unit C1 Coordinator SUCCESS — for comparison)` |
+| PMC Action Type | `QUEUE_DECISION` |
+| PMC Action Reason | `rev26 Executor t_9f24648e completed: 8/8 tests pass. rev26r1 Coordinator t_f46c8d6e (revid-pm) timed out at 121s > 120s budget (run #126), process retry exhausted 1/1, gave_up. No Reviewer/HANDOFF card created. Same pre-dispatch timeout pattern across 10+ revisions (-16 through -26, now -26r1). Requires Codex PMC decision: a) increase Coordinator budget beyond 120s for review-dispatch stage, b) release continuation revision with adjusted budget, or c) split review into smaller bounded unit. Original rev26 Dispatcher t_3a287a75 (blocked/timeout) and retry Dispatcher t_c14aa473 (done) both terminal.` |
+| PMC Evidence Paths | `kanban t_f46c8d6e (Coordinator INFRASTRUCTURE_BLOCKED, run #126 timed out 121s), kanban t_9f24648e (Executor DONE, 8/8 pass), kanban t_c14aa473 (Dispatcher DONE), REPORT-T4-002-UNIT-C2-REV26.md, Queue revision 26r1 REVIEW_DISPATCH_ONLY, Queue Coordinator Budget: 120s` |
 | Human Decision Candidate | `NO` |
-| Human Escalation Reason | `NONE — this is a runtime/infrastructure issue that requires Codex PMC investigation, not Human Owner decision` |
+| Human Escalation Reason | `NONE — infrastructure timeout is a Codex PMC decision, not Human Owner escalation` |

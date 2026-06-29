@@ -35,7 +35,7 @@
 - 读取项目文档、Git、Gateway、Kanban 和日志。
 - 写 `ai/automation/HERMES-EXECUTION-STATUS.md`，但只在 execution state transition 时。
 - 写 `ai/automation/HERMES-EXECUTION-STATUS.md` 的 PMC action marker，但只在需要 Codex PMC 介入、marker 变化或解除时。
-- 使用原子 idempotency key 创建一个 `revid-pm` Coordinator card。
+- 使用原子 idempotency key 创建一个 `revid-dispatcher` Dispatcher card；Review/HANDOFF lifecycle continuation 才使用 `revid-pm`。
 - 监控现有 execution chain。
 - 发生真实状态变化时创建一份 scheduled event report。
 
@@ -77,7 +77,7 @@ Gateway DOWN 时不得创建 card；仅在状态从 UP 变为 DOWN 时写 `INFRA
 - 使用 Queue 中 `Project Task File` 的精确路径。
 - Task 为 ready，或 Queue Action 明确批准 rework/recovery。
 - Dependencies 已通过 Codex PMC 最终验收。
-- Executor Profile 和 Review Profile 已明确。
+- Queue Action 在下方 `Action Routing Matrix` 中，且该 action 要求的 profile/evidence 字段完整。
 - CURRENT、ROADMAP、Task、ADR 与 Queue 无冲突。
 
 任何条件失败，只在状态首次变化时写 BLOCKED；不得自行修正项目文档。
@@ -117,27 +117,49 @@ diagnostics-only 模式禁止：
 7. 将 execution status 转为 `ACKNOWLEDGED` 或已观察到的更后执行状态。
 8. 写入 revision、Task、Task path、profiles、fingerprint 和真实当前时间。
 
+### Action Routing Matrix
+
+Queue Action 必须逐字传入 launcher，禁止重写、降级、猜测或使用默认 action：
+
+| Queue Action | Coordinator profile | Required fields | Forbidden fields | Result |
+|---|---|---|---|---|
+| `DISPATCH_ONLY` | `revid-dispatcher` | Executor Profile = `revid-backend` 或 `revid-frontend` | review evidence fields | exactly one Executor child |
+| `REVIEW_DISPATCH_ONLY` | `revid-pm` | Review Profile、Executor Evidence Card、REPORT、REVIEW/HANDOFF output paths and keys | Executor Profile | exactly one Reviewer + dependent HANDOFF-only card |
+
+Queue Action = `REVIEW_DISPATCH_ONLY` 时绝不能创建 `DISPATCH_ONLY` card。未知 action、profile 不匹配、字段缺失或 forbidden field 非空时，在 create 前转 `INFRASTRUCTURE_BLOCKED`，failure fingerprint 为 `SUPERVISOR_QUEUE_ACTION_UNSUPPORTED` 或 `SUPERVISOR_ACTION_PROFILE_CONTRACT_INVALID`。
+
 Coordinator key：
 
 ```text
 revid:{revision}:{task}:coordinate
 ```
 
-PowerShell 创建时必须显式指定：
+Coordinator body 是 runtime policy contract，不得由 Supervisor 手工拼接。launcher 根据 exact Queue Action 选择 canonical body，创建前后同时校验 action、revision、Task path、profile、evidence、output、idempotency 和 forbidden fields。persisted body 与 launcher body 必须 byte-for-byte 相等，否则使用 `SUPERVISOR_COORDINATOR_BODY_CONTRACT_INVALID` fail closed。
 
-```powershell
-hermes kanban --board revid create `
-  $title `
-  --assignee revid-pm `
-  --workspace "dir:D:/works/codexWorks/project_revid" `
-  --priority 0 `
-  --idempotency-key $idempotencyKey `
-  --max-runtime 15m `
-  --max-retries 1 `
-  --created-by revid-scheduled-supervisor `
-  --body $body `
-  --json
+创建 Coordinator 必须使用 project-owned launcher，禁止让 shell 直接承载 multiline body：
+
+```text
+D:/works/codexWorks/project_revid/backend/.venv/Scripts/python.exe \
+  ai/runtime/create-hermes-coordinator.py \
+  --action "<exact Queue Action>" \
+  --revision "<exact Queue revision>" \
+  --task-id "<exact Task ID>" \
+  --task-path "<exact Project Task File>" \
+  <action-specific profile and evidence arguments> \
+  --coordinator-profile "<profile from Action Routing Matrix>" \
+  --title "<action-specific coordinator title>" \
+  --idempotency-key "<exact Queue coordinator key>" \
+  --max-runtime "<Coordinator Budget seconds>" \
+  --workspace "dir:D:/works/codexWorks/project_revid"
 ```
+
+`DISPATCH_ONLY` 必须传 `--executor-profile`。`REVIEW_DISPATCH_ONLY` 必须传 `--review-profile`、`--executor-card`、`--report-path`、`--review-path`、`--handoff-path`、`--reviewer-idempotency-key` 和 `--handoff-idempotency-key`，且不得传 `--executor-profile`。
+
+Budget 是 Action contract：`DISPATCH_ONLY` 不得低于 120 秒；`REVIEW_DISPATCH_ONLY` 不得低于 180 秒。Launcher 固定传 `--max-retries 2`，语义为 initial attempt 后最多一次 process retry；不得用 `1` 冒充“一次 retry”。低于最低预算时在 card create 前 fail-closed。
+
+Launcher 在 Python 内构造 canonical body，并通过 `subprocess` argv list 直接调用 `hermes.exe`；Bash、PowerShell 或 `hermes.cmd` 都不承载 multiline body。Launcher 会在 create 前后校验 persisted body、Action 和 profile，缺失/未知 marker 时非零退出。
+
+严禁任何 fallback：不得在 launcher 失败后改用 `hermes kanban create --body "@Task.md"`、不得缩短 body、不得复用相同 idempotency key 创建修正版。Launcher 非零退出时直接转 `INFRASTRUCTURE_BLOCKED`，保存 stderr 与 failure fingerprint `SUPERVISOR_COORDINATOR_BODY_TRANSPORT_FAILED`，不创建 card。
 
 保存真实 card ID。Scheduler 不调用 claim；Gateway dispatcher 原子领取 ready card。
 
@@ -169,7 +191,7 @@ State 只能使用上述枚举，异常只允许 `INFRASTRUCTURE_BLOCKED`、`SEC
 
 只有状态变化、card ID 变化、产生新证据、failure fingerprint 变化或 PMC action marker 变化时更新 execution status。
 
-Scheduler 不直接创建 Executor/Reviewer/Handoff；由 `revid-pm` 按自身 SOUL 创建。
+Scheduler 不直接创建 Executor/Reviewer/Handoff；初始 Executor 由 `revid-dispatcher` 创建，Reviewer/Handoff lifecycle 由 `revid-pm` 创建。
 
 ### Step 4：证据完整性
 
@@ -201,7 +223,7 @@ runtime/process 故障转 `INFRASTRUCTURE_BLOCKED`；secret/identity/destructive
 
 ### Step 6：并发与冲突
 
-- `revid-pm` capacity = 1。
+- `revid-dispatcher` capacity = 1；`revid-pm` lifecycle capacity = 1。
 - 默认 Backend、Frontend、Reviewer 各 capacity = 1。
 - 只有 Queue 明确 parallel group 且 Allowed Files/contract 不重叠时并行。
 - migration、runtime cutover、destructive operation 始终串行。

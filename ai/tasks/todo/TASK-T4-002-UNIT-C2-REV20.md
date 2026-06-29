@@ -2,7 +2,7 @@
 
 ## Status
 
-`APPROVED — business attempt 1 continuation`
+`TERMINAL_INFRASTRUCTURE_BLOCKED — NOT EXECUTABLE`
 
 ## Revision
 
@@ -13,6 +13,12 @@
 在 ADR-003 授权的 disposable MySQL database 中，按固定顺序真实执行 migration core 四项验证，证明 dry-run、full migration、second-run idempotency 与 source immutability。
 
 Revision `-19` 在 Executor dispatch 前因 Hermes worker terminal-finalization 缺陷终止；旧 chain 不得复用。该 runtime defect 已由 PMC 验收修复。Revision `-20` 是同一 business attempt 1 的新 bounded continuation，不是 attempt 2。
+
+## Runtime Outcome
+
+Coordinator `t_1617a921` run `#114` 在 121s 超过 120s limit，process retry `1/1` exhausted，且未创建 Executor。实际 card body 只有本 Task 的 `@path` 引用，缺少 standalone `Action: DISPATCH_ONLY`；worker policy 未激活，日志出现 allowlist 外工具。
+
+Revision `-20` 已 terminal，不得复用、claim、promote、unblock 或 retry。正式 PMC verdict：`ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV20-2026-06-28.md`。
 
 ## Coordinator Contract
 

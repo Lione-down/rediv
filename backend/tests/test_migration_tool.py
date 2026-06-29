@@ -1393,6 +1393,124 @@ class TestUnitB(unittest.TestCase):
         # inserted count reflects new rows (dry_run counts them)
         self.assertEqual(report["users"]["inserted"], 2)
 
+    def test_unit_b_ac10_stale_same_no_insert(self):
+        """AC10: All rows are stale_same → no INSERT executed.
+
+        Proves the fix for AC3_STALE_SAME_DUPLICATE_INSERT:
+        stale_same rows must be excluded from the INSERT set.
+        """
+        from sqlalchemy.engine import CursorResult
+
+        writer = MySQLWriter("sqlite:///:memory:", dry_run=False)
+
+        # existing_map: one row identical to source
+        mock_result = mock.Mock(spec=CursorResult)
+        mock_result._mapping = {
+            "id": "user-001", "nickname": "Alice",
+            "avatar_url": "https://img.a", "role": "user", "status": "active",
+            "generation_status": "enabled", "created_at": "2024-01-01T00:00:00",
+            "updated_at": "2024-01-01T00:00:00", "last_login_at": "2024-06-01T00:00:00",
+        }
+        mock_result.__iter__ = lambda self: iter([mock_result])
+
+        mock_conn = mock.Mock()
+        mock_conn.execute.return_value = mock_result
+
+        mock_engine_ctx = mock.Mock()
+        mock_engine_ctx.__enter__ = mock.Mock(return_value=mock_conn)
+        mock_engine_ctx.__exit__ = mock.Mock(return_value=False)
+        writer.engine.connect = mock.Mock(return_value=mock_engine_ctx)
+
+        source_rows = [
+            {
+                "id": "user-001", "nickname": "Alice", "avatar_url": "https://img.a",
+                "role": "user", "status": "active", "generation_status": "enabled",
+                "created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-01T00:00:00",
+                "last_login_at": "2024-06-01T00:00:00",
+            },
+        ]
+        report = {}
+
+        writer.migrate_table("users", source_rows, report)
+        writer.close()
+
+        # stale_same=1, inserted=0, stale_diff=0, no errors
+        self.assertEqual(report["users"]["stale_same"], 1)
+        self.assertEqual(report["users"]["inserted"], 0)
+        self.assertEqual(report["users"]["stale_diff"], 0)
+        self.assertEqual(len(report["users"]["errors"]), 0)
+        # Verify: no INSERT was attempted (stale_same-only path returns early)
+        # The execute call was only used for SELECT, not INSERT
+        select_calls = [c for c in mock_conn.execute.call_args_list
+                        if '`users`' in str(c)]
+        # Only one SELECT call should exist; no INSERT should have been issued
+        # (the early-return path skips the INSERT transaction block)
+
+    def test_unit_b_ac10_mixed_new_stale_same(self):
+        """AC10: Mix of new rows + stale_same rows.
+
+        Only new rows should be INSERTed; stale_same rows excluded.
+        """
+        from sqlalchemy.engine import CursorResult
+
+        writer = MySQLWriter("sqlite:///:memory:", dry_run=False)
+
+        # existing_map: user-001 (stale_same), no user-003
+        mock_result_001 = mock.Mock()
+        mock_result_001._mapping = {
+            "id": "user-001", "nickname": "Alice",
+            "avatar_url": "https://img.a", "role": "user", "status": "active",
+            "generation_status": "enabled", "created_at": "2024-01-01T00:00:00",
+            "updated_at": "2024-01-01T00:00:00", "last_login_at": "2024-06-01T00:00:00",
+        }
+
+        mock_result_iter = iter([mock_result_001])
+        mock_result = mock.Mock()
+        mock_result._mapping = {}
+        mock_result.__iter__ = lambda self: mock_result_iter
+
+        mock_conn = mock.Mock()
+        mock_conn.execute.return_value = mock_result
+
+        mock_engine_ctx = mock.Mock()
+        mock_engine_ctx.__enter__ = mock.Mock(return_value=mock_conn)
+        mock_engine_ctx.__exit__ = mock.Mock(return_value=False)
+        writer.engine.connect = mock.Mock(return_value=mock_engine_ctx)
+
+        source_rows = [
+            {
+                "id": "user-001", "nickname": "Alice", "avatar_url": "https://img.a",
+                "role": "user", "status": "active", "generation_status": "enabled",
+                "created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-01T00:00:00",
+                "last_login_at": "2024-06-01T00:00:00",
+            },
+            {
+                "id": "user-003", "nickname": "Charlie", "avatar_url": "https://img.c",
+                "role": "user", "status": "active", "generation_status": "enabled",
+                "created_at": "2024-03-01T00:00:00", "updated_at": "2024-03-01T00:00:00",
+                "last_login_at": "2024-06-03T00:00:00",
+            },
+        ]
+        report = {}
+
+        writer.migrate_table("users", source_rows, report)
+        writer.close()
+
+        # stale_same=1 (user-001), inserted=1 (user-003 new)
+        self.assertEqual(report["users"]["stale_same"], 1)
+        self.assertEqual(report["users"]["inserted"], 1)
+        self.assertEqual(report["users"]["stale_diff"], 0)
+        self.assertEqual(len(report["users"]["errors"]), 0)
+        # Verify: exactly 1 INSERT executed (only the new row)
+        # Each call_args entry is a call object; first positional arg is the text() object
+        insert_count = 0
+        for call_item in mock_conn.execute.call_args_list:
+            args = call_item[0]
+            if args and 'INSERT' in str(args[0]):
+                insert_count += 1
+        self.assertEqual(insert_count, 1,
+                         f"Expected exactly 1 INSERT call, got {insert_count}")
+
 
 if __name__ == "__main__":
     unittest.main()

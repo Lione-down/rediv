@@ -395,6 +395,7 @@ class MySQLWriter:
         stale_diff = 0
         stale_diff_values: list[str] = []
         errors: list[str] = []
+        insert_rows: list[dict] = []
 
         # Detect conflicts BEFORE any writes (AC10: same-PK different-value)
         conflict_rows: list[dict] = []
@@ -418,6 +419,7 @@ class MySQLWriter:
                     conflict_rows.append(row)
             else:
                 inserted += 1
+                insert_rows.append(row)
 
         # AC10: If stale-diff detected, DO NOT write — record error and return
         if stale_diff > 0:
@@ -457,10 +459,24 @@ class MySQLWriter:
             }
             return
 
-        # Execute in a single transaction
+        # Execute in a single transaction (skip INSERT if no new rows)
+        if not insert_rows:
+            # All rows are stale_same — nothing to insert
+            report[table_name] = {
+                "source_count": len(rows),
+                "inserted": 0,
+                "skipped": stale_same,
+                "stale_same": stale_same,
+                "stale_diff": stale_diff,
+                "stale_diff_values": stale_diff_values,
+                "errors": errors,
+                "checksum": compute_checksum(rows, pk_col),
+            }
+            return
+
         try:
             with self.engine.connect() as conn:
-                for row in rows:
+                for row in insert_rows:
                     try:
                         sanitized = {}
                         for c in col_names:
