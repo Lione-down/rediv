@@ -1,5 +1,21 @@
 # Revid — 当前项目状态
 
+## 2026-07-01 Unit C3 Revision 30 Approved
+
+Human Owner 已明确批准新的 bounded correction。Revision `phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30` 是唯一 executable Queue：只允许修改 `backend/tests/test_migration_tool.py`，使 real AC4 与 non-MySQL regression 绑定同一个 failure-safe cleanup lifecycle，并证明 orphan deletion、deletion verification、FK restoration 与 cleanup-failure visibility。Revision `-29` 保持 terminal `PMC_BLOCKED`，不得复用。当前状态：`WAITING_FOR_HERMES_ACK`。
+
+## 2026-07-01 Unit C3 Revision 29 PMC Blocked
+
+Revision `-29` reached `REPORT_READY` and reported six passing verification commands. PMC source/diff audit found that orphan deletion still executes inside the main `try` body after validation/assertion; the `finally` block only closes resources and therefore does not delete `q-orphan` on the required failure paths. The new non-MySQL regression observes mocked `close()` calls in a separate local lifecycle and is not bound to the actual AC4 deletion cleanup. Verdict: `PMC_BLOCKED`, fingerprint `REV29_AC4_ORPHAN_DELETION_STILL_NOT_FAILURE_SAFE_AND_REGRESSION_NOT_BOUND`. No Independent Review, HANDOFF or replacement Queue is authorized.
+
+## 2026-07-01 Unit C3 Revision 28 PMC Blocked
+
+Revision `-28` reached `REPORT_READY` and the Executor reported five passing real-MySQL selectors. PMC source audit nevertheless found that AC4 orphan deletion is still reached only after migration, validation and the failure-producing assertion; those paths are not enclosed by the cleanup `finally`. This violates the Task's failure-safe cleanup constraint and makes the REPORT cleanup claim inconsistent with source. Verdict: `PMC_BLOCKED` with fingerprint `REV28_AC4_CLEANUP_NOT_FAILURE_SAFE`. The Queue is `BLOCKED / NOT EXECUTABLE`; no Independent Review or HANDOFF is authorized.
+
+## 2026-07-01 Unit C3 Revision 27 Rework and Revision 28 Queue
+
+Unit C3 revision `-27` reached `REPORT_READY`, but required verification returned `4 failed, 1 passed, 1 error`. PMC source audit confirmed that explicit FK orphan validation reads source FK values rather than target child-table FK values, while AC4/AC6/AC10/AC12 also have deterministic isolation, patch-binding and resource-disposal defects. Revision `-27` is terminal `PMC_REWORK` with fingerprint `UNIT_C3_REV27_DESTINATION_FK_AND_TEST_ISOLATION_FAILURE`; it must not enter Independent Review or be reused. Revision `phase4-wave2-unit-c3-integrity-remediation-2026-07-01-28` is the sole approved Queue for one bounded remediation continuation.
+
 ## 2026-07-01 Unit C2 Final Acceptance and Unit C3 Queue
 
 Unit C2 revision `-26` / lifecycle `-26r2` is `PMC_PASS`. Executor `t_9f24648e`, Independent Reviewer `t_bcbc25b7` and canonical HANDOFF `t_c481b6ad` form a consistent evidence chain; Reviewer independently passed 4 unit and 4 real disposable-MySQL tests with 0 skip/mock substitution. Fresh PMC verification passed `py_compile`, 4 scoped unit selectors and `git diff --check`; PMC runtime had no MySQL credential and did not repeat CREATE/DROP-capable tests. Unit C3 revision `phase4-wave2-unit-c3-integrity-verification-2026-07-01-27` is now the sole approved Queue and covers only conflict, FK orphan, partial rollback, consistency and cleanup visibility.
@@ -25,11 +41,11 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 
 ## Current Phase
 
-`Phase 4 - Personal Integration Edition（执行中，T4-002 Unit C1 与 Unit C2 已 PMC PASS；Unit C3 revision -27 等待 Hermes ACK）`
+`Phase 4 - Personal Integration Edition（执行中，T4-002 Unit C1 与 Unit C2 已 PMC PASS；Unit C3 revision -30 等待 Hermes ACK）`
 
 ## Current Task
 
-- `T4-002`：Unit C2 revision `-26` / lifecycle `-26r2` 已 PMC PASS。Unit C3 revision `-27` 是唯一 Active Queue，等待 Hermes ACK；业务文件 read-only。
+- `T4-002`：Unit C2 revision `-26` / lifecycle `-26r2` 已 PMC PASS。Unit C3 revision `-29` 已 terminal `PMC_BLOCKED`；Human Owner 已批准 revision `-30` bounded correction，等待 Hermes ACK。
 
 ## Latest PMC Verdicts
 
@@ -89,6 +105,12 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 | T4-002 | **PMC BLOCKED — revision `-26r1` review dispatch terminal** | `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV26R1-2026-06-30.md`；persisted `DISPATCH_ONLY` 与 Queue `REVIEW_DISPATCH_ONLY` 冲突，run `#126` timeout，未创建 Reviewer/HANDOFF |
 | T4-002 | **PMC PASS — Unit C2 revision `-26` / lifecycle `-26r2`** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV26-PASS-2026-07-01.md`；Reviewer 4 unit + 4 real MySQL PASS，canonical HANDOFF complete |
 | T4-002 | **PMC APPROVED — Unit C3 revision `-27`** | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV27.md`；read-only business files，等待 Hermes ACK |
+| T4-002 | **PMC REWORK — Unit C3 revision `-27`** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV27-REWORK-2026-07-01.md`；5 selectors = 1 PASS / 4 FAIL / 1 ERROR |
+| T4-002 | **PMC APPROVED — Unit C3 remediation revision `-28`** | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV28.md`；destination FK validation + deterministic test isolation/resource cleanup |
+| T4-002 | **PMC BLOCKED — Unit C3 revision `-28` cleanup hard gate failed** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV28-BLOCKED-2026-07-01.md`；fingerprint `REV28_AC4_CLEANUP_NOT_FAILURE_SAFE`；不进入 Review lifecycle |
+| T4-002 | **PMC REWORK AUTHORIZED（historical）— Unit C3 revision `-29`** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV29-REWORK-AUTHORIZATION-2026-07-01.md`；Human Owner 明确授权的 bounded correction 已执行并进入 terminal review |
+| T4-002 | **PMC BLOCKED — Unit C3 revision `-29` cleanup correction failed** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV29-BLOCKED-2026-07-01.md`；fingerprint `REV29_AC4_ORPHAN_DELETION_STILL_NOT_FAILURE_SAFE_AND_REGRESSION_NOT_BOUND`；不进入 Review lifecycle |
+| T4-002 | **PMC CONTINUATION APPROVED — Unit C3 revision `-30`** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV30-AUTHORIZATION-2026-07-01.md`；仅允许绑定 AC4 failure-safe cleanup 与 regression；等待 Hermes ACK |
 
 ## Verified Baseline
 
@@ -100,10 +122,10 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 
 ## Ready / Running
 
-- 唯一 executable Queue 是 Unit C3 revision `-27`，状态 `APPROVED — WAITING_FOR_HERMES_ACK`。Revision `-26` / `-26r2` 已 PMC PASS，所有旧 cards/keys 均不可复用。
+- Revision `-30` 是唯一 executable Queue，状态 `WAITING_FOR_HERMES_ACK`。Revision `-27`/`-28`/`-29` Dispatcher/Executor/cards/keys 均为 terminal evidence，不可复用。
 - Hermes 中文输出：`REPORT-SOUL-DEPLOYMENT-2026-06-28.md` 声明五个 SOUL 已部署并通过 marker 检查；execution profile 的实际 Kanban sample output 尚未验证。当前 paused cron 不得自动恢复。
 - T4-010 — T4-006 dependency 已满足，但尚未进入 APPROVED Queue，不得执行。
-- Unit C3 已批准但尚未 ACK；Units D-E 仍仅为后续顺序计划，必须等待 Unit C3 完成 REPORT、Independent REVIEW/HANDOFF 与 PMC final PASS。
+- Units D-E 仍仅为后续顺序计划，必须等待 Unit C3 获得 fresh authorization、完成 REPORT、Independent REVIEW/HANDOFF 与 PMC final PASS。
 
 ## Blockers
 
@@ -127,6 +149,9 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 |- T4-002 Unit C2 revision `-24`：Coordinator `t_53630896` run `#121` 在 Executor dispatch 前 timeout，旧 chain terminal 且不得复用。Revision `-25` 已改由专用 `revid-dispatcher` 承担初始 dispatch，使用 fresh key/card。
 - T4-002 Unit C2 revision `-25`：Dispatcher `t_cc15e296` run `#122` 与 child `t_25ac2145` 保持 terminal evidence。后续 runtime fix 已将 child create/link、parent complete 和 child promote 合并为一个 transaction，并在 terminal transition 后跳过 follow-up model call；live Gateway smoke 已证明 parent/child 状态与 worker 退出。旧 child contract 仍不合格，因此不得释放或复用。
 - T4-002 Unit C2 revision `-26` / lifecycle `-26r2`：PMC final acceptance 已通过；不得重复 dispatch 或复用任何 business/review/handoff card。Executor REPORT 的 command/cleanup wording 缺陷已在 PMC review 记录，后续 REPORT 不得复制。
+- T4-002 Unit C3 revision `-27`：Executor `t_d97dcb15` 完成 5 个 real-MySQL selectors，但仅 AC11 PASS；AC4/AC6/AC10/AC12 FAIL 且 teardown ERROR。该 revision 已 `PMC_REWORK`，禁止进入 Review lifecycle、重派或复用；只允许 revision `-28` 的 bounded remediation。
+- T4-002 Unit C3 revision `-28`：Executor `t_670af729` 自报 5/5 PASS，但 AC4 orphan cleanup 仍位于 assertion 之后，failure path 会跳过删除并污染 disposable database。由于 Queue 明确禁止进一步 automatic business rework，本轮 `PMC_BLOCKED` 且不发布 lifecycle/replacement Queue。
+- T4-002 Unit C3 revision `-29`：Executor `t_77c46dc4` 自报 6 个 verification commands PASS，但 orphan deletion 仍未进入 failure-safe `finally`，non-MySQL regression 也未绑定实际 deletion cleanup state。该 revision 已 terminal `PMC_BLOCKED`，禁止进入 Review lifecycle、重派或复用。
 - T4-002 review lifecycle revision `-26r1`：Coordinator `t_f46c8d6e` run `#126` action mismatch/timeout chain 保持 terminal historical evidence；后续 `-26r2` 已以 fresh keys 完成，不改变该历史 fingerprint。
 - Hermes revision `-19` escalation 未通过 PMC：`94 tests + 3 positive smokes + 1 negative smoke` 属于旧 thin-dispatcher policy evidence，不证明新识别的 terminal-transition/Windows exit-status 缺陷已修复；card-body、board、OOM、segfault 推测没有直接证据。
 - T4-002 thin-dispatcher remediation：Smoke 1 `t_20945c04` crash，只有 runs `#103/#105` 两次成功；run `#107` 未实际尝试违规操作；metadata 只有 timing step 名称而无数值 elapsed；worker logs 出现 allowlist 外的 navigate/skills/cron/terminal；当前不能证明 runtime tool boundary。
@@ -144,6 +169,6 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 
 ## Next Review Gate
 
-- T4-002：等待 Hermes Supervisor ACK Unit C3 revision `-27`，完成 project-owned runtime deploy/verifier 后创建唯一 `revid-dispatcher` chain。Executor 只运行 5 个既有 C3 selectors 并停止于 `UNIT_C3_REPORT_READY_REV27`；不得复用 Unit C2 cards 或修改 business files。
+- T4-002：revision `-29` 已 terminal `PMC_BLOCKED`；不发布 Review lifecycle 或 replacement revision。未来 fresh authorization 必须把 orphan deletion 绑定到 failure-safe cleanup，并以同一 lifecycle/helper 的 non-MySQL injected-failure test 证明 deletion-equivalent state。
 - Hermes language：五个 SOUL 模板已部署（default + 4 execution profiles），中文 marker 验证通过，profile descriptions 已更新。Revid cron 保持 paused。
 - T4-006：已完成并归档。依赖 T4-006 的 Task 仅视为该 dependency 已满足；是否执行仍由后续 Queue revision 决定。

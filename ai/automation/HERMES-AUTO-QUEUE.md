@@ -1,8 +1,16 @@
 # Hermes Automatic Queue
 
-## 2026-07-01 Unit C2 PASS and Unit C3 Publication
+## 2026-07-01 Unit C3 Revision 30 Publication
 
-Unit C2 revision `-26` / lifecycle `-26r2` is `PMC_PASS`: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV26-PASS-2026-07-01.md`. Revision `-27` below is the sole executable authorization. Unit C2 cards and keys are immutable evidence and must not be reused.
+Human Owner 已明确批准新的 bounded correction。Revision `phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30` 是唯一 executable authorization，只允许绑定 real AC4 与 non-MySQL regression 到同一个 failure-safe cleanup lifecycle。Formal authorization: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV30-AUTHORIZATION-2026-07-01.md`。
+
+## 2026-07-01 Unit C3 Revision 29 PMC Blocked
+
+Revision `-29` reached `REPORT_READY`, but PMC source/diff audit found that orphan deletion remains after validation/assertion inside the main `try` body; the `finally` block closes resources without deleting `q-orphan`. The new non-MySQL regression observes mocked resource closure rather than the actual deletion cleanup lifecycle/state. Formal verdict: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV29-BLOCKED-2026-07-01.md`. The revision is terminal and there is no executable authorization.
+
+## 2026-07-01 Unit C3 Rework and Remediation Publication
+
+Unit C3 revision `-27` is terminal `PMC_REWORK`: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV27-REWORK-2026-07-01.md`. Revision `-28` reached `REPORT_READY`, but PMC source audit found that AC4 orphan cleanup still does not execute when migration, validation or assertion fails. Formal verdict: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV28-BLOCKED-2026-07-01.md`. Both revisions' cards and keys are immutable evidence and must not be reused. There is currently no executable authorization.
 
 ## 2026-06-30 Credential Rotation and 26r2 Publication（completed）
 
@@ -20,31 +28,101 @@ Hermes role-contract hardening is `PMC_PASS` and runtime status is `READY_FOR_CO
 
 The current Active Wave remains `BLOCKED / NOT EXECUTABLE`. Revision `26r1` and card `t_f46c8d6e` remain terminal evidence. No replacement revision is published because `SECURITY_ROTATION_REQUIRED` is still open. After credential rotation and a fresh `ROLE_CONTRACTS_OK`, PMC may publish a new review-only revision with fresh keys, `revid-pm`, at least 180 seconds, and no Executor re-execution.
 
-该文件是 Hermes scheduled mode 的唯一 executable authorization。
+本文件只授权 revision `-30`。Hermes scheduled mode 不得 ACK、dispatch、retry、claim、promote、unblock、reparent 或复用 revision `-29` 及任何历史 T4-002 chain。
 
 ## Active Wave
 
 | Field | Value |
 |---|---|
-| Revision | `phase4-wave2-unit-c3-integrity-verification-2026-07-01-27` |
+| Revision | `phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30` |
 | Status | `APPROVED — WAITING_FOR_HERMES_ACK` |
 | Approved By | `Codex Project Master Controller` |
 | Task ID | `T4-002` / `UNIT-C3` |
-| Project Task File | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV27.md` |
+| Project Task File | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV30.md` |
 | Action | `DISPATCH_ONLY` |
 | Executor Profile | `revid-backend` |
 | Review Profile | `revid-reviewer` |
 | Dispatch Profile | `revid-dispatcher` |
-| Parallel Group | `serial-t4-002-unit-c3-rev27` |
-| Attempt Policy | `business attempt 1 continuation; no automatic business rework; max_retries=2 means initial attempt plus at most one process retry per card; inherit all fingerprints` |
-| Previous Failure Fingerprint | `all inherited T4-002 fingerprints through revision 26r2; AC3_STALE_SAME_DUPLICATE_INSERT is remediated but retained historically; no runtime/credential/archive event clears history` |
-| Hard Gates | `pre-ACK project-owned runtime deploy + ROLE_CONTRACTS_OK + exact standalone Action: DISPATCH_ONLY + atomic Dispatcher child contract + business files read-only + ADR-003 disposable database only + exact five selectors + no skip/mock MySQL substitution + secret/identity/cleanup/scope gates` |
+| Parallel Group | `serial-t4-002-unit-c3-rev30` |
+| Attempt Policy | `Human Owner explicitly authorized one bounded correction after rev29 PMC_BLOCKED; no further automatic business rework; initial run plus at most one process retry per card; inherit all fingerprints` |
+| Previous Failure Fingerprint | `all inherited T4-002 fingerprints through revision 29, including UNIT_C3_REV27_DESTINATION_FK_AND_TEST_ISOLATION_FAILURE, REV28_AC4_CLEANUP_NOT_FAILURE_SAFE and REV29_AC4_ORPHAN_DELETION_STILL_NOT_FAILURE_SAFE_AND_REGRESSION_NOT_BOUND; revision/card/runtime changes do not clear history` |
+| Hard Gates | `pre-ACK project-owned runtime deploy + ROLE_CONTRACTS_OK + exact standalone Action: DISPATCH_ONLY + atomic Dispatcher child contract + only backend/tests/test_migration_tool.py writable + real AC4 and regression use the same cleanup lifecycle + injected failure proves deletion-equivalent and FK-restoration-equivalent state + cleanup failure visible + ADR-003 disposable database only + exact five real-MySQL selectors + no skip/mock substitution + secret/identity/cleanup/scope gates` |
 | Coordinator Budget | `120s; dispatch only` |
 | Executor Budget | `1800s` |
 | Reviewer Budget | `N/A — separate lifecycle continuation required after REPORT_READY` |
-| Stop After | `UNIT_C3_REPORT_READY_REV27` |
+| Stop After | `UNIT_C3_AC4_FAILURE_CLEANUP_REPORT_READY_REV30` |
 
-## Revision 27 Unit C3 Authorization（executable）
+## Revision 30 Bound AC4 Failure Cleanup Authorization
+
+Revision `-29` is terminal evidence and must not be reused. Before ACK or card creation, Supervisor must run:
+
+```text
+python ai/runtime/deploy-hermes-runtime-contracts.py --apply
+python ai/runtime/verify-hermes-role-contracts.py
+```
+
+Then create exactly one fresh `revid-dispatcher` card through the project launcher:
+
+```text
+D:/works/codexWorks/project_revid/backend/.venv/Scripts/python.exe \
+  ai/runtime/create-hermes-coordinator.py \
+  --action "DISPATCH_ONLY" \
+  --revision "phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30" \
+  --task-id "T4-002" \
+  --task-path "ai/tasks/todo/TASK-T4-002-UNIT-C3-REV30.md" \
+  --executor-profile "revid-backend" \
+  --coordinator-profile "revid-dispatcher" \
+  --title "T4-002: Dispatcher - Unit C3 revision 30 bound AC4 failure cleanup" \
+  --idempotency-key "revid:phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30:T4-002:dispatch" \
+  --max-runtime "120" \
+  --workspace "dir:D:/works/codexWorks/project_revid"
+```
+
+The Dispatcher atomically creates exactly one `revid-backend` `IMPLEMENT_AND_TEST_ONLY` child with idempotency `revid:phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30:T4-002:execute:0`, max runtime `1800s`, `max_retries=2`, and the exact revision `-30` Task contract. It validates persisted parent/profile/revision/body/runtime/retry/idempotency and completes immediately.
+
+Executor may modify only `backend/tests/test_migration_tool.py` and create only the revision `-30` PLAN、PROGRESS、REPORT. The real AC4 test and non-MySQL regression must call the same cleanup lifecycle; the injected failure must prove deletion-equivalent state, FK restoration and visible cleanup failure semantics. After the five real-MySQL selectors, stop at `UNIT_C3_AC4_FAILURE_CLEANUP_REPORT_READY_REV30`.
+
+Any deploy/verifier/Action/profile/evidence/database/cleanup/security mismatch is `BLOCKED` without fallback. Do not reuse revision `-27`/`-28`/`-29` cards or keys, modify `backend/scripts/migrate_sqlite_to_mysql.py`, create Reviewer/HANDOFF, or dispatch another revision.
+
+## Revision 29 AC4 Cleanup Correction Authorization（terminal PMC_BLOCKED, not executable）
+
+Dispatcher `t_6e210cce` and Executor `t_77c46dc4` completed the authorized execution stage. The REPORT's six passing commands do not satisfy the failure-path cleanup Hard Gate. Do not ACK again, dispatch, retry, claim, promote, unblock, reparent, create Reviewer/HANDOFF or reuse revision `-29` cards/keys. The original authorization below is retained only as historical contract evidence.
+
+Before ACK or card creation, Supervisor must run:
+
+```text
+python ai/runtime/deploy-hermes-runtime-contracts.py --apply
+python ai/runtime/verify-hermes-role-contracts.py
+```
+
+Then create exactly one fresh `revid-dispatcher` card through the project launcher:
+
+```text
+D:/works/codexWorks/project_revid/backend/.venv/Scripts/python.exe \
+  ai/runtime/create-hermes-coordinator.py \
+  --action "DISPATCH_ONLY" \
+  --revision "phase4-wave2-unit-c3-ac4-cleanup-correction-2026-07-01-29" \
+  --task-id "T4-002" \
+  --task-path "ai/tasks/todo/TASK-T4-002-UNIT-C3-REV29.md" \
+  --executor-profile "revid-backend" \
+  --coordinator-profile "revid-dispatcher" \
+  --title "T4-002: Dispatcher - Unit C3 revision 29 AC4 cleanup correction" \
+  --idempotency-key "revid:phase4-wave2-unit-c3-ac4-cleanup-correction-2026-07-01-29:T4-002:dispatch" \
+  --max-runtime "120" \
+  --workspace "dir:D:/works/codexWorks/project_revid"
+```
+
+The Dispatcher atomically creates exactly one `revid-backend` `IMPLEMENT_AND_TEST_ONLY` child with idempotency `revid:phase4-wave2-unit-c3-ac4-cleanup-correction-2026-07-01-29:T4-002:execute:0`, max runtime `1800s`, and the exact revision `-29` Task contract. It validates persisted parent/profile/revision/body/runtime/idempotency and completes immediately.
+
+Executor may modify only `backend/tests/test_migration_tool.py` and create only the revision `-29` PLAN、PROGRESS、REPORT. It must run the non-MySQL failure-path cleanup regression before the five real-MySQL selectors and stop at `UNIT_C3_AC4_CLEANUP_REPORT_READY_REV29`.
+
+Any deploy/verifier/Action/profile/evidence/database/cleanup/security mismatch is `BLOCKED` without fallback. Do not reuse revision `-27`/`-28` cards or keys, modify `backend/scripts/migrate_sqlite_to_mysql.py`, create Reviewer/HANDOFF, or dispatch another revision.
+
+Publication verification: exactly one Active Wave has `Status = APPROVED — WAITING_FOR_HERMES_ACK`; Task/revision/action/profile/idempotency/retry/Stop After markers match; revision `-29` REPORT、Independent REVIEW 与 HANDOFF 尚不存在；launcher `--dry-run` produced the exact Dispatcher body and created no card.
+
+## Revision 28 Unit C3 Remediation Authorization（terminal PMC_BLOCKED, not executable）
+
+Dispatcher `t_d11673a6` and Executor `t_670af729` completed the authorized business stage. The REPORT's five passing selectors do not satisfy final evidence requirements because AC4 cleanup remains outside an outer failure-safe `try/finally`. Do not ACK again, dispatch, retry, claim, promote, unblock, reparent, create Reviewer/HANDOFF or reuse revision `-28` cards/keys. The original authorization below is retained only as historical contract evidence.
 
 Before ACK or card creation, Supervisor must run:
 
@@ -59,20 +137,24 @@ Then create exactly one `revid-dispatcher` card through the project launcher:
 D:/works/codexWorks/project_revid/backend/.venv/Scripts/python.exe \
   ai/runtime/create-hermes-coordinator.py \
   --action "DISPATCH_ONLY" \
-  --revision "phase4-wave2-unit-c3-integrity-verification-2026-07-01-27" \
+  --revision "phase4-wave2-unit-c3-integrity-remediation-2026-07-01-28" \
   --task-id "T4-002" \
-  --task-path "ai/tasks/todo/TASK-T4-002-UNIT-C3-REV27.md" \
+  --task-path "ai/tasks/todo/TASK-T4-002-UNIT-C3-REV28.md" \
   --executor-profile "revid-backend" \
   --coordinator-profile "revid-dispatcher" \
-  --title "T4-002: Dispatcher - Unit C3 revision 27 integrity verification" \
-  --idempotency-key "revid:phase4-wave2-unit-c3-integrity-verification-2026-07-01-27:T4-002:dispatch" \
+  --title "T4-002: Dispatcher - Unit C3 revision 28 integrity remediation" \
+  --idempotency-key "revid:phase4-wave2-unit-c3-integrity-remediation-2026-07-01-28:T4-002:dispatch" \
   --max-runtime "120" \
   --workspace "dir:D:/works/codexWorks/project_revid"
 ```
 
-The Dispatcher atomically creates exactly one `revid-backend` `IMPLEMENT_AND_TEST_ONLY` child with idempotency `revid:phase4-wave2-unit-c3-integrity-verification-2026-07-01-27:T4-002:execute:0`, validates persisted parent/profile/revision/body/runtime, and completes immediately. It must not run tests, access the database, write artifacts, wait for the Executor, reuse any old card/key or create Reviewer/HANDOFF.
+The Dispatcher atomically creates exactly one `revid-backend` `IMPLEMENT_AND_TEST_ONLY` child with idempotency `revid:phase4-wave2-unit-c3-integrity-remediation-2026-07-01-28:T4-002:execute:0`, validates persisted parent/profile/revision/body/runtime, and completes immediately. It must not run tests, access the database, write artifacts, wait for the Executor, reuse any old card/key or create Reviewer/HANDOFF.
 
-Executor follows the exact revision 27 Task, treats both business files as read-only, runs only the five selectors, writes only PLAN/PROGRESS/REPORT and stops at `UNIT_C3_REPORT_READY_REV27`. Any deploy/verifier/Action/profile/evidence/database/cleanup/security mismatch blocks without fallback.
+Executor follows the exact revision 28 Task, modifies only the two Allowed business files, runs the required targeted checks and five real-MySQL selectors, writes only revision 28 PLAN/PROGRESS/REPORT and stops at `UNIT_C3_REMEDIATION_REPORT_READY_REV28`. Any deploy/verifier/Action/profile/evidence/database/cleanup/security mismatch blocks without fallback.
+
+## Revision 27 Unit C3 Verification（terminal PMC_REWORK, not executable）
+
+Dispatcher `t_ff560e29` and Executor `t_d97dcb15` completed the authorized read-only stage. The five selectors returned `1 PASS / 4 FAIL / 1 ERROR`; formal verdict and stable fingerprint are recorded in `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV27-REWORK-2026-07-01.md`. Do not ACK, dispatch, retry, claim, promote, unblock, reparent, delete or reuse revision `-27` cards/keys. Do not create its Independent Reviewer or HANDOFF.
 
 ## Revision 26r2 Review Lifecycle Authorization（completed, not executable）
 
@@ -285,4 +367,4 @@ Executor 完成 REPORT 后进入 terminal review-required 并停止。不得创�
 
 Runtime 路线决策为 `NO`：不需要改变产品、schema contract 或 destructive authorization。安全事项为 `YES`：诊断 transcript 中出现的 credential 必须由 Human Owner 轮换并确认旧值失效。
 
-*最后更新：2026-06-30；review lifecycle revision `-26r1` 已 terminal `INFRASTRUCTURE_BLOCKED` 且不可执行。当前没有 executable Queue；revision `-26` business stage 保持 REPORT_READY evidence，不得重复执行。*
+*最后更新：2026-07-01；Unit C3 revision `-29` 已 `PMC_BLOCKED`，fingerprint `REV29_AC4_ORPHAN_DELETION_STILL_NOT_FAILURE_SAFE_AND_REGRESSION_NOT_BOUND`。当前没有 executable Queue；revisions `-27`/`-28`/`-29` cards、keys 与 artifacts 仅作 terminal evidence，不得重复执行或进入 Review lifecycle。*

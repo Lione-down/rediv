@@ -2,22 +2,21 @@
 
 ## Current State
 
-| Field | Value |
+|| Field | Value |
 |---|---|
-| State | HANDOFF_READY — revision 26r2 Coordinator t_ec30ad12 (revid-pm) completed successfully. Reviewer t_bcbc25b7 VERDICT = PASS. Handoff t_c481b6ad completed. Full chain: Coordinator → Executor t_9f24648e (DONE, 8/8 pass) → Reviewer (PASS) → Handoff (COMPLETE). Awaiting Codex PMC final acceptance. |
-| Last Updated | 2026-06-30 |
-| Revision | 26r2 (Unit C2 review lifecycle continuation, REVIEW_DISPATCH_ONLY) |
+| State | TERMINAL — revision 29. Coordinator t_6e210cce DONE (DISPATCH_COMPLETE in 43s). Executor t_77c46dc4 (revid-backend) DONE, run #138 completed (1197s): all 6 verification commands passed. PLAN/PROGRESS/REPORT created. Gateway UP (PID 11888). Runtime contracts OK. Verdict: PMC_BLOCKED — AC4 orphan deletion still not in failure-safe finally; non-MySQL regression only verifies mocked close() not actual deletion cleanup. Fingerprint: REV29_AC4_ORPHAN_DELETION_STILL_NOT_FAILURE_SAFE_AND_REGRESSION_NOT_BOUND. No Independent Review, HANDOFF or replacement Queue authorized. |
+| Last Updated | 2026-07-01 |
+| Revision | 29 (Unit C3 AC4 cleanup correction, DISPATCH_ONLY) |
 | Task ID | T4-002 |
-| Task File | ai/tasks/todo/TASK-T4-002-UNIT-C2-REV26.md |
-| Queue Entry | APPROVED (phase4-wave2-unit-c2-rev26-review-dispatch-2026-06-30-26r2, Codex PMC) — REVIEW_DISPATCH_ONLY |
-| Coordinator Card | t_ec30ad12 (DONE — revid-pm, completed successfully) |
-| Previous Dispatcher | t_c14aa473 (DONE — run #124 completed successfully, created Executor child t_9f24648e) |
-| Executor Card | t_9f24648e (DONE — 8/8 tests pass, revid-backend, parent t_c14aa473) |
-| Executor Attempt | 1 (t_9f24648e completed, 8/8 tests pass) |
-| Reviewer Card | t_bcbc25b7 (DONE, VERDICT = PASS) |
-| Handoff Card | t_c481b6ad (DONE, HANDOFF_COMPLETE) |
-| Last Executed | 2026-06-30 — rev26 Dispatcher t_c14aa473 created at epoch 1782724560. Run #124 completed (~77s). Executor t_9f24648e completed run #125 (1323s, 8/8 tests pass). REPORT-T4-002-UNIT-C2-REV26.md exists. rev26r2 Coordinator t_ec30ad12 created at epoch 1782832843, completed successfully. Reviewer t_bcbc25b7 completed run #127. Handoff t_c481b6ad completed. |
-| Failure Fingerprint | T4-002-UNIT-A-PMC-REWORK: all 3 defects corrected (rev -13); all inherited fingerprints carried forward + REV14_COORDINATOR_TIMEOUT: 302s > 300s + REV14_EXECUTOR_TIMEOUT: 847s/848s > 800s × 2 + REV14_NO_REVIEW_OR_HANDOFF + REV16_COORDINATOR_TIMEOUT: t_aeaefef4 timed out at 300s (run #100) + REV16_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + REV16_TERMINAL: revision -16 chain terminated, DO NOT REUSE + REV17_COORDINATOR_TIMEOUT: t_3e1f6a06 timed out at 120s (run #101) + REV17_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + COORDINATOR_ROLE_COLLAPSE: t_1a9f1d32 run #96 executed Executor work instead of dispatch-only + THIN_DISPATCHER_RUNTIME_FIX: mode-specific exact tool policy enforced + 3 positive smokes passed (41s/42s/40s) + 1 negative test passed (ROLE_BOUNDARY_VIOLATION) + REV18_LIFECYCLE_STAGE_GAP: Independent Review stage missing after Executor completion — CLOSED by stage Coordinator t_bd6172b7 dispatch + REV19_COORDINATOR_CRASH: t_b493a47f run #113 crashed at 60s (pid 30648 not alive), process retry 1/1 exhausted + REV20_MISSING_ACTION_POLICY_BYPASS + WINDOWS_CMD_MULTILINE_BODY_TRUNCATION + REV21_COORDINATOR_CHILD_CONTRACT_INVALID: child body forbids required tests, persisted runtime not pinned + REV23_COORDINATOR_MISSING_ACTION_MARKER: t_1dea37a2 run #120 failed instantly (0s) with MISSING_WORKER_ACTION_MARKER, retry exhausted, idempotency collision prevented recreation + REV24_COORDINATOR_PRE_DISPATCH_TIMEOUT: t_53630896 run #121 timed out at 121s > 120s budget, no Executor child created, process retry 1/1 exhausted + REV25_DISPATCHER_TIMEOUT_WITH_CHILD: t_cc15e296 run #122 timed out at 121s > 120s, but Executor child t_25ac2145 was created before timeout; parent gave_up blocks Executor claim + REV26_DISPATCHER_PRE_DISPATCH_TIMEOUT: t_3a287a75 run #123 timed out at 121s > 120s, no Executor child created, process retry 1... [truncated]
+| Task File | ai/tasks/todo/TASK-T4-002-UNIT-C3-REV29.md |
+| Queue Entry | APPROVED (phase4-wave2-unit-c3-ac4-cleanup-correction-2026-07-01-29, Codex PMC) — DISPATCH_ONLY |
+| Coordinator Card | t_6e210cce (DONE — revid-dispatcher, DISPATCH_COMPLETE in 43s, child t_77c46dc4 created atomically) |
+| Executor Card | t_77c46dc4 (DONE — revid-backend, run #138 completed in 1197s, all 6 verification commands passed) |
+| Executor Attempt | 0 (rev29, initial attempt) |
+| Reviewer Card | N/A — separate lifecycle continuation required after REPORT_READY |
+| Handoff Card | N/A — separate lifecycle continuation required after REVIEW_PASS |
+| Last Executed | 2026-07-01 — rev29 Coordinator t_6e210cce created at epoch 1782899426, completed at 17:51 (43s, DISPATCH_COMPLETE, atomic child t_77c46dc4). Executor t_77c46dc4: run #138 completed at 18:11 (1197s, all 6 verification commands passed: 1 non-MySQL regression + 5 real-MySQL selectors). PLAN/PROGRESS/REPORT created. Gateway UP (PID 11888). Runtime contracts OK. Previous rev28 chain terminal: Coordinator t_d11673a6 DONE, Executor t_670af729 DONE (5/5 PASS), state REPORT_READY, PMC_BLOCKED. |
+| Failure Fingerprint | T4-002-UNIT-A-PMC-REWORK: all 3 defects corrected (rev -13); all inherited fingerprints carried forward + REV14_COORDINATOR_TIMEOUT: 302s > 300s + REV14_EXECUTOR_TIMEOUT: 847s/848s > 800s × 2 + REV14_NO_REVIEW_OR_HANDOFF + REV16_COORDINATOR_TIMEOUT: t_aeaefef4 timed out at 300s (run #100) + REV16_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + REV16_TERMINAL: revision -16 chain terminated, DO NOT REUSE + REV17_COORDINATOR_TIMEOUT: t_3e1f6a06 timed out at 120s (run #101) + REV17_COORDINATOR_RETRY_EXHAUSTED: process retry consumed (1/1), gave_up with failures=1, effective_limit=1 + COORDINATOR_ROLE_COLLAPSE: t_1a9f1d32 run #96 executed Executor work instead of dispatch-only + THIN_DISPATCHER_RUNTIME_FIX: mode-specific exact tool policy enforced + 3 positive smokes passed (41s/42s/40s) + 1 negative test passed (ROLE_BOUNDARY_VIOLATION) + REV18_LIFECYCLE_STAGE_GAP: Independent Review stage missing after Executor completion — CLOSED by stage Coordinator t_bd6172b7 dispatch + REV19_COORDINATOR_CRASH: t_b493a47f run #113 crashed at 60s (pid 30648 not alive), process retry 1/1 exhausted + REV20_MISSING_ACTION_POLICY_BYPASS + WINDOWS_CMD_MULTILINE_BODY_TRUNCATION + REV21_COORDINATOR_CHILD_CONTRACT_INVALID: child body forbids required tests, persisted runtime not pinned + REV23_COORDINATOR_MISSING_ACTION_MARKER: t_1dea37a2 run #120 failed instantly (0s) with MISSING_WORKER_ACTION_MARKER, retry exhausted, idempotency collision prevented recreation + REV24_COORDINATOR_PRE_DISPATCH_TIMEOUT: t_53630896 run #121 timed out at 121s > 120s budget, no Executor child created, process retry 1/1 exhausted + REV25_DISPATCHER_TIMEOUT_WITH_CHILD: t_cc15e296 run #122 timed out at 121s > 120s, but Executor child t_25ac2145 was created before timeout; parent gave_up blocks Executor claim + REV26_DISPATCHER_PRE_DISPATCH_TIMEOUT: t_3a287a75 run #123 timed out at 121s > 120s, no Executor child created, process retry 1...
 
 ## Unit A Correction — Revision -13 (COMPLETE)
 
@@ -64,6 +63,9 @@ Unit A revision `-13` evidence chain is complete and consistent. PMC final accep
 | 8 | 25 | T4-002 | Unit C2 AC3 stale-same remediation (dedicated dispatcher) | INFRASTRUCTURE_BLOCKED — Dispatcher t_cc15e296 run #122 timed out at 121s > 120s. Process retry exhausted 1/1, gave_up. Executor child t_25ac2145 created but unclaimable (parent gave_up). Same timeout pattern. | Codex PMC |
 | 9 | 26 | T4-002 | Unit C2 AC3 stale-same remediation (atomic dispatcher) | REPORT_READY → HANDOFF_READY — rev26 Executor t_9f24648e completed 8/8 tests. rev26r2 review lifecycle completed: Coordinator t_ec30ad12 DONE, Reviewer t_bcbc25b7 PASS, Handoff t_c481b6ad DONE. Awaiting Codex PMC final acceptance. | Codex PMC |
 | 10 | 26r1 | T4-002 | Review lifecycle dispatch for Unit C2 revision 26 (REVIEW_DISPATCH_ONLY) | TERMINAL — Coordinator t_f46c8d6e timed out; superseded by 26r2. | Codex PMC |
+| 11 | 27 | T4-002 | Unit C3 integrity verification (DISPATCH_ONLY) | TERMINAL — rev27 Executor t_d97dcb15 completed (998s, 1 PASS / 4 FAIL / 1 ERROR), PMC_REWORK. Cards t_ff560e29/t_d97dcb15 terminal evidence. | Codex PMC |
+|| 12 | 28 | T4-002 | Unit C3 integrity remediation (DISPATCH_ONLY) | REPORT_READY — rev28 Executor t_670af729 DONE (run #136 completed, 5/5 selectors PASS in 2.70s). Dispatcher t_d11673a6 DONE. PLAN, PROGRESS, REPORT exist. Awaiting Codex PMC review lifecycle decision. | Codex PMC |
+| 13 | 29 | T4-002 | Unit C3 AC4 cleanup correction (DISPATCH_ONLY) | TERMINAL — PMC_BLOCKED. Executor t_77c46dc4 completed (1197s), all 6 verification commands passed, but PMC source/diff audit confirmed: AC4 orphan deletion still not in failure-safe finally; non-MySQL regression only verifies mocked close() not actual deletion cleanup. Fingerprint: REV29_AC4_ORPHAN_DELETION_STILL_NOT_FAILURE_SAFE_AND_REGRESSION_NOT_BOUND. No Independent Review, HANDOFF or replacement Queue authorized. | Codex PMC |
 
 ## Superseded Chains (DO NOT REUSE)
 
@@ -89,7 +91,8 @@ Unit A revision `-13` evidence chain is complete and consistent. PMC final accep
 | -24 | t_53630896 (blocked) | — | — | INFRASTRUCTURE_BLOCKED — run #121 timed out at 121s > 120s budget |
 | -26 | t_3a287a75 (blocked, timed out 121s, retry exhausted) | — | — | INFRASTRUCTURE_BLOCKED_REV26 — Dispatcher timed out at 121s > 120s before Executor child creation |
 | -26r1 | t_f46c8d6e (blocked, timed out 121s, retry exhausted) | — | — | INFRASTRUCTURE_BLOCKED_REV26R1 — Coordinator timed out, superseded by 26r2 |
-| -26r2 | t_ec30ad12 (done) | t_9f24648e (done) | t_bcbc25b7 (done, PASS) | HANDOFF_READY — Full chain complete; awaiting Codex PMC final acceptance |
+|| -26r2 | t_ec30ad12 (done) | t_9f24648e (done) | t_bcbc25b7 (done, PASS) | HANDOFF_READY — Full chain complete; awaiting Codex PMC final acceptance |
+|| -27 | t_ff560e29 (done) | t_d97dcb15 (done) | — | REPORT_READY — Executor completed 5 real-MYSQL selectors (1 PASS / 4 FAIL / 1 ERROR). Awaiting PMC review decision. |
 
 ## Stale Cards (Superseded — Do Not Reuse)
 
@@ -119,15 +122,15 @@ Unit A revision `-13` evidence chain is complete and consistent. PMC final accep
 
 ## Timestamp Note
 
-Last verified execution: 2026-06-30 — rev26 Executor t_9f24648e completed run #125 (1323s, 8/8 tests pass). rev26r2 Coordinator t_ec30ad12 completed successfully. Reviewer t_bcbc25b7 completed run #127 (PASS). Handoff t_c481b6ad completed. State: HANDOFF_READY, awaiting Codex PMC final acceptance.
+Last verified execution: 2026-07-01 — rev28 Coordinator t_d11673a6 completed at 15:54 (57s on retry #134 after timeout #133 at 122s, DISPATCH_COMPLETE). Executor t_670af729: run #135 timed out at 1820s > 1800s, process retry run #136 completed at 16:36 (2.70s, 5/5 real-MySQL selectors PASS, status=done). State: REPORT_READY. Gateway UP (PID 11888). Runtime contracts OK.
 
 ## PMC Attention
 
-| Field | Value |
+||| Field | Value |
 |---|---|
 | PMC Action Required | `YES` |
-| PMC Action Type | `FINAL_ACCEPTANCE` |
-| PMC Action Reason | `rev26r2 review lifecycle completed successfully. Full chain: Coordinator t_ec30ad12 DONE, Executor t_9f24648e DONE (8/8 tests pass), Reviewer t_bcbc25b7 VERDICT=PASS, Handoff t_c481b6ad DONE. HANDOFF_READY — awaiting Codex PMC final acceptance.` |
-| PMC Evidence Paths | `kanban t_ec30ad12 (Coordinator DONE), kanban t_9f24648e (Executor DONE, 8/8 pass), kanban t_bcbc25b7 (Reviewer DONE, PASS), kanban t_c481b6ad (Handoff DONE), REPORT-T4-002-UNIT-C2-REV26.md, REVIEW-T4-002-UNIT-C2-REV26.md, HANDOFF-T4-002-UNIT-C2-REV26-POST-REVIEW.md` |
+| PMC Action Type | `QUEUE_DECISION` |
+| PMC Action Reason | `rev29 Executor t_77c46dc4 reached REPORT_READY (6/6 verification commands passed), but PMC source/diff audit confirmed: (1) AC4 orphan deletion still executes inside the main try body after validation/assertion, not in failure-safe finally; (2) the new non-MySQL regression test only verifies mocked close() calls in a separate local lifecycle and is NOT bound to actual AC4 deletion cleanup state. Verdict: terminal PMC_BLOCKED, fingerprint REV29_AC4_ORPHAN_DELETION_STILL_NOT_FAILURE_SAFE_AND_REGRESSION_NOT_BOUND. No Independent Review, HANDOFF or replacement Queue is authorized. Waiting for Codex PMC to publish a new bounded remediation revision that binds orphan deletion to actual failure-path cleanup.` |
+| PMC Evidence Paths | `ai/reports/REPORT-T4-002-UNIT-C3-REV29.md, ai/tasks/doing/TASK-T4-002-UNIT-C3-REV29-PLAN.md, ai/tasks/doing/TASK-T4-002-UNIT-C3-REV29-PROGRESS.md, kanban t_6e210cce (Coordinator done), kanban t_77c46dc4 (Executor done), ai/state/CURRENT.md (rev29 PMC_BLOCKED entry)` |
 | Human Decision Candidate | `NO` |
-| Human Escalation Reason | `NONE — final acceptance is a Codex PMC responsibility, not Human Owner escalation` |
+| Human Escalation Reason | `NONE` |

@@ -294,6 +294,14 @@ PMC action marker 格式必须写入或更新到 `HERMES-EXECUTION-STATUS.md`：
 
 ## 输出与静默
 
+### 语言硬规则（delivery 级）
+
+- Supervisor 的所有内部分析、推理、思考过程必须使用英文（与项目其他部分一致）。
+- 但**最终回复（即 cron delivery 发送给 Human Owner 的内容）必须全部使用中文**。不得在最终回复中出现任何英文句子、段落或分析过程。
+- 技术枚举、card ID、文件路径、命令、profile 名称、Queue revision、failure fingerprint 等专有名词保留英文原文，其余所有文字必须为中文。
+- 若内部分析产生了英文输出，必须在 delivery 前将其翻译为中文，或直接以中文撰写结论。
+- `[SILENT]` 保持原样，不做翻译。
+
 发生需要 Human Owner 知道的状态变化时输出中文事件：
 
 ```text

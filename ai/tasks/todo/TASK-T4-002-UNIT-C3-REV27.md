@@ -8,7 +8,7 @@
 - Business Attempt: `1 continuation`（不是 attempt 2）
 - Executor: `revid-backend`
 - Reviewer: `revid-reviewer`（仅后续 lifecycle continuation）
-- Status: `APPROVED — WAITING_FOR_HERMES_ACK`
+- Status: `TERMINAL PMC_REWORK — NOT EXECUTABLE`
 
 ## Objective
 
@@ -106,3 +106,10 @@ git diff --check -- backend/scripts/migrate_sqlite_to_mysql.py backend/tests/tes
 
 只生成 Unit C3 PLAN、PROGRESS、REPORT，并在 `UNIT_C3_REPORT_READY_REV27` 停止。PMC 将检查 REPORT、实际 read-only business diff 与 runtime evidence，再决定是否发布独立 `REVIEW_DISPATCH_ONLY` lifecycle continuation。
 
+## Runtime Outcome and PMC Closure
+
+- Dispatcher `t_ff560e29` 与 Executor `t_d97dcb15` 已完成；五个 real-MySQL selectors 结果为 `1 PASS / 4 FAIL / 1 ERROR`。
+- PMC verdict：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV27-REWORK-2026-07-01.md`。
+- Failure fingerprint：`UNIT_C3_REV27_DESTINATION_FK_AND_TEST_ISOLATION_FAILURE`。
+- Revision `-27` 为 terminal evidence；禁止 ACK、重派、retry、claim、promote、unblock、reparent、删除或复用其 cards/keys，也不得为其创建 Independent REVIEW/HANDOFF。
+- Business Scope 仅通过 revision `-28` 的 fresh cards/keys 继续。

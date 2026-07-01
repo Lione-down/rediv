@@ -619,19 +619,26 @@ class MigrationValidator:
                                 f"{table_name}.{src_pk}.{col}: value mismatch -- SQLite={sv}, MySQL={dv}"
                             )
 
-                # FK orphan detection
+                # FK orphan detection — read FK values from TARGET child table,
+                # not from source rows (an orphan may exist only in MySQL).
                 fk_cols = FK_MAP.get(table_name, [])
                 for src_col, ref in fk_cols:
                     ref_table, _, ref_col_raw = ref.partition("(")
                     ref_col = ref_col_raw.rstrip(")")
                     if src_col == pk_col:
                         continue
-                    src_values = {str(r[src_col]) for r in src_rows if r.get(src_col) is not None}
-                    if not src_values:
+                    # Read FK values from the MySQL target child table
+                    result = conn.execute(
+                        text(f'SELECT DISTINCT `{src_col}` FROM `{table_name}` '
+                             f'WHERE `{src_col}` IS NOT NULL')
+                    )
+                    dst_values = {str(r[0]) for r in result}
+                    if not dst_values:
                         continue
+                    # Read referenced IDs from the target parent table
                     result = conn.execute(text(f'SELECT `{ref_col}` FROM `{ref_table}`'))
                     ref_ids = {str(r[0]) for r in result}
-                    orphans = src_values - ref_ids
+                    orphans = dst_values - ref_ids
                     if orphans:
                         errors.append(
                             f"{table_name}.{src_col}: {len(orphans)} orphan references "
