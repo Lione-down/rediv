@@ -36,7 +36,7 @@ T4-002
 - Unit C3 Remediation Revision：`phase4-wave2-unit-c3-integrity-remediation-2026-07-01-28`
 - Unit C3 AC4 Cleanup Correction Revision：`phase4-wave2-unit-c3-ac4-cleanup-correction-2026-07-01-29`
 - Unit C3 Bound Failure Cleanup Revision：`phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30`
-| Status：`UNIT C1/C2 PMC PASS — UNIT C3 REVISION -29 TERMINAL PMC_BLOCKED — REVISION -30 WAITING_FOR_HERMES_ACK` |
+| Status：`UNIT C1/C2 PMC PASS — UNIT C3 REVISION -30 TERMINAL PMC_BLOCKED — NO EXECUTABLE QUEUE` |
 | Approved By：Codex Project Master Controller（继承 Human User 的 T4-002 product/destructive authorization） |
 | Previous Coordinator Card：`t_b788cdb9` (blocked; timed_out run #82) |
 | Previous Executor Card：`t_3769f8ec` (attempt 1 continuation; crashed run #83; retry blocked by parent) |
@@ -144,13 +144,15 @@ Revision `-27` completed five real disposable-MySQL selectors with `1 PASS / 4 F
 
 Revision `-29` reached `REPORT_READY`, but PMC source audit found orphan deletion still inside the main `try` body after the failure-producing assertion; its `finally` only closes resources. The non-MySQL regression observes mocked `close()` calls rather than the real orphan cleanup lifecycle/state. Revision `-29` is terminal `PMC_BLOCKED` with fingerprint `REV29_AC4_ORPHAN_DELETION_STILL_NOT_FAILURE_SAFE_AND_REGRESSION_NOT_BOUND`; no Independent Review, HANDOFF or replacement Queue is authorized.
 
+Revision `-30` reached `REPORT_READY`, but PMC source/diff audit found that the non-MySQL regression does not observe FK-restoration-equivalent state, the shared helper cannot guarantee FK restoration after cleanup failure, and resource-close failures remain silently swallowed. Revision `-30` is terminal `PMC_BLOCKED` with fingerprint `REV30_FK_RESTORATION_UNPROVEN_AND_CLEANUP_FAILURES_NOT_PRESERVED`; no Independent Review, HANDOFF or replacement Queue is authorized.
+
 ## Current Continuation Conditions
 
 1. Queue revision `phase4-wave2-unit-a-static-fixes-pmc-rework-2026-06-26-13` 已 PMC PASS，仅作为 Unit A correction 完成证据；不得重复 ACK 或 dispatch。
 2. business attempt ordinal 仍为 `1`；禁止 attempt 2，禁止通过 revision 清零任何 infrastructure/business fingerprint。
 3. Revision `-18` 与 `-18r1` 已 PMC PASS，不得重复 ACK、dispatch 或复用其 cards/idempotency keys。
 4. Revision `-26` / lifecycle `-26r2` 已 PMC PASS；revision `-26r1` 与 revisions `-20` through `-25` 均 terminal。所有历史 cards/idempotency keys 均不得重复执行或复用。
-5. Revisions `-27`、`-28`、`-29` 均已 terminal；revision `-29` 因 orphan deletion 仍不具备 failure-safe cleanup 且 regression 未绑定真实 cleanup state 而 `PMC_BLOCKED`。当前无 executable Queue，不得进入 Unit D/E、T4-003 或 T4-010。
+5. Revisions `-27`、`-28`、`-29`、`-30` 均已 terminal；revision `-30` 因 FK restoration 未被 regression 证明、cleanup failure path 不保证恢复 FK checks、resource-close failure 被吞掉而 `PMC_BLOCKED`。当前无 executable Queue，不得进入 Unit D/E、T4-003 或 T4-010。
 6. 禁止手工 claim、promote、unblock、重试或复用 revision `-08` 及更早 card。
 7. Unit C 必须继承全部历史 failure fingerprints，尤其是 `T4-002-SEMANTICS: IDEMPOTENCY_COMPARISON + FALSE_POSITIVE_CONFLICT + NON_MID_BATCH_ROLLBACK + SWALLOWED_CLEANUP + MISSING_SOURCE_COVERAGE`。
 
@@ -164,7 +166,7 @@ Revision `-29` reached `REPORT_READY`, but PMC source audit found orphan deletio
 | C | revision `-16` runtime blocked/terminal | Original full disposable MySQL integration dispatch；Coordinator retry exhausted before Executor | Yes |
 | C1 | PMC PASS revision `-18` / lifecycle `-18r1` | Runtime-enforced fixture identity + Alembic schema preflight | Yes |
 | C2 | PMC PASS revision `-26` / lifecycle `-26r2` | Dry-run、full migration、second-run idempotency、source immutability | Yes |
-| C3 | revisions `-27` PMC_REWORK；`-28`/`-29` PMC_BLOCKED | Destination FK validation、conflict、partial rollback、consistency、AC4 failure-safe cleanup | Yes |
+| C3 | revision `-27` PMC_REWORK；`-28`/`-29`/`-30` PMC_BLOCKED | Destination FK validation、conflict、partial rollback、consistency、AC4 failure-safe cleanup | Yes |
 | D | planned only | Consolidated final REPORT | No |
 | E | planned only | Independent REVIEW and HANDOFF | No |
 
@@ -313,13 +315,14 @@ python -m unittest discover -s tests -p "test_*migration*.py"
   - `ai/reports/REPORT-T4-002-UNIT-C3-REV29.md`
   - `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV29-BLOCKED-2026-07-01.md`
 
-- Unit C3 revision `-30` planned artifacts:
+- Unit C3 revision `-30` artifacts:
   - `ai/tasks/doing/TASK-T4-002-UNIT-C3-REV30-PLAN.md`
   - `ai/tasks/doing/TASK-T4-002-UNIT-C3-REV30-PROGRESS.md`
   - `ai/reports/REPORT-T4-002-UNIT-C3-REV30.md`
   - `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV30-AUTHORIZATION-2026-07-01.md`
+  - `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV30-BLOCKED-2026-07-01.md`
 
-Independent REVIEW 与 HANDOFF 未获授权。Revision `-29` 已由 PMC 明确判定 terminal `PMC_BLOCKED`；revision `-30` 只授权 bounded implementation/test 到 REPORT_READY，passing failure-path evidence 仍需 PMC 审计后才能进入 lifecycle decision。
+Independent REVIEW 与 HANDOFF 未获授权。Revision `-30` 已由 PMC 明确判定 terminal `PMC_BLOCKED`，不得进入 review lifecycle、复用或重试；当前没有 executable Queue。
 
 ## Codex Prompt
 先读取 T4-001 报告及 Alembic revision。禁止解析 `sqlite_master` 后字符串替换 DDL；使用 SQLAlchemy 做 data ETL。编码前创建 PLAN/PROGRESS，完成 dry-run、execute、幂等和一致性测试后提交 REPORT。不得删除或覆盖任何数据库。

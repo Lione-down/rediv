@@ -1,5 +1,9 @@
 # Revid — 当前项目状态
 
+## 2026-07-01 Unit C3 Revision 30 PMC Blocked
+
+Revision `-30` reached `REPORT_READY` and reported six passing verification commands. PMC source/diff audit found three Hard Gate failures: the SQLite regression skips all FK state operations and therefore does not observe FK-restoration-equivalent state; the shared helper does not guarantee `FOREIGN_KEY_CHECKS=1` after DELETE/verification failure; and real AC4/regression silently swallow resource-close failures. Verdict: `PMC_BLOCKED`, fingerprint `REV30_FK_RESTORATION_UNPROVEN_AND_CLEANUP_FAILURES_NOT_PRESERVED`. Revision `-30` is terminal, must not enter Independent Review, and there is no executable Queue.
+
 ## 2026-07-01 Unit C3 Revision 30 Approved
 
 Human Owner 已明确批准新的 bounded correction。Revision `phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30` 是唯一 executable Queue：只允许修改 `backend/tests/test_migration_tool.py`，使 real AC4 与 non-MySQL regression 绑定同一个 failure-safe cleanup lifecycle，并证明 orphan deletion、deletion verification、FK restoration 与 cleanup-failure visibility。Revision `-29` 保持 terminal `PMC_BLOCKED`，不得复用。当前状态：`WAITING_FOR_HERMES_ACK`。
@@ -41,11 +45,11 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 
 ## Current Phase
 
-`Phase 4 - Personal Integration Edition（执行中，T4-002 Unit C1 与 Unit C2 已 PMC PASS；Unit C3 revision -30 等待 Hermes ACK）`
+`Phase 4 - Personal Integration Edition（执行中，T4-002 Unit C1 与 Unit C2 已 PMC PASS；Unit C3 revision -30 terminal PMC_BLOCKED）`
 
 ## Current Task
 
-- `T4-002`：Unit C2 revision `-26` / lifecycle `-26r2` 已 PMC PASS。Unit C3 revision `-29` 已 terminal `PMC_BLOCKED`；Human Owner 已批准 revision `-30` bounded correction，等待 Hermes ACK。
+- `T4-002`：Unit C2 revision `-26` / lifecycle `-26r2` 已 PMC PASS。Unit C3 revisions `-29` 与 `-30` 均已 terminal `PMC_BLOCKED`；当前没有 executable Queue。
 
 ## Latest PMC Verdicts
 
@@ -110,7 +114,7 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 | T4-002 | **PMC BLOCKED — Unit C3 revision `-28` cleanup hard gate failed** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV28-BLOCKED-2026-07-01.md`；fingerprint `REV28_AC4_CLEANUP_NOT_FAILURE_SAFE`；不进入 Review lifecycle |
 | T4-002 | **PMC REWORK AUTHORIZED（historical）— Unit C3 revision `-29`** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV29-REWORK-AUTHORIZATION-2026-07-01.md`；Human Owner 明确授权的 bounded correction 已执行并进入 terminal review |
 | T4-002 | **PMC BLOCKED — Unit C3 revision `-29` cleanup correction failed** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV29-BLOCKED-2026-07-01.md`；fingerprint `REV29_AC4_ORPHAN_DELETION_STILL_NOT_FAILURE_SAFE_AND_REGRESSION_NOT_BOUND`；不进入 Review lifecycle |
-| T4-002 | **PMC CONTINUATION APPROVED — Unit C3 revision `-30`** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV30-AUTHORIZATION-2026-07-01.md`；仅允许绑定 AC4 failure-safe cleanup 与 regression；等待 Hermes ACK |
+| T4-002 | **PMC BLOCKED — Unit C3 revision `-30` cleanup lifecycle hard gates failed** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV30-BLOCKED-2026-07-01.md`；fingerprint `REV30_FK_RESTORATION_UNPROVEN_AND_CLEANUP_FAILURES_NOT_PRESERVED`；无 Independent Review 或 replacement Queue |
 
 ## Verified Baseline
 
@@ -122,7 +126,7 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 
 ## Ready / Running
 
-- Revision `-30` 是唯一 executable Queue，状态 `WAITING_FOR_HERMES_ACK`。Revision `-27`/`-28`/`-29` Dispatcher/Executor/cards/keys 均为 terminal evidence，不可复用。
+- 当前没有 executable Queue。Revision `-27`/`-28`/`-29`/`-30` Dispatcher/Executor/cards/keys 均为 terminal evidence，不可复用。
 - Hermes 中文输出：`REPORT-SOUL-DEPLOYMENT-2026-06-28.md` 声明五个 SOUL 已部署并通过 marker 检查；execution profile 的实际 Kanban sample output 尚未验证。当前 paused cron 不得自动恢复。
 - T4-010 — T4-006 dependency 已满足，但尚未进入 APPROVED Queue，不得执行。
 - Units D-E 仍仅为后续顺序计划，必须等待 Unit C3 获得 fresh authorization、完成 REPORT、Independent REVIEW/HANDOFF 与 PMC final PASS。

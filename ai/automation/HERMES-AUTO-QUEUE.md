@@ -2,7 +2,7 @@
 
 ## 2026-07-01 Unit C3 Revision 30 Publication
 
-Human Owner 已明确批准新的 bounded correction。Revision `phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30` 是唯一 executable authorization，只允许绑定 real AC4 与 non-MySQL regression 到同一个 failure-safe cleanup lifecycle。Formal authorization: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV30-AUTHORIZATION-2026-07-01.md`。
+Human Owner 批准的 bounded correction revision `phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30` 已执行并进入 terminal `PMC_BLOCKED`。PMC audit 证明 FK-restoration-equivalent state 未被 regression 观察，helper 不能保证 failure path 恢复 FK checks，resource-close failures 仍被静默吞掉。Formal verdict: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV30-BLOCKED-2026-07-01.md`。当前没有 executable authorization。
 
 ## 2026-07-01 Unit C3 Revision 29 PMC Blocked
 
@@ -28,18 +28,18 @@ Hermes role-contract hardening is `PMC_PASS` and runtime status is `READY_FOR_CO
 
 The current Active Wave remains `BLOCKED / NOT EXECUTABLE`. Revision `26r1` and card `t_f46c8d6e` remain terminal evidence. No replacement revision is published because `SECURITY_ROTATION_REQUIRED` is still open. After credential rotation and a fresh `ROLE_CONTRACTS_OK`, PMC may publish a new review-only revision with fresh keys, `revid-pm`, at least 180 seconds, and no Executor re-execution.
 
-本文件只授权 revision `-30`。Hermes scheduled mode 不得 ACK、dispatch、retry、claim、promote、unblock、reparent 或复用 revision `-29` 及任何历史 T4-002 chain。
+本文件当前不授权任何 executable revision。Hermes scheduled mode 不得 ACK、dispatch、retry、claim、promote、unblock、reparent 或复用 revision `-30`、revision `-29` 及任何历史 T4-002 chain。
 
 ## Active Wave
 
 | Field | Value |
 |---|---|
 | Revision | `phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30` |
-| Status | `APPROVED — WAITING_FOR_HERMES_ACK` |
+| Status | `BLOCKED / NOT EXECUTABLE — PMC_BLOCKED` |
 | Approved By | `Codex Project Master Controller` |
 | Task ID | `T4-002` / `UNIT-C3` |
 | Project Task File | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV30.md` |
-| Action | `DISPATCH_ONLY` |
+| Action | `NONE — terminal evidence only` |
 | Executor Profile | `revid-backend` |
 | Review Profile | `revid-reviewer` |
 | Dispatch Profile | `revid-dispatcher` |
@@ -367,4 +367,4 @@ Executor 完成 REPORT 后进入 terminal review-required 并停止。不得创�
 
 Runtime 路线决策为 `NO`：不需要改变产品、schema contract 或 destructive authorization。安全事项为 `YES`：诊断 transcript 中出现的 credential 必须由 Human Owner 轮换并确认旧值失效。
 
-*最后更新：2026-07-01；Unit C3 revision `-29` 已 `PMC_BLOCKED`，fingerprint `REV29_AC4_ORPHAN_DELETION_STILL_NOT_FAILURE_SAFE_AND_REGRESSION_NOT_BOUND`。当前没有 executable Queue；revisions `-27`/`-28`/`-29` cards、keys 与 artifacts 仅作 terminal evidence，不得重复执行或进入 Review lifecycle。*
+*最后更新：2026-07-01；Unit C3 revision `-30` 已 `PMC_BLOCKED`，fingerprint `REV30_FK_RESTORATION_UNPROVEN_AND_CLEANUP_FAILURES_NOT_PRESERVED`。当前没有 executable Queue；revisions `-27`/`-28`/`-29`/`-30` cards、keys 与 artifacts 仅作 terminal evidence，不得重复执行或进入 Review lifecycle。*

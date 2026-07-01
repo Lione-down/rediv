@@ -2,7 +2,9 @@
 
 ## Status
 
-`APPROVED — WAITING_FOR_HERMES_ACK`
+`TERMINAL — PMC_BLOCKED`
+
+PMC source/diff audit verdict：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV30-BLOCKED-2026-07-01.md`。Revision `-30` 不得进入 Independent Review lifecycle 或被复用；failure fingerprint：`REV30_FK_RESTORATION_UNPROVEN_AND_CLEANUP_FAILURES_NOT_PRESERVED`。
 
 ## Revision
 
