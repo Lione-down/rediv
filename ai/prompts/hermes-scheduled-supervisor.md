@@ -119,6 +119,15 @@ diagnostics-only 模式禁止：
 
 ### Action Routing Matrix
 
+在 ACK 或创建任何 card 之前，必须先运行：
+
+```text
+python ai/runtime/deploy-hermes-runtime-contracts.py --apply
+python ai/runtime/verify-hermes-role-contracts.py
+```
+
+只有输出分别为 `HERMES_RUNTIME_PATCH_ALREADY_APPLIED`/`HERMES_RUNTIME_PATCH_APPLIED` 与 `ROLE_CONTRACTS_OK` 才能继续。任何 non-zero、`HERMES_RUNTIME_PATCH_BASE_INCOMPATIBLE`、SOUL/policy drift 或缺失 marker 都必须转 `INFRASTRUCTURE_BLOCKED`，不得创建 card 或 fallback。该 gate 防止 Hermes update 的 autostash/reset 静默移除 Revid runtime enforcement。
+
 Queue Action 必须逐字传入 launcher，禁止重写、降级、猜测或使用默认 action：
 
 | Queue Action | Coordinator profile | Required fields | Forbidden fields | Result |

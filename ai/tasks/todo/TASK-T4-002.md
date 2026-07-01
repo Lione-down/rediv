@@ -130,13 +130,15 @@ Revision `-26` Executor `t_9f24648e` 已完成并产出 REPORT，execution state
 
 Revision `-26r1` Coordinator `t_f46c8d6e` run `#126` persisted `Action: DISPATCH_ONLY` instead of the authorized `REVIEW_DISPATCH_ONLY`, then timed out at `121s > 120s` with retry exhausted and no children. The chain is terminal `INFRASTRUCTURE_BLOCKED`; formal closure is `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV26R1-2026-06-30.md`. No replacement Queue is authorized until fresh runtime health evidence passes the advisory gates.
 
+Revision `-26r2` completed the corrected review lifecycle. Independent Reviewer `t_bcbc25b7` returned PASS after 4 unit and 4 real disposable-MySQL tests; HANDOFF `t_c481b6ad` reached `UNIT_C2_HANDOFF_READY_REV26`. Codex PMC final acceptance is `PMC_PASS` in `ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV26-PASS-2026-07-01.md`.
+
 ## Current Continuation Conditions
 
 1. Queue revision `phase4-wave2-unit-a-static-fixes-pmc-rework-2026-06-26-13` 已 PMC PASS，仅作为 Unit A correction 完成证据；不得重复 ACK 或 dispatch。
 2. business attempt ordinal 仍为 `1`；禁止 attempt 2，禁止通过 revision 清零任何 infrastructure/business fingerprint。
 3. Revision `-18` 与 `-18r1` 已 PMC PASS，不得重复 ACK、dispatch 或复用其 cards/idempotency keys。
-4. 当前没有 executable Queue；revision `-26r1` 与 revisions `-20` through `-25` 均 terminal，revision `-26` business execution 已停止在 REPORT_READY，均不得重复执行或复用 cards/idempotency keys。
-5. Review lifecycle 必须使用 fresh `revid-pm` / Reviewer / HANDOFF-only cards 与 keys，继承全部 fingerprints，且不得进入 Unit C3、Unit D/E、T4-003 或 T4-010。
+4. Revision `-26` / lifecycle `-26r2` 已 PMC PASS；revision `-26r1` 与 revisions `-20` through `-25` 均 terminal。所有历史 cards/idempotency keys 均不得重复执行或复用。
+5. Revision `-27` 是唯一 executable Queue，只允许 Unit C3 既有 selectors 与 read-only business files；不得进入 Unit D/E、T4-003 或 T4-010。
 6. 禁止手工 claim、promote、unblock、重试或复用 revision `-08` 及更早 card。
 7. Unit C 必须继承全部历史 failure fingerprints，尤其是 `T4-002-SEMANTICS: IDEMPOTENCY_COMPARISON + FALSE_POSITIVE_CONFLICT + NON_MID_BATCH_ROLLBACK + SWALLOWED_CLEANUP + MISSING_SOURCE_COVERAGE`。
 
@@ -149,8 +151,8 @@ Revision `-26r1` Coordinator `t_f46c8d6e` run `#126` persisted `Action: DISPATCH
 | B | PMC PASS revision `-15` | Same-PK and rollback unit tests, minimal bounded verification chain | No |
 | C | revision `-16` runtime blocked/terminal | Original full disposable MySQL integration dispatch；Coordinator retry exhausted before Executor | Yes |
 | C1 | PMC PASS revision `-18` / lifecycle `-18r1` | Runtime-enforced fixture identity + Alembic schema preflight | Yes |
-| C2 | revision `-26` REPORT_READY；review lifecycle `-26r1` terminal infrastructure blocked | Dry-run、full migration、second-run idempotency、source immutability | Yes |
-| C3 | planned only | Conflict、FK orphan、partial rollback、consistency、cleanup failure visibility | Yes |
+| C2 | PMC PASS revision `-26` / lifecycle `-26r2` | Dry-run、full migration、second-run idempotency、source immutability | Yes |
+| C3 | revision `-27` APPROVED — WAITING_FOR_HERMES_ACK | Conflict、FK orphan、partial rollback、consistency、cleanup failure visibility | Yes |
 | D | planned only | Consolidated final REPORT | No |
 | E | planned only | Independent REVIEW and HANDOFF | No |
 
@@ -285,6 +287,10 @@ python -m unittest discover -s tests -p "test_*migration*.py"
   - `ai/tasks/doing/TASK-T4-002-UNIT-C2-REV25-PLAN.md`
   - `ai/tasks/doing/TASK-T4-002-UNIT-C2-REV25-PROGRESS.md`
   - `ai/reports/REPORT-T4-002-UNIT-C2-REV25.md`
+- Unit C3 revision `-27` artifacts:
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C3-REV27-PLAN.md`
+  - `ai/tasks/doing/TASK-T4-002-UNIT-C3-REV27-PROGRESS.md`
+  - `ai/reports/REPORT-T4-002-UNIT-C3-REV27.md`
 
 Independent REVIEW 与 HANDOFF 需等待 revision `-24` REPORT_READY 后的单独 lifecycle continuation 授权；PMC automation 必须在该节点作明确 queue decision，不得再次永久只读等待。
 

@@ -1,5 +1,19 @@
 # Hermes Automatic Queue
 
+## 2026-07-01 Unit C2 PASS and Unit C3 Publication
+
+Unit C2 revision `-26` / lifecycle `-26r2` is `PMC_PASS`: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV26-PASS-2026-07-01.md`. Revision `-27` below is the sole executable authorization. Unit C2 cards and keys are immutable evidence and must not be reused.
+
+## 2026-06-30 Credential Rotation and 26r2 Publication（completed）
+
+Human Owner completed the shared Agnes/APIHub credential rotation. All five profile fields are non-empty, internally matching and share a new fingerprint; `revid-pm` live probe returned `CREDENTIAL_OK`. Runtime deploy/verifier and update durability gates pass. Revision `26r2` completed and is now historical evidence.
+
+## 2026-06-30 Update Durability Blocker
+
+Runtime `PMC_PASS` is temporarily superseded by `ai/reviews/REVIEW-T4-002-PMC-HERMES-UPDATE-DURABILITY-BLOCKED-2026-06-30.md`. Hermes update autostashed the local runtime enforcement and a stale Desktop bundle conflict prevented clean restoration. The Active Wave remains `BLOCKED / NOT EXECUTABLE`; no Hermes schedule or replacement revision is authorized until conflict resolution, repeatable post-update deployment, fresh tests/smokes, Gateway reload, and credential rotation all pass.
+
+Resolution: update durability is `PMC_PASS` in `ai/reviews/REVIEW-T4-002-PMC-HERMES-UPDATE-DURABILITY-PASS-2026-06-30.md`; 34 invalid/obsolete cards were archived under Human Owner authorization. The Queue remains non-executable only until shared Agnes/APIHub credential rotation is confirmed. Archive does not clear any failure fingerprint.
+
 ## 2026-06-30 Runtime Remediation Verdict
 
 Hermes role-contract hardening is `PMC_PASS` and runtime status is `READY_FOR_CONTINUATION`: `ai/reports/REPORT-HERMES-ROLE-CONTRACT-HARDENING-2026-06-30.md` and `ai/reviews/REVIEW-T4-002-PMC-HERMES-ROLE-CONTRACT-HARDENING-PASS-2026-06-30.md`.
@@ -12,23 +26,57 @@ The current Active Wave remains `BLOCKED / NOT EXECUTABLE`. Revision `26r1` and 
 
 | Field | Value |
 |---|---|
-| Revision | `phase4-wave2-unit-c2-rev26-review-dispatch-2026-06-29-26r1` |
-| Status | `BLOCKED — INFRASTRUCTURE_BLOCKED / NOT EXECUTABLE` |
+| Revision | `phase4-wave2-unit-c3-integrity-verification-2026-07-01-27` |
+| Status | `APPROVED — WAITING_FOR_HERMES_ACK` |
 | Approved By | `Codex Project Master Controller` |
-| Task ID | `T4-002` / `UNIT-C2` |
-| Project Task File | `ai/tasks/todo/TASK-T4-002-UNIT-C2-REV26.md` |
-| Action | `REVIEW_DISPATCH_ONLY` |
-| Executor Profile | `N/A — revision 26 Executor t_9f24648e is complete; no repeat execution` |
+| Task ID | `T4-002` / `UNIT-C3` |
+| Project Task File | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV27.md` |
+| Action | `DISPATCH_ONLY` |
+| Executor Profile | `revid-backend` |
 | Review Profile | `revid-reviewer` |
-| Dispatch Profile | `revid-pm` |
-| Parallel Group | `serial-t4-002-unit-c2-rev26-review` |
-| Attempt Policy | `same revision 26 / business attempt 1 lifecycle continuation; no Executor; no automatic business rework; one process retry maximum per lifecycle card; inherit all fingerprints` |
-| Previous Failure Fingerprint | `all inherited T4-002 fingerprints through revision 26, including AC3_STALE_SAME_DUPLICATE_INSERT and every retained runtime fingerprint; REPORT_READY does not clear them` |
-| Hard Gates | `exact standalone Action: REVIEW_DISPATCH_ONLY + fresh stage/reviewer/handoff keys + revision 26 evidence equality + independent rerun + ADR-003 disposable database only + no skip/mock MySQL substitution + secret/identity/cleanup/scope gates + HANDOFF only after Reviewer PASS` |
-| Coordinator Budget | `120s; review dispatch only` |
-| Reviewer Budget | `1800s` |
-| Handoff Budget | `120s; handoff only` |
-| Stop After | `UNIT_C2_HANDOFF_READY_REV26` |
+| Dispatch Profile | `revid-dispatcher` |
+| Parallel Group | `serial-t4-002-unit-c3-rev27` |
+| Attempt Policy | `business attempt 1 continuation; no automatic business rework; max_retries=2 means initial attempt plus at most one process retry per card; inherit all fingerprints` |
+| Previous Failure Fingerprint | `all inherited T4-002 fingerprints through revision 26r2; AC3_STALE_SAME_DUPLICATE_INSERT is remediated but retained historically; no runtime/credential/archive event clears history` |
+| Hard Gates | `pre-ACK project-owned runtime deploy + ROLE_CONTRACTS_OK + exact standalone Action: DISPATCH_ONLY + atomic Dispatcher child contract + business files read-only + ADR-003 disposable database only + exact five selectors + no skip/mock MySQL substitution + secret/identity/cleanup/scope gates` |
+| Coordinator Budget | `120s; dispatch only` |
+| Executor Budget | `1800s` |
+| Reviewer Budget | `N/A — separate lifecycle continuation required after REPORT_READY` |
+| Stop After | `UNIT_C3_REPORT_READY_REV27` |
+
+## Revision 27 Unit C3 Authorization（executable）
+
+Before ACK or card creation, Supervisor must run:
+
+```text
+python ai/runtime/deploy-hermes-runtime-contracts.py --apply
+python ai/runtime/verify-hermes-role-contracts.py
+```
+
+Then create exactly one `revid-dispatcher` card through the project launcher:
+
+```text
+D:/works/codexWorks/project_revid/backend/.venv/Scripts/python.exe \
+  ai/runtime/create-hermes-coordinator.py \
+  --action "DISPATCH_ONLY" \
+  --revision "phase4-wave2-unit-c3-integrity-verification-2026-07-01-27" \
+  --task-id "T4-002" \
+  --task-path "ai/tasks/todo/TASK-T4-002-UNIT-C3-REV27.md" \
+  --executor-profile "revid-backend" \
+  --coordinator-profile "revid-dispatcher" \
+  --title "T4-002: Dispatcher - Unit C3 revision 27 integrity verification" \
+  --idempotency-key "revid:phase4-wave2-unit-c3-integrity-verification-2026-07-01-27:T4-002:dispatch" \
+  --max-runtime "120" \
+  --workspace "dir:D:/works/codexWorks/project_revid"
+```
+
+The Dispatcher atomically creates exactly one `revid-backend` `IMPLEMENT_AND_TEST_ONLY` child with idempotency `revid:phase4-wave2-unit-c3-integrity-verification-2026-07-01-27:T4-002:execute:0`, validates persisted parent/profile/revision/body/runtime, and completes immediately. It must not run tests, access the database, write artifacts, wait for the Executor, reuse any old card/key or create Reviewer/HANDOFF.
+
+Executor follows the exact revision 27 Task, treats both business files as read-only, runs only the five selectors, writes only PLAN/PROGRESS/REPORT and stops at `UNIT_C3_REPORT_READY_REV27`. Any deploy/verifier/Action/profile/evidence/database/cleanup/security mismatch blocks without fallback.
+
+## Revision 26r2 Review Lifecycle Authorization（completed, not executable）
+
+Coordinator `t_ec30ad12`, Reviewer `t_bcbc25b7` and HANDOFF `t_c481b6ad` completed. Codex PMC verdict is `PMC_PASS` in `ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV26-PASS-2026-07-01.md`. The former authorization below is retained only as historical contract evidence and must not be ACKed or executed again.
 
 ## Revision 26r1 Review Lifecycle Authorization（terminal, not executable）
 

@@ -1,21 +1,35 @@
 # Revid — 当前项目状态
 
+## 2026-07-01 Unit C2 Final Acceptance and Unit C3 Queue
+
+Unit C2 revision `-26` / lifecycle `-26r2` is `PMC_PASS`. Executor `t_9f24648e`, Independent Reviewer `t_bcbc25b7` and canonical HANDOFF `t_c481b6ad` form a consistent evidence chain; Reviewer independently passed 4 unit and 4 real disposable-MySQL tests with 0 skip/mock substitution. Fresh PMC verification passed `py_compile`, 4 scoped unit selectors and `git diff --check`; PMC runtime had no MySQL credential and did not repeat CREATE/DROP-capable tests. Unit C3 revision `phase4-wave2-unit-c3-integrity-verification-2026-07-01-27` is now the sole approved Queue and covers only conflict, FK orphan, partial rollback, consistency and cleanup visibility.
+
+## 2026-06-30 Revision 26r2 Review Continuation（completed）
+
+Shared Agnes/APIHub credential rotation was verified across all five profiles; `revid-pm` live probe returned `CREDENTIAL_OK`. Revision `26r2` completed with Reviewer PASS and canonical HANDOFF, then received PMC final acceptance on 2026-07-01. It is historical evidence and no longer executable.
+
+## 2026-06-30 Hermes Update Durability Blocker
+
+The earlier runtime `PMC_PASS` is temporarily superseded. Hermes update reset the upstream checkout and preserved local runtime changes in `stash@{0}`, but an obsolete Desktop bundle conflict prevented automatic restoration. Python runtime changes are recovered and 107 affected tests pass; Chinese output rules are restored in all six SOULs; however Gateway has not been reloaded and the conflict/post-update deployment mechanism is not closed. Queue remains non-executable. See `ai/reviews/REVIEW-T4-002-PMC-HERMES-UPDATE-DURABILITY-BLOCKED-2026-06-30.md`.
+
+Resolution: `ai/reviews/REVIEW-T4-002-PMC-HERMES-UPDATE-DURABILITY-PASS-2026-06-30.md`. The patch is project-owned/repeatable, deploy+verify is a pre-Queue hard gate, 107 Hermes + 14 project tests pass, Chinese SOUL checks pass, and Gateway PID `11888` is running. Human Owner authorized archiving 34 invalid/obsolete cards; 18 valid evidence cards remain and no active chain exists. Only credential rotation remains before a fresh review-only Queue decision.
+
 ## 2026-06-30 Hermes Runtime Contract Update
 
 Hermes action/profile/tool contract remediation has `PMC_PASS` and `READY_FOR_CONTINUATION` runtime evidence: `ai/reports/REPORT-HERMES-ROLE-CONTRACT-HARDENING-2026-06-30.md`. Launcher, Supervisor, five profile policies/SOULs, child-card validation, retry semantics, and drift verification are aligned; 105 Hermes tests + 11 project tests + isolated positive/negative smokes passed; Gateway restarted cleanly.
 
-No executable Queue is active. Revision `26r1` remains terminal. A replacement review-only revision is withheld by `SECURITY_ROTATION_REQUIRED` because a profile credential appeared in private audit output; rotate it, then rerun `ROLE_CONTRACTS_OK`. Do not repeat Executor revision 26.
+Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CONTRACTS_OK` are complete; revision `26r2` is the sole approved review-only Queue. Do not repeat Executor revision 26.
 
-> 更新时间：2026-06-30
+> 更新时间：2026-07-01
 > 状态来源：Codex PMC 自动治理、Hermes scheduled reports 与 fresh source/diff audit
 
 ## Current Phase
 
-`Phase 4 - Personal Integration Edition（执行中，T4-002 Unit C1 revision -18 已 PMC PASS；Unit C2 revision -26 REPORT_READY，review lifecycle 26r1 terminal infrastructure blocked）`
+`Phase 4 - Personal Integration Edition（执行中，T4-002 Unit C1 与 Unit C2 已 PMC PASS；Unit C3 revision -27 等待 Hermes ACK）`
 
 ## Current Task
 
-|- `T4-002`：Revision `-26` Executor `t_9f24648e` 已完成并产出 REPORT。Review lifecycle revision `-26r1` Coordinator `t_f46c8d6e` 因 action contract misrouting 后 timeout 而 terminal `INFRASTRUCTURE_BLOCKED`；无 Reviewer/HANDOFF，不得重复 business execution，当前无 executable Queue。
+- `T4-002`：Unit C2 revision `-26` / lifecycle `-26r2` 已 PMC PASS。Unit C3 revision `-27` 是唯一 Active Queue，等待 Hermes ACK；业务文件 read-only。
 
 ## Latest PMC Verdicts
 
@@ -73,6 +87,8 @@ No executable Queue is active. Revision `26r1` remains terminal. A replacement r
 | T4-002 | **PMC CONTINUATION APPROVED — Unit C2 revision `-26`** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV26-CONTINUATION-APPROVAL-2026-06-29.md`；fresh cards/keys，继承全部 fingerprints，等待 Hermes ACK |
 | T4-002 | **PMC CONTINUATION APPROVED — Unit C2 revision `-26r1` review lifecycle** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV26-REVIEW-LIFECYCLE-2026-06-29.md`；Executor 8/8 自报 PASS，发布 `REVIEW_DISPATCH_ONLY`，等待 Hermes ACK |
 | T4-002 | **PMC BLOCKED — revision `-26r1` review dispatch terminal** | `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV26R1-2026-06-30.md`；persisted `DISPATCH_ONLY` 与 Queue `REVIEW_DISPATCH_ONLY` 冲突，run `#126` timeout，未创建 Reviewer/HANDOFF |
+| T4-002 | **PMC PASS — Unit C2 revision `-26` / lifecycle `-26r2`** | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV26-PASS-2026-07-01.md`；Reviewer 4 unit + 4 real MySQL PASS，canonical HANDOFF complete |
+| T4-002 | **PMC APPROVED — Unit C3 revision `-27`** | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV27.md`；read-only business files，等待 Hermes ACK |
 
 ## Verified Baseline
 
@@ -84,10 +100,10 @@ No executable Queue is active. Revision `26r1` remains terminal. A replacement r
 
 ## Ready / Running
 
-|- 当前没有 executable Queue。Revision `-26r1` 已 terminal `INFRASTRUCTURE_BLOCKED`；revision `-26` business stage 保持 `REPORT_READY` 且不得重复 Executor dispatch；revisions `-20` through `-25` 保持 terminal。
+- 唯一 executable Queue 是 Unit C3 revision `-27`，状态 `APPROVED — WAITING_FOR_HERMES_ACK`。Revision `-26` / `-26r2` 已 PMC PASS，所有旧 cards/keys 均不可复用。
 - Hermes 中文输出：`REPORT-SOUL-DEPLOYMENT-2026-06-28.md` 声明五个 SOUL 已部署并通过 marker 检查；execution profile 的实际 Kanban sample output 尚未验证。当前 paused cron 不得自动恢复。
 - T4-010 — T4-006 dependency 已满足，但尚未进入 APPROVED Queue，不得执行。
-- Unit C3 与 Units D-E 仍仅为后续顺序计划；必须等待 Unit C2 获得新的已批准 continuation、完成 REPORT、Independent REVIEW/HANDOFF 与 PMC final PASS。
+- Unit C3 已批准但尚未 ACK；Units D-E 仍仅为后续顺序计划，必须等待 Unit C3 完成 REPORT、Independent REVIEW/HANDOFF 与 PMC final PASS。
 
 ## Blockers
 
@@ -110,8 +126,8 @@ No executable Queue is active. Revision `26r1` remains terminal. A replacement r
 - T4-002 Unit C2 revision `-23` 已 terminal：Coordinator `t_1dea37a2` run `#120` 在 spawn 前 `MISSING_WORKER_ACTION_MARKER`。禁止删除、archive、retry、unblock 或复用；无 business diff/artifacts。
 |- T4-002 Unit C2 revision `-24`：Coordinator `t_53630896` run `#121` 在 Executor dispatch 前 timeout，旧 chain terminal 且不得复用。Revision `-25` 已改由专用 `revid-dispatcher` 承担初始 dispatch，使用 fresh key/card。
 - T4-002 Unit C2 revision `-25`：Dispatcher `t_cc15e296` run `#122` 与 child `t_25ac2145` 保持 terminal evidence。后续 runtime fix 已将 child create/link、parent complete 和 child promote 合并为一个 transaction，并在 terminal transition 后跳过 follow-up model call；live Gateway smoke 已证明 parent/child 状态与 worker 退出。旧 child contract 仍不合格，因此不得释放或复用。
-- T4-002 Unit C2 revision `-26`：Executor `t_9f24648e` run `#125` 已完成，REPORT 声明 4 unit + 4 real MySQL tests PASS。PMC pre-review 仅确认 Scope 与实现方向，尚未接受 test、cleanup、mock/report semantics 为最终事实；必须等待 Independent Reviewer 与 canonical HANDOFF。
-- T4-002 review lifecycle revision `-26r1`：Coordinator `t_f46c8d6e` run `#126` persisted `Action: DISPATCH_ONLY`，与 Queue `REVIEW_DISPATCH_ONLY` 冲突；随后在 `121s > 120s` timeout 并耗尽 retry，未创建 Reviewer/HANDOFF。该 chain terminal，不得复用。Role-contract hardening 仍为 `IN_PROGRESS`，缺少完整 tests、profile deployment、isolated smokes 与 runtime REPORT，尚不满足 continuation 条件。
+- T4-002 Unit C2 revision `-26` / lifecycle `-26r2`：PMC final acceptance 已通过；不得重复 dispatch 或复用任何 business/review/handoff card。Executor REPORT 的 command/cleanup wording 缺陷已在 PMC review 记录，后续 REPORT 不得复制。
+- T4-002 review lifecycle revision `-26r1`：Coordinator `t_f46c8d6e` run `#126` action mismatch/timeout chain 保持 terminal historical evidence；后续 `-26r2` 已以 fresh keys 完成，不改变该历史 fingerprint。
 - Hermes revision `-19` escalation 未通过 PMC：`94 tests + 3 positive smokes + 1 negative smoke` 属于旧 thin-dispatcher policy evidence，不证明新识别的 terminal-transition/Windows exit-status 缺陷已修复；card-body、board、OOM、segfault 推测没有直接证据。
 - T4-002 thin-dispatcher remediation：Smoke 1 `t_20945c04` crash，只有 runs `#103/#105` 两次成功；run `#107` 未实际尝试违规操作；metadata 只有 timing step 名称而无数值 elapsed；worker logs 出现 allowlist 外的 navigate/skills/cron/terminal；当前不能证明 runtime tool boundary。
 - 上述 Hermes 自报 remediation blocker 已由后续 Codex direct runtime fix supersede：mode-specific exact policy 已进入 worker spawn、schema filtering 和 invalid-call fast fail；旧 failure fingerprint 仍由 revision `-18` 继承，不得删除。
@@ -128,6 +144,6 @@ No executable Queue is active. Revision `26r1` remains terminal. A replacement r
 
 ## Next Review Gate
 
-|- T4-002：等待 Hermes runtime owner 完成 action-contract hardening 并输出带证据路径的 `READY_FOR_CONTINUATION`、`STILL_INFRA_BLOCKED` 或 `NEEDS_HUMAN_DECISION`。只有 fresh runtime health 证据满足 PMC advisory 后，PMC 才考虑新的 lifecycle continuation；不得复用 `-26r1` 或重复 Executor。
+- T4-002：等待 Hermes Supervisor ACK Unit C3 revision `-27`，完成 project-owned runtime deploy/verifier 后创建唯一 `revid-dispatcher` chain。Executor 只运行 5 个既有 C3 selectors 并停止于 `UNIT_C3_REPORT_READY_REV27`；不得复用 Unit C2 cards 或修改 business files。
 - Hermes language：五个 SOUL 模板已部署（default + 4 execution profiles），中文 marker 验证通过，profile descriptions 已更新。Revid cron 保持 paused。
 - T4-006：已完成并归档。依赖 T4-006 的 Task 仅视为该 dependency 已满足；是否执行仍由后续 Queue revision 决定。

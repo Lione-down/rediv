@@ -2,7 +2,7 @@
 
 ## Status
 
-`REPORT_READY — REVIEW LIFECYCLE 26r1 TERMINAL INFRASTRUCTURE_BLOCKED`
+`PMC_PASS — revision 26 / lifecycle 26r2 — 2026-07-01`
 
 ## Revision
 
@@ -144,3 +144,29 @@ Coordinator `t_f46c8d6e` run `#126` timed out at `121s > 120s`, exhausted proces
 Revision `-26r1` is terminal `INFRASTRUCTURE_BLOCKED` and is no longer executable. Do not retry or reuse its card/key, and do not repeat revision `-26` business execution. Formal verdict: `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV26R1-2026-06-30.md`.
 
 A fresh lifecycle continuation requires completed action-contract hardening, tests, isolated smokes and a runtime owner output of `READY_FOR_CONTINUATION`; no replacement Queue is authorized by this closure.
+
+## Revision 26r2 Review Lifecycle Continuation
+
+PMC approval: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV26R2-REVIEW-CONTINUATION-APPROVAL-2026-06-30.md`.
+
+Revision `phase4-wave2-unit-c2-rev26-review-dispatch-2026-06-30-26r2` is lifecycle-only:
+
+- Exact standalone Action: `REVIEW_DISPATCH_ONLY`
+- Coordinator: `revid-pm`, `180s`, `max_retries=2`
+- Existing Executor evidence only: `t_9f24648e`; no Executor creation or business re-execution
+- Reviewer: `revid-reviewer`, `1800s`, output only `ai/reviews/REVIEW-T4-002-UNIT-C2-REV26.md`
+- Dependent HANDOFF: `revid-pm` with `Action: HANDOFF_ONLY`, `120s`, output only `ai/handoffs/HANDOFF-T4-002-UNIT-C2-REV26-POST-REVIEW.md`
+- Fresh revision `26r2` idempotency keys ending in `:review-dispatch`, `:review:0`, and `:handoff:0`
+
+Supervisor must run `deploy-hermes-runtime-contracts.py --apply` and `verify-hermes-role-contracts.py` before ACK/create. Any drift, incompatible upstream, Action/profile mismatch, duplicate child, test identity failure, cleanup failure, secret exposure or Reviewer non-PASS result blocks the lifecycle without fallback.
+
+Stop at canonical `UNIT_C2_HANDOFF_READY_REV26` for PMC final acceptance.
+
+## Final Acceptance
+
+Codex PMC completed final acceptance in `ai/reviews/REVIEW-T4-002-PMC-UNIT-C2-REV26-PASS-2026-07-01.md`.
+
+- Business revision `-26` and lifecycle continuation `-26r2` are `PMC_PASS`.
+- Cards `t_c14aa473`, `t_9f24648e`, `t_ec30ad12`, `t_bcbc25b7` and `t_c481b6ad` are immutable evidence and must not be reused.
+- `AC3_STALE_SAME_DUPLICATE_INSERT` is remediated; historical runtime fingerprints remain retained as history.
+- This PASS authorizes consideration of Unit C3 only. It does not complete T4-002 or unlock Unit D/E, T4-003 or T4-010.

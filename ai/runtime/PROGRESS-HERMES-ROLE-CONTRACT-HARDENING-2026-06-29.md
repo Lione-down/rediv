@@ -11,5 +11,8 @@
 - [x] Deploy and verify five profile boundaries.
 - [x] Run targeted/full tests and isolated smokes.
 - [x] Write runtime REPORT and PMC verdict.
+- [x] Restore and verify Chinese Human Owner delivery rules after the English-only SOUL regression.
+- [x] Resolve the updater stash conflict and package a repeatable post-update runtime deployment.
+- [x] Reload Gateway and rerun fresh Action/profile smokes after durability closure.
 
-Current state: `COMPLETE — READY_FOR_CONTINUATION (runtime)`; executable Queue remains withheld by `SECURITY_ROTATION_REQUIRED`.
+Current state: `COMPLETE — READY_FOR_CONTINUATION (runtime)`; executable Queue remains withheld only by `SECURITY_ROTATION_REQUIRED`.

@@ -1,5 +1,9 @@
 # REPORT — Hermes Role Contract Hardening
 
+> 2026-06-30 22:xx update: runtime readiness is temporarily superseded by `ai/reviews/REVIEW-T4-002-PMC-HERMES-UPDATE-DURABILITY-BLOCKED-2026-06-30.md`. Hermes auto-update preserved the local patch in `stash@{0}` but did not restore it because an obsolete Desktop bundle conflicts with new upstream. Do not use the earlier `READY_FOR_CONTINUATION` result until the durability gate is closed.
+
+> Resolution: update durability now passes under `ai/reviews/REVIEW-T4-002-PMC-HERMES-UPDATE-DURABILITY-PASS-2026-06-30.md`. The runtime delta is a repeatable project-owned patch and a mandatory pre-Queue deploy/verifier gate. The remaining blocker is credential rotation only.
+
 ## Result
 
 `READY_FOR_CONTINUATION` from the Hermes runtime perspective. Revision `26r1`, card `t_f46c8d6e`, and run `#126` remain terminal evidence and were not retried, reused, unblocked, reparented, or modified.

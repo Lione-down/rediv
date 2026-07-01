@@ -33,3 +33,8 @@ def test_policy_parser_detects_missing_policy(tmp_path):
     config = tmp_path / "config.yaml"
     config.write_text("kanban:\n  dispatch_in_gateway: true\n", encoding="utf-8")
     assert MODULE.parse_worker_tool_policies(config) == {}
+
+
+def test_chinese_delivery_marker_is_canonical():
+    assert "必须使用中文" in MODULE.CHINESE_DELIVERY_MARKER
+    assert "Human Owner" in MODULE.CHINESE_DELIVERY_MARKER

@@ -63,6 +63,11 @@ SOUL_TEMPLATES = {
     "revid-reviewer": "hermes-revid-reviewer-soul.md",
 }
 
+CHINESE_DELIVERY_MARKER = (
+    "面向 Human Owner 的最终回复、执行总结、blocked/escalation 说明和 delivery "
+    "必须使用中文。"
+)
+
 
 def parse_worker_tool_policies(config_path: Path) -> dict[str, list[str]]:
     """Parse only the policy subsection without loading or printing secrets."""
@@ -125,6 +130,8 @@ def verify(project_root: Path, hermes_home: Path) -> list[str]:
             errors.append(f"{profile}: SOUL template/deployment missing")
         elif normalized_text(template) != normalized_text(deployed):
             errors.append(f"{profile}: deployed SOUL differs from template")
+        elif CHINESE_DELIVERY_MARKER not in normalized_text(deployed):
+            errors.append(f"{profile}: Chinese delivery marker missing")
 
     default_template = prompt_root / "hermes_system_prompt.md"
     default_deployed = hermes_home / "SOUL.md"
@@ -132,6 +139,8 @@ def verify(project_root: Path, hermes_home: Path) -> list[str]:
         default_template
     ) != normalized_text(default_deployed):
         errors.append("default: deployed SOUL differs from template")
+    elif CHINESE_DELIVERY_MARKER not in normalized_text(default_deployed):
+        errors.append("default: Chinese delivery marker missing")
 
     supervisor = normalized_text(prompt_root / "hermes-scheduled-supervisor.md")
     launcher = normalized_text(

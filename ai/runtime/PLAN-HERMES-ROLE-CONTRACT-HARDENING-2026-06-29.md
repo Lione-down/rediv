@@ -18,6 +18,7 @@ The execution path has no canonical action registry. The Supervisor prompt and p
 6. Add runtime action policies for Backend, Frontend and Reviewer workers; remove obsolete `DISPATCH_ONLY` ownership from `revid-pm`.
 7. Ensure the worker `kanban_create` tool persists `max_retries` and validates action/profile/parent contracts.
 8. Deploy profile templates/policies without reading, copying or printing credential values.
+9. Preserve Chinese Human Owner delivery rules in default and all five role SOULs; technical Action/tool/fingerprint markers remain English.
 
 ## Canonical Role Matrix
 
@@ -53,3 +54,4 @@ The execution path has no canonical action registry. The Supervisor prompt and p
 - Executors and Reviewer do not expose worker-creation, cron, memory, delegation or unrelated browser/web capabilities.
 - Child `max_runtime`, `max_retries`, assignee, parent, action and revision are persisted and read-back verified.
 - The same verifier can be rerun after future profile deployment to detect drift before Queue consumption.
+- Every deployed SOUL contains the canonical Chinese-delivery marker and matches its project template.
