@@ -8,7 +8,7 @@
 | Task | 标题 | 状态 | 依赖 |
 |---|---|---|---|
 | T4-001 | MySQL 8 引擎、模型备注与 Alembic baseline | done | 无 |
-| T4-002 | SQLite → MySQL 数据迁移工具 | Unit C2 rev26/26r2 PMC PASS；Unit C3 rev29/rev30 terminal PMC_BLOCKED；无 executable Queue | T4-001 ✅ |
+| T4-002 | SQLite → MySQL 数据迁移工具 | Unit C2 rev26/26r2 PMC PASS；Unit C3 rev36 未 ACK、因 Human priority override 在执行前 supersede，授权与 fingerprints 保留 | T4-001 ✅ |
 | T4-003 | MySQL runtime 切换与 Navicat 验收 | blocked | T4-002 |
 
 ## Phase 4B — 认证与真实 API
@@ -26,7 +26,7 @@
 | T4-007 | 登录/注册入口与路由鉴权 | blocked | T4-004、T4-006 |
 | T4-008 | Home 项目/资产概览页重构 | blocked | T4-003、T4-006 |
 | T4-009 | Space 个人资产页重构 | blocked | T4-003、T4-006 |
-| T4-010 | Workspace 组件拆分与目标布局 | ready（待批准） | T4-006 ✅ |
+| T4-010 | Workspace 组件拆分与目标布局 | Unit A revision 34 stage-accepted；rev38 terminal ACK closed；revision 39 evidence-only correction 已发布，等待 Hermes ACK | T4-006 ✅ |
 
 ## Phase 4D — Canvas 与最终联调
 

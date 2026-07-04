@@ -22,6 +22,9 @@ class CoordinatorBodyTransportTests(unittest.TestCase):
         self.revision = "phase4-test-revision"
         self.task_path = "ai/tasks/todo/TASK-TEST.md"
         self.idempotency_key = "revid:phase4-test-revision:T-TEST:coordinate"
+        self.executor_idempotency_key = "revid:phase4-test-revision:T-TEST:execute:0"
+        self.executor_max_runtime = 1800
+        self.executor_stop_after = "T_TEST_REPORT_READY"
 
     def test_body_contains_standalone_action_and_task_reference(self) -> None:
         body = MODULE.build_body(
@@ -30,10 +33,22 @@ class CoordinatorBodyTransportTests(unittest.TestCase):
             task_id="T-TEST",
             task_path=self.task_path,
             executor_profile="revid-backend",
+            executor_idempotency_key=self.executor_idempotency_key,
+            executor_max_runtime=self.executor_max_runtime,
+            executor_stop_after=self.executor_stop_after,
             idempotency_key=self.idempotency_key,
         )
         self.assertIn("Action: DISPATCH_ONLY", body.splitlines())
         self.assertIn(f"@{self.task_path}", body.splitlines())
+        self.assertIn("Executor Max Runtime: 1800s", body.splitlines())
+        self.assertIn(
+            f"Executor Idempotency Key: {self.executor_idempotency_key}",
+            body.splitlines(),
+        )
+        self.assertIn(
+            f"Executor Stop After: {self.executor_stop_after}",
+            body.splitlines(),
+        )
         MODULE.validate_body(
             body,
             action="DISPATCH_ONLY",
@@ -100,6 +115,9 @@ class CoordinatorBodyTransportTests(unittest.TestCase):
             task_id="T-TEST",
             task_path=self.task_path,
             executor_profile="revid-backend",
+            executor_idempotency_key=self.executor_idempotency_key,
+            executor_max_runtime=self.executor_max_runtime,
+            executor_stop_after=self.executor_stop_after,
             idempotency_key=self.idempotency_key,
         )
         args = argparse.Namespace(
@@ -144,6 +162,9 @@ class CoordinatorBodyTransportTests(unittest.TestCase):
             task_id="T-TEST",
             task_path=self.task_path,
             executor_profile="revid-backend",
+            executor_idempotency_key=self.executor_idempotency_key,
+            executor_max_runtime=self.executor_max_runtime,
+            executor_stop_after=self.executor_stop_after,
             idempotency_key=self.idempotency_key,
         )
         args = argparse.Namespace(
@@ -178,6 +199,12 @@ class CoordinatorBodyTransportTests(unittest.TestCase):
                 self.task_path,
                 "--executor-profile",
                 "revid-backend",
+                "--executor-idempotency-key",
+                self.executor_idempotency_key,
+                "--executor-max-runtime",
+                str(self.executor_max_runtime),
+                "--executor-stop-after",
+                self.executor_stop_after,
                 "--coordinator-profile",
                 "revid-dispatcher",
                 "--title",
@@ -212,6 +239,9 @@ class CoordinatorBodyTransportTests(unittest.TestCase):
         self.assertIn("Action Routing Matrix", prompt)
         self.assertIn('Queue Action = `REVIEW_DISPATCH_ONLY`', prompt)
         self.assertIn('--action "<exact Queue Action>"', prompt)
+        self.assertIn("--executor-idempotency-key", prompt)
+        self.assertIn("--executor-max-runtime", prompt)
+        self.assertIn("--executor-stop-after", prompt)
         self.assertIn("SUPERVISOR_QUEUE_ACTION_UNSUPPORTED", prompt)
         self.assertIn("严禁任何 fallback", prompt)
         self.assertNotIn("--body $body", prompt)

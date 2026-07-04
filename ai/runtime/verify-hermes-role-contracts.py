@@ -39,8 +39,9 @@ EXPECTED_POLICIES = {
         "IMPLEMENT_AND_TEST_ONLY": [
             "read_file", "write_file", "patch", "search_files", "terminal",
             "process", "todo", "skill_view", "browser_navigate",
-            "browser_snapshot", "browser_click", "browser_press",
-            "browser_console", "kanban_show", "kanban_complete",
+            "browser_snapshot", "browser_set_viewport", "browser_screenshot",
+            "browser_click", "browser_press", "browser_console",
+            "kanban_show", "kanban_complete",
             "kanban_block", "kanban_comment", "kanban_heartbeat",
         ],
     },
@@ -48,8 +49,9 @@ EXPECTED_POLICIES = {
         "INDEPENDENT_REVIEW_ONLY": [
             "read_file", "write_file", "search_files", "terminal", "process",
             "execute_code", "todo", "skill_view", "browser_navigate",
-            "browser_snapshot", "browser_click", "browser_press",
-            "browser_console", "kanban_show", "kanban_complete",
+            "browser_snapshot", "browser_set_viewport", "browser_screenshot",
+            "browser_click", "browser_press", "browser_console",
+            "kanban_show", "kanban_complete",
             "kanban_block", "kanban_comment", "kanban_heartbeat",
         ],
     },
@@ -61,6 +63,35 @@ SOUL_TEMPLATES = {
     "revid-backend": "hermes-revid-backend-soul.md",
     "revid-frontend": "hermes-revid-frontend-soul.md",
     "revid-reviewer": "hermes-revid-reviewer-soul.md",
+}
+
+RUNTIME_MARKERS = {
+    "hermes-agent/tools/kanban_tools.py": [
+        "DISPATCH_CHILD_PROFILE_MISMATCH",
+        "DISPATCH_CHILD_ACTION_MISMATCH",
+        "REVIEW_DISPATCH_CHILD_CONTRACT_INVALID",
+        "max_retries=(",
+    ],
+    "hermes-agent/hermes_cli/kanban_db.py": [
+        "MISSING_WORKER_ACTION_MARKER",
+        "DUPLICATE_WORKER_ACTION_MARKER",
+        "UNKNOWN_WORKER_ACTION_MARKER",
+    ],
+    "hermes-agent/agent/agent_runtime_helpers.py": [
+        "is_degenerate_no_tool_response",
+    ],
+    "hermes-agent/agent/conversation_loop.py": [
+        "degenerate_no_tool_response_exhausted",
+        "returned only placeholder punctuation",
+    ],
+    "hermes-agent/tools/process_registry.py": [
+        'encoding="utf-8"',
+        'errors="replace"',
+    ],
+    "hermes-agent/tools/browser_tool.py": [
+        '"name": "browser_set_viewport"',
+        '"name": "browser_screenshot"',
+    ],
 }
 
 CHINESE_DELIVERY_MARKER = (
@@ -150,28 +181,26 @@ def verify(project_root: Path, hermes_home: Path) -> list[str]:
         "Action Routing Matrix", '--action "<exact Queue Action>"',
         "SUPERVISOR_QUEUE_ACTION_UNSUPPORTED",
         "SUPERVISOR_ACTION_PROFILE_CONTRACT_INVALID",
+        "--executor-idempotency-key",
+        "--executor-max-runtime",
+        "--executor-stop-after",
     ]
     for marker in required_supervisor:
         if marker not in supervisor:
             errors.append(f"supervisor: required marker missing: {marker}")
-    for marker in ["ACTION_CONTRACTS", "validate_args_contract", "--action"]:
+    for marker in [
+        "ACTION_CONTRACTS",
+        "validate_args_contract",
+        "--action",
+        "--executor-idempotency-key",
+        "--executor-max-runtime",
+        "--executor-stop-after",
+    ]:
         if marker not in launcher:
             errors.append(f"launcher: required marker missing: {marker}")
 
-    runtime_markers = {
-        hermes_home / "hermes-agent" / "tools" / "kanban_tools.py": [
-            "DISPATCH_CHILD_PROFILE_MISMATCH",
-            "DISPATCH_CHILD_ACTION_MISMATCH",
-            "REVIEW_DISPATCH_CHILD_CONTRACT_INVALID",
-            "max_retries=(",
-        ],
-        hermes_home / "hermes-agent" / "hermes_cli" / "kanban_db.py": [
-            "MISSING_WORKER_ACTION_MARKER",
-            "DUPLICATE_WORKER_ACTION_MARKER",
-            "UNKNOWN_WORKER_ACTION_MARKER",
-        ],
-    }
-    for runtime_path, markers in runtime_markers.items():
+    for relative_path, markers in RUNTIME_MARKERS.items():
+        runtime_path = hermes_home / relative_path
         if not runtime_path.is_file():
             errors.append(f"runtime: missing file {runtime_path.name}")
             continue

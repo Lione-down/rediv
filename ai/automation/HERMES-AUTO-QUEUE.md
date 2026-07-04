@@ -1,5 +1,185 @@
 # Hermes Automatic Queue
 
+## 2026-07-04 Revision 38 Closure / Revision 39 Evidence Correction Publication
+
+PMC 已接受 revision 38 的 canonical terminal ACK。Hermes execution status 现以同 revision、同 fingerprint `REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING` 记录 `PMC_BLOCKED — NOT EXECUTABLE / TERMINAL RECONCILIATION COMPLETE`、`ACK_TERMINAL_VERDICT_AND_STOP` 与 `PMC Action Required = NO / NONE`。Revision 38 reconciliation 已关闭，不得再次修改或复用其 cards、runs、keys 与 artifacts。
+
+PMC 现发布唯一 executable Queue `phase4-wave3-workspace-shell-unit-b-browser-evidence-correction-2026-07-04-39`。该 revision 只补齐 exact `1440x900`、`920x900`、`375x812` browser evidence；五个 Workspace business files 全部 read-only。若真实 browser 发现 defect，Executor 必须准确写 REPORT 并停止，不得修改代码。正式授权：`ai/reviews/REVIEW-T4-010-PMC-REV38-CLOSURE-AND-REV39-AUTHORIZATION-2026-07-04.md`。
+
+## 2026-07-04 T4-010 Revision 38 Reconciliation State Conflict（closed）
+
+Hermes execution status 的首次 `Rev38 Reconciliation = COMPLETE` 曾与 current `Failure Fingerprint`、`REPORT_READY`、`PMC Action Required = YES` 互相冲突。Hermes 后续已 canonicalize 为同 revision/fingerprint 的 terminal STOP；该 conflict 由上方 rev39 authorization review 正式关闭。
+
+## 2026-07-04 T4-010 Unit B Revision 38 Evidence Block
+
+Revision `phase4-wave3-workspace-shell-unit-b-browser-continuation-2026-07-04-38` reached `REPORT_READY`, but the REPORT discloses only one actual browser viewport (`1264x625`) and the required `ai/evidence/T4-010/unit-b/` screenshots and per-viewport console/network/overflow artifacts do not exist. Fresh PMC build and scoped diff check pass, but they do not satisfy the exact `1440x900`、`920x900`、`375x812` real-browser Hard Gate. Formal verdict: `ai/reviews/REVIEW-T4-010-PMC-UNIT-B-REV38-BLOCKED-2026-07-04.md`.
+
+Revision 38 is terminal `PMC_BLOCKED`; no Reviewer, HANDOFF, retry, redispatch or automatic business REWORK is authorized. No executable Queue exists.
+
+```text
+PMC Reconciliation Required: NO — ACKNOWLEDGED
+PMC Verdict Revision: phase4-wave3-workspace-shell-unit-b-browser-continuation-2026-07-04-38
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING
+Expected Hermes Action: NONE FOR REV38 — ACK FRESH REV39 INSTEAD
+Resume Condition: satisfied by fresh bounded revision 39 authorization
+```
+
+## 2026-07-04 Rev37 Smoke Pass / T4-010 Unit B Revision 38 Publication
+
+Revision 37 runtime smoke 已通过：Dispatcher `t_95b6b112` run `#157` 与 Executor `t_9f86c667` run `#158` 均 terminal done；invalid byte `0xB4` 经 U+FFFD replacement 安全处理，process exit `0`，Executor 显式完成 `READY_FOR_CONTINUATION_RUNTIME_ONLY`。正式验收与授权：`ai/reviews/REVIEW-T4-010-PMC-REV37-PASS-AND-UNIT-B-REV38-AUTHORIZATION-2026-07-04.md`。
+
+PMC 发布唯一 executable Queue `phase4-wave3-workspace-shell-unit-b-browser-continuation-2026-07-04-38`。Hermes 必须 ACK exact revision，规范化 execution status 中 rev37 的 `PLACEHOLDER` hashes 与 stale blocked Queue summary，并只通过 project launcher 创建 fresh Dispatcher/Frontend chain。Executor 仅完成 Unit B Task 的 real-browser、responsive、keyboard、ARIA、console/network 与 visual closure，停止于 REPORT_READY；Reviewer、HANDOFF 与 T4-002 rev36 均未授权。
+
+## 2026-07-04 Rev35 Runtime Root Fix / Frontend Terminal Smoke Revision 37 Publication
+
+Human Owner 已授权修复 T4-010 Unit B 的全部 runtime blockers，并要求以发布 Unit B 为最终目标。Rev35 原始 worker log 已证明根因是 Windows background-process output strict UTF-8 decode：byte `0xB4` 触发 `subprocess._readerthread` `UnicodeDecodeError`，随后 agent 以 plain-text `[Acknowledged]` clean exit 且未调用 terminal Kanban tool。当前 Hermes baseline 已使用 `errors="replace"`；direct invalid-byte smoke exit `0`，targeted `8 passed`、full runtime `26 passed`、`ROLE_CONTRACTS_OK`。
+
+T4-002 rev36 尚未 ACK、无 card、无 active worker，现按最新 Human priority override 在执行前 supersede；Task、authorization、fingerprints 与 Hard Gates 保留，未来必须 fresh revision/keys 才能重新发布。Revision `runtime-rev35-frontend-terminal-smoke-2026-07-04-37` 是唯一 executable Queue，只验证 fresh `revid-frontend` worker 的 invalid-byte background process 与显式 terminal transition。Unit B 尚未在本 revision 获得业务执行授权；smoke PASS 后由 PMC 发布 fresh Unit B continuation。正式授权：`ai/reviews/REVIEW-T4-010-PMC-RUNTIME-SMOKE-REV37-AUTHORIZATION-2026-07-04.md`。
+
+## 2026-07-04 T4-002 Unit C3 Revision 36 Publication
+
+PMC 发布唯一 executable Queue `phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-04-36`。Human authorization、rev35 STOP closure、`STATUS_OK`、Gateway、zero-active-board、runtime tests、`ROLE_CONTRACTS_OK`、Task hash、Allowed File ownership 与 exact launcher dry-run 均已通过。正式 publication review：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV36-PUBLICATION-2026-07-04.md`。
+
+Hermes 必须 ACK exact revision，运行 project-owned deploy/verifier/status gates，并仅通过 launcher 创建一个 fresh `revid-dispatcher` card。Dispatcher 原子创建且只创建一个 `revid-backend / IMPLEMENT_AND_TEST_ONLY` child，然后立即完成。Executor 只修改 `backend/tests/test_migration_tool.py` 和 rev36 PLAN/PROGRESS/REPORT，停止于 `UNIT_C3_FAILURE_LIFECYCLE_REPORT_READY_REV36`。Reviewer、HANDOFF、下一 revision 与 T4-010 Unit B 均未授权。
+
+## 2026-07-04 T4-010 Unit B Revision 35 Diagnostic Reviewed
+
+Revision `phase4-wave3-workspace-shell-unit-b-browser-2026-07-04-35` remains terminal `PMC_BLOCKED / STILL_INFRA_BLOCKED`. Fresh diagnostic `ai/reports/DIAGNOSTIC-T4-010-REV35-RUNTIME-HEALTH-2026-07-04.md` has SHA256 `178F92872FBC86A58B85272A746A579F7E025E677CBC12EB9894903B5ED71931` and cannot identify the worker exit code、termination source、stdout/stderr、stack 或 exception；也没有 same-profile terminal smoke。PMC therefore rejects Unit B continuation. Formal review: `ai/reviews/REVIEW-T4-010-PMC-RUNTIME-DIAGNOSTIC-REV35-2026-07-04.md`.
+
+```text
+PMC Reconciliation Required: NO — ACKNOWLEDGED
+PMC Verdict Revision: phase4-wave3-workspace-shell-unit-b-browser-2026-07-04-35
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV35_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION
+Expected Hermes Action: NONE — TERMINAL VERDICT ACKNOWLEDGED
+Runtime Diagnostic SLA: SATISFIED — diagnostic verdict STILL_INFRA_BLOCKED
+Resume Condition: fresh runtime remediation captures worker exit/output/exception evidence and a bounded revid-frontend same-profile smoke reaches an explicit terminal transition
+```
+
+Hermes must ACK terminal STOP and must not retry, redispatch, claim, promote, unblock, reparent, delete or reuse revision 35 cards/keys. No Unit B continuation, business REWORK, Reviewer or HANDOFF is authorized. After STOP closure, the next business Queue is the already Human-authorized T4-002 Unit C3 revision 36.
+
+## 2026-07-04 T4-010 Unit B Revision 35 Publication
+
+PMC 已 stage-accept Unit A revision 34，并发布唯一 executable Queue `phase4-wave3-workspace-shell-unit-b-browser-2026-07-04-35`。Revision 31/32/33 cards 与 revision 34 cards/runs/artifacts 保持 terminal historical evidence，不得 retry、claim、promote、unblock、reparent、删除或复用。Revision 35 继承 rev31/rev32/rev33 failure fingerprints。正式审查与授权：`ai/reviews/REVIEW-T4-010-PMC-UNIT-A-REV34-ACCEPTANCE-AND-UNIT-B-REV35-AUTHORIZATION-2026-07-04.md`。
+
+Hermes Supervisor 必须先 ACK exact revision，运行 project-owned deploy/verifier gate，然后仅通过 launcher 创建一个 fresh `revid-dispatcher` card。Dispatcher 只能创建一个 `revid-frontend` `IMPLEMENT_AND_TEST_ONLY` child；Executor 只执行 Unit B Task 规定的 browser、responsive、keyboard、ARIA、console/network 与 visual evidence closure，只有真实 browser defect 才允许在五个 Workspace Allowed Business Files 内做最小修复。完成后停止于 `T4_010_UNIT_B_BROWSER_REPORT_READY`；Independent Reviewer、HANDOFF 与任何下一 Queue 均未授权。
+
+## 2026-07-04 T4-010 Unit A Revision 34 Publication（stage completed, not executable）
+
+PMC 曾发布 executable Queue `phase4-wave3-workspace-shell-unit-a-static-build-2026-07-04-34`；该 revision 已完成并由 PMC stage-accept，现不再 executable。Revision 31/32/33 及其 cards、runs、artifact paths 与 idempotency keys 保持 terminal historical evidence，不得 retry、claim、promote、unblock、reparent、删除或复用。Revision 34 继承全部三条 failure fingerprints。正式授权：`ai/reviews/REVIEW-T4-010-PMC-UNIT-A-REV34-AUTHORIZATION-2026-07-04.md`。
+
+Hermes Supervisor 必须先 ACK exact revision，运行 project-owned deploy/verifier gate，然后仅通过 launcher 创建一个 fresh `revid-dispatcher` card。Exact child contract：`IMPLEMENT_AND_TEST_ONLY`、`revid-frontend`、`1800s`、`:execute:0`、Stop After `T4_010_UNIT_A_STATIC_BUILD_REPORT_READY`。Executor 只允许修改 Task 的五个 Allowed Business Files并写 Unit A PLAN/PROGRESS/REPORT；Browser、Reviewer、HANDOFF 与 Unit B 未授权。
+
+## 2026-07-03 T4-010 Unit A Revision 33 Runtime Block
+
+Revision `phase4-wave3-workspace-shell-unit-a-static-build-2026-07-03-33` is terminal `PMC_BLOCKED / INFRASTRUCTURE_BLOCKED`. Dispatcher `t_24283338` completed, but Executor `t_6e1e84d0` inherited Dispatcher-only Stop After and dispatch idempotency and ran with `120s` rather than the authorized `1800s`. Runs `#150` and `#151` timed out at 121s; canonical Unit A PLAN/PROGRESS/REPORT, Independent REVIEW and HANDOFF are absent. Formal advisory: `ai/reviews/REVIEW-T4-010-PMC-RUNTIME-ADVISORY-REV33-2026-07-03.md`.
+
+```text
+PMC Reconciliation Required: NO — ACKNOWLEDGED
+PMC Verdict Revision: phase4-wave3-workspace-shell-unit-a-static-build-2026-07-03-33
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV33_EXECUTOR_CHILD_CONTRACT_INVALID_120S_DISPATCH_PAYLOAD
+Expected Hermes Action: NONE — TERMINAL VERDICT ACKNOWLEDGED
+Resume Condition: fresh Codex PMC revision with inherited fingerprints and corrected dispatcher child contract
+```
+
+Hermes submitted the `READY_FOR_CONTINUATION` addendum; PMC then fixed full-document status validation, rebuilt the canonical status and verified rev33 `STATUS_OK`. The former structure conflict is closed. Closure evidence: `ai/reviews/REVIEW-T4-010-PMC-UNIT-A-REV34-AUTHORIZATION-2026-07-04.md`.
+
+## 2026-07-03 T4-010 Unit A Revision 33 Publication（terminal historical, not executable）
+
+PMC 发布唯一 executable Queue `phase4-wave3-workspace-shell-unit-a-static-build-2026-07-03-33`。Revision 31/32 及其 cards、runs、artifact paths 和 idempotency keys 保持 terminal historical evidence，不得 retry、claim、promote、unblock、reparent、删除或复用。正式授权：`ai/reviews/REVIEW-T4-010-PMC-UNIT-A-REV33-AUTHORIZATION-2026-07-03.md`。
+
+Hermes Supervisor 必须先 ACK exact revision，并执行：
+
+```text
+python ai/runtime/deploy-hermes-runtime-contracts.py --apply
+python ai/runtime/verify-hermes-role-contracts.py
+```
+
+随后只允许通过 project launcher 创建一个 fresh `revid-dispatcher` card：
+
+```text
+D:/works/codexWorks/project_revid/backend/.venv/Scripts/python.exe \
+  ai/runtime/create-hermes-coordinator.py \
+  --action "DISPATCH_ONLY" \
+  --revision "phase4-wave3-workspace-shell-unit-a-static-build-2026-07-03-33" \
+  --task-id "T4-010-UNIT-A" \
+  --task-path "ai/tasks/todo/TASK-T4-010-UNIT-A.md" \
+  --executor-profile "revid-frontend" \
+  --coordinator-profile "revid-dispatcher" \
+  --title "T4-010 Unit A: Dispatcher - static and build closure revision 33" \
+  --idempotency-key "revid:phase4-wave3-workspace-shell-unit-a-static-build-2026-07-03-33:T4-010-UNIT-A:dispatch" \
+  --max-runtime "120" \
+  --workspace "dir:D:/works/codexWorks/project_revid"
+```
+
+Dispatcher 必须 atomically 创建且只创建一个 `revid-frontend` `IMPLEMENT_AND_TEST_ONLY` child，idempotency 为 `revid:phase4-wave3-workspace-shell-unit-a-static-build-2026-07-03-33:T4-010-UNIT-A:execute:0`，max runtime `1800s`，at most one process retry。它必须 read-back 校验 assignee、parent、revision、Task path、body、runtime、retry 与 idempotency，然后立即完成。
+
+Executor 只允许修改 Task 的五个 Allowed Business Files，并只写 Unit A PLAN、PROGRESS、REPORT。它必须使用 project-root artifact paths，禁止写 `frontend/ai/`；完成 static/build verification 后停止于 `T4_010_UNIT_A_STATIC_BUILD_REPORT_READY`。Browser、Reviewer、HANDOFF 与 Unit B 均未授权。
+
+## 2026-07-03 T4-010 Revision 32 Runtime Block
+
+Revision `phase4-wave3-workspace-shell-continuation-2026-07-03-32` is terminal `PMC_BLOCKED / INFRASTRUCTURE_BLOCKED`. Executor `t_6837871b` exhausted the iteration budget in run `#147`, then entered `gave_up` in run `#148`. Hermes diagnostic verdict is `STILL_INFRA_BLOCKED`; it does not prove canonical artifact-root handling or bounded same-profile execution viability. Preserve all partial work for ownership audit, but do not treat it as `REPORT_READY`. Formal diagnostic review: `ai/reviews/REVIEW-T4-010-PMC-RUNTIME-DIAGNOSTIC-REV32-2026-07-03.md`.
+
+Hermes terminal confirmation 已通过 project-owned deterministic reconciler 收口：Active Queue 的 Task/Queue hash、terminal Action、Queue Status、diagnostic 与同 revision/fingerprint confirmation 原子一致。旧 ad-hoc verifier 与每轮 due refresh 已被禁止。正式 regression review：`ai/reviews/REVIEW-T4-010-PMC-REV32-EXECUTION-STATUS-REGRESSION-2026-07-03.md`；根因修复计划与进度：`ai/runtime/PLAN-PROGRESS-HERMES-STATUS-RECONCILIATION-2026-07-03.md`。
+
+```text
+PMC Reconciliation Required: NO — ACKNOWLEDGED
+PMC Verdict Revision: phase4-wave3-workspace-shell-continuation-2026-07-03-32
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV32_EXECUTOR_ITERATION_BUDGET_EXHAUSTED_WITH_UNCANONICAL_ARTIFACTS
+Runtime Diagnostic Verdict: STILL_INFRA_BLOCKED
+Expected Hermes Action: NONE — TERMINAL VERDICT ACKNOWLEDGED
+Resume Condition: fresh runtime remediation evidence proves canonical project-root artifact handling, bounded same-profile execution viability, no active rev32 worker, and a safe continuation design preserving rev31 and rev32 fingerprints
+```
+
+## 2026-07-03 T4-010 Revision 32 Fresh Continuation（terminal historical）
+
+PMC 已独立复核真实 `revid-dispatcher / DISPATCH_ONLY` same-profile smoke、UTF-8-safe verifier、19 tests、旧 card terminal 状态与 Allowed Files ownership。Revision 31 保持 terminal evidence；现发布唯一 fresh continuation `phase4-wave3-workspace-shell-continuation-2026-07-03-32`。正式审查：`ai/reviews/REVIEW-T4-010-PMC-RUNTIME-CONTINUATION-AUTHORIZATION-REV32-2026-07-03.md`。
+
+The former continuation reconciliation was ACKed and is superseded by the revision 32 runtime-block signal above. It is historical authorization only and is not executable.
+
+## 2026-07-02 T4-010 Revision 31 Runtime Block
+
+Revision `phase4-wave3-workspace-shell-2026-07-02-31` 已被 Hermes ACK，但 Coordinator `t_2e03b521` run `#141` 在创建 Executor 前因 `ROLE_BOUNDARY_VIOLATION` terminal。Stable fingerprint：`REV31_DISPATCHER_TERMINAL_TOOL_NOT_ALLOWED`。本 Queue 现为 `BLOCKED / NOT EXECUTABLE`；不得 retry、重派、复用旧 card/idempotency key 或创建 replacement revision。正式 advisory：`ai/reviews/REVIEW-T4-010-PMC-RUNTIME-ADVISORY-REV31-2026-07-02.md`。
+
+Hermes 于 2026-07-03 提交 fresh diagnostic 并声明 `READY_FOR_CONTINUATION`。PMC 接受 direct `kanban_create` 的 least-privilege 方向，但报告没有 source remediation、regression、部署 verifier 或实际 same-profile smoke，因此 continuation 结论不成立。正式审查：`ai/reviews/REVIEW-T4-010-PMC-RUNTIME-DIAGNOSTIC-REV31-2026-07-03.md`。下一证据必须证明修复已实际实现、部署并完成 smoke，而不是只描述预期做法。
+
+Hermes 后续声明 fix 已实现且 verifier 全部通过。PMC fresh rerun 结果为 19 tests pass、deploy/verifier exit `1`、实际 same-profile smoke 缺失；status 还改写 stable fingerprint、使用非 canonical owner state/action type，并要求 PMC 删除 terminal card。结论为 `PMC_BLOCKED — FIX VERIFICATION FAILED / STATE_CONFLICT`。正式审查：`ai/reviews/REVIEW-T4-010-PMC-RUNTIME-FIX-VERIFICATION-REV31-2026-07-03.md`。
+
+```text
+PMC Reconciliation Required: NO — SUPERSEDED BY REV32 CONTINUATION
+PMC Verdict Revision: phase4-wave3-workspace-shell-2026-07-02-31
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV31_DISPATCHER_TERMINAL_TOOL_NOT_ALLOWED
+Remediation Authorized: YES — runtime evidence/remediation only; business execution remains forbidden
+Runtime Diagnostic Verdict: FIX_VERIFICATION_FAILED
+Runtime Remediation Authorized: YES — direct kanban_create path, terminal remains forbidden
+Expected Hermes Action: NONE FOR REV31 — ACK FRESH REV32 INSTEAD
+Resume Condition: UTF-8-safe verifier exit 0, real entry-point fail-closed regressions, and actual same-profile synthetic smoke
+```
+
+## 2026-07-02 T4-010 Revision 31 Publication（historical）
+
+T4-002 revision `-30` terminal reconciliation 已由 Hermes 确认，`PMC Action Required = NO`。PMC 当时发布 revision `phase4-wave3-workspace-shell-2026-07-02-31`。该授权现已被上方 runtime block 取代，不再 executable。
+
+## 2026-07-02 Unit C3 Revision 30 Terminal Reconciliation
+
+Revision `phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30` 保持 terminal `PMC_BLOCKED`，且没有 executable T4-002 authorization。Hermes execution status 已设置 `PMC Action Required = NO`；正式 reconciliation：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV30-RECONCILIATION-2026-07-02.md`。
+
+```text
+PMC Reconciliation Required: NO — ACKNOWLEDGED
+PMC Verdict Revision: phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV30_FK_RESTORATION_UNPROVEN_AND_CLEANUP_FAILURES_NOT_PRESERVED
+Remediation Authorized: NO
+Expected Hermes Action: NONE — TERMINAL VERDICT ACKNOWLEDGED
+Resume Condition: fresh Human Owner authorization for a new bounded remediation that preserves all inherited fingerprints and existing hard gates
+```
+
+Hermes 已完成 terminal verdict confirmation。不得把 revision `-30` ACK 为 executable、创建新 card、进入 Independent Review/HANDOFF、重试或复用旧 chain。
+
 ## 2026-07-01 Unit C3 Revision 30 Publication
 
 Human Owner 批准的 bounded correction revision `phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30` 已执行并进入 terminal `PMC_BLOCKED`。PMC audit 证明 FK-restoration-equivalent state 未被 regression 观察，helper 不能保证 failure path 恢复 FK checks，resource-close failures 仍被静默吞掉。Formal verdict: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV30-BLOCKED-2026-07-01.md`。当前没有 executable authorization。
@@ -28,33 +208,103 @@ Hermes role-contract hardening is `PMC_PASS` and runtime status is `READY_FOR_CO
 
 The current Active Wave remains `BLOCKED / NOT EXECUTABLE`. Revision `26r1` and card `t_f46c8d6e` remain terminal evidence. No replacement revision is published because `SECURITY_ROTATION_REQUIRED` is still open. After credential rotation and a fresh `ROLE_CONTRACTS_OK`, PMC may publish a new review-only revision with fresh keys, `revid-pm`, at least 180 seconds, and no Executor re-execution.
 
-本文件当前不授权任何 executable revision。Hermes scheduled mode 不得 ACK、dispatch、retry、claim、promote、unblock、reparent 或复用 revision `-30`、revision `-29` 及任何历史 T4-002 chain。
+T4-010 Unit B revision `-38`/`-35` 与 revision `-34`/`-33`/`-32`/`-31`、runtime revision 37、T4-002 revision `-30`/`-29` 均为 terminal historical evidence；Hermes scheduled mode 不得 retry、claim、promote、unblock、reparent、删除或复用任何历史 chain。T4-002 revision 36 已在 ACK 前 supersede；当前唯一 executable Active Wave 为下方 Unit B revision 39。
 
 ## Active Wave
 
 | Field | Value |
 |---|---|
-| Revision | `phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30` |
-| Status | `BLOCKED / NOT EXECUTABLE — PMC_BLOCKED` |
+| Revision | `phase4-wave3-workspace-shell-unit-b-browser-evidence-correction-2026-07-04-39` |
+| Status | `APPROVED — WAITING FOR HERMES ACK` |
 | Approved By | `Codex Project Master Controller` |
-| Task ID | `T4-002` / `UNIT-C3` |
-| Project Task File | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV30.md` |
-| Action | `NONE — terminal evidence only` |
-| Executor Profile | `revid-backend` |
+| Approval Source | `ai/reviews/REVIEW-T4-010-PMC-REV38-CLOSURE-AND-REV39-AUTHORIZATION-2026-07-04.md` |
+| Approval Time | `2026-07-04` |
+| Task ID | `T4-010-UNIT-B-REV39` |
+| Project Task File | `ai/tasks/todo/TASK-T4-010-UNIT-B-REV39.md` |
+| Action | `DISPATCH_ONLY` |
+| Executor Profile | `revid-frontend` |
 | Review Profile | `revid-reviewer` |
 | Dispatch Profile | `revid-dispatcher` |
-| Parallel Group | `serial-t4-002-unit-c3-rev30` |
-| Attempt Policy | `Human Owner explicitly authorized one bounded correction after rev29 PMC_BLOCKED; no further automatic business rework; initial run plus at most one process retry per card; inherit all fingerprints` |
-| Previous Failure Fingerprint | `all inherited T4-002 fingerprints through revision 29, including UNIT_C3_REV27_DESTINATION_FK_AND_TEST_ISOLATION_FAILURE, REV28_AC4_CLEANUP_NOT_FAILURE_SAFE and REV29_AC4_ORPHAN_DELETION_STILL_NOT_FAILURE_SAFE_AND_REGRESSION_NOT_BOUND; revision/card/runtime changes do not clear history` |
-| Hard Gates | `pre-ACK project-owned runtime deploy + ROLE_CONTRACTS_OK + exact standalone Action: DISPATCH_ONLY + atomic Dispatcher child contract + only backend/tests/test_migration_tool.py writable + real AC4 and regression use the same cleanup lifecycle + injected failure proves deletion-equivalent and FK-restoration-equivalent state + cleanup failure visible + ADR-003 disposable database only + exact five real-MySQL selectors + no skip/mock substitution + secret/identity/cleanup/scope gates` |
+| Parallel Group | `serial-phase4-wave3-workspace-shell-unit-b-rev39` |
+| Attempt Policy | `one evidence-only attempt; runtime at most two process retries; no automatic business REWORK` |
+| Previous Failure Fingerprint | `REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING` |
+| Hard Gates | `project-owned runtime deploy + ROLE_CONTRACTS_OK + canonical rev38 terminal status + exact Action/profile/child contract + fresh cards/keys + five Workspace business files read-only at recorded SHA256 + revision-specific project-root artifacts only + exact 1440x900/920x900/375x812 viewport read-back and screenshots + structured overflow/console/network/geometry evidence + keyboard/focus/ARIA/reduced-motion + state preservation + project_id safety + final build + scoped diff check + explicit terminal transition + no static inference as browser PASS + no historical card/key/artifact reuse + no secret/database/backend/API/global-token changes` |
 | Coordinator Budget | `120s; dispatch only` |
 | Executor Budget | `1800s` |
-| Reviewer Budget | `N/A — separate lifecycle continuation required after REPORT_READY` |
-| Stop After | `UNIT_C3_AC4_FAILURE_CLEANUP_REPORT_READY_REV30` |
+| Dispatcher Idempotency Key | `revid:phase4-wave3-workspace-shell-unit-b-browser-evidence-correction-2026-07-04-39:T4-010-UNIT-B-REV39:dispatch` |
+| Executor Idempotency Key | `revid:phase4-wave3-workspace-shell-unit-b-browser-evidence-correction-2026-07-04-39:T4-010-UNIT-B-REV39:execute:0` |
+| Reviewer Budget | `N/A — Reviewer/HANDOFF not authorized before PMC REPORT_READY decision` |
+| Stop After | `T4_010_UNIT_B_REV39_BROWSER_EVIDENCE_REPORT_READY` |
+| PMC Reconciliation Required | `NO` |
+| PMC Verdict | `REV39_AUTHORIZED` |
+| Failure Fingerprint | `NONE — inherits Previous Failure Fingerprint` |
+| Expected Hermes Action | `ACK_REVISION_AND_DISPATCH` |
 
-## Revision 30 Bound AC4 Failure Cleanup Authorization
+## Revision 32 Workspace Shell Continuation Authorization（terminal historical, not executable）
 
-Revision `-29` is terminal evidence and must not be reused. Before ACK or card creation, Supervisor must run:
+Before ACK, Hermes must normalize `HERMES-EXECUTION-STATUS.md` to canonical state/action fields, preserve the exact inherited fingerprint, and remove the stale `→ FIXED` claim. Before card creation, Supervisor must run:
+
+```text
+python ai/runtime/deploy-hermes-runtime-contracts.py --apply
+python ai/runtime/verify-hermes-role-contracts.py
+```
+
+Then create exactly one fresh `revid-dispatcher` card through the project launcher:
+
+```text
+D:/works/codexWorks/project_revid/backend/.venv/Scripts/python.exe \
+  ai/runtime/create-hermes-coordinator.py \
+  --action "DISPATCH_ONLY" \
+  --revision "phase4-wave3-workspace-shell-continuation-2026-07-03-32" \
+  --task-id "T4-010" \
+  --task-path "ai/tasks/todo/TASK-T4-010.md" \
+  --executor-profile "revid-frontend" \
+  --coordinator-profile "revid-dispatcher" \
+  --title "T4-010: Dispatcher - Workspace shell continuation revision 32" \
+  --idempotency-key "revid:phase4-wave3-workspace-shell-continuation-2026-07-03-32:T4-010:dispatch" \
+  --max-runtime "120" \
+  --workspace "dir:D:/works/codexWorks/project_revid"
+```
+
+Dispatcher must directly use `kanban_create` and atomically create exactly one `revid-frontend` `IMPLEMENT_AND_TEST_ONLY` child with idempotency `revid:phase4-wave3-workspace-shell-continuation-2026-07-03-32:T4-010:execute:0`, max runtime `1800s`, `max_retries=2`, and the exact Task contract. `terminal` remains forbidden. It must read-back validate child assignee, parent, revision, body, runtime, retry and idempotency, then complete immediately.
+
+Executor may modify only Task Allowed Files, write only REV32 PLAN/PROGRESS/REPORT and `ai/evidence/T4-010/rev32/`, run the required build and real-browser checks, and stop at `T4_010_WORKSPACE_SHELL_REPORT_READY_REV32`. Reviewer/HANDOFF creation is not authorized.
+
+## Revision 31 Workspace Shell Authorization（terminal historical）
+
+Before ACK or card creation, Supervisor must run:
+
+```text
+python ai/runtime/deploy-hermes-runtime-contracts.py --apply
+python ai/runtime/verify-hermes-role-contracts.py
+```
+
+Then create exactly one fresh `revid-dispatcher` card through the project launcher:
+
+```text
+D:/works/codexWorks/project_revid/backend/.venv/Scripts/python.exe \
+  ai/runtime/create-hermes-coordinator.py \
+  --action "DISPATCH_ONLY" \
+  --revision "phase4-wave3-workspace-shell-2026-07-02-31" \
+  --task-id "T4-010" \
+  --task-path "ai/tasks/todo/TASK-T4-010.md" \
+  --executor-profile "revid-frontend" \
+  --coordinator-profile "revid-dispatcher" \
+  --title "T4-010: Dispatcher - Workspace shell revision 31" \
+  --idempotency-key "revid:phase4-wave3-workspace-shell-2026-07-02-31:T4-010:dispatch" \
+  --max-runtime "120" \
+  --workspace "dir:D:/works/codexWorks/project_revid"
+```
+
+Dispatcher atomically creates exactly one `revid-frontend` `IMPLEMENT_AND_TEST_ONLY` child with idempotency `revid:phase4-wave3-workspace-shell-2026-07-02-31:T4-010:execute:0`, max runtime `1800s`, `max_retries=2`, and the exact Task contract. It must read-back validate child assignee、parent、revision、body、runtime、retry 与 idempotency，随后立即完成。
+
+Executor 只修改 Task Allowed Files，完成 build、1440/920/375 browser interaction、console/network/overflow 检查与 screenshot evidence，写 REV31 PLAN、PROGRESS、REPORT，并停止于 `T4_010_WORKSPACE_SHELL_REPORT_READY_REV31`。不得修改 Canvas/API/backend contract，不得创建 Reviewer/HANDOFF 或下一 Task。
+
+Historical publication verification: exactly one Active Wave had `Status = APPROVED — WAITING_FOR_HERMES_ACK`; Task/revision/action/profile/idempotency/Stop After markers matched; launcher `--dry-run` exit `0` and produced exact `Action: DISPATCH_ONLY`, `revid-frontend`, `120s`, `max-retries=2`, fresh idempotency and `--json` command without creating a card; `git diff --check` passed.
+
+## Revision 30 Bound AC4 Failure Cleanup Authorization（terminal PMC_BLOCKED, not executable）
+
+Revision `-29` and revision `-30` are terminal evidence and must not be reused. The historical contract below must not be ACKed or executed again:
 
 ```text
 python ai/runtime/deploy-hermes-runtime-contracts.py --apply
@@ -367,4 +617,4 @@ Executor 完成 REPORT 后进入 terminal review-required 并停止。不得创�
 
 Runtime 路线决策为 `NO`：不需要改变产品、schema contract 或 destructive authorization。安全事项为 `YES`：诊断 transcript 中出现的 credential 必须由 Human Owner 轮换并确认旧值失效。
 
-*最后更新：2026-07-01；Unit C3 revision `-30` 已 `PMC_BLOCKED`，fingerprint `REV30_FK_RESTORATION_UNPROVEN_AND_CLEANUP_FAILURES_NOT_PRESERVED`。当前没有 executable Queue；revisions `-27`/`-28`/`-29`/`-30` cards、keys 与 artifacts 仅作 terminal evidence，不得重复执行或进入 Review lifecycle。*
+*最后更新：2026-07-04；T4-010 Unit B revision `-35` terminal `PMC_BLOCKED / INFRASTRUCTURE_BLOCKED`。当前无 executable Queue；等待 Hermes 以同 fingerprint ACK terminal verdict、规范化 execution status 并提交 fresh runtime diagnostic。*

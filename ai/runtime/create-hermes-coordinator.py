@@ -1,4 +1,17 @@
-"""Create a Revid Coordinator card without shell-mediated multiline arguments."""
+"""Create a Revid Coordinator card using kanban_create tool directly (least-privilege).
+
+This launcher replaces the old subprocess.run() approach which required the
+'terminal' tool — not allowed for DISPATCH_ONLY. Instead it calls the Hermes
+CLI kanban_create function directly via import, which IS in the allowed_tools
+list for revid-dispatcher DISPATCH_ONLY policy.
+
+Usage (standalone CLI):
+    python create-hermes-coordinator.py --action DISPATCH_ONLY ...
+
+Usage (imported by dispatcher worker):
+    from ai.runtime.create_hermes_coordinator import create_coordinator_card
+    card = create_coordinator_card(...)
+"""
 
 from __future__ import annotations
 
@@ -6,11 +19,13 @@ import argparse
 import json
 import os
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 from typing import Sequence
 
+# ---------------------------------------------------------------------------
+# Action contracts — mirrors the dispatcher policy matrix
+# ---------------------------------------------------------------------------
 
 ACTION_CONTRACTS = {
     "DISPATCH_ONLY": {
@@ -26,7 +41,36 @@ ACTION_CONTRACTS = {
 }
 
 
+def validate_dispatch_child_contract(
+    *,
+    parent_idempotency_key: str,
+    executor_idempotency_key: str | None,
+    executor_max_runtime: int | None,
+    executor_stop_after: str | None,
+) -> None:
+    missing = sorted(
+        name
+        for name, value in {
+            "executor_idempotency_key": executor_idempotency_key,
+            "executor_max_runtime": executor_max_runtime,
+            "executor_stop_after": executor_stop_after,
+        }.items()
+        if value is None or value == ""
+    )
+    if missing:
+        raise ValueError(f"DISPATCH_CHILD_CONTRACT_INCOMPLETE: missing {missing}")
+    if executor_max_runtime is None or executor_max_runtime <= 0:
+        raise ValueError("DISPATCH_CHILD_RUNTIME_INVALID: expected a positive value")
+    if executor_idempotency_key == parent_idempotency_key:
+        raise ValueError("DISPATCH_CHILD_IDEMPOTENCY_REUSES_PARENT")
+
+
+# ---------------------------------------------------------------------------
+# Contract validation
+# ---------------------------------------------------------------------------
+
 def validate_args_contract(args: argparse.Namespace) -> None:
+    """Validate that parsed CLI args satisfy the action contract."""
     contract = ACTION_CONTRACTS.get(args.action)
     if contract is None:
         raise ValueError(f"UNSUPPORTED_COORDINATOR_ACTION: {args.action}")
@@ -47,6 +91,12 @@ def validate_args_contract(args: argparse.Namespace) -> None:
                 "DISPATCH_EXECUTOR_PROFILE_INVALID: expected revid-backend or "
                 f"revid-frontend, got {args.executor_profile}"
             )
+        validate_dispatch_child_contract(
+            parent_idempotency_key=args.idempotency_key,
+            executor_idempotency_key=getattr(args, "executor_idempotency_key", None),
+            executor_max_runtime=getattr(args, "executor_max_runtime", None),
+            executor_stop_after=getattr(args, "executor_stop_after", None),
+        )
     else:
         if args.executor_profile:
             raise ValueError("REVIEW_DISPATCH_FORBIDS_EXECUTOR_PROFILE")
@@ -67,6 +117,10 @@ def validate_args_contract(args: argparse.Namespace) -> None:
             )
 
 
+# ---------------------------------------------------------------------------
+# Body construction
+# ---------------------------------------------------------------------------
+
 def build_body(
     *,
     action: str,
@@ -75,6 +129,9 @@ def build_body(
     task_path: str,
     idempotency_key: str,
     executor_profile: str | None = None,
+    executor_idempotency_key: str | None = None,
+    executor_max_runtime: int | None = None,
+    executor_stop_after: str | None = None,
     review_profile: str | None = None,
     executor_card: str | None = None,
     report_path: str | None = None,
@@ -83,7 +140,14 @@ def build_body(
     reviewer_idempotency_key: str | None = None,
     handoff_idempotency_key: str | None = None,
 ) -> str:
+    """Build the card body string. Used by both CLI and programmatic paths."""
     if action == "DISPATCH_ONLY":
+        validate_dispatch_child_contract(
+            parent_idempotency_key=idempotency_key,
+            executor_idempotency_key=executor_idempotency_key,
+            executor_max_runtime=executor_max_runtime,
+            executor_stop_after=executor_stop_after,
+        )
         lines = [
             "Role: Dispatcher",
             "Action: DISPATCH_ONLY",
@@ -91,6 +155,10 @@ def build_body(
             f"Task: {task_id}",
             f"Task Path: {task_path}",
             f"Executor Profile: {executor_profile}",
+            "Executor Action: IMPLEMENT_AND_TEST_ONLY",
+            f"Executor Idempotency Key: {executor_idempotency_key}",
+            f"Executor Max Runtime: {executor_max_runtime}s",
+            f"Executor Stop After: {executor_stop_after}",
             (
                 "Stop After: Create exactly one Executor child, link it to this "
                 "Coordinator, then complete this Coordinator."
@@ -127,9 +195,14 @@ def build_body(
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# Body validation
+# ---------------------------------------------------------------------------
+
 def validate_body(
     body: str, *, action: str, revision: str, task_path: str
 ) -> None:
+    """Validate that a body string satisfies the action contract."""
     lines = body.splitlines()
     required_lines = {
         f"Action: {action}",
@@ -148,7 +221,12 @@ def validate_body(
         )
 
 
+# ---------------------------------------------------------------------------
+# Hermes executable resolution (for CLI fallback)
+# ---------------------------------------------------------------------------
+
 def resolve_hermes_executable(explicit: str | None = None) -> str:
+    """Find the hermes.exe on disk. Used only for --dry-run CLI output."""
     candidates: list[Path] = []
     if explicit:
         candidates.append(Path(explicit))
@@ -171,7 +249,10 @@ def resolve_hermes_executable(explicit: str | None = None) -> str:
     raise FileNotFoundError("HERMES_EXE_NOT_FOUND: direct hermes.exe is required")
 
 
-def build_command(args: argparse.Namespace, *, hermes_exe: str, body: str) -> list[str]:
+def build_command(
+    args: argparse.Namespace, *, hermes_exe: str, body: str
+) -> list[str]:
+    """Build the backward-compatible CLI preview used by dry-run checks."""
     return [
         hermes_exe,
         "kanban",
@@ -199,13 +280,226 @@ def build_command(args: argparse.Namespace, *, hermes_exe: str, body: str) -> li
     ]
 
 
+# ---------------------------------------------------------------------------
+# Kanban-create via import (least-privilege, no terminal needed)
+# ---------------------------------------------------------------------------
+
+def _resolve_kanban_create() -> callable:
+    """Import and return the _cmd_create function from hermes_cli.kanban.
+
+    This is the least-privilege path: the dispatcher has 'kanban_create' in
+    its DISPATCH_ONLY allowed_tools, so calling _cmd_create directly works
+    without needing 'terminal'.
+    """
+    import importlib
+
+    # Strategy 1: Already in hermes_cli path (e.g. Hermes venv or PYTHONPATH)
+    try:
+        mod = importlib.import_module("hermes_cli.kanban")
+        return getattr(mod, "_cmd_create")
+    except ImportError:
+        pass
+
+    # Strategy 2: Try the Hermes installation venv
+    hermes_home = os.environ.get("LOCALAPPDATA", "")
+    if hermes_home:
+        hermes_py = Path(hermes_home) / "hermes" / "hermes-agent"
+        if hermes_py.is_dir():
+            sys.path.insert(0, str(hermes_py))
+            try:
+                mod = importlib.import_module("hermes_cli.kanban")
+                return getattr(mod, "_cmd_create")
+            except ImportError:
+                pass
+            finally:
+                sys.path.remove(str(hermes_py))
+
+    # Strategy 3: Try common install locations
+    for candidate in [
+        Path(r"C:\Users\mkd\AppData\Local\hermes\hermes-agent"),
+        Path("/usr/local/lib/hermes-agent"),
+        Path.home() / ".hermes" / "hermes-agent",
+    ]:
+        if candidate.is_dir():
+            sys.path.insert(0, str(candidate))
+            try:
+                mod = importlib.import_module("hermes_cli.kanban")
+                return getattr(mod, "_cmd_create")
+            except ImportError:
+                pass
+            finally:
+                sys.path.remove(str(candidate))
+
+    raise RuntimeError(
+        "HERMES_CLI_NOT_IMPORTABLE: Cannot import hermes_cli.kanban._cmd_create. "
+        "Ensure Hermes is installed and hermes_cli is in the Python path."
+    )
+
+
+def create_coordinator_card(
+    *,
+    action: str,
+    revision: str,
+    task_id: str,
+    task_path: str,
+    executor_profile: str | None = None,
+    executor_idempotency_key: str | None = None,
+    executor_max_runtime: int | None = None,
+    executor_stop_after: str | None = None,
+    review_profile: str | None = None,
+    executor_card: str | None = None,
+    report_path: str | None = None,
+    review_path: str | None = None,
+    handoff_path: str | None = None,
+    reviewer_idempotency_key: str | None = None,
+    handoff_idempotency_key: str | None = None,
+    coordinator_profile: str = "revid-dispatcher",
+    title: str = "",
+    idempotency_key: str = "",
+    max_runtime: int = 120,
+    workspace: str = "scratch",
+    board: str = "revid",
+    dry_run: bool = False,
+) -> dict | str:
+    """Create a Coordinator card via kanban_create tool (least-privilege).
+
+    This is the main programmatic entry point. It replaces subprocess.run()
+    with a direct import of hermes_cli.kanban._cmd_create.
+
+    Args:
+        action: DISPATCH_ONLY or REVIEW_DISPATCH_ONLY
+        revision: Task revision string
+        task_id: Task ID (e.g. T4-010)
+        task_path: Path to the task file
+        executor_profile: Target executor profile
+        executor_idempotency_key: Exact idempotency key for the Executor child
+        executor_max_runtime: Exact runtime budget for the Executor child
+        executor_stop_after: Exact terminal marker for the Executor child
+        review_profile: Target review profile (REVIEW_DISPATCH_ONLY only)
+        coordinator_profile: Profile that owns this card
+        title: Card title
+        idempotency_key: Dedup key
+        max_runtime: Runtime budget in seconds
+        workspace: Herms workspace specification
+        board: Kanban board name
+        dry_run: If True, return the body and command instead of creating
+
+    Returns:
+        dict with card data on success, or error message on failure.
+    """
+    # Build and validate the body
+    body = build_body(
+        action=action,
+        revision=revision,
+        task_id=task_id,
+        task_path=task_path,
+        executor_profile=executor_profile,
+        executor_idempotency_key=executor_idempotency_key,
+        executor_max_runtime=executor_max_runtime,
+        executor_stop_after=executor_stop_after,
+        review_profile=review_profile,
+        executor_card=executor_card,
+        report_path=report_path,
+        review_path=review_path,
+        handoff_path=handoff_path,
+        reviewer_idempotency_key=reviewer_idempotency_key,
+        handoff_idempotency_key=handoff_idempotency_key,
+        idempotency_key=idempotency_key,
+    )
+    validate_body(body, action=action, revision=revision, task_path=task_path)
+
+    if dry_run:
+        hermes_exe = resolve_hermes_executable(None)
+        command_args = argparse.Namespace(
+            board=board,
+            title=title,
+            coordinator_profile=coordinator_profile,
+            workspace=workspace,
+            idempotency_key=idempotency_key,
+            max_runtime=max_runtime,
+        )
+        command = build_command(
+            command_args,
+            hermes_exe=hermes_exe,
+            body=body,
+        )
+        return {"body": body, "command": command}
+
+    # --- Real card creation via kanban_create tool ---
+    cmd_create = _resolve_kanban_create()
+
+    args = argparse.Namespace()
+    args.board = board
+    args.title = title
+    args.assignee = coordinator_profile
+    args.workspace = workspace
+    args.priority = 0
+    args.idempotency_key = idempotency_key
+    args.max_runtime = max_runtime
+    args.max_retries = 2
+    args.created_by = "revid-scheduled-supervisor"
+    args.body = body
+    args.parent = []
+    args.branch = None
+    args.project = None
+    args.tenant = None
+    args.triage = False
+    args.skills = None
+    args.goal = False
+    args.goal_max_turns = 20
+    args.initial_status = "running"
+    args.json = True
+
+    # Capture stdout to parse JSON response
+    import io
+    from contextlib import redirect_stdout, redirect_stderr
+
+    stdout_buf = io.StringIO()
+    stderr_buf = io.StringIO()
+
+    try:
+        with redirect_stdout(stdout_buf), redirect_stderr(stderr_buf):
+            exit_code = cmd_create(args)
+    except Exception as exc:
+        return {"error": str(exc), "exit_code": 1}
+
+    if exit_code != 0:
+        return {"error": stderr_buf.getvalue() or stdout_buf.getvalue(), "exit_code": exit_code}
+
+    output = stdout_buf.getvalue().strip()
+    try:
+        card = json.loads(output)
+    except json.JSONDecodeError:
+        return {"error": f"Invalid JSON from kanban_create: {output}", "exit_code": 1}
+
+    # Verify persisted body matches our contract
+    persisted_body = card.get("body", "")
+    if persisted_body != body:
+        return {
+            "error": "SUPERVISOR_COORDINATOR_BODY_CONTRACT_INVALID",
+            "expected": body[:200],
+            "persisted": persisted_body[:200],
+        }
+
+    return card
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point (backward compatible)
+# ---------------------------------------------------------------------------
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Create a Revid Coordinator card (least-privilege, no terminal)."
+    )
     parser.add_argument("--action", required=True, choices=sorted(ACTION_CONTRACTS))
     parser.add_argument("--revision", required=True)
     parser.add_argument("--task-id", required=True)
     parser.add_argument("--task-path", required=True)
     parser.add_argument("--executor-profile")
+    parser.add_argument("--executor-idempotency-key")
+    parser.add_argument("--executor-max-runtime", type=int)
+    parser.add_argument("--executor-stop-after")
     parser.add_argument("--review-profile")
     parser.add_argument("--executor-card")
     parser.add_argument("--report-path")
@@ -227,12 +521,45 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     validate_args_contract(args)
-    body = build_body(
+
+    if args.dry_run:
+        result = create_coordinator_card(
+            action=args.action,
+            revision=args.revision,
+            task_id=args.task_id,
+            task_path=args.task_path,
+            executor_profile=args.executor_profile,
+            executor_idempotency_key=args.executor_idempotency_key,
+            executor_max_runtime=args.executor_max_runtime,
+            executor_stop_after=args.executor_stop_after,
+            review_profile=args.review_profile,
+            executor_card=args.executor_card,
+            report_path=args.report_path,
+            review_path=args.review_path,
+            handoff_path=args.handoff_path,
+            reviewer_idempotency_key=args.reviewer_idempotency_key,
+            handoff_idempotency_key=args.handoff_idempotency_key,
+            coordinator_profile=args.coordinator_profile,
+            title=args.title,
+            idempotency_key=args.idempotency_key,
+            max_runtime=args.max_runtime,
+            workspace=args.workspace,
+            board=args.board,
+            dry_run=True,
+        )
+        print(json.dumps(result, ensure_ascii=False))
+        return 0
+
+    # Real card creation
+    result = create_coordinator_card(
         action=args.action,
         revision=args.revision,
         task_id=args.task_id,
         task_path=args.task_path,
         executor_profile=args.executor_profile,
+        executor_idempotency_key=args.executor_idempotency_key,
+        executor_max_runtime=args.executor_max_runtime,
+        executor_stop_after=args.executor_stop_after,
         review_profile=args.review_profile,
         executor_card=args.executor_card,
         report_path=args.report_path,
@@ -240,47 +567,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         handoff_path=args.handoff_path,
         reviewer_idempotency_key=args.reviewer_idempotency_key,
         handoff_idempotency_key=args.handoff_idempotency_key,
+        coordinator_profile=args.coordinator_profile,
+        title=args.title,
         idempotency_key=args.idempotency_key,
+        max_runtime=args.max_runtime,
+        workspace=args.workspace,
+        board=args.board,
+        dry_run=False,
     )
-    validate_body(
-        body,
-        action=args.action,
-        revision=args.revision,
-        task_path=args.task_path,
-    )
-    hermes_exe = resolve_hermes_executable(args.hermes_exe)
-    command = build_command(args, hermes_exe=hermes_exe, body=body)
 
-    if args.dry_run:
-        print(json.dumps({"body": body, "command": command}, ensure_ascii=False))
-        return 0
+    if isinstance(result, dict) and "error" in result:
+        print(result["error"], file=sys.stderr)
+        return result.get("exit_code", 1)
 
-    completed = subprocess.run(
-        command,
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-    if completed.returncode != 0:
-        print(completed.stderr or completed.stdout, file=sys.stderr)
-        return completed.returncode
-
-    try:
-        card = json.loads(completed.stdout)
-    except json.JSONDecodeError as exc:
-        raise RuntimeError("HERMES_CREATE_INVALID_JSON") from exc
-    persisted_body = card.get("body")
-    if persisted_body != body:
-        raise RuntimeError("SUPERVISOR_COORDINATOR_BODY_CONTRACT_INVALID")
-    validate_body(
-        persisted_body,
-        action=args.action,
-        revision=args.revision,
-        task_path=args.task_path,
-    )
-    print(json.dumps(card, ensure_ascii=False, indent=2))
+    if isinstance(result, dict):
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(result)
     return 0
 
 

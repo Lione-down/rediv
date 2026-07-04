@@ -106,6 +106,9 @@
 ## 2026-06-25 Hermes 到 Codex PMC 介入信号
 
 - Hermes 需要 Codex PMC 介入时，不应直接反复提醒 Human Owner；应在 `HERMES-EXECUTION-STATUS.md` 写 `PMC Action Required` marker。
+- Hermes terminal reconciliation 禁止依赖临时 LLM verifier 或每轮刷新 diagnostic due。必须运行 `ai/runtime/reconcile-hermes-execution-status.py` 原子校验 Queue/Task hash、terminal Action、Queue Status 与 diagnostic；`DIAGNOSTIC_READY` 的 due 是已满足历史 SLA，保留原值并标记 `SATISFIED`。
+- Windows 下 project-owned verifier 读取源码必须显式使用 UTF-8；禁止依赖系统默认 GBK，否则包含 em dash 或中文的源码会在验证前解码失败。
+- Executor profile 的 runtime smoke 必须有独立 `RUNTIME-SMOKE-` fast path；不得复用完整业务 preflight，否则 mandatory skills、CURRENT/ROADMAP 与源码审计会吞掉 bounded smoke budget。Fast path 只读精确 Task、最多 5 个 tool turns、只写唯一 evidence 并立即停止。
 - `PMC Action Required = YES` 只代表 Codex PMC 要处理，不等于需要用户决策；只有 `Human Decision Candidate = YES` 且满足付费、secret、不可逆、重大产品/contract 或安全阻塞条件时，才通知 Human Owner。
 - Codex PMC automation 必须把 PMC action marker 纳入 evidence cursor；即使 Queue、REPORT、REVIEW、HANDOFF hash 未变化，只要 marker 变为 YES 就不能输出 `IDLE`。
 - Hermes 只因 PMC-only marker 变化时，应写共享状态文档并对 Human Owner 保持 `[SILENT]`，避免把项目内协作任务变成人肉转发。
@@ -170,3 +173,36 @@
 - `revid-dispatcher` 独占 `DISPATCH_ONLY`；`revid-pm` 只拥有 `REVIEW_DISPATCH_ONLY` 与 `HANDOFF_ONLY`；Backend/Frontend 只实现；Reviewer 只验证，三者均不得创建 child card。
 - `max_retries` 必须按 runtime 真实语义持久化：`2` 表示 initial attempt 加一次 retry，`1` 不等于“一次 retry”。Review dispatch 低于 180 秒应在创建前拒绝。
 - Profile config 审计只允许读取并输出 policy key/tool list 或 hash，不得完整 dump。若 credential 进入任何工具输出，必须立即停止新 Queue 发布并要求轮换，且不得在报告中复制该值。
+- 不得用带行号的通用文件输出检查 profile config 顶部；即使后续只关心 toolset，邻近 `api_key` 也会进入终端记录。必须先用结构化 parser/allowlist 提取安全字段，或在输出前逐值 redaction。
+
+## 2026-07-02 双 Automation Runtime Advisory 闭环
+
+- PMC 写出 runtime advisory 不等于完成交接；Hermes 必须按同 revision/fingerprint 写 owner ACK、实际 SHA256、60 分钟内 due、diagnostic path/hash/verdict 和 terminal verdict confirmation。
+- Advisory 未 ACK、diagnostic 逾期或 reconciliation 未确认时，PMC 不得 `IDLE`，Hermes 不得 `[SILENT]`；连续两个 checkpoint 未完成必须转一次 `RUNTIME_OWNER_STALLED`，相同 fingerprint 不重复通知。
+- `PMC Action Required = NO` 只表示没有新的 PMC 决策，不能隐藏 runtime owner 未完成工作；runtime handoff 使用独立 cursor。
+- Windows 将完整 Hermes prompt 作为 CLI 参数可能超过 command-line limit；实际 cron 使用短 bootstrap，每轮完整读取项目 canonical prompt，避免模板与真实 cron 漂移。
+- Status 写回必须保留结构化多行 Markdown、字段唯一、真实 hash 和带时区 deadline；单行折叠、`N/A` hash 或超期 due 属于 `STATE_CONFLICT`。
+- Dispatcher tool-policy incident 优先修 action flow 使用 exact `kanban_*` capability；不得默认给 thin dispatcher 增加通用 `terminal` 权限。
+
+## 2026-07-03 Dispatcher Child Contract 与 Advisory 两阶段 Reconcile
+
+- Dispatcher parent body 必须显式携带 Executor child 的 action、idempotency、max runtime 和 Stop After；不能让 worker 从父卡的 120s、`:dispatch` key 或 Dispatcher Stop After 推导，否则会产生语义正确但 contract 错误的 child。
+- Launcher 对 `DISPATCH_ONLY` 缺失 child contract、复用 parent idempotency 或非正 runtime 必须在 card create 前 fail-closed；dry-run、两套 tests、deploy verifier 和 Supervisor prompt 必须使用同一组参数。
+- Runtime advisory reconciliation 是两阶段状态机：`ACK_TERMINAL_VERDICT_AND_START_RUNTIME_DIAGNOSTIC` 只表示 diagnostic 已生产且 terminal closure 仍 pending；只有后续 `ACK_TERMINAL_VERDICT_AND_STOP` 才能标记 reconciliation complete。
+- Deterministic reconciler 必须区分 diagnostic-start 与 terminal-stop，校验各自 confirmation，并在 start 阶段只同步 hash/diagnostic 状态，禁止提前写 STOP complete。
+- Windows verifier 的最终 marker 使用 ASCII；不能在默认 GBK stdout 打印 `✓`/`✗` 后把全部成功检查误报为进程失败。
+
+## 2026-07-04 Execution Status 全文件 Canonical 校验
+
+- 只校验 `## Active Queue` 等局部 section 会漏掉文件前部的 stale canonical block；后部 rev33 section 正确并不代表整个 status 合法。
+- Reconciler 必须在任何 hash/action reconciliation 前全文件拒绝 `|||`/`||||`/`|||||` malformed rows，并拒绝跨 section 重复的 active Queue 与 PMC canonical fields。
+- In-place field replacement不能清理历史污染；发现旧 status 同时承载 stale current-state table 与新 active section 时，应先重建单一 canonical document，再运行 deterministic read-back。
+- Regression fixture 必须包含污染前缀与 duplicate field；只使用干净 fixture 会让结构回归长期 fail-open。
+- 发布新 Queue 前必须同时满足：旧 revision canonical STOP closure、0 active cards、fresh idempotency keys、exact child-contract dry-run 与 active cron next-run 证明。
+
+## 2026-07-04 Business Block Terminal Reconciliation
+
+- PMC 将 REPORT 判为业务证据不足并要求 `ACK_TERMINAL_VERDICT_AND_STOP` 时，canonical Active Wave 必须同步改为 `Action = NONE — terminal evidence only`，不能保留执行期 `DISPATCH_ONLY`。
+- Business evidence block 不等于 runtime incident。Terminal STOP 可以没有同 revision Runtime Advisory；只有 diagnostic-start 阶段必须强制 advisory、diagnostic path/hash 和 owner state。
+- Queue publication 后必须在启动 Hermes cron 前运行 reconciler `--check`。exit `2` 是 contract/structure 缺陷，应由 PMC 修复；不得让 Hermes cron循环重试。
+- Terminal ACK 不是只更新 Action、hash 和 reconciliation row。必须原子同步 Execution State、当前 failure fingerprint、PMC Action Required/Type/Reason，并移除与 verdict 冲突的历史成功叙述；否则 deterministic 局部检查可能通过，但 PMC 全局检查仍会正确判为 `STATE_CONFLICT`。

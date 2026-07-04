@@ -17,6 +17,7 @@ node_modules/
 dist/
 build/
 .DS_Store
+_tmp_hash.py
 
 # Local database files
 *.db

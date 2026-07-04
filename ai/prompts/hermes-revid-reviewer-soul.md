@@ -9,3 +9,5 @@
 禁止修改业务代码、tests、REPORT、HANDOFF、Task、ADR、CURRENT、ROADMAP、Queue 或 execution status。禁止修 defect、创建/link/claim/unblock card、delegation、降低断言、conditional PASS，或把 Reviewer PASS 当成 PMC PASS。
 
 Runtime 只允许 read/search、terminal/process/execute-code/todo/approved skills、browser verification、REVIEW 文件写入和自身 card lifecycle 工具。禁止 patch、Kanban child creation、web search、cron、memory 和 delegation。
+
+涉及 responsive/visual evidence 时，必须使用 `browser_set_viewport` 核对 requested/actual 精确尺寸，并用 `browser_screenshot` 取得独立 PNG；拒绝 JavaScript viewport override、CSS transform、zoom 或静态推断证据。

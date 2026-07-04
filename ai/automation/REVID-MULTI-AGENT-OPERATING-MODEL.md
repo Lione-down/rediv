@@ -331,6 +331,34 @@ Human Escalation Reason: NONE 或具体最高级别原因
 - 普通 running/monitoring、无新证据、等待 Worker、等待 Reviewer 时，不写 PMC action marker 或保持 `NO`。
 - 如果只有 PMC action marker 变化，Hermes 可以更新 execution status，但人类可见输出仍应保持静默，除非同时满足 Human escalation。
 
+### 6.3.2 Runtime Advisory ACK 与超时闭环
+
+Runtime advisory 不能只靠文件存在完成交接。双方必须使用同一 revision/fingerprint 的显式 ACK 和 diagnostic cursor：
+
+```text
+Runtime Advisory Revision
+Runtime Advisory Fingerprint
+Runtime Advisory Path / SHA256
+Runtime Owner State = ACKNOWLEDGED | DIAGNOSTIC_READY | STALLED
+Runtime Diagnostic Due
+Runtime Diagnostic Path / SHA256
+Runtime Diagnostic Verdict
+PMC Verdict Confirmation
+```
+
+协议：
+
+1. PMC 发布新的 runtime advisory 时，同时在 Queue terminal 区域写 `PMC Reconciliation Required: YES` 和 `Expected Hermes Action: ACK_TERMINAL_VERDICT_AND_START_RUNTIME_DIAGNOSTIC`。
+2. Hermes 下一 scheduled checkpoint 必须 ACK advisory、确认 terminal verdict、纠正 status 中的 revision/fingerprint/executable wording，并设置不晚于 60 分钟的 diagnostic deadline。
+3. Hermes 必须在同轮或下一 checkpoint 输出一次 `READY_FOR_CONTINUATION`、`STILL_INFRA_BLOCKED` 或 `NEEDS_HUMAN_DECISION` diagnostic。无法安全执行 smoke 时也必须输出 `STILL_INFRA_BLOCKED` 和缺失证据，不能无限 `[SILENT]`。
+4. Advisory 未 ACK、reconciliation 未确认或 diagnostic 逾期时，Hermes 不得 `[SILENT]`，Codex PMC 不得 `IDLE`。
+5. Diagnostic 到期仍缺失时，Hermes 写 `Runtime Owner State: STALLED` 并报告一次；PMC 在连续两个 Hermes checkpoints 后可记录一次 `RUNTIME_OWNER_STALLED` governance event。相同 revision/fingerprint 只记录和通知一次。
+6. 只有 owner state 为 `DIAGNOSTIC_READY`/`STALLED`，或 ACK 后尚未到 due，双方才恢复 evidence-cursor 静默。
+
+Evidence 字段必须可验证：hash 使用实际 SHA256；仅在 `ACKNOWLEDGED` 且 diagnostic 尚不存在时，due 才必须为当前时间后不超过 60 分钟且带时区的 ISO-8601。进入 `DIAGNOSTIC_READY` 后，due 成为已满足的历史 SLA，保留原 timestamp 并标记 `SATISFIED`，不得每轮刷新。status Markdown 保持结构化多行 table。placeholder hash、ACK 阶段超期 deadline、单行折叠或重复字段属于 `STATE_CONFLICT`，不得静默接受。Runtime remediation 必须遵循 least privilege，不能默认通过给 dispatcher 增加通用 `terminal` 来绕过 action contract。
+
+`PMC Action Required = NO` 只表示当前没有新的 PMC 决策，不代表 runtime owner 工作完成。runtime handoff 必须由独立字段跟踪。
+
 ### 6.4 Codex → Hermes：Verdict Event
 
 Codex 审查 HANDOFF 后：
@@ -430,15 +458,17 @@ Hermes status 中的 card ID 必须来自 `hermes kanban ... --json` 并经 `sho
 
 ## 11. Evidence Cursor 与静默规则
 
-Codex cursor：last queue revision、execution status transition、report hash、review hash、handoff hash、PMC verdict、PMC action marker。
+Codex cursor：last queue revision、execution status transition、report hash、review hash、handoff hash、PMC verdict、PMC action marker、runtime advisory revision/fingerprint/hash、runtime owner state、diagnostic due/path/hash、PMC verdict confirmation。
 
-Hermes cursor：last queue revision、Coordinator card、attempt、Kanban state、report/review/handoff path、failure fingerprint。
+Hermes cursor：last queue revision、Coordinator card、attempt、Kanban state、report/review/handoff path、failure fingerprint、runtime advisory ACK、diagnostic due/path/verdict、PMC verdict confirmation。
 
 若所有 cursor 均未变化：
 
 - Codex 输出 `IDLE`。
 - Hermes 输出 `[SILENT]`。
 - 不创建报告、不修改状态文件、不发送通知。
+
+例外：未确认 reconciliation、未 ACK runtime advisory 或逾期 runtime diagnostic 不是“cursor 未变化”，而是未完成 handoff。双方必须先按 6.3.2 转为 ACK、DIAGNOSTIC_READY 或 STALLED，不能用静默规则掩盖。
 
 只有以下事件允许通知 Human Owner：HUMAN_DECISION_REQUIRED、SECURITY_BLOCKED、不可逆操作待授权、付费资源待授权、项目阶段完成或连续基础设施故障导致项目无法推进。仅需要 Codex PMC 介入的事件必须写入 `HERMES-EXECUTION-STATUS.md` 的 PMC action marker，不直接通知 Human Owner。
 

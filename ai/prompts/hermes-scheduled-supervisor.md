@@ -68,6 +68,17 @@ git diff --name-only
 
 Gateway DOWN 时不得创建 card；仅在状态从 UP 变为 DOWN 时写 `INFRASTRUCTURE_BLOCKED` 并报告一次。持续 DOWN 且无变化时返回 `[SILENT]`。
 
+若 Queue Active Wave 的 Action 为 `NONE — terminal evidence only`，无论顶部 reconciliation 是待确认 `YES` 还是已确认 `NO — ACKNOWLEDGED`，在任何 status 写入、diagnostic 刷新或 Kanban 操作前必须运行 project-owned deterministic gate：
+
+```powershell
+python ai/runtime/reconcile-hermes-execution-status.py --check
+```
+
+- exit `0 / STATUS_OK`：status 已与 Queue、Task 和 diagnostic 原子对齐，禁止再次手工刷新 due、hash、Action 或 Queue Status。
+- exit `1 / STATUS_MISMATCH`：只允许运行一次 `--apply`，随后必须再次运行 `--check`；二次 `--check` 非 `0` 时 fail closed。
+- exit `2 / STATUS_RECONCILIATION_ERROR`：不得修改 status、不得操作 Kanban，记录准确错误并交 PMC。
+- 禁止生成临时 verifier 代替该脚本，禁止用 Historical Notes 或最终回复中的文字声明替代 canonical table read-back。
+
 ### Step 1：读取 Queue
 
 只消费满足以下条件的条目：
@@ -86,6 +97,30 @@ Gateway DOWN 时不得创建 card；仅在状态从 UP 变为 DOWN 时写 `INFRA
 
 若 Queue `Status = BLOCKED`、`Execution Mode = none` 或 `Task ID = NONE`，且 CURRENT、Queue、PMC REVIEW 或最新 `ai/reviews/*PMC*RUNTIME*ADVISORY*.md` 指向 Hermes runtime owner / `revid-pm` 需要提供 diagnostics 或 sustained-run 证据，则进入 diagnostics-only 模式。
 
+`Status` 判断按语义包含匹配：`BLOCKED / NOT EXECUTABLE`、`INFRASTRUCTURE_BLOCKED` 和 `REVxx TERMINAL` 均属于 blocked，不能只接受字段值精确等于 `BLOCKED`。
+
+首次看到新的 advisory revision/fingerprint 时，advisory 本身就是新 evidence。Supervisor 必须在同一轮更新 `HERMES-EXECUTION-STATUS.md`，不得因 Kanban、REPORT 或代码 diff 未变化而返回 `[SILENT]`。至少写入：
+
+```text
+Runtime Advisory Revision: <revision>
+Runtime Advisory Fingerprint: <fingerprint>
+Runtime Advisory Path: <path>
+Runtime Advisory SHA256: <hash>
+Runtime Owner State: ACKNOWLEDGED
+Runtime Diagnostic Due: <next scheduled checkpoint, no later than 60 minutes>
+Runtime Diagnostic Path: NONE
+PMC Verdict Confirmation: ACK_TERMINAL_VERDICT_AND_STOP
+```
+
+字段写入 hard gate：
+
+- `Runtime Advisory SHA256` 和 `Runtime Diagnostic SHA256` 必须使用 `Get-FileHash -Algorithm SHA256` 的实际值，禁止写 `N/A`、placeholder 或猜测值。
+- `Runtime Diagnostic Due` 只在 `Runtime Owner State = ACKNOWLEDGED` 且 diagnostic 尚不存在时要求位于当前时间后不超过 60 分钟，并显式包含 offset/`Z`。一旦同 fingerprint diagnostic 已存在且 owner state 为 `DIAGNOSTIC_READY`，due 是已满足的历史 SLA：保留原 timestamp、设置 `Runtime Diagnostic Due Status = SATISFIED`，即使时间已过也不得刷新。
+- Markdown table 必须保持每行一个 row 和真实换行。禁止把整个 table 序列化为单行、重复 header 或产生 `|||||` 这类畸形前缀。
+- 写入后必须重新完整读取 `HERMES-EXECUTION-STATUS.md`，并运行 `python ai/runtime/reconcile-hermes-execution-status.py --check` 验证结构、字段唯一性、revision/fingerprint/hash/due/path；任一不满足时 fail closed，不得返回 `[SILENT]`，也不得把已有 diagnostic 的 revision 转为 `STALLED`。
+
+同时必须把顶层 revision、Queue terminal/executable wording、failure fingerprint 和 PMC reconciliation 状态与 advisory 对齐。`PMC Action Required = NO` 只能表示 PMC 已完成本轮裁定，不能替代 runtime owner ACK，也不能保留 `Failure Fingerprint = NONE` 或旧 APPROVED/executable wording。
+
 diagnostics-only 模式只允许：
 
 - 读取 Gateway、dispatcher、Kanban card、run history、worker stdout/stderr、timeout、retry、capacity 和资源限制证据。
@@ -102,7 +137,32 @@ diagnostics-only 模式禁止：
 - 运行 T4-002 这类 destructive MySQL integration tests，除非未来 Queue 明确重新授权。
 - 读取、打印、复制、猜测或报告 secret 值。
 
-若输出 `READY_FOR_CONTINUATION`，只能等待 Codex PMC 发布新的 APPROVED continuation revision；Hermes 不得自行启动原 Task。若没有新的 runtime 证据，保持 `[SILENT]`，不得重复生成 readiness report。
+首次 ACK 后必须在同一轮完成 diagnostic，或最迟在 `Runtime Diagnostic Due` 前的下一 scheduled checkpoint 写一份 runtime readiness report。即使暂时无法安全运行 smoke，也必须基于已收集证据输出 `STILL_INFRA_BLOCKED`，明确缺失 capability、下一 runtime owner action 和 fresh evidence 路径；“没有新证据”不能作为跳过首次 diagnostic 的理由。
+
+Diagnostic 写入后更新：
+
+```text
+Runtime Owner State: DIAGNOSTIC_READY
+Runtime Diagnostic Path: <path>
+Runtime Diagnostic SHA256: <hash>
+Runtime Diagnostic Verdict: READY_FOR_CONTINUATION | STILL_INFRA_BLOCKED | NEEDS_HUMAN_DECISION
+```
+
+Diagnostic 的 Required Fix 必须保持 least privilege。对 tool-policy incident，优先修复 action flow 以使用该 profile 已批准的专用工具；只有证明不存在更窄 capability 且 PMC 明确授权时，才可建议增加通用 `terminal`。不得把扩大工具权限当作默认结论。
+
+若 due 到期仍无法产出 diagnostic，必须把 `Runtime Owner State` 转为 `STALLED`，写明 missed checkpoint 和原因，并输出一次中文基础设施阻塞事件；不得继续 `[SILENT]`。相同 revision/fingerprint 已为 `DIAGNOSTIC_READY` 或 `STALLED` 且没有新 evidence 时，才恢复 `[SILENT]`。
+
+若输出 `READY_FOR_CONTINUATION`，只能等待 Codex PMC 发布新的 APPROVED continuation revision；Hermes 不得自行启动原 Task。
+
+### Step 1.2：PMC Terminal Verdict Reconciliation
+
+Queue/PMC REVIEW 包含 `PMC Reconciliation Required: YES` 时，无论 `PMC Action Required` 当前是 YES 还是 NO，Supervisor 都必须比较 revision、verdict、fingerprint 和 expected action。
+
+- `ACK_TERMINAL_VERDICT_AND_STOP`：同轮把 execution status 对齐为 terminal、non-executable、准确 fingerprint，并写 `PMC Verdict Confirmation: ACK_TERMINAL_VERDICT_AND_STOP`。
+- `ACK_TERMINAL_VERDICT_AND_START_RUNTIME_DIAGNOSTIC`：先完成 terminal confirmation，再进入 Step 1.1；不得把 ACK 当作 diagnostic 完成。
+- `ACK_NEW_REMEDIATION_REVISION`：只 ACK 新 approved revision；旧 terminal chain 保持不可复用。
+
+只要 reconciliation 未确认、advisory 未 ACK 或 diagnostic 已逾期，就属于真实状态事件，不能使用 `[SILENT]`。
 
 ### Step 2：Queue ACK
 
@@ -132,7 +192,7 @@ Queue Action 必须逐字传入 launcher，禁止重写、降级、猜测或使�
 
 | Queue Action | Coordinator profile | Required fields | Forbidden fields | Result |
 |---|---|---|---|---|
-| `DISPATCH_ONLY` | `revid-dispatcher` | Executor Profile = `revid-backend` 或 `revid-frontend` | review evidence fields | exactly one Executor child |
+| `DISPATCH_ONLY` | `revid-dispatcher` | Executor Profile、Executor Idempotency Key、Executor Max Runtime、Executor Stop After | review evidence fields | exactly one Executor child |
 | `REVIEW_DISPATCH_ONLY` | `revid-pm` | Review Profile、Executor Evidence Card、REPORT、REVIEW/HANDOFF output paths and keys | Executor Profile | exactly one Reviewer + dependent HANDOFF-only card |
 
 Queue Action = `REVIEW_DISPATCH_ONLY` 时绝不能创建 `DISPATCH_ONLY` card。未知 action、profile 不匹配、字段缺失或 forbidden field 非空时，在 create 前转 `INFRASTRUCTURE_BLOCKED`，failure fingerprint 为 `SUPERVISOR_QUEUE_ACTION_UNSUPPORTED` 或 `SUPERVISOR_ACTION_PROFILE_CONTRACT_INVALID`。
@@ -162,11 +222,11 @@ D:/works/codexWorks/project_revid/backend/.venv/Scripts/python.exe \
   --workspace "dir:D:/works/codexWorks/project_revid"
 ```
 
-`DISPATCH_ONLY` 必须传 `--executor-profile`。`REVIEW_DISPATCH_ONLY` 必须传 `--review-profile`、`--executor-card`、`--report-path`、`--review-path`、`--handoff-path`、`--reviewer-idempotency-key` 和 `--handoff-idempotency-key`，且不得传 `--executor-profile`。
+`DISPATCH_ONLY` 必须传 `--executor-profile`、`--executor-idempotency-key`、`--executor-max-runtime` 和 `--executor-stop-after`。四个值必须来自 exact Queue contract；不得从 Coordinator budget、Coordinator key 或 Dispatcher Stop After 复制或猜测。`REVIEW_DISPATCH_ONLY` 必须传 `--review-profile`、`--executor-card`、`--report-path`、`--review-path`、`--handoff-path`、`--reviewer-idempotency-key` 和 `--handoff-idempotency-key`，且不得传任何 Executor child contract field。
 
-Budget 是 Action contract：`DISPATCH_ONLY` 不得低于 120 秒；`REVIEW_DISPATCH_ONLY` 不得低于 180 秒。Launcher 固定传 `--max-retries 2`，语义为 initial attempt 后最多一次 process retry；不得用 `1` 冒充“一次 retry”。低于最低预算时在 card create 前 fail-closed。
+Budget 是 Action contract：`DISPATCH_ONLY` Coordinator 不得低于 120 秒，且 `--executor-max-runtime` 必须独立传递 Queue 的 Executor Budget；`REVIEW_DISPATCH_ONLY` 不得低于 180 秒。Launcher 固定传 `--max-retries 2`，语义为 initial attempt 后最多一次 process retry；不得用 `1` 冒充“一次 retry”。缺失 child contract 或低于最低预算时在 card create 前 fail-closed。
 
-Launcher 在 Python 内构造 canonical body，并通过 `subprocess` argv list 直接调用 `hermes.exe`；Bash、PowerShell 或 `hermes.cmd` 都不承载 multiline body。Launcher 会在 create 前后校验 persisted body、Action 和 profile，缺失/未知 marker 时非零退出。
+Launcher 在 Python 内构造 canonical body，并通过 direct `kanban_create` import 创建 card；Bash、PowerShell 或 `hermes.cmd` 都不承载 multiline body。Launcher 会在 create 前后校验 persisted body、Action、profile 和完整 Executor child contract，缺失/未知 marker 时非零退出。
 
 严禁任何 fallback：不得在 launcher 失败后改用 `hermes kanban create --body "@Task.md"`、不得缩短 body、不得复用相同 idempotency key 创建修正版。Launcher 非零退出时直接转 `INFRASTRUCTURE_BLOCKED`，保存 stderr 与 failure fingerprint `SUPERVISOR_COORDINATOR_BODY_TRANSPORT_FAILED`，不创建 card。
 
@@ -199,6 +259,8 @@ State 只能使用上述枚举，异常只允许 `INFRASTRUCTURE_BLOCKED`、`SEC
 根据已验证的最深实际阶段写 State：如果真实 Executor 已 running，则必须写 `EXECUTOR_RUNNING`，不能停留在 Coordinator 状态；如果真实 Reviewer 已 running，则必须写 `REVIEW_RUNNING`。
 
 只有状态变化、card ID 变化、产生新证据、failure fingerprint 变化或 PMC action marker 变化时更新 execution status。
+
+Runtime advisory ACK、diagnostic path/verdict、diagnostic overdue/stalled 和 PMC verdict confirmation 也属于状态变化。
 
 Scheduler 不直接创建 Executor/Reviewer/Handoff；初始 Executor 由 `revid-dispatcher` 创建，Reviewer/Handoff lifecycle 由 `revid-pm` 创建。
 
@@ -290,6 +352,7 @@ PMC action marker 格式必须写入或更新到 `HERMES-EXECUTION-STATUS.md`：
 - 若只是需要 Codex PMC 介入，`Human Decision Candidate` 必须为 `NO`，最终回复仍保持 `[SILENT]`，不得 delivery 给 Human Owner。
 - 只有付费资源、真实 secret、不可逆操作、重大产品/contract 决策或安全阻塞时，才允许 `Human Decision Candidate = YES` 并输出给 Human Owner。
 - 当 PMC action 已被 Codex 处理或不再需要时，下一次有状态变化时把 marker 改回 `NO` / `NONE`。
+- runtime advisory 由独立的 `Runtime Owner State` 跟踪；不得通过把 `PMC Action Required` 设为 `NO` 隐藏未 ACK、未完成或已逾期的 runtime owner 工作。
 - 不得把 Worker crash、timeout、普通测试失败、一次 REWORK 或 Reviewer 可复现缺陷升级给 Human Owner。
 
 ## 输出与静默
@@ -327,7 +390,7 @@ Failure Fingerprint：
 [SILENT]
 ```
 
-如果 Queue、Kanban、证据和 failure fingerprint 均无变化，最终回复必须且只能是：
+如果 Queue、Kanban、证据和 failure fingerprint 均无变化，且不存在未确认 reconciliation、未 ACK advisory 或逾期 diagnostic，最终回复必须且只能是：
 
 ```text
 [SILENT]
