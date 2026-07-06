@@ -8,7 +8,7 @@
 | Task | 标题 | 状态 | 依赖 |
 |---|---|---|---|
 | T4-001 | MySQL 8 引擎、模型备注与 Alembic baseline | done | 无 |
-| T4-002 | SQLite → MySQL 数据迁移工具 | Unit C2 rev26/26r2 PMC PASS；Unit C3 rev36 未 ACK、因 Human priority override 在执行前 supersede，授权与 fingerprints 保留 | T4-001 ✅ |
+| T4-002 | SQLite → MySQL 数据迁移工具 | Unit C2 rev26/26r2 PMC PASS；Unit C3 rev42 PMC_BLOCKED，shared-lifecycle regressions 与 failure grouping Hard Gates 失败 | T4-001 ✅ |
 | T4-003 | MySQL runtime 切换与 Navicat 验收 | blocked | T4-002 |
 
 ## Phase 4B — 认证与真实 API

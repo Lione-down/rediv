@@ -206,3 +206,10 @@
 - Business evidence block 不等于 runtime incident。Terminal STOP 可以没有同 revision Runtime Advisory；只有 diagnostic-start 阶段必须强制 advisory、diagnostic path/hash 和 owner state。
 - Queue publication 后必须在启动 Hermes cron 前运行 reconciler `--check`。exit `2` 是 contract/structure 缺陷，应由 PMC 修复；不得让 Hermes cron循环重试。
 - Terminal ACK 不是只更新 Action、hash 和 reconciliation row。必须原子同步 Execution State、当前 failure fingerprint、PMC Action Required/Type/Reason，并移除与 verdict 冲突的历史成功叙述；否则 deterministic 局部检查可能通过，但 PMC 全局检查仍会正确判为 `STATE_CONFLICT`。
+
+## 2026-07-06 Hermes Next Action 精确操作契约
+
+- `Hermes Next Action` 只写“规范化 status”或“修复冲突”无法让 Hermes 唯一定位目标，也无法让 PMC 在下一轮确定性验收。
+- 每条指令必须包含精确 Target、Observed Problem、Required Changes、Forbidden Actions、Verification、Completion Evidence 和 Done Condition。
+- 用户可见摘要不能替代共享文档中的详细操作契约；Hermes 无法读取 Codex 私有 thread 或 automation memory，正式指令必须落在双方可读的 PMC REVIEW、Queue、Task、ADR 或 CURRENT。
+- 字段修改必须给出当前值与目标值；验证必须给出命令或结构化 read-back 以及预期结果，禁止使用未定义的概括性动词。

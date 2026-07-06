@@ -36,7 +36,9 @@ T4-002
 - Unit C3 Remediation Revision：`phase4-wave2-unit-c3-integrity-remediation-2026-07-01-28`
 - Unit C3 AC4 Cleanup Correction Revision：`phase4-wave2-unit-c3-ac4-cleanup-correction-2026-07-01-29`
 - Unit C3 Bound Failure Cleanup Revision：`phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30`
-| Status：`UNIT C1/C2 PMC PASS — UNIT C3 REVISION -30 TERMINAL PMC_BLOCKED — NO EXECUTABLE QUEUE` |
+- Unit C3 Superseded Publication Revision：`phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-04-36`
+- Unit C3 Fresh Remediation Revision：`phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42`
+| Status：`UNIT C1/C2 PMC PASS — UNIT C3 REVISION -42 PMC_BLOCKED / REPORT HARD GATES FAILED` |
 | Approved By：Codex Project Master Controller（继承 Human User 的 T4-002 product/destructive authorization） |
 | Previous Coordinator Card：`t_b788cdb9` (blocked; timed_out run #82) |
 | Previous Executor Card：`t_3769f8ec` (attempt 1 continuation; crashed run #83; retry blocked by parent) |
@@ -78,6 +80,8 @@ T4-002
 - Unit C3 Rev28 PMC Blocked：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV28-BLOCKED-2026-07-01.md`
 - Unit C3 Rev29 Rework Authorization：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV29-REWORK-AUTHORIZATION-2026-07-01.md`
 - Unit C3 Rev29 PMC Blocked：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV29-BLOCKED-2026-07-01.md`
+- Unit C3 Rev42 Publication：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV42-PUBLICATION-2026-07-07.md`
+- Unit C3 Rev42 PMC Blocked：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV42-BLOCKED-2026-07-07.md`
 - Hermes Atomic Dispatch Fix Report：`ai/reports/REPORT-HERMES-ATOMIC-DISPATCH-FIX-2026-06-29.md`
 - Hermes Atomic Dispatch PMC PASS：`ai/reviews/REVIEW-T4-002-PMC-HERMES-ATOMIC-DISPATCH-FIX-PASS-2026-06-29.md`
 - Safety Decision：`ai/decisions/ADR-003-t4-002-disposable-mysql-test-environment.md`

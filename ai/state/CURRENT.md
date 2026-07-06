@@ -1,5 +1,61 @@
 # Revid — 当前项目状态
 
+## 2026-07-07 T4-002 Unit C3 Revision 42 PMC Blocked
+
+Revision 42 已达到 `REPORT_READY`，但 PMC source/test-semantics audit 判定 Hard Gates 明确失败。`test_cleanup_lifecycle_restores_fk_when_delete_fails` 手工复制流程并仅 append `fk_restore`，没有调用 shared lifecycle；`test_cleanup_lifecycle_preserves_primary_close_and_restore_failures` 只手工构造 `ExceptionGroup`，没有注入并验证实际 orchestration。实际 `_run_cleanup_lifecycle()` 在多失败时向 `ExceptionGroup` 传入 tuple，fresh in-memory probe 返回 `ValueError: Item 0 of second argument (exceptions) is not an exception`；real AC4 仍以 `except Exception: pass` 丢弃 resource-close failures，且 recorder 未被断言。
+
+正式结论：`PMC_BLOCKED`，fingerprint `REV42_REGRESSIONS_BYPASS_SHARED_LIFECYCLE_AND_FAILURE_GROUPING_INVALID`。Revision 42 不进入 Independent Review/HANDOFF，不 retry/redispatch/reuse；Task 的单次 business attempt 已用尽且禁止 automatic business rework，因此不发布 replacement revision。T4-003 继续 blocked。正式审查：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV42-BLOCKED-2026-07-07.md`。
+
+## 2026-07-07 T4-002 Unit C3 Revision 42 Published
+
+Hermes 已对 T4-010 rev41r7 写入 exact `ACK_TERMINAL_VERDICT_AND_STOP`，current state 为 terminal `PMC_PASS`，当前无 ready/running/review execution chain。T4-010 的 terminal Queue 已收口，不再授权任何该 Task card。
+
+T4-002 Unit C3 revision 36 在 ACK 前被 supersede，不能复用。PMC 现发布 fresh revision `phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42`，Task 为 `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV42.md`。它继承 rev27-rev30 全部 fingerprints，只允许 `backend/tests/test_migration_tool.py` 的 bounded failure-safe cleanup remediation 与 rev42 PLAN/PROGRESS/REPORT；停止于 `UNIT_C3_FAILURE_LIFECYCLE_REPORT_READY_REV42`，Reviewer/HANDOFF 未授权。正式决定：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV42-PUBLICATION-2026-07-07.md`。
+
+**T4-002 rev42 已完成**：Coordinator `t_89269e14` (done, 33s) → Executor `t_adc87aa2` (done, run #187, 760s) → `UNIT_C3_FAILURE_LIFECYCLE_REPORT_READY_REV42`。所有 8 项验证测试通过（3 non-MySQL + 5 real-MySQL）。REPORT 位于 `ai/reports/REPORT-T4-002-UNIT-C3-REV42.md`。Awaiting PMC QUEUE_DECISION for Independent Review continuation or termination.
+
+## 2026-07-07 Hermes Next Cron Contract Clarified
+
+PMC 审计确认 Hermes 的错误不只是执行判断问题，canonical prompt 本身也包含循环门槛：旧规则把任何 reconciler exit `2` 都解释为“不得修改 status”，即使 exit `2` 正是由 malformed status input 引起；同时 Queue 历史 prose 仍保留旧 “executable” 叙述，容易被误当成 Active Wave。
+
+现已建立 `ai/automation/HERMES-NEXT-CRON-CONTRACT.md`：下一轮只处理 rev41r7 terminal status，合法 table row 必须使用单个 leading `|`；结构错误允许且要求 Hermes 修复其 owned status，但任何 exit `2` 都继续禁止 card/业务推进。T4-002 rev36 明确为 `SUPERSEDED BEFORE ACK`，不得 ACK 或 dispatch；rev41r7 STOP 闭环后，Unit C3 只能由 PMC 用 fresh revision/keys 重新发布。Canonical Hermes prompt、operating model、Queue 入口和当前 PMC review 已同步该合同。
+
+## 2026-07-07 Revision 41r7 Partial State Correction
+
+T4-010 业务结论保持 `PMC_PASS`。Hermes-owned status SHA256 已变为 `EF435EC8232EB2036E8F6D1A0BE41E57CE880543F1E9F90BEEE0F47A43DAC56A`；current `State`、fingerprint `NONE`、Task/Queue hashes 和 `PMC Action Required = NO` 已改到正确方向，关闭了上一轮 current state 仍为 `PMC_BLOCKED` 的冲突。
+
+Terminal reconciliation 仍不 canonical：139 行中有 100 行以非法 `|||` 开头；rev41r7 缺少 exact `ACK_TERMINAL_VERDICT_AND_STOP — COMPLETE` 和唯一 `PMC Verdict Confirmation`；status 的 `10:30+08:00` / `09:00+08:00` 时间还晚于本轮实际读取时间 `00:02+08:00`。Project reconciler 在 malformed line 7 fail-closed，`--check` exit `2`。Queue 继续 terminal/non-executable，不授权新 card、revision 或业务工作。正式记录：`ai/reviews/REVIEW-T4-010-PMC-REV41R7-PARTIAL-STATE-CORRECTION-2026-07-07.md`。
+
+## 2026-07-06 Revision 41r7 Status Regression
+
+T4-010 业务结论保持 `PMC_PASS`。Hermes-owned status SHA256 已变为 `3C4053C571EF7C9E014BD4E7955D733FFAEAA1C69C44985B9D4E3B837290D861`；其中 Task/Queue SHA256、fingerprint `NONE` 与 `PMC Action Required = NO` 正确，但 terminal reconciliation 再次失去 canonical form。
+
+status 的 `Last updated`/`Last Transition` 为晚于本轮实际读取时间的 `2026-07-07T09:00:00+08:00`；139 行中有 100 行 table row 以非法 `|||` 开头；缺少唯一 `PMC Verdict Confirmation = ACK_TERMINAL_VERDICT_AND_STOP`，`Rev41r7 Reconciliation` 也未使用 exact STOP ACK。项目 reconciler 因 malformed line 7 fail-closed，`--check` exit `2`。PMC 记录 `PMC_STATE_CONFLICT — TERMINAL PASS STATUS REGRESSED / STOP ACK NOT CANONICAL`。Queue 保持 terminal/non-executable，不授权新 card 或 revision。正式记录：`ai/reviews/REVIEW-T4-010-PMC-REV41R7-STATUS-REGRESSION-2026-07-06.md`。
+
+## 2026-07-06 Revision 41r7 Partial Status Remediation
+
+T4-010 业务结论保持 `PMC_PASS`。Hermes-owned status 已把上一轮 future `Last updated` 修正为实际写入前的 `2026-07-06T20:37:45+08:00`，并继续保持 exact STOP ACK、fingerprint `NONE` 与匹配的 Task/Queue SHA256；status SHA256 现为 `B393F751DD17C3AD6087FB77ADE31BB8F697562FC699264B423FF9B3BED32B62`。
+
+Terminal reconciliation 仍未 canonical：current `State` 与 `Queue Status` 继续错误写成 `PMC_BLOCKED`；162 行 table row 仍以非法 `||` 开头；project reconciler 仍只接受 BLOCKED Queue，本轮 `--check` exit `2`，现有 tests `10 passed` 但没有 `PMC_PASS` terminal regression。rev41r3 的 `t_7ab33875` / `t_0cba51b5` 双 Coordinator accounting 也仍缺少结构化 read-back。PMC 记录 `PMC_STATE_CONFLICT — PARTIAL REMEDIATION / TERMINAL PASS STATE STILL NOT CANONICAL`。Queue 保持 terminal/non-executable，不授权新 card 或 revision。正式记录：`ai/reviews/REVIEW-T4-010-PMC-REV41R7-PARTIAL-STATUS-REMEDIATION-2026-07-06.md`。
+
+## 2026-07-06 Revision 41r7 Terminal ACK State Conflict
+
+T4-010 业务结论保持 `PMC_PASS`。Hermes-owned status 已补齐 rev41r7 exact `ACK_TERMINAL_VERDICT_AND_STOP — COMPLETE`、fingerprint `NONE` 以及匹配的 Task/Queue SHA256；但 current `State` 同时写成 `PMC_BLOCKED`，与该 ACK、PMC 最终验收、ROADMAP 和 terminal Task 状态冲突。status 的 `Last updated`/`Last Transition` 还是晚于本轮实际读取时间的 `2026-07-06T20:30:00+08:00`，不能作为可信 ordering 证据。
+
+Rev41r3 historical accounting 也仍同时出现 canonical Coordinator `t_7ab33875` 与同 idempotency key 的 adopted Coordinator `t_0cba51b5`，两者关系没有可核对证据。PMC 记录 `PMC_STATE_CONFLICT — TERMINAL ACK RECEIVED / STATUS SEMANTICS STILL INCONSISTENT`。Queue 保持 terminal/non-executable，并保留唯一 reconciliation signal；不授权新 card 或 revision。正式记录：`ai/reviews/REVIEW-T4-010-PMC-REV41R7-TERMINAL-ACK-STATE-CONFLICT-2026-07-06.md`。
+
+## 2026-07-06 Revision 41r7 Partial Terminal Reconciliation
+
+T4-010 业务结论保持 `PMC_PASS`。Hermes-owned status 已撤回不符合升级条件的 Human review 表述，并将 `t_0cba51b5` 改述为 adopted historical card；但该 ID 与 rev41r3 canonical Coordinator `t_7ab33875` 的关系仍未得到可核对证据。
+
+Rev41r7 terminal reconciliation 仍未闭环：status 继续为 `HANDOFF_READY`，current fingerprint 仍为 rev41r6 历史值，且缺少同 revision、Queue fingerprint `NONE` 的 exact `ACK_TERMINAL_VERDICT_AND_STOP — COMPLETE`。PMC 结论为 `PMC_STATE_CONFLICT — PARTIALLY CORRECTED / TERMINAL RECONCILIATION STILL OPEN`。Queue 保持 terminal/non-executable；不授权新 card 或 revision。正式记录：`ai/reviews/REVIEW-T4-010-PMC-REV41R7-PARTIAL-RECONCILIATION-2026-07-06.md`。
+
+## 2026-07-06 Revision 41r7 Post-PASS Historical Chain Conflict
+
+T4-010 业务结论继续为 `PMC_PASS`，但 Hermes-owned status 出现新的 control-plane cursor：status 报告新增 rev41r3 Coordinator `t_0cba51b5` 已创建、运行并 blocked。Rev41r3 早已是 terminal historical chain，且现有 Queue/CURRENT 明确禁止任何历史 card 重派、复用或操作；项目文档中没有该新 card 的独立证据，因此 PMC 只记录 status 报告事实，不把未验证细节写成项目事实。
+
+Rev41r7 terminal STOP reconciliation 仍未闭环：current state 继续为 `HANDOFF_READY`，current fingerprint 继续错误保留 rev41r6 历史值，exact `ACK_TERMINAL_VERDICT_AND_STOP — COMPLETE` 仍缺失。status 新增的 `requires human review` 也与 canonical `Human Decision Candidate = NO` 冲突，且不满足 Human Owner escalation gate。PMC 记录一次性 `PMC_STATE_CONFLICT — POST-PASS HISTORICAL CHAIN ACTIVITY / TERMINAL RECONCILIATION STILL OPEN`；Queue 保持 terminal/non-executable，不授权任何 card 或新 revision。正式记录：`ai/reviews/REVIEW-T4-010-PMC-REV41R7-POST-PASS-HISTORICAL-CHAIN-CONFLICT-2026-07-06.md`。
+
 ## 2026-07-06 Revision 41r7 Terminal Reconciliation Stalled
 
 T4-010 业务结论继续为 `PMC_PASS`，但 Hermes-owned status 尚未完成 terminal STOP ACK：current state 仍为 `HANDOFF_READY`，current failure fingerprint 仍是历史值 `REV41R6_HANDOFF_SEARCH_FILES_POLICY_MISMATCH`，rev41r7 reconciliation 也未写入同 revision、Queue fingerprint `NONE` 的 `ACK_TERMINAL_VERDICT_AND_STOP — COMPLETE`。status 内嵌更新时间还晚于本轮实际读取时间，不能作为可信 checkpoint 顺序证据。

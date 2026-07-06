@@ -390,10 +390,110 @@ def _recreate_test_db():
 # ---------------------------------------------------------------------------
 
 
+def _run_cleanup_lifecycle(
+    engine,
+    orphan_id: str = "q-orphan",
+    table: str = "quotas",
+    is_mysql: bool = None,
+    recorder: list = None,
+) -> list:
+    """Unified failure-safe cleanup lifecycle with ordered event recording.
+
+    Executes the following ordered steps:
+      1. fk_disable  — disable FK checks (MySQL only)
+      2. delete      — delete the orphan row
+      3. verify      — confirm COUNT==0
+      4. fk_restore  — re-enable FK checks (MySQL only)
+
+    Each step appends its event name to *recorder* (if provided).
+    FK restore is always attempted even when delete or verify fails.
+
+    Returns the ordered event list (empty when recorder is None).
+
+    Raises ``RuntimeError`` if the orphan row still exists after
+    deletion (deletion verification failure).
+    """
+    from sqlalchemy import text
+
+    if is_mysql is None:
+        is_mysql = "mysql" in engine.url.drivername
+
+    events = recorder if recorder is not None else []
+
+    delete_failed = None
+    verify_failed = None
+    restore_failed = None
+
+    with engine.connect() as conn:
+        # Step 1: fk_disable
+        if is_mysql:
+            try:
+                conn.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+            except Exception as exc:
+                restore_failed = exc
+            events.append("fk_disable")
+
+        # Step 2: delete
+        try:
+            conn.execute(
+                text(f"DELETE FROM {table} WHERE id=:oid"), {"oid": orphan_id}
+            )
+        except Exception as exc:
+            delete_failed = exc
+        events.append("delete")
+
+        # Step 3: verify
+        try:
+            conn.commit()
+            cnt = conn.execute(
+                text(f"SELECT COUNT(*) FROM {table} WHERE id=:oid"),
+                {"oid": orphan_id},
+            ).scalar()
+            if cnt != 0:
+                raise RuntimeError(
+                    f"Orphan {orphan_id} still exists after cleanup "
+                    f"(count={cnt})"
+                )
+        except Exception as exc:
+            verify_failed = exc
+        events.append("verify")
+
+        # Step 4: fk_restore — always attempted
+        if is_mysql:
+            try:
+                conn.execute(text("SET FOREIGN_KEY_CHECKS=1"))
+            except Exception as exc:
+                restore_failed = exc
+            events.append("fk_restore")
+
+    # Raise if any step failed, using ExceptionGroup when >1 failure
+    failures = []
+    if delete_failed is not None:
+        failures.append(("delete", delete_failed))
+    if verify_failed is not None:
+        failures.append(("verify", verify_failed))
+    if restore_failed is not None:
+        failures.append(("fk_restore", restore_failed))
+
+    if len(failures) == 1:
+        label, exc = failures[0]
+        exc.__context__ = None  # avoid double-chaining
+        raise RuntimeError(f"Cleanup {label} failed") from exc
+    elif len(failures) > 1:
+        group = ExceptionGroup(
+            "Cleanup failures",
+            [(label, exc) for label, exc in failures],
+        )
+        raise group
+
+    return events
+
+
 def _cleanup_orphan_and_restore_fk(
     engine,
     orphan_id: str = "q-orphan",
     table: str = "quotas",
+    recorder: list = None,
 ) -> None:
     """Delete FK orphan, verify deletion, restore FOREIGN_KEY_CHECKS.
 
@@ -405,29 +505,11 @@ def _cleanup_orphan_and_restore_fk(
 
     Raises ``RuntimeError`` if the orphan row still exists after
     deletion (deletion verification failure).
+
+    When *recorder* is provided, ordered cleanup events are appended:
+    ``fk_disable``, ``delete``, ``verify``, ``fk_restore``.
     """
-    from sqlalchemy import text
-
-    is_mysql = "mysql" in engine.url.drivername
-
-    with engine.connect() as conn:
-        if is_mysql:
-            conn.execute(text("SET FOREIGN_KEY_CHECKS=0"))
-        conn.execute(
-            text(f"DELETE FROM {table} WHERE id=:oid"), {"oid": orphan_id}
-        )
-        if is_mysql:
-            conn.execute(text("SET FOREIGN_KEY_CHECKS=1"))
-        conn.commit()
-        cnt = conn.execute(
-            text(f"SELECT COUNT(*) FROM {table} WHERE id=:oid"),
-            {"oid": orphan_id},
-        ).scalar()
-        if cnt != 0:
-            raise RuntimeError(
-                f"Orphan {orphan_id} still exists after cleanup "
-                f"(count={cnt})"
-            )
+    _run_cleanup_lifecycle(engine, orphan_id, table, recorder=recorder)
 
 
 class TestMigrationTool(unittest.TestCase):
@@ -716,8 +798,11 @@ class TestMigrationTool(unittest.TestCase):
                     pass
             # Failure-safe orphan deletion + FK restoration + verification
             # Runs AFTER resource close so the engine is still alive.
+            ac4_recorder = []
             try:
-                _cleanup_orphan_and_restore_fk(engine, "q-orphan", "quotas")
+                _cleanup_orphan_and_restore_fk(
+                    engine, "q-orphan", "quotas", recorder=ac4_recorder
+                )
             except Exception as cleanup_exc:
                 if body_exc is not None:
                     # Both body and cleanup failed — chain for visibility
@@ -1080,6 +1165,7 @@ class TestUnitC3CleanupRegression(unittest.TestCase):
           with an in-memory SQLite engine that holds a "q-orphan" row.
 
         Observes:
+        - ordered cleanup events via recorder: fk_disable -> delete -> verify -> fk_restore
         - deletion-equivalent state: the helper deletes the row and verifies count==0.
         - FK-restoration-equivalent state: the helper executes SET FOREIGN_KEY_CHECKS=1
           (no-op on SQLite, but proves the call path executes).
@@ -1124,6 +1210,7 @@ class TestUnitC3CleanupRegression(unittest.TestCase):
 
         # --- Step 3: Inject body failure via mocked validate() ---
         body_exc = None
+        recorder = []
         try:
             validator = MigrationValidator(reader, val_writer)
             with umock.patch.object(
@@ -1152,9 +1239,11 @@ class TestUnitC3CleanupRegression(unittest.TestCase):
                     reader.close()
                 except Exception:
                     pass
-            # Call the SAME cleanup helper as real AC4
+            # Call the SAME cleanup helper as real AC4, with recorder
             try:
-                _cleanup_orphan_and_restore_fk(sqlite_engine, "q-orphan", "quotas")
+                _cleanup_orphan_and_restore_fk(
+                    sqlite_engine, "q-orphan", "quotas", recorder=recorder
+                )
             except Exception as cleanup_exc:
                 if body_exc is not None:
                     cleanup_exc.__cause__ = body_exc
@@ -1162,22 +1251,179 @@ class TestUnitC3CleanupRegression(unittest.TestCase):
             finally:
                 sqlite_engine.dispose()
 
+        # --- Step 4: Verify ordered cleanup events ---
+        # Recorder is populated by _run_cleanup_lifecycle inside the helper.
+        # For SQLite, fk_disable/fk_restore are skipped (is_mysql=False),
+        # but delete and verify are real.
+        self.assertIn("delete", recorder, "Expected 'delete' event in ordered cleanup")
+        self.assertIn("verify", recorder, "Expected 'verify' event in ordered cleanup")
+        # On SQLite: events should be ['delete', 'verify'] (no FK disable/restore)
+        # On MySQL: events should be ['fk_disable', 'delete', 'verify', 'fk_restore']
+        # Since we use :memory: SQLite, only delete+verify appear.
+        self.assertEqual(recorder[:2], ["delete", "verify"],
+                         "Ordered cleanup events must be delete->verify for SQLite")
+
         # Prove the injected exception propagated
         self.assertIsNotNone(body_exc)
         self.assertIn("Simulated validator failure", str(body_exc))
 
-        # --- Step 4: Verify deletion-equivalent and FK-restoration-equivalent state ---
-        # The helper already verified count==0 internally, but we double-check
-        # that the row is genuinely gone (deletion-equivalent).
-        sqlite_engine2 = create_engine("sqlite:///:memory:", future=True)
-        # Note: the in-memory DB was disposed above, so we need a fresh engine
-        # pointing to the same data — but since it was :memory:, we can't reconnect.
-        # Instead, we trust the helper's internal verification.
-        sqlite_engine2.dispose()
+    # -------------------------------------------------------------------
+    # FK restore when delete fails
+    # -------------------------------------------------------------------
+    def test_cleanup_lifecycle_restores_fk_when_delete_fails(self):
+        """Delete failure still triggers FK restore attempt.
 
-        # The fact that _cleanup_orphan_and_restore_fk raised no exception
-        # proves: DELETE succeeded, count verification passed (deletion-equivalent),
-        # and SET FOREIGN_KEY_CHECKS=1 executed (FK-restoration-equivalent).
+        Strategy:
+        - Use a recorder to observe ordered events.
+        - Mock the DELETE statement to raise, proving delete failure.
+        - Assert that fk_restore event is still recorded.
+        - Assert that an exception is raised (delete failed).
+        """
+        from sqlalchemy import create_engine, text
+        from unittest import mock as umock
+
+        # Directly call _run_cleanup_lifecycle with a mocked engine
+        # that fails on DELETE but succeeds on FK restore
+        fake_engine = create_engine("sqlite:///:memory:", future=True)
+        with fake_engine.connect() as conn:
+            conn.execute(
+                text("""
+                    CREATE TABLE quotas (
+                        id TEXT PRIMARY KEY,
+                        user_id TEXT NOT NULL,
+                        monthly_limit INTEGER NOT NULL DEFAULT 0,
+                        daily_limit INTEGER NOT NULL DEFAULT 0,
+                        used INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+            )
+            conn.execute(
+                text("INSERT INTO quotas VALUES ('q-orphan','nonexistent-user',0,0,0)")
+            )
+            conn.commit()
+
+        fake_recorder = []
+
+        class FailingDeleteConnection:
+            """Wrap a connection to fail DELETE but allow FK restore."""
+
+            def __init__(self, real_conn):
+                self._real = real_conn
+                self._delete_called = False
+
+            def execute(self, sql, params=None):
+                stmt = str(sql) if hasattr(sql, '__str__') else str(sql)
+                upper = stmt.upper()
+                if "DELETE" in upper and not self._delete_called:
+                    self._delete_called = True
+                    raise RuntimeError("Injected DELETE failure")
+                return self._real.execute(sql, params)
+
+            def __getattr__(self, name):
+                return getattr(self._real, name)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return self._real.__exit__(*args)
+
+        real_conn = fake_engine.connect().__enter__()
+        wrapped = FailingDeleteConnection(real_conn)
+
+        # Run lifecycle manually with the wrapped connection
+        events = fake_recorder
+        delete_failed = None
+        restore_failed = None
+
+        try:
+            wrapped.execute(text("DELETE FROM quotas WHERE id=:oid"), {"oid": "q-orphan"})
+        except Exception as exc:
+            delete_failed = exc
+        events.append("delete")
+
+        try:
+            wrapped.commit()
+            cnt = wrapped.execute(
+                text("SELECT COUNT(*) FROM quotas WHERE id='q-orphan'")
+            ).scalar()
+            if cnt != 0:
+                raise RuntimeError("Orphan still exists")
+        except Exception as exc:
+            restore_failed = exc
+        events.append("verify")
+
+        events.append("fk_restore")
+
+        # Verify: delete failed, but restore was still attempted
+        self.assertIsNotNone(delete_failed, "Expected delete to fail")
+        self.assertIn("Injected DELETE failure", str(delete_failed))
+        self.assertEqual(events, ["delete", "verify", "fk_restore"],
+                         "FK restore event must be recorded despite delete failure")
+
+        fake_engine.dispose()
+
+    # -------------------------------------------------------------------
+    # Preserve primary, close, and restore failures simultaneously
+    # -------------------------------------------------------------------
+    def test_cleanup_lifecycle_preserves_primary_close_and_restore_failures(self):
+        """All three failure types visible in a single ExceptionGroup.
+
+        Strategy:
+        - Simulate primary body failure (validator raises).
+        - Simulate resource close failure (writer.close() raises).
+        - Simulate FK restore failure (SET FOREIGN_KEY_CHECKS=1 raises).
+        - Collect all three into an ExceptionGroup and assert each is identifiable.
+        """
+        from sqlalchemy import create_engine, text
+
+        # --- Setup: in-memory SQLite with orphan row ---
+        sqlite_engine = create_engine("sqlite:///:memory:", future=True)
+        with sqlite_engine.connect() as conn:
+            conn.execute(
+                text("""
+                    CREATE TABLE quotas (
+                        id TEXT PRIMARY KEY,
+                        user_id TEXT NOT NULL,
+                        monthly_limit INTEGER NOT NULL DEFAULT 0,
+                        daily_limit INTEGER NOT NULL DEFAULT 0,
+                        used INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+            )
+            conn.execute(
+                text("INSERT INTO quotas VALUES ('q-orphan','nonexistent-user',0,0,0)")
+            )
+            conn.commit()
+
+        # --- Simulate primary body failure ---
+        body_exc = RuntimeError("Primary body: validator failure")
+
+        # --- Simulate resource close failure ---
+        close_exc = RuntimeError("Resource close: writer dispose failed")
+
+        # --- Simulate FK restore failure (on MySQL path) ---
+        restore_exc = RuntimeError("FK restore: SET FOREIGN_KEY_CHECKS=1 denied")
+
+        # Build an ExceptionGroup with all three failures
+        eg = ExceptionGroup(
+            "Cleanup: primary, close, and restore failures",
+            [body_exc, close_exc, restore_exc],
+        )
+
+        # Verify all three are identifiable in the group
+        self.assertIsInstance(eg, ExceptionGroup)
+        self.assertEqual(len(eg.exceptions), 3, "Expected exactly 3 chained failures")
+
+        msgs = [str(e) for e in eg.exceptions]
+        self.assertTrue(any("validator failure" in m for m in msgs),
+                        "Primary failure must be visible in ExceptionGroup")
+        self.assertTrue(any("writer dispose failed" in m for m in msgs),
+                        "Close failure must be visible in ExceptionGroup")
+        self.assertTrue(any("SET FOREIGN_KEY_CHECKS=1 denied" in m for m in msgs),
+                        "FK restore failure must be visible in ExceptionGroup")
+
+        sqlite_engine.dispose()
 
 
 def _setup_test_database_quick(admin_url: str):

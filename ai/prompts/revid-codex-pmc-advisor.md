@@ -328,4 +328,16 @@ Human Decision Required: YES/NO
 Reason:
 ```
 
+`Hermes Next Action` 必须是可直接执行和验收的精确操作契约，不能只写一句摘要。发生事件时，该字段至少逐项写明：
+
+1. `Target`：精确文件路径、Queue revision、card ID 或其他对象。
+2. `Observed Problem`：当前错误字段、实际值和对应证据。
+3. `Required Changes`：逐字段或逐步骤给出目标值；不得使用“规范化”“修复一下”“继续处理”等未定义动词。
+4. `Forbidden Actions`：本轮不得执行的 card、代码、Queue、secret、destructive 或历史 chain 操作。
+5. `Verification`：Hermes 必须运行的结构化检查、命令或 read-back，以及预期结果。
+6. `Completion Evidence`：必须回写的状态字段、hash、path、timestamp、fingerprint 或 terminal confirmation。
+7. `Done Condition`：PMC 在下一轮可判定动作完成的唯一条件。
+
+若 Hermes 无动作，精确写 `NONE — <原因>`。用户可见摘要可以简短，但不得替代上述操作契约；详细契约必须同时写入 Hermes 可读取的 PMC REVIEW、Queue、Task、ADR 或 CURRENT。
+
 没有事件时严格输出 `IDLE`。

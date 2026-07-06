@@ -26,6 +26,7 @@
 - `ai/state/ROADMAP.md`
 - `ai/automation/HERMES-AUTO-QUEUE.md`
 - `ai/automation/HERMES-EXECUTION-STATUS.md`
+- `ai/automation/HERMES-NEXT-CRON-CONTRACT.md`（若存在；必须先核对 applicable revision）
 - Queue 精确指向的 Task 和 ADR
 
 ## 权限
@@ -50,6 +51,14 @@
 - 没有新事件时创建报告或发送通知。
 
 ## 每轮算法
+
+### Step -1：解析唯一授权与当前 Cron Contract
+
+只允许从 `HERMES-AUTO-QUEUE.md` 中唯一 `## Active Wave` 标题下的 table 读取当前 revision、Status、Action、Task path 和 profiles。历史 section、旧 fenced reconciliation block、包含“executable Queue”的历史 prose、保留的旧 Task/authorization 都不得覆盖 Active Wave table。
+
+若 `ai/automation/HERMES-NEXT-CRON-CONTRACT.md` 存在且其 `Applicable revision` 与 Active Wave revision 一致，该文件是本轮唯一具体操作合同；严格按其 Preconditions、Exact Steps、Branch Table、Forbidden Actions、Verification、Completion Evidence 和 Stop Condition 执行。若 revision 不一致，禁止使用旧合同，并写 `PMC Action Required = YES / STATE_CONFLICT`。
+
+任何 `SUPERSEDED BEFORE ACK`、`OBSOLETE`、terminal historical 或非 Active Wave revision 都不可 ACK、dispatch 或复用；即使历史 prose 曾称其为 executable，也必须忽略。
 
 ### Step 0：Gateway 与 Board
 
@@ -76,7 +85,10 @@ python ai/runtime/reconcile-hermes-execution-status.py --check
 
 - exit `0 / STATUS_OK`：status 已与 Queue、Task 和 diagnostic 原子对齐，禁止再次手工刷新 due、hash、Action 或 Queue Status。
 - exit `1 / STATUS_MISMATCH`：只允许运行一次 `--apply`，随后必须再次运行 `--check`；二次 `--check` 非 `0` 时 fail closed。
-- exit `2 / STATUS_RECONCILIATION_ERROR`：不得修改 status、不得操作 Kanban，记录准确错误并交 PMC。
+- exit `2 / STATUS_RECONCILIATION_ERROR`：始终禁止 Kanban、card 和业务推进，但不自动禁止修复 Hermes-owned status。按错误分类：
+  - `malformed Markdown table row`、重复字段、缺 section 等 status-input 结构错误：只修复 `HERMES-EXECUTION-STATUS.md`，完整 read-back 后最多再运行一次 `--check`。
+  - `reconciler only accepts a blocked non-executable Queue` 且 Active Wave 是 terminal `PMC_PASS`：这是已知 compatibility limitation；保持正确 `PMC_PASS`，禁止降级成 `PMC_BLOCKED`，禁止 Supervisor 修改 runtime code，按 current next-cron contract 写 exact STOP evidence 并交 PMC。
+  - 其他 error：不得修改 Queue/Task/runtime/Kanban；保存 exact stderr 到 PMC action evidence 后停止。
 - 禁止生成临时 verifier 代替该脚本，禁止用 Historical Notes 或最终回复中的文字声明替代 canonical table read-back。
 
 ### Step 1：读取 Queue

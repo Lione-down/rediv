@@ -291,6 +291,14 @@ Canonical Action/profile contract：
 
 所有 worker card 必须有且仅有一个 standalone `Action:`。profile 配置必须为每个允许 Action 定义 exact `worker_tool_policies`；Action 缺失、重复、未知或与 profile 不匹配时，dispatcher 必须在 spawn 前 fail-closed。
 
+### 6.1.1 Codex → Hermes：Next Cron Contract
+
+PMC 对需要 Hermes 在下一 checkpoint 执行的非平凡动作，必须同步维护 `ai/automation/HERMES-NEXT-CRON-CONTRACT.md`。该合同只适用于文件内声明的 exact Active Wave revision，revision 不匹配时自动失效。
+
+合同至少包含：Authority Snapshot、Objective、Preconditions、Exact Steps、deterministic Branch Table、Forbidden Actions、Verification、Completion Evidence 和 Stop Condition。必须明确哪些 exit code 禁止 card、哪些错误允许修复 Hermes-owned status、何时返回 PMC；禁止只写“同步状态”“修复冲突”“常规巡检”或“继续处理”。
+
+Hermes 只从唯一 `## Active Wave` table 解析当前授权。Queue 历史 prose、旧 authorization、旧 Task 或旧 fenced reconciliation block 不得覆盖 Active Wave。`SUPERSEDED BEFORE ACK` revision 必须使用 fresh PMC revision/key 才能重新执行。
+
 ### 6.2 Hermes → Codex：ACK/Execution Event
 
 Hermes 消费新 revision 后，将以下内容写入 `HERMES-EXECUTION-STATUS.md`。若 revision 对应的 matching idempotency chain 已由旧 Supervisor cycle 创建，必须 adopt 该 chain 并回填真实 card IDs，不得因 status 尚未 ACK 而重复创建：

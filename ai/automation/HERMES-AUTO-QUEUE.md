@@ -2,13 +2,35 @@
 
 ```text
 PMC Reconciliation Required: YES
-PMC Verdict Revision: phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7
-PMC Verdict: PMC_PASS
-Failure Fingerprint: NONE
+PMC Verdict Revision: phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV42_REGRESSIONS_BYPASS_SHARED_LIFECYCLE_AND_FAILURE_GROUPING_INVALID
 Expected Hermes Action: ACK_TERMINAL_VERDICT_AND_STOP
-Runtime Diagnostic SLA: N/A — task accepted
-Resume Condition: T4-010 archived; no further card for this task
+Runtime Diagnostic SLA: N/A — business Hard Gate failure, not runtime incident
+Resume Condition: fresh Human Owner authorization or a later PMC-approved bounded remediation Task that directly exercises the shared lifecycle and preserves all inherited fingerprints
 ```
+
+## Current Hermes Cron Contract
+
+下一轮 Hermes cron 必须执行 `ai/automation/HERMES-NEXT-CRON-CONTRACT.md`，且仅适用于当前 rev42 Active Wave。目标是确认无 active rev42 worker、规范化 Hermes-owned status、ACK exact terminal verdict/fingerprint 后停止；禁止任何 card 或业务动作。
+
+T4-002 Unit C3 rev36 与 rev42 均不是 executable Queue；其 revisions、cards 与 keys 不得复用。当前没有 executable authorization。
+
+## 2026-07-07 T4-002 Unit C3 Revision 42 PMC Blocked
+
+Revision 42 reached REPORT_READY, but PMC source and test-semantics audit found explicit Hard Gate failures. Two required regressions bypass the shared cleanup lifecycle, the actual multi-failure aggregation raises `ValueError`, resource-close failures remain discarded, and real AC4 does not assert its recorder. Formal verdict: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV42-BLOCKED-2026-07-07.md`.
+
+Revision 42 is terminal `PMC_BLOCKED` with fingerprint `REV42_REGRESSIONS_BYPASS_SHARED_LIFECYCLE_AND_FAILURE_GROUPING_INVALID`. Independent REVIEW, HANDOFF, retry, redispatch, card reuse and automatic business rework are forbidden. Hermes may only ACK the exact terminal verdict and stop.
+
+Hermes-owned status currently retains malformed double-leading-pipe tables and a future-dated `Last updated = 2026-07-07T12:22:00+08:00` relative to the PMC read at `2026-07-07T02:26:49+08:00`. Hermes must use the actual write time while performing terminal canonicalization; the future timestamp is not valid ordering evidence.
+
+Fresh deterministic status check exits `2` with `expected one section starting with '## Active Queue', found 2` because archived rev41r7 is still labeled as a second Active Queue. Hermes must relabel rev41r7 as historical while preserving its terminal PASS evidence and keep rev42 as the sole Active Queue section in terminal/non-executable form.
+
+## 2026-07-07 T4-002 Unit C3 Revision 42 Publication
+
+Rev41r7 terminal STOP reconciliation is complete. PMC publishes fresh bounded revision `phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42` with fresh Dispatcher/Executor keys. Formal authorization: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV42-PUBLICATION-2026-07-07.md`.
+
+Only `backend/tests/test_migration_tool.py` and rev42 PLAN/PROGRESS/REPORT are writable by the Executor. Stop at `UNIT_C3_FAILURE_LIFECYCLE_REPORT_READY_REV42`; Reviewer/HANDOFF and any automatic next revision are forbidden.
 
 ## 2026-07-06 T4-010 PMC PASS
 
@@ -407,36 +429,36 @@ T4-010 Unit B revision `-41r1` 与 `-40`/`-39`/`-38`/`-35`、revision `-34`/`-33
 
 | Field | Value |
 |---|---|
-| Revision | `phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7` |
-| Status | `PMC_PASS — NOT EXECUTABLE / AWAITING TERMINAL ACK` |
+| Revision | `phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42` |
+| Status | `PMC_BLOCKED — NOT EXECUTABLE / AWAITING TERMINAL ACK` |
 | Approved By | `Codex Project Master Controller` |
-| Approval Source | `ai/reviews/REVIEW-T4-010-PMC-REV41R6-SEARCH-POLICY-AND-REV41R7-AUTHORIZATION-2026-07-06.md` |
-| Approval Time | `2026-07-06` |
-| Task ID | `T4-010-UNIT-B-REV41R7` |
-| Project Task File | `ai/tasks/todo/TASK-T4-010-UNIT-B-REV41R7.md` |
+| Approval Source | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV42-BLOCKED-2026-07-07.md` |
+| Approval Time | `2026-07-07` |
+| Task ID | `T4-002` |
+| Project Task File | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV42.md` |
+| Task SHA256 | `41DAD1AA59C7AADD4844DDE033461C38ACFDB42B6EAD41990903C7F0EC6BBFD4` |
 | Action | `NONE — terminal evidence only` |
-| Executor Profile | `revid-pm — lifecycle coordinator only; no business execution` |
+| Executor Profile | `revid-backend` |
 | Review Profile | `revid-reviewer` |
-| Dispatch Profile | `revid-pm` |
-| Parallel Group | `serial-phase4-wave3-workspace-shell-unit-b-rev41r7-handoff` |
-| Attempt Policy | `fresh lifecycle cards only; Coordinator initial run plus at most one process retry; Reviewer and HANDOFF task retries 0; no business re-execution, browser rerun, automatic rev41r8 or old-card reuse` |
-| Previous Failure Fingerprint | `REV41R6_HANDOFF_SEARCH_FILES_POLICY_MISMATCH` |
-| Hard Gates | `ROLE_CONTRACTS_OK + HANDOFF_ONLY exact policy includes bounded search_files/file_sha256 and excludes terminal + fresh cards/keys + Reviewer PASS_REATTESTED without REVIEW overwrite + HANDOFF real REPORT/REVIEW SHA256 + no business/browser/artifact writes except canonical HANDOFF + no historical reuse + no secret/production/database/destructive action` |
-| Coordinator Budget | `300s; review dispatch only` |
-| Executor Budget | `N/A — business execution complete and forbidden` |
-| Dispatcher Idempotency Key | `revid:phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7:T4-010:review-dispatch` |
-| Reviewer Idempotency Key | `revid:phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7:T4-010:review:0` |
-| Handoff Idempotency Key | `revid:phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7:T4-010:handoff:0` |
-| Reviewer Budget | `600s` |
-| Handoff Budget | `900s` |
-| Stop After | `T4_010_HANDOFF_READY_REV41R7` |
+| Dispatch Profile | `revid-dispatcher` |
+| Parallel Group | `serial-phase4-wave2-unit-c3-rev42` |
+| Attempt Policy | `one bounded business attempt; initial Executor run plus at most one process retry; no automatic business rework, Reviewer, HANDOFF or historical card/key reuse` |
+| Previous Failure Fingerprint | `REV30_FK_RESTORATION_UNPROVEN_AND_CLEANUP_FAILURES_NOT_PRESERVED` |
+| Hard Gates | `project deploy + ROLE_CONTRACTS_OK + deterministic status gate + fresh rev42 cards/keys + Allowed File ownership + runtime-only REVID_TEST_MYSQL_ADMIN_URL + identity-confirmed disposable revid_test_t4_002 + no secret output/.env/revid_db + 3 exact non-MySQL regressions + 5 ordered real-MySQL selectors + no historical reuse` |
+| Coordinator Budget | `120s; thin Dispatcher only` |
+| Executor Budget | `1800s` |
+| Dispatcher Idempotency Key | `revid:phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42:T4-002:dispatch` |
+| Executor Idempotency Key | `revid:phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42:T4-002:execute:0` |
+| Reviewer Budget | `N/A — not authorized` |
+| Handoff Budget | `N/A — not authorized` |
+| Stop After | `ACK_TERMINAL_VERDICT_AND_STOP` |
 | PMC Reconciliation Required | `YES` |
-| PMC Verdict Revision | `phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7` |
-| PMC Verdict | `PMC_PASS` |
-| Failure Fingerprint | `NONE` |
+| PMC Verdict Revision | `phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42` |
+| PMC Verdict | `PMC_BLOCKED` |
+| Failure Fingerprint | `REV42_REGRESSIONS_BYPASS_SHARED_LIFECYCLE_AND_FAILURE_GROUPING_INVALID` |
 | Expected Hermes Action | `ACK_TERMINAL_VERDICT_AND_STOP` |
-| Runtime Diagnostic SLA | `N/A — task accepted` |
-| Resume Condition | `T4-010 archived; no further card for this task` |
+| Runtime Diagnostic SLA | `N/A — business Hard Gate failure, not runtime incident` |
+| Resume Condition | `fresh Human Owner authorization or a later PMC-approved bounded remediation Task that directly exercises the shared lifecycle and preserves all inherited fingerprints` |
 
 ## Revision 32 Workspace Shell Continuation Authorization（terminal historical, not executable）
 
