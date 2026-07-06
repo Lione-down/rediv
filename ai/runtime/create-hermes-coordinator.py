@@ -305,14 +305,13 @@ def _resolve_kanban_create() -> callable:
     if hermes_home:
         hermes_py = Path(hermes_home) / "hermes" / "hermes-agent"
         if hermes_py.is_dir():
-            sys.path.insert(0, str(hermes_py))
+            hermes_path = str(hermes_py)
+            sys.path.insert(0, hermes_path)
             try:
                 mod = importlib.import_module("hermes_cli.kanban")
                 return getattr(mod, "_cmd_create")
             except ImportError:
-                pass
-            finally:
-                sys.path.remove(str(hermes_py))
+                sys.path.remove(hermes_path)
 
     # Strategy 3: Try common install locations
     for candidate in [
@@ -321,14 +320,13 @@ def _resolve_kanban_create() -> callable:
         Path.home() / ".hermes" / "hermes-agent",
     ]:
         if candidate.is_dir():
-            sys.path.insert(0, str(candidate))
+            candidate_path = str(candidate)
+            sys.path.insert(0, candidate_path)
             try:
                 mod = importlib.import_module("hermes_cli.kanban")
                 return getattr(mod, "_cmd_create")
             except ImportError:
-                pass
-            finally:
-                sys.path.remove(str(candidate))
+                sys.path.remove(candidate_path)
 
     raise RuntimeError(
         "HERMES_CLI_NOT_IMPORTABLE: Cannot import hermes_cli.kanban._cmd_create. "

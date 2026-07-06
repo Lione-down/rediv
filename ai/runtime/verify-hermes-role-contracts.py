@@ -18,12 +18,12 @@ EXPECTED_POLICIES = {
     },
     "revid-pm": {
         "REVIEW_DISPATCH_ONLY": [
-            "read_file", "kanban_show", "kanban_create", "kanban_link",
-            "kanban_complete", "kanban_block", "kanban_comment",
-            "kanban_heartbeat",
+            "read_file", "search_files", "kanban_show", "kanban_create",
+            "kanban_link", "kanban_complete", "kanban_block",
+            "kanban_comment", "kanban_heartbeat",
         ],
         "HANDOFF_ONLY": [
-            "read_file", "write_file", "kanban_show", "kanban_complete",
+            "read_file", "search_files", "file_sha256", "write_file", "kanban_show", "kanban_complete",
             "kanban_block", "kanban_comment", "kanban_heartbeat",
         ],
     },
@@ -76,6 +76,8 @@ RUNTIME_MARKERS = {
         "MISSING_WORKER_ACTION_MARKER",
         "DUPLICATE_WORKER_ACTION_MARKER",
         "UNKNOWN_WORKER_ACTION_MARKER",
+        "KANBAN_REVIEW_FINALIZATION_RESERVE_SECONDS",
+        "HERMES_KANBAN_SOFT_DEADLINE_EPOCH",
     ],
     "hermes-agent/agent/agent_runtime_helpers.py": [
         "is_degenerate_no_tool_response",
@@ -83,6 +85,12 @@ RUNTIME_MARKERS = {
     "hermes-agent/agent/conversation_loop.py": [
         "degenerate_no_tool_response_exhausted",
         "returned only placeholder punctuation",
+        "_kanban_review_finalization_reason",
+        "RUNTIME REVIEW FINALIZATION MODE",
+    ],
+    "hermes-agent/tools/file_tools.py": [
+        "file_sha256_tool",
+        'name="file_sha256"',
     ],
     "hermes-agent/tools/process_registry.py": [
         'encoding="utf-8"',

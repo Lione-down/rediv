@@ -165,6 +165,11 @@ async function handleGenerate() {
     return
   }
 
+  if (!projectId.value) {
+    message.warning('请先选择一个项目后再执行生成操作。')
+    return
+  }
+
   if (!quotaType) {
     canvasStore.setNodeStatus(node.id, 'warning')
     lastErrorMessage.value = '当前节点类型暂不支持生成。'
@@ -264,6 +269,7 @@ async function handleGenerate() {
       :is-generating="isGenerating"
       :generation-button-label="generationButtonLabel"
       :last-error-message="lastErrorMessage"
+      :drawer-open="isMobilePanelOpen"
       :on-toggle-panel="toggleMobilePanel"
       :on-generate="handleGenerate"
     />

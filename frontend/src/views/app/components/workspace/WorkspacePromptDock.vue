@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { AlertTriangle, PanelsTopLeft, Play, WandSparkles } from 'lucide-vue-next'
-import { NTag } from 'naive-ui'
+import { NButton, NTag } from 'naive-ui'
 import type { CanvasNode } from '../../../../types/canvas'
 
 interface Props {
@@ -10,15 +10,20 @@ interface Props {
   isGenerating: boolean
   generationButtonLabel: string
   lastErrorMessage: string
+  drawerOpen: boolean
   onTogglePanel: () => void
   onGenerate: () => void
 }
 
-defineProps<Props>()
+const { drawerOpen } = defineProps<Props>()
 </script>
 
 <template>
-  <footer class="prompt-dock" aria-label="Prompt 输入区">
+  <footer
+    v-show="!drawerOpen"
+    class="prompt-dock"
+    aria-label="Prompt 输入区"
+  >
     <div class="dock-copy">
       <WandSparkles :size="18" />
       <span v-if="selectedNode">

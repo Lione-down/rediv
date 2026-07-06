@@ -5,8 +5,11 @@ import importlib.util
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "create-hermes-coordinator.py"
@@ -232,6 +235,26 @@ class CoordinatorBodyTransportTests(unittest.TestCase):
             payload["command"][payload["command"].index("--assignee") + 1],
             "revid-dispatcher",
         )
+
+    def test_resolver_retains_successful_hermes_path_for_lazy_imports(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            hermes_path = Path(temp_dir) / "hermes" / "hermes-agent"
+            hermes_path.mkdir(parents=True)
+            cmd_create = object()
+            imported_module = SimpleNamespace(_cmd_create=cmd_create)
+
+            with (
+                patch.dict(MODULE.os.environ, {"LOCALAPPDATA": temp_dir}),
+                patch(
+                    "importlib.import_module",
+                    side_effect=[ImportError, imported_module],
+                ),
+            ):
+                resolved = MODULE._resolve_kanban_create()
+
+            self.assertIs(resolved, cmd_create)
+            self.assertIn(str(hermes_path), sys.path)
+            sys.path.remove(str(hermes_path))
 
     def test_supervisor_prompt_requires_launcher_and_forbids_shell_body(self) -> None:
         prompt = SUPERVISOR_PROMPT.read_text(encoding="utf-8")

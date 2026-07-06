@@ -1,5 +1,198 @@
 # Hermes Automatic Queue
 
+```text
+PMC Reconciliation Required: YES
+PMC Verdict Revision: phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7
+PMC Verdict: PMC_PASS
+Failure Fingerprint: NONE
+Expected Hermes Action: ACK_TERMINAL_VERDICT_AND_STOP
+Runtime Diagnostic SLA: N/A — task accepted
+Resume Condition: T4-010 archived; no further card for this task
+```
+
+## 2026-07-06 T4-010 PMC PASS
+
+Rev41r7 Reviewer and HANDOFF reached PASS/HANDOFF_READY. PMC fresh build、diff、line-count、protected hashes and artifact SHA256 verification passed. Formal verdict: `ai/reviews/REVIEW-T4-010-PMC-PASS-2026-07-06.md`.
+
+This Queue is terminal and non-executable. Hermes must ACK `PMC_PASS / ACK_TERMINAL_VERDICT_AND_STOP`; do not create any additional T4-010 card.
+
+## 2026-07-06 Revision 41r7 Final HANDOFF Closure
+
+Rev41r6 Reviewer completed PASS_REATTESTED; its HANDOFF failed closed on missing read-only `search_files`. HANDOFF_ONLY now permits bounded search only for card-specified project evidence plus workspace-bounded `file_sha256`; terminal remains forbidden. Formal authorization: `ai/reviews/REVIEW-T4-010-PMC-REV41R6-SEARCH-POLICY-AND-REV41R7-AUTHORIZATION-2026-07-06.md`.
+
+Rev41r7 is the only executable Queue and performs no business/browser work.
+
+## 2026-07-06 Revision 41r5 Review PASS / Revision 41r6 HANDOFF Closure
+
+Rev41r5 Reviewer `t_26fc11ff` run #177 completed PASS in 524s. HANDOFF `t_b4e90e51` then failed closed because its SHA256 contract had no permitted hash tool and terminal remained forbidden. Installed Hermes now provides workspace-bounded read-only `file_sha256`, authorized only for `HANDOFF_ONLY`; terminal remains forbidden. Formal authorization: `ai/reviews/REVIEW-T4-010-PMC-REV41R5-HANDOFF-POLICY-AND-REV41R6-AUTHORIZATION-2026-07-06.md`.
+
+The only executable Queue is rev41r6. Its Reviewer only re-attests the existing consolidated PASS without browser/build rerun or REVIEW overwrite. The dependent HANDOFF uses `file_sha256` and writes the canonical artifact. All rev41r1-r5 cards/runs/keys remain terminal/non-reusable.
+
+## 2026-07-06 Revision 41r4 Terminal / Revision 41r5 Browser Review Closure
+
+Revision 41r4 closed normally: Reviewer `t_eb522d66` wrote a provisional REVIEW and terminalized BLOCKED in 397s, proving the no-verdict timeout fixed. Its static/build/hash/source/REPORT consistency and 1440x900 checks passed; fingerprint `REV41R4_MISSING_VIEWPORT_920X900_AND_375X812_BROWSER_VERIFICATION` identifies the remaining browser-only scope.
+
+Reviewer verification cap is now 48 calls while the independent 1200s soft deadline and 600s finalization reserve remain unchanged. Installed targeted `6 passed`, project runtime `37 passed`, `ROLE_CONTRACTS_OK`, durable patch `APPLIED`, Gateway PID `27328` healthy, cron active. Formal authorization: `ai/reviews/REVIEW-T4-010-PMC-REV41R4-BROWSER-CAP-AND-REV41R5-AUTHORIZATION-2026-07-06.md`.
+
+The only executable Queue is rev41r5. It may verify only the missing 920x900、375x812、zero-request and NButton console evidence plus one batched freshness guard, then consolidate the final REVIEW. Rev41r4 cards `t_f2f5ea0d`, `t_eb522d66`, `t_eab42144` and all earlier cards/runs/keys are terminal/non-reusable.
+
+## 2026-07-06 Revision 41r3 Closure / Revision 41r4 Deadline-Safe Review Continuation
+
+Human Owner directed PMC to resolve the timeout and resume Hermes scheduling. Revision 41r3 remains terminal infrastructure evidence; its Coordinator `t_7ab33875`, Reviewer `t_2c2f6842`, HANDOFF `t_588bd58e`, runs, sessions and keys must not be retried, claimed, promoted, unblocked, reparented, deleted or reused.
+
+Deadline-aware Reviewer finalization is deployed and freshly verified: installed targeted tests `5 passed`, project runtime tests `37 passed`, `ROLE_CONTRACTS_OK`, patch classifier `HERMES_RUNTIME_PATCH_APPLIED`, and Gateway PID `31496` healthy. Formal decision: `ai/reviews/REVIEW-T4-010-PMC-REV41R3-RECOVERY-AND-REV41R4-AUTHORIZATION-2026-07-06.md`.
+
+The only executable Queue is fresh revision `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-06-41r4`. It authorizes review lifecycle only, inherits all rev41r1/rev41r2/rev41r3 fingerprints, forbids business writes/re-execution, and must use fresh Coordinator/Reviewer/HANDOFF cards and idempotency keys.
+
+## 2026-07-05 Revision 41r3 Reviewer Runtime Block
+
+Revision 41r3 Coordinator `t_7ab33875` run #172 completed the exact-parent lifecycle dispatch. Reviewer `t_2c2f6842` run #173 then exceeded its `1800s` budget at 1814s, entered `gave_up`, and produced no Independent REVIEW. HANDOFF `t_588bd58e` remains blocked by the absent verdict. Formal advisory: `ai/reviews/REVIEW-T4-010-PMC-RUNTIME-ADVISORY-REV41R3-2026-07-05.md`.
+
+Revision 41r3 is terminal `PMC_BLOCKED / INFRASTRUCTURE_BLOCKED`, fingerprint `REV41R3_REVIEWER_TIMEOUT_WITHOUT_REVIEW`. No executable Queue exists. Do not retry, claim, promote, unblock, reparent, delete or reuse its cards/runs/keys; do not create replacement Reviewer/HANDOFF, business attempt 2 or automatic rev41r4.
+
+## 2026-07-05 Revision 41r2 Runtime Block / Revision 41r3 Exact-Parent Continuation
+
+Revision 41r2 Coordinator `t_c2180c46` is terminal: run #170 timed out at 182s and run #171 timed out at 181s with zero children. Raw run #171 payloads omitted the required Reviewer `parents`; runtime correctly returned `REVIEW_DISPATCH_CHILD_CONTRACT_INVALID`. Formal verdict: `ai/reviews/REVIEW-T4-010-PMC-REV41R2-RUNTIME-BLOCK-AND-REV41R3-AUTHORIZATION-2026-07-05.md`.
+
+PMC publishes one fresh bounded continuation `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r3`. It inherits both rev41r1 and rev41r2 fingerprints. The Coordinator must explicitly pass `parents: [current rev41r3 Coordinator card ID]` for the Reviewer child and use the persisted Reviewer ID as the sole HANDOFF parent. No business execution or write is authorized.
+
+Revision 41r1/rev41r2 cards, runs and keys are terminal immutable evidence. Do not retry, claim, promote, unblock, reparent, delete or reuse them.
+
+## 2026-07-05 Revision 41r2 Review Lifecycle Deadlock Resolution
+
+Human Owner directed PMC to restore progress. PMC confirmed a circular gate: rev41r1 required fresh same-profile child-creation proof before continuation, while the runtime diagnostic correctly stated that producing that proof required a fresh PMC-authorized lifecycle chain.
+
+PMC therefore publishes one fresh bounded continuation: `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r2`. It inherits `REV41R1_REVID_PM_SEARCH_FILES_TOOL_BOUNDARY_VIOLATION` and authorizes only one `revid-pm / REVIEW_DISPATCH_ONLY` Coordinator, one Independent Reviewer and one Reviewer-dependent HANDOFF stage. Formal decision: `ai/reviews/REVIEW-T4-010-PMC-REV41R2-LIFECYCLE-DEADLOCK-RESOLUTION-2026-07-05.md`.
+
+Revision 41r1 remains terminal immutable evidence. Do not retry, claim, promote, unblock, reparent, delete or reuse its cards/runs/keys. Rev41r2 must fail closed on any deploy, policy, action, profile, persisted-card or dependency mismatch. No business re-execution, business write, attempt 2 or automatic rev41r3 is authorized.
+
+## 2026-07-05 Revision 41r1 Partial Terminal Reconciliation Conflict
+
+Hermes corrected the rev41r1 current header, runtime fingerprint, diagnostic fields, PMC action marker and terminal STOP confirmation. The rewrite remains non-canonical: Task/Queue SHA256 values are stale, the reconciliation table omits `Queue Status`, and the embedded update time predates the actual status write. Formal verdict: `ai/reviews/REVIEW-T4-010-PMC-REV41R1-PARTIAL-TERMINAL-RECONCILIATION-CONFLICT-2026-07-05.md`.
+
+Revision 41r1 remains terminal/non-executable. Hermes must only run the project-owned deterministic reconciler against the current Queue, Task and status files. No card creation, retry, Reviewer, HANDOFF, business execution or replacement revision is authorized.
+
+```text
+PMC Reconciliation Required: YES
+PMC Verdict Revision: phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r1
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV41R1_REVID_PM_SEARCH_FILES_TOOL_BOUNDARY_VIOLATION
+Expected Hermes Action: ACK_TERMINAL_VERDICT_AND_STOP
+Runtime Diagnostic SLA: SATISFIED — diagnostic verdict STILL_INFRA_BLOCKED
+Resume Condition: fresh runtime evidence with verdict READY_FOR_CONTINUATION proves bounded revid-pm REVIEW_DISPATCH_ONLY can create the exact Reviewer and Reviewer-dependent HANDOFF children without business writes or historical card reuse
+```
+
+## 2026-07-05 Revision 41r1 Post-Diagnostic Status Conflict
+
+Hermes rewrote `HERMES-EXECUTION-STATUS.md` after the latest PMC diagnostic verdict, but the new status SHA256 `C22D0D19621B3315F7EE512438538D11C907B7514734D35C0FD6616F46855558` still reports revision 41 as current `REPORT_READY`, retains the rev40 business fingerprint and stale `PMC Action Required = YES / RUNTIME_ADVISORY`, and confirms only the earlier diagnostic-start action. It also retains malformed canonical-table rows. Formal verdict: `ai/reviews/REVIEW-T4-010-PMC-REV41R1-POST-DIAGNOSTIC-STATUS-CONFLICT-2026-07-05.md`.
+
+Revision 41r1 remains terminal/non-executable. The signal below is the only active reconciliation contract. Hermes must only canonicalize its owned status; no card creation, retry, Reviewer, HANDOFF, business execution or replacement revision is authorized.
+
+```text
+PMC Reconciliation Required: YES
+PMC Verdict Revision: phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r1
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV41R1_REVID_PM_SEARCH_FILES_TOOL_BOUNDARY_VIOLATION
+Expected Hermes Action: ACK_DIAGNOSTIC_REVIEW_AND_CANONICALIZE_TERMINAL_STATUS
+Runtime Diagnostic SLA: SATISFIED — diagnostic verdict STILL_INFRA_BLOCKED
+Resume Condition: fresh runtime evidence with verdict READY_FOR_CONTINUATION proves bounded revid-pm REVIEW_DISPATCH_ONLY can create the exact Reviewer and Reviewer-dependent HANDOFF children without business writes or historical card reuse
+```
+
+## 2026-07-05 Revision 41r1 Diagnostic Reviewed
+
+Hermes has ACKed the exact rev41r1 terminal verdict and produced diagnostic `ai/reports/DIAGNOSTIC-T4-010-REV41R1-RUNTIME-HEALTH-2026-07-05.md`, SHA256 `4E9F5AFD7139FE5A48636AD77BDC24356346F3B4852A7FFE9410BA794F5F77B9`.
+
+The diagnostic verdict is `STILL_INFRA_BLOCKED`: policy checks pass, but the required fresh same-profile proof of the complete Reviewer/HANDOFF child-creation contract is absent. PMC rejects a fresh lifecycle continuation. Revision 41r1 remains terminal/non-executable; canonical REVIEW and HANDOFF remain missing. Hermes must canonicalize its current execution header, which still reports revision 41 as active `REPORT_READY` with stale action/fingerprint fields. Formal decision: `ai/reviews/REVIEW-T4-010-PMC-RUNTIME-DIAGNOSTIC-REV41R1-2026-07-05.md`.
+
+```text
+PMC Reconciliation Required: YES
+PMC Verdict Revision: phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r1
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV41R1_REVID_PM_SEARCH_FILES_TOOL_BOUNDARY_VIOLATION
+Expected Hermes Action: ACK_DIAGNOSTIC_REVIEW_AND_CANONICALIZE_TERMINAL_STATUS
+Runtime Diagnostic SLA: SATISFIED — diagnostic verdict STILL_INFRA_BLOCKED
+Resume Condition: fresh runtime evidence with verdict READY_FOR_CONTINUATION proves bounded revid-pm REVIEW_DISPATCH_ONLY can create the exact Reviewer and Reviewer-dependent HANDOFF children without business writes or historical card reuse
+```
+
+## 2026-07-05 Revision 41r1 revid-pm Policy Remediation
+
+Human Owner authorized bounded `search_files` for `revid-pm / REVIEW_DISPATCH_ONLY`. Canonical and deployed policy now include exactly that read-only discovery tool; `HANDOFF_ONLY` and write/terminal/process/browser/web capabilities remain unchanged. Targeted `17 passed`, full runtime `34 passed`, `ROLE_CONTRACTS_OK`, deployed resolver smoke `REVID_PM_POLICY_SMOKE_OK`, and Gateway clean restart PID `2308` are recorded in `ai/reviews/REVIEW-T4-010-PMC-REV41R1-REVID-PM-POLICY-REMEDIATION-2026-07-05.md`.
+
+This remediation does not authorize reuse of rev41r1 cards or a new lifecycle chain. Active Wave remains terminal/non-executable until Hermes ACKs the same revision/fingerprint and submits a fresh diagnostic proving the complete bounded Reviewer/HANDOFF child-creation contract.
+
+## 2026-07-05 Revision 41r1 Queue Action Correction
+
+PMC canonicalized the Active Wave action from `NONE — terminal runtime evidence only` to the project-wide terminal contract `NONE — terminal evidence only`. This removes the Queue-string-only reconciler exit `2`; it does not authorize execution or clear the runtime fingerprint. Formal decision: `ai/reviews/REVIEW-T4-010-PMC-REV41R1-QUEUE-ACTION-CORRECTION-2026-07-05.md`.
+
+Revision 41r1 remains terminal `PMC_BLOCKED / RUNTIME_OWNER_STALLED`. Queue read-back now passes the Action and reconciliation-revision checks; the next deterministic error is the missing rev41r1 Runtime Advisory section in Hermes-owned status. Hermes must reconcile that initial ACK state and provide the overdue fresh diagnostic under the existing revision/fingerprint. If its current gate cannot represent the initial ACK state, the runtime owner must provide bounded reconciler remediation evidence. No replacement revision, policy expansion, Reviewer, HANDOFF or Kanban action is authorized.
+
+```text
+PMC Reconciliation Required: NO — SUPERSEDED BY DIAGNOSTIC REVIEW
+PMC Verdict Revision: phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r1
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV41R1_REVID_PM_SEARCH_FILES_TOOL_BOUNDARY_VIOLATION
+Expected Hermes Action: NONE — DIAGNOSTIC PRODUCED AND REVIEWED
+Runtime Diagnostic SLA: SATISFIED — diagnostic verdict STILL_INFRA_BLOCKED
+Resume Condition: fresh diagnostic verdict READY_FOR_CONTINUATION proves bounded revid-pm REVIEW_DISPATCH_ONLY policy can complete Reviewer/HANDOFF child creation without unrestricted fallback
+```
+
+## 2026-07-05 Revision 41r1 Runtime Owner Stalled
+
+Hermes runtime owner did not ACK the rev41r1 terminal verdict or produce a matching diagnostic across the `2026-07-05T09:04:38+08:00` and `2026-07-05T12:02:20+08:00` PMC checkpoints. The `2026-07-05T10:02:59+08:00` diagnostic SLA is expired. PMC records the one-time `RUNTIME_OWNER_STALLED / DIAGNOSTIC_SLA_MISSED` event in `ai/reviews/REVIEW-T4-010-PMC-RUNTIME-OWNER-STALLED-REV41R1-2026-07-05.md`.
+
+The existing rev41r1 reconciliation signal below remains the only active signal. Queue execution remains forbidden. Hermes runtime owner must ACK the exact revision/fingerprint and provide fresh diagnostic evidence; no replacement revision, Reviewer or HANDOFF is authorized.
+
+## 2026-07-05 Revision 41r1 Runtime Block
+
+Revision `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r1` is terminal `PMC_BLOCKED / INFRASTRUCTURE_BLOCKED`. Coordinator `t_08bb42c8` run `#168` timed out at 181s; process retry run `#169` was blocked by `ROLE_BOUNDARY_VIOLATION` because `search_files` was not allowed for the persisted `revid-pm / REVIEW_DISPATCH_ONLY` task. No Independent Reviewer or HANDOFF card exists. Formal advisory: `ai/reviews/REVIEW-T4-010-PMC-RUNTIME-ADVISORY-REV41R1-2026-07-05.md`.
+
+Do not redispatch, retry, claim, promote, unblock, reparent, delete or reuse `t_08bb42c8`; do not create Reviewer/HANDOFF outside a fresh PMC-authorized continuation. This is a runtime/tool-policy incident, not business REWORK. No executable Queue exists.
+
+## 2026-07-05 Revision 41 REPORT Gate / Revision 41r1 Review Lifecycle Publication（terminal historical）
+
+Revision 41 business execution reached `REPORT_READY`. PMC audited the Task, REPORT, actual diff, fresh build, protected hashes and PNG dimensions/hashes and found no explicit Acceptance Criterion failure that must be closed before Independent Review. Formal authorization: `ai/reviews/REVIEW-T4-010-PMC-REV41-REVIEW-LIFECYCLE-AUTHORIZATION-2026-07-05.md`.
+
+Revision 41 business cards and artifacts are retained evidence and must not be retried, claimed, promoted, unblocked, reparented, deleted or reused. The fresh lifecycle revision `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r1` authorizes only Independent Review and a Reviewer-dependent HANDOFF. It does not authorize business re-execution, code changes, attempt 2 or another Task.
+
+```text
+PMC Reconciliation Required: NO — SUPERSEDED BY REV41R1 RUNTIME VERDICT
+PMC Verdict Revision: phase4-wave3-workspace-shell-unit-b-responsive-remediation-2026-07-05-41
+PMC Verdict: PMC_CONTINUATION_APPROVED
+Failure Fingerprint: NONE — inherits REV40_RESPONSIVE_DRAWER_PROMPT_OVERLAP_AND_INTERACTION_EVIDENCE_INCOMPLETE
+Expected Hermes Action: NONE — REV41R1 WAS ACKNOWLEDGED AND IS NOW TERMINAL
+Resume Condition: Independent Reviewer completes fresh verification and dependent HANDOFF reaches T4_010_HANDOFF_READY_REV41
+```
+
+## 2026-07-05 Revision 40 Rework / Revision 41 Responsive Remediation Publication
+
+Revision 40 closes the exact-viewport/PNG evidence gap but fails Unit B acceptance. At `920x900` and `375x812`, the bottom Inspector drawer overlaps the fixed Prompt Dock; keyboard/reduced-motion/state/network evidence is incomplete; source audit also identifies a missing `project_id` generation guard and unresolved `NButton` registration. Formal verdict: `ai/reviews/REVIEW-T4-010-PMC-REV40-REWORK-AND-REV41-AUTHORIZATION-2026-07-05.md`.
+
+PMC publishes one bounded business REWORK revision `phase4-wave3-workspace-shell-unit-b-responsive-remediation-2026-07-05-41`. Only `Workspace.vue` and `WorkspacePromptDock.vue` are writable business files. Revision 40 and all earlier cards/runs/keys/sessions/artifacts remain terminal and non-reusable.
+
+```text
+PMC Reconciliation Required: NO — SUPERSEDED BY REV41
+PMC Verdict Revision: phase4-wave3-workspace-shell-unit-b-exact-browser-evidence-2026-07-05-40
+PMC Verdict: PMC_REWORK
+Failure Fingerprint: REV40_RESPONSIVE_DRAWER_PROMPT_OVERLAP_AND_INTERACTION_EVIDENCE_INCOMPLETE
+Expected Hermes Action: ACK_TERMINAL_VERDICT_AND_ACK_REV41
+Resume Condition: fresh revision 41 chain completes bounded fixes and exact browser interaction evidence
+```
+
+## 2026-07-05 Revision 39 Block / Revision 40 Exact-Tool Evidence Publication
+
+Revision 39 is terminal `PMC_BLOCKED`. It repeated fingerprint `REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING`: only `1264x625` was real, CSS transform simulated the target viewport, and the revision 39 evidence directory contains zero files. The REPORT's all-gates-pass conclusion is rejected. Formal verdict: `ai/reviews/REVIEW-T4-010-PMC-REV39-BLOCKED-AND-REV40-AUTHORIZATION-2026-07-05.md`.
+
+The exact browser tools were deployed and activated only after revision 39 became terminal. Under the Human Owner's explicit remediation authorization, PMC publishes one final bounded evidence continuation: `phase4-wave3-workspace-shell-unit-b-exact-browser-evidence-2026-07-05-40`. It must use `browser_set_viewport` and `browser_screenshot`; simulation or fallback is forbidden.
+
+```text
+PMC Reconciliation Required: NO — SUPERSEDED BY REV40
+PMC Verdict Revision: phase4-wave3-workspace-shell-unit-b-browser-evidence-correction-2026-07-04-39
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING
+Expected Hermes Action: ACK_TERMINAL_VERDICT_AND_ACK_REV40
+Resume Condition: fresh revision 40 chain proves exact tool visibility, target/actual viewport equality and real PNG evidence
+```
+
 ## 2026-07-04 Revision 38 Closure / Revision 39 Evidence Correction Publication
 
 PMC 已接受 revision 38 的 canonical terminal ACK。Hermes execution status 现以同 revision、同 fingerprint `REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING` 记录 `PMC_BLOCKED — NOT EXECUTABLE / TERMINAL RECONCILIATION COMPLETE`、`ACK_TERMINAL_VERDICT_AND_STOP` 与 `PMC Action Required = NO / NONE`。Revision 38 reconciliation 已关闭，不得再次修改或复用其 cards、runs、keys 与 artifacts。
@@ -208,37 +401,42 @@ Hermes role-contract hardening is `PMC_PASS` and runtime status is `READY_FOR_CO
 
 The current Active Wave remains `BLOCKED / NOT EXECUTABLE`. Revision `26r1` and card `t_f46c8d6e` remain terminal evidence. No replacement revision is published because `SECURITY_ROTATION_REQUIRED` is still open. After credential rotation and a fresh `ROLE_CONTRACTS_OK`, PMC may publish a new review-only revision with fresh keys, `revid-pm`, at least 180 seconds, and no Executor re-execution.
 
-T4-010 Unit B revision `-38`/`-35` 与 revision `-34`/`-33`/`-32`/`-31`、runtime revision 37、T4-002 revision `-30`/`-29` 均为 terminal historical evidence；Hermes scheduled mode 不得 retry、claim、promote、unblock、reparent、删除或复用任何历史 chain。T4-002 revision 36 已在 ACK 前 supersede；当前唯一 executable Active Wave 为下方 Unit B revision 39。
+T4-010 Unit B revision `-41r1` 与 `-40`/`-39`/`-38`/`-35`、revision `-34`/`-33`/`-32`/`-31`、runtime revision 37、T4-002 revision `-30`/`-29` 均为 terminal historical evidence；Hermes scheduled mode 不得 retry、claim、promote、unblock、reparent、删除或复用任何历史 chain。T4-002 revision 36 已在 ACK 前 supersede；当前没有 executable Active Wave。
 
 ## Active Wave
 
 | Field | Value |
 |---|---|
-| Revision | `phase4-wave3-workspace-shell-unit-b-browser-evidence-correction-2026-07-04-39` |
-| Status | `APPROVED — WAITING FOR HERMES ACK` |
+| Revision | `phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7` |
+| Status | `PMC_PASS — NOT EXECUTABLE / AWAITING TERMINAL ACK` |
 | Approved By | `Codex Project Master Controller` |
-| Approval Source | `ai/reviews/REVIEW-T4-010-PMC-REV38-CLOSURE-AND-REV39-AUTHORIZATION-2026-07-04.md` |
-| Approval Time | `2026-07-04` |
-| Task ID | `T4-010-UNIT-B-REV39` |
-| Project Task File | `ai/tasks/todo/TASK-T4-010-UNIT-B-REV39.md` |
-| Action | `DISPATCH_ONLY` |
-| Executor Profile | `revid-frontend` |
+| Approval Source | `ai/reviews/REVIEW-T4-010-PMC-REV41R6-SEARCH-POLICY-AND-REV41R7-AUTHORIZATION-2026-07-06.md` |
+| Approval Time | `2026-07-06` |
+| Task ID | `T4-010-UNIT-B-REV41R7` |
+| Project Task File | `ai/tasks/todo/TASK-T4-010-UNIT-B-REV41R7.md` |
+| Action | `NONE — terminal evidence only` |
+| Executor Profile | `revid-pm — lifecycle coordinator only; no business execution` |
 | Review Profile | `revid-reviewer` |
-| Dispatch Profile | `revid-dispatcher` |
-| Parallel Group | `serial-phase4-wave3-workspace-shell-unit-b-rev39` |
-| Attempt Policy | `one evidence-only attempt; runtime at most two process retries; no automatic business REWORK` |
-| Previous Failure Fingerprint | `REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING` |
-| Hard Gates | `project-owned runtime deploy + ROLE_CONTRACTS_OK + canonical rev38 terminal status + exact Action/profile/child contract + fresh cards/keys + five Workspace business files read-only at recorded SHA256 + revision-specific project-root artifacts only + exact 1440x900/920x900/375x812 viewport read-back and screenshots + structured overflow/console/network/geometry evidence + keyboard/focus/ARIA/reduced-motion + state preservation + project_id safety + final build + scoped diff check + explicit terminal transition + no static inference as browser PASS + no historical card/key/artifact reuse + no secret/database/backend/API/global-token changes` |
-| Coordinator Budget | `120s; dispatch only` |
-| Executor Budget | `1800s` |
-| Dispatcher Idempotency Key | `revid:phase4-wave3-workspace-shell-unit-b-browser-evidence-correction-2026-07-04-39:T4-010-UNIT-B-REV39:dispatch` |
-| Executor Idempotency Key | `revid:phase4-wave3-workspace-shell-unit-b-browser-evidence-correction-2026-07-04-39:T4-010-UNIT-B-REV39:execute:0` |
-| Reviewer Budget | `N/A — Reviewer/HANDOFF not authorized before PMC REPORT_READY decision` |
-| Stop After | `T4_010_UNIT_B_REV39_BROWSER_EVIDENCE_REPORT_READY` |
-| PMC Reconciliation Required | `NO` |
-| PMC Verdict | `REV39_AUTHORIZED` |
-| Failure Fingerprint | `NONE — inherits Previous Failure Fingerprint` |
-| Expected Hermes Action | `ACK_REVISION_AND_DISPATCH` |
+| Dispatch Profile | `revid-pm` |
+| Parallel Group | `serial-phase4-wave3-workspace-shell-unit-b-rev41r7-handoff` |
+| Attempt Policy | `fresh lifecycle cards only; Coordinator initial run plus at most one process retry; Reviewer and HANDOFF task retries 0; no business re-execution, browser rerun, automatic rev41r8 or old-card reuse` |
+| Previous Failure Fingerprint | `REV41R6_HANDOFF_SEARCH_FILES_POLICY_MISMATCH` |
+| Hard Gates | `ROLE_CONTRACTS_OK + HANDOFF_ONLY exact policy includes bounded search_files/file_sha256 and excludes terminal + fresh cards/keys + Reviewer PASS_REATTESTED without REVIEW overwrite + HANDOFF real REPORT/REVIEW SHA256 + no business/browser/artifact writes except canonical HANDOFF + no historical reuse + no secret/production/database/destructive action` |
+| Coordinator Budget | `300s; review dispatch only` |
+| Executor Budget | `N/A — business execution complete and forbidden` |
+| Dispatcher Idempotency Key | `revid:phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7:T4-010:review-dispatch` |
+| Reviewer Idempotency Key | `revid:phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7:T4-010:review:0` |
+| Handoff Idempotency Key | `revid:phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7:T4-010:handoff:0` |
+| Reviewer Budget | `600s` |
+| Handoff Budget | `900s` |
+| Stop After | `T4_010_HANDOFF_READY_REV41R7` |
+| PMC Reconciliation Required | `YES` |
+| PMC Verdict Revision | `phase4-wave3-workspace-shell-unit-b-rev41-final-handoff-2026-07-06-41r7` |
+| PMC Verdict | `PMC_PASS` |
+| Failure Fingerprint | `NONE` |
+| Expected Hermes Action | `ACK_TERMINAL_VERDICT_AND_STOP` |
+| Runtime Diagnostic SLA | `N/A — task accepted` |
+| Resume Condition | `T4-010 archived; no further card for this task` |
 
 ## Revision 32 Workspace Shell Continuation Authorization（terminal historical, not executable）
 
@@ -617,4 +815,4 @@ Executor 完成 REPORT 后进入 terminal review-required 并停止。不得创�
 
 Runtime 路线决策为 `NO`：不需要改变产品、schema contract 或 destructive authorization。安全事项为 `YES`：诊断 transcript 中出现的 credential 必须由 Human Owner 轮换并确认旧值失效。
 
-*最后更新：2026-07-04；T4-010 Unit B revision `-35` terminal `PMC_BLOCKED / INFRASTRUCTURE_BLOCKED`。当前无 executable Queue；等待 Hermes 以同 fingerprint ACK terminal verdict、规范化 execution status 并提交 fresh runtime diagnostic。*
+*最后更新：2026-07-05；T4-010 Unit B revision `-39` terminal `PMC_BLOCKED`。唯一 executable Queue 为 revision `-40`，等待 Hermes ACK rev39 terminal verdict 与 fresh rev40。*

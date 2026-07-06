@@ -1,10 +1,164 @@
 # Revid — 当前项目状态
 
+## 2026-07-06 Revision 41r7 Terminal Reconciliation Stalled
+
+T4-010 业务结论继续为 `PMC_PASS`，但 Hermes-owned status 尚未完成 terminal STOP ACK：current state 仍为 `HANDOFF_READY`，current failure fingerprint 仍是历史值 `REV41R6_HANDOFF_SEARCH_FILES_POLICY_MISMATCH`，rev41r7 reconciliation 也未写入同 revision、Queue fingerprint `NONE` 的 `ACK_TERMINAL_VERDICT_AND_STOP — COMPLETE`。status 内嵌更新时间还晚于本轮实际读取时间，不能作为可信 checkpoint 顺序证据。
+
+PMC 一次性记录 `PMC_STATE_CONFLICT — TERMINAL RECONCILIATION STALLED`。Queue 保持 terminal/non-executable，不新增 revision，不创建或操作任何 card，不修改 Task/ROADMAP/业务证据。Hermes 下一动作仅限规范化其 owned status 并确认 rev41r7 terminal STOP。正式记录：`ai/reviews/REVIEW-T4-010-PMC-REV41R7-TERMINAL-RECONCILIATION-STALLED-2026-07-06.md`。
+
+## 2026-07-06 T4-010 PMC PASS
+
+T4-010 已完成最终验收：rev41 business REPORT、rev41r5 Independent REVIEW PASS、rev41r7 HANDOFF_READY 与实际 diff 一致。PMC fresh build exit `0`、scoped diff check exit `0`；Workspace.vue 358 行、所有局部组件 <500 行；protected hashes 精确匹配。正式结论：`PMC_PASS`，审查文件 `ai/reviews/REVIEW-T4-010-PMC-PASS-2026-07-06.md`。
+
+T4-010 与 Unit B 标记为 `ARCHIVED IN PLACE`，保留历史路径以维持 evidence 链。Queue 不再 executable；Hermes cron 保持 active，下一轮只需 ACK terminal STOP，不得创建本 Task 新 card。
+
+## 2026-07-06 Revision 41r7 Final HANDOFF Closure Authorized
+
+Rev41r6 Reviewer `t_39e56326` 已在 45 秒完成 PASS_REATTESTED；HANDOFF `t_48326964` 因调用未授权的 read-only `search_files` fail-closed。PMC 已只为 `HANDOFF_ONLY` 增加 bounded project-evidence search，terminal 继续禁止；37 tests 与 `ROLE_CONTRACTS_OK` 通过，Gateway PID `30476`。
+
+唯一 fresh continuation 为 rev41r7，仅做 PASS re-attestation 与 canonical HANDOFF，不重跑业务/browser。授权：`ai/reviews/REVIEW-T4-010-PMC-REV41R6-SEARCH-POLICY-AND-REV41R7-AUTHORIZATION-2026-07-06.md`。
+
+## 2026-07-06 Revision 41r5 Review PASS / Revision 41r6 HANDOFF Closure Authorized
+
+Rev41r5 Reviewer `t_26fc11ff` run #177 在 524 秒完成 final PASS，缺失 browser scope 全部补齐且未 timeout。Dependent HANDOFF run #178 因 contract 要求真实 SHA256、但 `HANDOFF_ONLY` 没有 hash tool 而尝试 forbidden terminal，38 秒 fail-closed。
+
+PMC 已新增 workspace-bounded read-only `file_sha256`，仅授权 `revid-pm / HANDOFF_ONLY`；terminal/process/browser/network 继续禁止。File hash regressions `2 passed`、installed targeted `8 passed`、project runtime `37 passed`、`ROLE_CONTRACTS_OK`、patch `APPLIED`；Gateway PID `24184`，cron active。
+
+唯一 fresh continuation 为 rev41r6：Reviewer 只 re-attest 现有 PASS、不重跑 browser；dependent HANDOFF 使用 `file_sha256` 写 canonical artifact。正式授权：`ai/reviews/REVIEW-T4-010-PMC-REV41R5-HANDOFF-POLICY-AND-REV41R6-AUTHORIZATION-2026-07-06.md`。
+
+## 2026-07-06 Revision 41r4 Terminal / Revision 41r5 Browser Review Authorized
+
+Rev41r4 已证明原始 timeout 修复生效：Reviewer `t_eb522d66` run #175 在 397 秒内先写 provisional REVIEW，再以 final BLOCKED 正常 terminalize，没有 hard timeout、没有缺失 verdict。Static/build/hash/source/REPORT consistency 与 1440x900 已通过；唯一缺口是 920x900、375x812、missing-project zero-request 与 cross-viewport NButton console evidence。Fingerprint：`REV41R4_MISSING_VIEWPORT_920X900_AND_375X812_BROWSER_VERIFICATION`。
+
+真实 full-scope review 证明 24-call cap 偏低。PMC 将 Reviewer cap 校准为 48，同时保留独立 1200 秒 soft deadline 与 600 秒 finalization reserve。Installed targeted `6 passed`、project runtime `37 passed`、`ROLE_CONTRACTS_OK`、patch classifier `APPLIED`；Gateway clean restart PID `27328`，cron 保持 active。
+
+PMC 发布 browser-only rev41r5，只补两个 viewport、zero-request 与 NButton console，并 consolidates final REVIEW；禁止重复 business execution 或无界重跑已通过检查。正式授权：`ai/reviews/REVIEW-T4-010-PMC-REV41R4-BROWSER-CAP-AND-REV41R5-AUTHORIZATION-2026-07-06.md`。
+
+## 2026-07-06 Revision 41r3 Closed / Revision 41r4 Review Continuation Authorized
+
+Human Owner 已明确要求解决 Reviewer timeout、恢复推进并开启 Hermes cron。PMC 复核确认本次上报仍是旧 run #173 的 terminal evidence，不是新的 execution timeout。根因是旧 Reviewer 在 `1800s` 内执行 77 次串行 model API call、累计 API latency 1620.9 秒，且没有 soft deadline、call cap、provisional REVIEW 或 finalization-only mode。
+
+Deadline-aware finalization 修复仍部署有效：installed targeted tests `5 passed`、project runtime tests `37 passed`、`ROLE_CONTRACTS_OK`、patch classifier `HERMES_RUNTIME_PATCH_APPLIED`，Gateway PID `31496` 健康。Revision 41r3 保持 terminal immutable，fingerprint `REV41R3_REVIEWER_TIMEOUT_WITHOUT_REVIEW`；旧 Coordinator `t_7ab33875`、Reviewer `t_2c2f6842`、HANDOFF `t_588bd58e` 不得复用或修改。
+
+PMC 发布 fresh review-only continuation `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-06-41r4`。它继承 rev41r1/rev41r2/rev41r3 fingerprints，只允许 fresh `revid-pm / REVIEW_DISPATCH_ONLY` 创建一个 deadline-safe Independent Reviewer 与一个 Reviewer-dependent HANDOFF；禁止业务重跑或写入。正式授权：`ai/reviews/REVIEW-T4-010-PMC-REV41R3-RECOVERY-AND-REV41R4-AUTHORIZATION-2026-07-06.md`。
+
+## 2026-07-06 Revision 41r3 Runtime Owner Stalled
+
+Rev41r3 diagnostic SLA `2026-07-05T21:56:17+08:00` 已逾期。Hermes-owned status 仍缺同 revision/fingerprint 的 runtime advisory ACK、diagnostic path/hash 与 `ACK_TERMINAL_VERDICT_AND_STOP`；在 status 最后写入后，至少两个既定 `:15`/`:45` checkpoint 窗口已过去，未发生新的状态转移。
+
+PMC 记录一次性 `PMC_BLOCKED — RUNTIME_OWNER_STALLED / DIAGNOSTIC_SLA_MISSED` 事件。Queue 继续保持唯一 rev41r3 terminal reconciliation signal，不发布 continuation，不重派或复用任何 card/run/key。已验收的 Reviewer deadline remediation 仍是 `READY_FOR_FRESH_CONTINUATION AFTER TERMINAL RECONCILIATION`，不能替代 Hermes-owned ACK/diagnostic/STOP confirmation。正式记录：`ai/reviews/REVIEW-T4-010-PMC-RUNTIME-OWNER-STALLED-REV41R3-2026-07-06.md`。
+
+## 2026-07-05 Revision 41r3 Reviewer Deadline Remediation Passed
+
+PMC 已完成 Reviewer 设计性超时的根因修复。Run #173 的 1800 秒预算中，77 次已完成 model API call 累计消耗 1620.9 秒；旧流程没有 soft deadline、verification-call cap 或提前 REVIEW checkpoint，最终在 API #78 进行中被 hard kill。
+
+Installed Hermes 现只对 `INDEPENDENT_REVIEW_ONLY` 注入 600 秒 finalization reserve 与 24-call verification budget；到限后 tool surface 收窄为 `write_file`、`kanban_block`、`kanban_complete`、`kanban_comment`。Reviewer SOUL 先写 provisional BLOCKED REVIEW，再执行 batched static checks 与 bounded viewport interactions。`kanban_block`/`kanban_complete` 均会立即终止 provider loop。
+
+Fresh same-profile smoke 已产出 REVIEW；隔离 Kanban card `t_abf55ece` 在约 56 秒内写入 REVIEW 并 durable `blocked`。Targeted runtime `13 passed`、project runtime `37 passed`、`ROLE_CONTRACTS_OK`、patch classifier `APPLIED`，Gateway clean restart PID `31496`。正式验收：`ai/reviews/REVIEW-T4-010-PMC-REV41R3-REVIEWER-DEADLINE-REMEDIATION-2026-07-05.md`。
+
+该修复不复活 rev41r3。Hermes-owned status 仍缺同 revision/fingerprint 的 runtime owner ACK/diagnostic；Queue 保持 terminal/non-executable。完成 terminal reconciliation 后，PMC 才可发布 fresh bounded review continuation，且不得复用旧 card/run/key。
+
+## 2026-07-05 Revision 41r3 Queue Reconciliation Order Conflict Corrected
+
+Fresh deterministic check 对 terminal rev41r3 Queue 返回 exit `2`：`Queue reconciliation revision does not match Active Wave`。Root cause 是 reconciler 按文件顺序读取首个 fenced reconciliation block，而 Queue 最前面的 fenced block 仍属于 historical rev41r1；当前 rev41r3 signal 只存在于 Active Wave table，导致 Hermes 无法完成 canonical advisory ACK。
+
+PMC 已在 Queue 历史区之前补入 rev41r3 canonical reconciliation block。Rev41r3 仍为 terminal `PMC_BLOCKED / INFRASTRUCTURE_BLOCKED`，fingerprint、diagnostic SLA `2026-07-05T21:56:17+08:00` 与 Resume Condition 不变。当前尚未到 SLA，不重复 advisory、不记录 `RUNTIME_OWNER_STALLED`、不发布 continuation。正式决定：`ai/reviews/REVIEW-T4-010-PMC-REV41R3-QUEUE-RECONCILIATION-ORDER-CONFLICT-2026-07-05.md`。
+
+## 2026-07-05 Revision 41r3 Reviewer Runtime Block
+
+Revision 41r3 Coordinator `t_7ab33875` run #172 已创建 exact-parent Reviewer/HANDOFF children，但 Reviewer `t_2c2f6842` run #173 在 `1814s > 1800s` 后 timeout/gave_up，且 `max_retries=0`。Canonical Independent REVIEW 未生成；HANDOFF `t_588bd58e` 仍因缺少 Reviewer verdict 而阻塞。
+
+PMC 将 revision `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r3` 收口为 terminal `PMC_BLOCKED / INFRASTRUCTURE_BLOCKED`，stable fingerprint 为 `REV41R3_REVIEWER_TIMEOUT_WITHOUT_REVIEW`。这不是业务 REWORK；revision 41 REPORT 与业务 evidence 仍等待独立审查。当前没有 executable Queue，不授权 retry、旧 card/key 复用、replacement Reviewer/HANDOFF、business attempt 2 或自动 rev41r4。
+
+Hermes runtime owner 必须 ACK 同 revision/fingerprint 的 terminal verdict，并在 `2026-07-05T21:56:17+08:00` 前提交 fresh diagnostic。只有 `READY_FOR_CONTINUATION` 证明 bounded `revid-reviewer` 可完成 Independent Review 并显式 terminalize 后，PMC 才考虑 fresh lifecycle continuation。正式 advisory：`ai/reviews/REVIEW-T4-010-PMC-RUNTIME-ADVISORY-REV41R3-2026-07-05.md`。
+
+## 2026-07-05 Revision 41r2 Runtime Block / Revision 41r3 Published
+
+Revision 41r2 已由 Hermes ACK 并创建唯一 Coordinator `t_c2180c46`，但 run #170/#171 分别在 182s/181s timeout，未创建 children。run #171 原始 tool payload 证明三次 Reviewer `kanban_create` 均遗漏 required `parents`，被 runtime 以 `REVIEW_DISPATCH_CHILD_CONTRACT_INVALID` fail-closed。Stable fingerprint：`REV41R2_REVIEW_COORDINATOR_TIMEOUT_AND_MISSING_REVIEWER_PARENT`。
+
+PMC 已修复 launcher successful-import path 生命周期并强化 `revid-pm` exact Reviewer parent contract；targeted 19 tests、deployed SOUL parity、`ROLE_CONTRACTS_OK` 与 `git diff --check` 通过。Revision 41r2 terminal，不得复用。
+
+唯一 executable revision 现为 `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r3`。它只允许 fresh lifecycle Coordinator 显式以当前 card 为 Reviewer parent，再创建 Reviewer-dependent HANDOFF；禁止 business re-execution、业务写入、旧 card/key 复用或自动 rev41r4。正式决定：`ai/reviews/REVIEW-T4-010-PMC-REV41R2-RUNTIME-BLOCK-AND-REV41R3-AUTHORIZATION-2026-07-05.md`。
+
+## 2026-07-05 Revision 41r2 Review Lifecycle Deadlock Resolution
+
+Human Owner 已明确要求解除 Codex PMC 与 Hermes 的停滞。PMC 确认 rev41r1 的 Resume Condition 与 diagnostic 形成 circular gate：前者要求 fresh same-profile child-creation proof 才能授权 continuation，后者又说明只有先获得 fresh lifecycle authorization 才能生成该 proof。
+
+PMC 现发布唯一 executable revision `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r2`。它继承 `REV41R1_REVID_PM_SEARCH_FILES_TOOL_BOUNDARY_VIOLATION`，只允许 fresh `revid-pm / REVIEW_DISPATCH_ONLY` Coordinator 创建一个 Independent Reviewer 与一个 Reviewer-dependent HANDOFF stage。禁止 business re-execution、代码修改、旧 card/key 复用、attempt 2 或自动 rev41r3。正式决定：`ai/reviews/REVIEW-T4-010-PMC-REV41R2-LIFECYCLE-DEADLOCK-RESOLUTION-2026-07-05.md`。
+
+Revision 41r1 继续作为 terminal infrastructure evidence；其 stale status hashes 不授权任何旧 chain action。Rev41r2 的执行本身是已部署 policy remediation 的 bounded runtime proof：contract mismatch 时立即 `INFRASTRUCTURE_BLOCKED`，Reviewer/HANDOFF 成功时进入 PMC final acceptance。
+
+## 2026-07-05 Revision 41r1 Partial Terminal Reconciliation Conflict
+
+Hermes 已把 current header、rev41r1 runtime fingerprint、diagnostic fields、`PMC Action Required = NO` 和 `ACK_TERMINAL_VERDICT_AND_STOP` 改为正确 terminal 值，但 canonical reconciliation 仍不完整。Fresh status SHA256 为 `B98AF97BFF134554E504E14C0F67600AD01525E33CB9520D2F594FDB355DA7E9`；其中 Task SHA256、Queue SHA256 均为旧值，`Reconciliation Status` 缺少 `Queue Status`，且 header 时间早于实际写入时间。
+
+PMC 继续判定 `STATE_CONFLICT / TERMINAL RECONCILIATION INCOMPLETE`。Revision 41r1 保持 terminal/non-executable；不发布 replacement revision、Reviewer、HANDOFF、business execution 或下一 Task。Queue 的唯一 active signal 已规范为 deterministic reconciler 支持的 `ACK_TERMINAL_VERDICT_AND_STOP`。Hermes 只能用 project-owned reconciler 更新其 owned status，写入当前 Task/Queue hashes、fresh timestamp 与 canonical terminal Queue Status；不得创建或操作 Kanban card。正式决定：`ai/reviews/REVIEW-T4-010-PMC-REV41R1-PARTIAL-TERMINAL-RECONCILIATION-CONFLICT-2026-07-05.md`。
+
+## 2026-07-05 Revision 41r1 Post-Diagnostic Status Conflict
+
+Hermes 在 PMC diagnostic review 与 Queue 更新之后再次写入 `HERMES-EXECUTION-STATUS.md`，但新状态仍未确认最新 terminal verdict。Fresh status SHA256 为 `C22D0D19621B3315F7EE512438538D11C907B7514734D35C0FD6616F46855558`；current header 仍把 revision 41 标为 `REPORT_READY`，保留 rev40 business fingerprint 与 `PMC Action Required = YES / RUNTIME_ADVISORY`，rev41r1 confirmation 仍是 pre-diagnostic 的 `ACK_TERMINAL_VERDICT_AND_START_RUNTIME_DIAGNOSTIC`。文件还保留 malformed `||` canonical rows。
+
+PMC 判定为 `STATE_CONFLICT / TERMINAL RECONCILIATION NOT ACKNOWLEDGED`。Revision 41r1 继续 terminal/non-executable；不发布 replacement revision、Reviewer、HANDOFF、business execution 或下一 Task。Hermes 只能 canonicalize 其 owned status，并以同 revision/fingerprint ACK 最新 diagnostic review；不得创建或操作 Kanban card。正式决定：`ai/reviews/REVIEW-T4-010-PMC-REV41R1-POST-DIAGNOSTIC-STATUS-CONFLICT-2026-07-05.md`。
+
+## 2026-07-05 Revision 41r1 Diagnostic Reviewed — Continuation Rejected
+
+Hermes 已对同 revision/fingerprint 完成 terminal ACK，并提交 `ai/reports/DIAGNOSTIC-T4-010-REV41R1-RUNTIME-HEALTH-2026-07-05.md`，SHA256 `4E9F5AFD7139FE5A48636AD77BDC24356346F3B4852A7FFE9410BA794F5F77B9`。Diagnostic verdict 为 `STILL_INFRA_BLOCKED`；canonical Independent REVIEW 与 HANDOFF 仍不存在。
+
+Policy remediation 的 static/resolver checks 已通过，但 resume condition 要求的 fresh same-profile Reviewer/HANDOFF child-creation proof 缺失。PMC 因此拒绝 fresh lifecycle continuation，保持 rev41r1 terminal/non-executable。Hermes status 虽已记录 rev41r1 ACK/diagnostic，却仍在 current header 把 rev41 写成 active `REPORT_READY`、保留 inherited business fingerprint，并留下 `PMC Action Required = YES / RUNTIME_ADVISORY`；Hermes 必须只 canonicalize 其 owned terminal header，不得创建 card。不得复用 `t_08bb42c8`，不得创建 Reviewer/HANDOFF 或执行业务返工。只有新的 runtime evidence 以 `READY_FOR_CONTINUATION` 证明完整 bounded contract 后，PMC 才重新考虑 lifecycle continuation。正式决定：`ai/reviews/REVIEW-T4-010-PMC-RUNTIME-DIAGNOSTIC-REV41R1-2026-07-05.md`。
+
+## 2026-07-05 Revision 41r1 revid-pm Policy Remediation Deployed
+
+Human Owner 已明确授权 `revid-pm / REVIEW_DISPATCH_ONLY` 使用 `search_files`。PMC 定位确认 canonical 与 deployed action allowlist 均缺少该工具，导致 run #169 按设计触发 `ROLE_BOUNDARY_VIOLATION`。现已只为 `REVIEW_DISPATCH_ONLY` 增加 bounded `search_files`；`HANDOFF_ONLY` 与所有 write/terminal/process/browser/web 权限保持不变。
+
+RED regression 为 `1 failed, 7 passed`；修复后 targeted `17 passed`、全部 runtime `34 passed`、`ROLE_CONTRACTS_OK`、deployed resolver smoke `REVID_PM_POLICY_SMOKE_OK`、`git diff --check` 通过。Gateway 已 clean restart，PID `2308`。正式审查：`ai/reviews/REVIEW-T4-010-PMC-REV41R1-REVID-PM-POLICY-REMEDIATION-2026-07-05.md`。
+
+该部署不 retroactively 恢复或复用 `t_08bb42c8`。Revision 41r1 仍 terminal/non-executable；Hermes 必须完成同 revision/fingerprint ACK 和 fresh diagnostic。只有完整 Reviewer/HANDOFF child-creation contract 获得 `READY_FOR_CONTINUATION` 证据后，PMC 才考虑 fresh lifecycle continuation。
+
+## 2026-07-05 Revision 41r1 Queue Action Canonicalized
+
+PMC 已确认 Active Wave 的 `NONE — terminal runtime evidence only` 不是 canonical terminal action，并导致 deterministic reconciler 在 `expected_contract()` 阶段 exit `2`。Queue 现统一为项目既有 contract `NONE — terminal evidence only`，且首个 reconciliation block 已对齐 Active Wave rev41r1；该修正只解除 Queue 字符串与 revision 解析门控，不代表 runtime incident 已恢复，也不授权任何 card、Reviewer、HANDOFF 或 fresh continuation。
+
+Revision 41r1 继续为 `PMC_BLOCKED — NOT EXECUTABLE / RUNTIME_OWNER_STALLED`，fingerprint、逾期 SLA 与原 reconciliation signal 不变。Fresh `--check` 已推进到 Hermes-owned status boundary，当前准确错误为缺少 rev41r1 Runtime Advisory section。Hermes 下一步是对同 revision/fingerprint 完成 terminal ACK 并提交 fresh diagnostic；若现有 gate 无法表示 initial ACK，runtime owner 必须提交 bounded reconciler remediation evidence。PMC 在看到满足 least-privilege proof 的 `READY_FOR_CONTINUATION` 前不修改 `revid-pm` policy、不发布 replacement revision。正式决定：`ai/reviews/REVIEW-T4-010-PMC-REV41R1-QUEUE-ACTION-CORRECTION-2026-07-05.md`。
+
+## 2026-07-05 Revision 41r1 Runtime Owner Stalled
+
+Revision 41r1 runtime advisory 在 `2026-07-05T09:04:38+08:00` 与 `2026-07-05T12:02:20+08:00` 两个连续 PMC checkpoint 间没有推进，且 `2026-07-05T10:02:59+08:00` diagnostic SLA 已逾期。Hermes execution status 仍未记录同 revision/fingerprint 的 runtime owner ACK、advisory path/hash、diagnostic path/hash 或 `ACK_TERMINAL_VERDICT_AND_STOP` confirmation。
+
+PMC 现一次性记录 `RUNTIME_OWNER_STALLED / DIAGNOSTIC_SLA_MISSED`。Revision `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r1` 继续 terminal、non-executable；不得重派或创建 Reviewer/HANDOFF。解除条件是 Hermes runtime owner 先完成同 revision/fingerprint 的 terminal ACK，并提交 fresh diagnostic；只有 `READY_FOR_CONTINUATION` 且证明 bounded `revid-pm / REVIEW_DISPATCH_ONLY` policy 可完成 Reviewer/HANDOFF child creation，PMC 才考虑 fresh continuation。正式事件：`ai/reviews/REVIEW-T4-010-PMC-RUNTIME-OWNER-STALLED-REV41R1-2026-07-05.md`。
+
+## 2026-07-05 Revision 41r1 Runtime Block
+
+Revision 41r1 lifecycle Coordinator `t_08bb42c8` 未能创建 Independent Reviewer/HANDOFF chain：run `#168` 在 181s timeout，process retry run `#169` 因 `search_files` 不在当前 `revid-pm / REVIEW_DISPATCH_ONLY` tool policy 中而触发 `ROLE_BOUNDARY_VIOLATION`。Canonical REVIEW 与 HANDOFF 均不存在。该事件是 runtime/tool-policy incident，不是业务 REWORK；revision 41 REPORT 仍保留为待独立审查证据。
+
+PMC 已将 revision `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r1` 收口为 terminal `PMC_BLOCKED`，fingerprint `REV41R1_REVID_PM_SEARCH_FILES_TOOL_BOUNDARY_VIOLATION`。当前没有 executable Queue。Hermes runtime owner 应 ACK 同 revision/fingerprint 的 terminal verdict，并在 2026-07-05T10:02:59+08:00 前提交 fresh diagnostic；只有 `READY_FOR_CONTINUATION` 且证明 bounded `revid-pm` policy 可完成 Reviewer/HANDOFF child creation 时，PMC 才考虑 fresh continuation。正式 advisory：`ai/reviews/REVIEW-T4-010-PMC-RUNTIME-ADVISORY-REV41R1-2026-07-05.md`。
+
+## 2026-07-05 Revision 41 REPORT Accepted / Review Lifecycle Published
+
+Revision 41 Executor `t_d8bc9535` run `#167` 已在 `T4_010_UNIT_B_REV41_REMEDIATION_REPORT_READY` 停止。PMC 核对 actual diff 仅涉及 `Workspace.vue` 与 `WorkspacePromptDock.vue`；fresh build exit `0`、scoped/full `git diff --check` exit `0`；三个 protected component hashes 精确匹配；六张 PNG 的实际尺寸与 SHA256 匹配 REPORT，截图未见 `920x900`/`375x812` drawer 与 Prompt Dock 重叠。未发现必须在 Independent Review 前直接收口的明确 AC failure。
+
+PMC 现发布唯一 executable lifecycle revision `phase4-wave3-workspace-shell-unit-b-rev41-review-dispatch-2026-07-05-41r1`，Action 为 `REVIEW_DISPATCH_ONLY`。它只允许一个 Independent Reviewer 与一个依赖 Reviewer PASS 的 HANDOFF stage；禁止 business re-execution、代码修改、attempt 2 或下一 Task。Reviewer 必须独立复跑三个 exact viewport、missing-`project_id` zero-request、network/console、geometry、keyboard/focus/ARIA/reduced-motion、build/diff 与全 T4-010 contract。正式授权：`ai/reviews/REVIEW-T4-010-PMC-REV41-REVIEW-LIFECYCLE-AUTHORIZATION-2026-07-05.md`。本状态不是 `PMC_PASS`，最终验收等待 canonical REVIEW 与 HANDOFF。
+
+## 2026-07-05 Revision 40 PMC REWORK / Revision 41 Published
+
+Revision 40 已真实生成 `1440x900`、`920x900`、`375x812` exact viewport PNG，关闭 inherited evidence-missing fingerprint；五个 protected Workspace hashes、fresh `npm run build`、scoped/full `git diff --check` 均通过。但 Unit B 业务验收失败：`920x900` drawer 与 Prompt Dock 约重叠 `58px`，`375x812` 约重叠 `13px`；reduced-motion、完整 keyboard/state/network evidence 缺失；source audit 还确认缺少 `project_id` generate guard，且 `WorkspacePromptDock.vue` 未导入 `NButton`。Revision 40 terminal `PMC_REWORK`，fingerprint 为 `REV40_RESPONSIVE_DRAWER_PROMPT_OVERLAP_AND_INTERACTION_EVIDENCE_INCOMPLETE`，不得进入 Reviewer/HANDOFF。
+
+PMC 已发布唯一 business REWORK revision `phase4-wave3-workspace-shell-unit-b-responsive-remediation-2026-07-05-41`。仅允许修改 `Workspace.vue` 与 `WorkspacePromptDock.vue`，修复上述缺陷并重跑完整 exact browser/interaction evidence；其他三个 Workspace component、Canvas/API/backend/global tokens 只读。Rev41 停止于 REPORT_READY，Reviewer/HANDOFF 未授权。正式审查：`ai/reviews/REVIEW-T4-010-PMC-REV40-REWORK-AND-REV41-AUTHORIZATION-2026-07-05.md`。
+
+## 2026-07-05 Revision 39 Blocked / Revision 40 Exact-Tool Evidence Published
+
+PMC 已收口 revision 39 为 `PMC_BLOCKED`。REPORT、PLAN 与 PROGRESS 明确使用 CSS transform 模拟 viewport；实际仅为 `1264x625`，三个目标 viewport 均未完成，`ai/evidence/T4-010/unit-b/rev39/` 包含 `0` 个文件，且不存在 Independent REVIEW/HANDOFF。稳定 fingerprint 继续为 `REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING`。Fresh 五个 protected file hashes 与 baseline 一致，`npm run build` 通过（4634 modules，exit `0`）。正式审查：`ai/reviews/REVIEW-T4-010-PMC-REV39-BLOCKED-AND-REV40-AUTHORIZATION-2026-07-05.md`。
+
+Human Owner 已在 rev39 terminal 后授权并完成 exact browser capability remediation；`browser_set_viewport`、`browser_screenshot`、allowlist、tests、role verifier 与真实 `375x812` PNG smoke 均已通过。因此 PMC 发布唯一 fresh revision `phase4-wave3-workspace-shell-unit-b-exact-browser-evidence-2026-07-05-40`。它保持五个业务文件 read-only，强制五分钟 exact viewport + PNG preflight，禁止任何 JavaScript/CSS/zoom/static fallback。若相同 fingerprint 再现，直接 terminal BLOCKED，不再发布下一 revision。
+
 ## 2026-07-04 Hermes Exact Viewport and Screenshot Tools Deployed
 
 Human Owner 授权 Codex 直接补齐 `revid-frontend` browser evidence capability。Hermes runtime 现新增 `browser_set_viewport(width,height)` 与非 vision-dependent `browser_screenshot(full_page=False)`；Frontend/Reviewer allowlist、SOUL、role verifier、tests 与 project-owned durable patch 已同步。真实 smoke 的 requested/actual viewport 与 PNG IHDR 均为 `375x812`；Hermes targeted tests `10 passed`、project runtime tests `33 passed`、`ROLE_CONTRACTS_OK`、patch classifier `APPLIED`、双 worktree diff check 通过。正式验收：`ai/reviews/REVIEW-HERMES-BROWSER-EVIDENCE-TOOLS-PASS-2026-07-04.md`。
 
 用户计划重启电脑，Gateway restart 后新 worker 才加载新工具。Revision 39 已 terminal，但其旧 REPORT 使用 viewport override/CSS simulation 且缺少 screenshot files，不能因 runtime fix retroactively PASS；后续必须由 fresh revision 使用新工具生成三个精确 viewport 的真实证据。
+
+## 2026-07-05 Revision 39 REPORT_READY — Evidence Insufficient
+
+Revision 39 Executor `t_744ce8af` run #163 completed in 1440s with state `REPORT_READY`. However, the REPORT admits the same viewport limitation as revision 38: only `1264x625` actual viewport captured, CSS transform scale(0.875) simulation used for bounding boxes, and `ai/evidence/T4-010/unit-b/rev39/` is empty. The three required exact viewports (`1440x900`, `920x900`, `375x812`) were NOT produced. This is the same failure fingerprint `REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING`. No Reviewer or HANDOFF is authorized for revision 39. PMC attention required for FINAL_ACCEPTANCE decision.
 
 ## 2026-07-04 Revision 38 Closed / Revision 39 Browser Evidence Correction Published
 
@@ -231,12 +385,12 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 
 ## Current Phase
 
-`Phase 4 - Personal Integration Edition（执行中，T4-002 Unit C3 rev36 授权保留但已 supersede；T4-010 Unit A revision 34 stage-accepted，Unit B revision 38 因 browser evidence 缺失 terminal PMC_BLOCKED）`
+`Phase 4 - Personal Integration Edition（执行中，T4-002 Unit C3 rev36 授权保留但已 supersede；T4-010 Unit A revision 34 stage-accepted，Unit B revision 39 terminal PMC_BLOCKED，revision 40 exact-tool evidence 已发布）`
 
 ## Current Task
 
 - `T4-010-UNIT-A`：revision 34 已 stage-accepted；该结论不是最终 `PMC_PASS`。
-- `T4-010-UNIT-B`：revision 37 runtime smoke 已 PASS；revision 38 因精确 viewport 与 screenshot/console/network/overflow evidence 缺失 terminal `PMC_BLOCKED`，等待 Hermes ACK terminal verdict。
+- `T4-010-UNIT-B`：revision 39 因精确 viewport 与 screenshot evidence 缺失 terminal `PMC_BLOCKED`；revision 40 使用 first-class exact viewport/screenshot tools，等待 Hermes ACK。
 - `T4-010` revision `-32` 继续作为 terminal infrastructure evidence；不得复用旧 card、key 或 artifact path。
 - `T4-002`：Unit C2 revision `-26` / lifecycle `-26r2` 已 PMC PASS。Unit C3 revisions `-29` 与 `-30` 均已 terminal `PMC_BLOCKED`，没有 executable T4-002 Queue。
 
@@ -246,7 +400,7 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 |---|---|---|---|
 | T4-001 | PASS，进入 done | MySQL 8.0.43；Alembic head；12/12 InnoDB + utf8mb4；12/12 table comments；90/90 column comments；97 tests |
 | T4-006 | PMC PASS，进入 done | `ai/reviews/REVIEW-T4-006-PMC-2026-06-24.md` |
-| T4-010 Unit B | **PMC BLOCKED — revision 38 required browser evidence missing** | `ai/reviews/REVIEW-T4-010-PMC-UNIT-B-REV38-BLOCKED-2026-07-04.md`；fingerprint `REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING`；不进入 Reviewer/HANDOFF |
+| T4-010 Unit B | **PMC BLOCKED — revision 39 repeated required browser evidence missing；revision 40 exact-tool continuation authorized** | `ai/reviews/REVIEW-T4-010-PMC-REV39-BLOCKED-AND-REV40-AUTHORIZATION-2026-07-05.md`；fingerprint `REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING`；rev39 不进入 Reviewer/HANDOFF |
 | T4-002 | PMC REDISPATCH — Human approved | `ai/reviews/REVIEW-T4-002-PMC-REDISPATCH-2026-06-24.md`；Queue revision `phase4-wave2-manual-rework-2026-06-24-05` |
 | T4-002 | PMC CHECKPOINT — Executor running，尚不可验收 | `ai/reviews/REVIEW-T4-002-PMC-CHECKPOINT-2026-06-24.md`；Executor `t_68c68e4e` |
 | T4-002 | PMC BLOCKED — Executor retries exhausted，partial implementation unverified | `ai/reviews/REVIEW-T4-002-PMC-EXECUTOR-BLOCKED-2026-06-24.md` |
@@ -317,7 +471,7 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 
 ## Ready / Running
 
-- 当前无 executable Queue。T4-010 Unit B revision `-38` terminal `PMC_BLOCKED`，等待 Hermes 以同 revision/fingerprint `ACK_TERMINAL_VERDICT_AND_STOP`；revision 35/37/38 cards 与 keys 均不可复用。
+- 当前没有 executable Queue。T4-010 Unit B revision `-41r1` 已因 `REV41R1_REVID_PM_SEARCH_FILES_TOOL_BOUNDARY_VIOLATION` terminal `PMC_BLOCKED`，等待 runtime owner diagnostic；revision 41 Executor `t_d8bc9535` 的 REPORT_READY 证据保留，尚无 canonical Independent REVIEW/HANDOFF；revision 35/37/38/39/40/41r1 cards 与 keys 均不可复用。
 - T4-002 revision `-27`/`-28`/`-29`/`-30` Dispatcher/Executor/cards/keys 均为 terminal evidence，不可复用。
 - Hermes 中文输出：`REPORT-SOUL-DEPLOYMENT-2026-06-28.md` 声明五个 SOUL 已部署并通过 marker 检查；execution profile 的实际 Kanban sample output 尚未验证。当前 paused cron 不得自动恢复。
 - T4-010 — T4-006 dependency 已满足；Unit A revision 34 已 stage-accepted；rev37 已证明 runtime terminal-transition health，Unit B revision 38 已发布。
@@ -325,7 +479,7 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 
 ## Blockers
 
-- T4-010 Unit B revision `-38`：REPORT 仅披露实际 viewport `1264x625`，未提供 Task 要求的 `1440x900`、`920x900`、`375x812` 三 viewport screenshots 与逐 viewport console/network/overflow artifacts；`ai/evidence/T4-010/unit-b/` 不存在。Fresh build 与 scoped diff check 通过但不能替代 browser Hard Gate。Attempt Policy 禁止 automatic business REWORK；等待 terminal ACK，未来 correction 需 fresh PMC authorization。
+- T4-010 Unit B revision `-39`：REPORT 仅披露实际 viewport `1264x625`，以 CSS transform 模拟 1440px，并错误声明 Hard Gates 全部通过；rev39 evidence 目录为空。该 revision 已 terminal `PMC_BLOCKED`。Revision 40 只能使用 exact tools；任何 fallback 或同 fingerprint 再现将直接 terminal BLOCKED。
 
 - T4-003 继续依赖完整 T4-002 完成与 PMC 验收；Unit C1 PASS 不单独解锁 T4-003。
 - T4-002 Unit C1 revision `-18` 与 lifecycle continuation `-18r1`：PMC final acceptance 已通过；不得重复 dispatch 或复用该 chain。Executor 的 premature HANDOFF 为 non-canonical historical evidence。
@@ -367,7 +521,7 @@ Revision `26r1` remains terminal and archived. Credential rotation and `ROLE_CON
 
 ## Next Review Gate
 
-- T4-010：下一 gate 是 Hermes 以 fingerprint `REV38_REQUIRED_BROWSER_VIEWPORT_AND_SCREENSHOT_EVIDENCE_MISSING` ACK revision 38 terminal verdict；在 fresh PMC authorization 前不发布 browser correction、Reviewer 或 HANDOFF Queue。
+- T4-010：下一 gate 是 Hermes ACK revision 41r1 terminal runtime verdict并提交 fresh diagnostic；只有 `READY_FOR_CONTINUATION` 证明 bounded `revid-pm / REVIEW_DISPATCH_ONLY` policy 可安全创建 Reviewer/HANDOFF children 后，PMC 才发布 fresh lifecycle continuation。
 
 - T4-002：revision `-29` 已 terminal `PMC_BLOCKED`；不发布 Review lifecycle 或 replacement revision。未来 fresh authorization 必须把 orphan deletion 绑定到 failure-safe cleanup，并以同一 lifecycle/helper 的 non-MySQL injected-failure test 证明 deletion-equivalent state。
 - Hermes language：五个 SOUL 模板已部署（default + 4 execution profiles），中文 marker 验证通过，profile descriptions 已更新。Revid cron 保持 paused。

@@ -4,7 +4,7 @@
 
 - Task ID: `T4-010-UNIT-B`
 - Planned Revision: `phase4-wave3-workspace-shell-unit-b-browser-continuation-2026-07-04-38`
-- Status: `PMC_BLOCKED — REV38 REQUIRED BROWSER EVIDENCE MISSING / NOT EXECUTABLE`
+- Status: `PMC_PASS — ARCHIVED IN PLACE / REV41R7 HANDOFF_READY`
 - Executor: `revid-frontend`
 - Reviewer: `revid-reviewer`
 - Dependencies: T4-010 Unit A stage acceptance ✅; frontend bounded runtime readiness ✅

@@ -4,7 +4,7 @@
 
 - Task ID: `T4-010-UNIT-B-REV39`
 - Revision: `phase4-wave3-workspace-shell-unit-b-browser-evidence-correction-2026-07-04-39`
-- Status: `APPROVED — WAITING FOR HERMES ACK`
+- Status: `PMC_BLOCKED — TERMINAL / NOT EXECUTABLE`
 - Action: `DISPATCH_ONLY`
 - Executor: `revid-frontend`
 - Reviewer: `revid-reviewer`（本 revision 未授权）
@@ -82,3 +82,7 @@ CanvasStage、CanvasStore、router、API、backend、Home、Space、global desig
 `T4_010_UNIT_B_REV39_BROWSER_EVIDENCE_REPORT_READY`
 
 等待 PMC queue decision；不得创建 Independent REVIEW、HANDOFF、下一 revision 或其他 worker。
+
+## PMC Closure
+
+Revision 39 failed the exact viewport and screenshot Hard Gates. Only `1264x625` was real, CSS transform simulation was used, and the revision evidence directory contains zero files. Formal verdict: `ai/reviews/REVIEW-T4-010-PMC-REV39-BLOCKED-AND-REV40-AUTHORIZATION-2026-07-05.md`. Cards, runs, keys, sessions and artifacts are terminal and must not be reused.

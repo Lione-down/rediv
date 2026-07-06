@@ -21,6 +21,10 @@ def test_patch_asset_contains_runtime_guards():
         "degenerate_no_tool_response_exhausted",
         '"name": "browser_set_viewport"',
         '"name": "browser_screenshot"',
+        "KANBAN_REVIEW_FINALIZATION_RESERVE_SECONDS",
+        "HERMES_KANBAN_SOFT_DEADLINE_EPOCH",
+        "_kanban_review_finalization_reason",
+        "RUNTIME REVIEW FINALIZATION MODE",
     ):
         assert marker in text
 

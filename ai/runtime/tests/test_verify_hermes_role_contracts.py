@@ -73,6 +73,26 @@ def test_frontend_and_reviewer_policies_require_browser_evidence_tools():
         assert "browser_screenshot" in tools
 
 
+def test_revid_pm_review_dispatch_policy_allows_bounded_search_only():
+    review_tools = MODULE.EXPECTED_POLICIES["revid-pm"]["REVIEW_DISPATCH_ONLY"]
+    handoff_tools = MODULE.EXPECTED_POLICIES["revid-pm"]["HANDOFF_ONLY"]
+
+    assert review_tools.count("search_files") == 1
+    assert handoff_tools.count("search_files") == 1
+    assert "terminal" not in handoff_tools
+    for forbidden in ("write_file", "terminal", "process", "browser_navigate"):
+        assert forbidden not in review_tools
+
+
+def test_revid_pm_soul_requires_exact_reviewer_parent_argument():
+    soul = (
+        Path(__file__).parents[2]
+        / "prompts"
+        / "hermes-revid-pm-soul.md"
+    ).read_text(encoding="utf-8")
+    assert "parents: [当前 REVIEW_DISPATCH_ONLY Coordinator card ID]" in soul
+
+
 def test_frontend_soul_requires_real_viewport_and_screenshot_tools():
     soul = (
         Path(__file__).parents[2]
@@ -81,3 +101,21 @@ def test_frontend_soul_requires_real_viewport_and_screenshot_tools():
     ).read_text(encoding="utf-8")
     assert "browser_set_viewport" in soul
     assert "browser_screenshot" in soul
+
+
+def test_reviewer_soul_requires_bounded_deadline_aware_workflow():
+    soul = (
+        Path(__file__).parents[2]
+        / "prompts"
+        / "hermes-revid-reviewer-soul.md"
+    ).read_text(encoding="utf-8")
+
+    for marker in (
+        "REVIEW_INCOMPLETE_PENDING_VERIFICATION",
+        "provisional `BLOCKED` REVIEW",
+        "单个 batched terminal command",
+        "最多 48 次 verification API calls",
+        "禁止逐个重复 `Tab`",
+        "finalization-only mode",
+    ):
+        assert marker in soul

@@ -26,7 +26,7 @@
 | T4-007 | 登录/注册入口与路由鉴权 | blocked | T4-004、T4-006 |
 | T4-008 | Home 项目/资产概览页重构 | blocked | T4-003、T4-006 |
 | T4-009 | Space 个人资产页重构 | blocked | T4-003、T4-006 |
-| T4-010 | Workspace 组件拆分与目标布局 | Unit A revision 34 stage-accepted；rev38 terminal ACK closed；revision 39 evidence-only correction 已发布，等待 Hermes ACK | T4-006 ✅ |
+| T4-010 | Workspace 组件拆分与目标布局 | done ✅ — rev41r7 REVIEW PASS、HANDOFF_READY、PMC PASS | T4-006 ✅ |
 
 ## Phase 4D — Canvas 与最终联调
 
