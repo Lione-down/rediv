@@ -39,6 +39,7 @@ class Settings(BaseSettings):
 
     # === Admin ===
     dev_admin_key: str = "dev-admin-key"
+    test_mysql_admin_url: str | None = Field(default=None, repr=False)
 
     # === Storage ===
     storage_backend: str = "local"  # local | s3

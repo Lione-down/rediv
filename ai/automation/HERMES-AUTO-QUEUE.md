@@ -1,20 +1,79 @@
 # Hermes Automatic Queue
 
 ```text
+Revision: phase4-wave2-unit-c3-rev44-review-dispatch-2026-07-08-44r1
+Status: PMC_BLOCKED
+Approved By: Codex Project Master Controller
+Task ID: T4-002
+Project Task File: ai/tasks/todo/TASK-T4-002-UNIT-C3-REV44.md
+Action: NONE — terminal evidence only
+Executor Profile: revid-pm
+Review Profile: revid-reviewer
+Parallel Group: serial-phase4-wave2-unit-c3-rev44-review
+Attempt Policy: terminal runtime advisory only; no Executor, Reviewer, HANDOFF, business rework, continuation revision, code modification, database write, historical card/key reuse, claim, promote, unblock, retry, reparent, archive, or delete
+Previous Failure Fingerprint: REV44R1_REVID_PM_ROLE_BOUNDARY_TERMINAL_TOOL_NOT_ALLOWED; rev44 REPORT_READY and inherited rev43/rev42 fingerprints retained as historical evidence
+Hard Gates: Hermes-owned status canonicalized to ACK_TERMINAL_VERDICT_AND_STOP for same revision/fingerprint + fresh least-privilege runtime policy remediation evidence + no duplicate card + no secret output + no revid_db + no business file mutation
+Stop After: RUNTIME_POLICY_REMEDIATION_READY_REV44R1
 PMC Reconciliation Required: YES
-PMC Verdict Revision: phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42
+PMC Verdict Revision: phase4-wave2-unit-c3-rev44-review-dispatch-2026-07-08-44r1
 PMC Verdict: PMC_BLOCKED
-Failure Fingerprint: REV42_REGRESSIONS_BYPASS_SHARED_LIFECYCLE_AND_FAILURE_GROUPING_INVALID
+Failure Fingerprint: REV44R1_REVID_PM_ROLE_BOUNDARY_TERMINAL_TOOL_NOT_ALLOWED
 Expected Hermes Action: ACK_TERMINAL_VERDICT_AND_STOP
-Runtime Diagnostic SLA: N/A — business Hard Gate failure, not runtime incident
-Resume Condition: fresh Human Owner authorization or a later PMC-approved bounded remediation Task that directly exercises the shared lifecycle and preserves all inherited fingerprints
+Runtime Diagnostic SLA: SATISFIED WITH STILL_INFRA_BLOCKED DIAGNOSTIC; status cursor still requires Hermes-owned reconciliation
+Resume Condition: fresh runtime remediation verdict READY_FOR_CONTINUATION proving revid-pm REVIEW_DISPATCH_ONLY can create one Reviewer child and one dependent HANDOFF_ONLY child under least-privilege bounded Kanban lifecycle tools, without unrestricted terminal access, business writes, database access, secret output, or historical card reuse
 ```
 
 ## Current Hermes Cron Contract
 
-下一轮 Hermes cron 必须执行 `ai/automation/HERMES-NEXT-CRON-CONTRACT.md`，且仅适用于当前 rev42 Active Wave。目标是确认无 active rev42 worker、规范化 Hermes-owned status、ACK exact terminal verdict/fingerprint 后停止；禁止任何 card 或业务动作。
+下一轮 Hermes cron 不得执行 lifecycle dispatch。rev44r1 Coordinator `t_a2509036` 已因 `ROLE_BOUNDARY_VIOLATION: terminal tool not allowed for revid-pm Kanban task` blocked，当前 Queue 是 terminal evidence only。Hermes 已提交 `ai/reports/DIAGNOSTIC-T4-002-REV44R1-RUNTIME-HEALTH-2026-07-09.md`，SHA256 `050D2D9F3D1E7BDB997CE4CB4EA41C846511572E5E4D8D72BCBDF623FCC92F97`，verdict 为 `STILL_INFRA_BLOCKED`；PMC review 为 `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-DIAGNOSTIC-REV44R1-2026-07-08.md`。Hermes 下一步只能 ACK 同 revision/fingerprint 的 terminal STOP，并提供 least-privilege runtime policy remediation evidence；`ACK_TERMINAL_VERDICT_AND_STOP` 是唯一可机读 Expected Hermes Action。
 
-T4-002 Unit C3 rev36 与 rev42 均不是 executable Queue；其 revisions、cards 与 keys 不得复用。当前没有 executable authorization。
+Runtime advisory 记录：`ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV44R1-2026-07-08.md`。T4-002 Unit C3 rev36、rev42、rev43 cards 均为 terminal/non-executable evidence；rev44 Dispatcher `t_04f179d0`、Executor `t_64a40afd` 和 rev44r1 Coordinator `t_a2509036` 均不得复用、retry、claim、promote、unblock、reparent、archive 或 delete。Reviewer/HANDOFF、business work、database access、secret output 和 continuation revision 均未授权。只有 fresh `READY_FOR_CONTINUATION` 证据证明 `revid-pm / REVIEW_DISPATCH_ONLY` 可以在 bounded Kanban lifecycle tools 下创建 Reviewer/HANDOFF children，PMC 才会考虑后续 continuation。
+
+## 2026-07-07 T4-002 Unit C3 Revision 43 Runtime Status Structure Canonicalized
+
+Hermes-owned status SHA256 `644911686712ECA0F98112605195711C520E026EBA540B9307EBAD64260DB32E` now has a single `## Active Queue` section for rev43 and preserves rev42 as `## Historical Queue — Revision 42`. This closes the earlier duplicate Active Queue structure conflict.
+
+Fresh deterministic verification now fails closed at Hermes-owned status schema/action issues:
+
+```text
+STATUS_RECONCILIATION_ERROR: expected one section starting with '## PMC Attention', found 0
+```
+
+PMC canonicalized its owned Queue action to `NONE — terminal evidence only`, matching the established terminal contract, and marked terminal reconciliation acknowledged because Hermes status already has `ACK_TERMINAL_VERDICT_AND_STOP` plus `Runtime Owner State = DIAGNOSTIC_READY`. Hermes-owned status still lacks the required `## PMC Attention` section and still says `Action = NONE — terminal runtime evidence only`; Hermes next action is only to restore the canonical `## PMC Attention` section, update status action wording to `NONE — terminal evidence only`, and retain `PMC Action Required = NO`, `ACK_TERMINAL_VERDICT_AND_STOP`, `Runtime Owner State = DIAGNOSTIC_READY`, and the existing diagnostic path/hash. No card, retry, Reviewer, HANDOFF, continuation revision, database, `.env`, or secret action is authorized.
+
+## 2026-07-07 T4-002 Unit C3 Revision 43 Runtime Status Partial ACK
+
+Hermes-owned status SHA256 `9CB1299FE516E3A27BF5E3E23C815655DD24371467506693BB589AF91AB3C540` now records `Runtime Owner State = DIAGNOSTIC_READY`, `Runtime Diagnostic Verdict = STILL_INFRA_BLOCKED`, `Current Failure Fingerprint = REV43_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT`, `PMC Verdict Confirmation = ACK_TERMINAL_VERDICT_AND_STOP`, and `PMC Action Required = NO`. This closes the earlier partial cursor defects for owner state, STOP ACK, current fingerprint, and PMC action marker.
+
+The status document is still not structurally canonical. Fresh deterministic check still fails with `STATUS_RECONCILIATION_ERROR: duplicate canonical field across document: Queue Revision at lines 9, 49` because terminal rev42 remains a second `## Active Queue` section. Formal review: `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-STATUS-PARTIAL-ACK-REV43-2026-07-07.md`. Hermes next action is only to make rev43 the single active queue section and preserve rev42 as historical terminal evidence. No card, retry, Reviewer, HANDOFF, continuation revision, database, `.env`, or secret action is authorized.
+
+## 2026-07-07 T4-002 Unit C3 Revision 43 Direct Fast-Path Implementation
+
+PMC directly implemented the bounded rev43 Allowed File changes after Human Owner requested immediate progress. Report: `ai/reports/REPORT-T4-002-UNIT-C3-REV43.md`. `py_compile` passed; three non-MySQL regressions passed; in-memory injected failure probe no longer returns rev42 tuple `ValueError`; `git diff --check -- backend/tests/test_migration_tool.py` passed. The five real-MySQL selectors are blocked because the current process lacks `REVID_TEST_MYSQL_ADMIN_URL`; no `.env` fallback, secret output, `revid_db` access, Reviewer, HANDOFF, card operation, or continuation revision is authorized.
+
+## 2026-07-07 T4-002 Unit C3 Revision 43 Runtime Status Conflict
+
+Hermes-owned status SHA256 `FA3949629B55B9848D1B4A0CD297184FECA8F6626FA330E1A92AD587768E60C8` contains partial rev43 runtime cursor fields, but it is still not canonical. `Runtime Owner State` remains `ACKNOWLEDGED`, `PMC Verdict Confirmation` remains `ACK_TERMINAL_VERDICT_AND_DIAGNOSTIC_WRITTEN`, current failure fingerprint remains the inherited rev42 business fingerprint, `PMC Action Required` remains `YES`, and deterministic reconciler fails with duplicate canonical `Queue Revision` fields across two Active Queue sections.
+
+Formal review: `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-STATUS-CONFLICT-REV43-2026-07-07.md`. Queue remains terminal/non-executable. Hermes must only canonicalize its owned status and collect fresh session-root-cause runtime evidence for Executor session `20260707_145513_ac2eee`.
+
+## 2026-07-07 T4-002 Unit C3 Revision 43 Runtime Diagnostic Reviewed
+
+Hermes produced `ai/reports/DIAGNOSTIC-T4-002-REV43-RUNTIME-HEALTH-2026-07-07.md` with verdict `STILL_INFRA_BLOCKED`, SHA256 `E84B16F6B8E65BCCD64CCBB5B8D66DF00902FBE7E5A415F38C14AB1C544F934C`. PMC review: `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-DIAGNOSTIC-REV43-2026-07-07.md`.
+
+This diagnostic does not authorize continuation. It lacks session transcript/root-cause evidence. Hermes-owned status now records partial ACK/diagnostic fields, but it still lacks canonical `Runtime Owner State = DIAGNOSTIC_READY`, exact `ACK_TERMINAL_VERDICT_AND_STOP`, rev43 runtime fingerprint as current, `PMC Action Required = NO`, and a single current Active Queue canonical section. Hermes must canonicalize status and return fresh runtime evidence before PMC can consider any continuation.
+
+## 2026-07-07 T4-002 Unit C3 Revision 43 Runtime Advisory
+
+Rev43 Dispatcher `t_fb444a42` completed in `92s` and created Executor child `t_af88d96e`. Executor run `#189` blocked after `991s` with `WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION`, and no `ai/reports/REPORT-T4-002-UNIT-C3-REV43.md` exists for business acceptance. Formal advisory: `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV43-2026-07-07.md`.
+
+This is a runtime/process incident, not business REWORK. Do not redispatch, retry, claim, promote, unblock, reparent, delete, archive or reuse rev43 cards/keys. Do not create Reviewer/HANDOFF or publish continuation until Hermes runtime owner ACKs this terminal verdict and provides fresh diagnostic evidence.
+
+## 2026-07-07 T4-002 Unit C3 Revision 43 Publication
+
+Human Owner 要求快速推进 T4-002 后，PMC 发布 fresh bounded remediation revision `phase4-wave2-unit-c3-shared-cleanup-lifecycle-correction-2026-07-07-43`。Formal authorization: `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV43-PUBLICATION-2026-07-07.md`.
+
+Only `backend/tests/test_migration_tool.py` and rev43 PLAN/PROGRESS/REPORT are writable by the Executor. Rev43 must correct rev42's shared-lifecycle bypass and invalid failure grouping; it must stop at `UNIT_C3_SHARED_CLEANUP_LIFECYCLE_REPORT_READY_REV43`. Reviewer/HANDOFF and any automatic next revision are forbidden.
 
 ## 2026-07-07 T4-002 Unit C3 Revision 42 PMC Blocked
 
@@ -421,44 +480,44 @@ Resolution: update durability is `PMC_PASS` in `ai/reviews/REVIEW-T4-002-PMC-HER
 
 Hermes role-contract hardening is `PMC_PASS` and runtime status is `READY_FOR_CONTINUATION`: `ai/reports/REPORT-HERMES-ROLE-CONTRACT-HARDENING-2026-06-30.md` and `ai/reviews/REVIEW-T4-002-PMC-HERMES-ROLE-CONTRACT-HARDENING-PASS-2026-06-30.md`.
 
-The current Active Wave remains `BLOCKED / NOT EXECUTABLE`. Revision `26r1` and card `t_f46c8d6e` remain terminal evidence. No replacement revision is published because `SECURITY_ROTATION_REQUIRED` is still open. After credential rotation and a fresh `ROLE_CONTRACTS_OK`, PMC may publish a new review-only revision with fresh keys, `revid-pm`, at least 180 seconds, and no Executor re-execution.
+Historical note: at the time of revision `26r1`, the Active Wave remained `BLOCKED / NOT EXECUTABLE`. Revision `26r1` and card `t_f46c8d6e` remain terminal evidence. This historical text is not current authorization.
 
-T4-010 Unit B revision `-41r1` 与 `-40`/`-39`/`-38`/`-35`、revision `-34`/`-33`/`-32`/`-31`、runtime revision 37、T4-002 revision `-30`/`-29` 均为 terminal historical evidence；Hermes scheduled mode 不得 retry、claim、promote、unblock、reparent、删除或复用任何历史 chain。T4-002 revision 36 已在 ACK 前 supersede；当前没有 executable Active Wave。
+T4-010 Unit B revision `-41r1` 与 `-40`/`-39`/`-38`/`-35`、revision `-34`/`-33`/`-32`/`-31`、runtime revision 37、T4-002 revision `-30`/`-29` 均为 terminal historical evidence；Hermes scheduled mode 不得 retry、claim、promote、unblock、reparent、删除或复用任何历史 chain。T4-002 revision 36 已在 ACK 前 supersede。当前授权只来自下方唯一 `## Active Wave` 表。
 
 ## Active Wave
 
 | Field | Value |
 |---|---|
-| Revision | `phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42` |
-| Status | `PMC_BLOCKED — NOT EXECUTABLE / AWAITING TERMINAL ACK` |
+| Revision | `phase4-wave2-unit-c3-rev44-review-dispatch-2026-07-08-44r1` |
+| Status | `BLOCKED — NOT EXECUTABLE / TERMINAL RECONCILIATION PENDING` |
 | Approved By | `Codex Project Master Controller` |
-| Approval Source | `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV42-BLOCKED-2026-07-07.md` |
-| Approval Time | `2026-07-07` |
+| Approval Source | `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV44R1-2026-07-08.md` |
+| Approval Time | `2026-07-08` |
 | Task ID | `T4-002` |
-| Project Task File | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV42.md` |
-| Task SHA256 | `41DAD1AA59C7AADD4844DDE033461C38ACFDB42B6EAD41990903C7F0EC6BBFD4` |
+| Project Task File | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV44.md` |
+| Task SHA256 | `624674CEFBD2F5DAE5FEC480962D20094B72C19173791F0D5D6AC0D69C65013D` |
 | Action | `NONE — terminal evidence only` |
-| Executor Profile | `revid-backend` |
+| Executor Profile | `revid-pm` |
 | Review Profile | `revid-reviewer` |
-| Dispatch Profile | `revid-dispatcher` |
-| Parallel Group | `serial-phase4-wave2-unit-c3-rev42` |
-| Attempt Policy | `one bounded business attempt; initial Executor run plus at most one process retry; no automatic business rework, Reviewer, HANDOFF or historical card/key reuse` |
-| Previous Failure Fingerprint | `REV30_FK_RESTORATION_UNPROVEN_AND_CLEANUP_FAILURES_NOT_PRESERVED` |
-| Hard Gates | `project deploy + ROLE_CONTRACTS_OK + deterministic status gate + fresh rev42 cards/keys + Allowed File ownership + runtime-only REVID_TEST_MYSQL_ADMIN_URL + identity-confirmed disposable revid_test_t4_002 + no secret output/.env/revid_db + 3 exact non-MySQL regressions + 5 ordered real-MySQL selectors + no historical reuse` |
-| Coordinator Budget | `120s; thin Dispatcher only` |
-| Executor Budget | `1800s` |
-| Dispatcher Idempotency Key | `revid:phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42:T4-002:dispatch` |
-| Executor Idempotency Key | `revid:phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42:T4-002:execute:0` |
+| Dispatch Profile | `revid-pm` |
+| Parallel Group | `serial-phase4-wave2-unit-c3-rev44-review` |
+| Attempt Policy | `terminal runtime advisory only; no Executor, Reviewer, HANDOFF, business rework, continuation revision, code modification, database write, historical card/key reuse, claim, promote, unblock, retry, reparent, archive, or delete` |
+| Previous Failure Fingerprint | `REV44R1_REVID_PM_ROLE_BOUNDARY_TERMINAL_TOOL_NOT_ALLOWED` |
+| Hard Gates | `Hermes-owned status canonicalized to ACK_TERMINAL_VERDICT_AND_STOP for same revision/fingerprint + fresh least-privilege runtime policy remediation evidence + no duplicate card + no secret output + no revid_db + no business file mutation` |
+| Coordinator Budget | `N/A — terminal runtime evidence` |
+| Executor Budget | `N/A — terminal runtime evidence` |
+| Dispatcher Idempotency Key | `revid:phase4-wave2-unit-c3-rev44-review-dispatch-2026-07-08-44r1:T4-002:coordinate` |
+| Executor Idempotency Key | `N/A — no Executor authorized` |
 | Reviewer Budget | `N/A — not authorized` |
 | Handoff Budget | `N/A — not authorized` |
-| Stop After | `ACK_TERMINAL_VERDICT_AND_STOP` |
+| Stop After | `RUNTIME_POLICY_REMEDIATION_READY_REV44R1` |
 | PMC Reconciliation Required | `YES` |
-| PMC Verdict Revision | `phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42` |
+| PMC Verdict Revision | `phase4-wave2-unit-c3-rev44-review-dispatch-2026-07-08-44r1` |
 | PMC Verdict | `PMC_BLOCKED` |
-| Failure Fingerprint | `REV42_REGRESSIONS_BYPASS_SHARED_LIFECYCLE_AND_FAILURE_GROUPING_INVALID` |
+| Failure Fingerprint | `REV44R1_REVID_PM_ROLE_BOUNDARY_TERMINAL_TOOL_NOT_ALLOWED` |
 | Expected Hermes Action | `ACK_TERMINAL_VERDICT_AND_STOP` |
-| Runtime Diagnostic SLA | `N/A — business Hard Gate failure, not runtime incident` |
-| Resume Condition | `fresh Human Owner authorization or a later PMC-approved bounded remediation Task that directly exercises the shared lifecycle and preserves all inherited fingerprints` |
+| Runtime Diagnostic SLA | `SATISFIED WITH STILL_INFRA_BLOCKED DIAGNOSTIC; status cursor still requires Hermes-owned reconciliation` |
+| Resume Condition | `fresh runtime remediation verdict READY_FOR_CONTINUATION proving revid-pm REVIEW_DISPATCH_ONLY can create one Reviewer child and one dependent HANDOFF_ONLY child under least-privilege bounded Kanban lifecycle tools, without unrestricted terminal access, business writes, database access, secret output, or historical card reuse` |
 
 ## Revision 32 Workspace Shell Continuation Authorization（terminal historical, not executable）
 

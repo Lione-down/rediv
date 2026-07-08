@@ -1,77 +1,88 @@
 # Hermes Next Cron Contract
 
 > Contract owner: Codex PMC
-> Applicable revision: `phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42`
-> Contract status: `ACTIVE — TERMINAL VERDICT RECONCILIATION ONLY`
+> Applicable revision: `phase4-wave2-unit-c3-rev44-review-dispatch-2026-07-08-44r1`
+> Contract status: `PMC_BLOCKED - RUNTIME POLICY REMEDIATION ONLY`
 
-## 1. Authority Snapshot
+## Active Wave
 
-Revision 42 reached REPORT_READY and is now terminal `PMC_BLOCKED`. The unique `## Active Wave` table in `ai/automation/HERMES-AUTO-QUEUE.md` is non-executable. Historical Queue prose, revision 36, revisions 27-30, and all old cards/keys are evidence only.
-
-| Field | Required Value |
+| Field | Value |
 |---|---|
-| Queue Revision | `phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42` |
+| Queue Revision | `phase4-wave2-unit-c3-rev44-review-dispatch-2026-07-08-44r1` |
 | Task ID | `T4-002` |
-| Task Path | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV42.md` |
+| Task Path | `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV44.md` |
 | Queue Action | `NONE — terminal evidence only` |
-| PMC Verdict | `PMC_BLOCKED` |
-| Failure Fingerprint | `REV42_REGRESSIONS_BYPASS_SHARED_LIFECYCLE_AND_FAILURE_GROUPING_INVALID` |
+| Executor Profile | `revid-pm` |
+| Review Profile | `revid-reviewer` |
+| Stop After | `RUNTIME_POLICY_REMEDIATION_READY_REV44R1` |
 | Expected Hermes Action | `ACK_TERMINAL_VERDICT_AND_STOP` |
+| Previous Failure Fingerprint | `REV44R1_REVID_PM_ROLE_BOUNDARY_TERMINAL_TOOL_NOT_ALLOWED` |
+| Human Owner Decision | `STRICT_FLOW_CONFIRMED — do not bypass Independent REVIEW or HANDOFF` |
+| PMC Review | `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV44R1-2026-07-08.md` |
+| Runtime Diagnostic Review | `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-DIAGNOSTIC-REV44R1-2026-07-08.md` |
 
-## 2. Objective
+## Objective
 
-Confirm rev42 has no active worker, canonicalize Hermes-owned status, ACK the exact terminal PMC verdict/fingerprint, and stop. Do not create, retry, or modify any card.
+ACK the rev44r1 terminal STOP cursor and provide fresh least-privilege runtime policy remediation evidence for the `revid-pm` role boundary failure.
 
-## 3. Observed Problem
+This Queue must not create an Executor, Reviewer, HANDOFF, replacement lifecycle coordinator, continuation revision, business modification, database action, project card operation, or secret output. Human Owner explicitly chose to keep the rigorous flow, so PMC must not bypass Independent REVIEW or canonical HANDOFF. Rev44 business evidence is already `REPORT_READY` at `ai/reports/REPORT-T4-002-UNIT-C3-REV44.md`, but final acceptance is blocked until a valid Independent REVIEW and HANDOFF exist in a future PMC-authorized continuation.
 
-`HERMES-EXECUTION-STATUS.md` still describes rev42 as `REPORT_READY` with an executable/approved Queue and the inherited rev30 fingerprint. Its rev42, Board Summary, Reconciliation Status, and PMC Attention tables use invalid double-leading-pipe rows. Its `Last updated` value `2026-07-07T12:22:00+08:00` is future-dated relative to the PMC read at `2026-07-07T02:26:49+08:00` and must be replaced with the actual write time. Fresh deterministic check exits `2` with `expected one section starting with '## Active Queue', found 2` because archived rev41r7 is still labeled as a second Active Queue. The canonical project facts now require one rev42 Active Queue section in terminal `PMC_BLOCKED` state and one historical rev41r7 section.
+## Preconditions
 
-## 4. Exact Steps
+- `ai/automation/HERMES-AUTO-QUEUE.md` top revision equals `phase4-wave2-unit-c3-rev44-review-dispatch-2026-07-08-44r1` and status is `PMC_BLOCKED`.
+- Task file exists at `ai/tasks/todo/TASK-T4-002-UNIT-C3-REV44.md`.
+- PMC runtime advisory exists at `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV44R1-2026-07-08.md`.
+- Rev44 REPORT exists at `ai/reports/REPORT-T4-002-UNIT-C3-REV44.md`.
+- Runtime diagnostic exists at `ai/reports/DIAGNOSTIC-T4-002-REV44R1-RUNTIME-HEALTH-2026-07-09.md`, SHA256 `050D2D9F3D1E7BDB997CE4CB4EA41C846511572E5E4D8D72BCBDF623FCC92F97`, with verdict `STILL_INFRA_BLOCKED`.
+- Rev44 Dispatcher `t_04f179d0`, Executor `t_64a40afd`, and rev44r1 Coordinator `t_a2509036` are terminal evidence and must not be reused.
+- No ready/running/review T4-002 worker exists for rev44, rev43, rev42, rev36 or earlier Unit C3 revisions.
 
-1. Read the current Queue, rev42 Task, PMC blocked review, REPORT, and current status.
-2. Verify Coordinator `t_89269e14` and Executor `t_adc87aa2` are terminal and that there is no ready/running/review rev42 worker. Preserve the existing REPORT path and card/run evidence.
-3. In `ai/automation/HERMES-EXECUTION-STATUS.md`, convert malformed rev42/status table rows to canonical single-leading-pipe Markdown rows and make canonical fields unique.
-4. Rename `## Active Queue — Revision 41r7` to `## Historical Queue — Revision 41r7 (Terminal, PMC PASS)` without changing its archived evidence. Exactly one section may start with `## Active Queue`.
-5. Replace the future-dated `Last updated` value with the actual status write time and keep `Last Transition` tied to a verified event; do not invent future timestamps.
-6. Set the rev42 current fields exactly:
-   - `State = PMC_BLOCKED — NOT EXECUTABLE / TERMINAL RECONCILIATION COMPLETE`
-   - `Current Failure Fingerprint = REV42_REGRESSIONS_BYPASS_SHARED_LIFECYCLE_AND_FAILURE_GROUPING_INVALID`
-   - `Failure Fingerprint = REV42_REGRESSIONS_BYPASS_SHARED_LIFECYCLE_AND_FAILURE_GROUPING_INVALID`
-   - `PMC Verdict Confirmation = ACK_TERMINAL_VERDICT_AND_STOP`
-   - `Rev42 Reconciliation = ACK_TERMINAL_VERDICT_AND_STOP — COMPLETE`
-   - `Queue Status = PMC_BLOCKED — NOT EXECUTABLE / TERMINAL RECONCILIATION COMPLETE`
-   - `PMC Action Required = NO`
-   - `PMC Action Type = NONE`
-   - `PMC Action Reason = terminal rev42 verdict acknowledged; no further action authorized`
-   - `Human Decision Candidate = NO`
-   - `Human Escalation Reason = NONE`
-7. Recompute and persist the actual current Task SHA256 and Queue SHA256; placeholders such as `AUTO-GENERATED`, `N/A`, or stale hashes are invalid.
-8. Run the project-owned deterministic status check:
+## Exact Steps
 
-```powershell
-D:/works/codexWorks/project_revid/backend/.venv/Scripts/python.exe ai/runtime/reconcile-hermes-execution-status.py --check
-```
+1. Read Queue, this contract, rev44 Task, rev44 REPORT, PMC runtime advisory, CURRENT, ROADMAP, and Hermes-owned execution status.
+2. Validate the Queue top revision, Task path, terminal Action, Expected Hermes Action, Stop After and failure fingerprint match this contract.
+3. Update only Hermes-owned status fields so the same revision/fingerprint records `PMC Verdict Confirmation: ACK_TERMINAL_VERDICT_AND_STOP` in all terminal confirmation locations.
+4. Remove or correct future-dated transition/due/generated cursor values; status ordering evidence must not be later than the actual write/read time and diagnostic due must not be treated as an active future SLA after `DIAGNOSTIC_READY`.
+5. Preserve the diagnostic path/hash and verdict `STILL_INFRA_BLOCKED` as terminal evidence; do not convert it into `READY_FOR_CONTINUATION`.
+6. Implement or prove a least-privilege policy path for `revid-pm / REVIEW_DISPATCH_ONLY` using bounded Kanban lifecycle capabilities, not unrestricted `terminal`.
+7. Provide fresh evidence, preferably a non-destructive same-profile smoke, showing exactly one Reviewer child and one dependent `HANDOFF_ONLY` child can be created and terminalized without business writes, database access, secret output, or historical card reuse.
+8. Return exactly `READY_FOR_CONTINUATION`, `STILL_INFRA_BLOCKED`, or `NEEDS_HUMAN_DECISION` with evidence path/hash.
+9. Stop and return control to Codex PMC.
 
-If the check reports only deterministic Hermes-owned status mismatches and supports this business terminal verdict, apply once and check again. If it rejects the new PMC business verdict or the status structure cannot be canonicalized safely, do not touch cards or Queue; persist `PMC Action Required = YES / STATE_CONFLICT` with the exact error and evidence path for PMC.
+## Deterministic Branch Table
 
-## 5. Forbidden Actions
+| Condition | Action |
+|---|---|
+| Queue revision/action/profile/Task mismatch | `STATE_CONFLICT`; do not create cards |
+| Queue Expected Hermes Action is not `ACK_TERMINAL_VERDICT_AND_STOP` | `STATE_CONFLICT`; do not create cards |
+| Task, REPORT or PMC runtime advisory missing | `STATE_CONFLICT`; do not create cards |
+| Existing rev44r1 Coordinator is blocked with same fingerprint | Keep terminal; do not create duplicate cards |
+| Status still uses non-STOP terminal confirmation or future-dated cursor fields | Canonicalize Hermes-owned status; do not create cards |
+| Remediation proves role boundary fixed and same-profile lifecycle can safely proceed | `READY_FOR_CONTINUATION`; return evidence to PMC |
+| Remediation cannot prove safe lifecycle continuation | `STILL_INFRA_BLOCKED`; keep Queue non-executable |
+| Diagnostic requires product direction, paid resource, new secret, irreversible operation, or major contract change | `NEEDS_HUMAN_DECISION`; include exact reason |
+| Secret would be printed, hashed, persisted or inferred | `SECURITY_BLOCKED` |
+| Any database action would be required for diagnostic | `SECURITY_BLOCKED`; diagnostic must avoid database access |
 
-- Do not create, retry, claim, promote, unblock, reparent, delete, archive, or reuse any card/run/key.
-- Do not create Reviewer/HANDOFF, a replacement revision, or business REWORK.
-- Do not modify Queue, CURRENT, ROADMAP, Task, PMC REVIEW, REPORT, PLAN/PROGRESS, business code, tests, runtime code, database, or secrets.
-- Do not read `.env`, print/infer credentials, touch `revid_db`, or run destructive MySQL tests.
-- Do not replace the rev42 fingerprint with the inherited rev30 fingerprint.
+## Forbidden Actions
 
-## 6. Verification
+- Do not create a `DISPATCH_ONLY`, `IMPLEMENT_AND_TEST_ONLY`, `INDEPENDENT_REVIEW_ONLY`, `HANDOFF_ONLY`, or replacement `REVIEW_DISPATCH_ONLY` stage.
+- Do not modify `backend/settings/config.py`, `backend/tests/test_migration_tool.py`, migration code, frontend, schema, Queue history, CURRENT, ROADMAP, Task, REPORT, PMC REVIEW, Reviewer output or HANDOFF.
+- Do not create, retry, claim, promote, unblock, reparent, archive or delete rev44r1, rev44, rev43, rev42, rev36 or other historical cards.
+- Do not read any secret file.
+- Do not print, hash, persist or infer credentials.
+- Do not touch `revid_db` or any database.
+- Do not clear inherited fingerprints.
 
-- Exactly one Active Wave and it is terminal/non-executable.
-- Zero ready/running/review rev42 workers.
-- Exactly one current rev42 `PMC Verdict Confirmation` and one rev42 reconciliation row.
-- All canonical status tables use one leading `|`; canonical fields are unique.
-- Task/Queue hashes match actual SHA256 values.
-- Deterministic check returns `STATUS_OK`, or status records a precise `STATE_CONFLICT` without any card/business action.
-- `git diff --check -- ai/automation/HERMES-EXECUTION-STATUS.md` exits `0`.
+## Completion Evidence
 
-## 7. Completion Evidence and Stop Condition
+Hermes must record in `HERMES-EXECUTION-STATUS.md`:
 
-Persist the fresh timestamp, exact hashes, verified card states, deterministic check result, and terminal ACK in Hermes-owned status. Stop immediately after reconciliation. There is no executable Queue and no authorized next Task.
+- `PMC Verdict Confirmation: ACK_TERMINAL_VERDICT_AND_STOP` in all terminal confirmation fields.
+- Runtime advisory revision/fingerprint/path/SHA256 matching `ai/reviews/REVIEW-T4-002-PMC-RUNTIME-ADVISORY-REV44R1-2026-07-08.md`.
+- Runtime diagnostic path/hash/verdict matching the existing `STILL_INFRA_BLOCKED` diagnostic, with no active future SLA.
+- Fresh remediation verdict `READY_FOR_CONTINUATION`, `STILL_INFRA_BLOCKED`, or `NEEDS_HUMAN_DECISION`.
+
+## Stop Condition
+
+Stop after status canonicalization and runtime policy remediation evidence are ready. Do not mark PMC PASS, archive the Task, select T4-003, publish another Queue, create project cards, or run review lifecycle without Codex PMC final acceptance or fresh continuation approval.
