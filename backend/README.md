@@ -4,14 +4,16 @@
 
 Revid Backend 是 Revid 项目的 FastAPI 后端，当前提供认证、Admin 管理、邀请码、额度流水、资产接口以及 Agnes provider 接入基础设施。
 
-当前默认以 SQLite 作为本地持久化存储，便于开发环境直接启动和验证。
+默认以 SQLite 作为本地持久化存储；生产环境可切换至 MySQL。
 
 ## 技术栈
 
 - FastAPI
 - Pydantic Settings
 - SQLAlchemy
-- SQLite / aiosqlite
+- SQLite / aiosqlite (开发)
+- MySQL + PyMySQL (生产)
+- Alembic (数据库迁移)
 - Uvicorn
 - httpx
 
@@ -39,52 +41,54 @@ backend/
 - 默认额度发放与 Admin 手动发放额度
 - 用户资产列表与上传占位接口
 - Agnes API 配置与 provider 基础封装
+- MySQL runtime 支持（通过 Alembic 管理 schema）
 
 ## 环境准备
 
 建议使用 Python 3.11 及以上版本。
 
-1. 安装依赖：
+### 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-2. 基于示例文件准备环境变量：
+### 基于示例文件准备环境变量
 
 ```bash
-copy .env.example .env
+cp .env.example .env
 ```
 
-3. 按需修改 `.env` 中的配置，尤其是 `REVID_JWT_SECRET`、微信配置和 Agnes API 配置。
+按需修改 `.env` 中的配置，尤其是 `REVID_JWT_SECRET`、微信配置和 Agnes API 配置。
 
 ## 启动方式
 
-在 `backend/` 目录执行：
+### SQLite 模式（默认）
 
 ```bash
 uvicorn main:app --reload
 ```
 
-默认地址：
+默认地址：`http://localhost:8000`
+接口文档：`http://localhost:8000/docs`
 
-```text
-http://localhost:8000
+### MySQL 模式
+
+```bash
+# 确保 alembic migration 已执行
+alembic upgrade head
+
+# 启动
+uvicorn main:app --reload
 ```
 
-接口文档：
-
-```text
-http://localhost:8000/docs
-```
+MySQL 模式下 `REVID_USE_SQLITE=false`，服务启动时不会调用 `create_all()`，而是通过 Alembic 校验 schema revision。
 
 ## 数据库配置
 
-配置由 [`D:\works\codexWorks\project_revid\backend\settings\config.py`](D:\works\codexWorks\project_revid\backend\settings\config.py) 读取，环境变量前缀统一为 `REVID_`。
+配置由 [`settings/config.py`](settings/config.py) 读取，环境变量前缀统一为 `REVID_`。
 
-### 本地默认模式
-
-默认启用 SQLite：
+### SQLite 模式（默认）
 
 ```env
 REVID_USE_SQLITE=true
@@ -93,19 +97,54 @@ REVID_DB_PATH=revid.db
 
 启动时 `main.py` 会先调用 `init_db(settings.db_path)` 创建数据库文件，再切换到 `DatabaseStore`。
 
-### 非 SQLite 配置
-
-当前配置层已预留以下变量：
+### MySQL 模式
 
 ```env
+REVID_USE_SQLITE=false
 REVID_DB_HOST=localhost
 REVID_DB_PORT=3306
 REVID_DB_NAME=revid_db
 REVID_DB_USER=root
-REVID_DB_PASSWORD=
+REVID_DB_PASSWORD=your_password
 ```
 
-但当前代码路径仅在 `REVID_USE_SQLITE=false` 时回退为 `InMemoryStore`，并未接入其他持久化数据库实现。开发阶段请优先使用 SQLite。
+MySQL 模式下：
+- 启动时不调用 `create_all()`，schema 由 Alembic 管理
+- 启动时会检查 `alembic_version` 表确认当前 revision
+- 连接池使用 `NullPool` 的替代方案（pymysql pool）
+- `pool_recycle` 默认为 3600 秒
+
+### Alembic 迁移
+
+```bash
+# 生成新迁移（自动检测模型变更）
+alembic revision --autogenerate -m "description"
+
+# 应用所有迁移到最新
+alembic upgrade head
+
+# 回退一个 revision
+alembic downgrade -1
+
+# 查看当前 revision
+alembic current
+```
+
+## 切换与回滚
+
+### SQLite → MySQL
+
+1. 在 MySQL 中创建数据库
+2. 配置 `.env` 中的 MySQL 连接信息
+3. 设置 `REVID_USE_SQLITE=false`
+4. 执行 `alembic upgrade head`
+5. 运行 `python -c "import main"` 验证启动
+
+### MySQL → SQLite（回滚）
+
+1. 设置 `REVID_USE_SQLITE=true`
+2. 删除或重命名 `.env` 中的 MySQL 相关配置
+3. 重启服务
 
 ## 常用环境变量
 
@@ -138,6 +177,13 @@ python -m compileall .
 python -m unittest discover -s tests -p "test_database_store.py"
 ```
 
+MySQL runtime cutover 专项测试：
+
+```bash
+python -m unittest tests.test_mysql_runtime_cutover
+python -m unittest tests.test_health
+```
+
 如需快速验证应用是否可导入，可执行：
 
 ```bash
@@ -155,23 +201,29 @@ curl -X POST "http://localhost:8000/admin/dev-login?admin_key=dev-admin-key"
 2. 创建邀请码：
 
 ```bash
-curl -X POST "http://localhost:8000/admin/invitation-codes" ^
-  -H "Authorization: Bearer <ADMIN_TOKEN>" ^
-  -H "Content-Type: application/json" ^
-  -d "{\"code\":\"TEST2026\",\"max_uses\":10}"
+curl -X POST "http://localhost:8000/admin/invitation-codes" \
+  -H "Authorization: Bearer ***" \
+  -H "Content-Type: application/json" \
+  -d '{"code":"TEST2026","max_uses":10}'
 ```
 
 3. 执行微信 mock 登录：
 
 ```bash
-curl -X POST "http://localhost:8000/auth/wechat/mock" ^
-  -H "Content-Type: application/json" ^
-  -d "{\"openid\":\"wx-openid-1\",\"nickname\":\"Test User\",\"invitation_code\":\"TEST2026\"}"
+curl -X POST "http://localhost:8000/auth/wechat/mock" \
+  -H "Content-Type: application/json" \
+  -d '{"openid":"wx-openid-1","nickname":"Test User","invitation_code":"TEST2026"}'
 ```
 
 4. 查询当前用户：
 
 ```bash
-curl "http://localhost:8000/me" ^
-  -H "Authorization: Bearer <USER_TOKEN>"
+curl "http://localhost:8000/me" \
+  -H "Authorization: Bearer ***"
+```
+
+5. 查看健康状态（含数据库信息）：
+
+```bash
+curl "http://localhost:8000/health"
 ```

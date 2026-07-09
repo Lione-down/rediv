@@ -213,3 +213,10 @@
 - 每条指令必须包含精确 Target、Observed Problem、Required Changes、Forbidden Actions、Verification、Completion Evidence 和 Done Condition。
 - 用户可见摘要不能替代共享文档中的详细操作契约；Hermes 无法读取 Codex 私有 thread 或 automation memory，正式指令必须落在双方可读的 PMC REVIEW、Queue、Task、ADR 或 CURRENT。
 - 字段修改必须给出当前值与目标值；验证必须给出命令或结构化 read-back 以及预期结果，禁止使用未定义的概括性动词。
+
+## 2026-07-09 Reviewer runtime 卡住最终只读验收
+
+- 当最终 Review 阶段只剩 SHA256 与 `git diff --check` 这类确定性只读校验，且 Reviewer 因 runtime deadline/pending approval 未执行命令而 BLOCKED，不能无限重派同一个 Hermes Reviewer。
+- PMC 可以在 Human Owner 明确要求快速收口时执行 emergency direct final acceptance，但必须记录为流程例外：不把 Reviewer BLOCKED 改写成 PASS，不伪造 HANDOFF，不修改 Reviewer/HANDOFF 文件。
+- 例外成立条件必须严格：不涉及业务代码、数据库、migration、secret、`.env`、destructive operation、产品方向或 schema contract；所有缺失证据必须可由 PMC 只读复验。
+- Queue 必须同步改成 terminal ACK-only，明确禁止 Hermes retry Reviewer、写 HANDOFF、复用历史 card 或自动发布下一 Task；下一 Task 仍由 PMC 单独发布。

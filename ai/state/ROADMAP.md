@@ -8,8 +8,8 @@
 | Task | 标题 | 状态 | 依赖 |
 |---|---|---|---|
 | T4-001 | MySQL 8 引擎、模型备注与 Alembic baseline | done | 无 |
-| T4-002 | SQLite → MySQL 数据迁移工具 | Unit C2 rev26/26r2 PMC PASS；Unit C3 rev44 REPORT_READY；rev44r1 review lifecycle blocked on Hermes runtime policy remediation | T4-001 ✅ |
-| T4-003 | MySQL runtime 切换与 Navicat 验收 | blocked | T4-002 |
+| T4-002 | SQLite → MySQL 数据迁移工具 | done ✅ — `PMC_PASS - EMERGENCY DIRECT FINAL ACCEPTANCE` in `ai/reviews/REVIEW-T4-002-PMC-EMERGENCY-FINAL-ACCEPTANCE-2026-07-09.md`; rev46 Hermes lifecycle is terminal ACK-only evidence | T4-001 ✅ |
+| T4-003 | MySQL runtime 切换与 Navicat 验收 | blocked — rev47r1 terminal runtime advisory, waiting Hermes diagnostic for `REV47R1_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT` | T4-002 ✅ |
 
 ## Phase 4B — 认证与真实 API
 

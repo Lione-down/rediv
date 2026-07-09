@@ -38,7 +38,12 @@ T4-002
 - Unit C3 Bound Failure Cleanup Revision：`phase4-wave2-unit-c3-ac4-failure-cleanup-2026-07-01-30`
 - Unit C3 Superseded Publication Revision：`phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-04-36`
 - Unit C3 Fresh Remediation Revision：`phase4-wave2-unit-c3-failure-lifecycle-remediation-2026-07-07-42`
-| Status：`UNIT C1/C2 PMC PASS — UNIT C3 REVISION -42 PMC_BLOCKED / REPORT HARD GATES FAILED` |
+- Unit C3 Settings Env Acceptance Revision：`phase4-wave2-unit-c3-settings-env-acceptance-2026-07-08-44`
+- Unit C3 Rev44 Review Lifecycle Revision：`phase4-wave2-unit-c3-rev44-review-dispatch-2026-07-08-44r4`
+- Unit D Consolidated Final Report Revision：`phase4-wave2-unit-d-final-report-consolidation-2026-07-08-45`
+- Unit E Final Review/Handoff Revision：`phase4-wave2-unit-e-final-review-handoff-2026-07-09-46`
+| Emergency Final Acceptance：`ai/reviews/REVIEW-T4-002-PMC-EMERGENCY-FINAL-ACCEPTANCE-2026-07-09.md` |
+| Status：`PMC_PASS — EMERGENCY DIRECT FINAL ACCEPTANCE` |
 | Approved By：Codex Project Master Controller（继承 Human User 的 T4-002 product/destructive authorization） |
 | Previous Coordinator Card：`t_b788cdb9` (blocked; timed_out run #82) |
 | Previous Executor Card：`t_3769f8ec` (attempt 1 continuation; crashed run #83; retry blocked by parent) |
@@ -82,6 +87,7 @@ T4-002
 - Unit C3 Rev29 PMC Blocked：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV29-BLOCKED-2026-07-01.md`
 - Unit C3 Rev42 Publication：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV42-PUBLICATION-2026-07-07.md`
 - Unit C3 Rev42 PMC Blocked：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV42-BLOCKED-2026-07-07.md`
+- Unit C3 Rev44 PMC PASS：`ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV44-PASS-2026-07-08.md`
 - Hermes Atomic Dispatch Fix Report：`ai/reports/REPORT-HERMES-ATOMIC-DISPATCH-FIX-2026-06-29.md`
 - Hermes Atomic Dispatch PMC PASS：`ai/reviews/REVIEW-T4-002-PMC-HERMES-ATOMIC-DISPATCH-FIX-PASS-2026-06-29.md`
 - Safety Decision：`ai/decisions/ADR-003-t4-002-disposable-mysql-test-environment.md`
@@ -156,9 +162,10 @@ Revision `-30` reached `REPORT_READY`, but PMC source/diff audit found that the 
 2. business attempt ordinal 仍为 `1`；禁止 attempt 2，禁止通过 revision 清零任何 infrastructure/business fingerprint。
 3. Revision `-18` 与 `-18r1` 已 PMC PASS，不得重复 ACK、dispatch 或复用其 cards/idempotency keys。
 4. Revision `-26` / lifecycle `-26r2` 已 PMC PASS；revision `-26r1` 与 revisions `-20` through `-25` 均 terminal。所有历史 cards/idempotency keys 均不得重复执行或复用。
-5. Revisions `-27`、`-28`、`-29`、`-30` 均已 terminal；revision `-30` 因 FK restoration 未被 regression 证明、cleanup failure path 不保证恢复 FK checks、resource-close failure 被吞掉而 `PMC_BLOCKED`。当前无 executable Queue，不得进入 Unit D/E、T4-003 或 T4-010。
-6. 禁止手工 claim、promote、unblock、重试或复用 revision `-08` 及更早 card。
-7. Unit C 必须继承全部历史 failure fingerprints，尤其是 `T4-002-SEMANTICS: IDEMPOTENCY_COMPARISON + FALSE_POSITIVE_CONFLICT + NON_MID_BATCH_ROLLBACK + SWALLOWED_CLEANUP + MISSING_SOURCE_COVERAGE`。
+5. Revisions `-27`、`-28`、`-29`、`-30` 均已 terminal；revision `-30` 因 FK restoration 未被 regression 证明、cleanup failure path 不保证恢复 FK checks、resource-close failure 被吞掉而 `PMC_BLOCKED`。这些历史 chains 不得复用。
+6. Unit C3 rev44/rev44r4 已 PMC PASS 且 Hermes 已 ACK terminal verdict。Unit D rev45 consolidated final REPORT 已完成并声明 `READY_FOR_INDEPENDENT_REVIEW`；Unit E rev46 Reviewer artifact 为 BLOCKED，但 PMC 在 Human Owner 加速指令下完成 22 个证据 hash 与 Unit D `git diff --check` 的 emergency direct final acceptance。rev46 Hermes chain 仅保留为 terminal lifecycle evidence，不得重试或复用。
+7. 禁止手工 claim、promote、unblock、重试或复用 revision `-08` 及更早 card。
+8. Unit C/D 必须继承全部历史 failure fingerprints，尤其是 `T4-002-SEMANTICS: IDEMPOTENCY_COMPARISON + FALSE_POSITIVE_CONFLICT + NON_MID_BATCH_ROLLBACK + SWALLOWED_CLEANUP + MISSING_SOURCE_COVERAGE`。
 
 ## Bounded Work Units
 
@@ -170,11 +177,11 @@ Revision `-30` reached `REPORT_READY`, but PMC source/diff audit found that the 
 | C | revision `-16` runtime blocked/terminal | Original full disposable MySQL integration dispatch；Coordinator retry exhausted before Executor | Yes |
 | C1 | PMC PASS revision `-18` / lifecycle `-18r1` | Runtime-enforced fixture identity + Alembic schema preflight | Yes |
 | C2 | PMC PASS revision `-26` / lifecycle `-26r2` | Dry-run、full migration、second-run idempotency、source immutability | Yes |
-| C3 | revision `-27` PMC_REWORK；`-28`/`-29`/`-30` PMC_BLOCKED | Destination FK validation、conflict、partial rollback、consistency、AC4 failure-safe cleanup | Yes |
-| D | planned only | Consolidated final REPORT | No |
-| E | planned only | Independent REVIEW and HANDOFF | No |
+| C3 | PMC PASS via revision `-44` / lifecycle `-44r4` | Destination FK validation、conflict、partial rollback、consistency、AC4 failure-safe cleanup plus settings acceptance for authorized test admin URL | Yes |
+| D | REPORT_READY revision `-45` | Consolidated final REPORT mapping Unit A/B/C evidence to original T4-002 acceptance criteria | No |
+| E | PMC emergency accepted revision `-46` | Reviewer blocked before deterministic read-only checks; PMC completed checks and waived missing HANDOFF for this final closure only | No |
 
-Units D-E require separate PMC Queue approval after Unit C evidence is reviewed.
+T4-002 is complete. T4-003 requires a fresh PMC task/queue decision and must not be started by Hermes automatically.
 
 ## Historical Final Business Rework Conditions (revision -08, terminal)
 

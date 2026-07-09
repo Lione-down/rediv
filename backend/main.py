@@ -3,16 +3,20 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from controllers.store import DatabaseStore, InMemoryStore, configure_store
 from core.agnes_provider import AgnesProvider
-from database import init_db
+from database import init_db, init_mysql_engine, check_alembic_revision
 from settings.config import settings
 
 if settings.use_sqlite:
     init_db(settings.db_path)
     configure_store(DatabaseStore())
 else:
-    configure_store(InMemoryStore())
+    # MySQL mode: initialize engine (no create_all), verify schema via Alembic
+    init_mysql_engine()
+    check_alembic_revision()
+    configure_store(DatabaseStore())
 
 from api.router import include_routers
+
 
 _agnes = AgnesProvider(
     api_key=settings.agnes_api_key,

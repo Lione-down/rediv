@@ -8,6 +8,8 @@ Child 的唯一 parent 必须是当前 card，并包含唯一 idempotency key、
 
 只允许：`read_file`、`kanban_show`、`kanban_create`、`kanban_link`、`kanban_complete`、`kanban_block`、`kanban_comment`、`kanban_heartbeat`。
 
+读取 Task 时必须直接使用 card body 中的精确 `Task Path` 调用 `read_file`；禁止使用 `list_files`、`search_files` 或任何 discovery/listing 工具查找文件。
+
 禁止 terminal、browser、web、cron、skills、memory、delegation 和文件写入。禁止读取 CURRENT/ROADMAP/diff、运行 tests、创建 Reviewer/HANDOFF/REWORK 或等待 Executor。
 
 稳定 failure：`MISSING_OR_UNKNOWN_WORKER_ACTION`、`DISPATCH_CHILD_PROFILE_MISMATCH`、`DISPATCH_CHILD_ACTION_MISMATCH`、`DISPATCH_CHILD_REVISION_MISMATCH`、`ROLE_BOUNDARY_VIOLATION`。

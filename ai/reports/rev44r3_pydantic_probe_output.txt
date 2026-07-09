@@ -1,0 +1,61 @@
+--- backend python probe ---
+executable= D:\works\codexWorks\project_revid\backend\.venv\Scripts\python.exe
+version= 3.13.2 (tags/v3.13.2:4f8bb39, Feb  4 2025, 15:23:48) [MSC v.1942 64 bit (AMD64)]
+cwd= D:\works\codexWorks\project_revid
+PYTHONPATH= None
+VIRTUAL_ENV= None
+sys_path_start
+'D:\\works\\codexWorks\\project_revid\\ai\\reports'
+'D:\\works\\tool\\Python3.13.2\\python313.zip'
+'D:\\works\\tool\\Python3.13.2\\DLLs'
+'D:\\works\\tool\\Python3.13.2\\Lib'
+'D:\\works\\tool\\Python3.13.2'
+'D:\\works\\codexWorks\\project_revid\\backend\\.venv'
+'D:\\works\\codexWorks\\project_revid\\backend\\.venv\\Lib\\site-packages'
+sys_path_end
+IMPORT_CHECK pydantic
+OK pydantic file= D:\works\codexWorks\project_revid\backend\.venv\Lib\site-packages\pydantic\__init__.py version= 2.13.4
+SPEC ModuleSpec(name='pydantic', loader=<_frozen_importlib_external.SourceFileLoader object at 0x000001DFBCA201D0>, origin='D:\\works\\codexWorks\\project_revid\\backend\\.venv\\Lib\\site-packages\\pydantic\\__init__.py', submodule_search_locations=['D:\\works\\codexWorks\\project_revid\\backend\\.venv\\Lib\\site-packages\\pydantic'])
+IMPORT_CHECK pydantic_core
+OK pydantic_core file= D:\works\codexWorks\project_revid\backend\.venv\Lib\site-packages\pydantic_core\__init__.py version= 2.46.4
+SPEC ModuleSpec(name='pydantic_core', loader=<_frozen_importlib_external.SourceFileLoader object at 0x000001DFBCACE7B0>, origin='D:\\works\\codexWorks\\project_revid\\backend\\.venv\\Lib\\site-packages\\pydantic_core\\__init__.py', submodule_search_locations=['D:\\works\\codexWorks\\project_revid\\backend\\.venv\\Lib\\site-packages\\pydantic_core'])
+IMPORT_CHECK pydantic_core._pydantic_core
+OK pydantic_core._pydantic_core file= D:\works\codexWorks\project_revid\backend\.venv\Lib\site-packages\pydantic_core\_pydantic_core.cp313-win_amd64.pyd version= 2.46.4
+SPEC ModuleSpec(name='pydantic_core._pydantic_core', loader=<_frozen_importlib_external.ExtensionFileLoader object at 0x000001DFBCA4E710>, origin='D:\\works\\codexWorks\\project_revid\\backend\\.venv\\Lib\\site-packages\\pydantic_core\\_pydantic_core.cp313-win_amd64.pyd')
+IMPORT_CHECK pydantic_settings
+OK pydantic_settings file= D:\works\codexWorks\project_revid\backend\.venv\Lib\site-packages\pydantic_settings\__init__.py version= 2.14.2
+SPEC ModuleSpec(name='pydantic_settings', loader=<_frozen_importlib_external.SourceFileLoader object at 0x000001DFBD6F4A10>, origin='D:\\works\\codexWorks\\project_revid\\backend\\.venv\\Lib\\site-packages\\pydantic_settings\\__init__.py', submodule_search_locations=['D:\\works\\codexWorks\\project_revid\\backend\\.venv\\Lib\\site-packages\\pydantic_settings'])
+--- pip show ---
+Name: pydantic
+Version: 2.13.4
+Summary: Data validation using Python type hints
+Home-page: https://github.com/pydantic/pydantic
+Author: 
+Author-email: Samuel Colvin <s@muelcolvin.com>, Eric Jolibois <em.jolibois@gmail.com>, Hasan Ramezani <hasan.r67@gmail.com>, Adrian Garcia Badaracco <1755071+adriangb@users.noreply.github.com>, Terrence Dorsey <terry@pydantic.dev>, David Montague <david@pydantic.dev>, Serge Matveenko <lig@countzero.co>, Marcelo Trylesinski <marcelotryle@gmail.com>, Sydney Runkle <sydneymarierunkle@gmail.com>, David Hewitt <mail@davidhewitt.dev>, Alex Hall <alex.mojaki@gmail.com>, Victorien Plot <contact@vctrn.dev>
+License: 
+Location: D:\works\codexWorks\project_revid\backend\.venv\Lib\site-packages
+Requires: annotated-types, pydantic-core, typing-extensions, typing-inspection
+Required-by: fastapi, pydantic-settings
+---
+Name: pydantic_core
+Version: 2.46.4
+Summary: Core functionality for Pydantic validation and serialization
+Home-page: https://github.com/pydantic/pydantic
+Author: 
+Author-email: Samuel Colvin <s@muelcolvin.com>, Adrian Garcia Badaracco <1755071+adriangb@users.noreply.github.com>, David Montague <david@pydantic.dev>, David Hewitt <mail@davidhewitt.dev>, Sydney Runkle <sydneymarierunkle@gmail.com>, Victorien Plot <contact@vctrn.dev>
+License: 
+Location: D:\works\codexWorks\project_revid\backend\.venv\Lib\site-packages
+Requires: typing-extensions
+Required-by: pydantic
+---
+Name: pydantic-settings
+Version: 2.14.2
+Summary: Settings management using Pydantic
+Home-page: https://github.com/pydantic/pydantic-settings
+Author: 
+Author-email: Samuel Colvin <s@muelcolvin.com>, Eric Jolibois <em.jolibois@gmail.com>, Hasan Ramezani <hasan.r67@gmail.com>
+License: 
+Location: D:\works\codexWorks\project_revid\backend\.venv\Lib\site-packages
+Requires: pydantic, python-dotenv, typing-inspection
+Required-by: 
+--- py_compile ---
