@@ -1,5 +1,10 @@
 # Task: Canvas connection 后端持久化
 
+## Status
+
+- State: `DOING`
+- Owner: Codex Project Lead Engineer
+
 ## Task ID
 T4-011
 

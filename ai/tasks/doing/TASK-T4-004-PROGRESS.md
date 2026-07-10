@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-10
 
-State: `VERIFYING`
+State: `DONE`
 
 ## Completed
 
@@ -36,15 +36,16 @@ State: `VERIFYING`
   - updated migration-tool user conflict fixtures for the expanded `users` schema and taught same-PK comparison to ignore target-only nullable password-auth columns.
 - Re-ran the full backend unittest discover suite plus a fresh disposable SQLite `alembic upgrade head` smoke after the migration/runtime compatibility fixes.
 - Committed the direct-delivery governance and Hermes-retirement backlog separately so the remaining delivery diff is scoped to T4-003 closeout evidence plus T4-004 implementation/verification.
+- Reviewed the additive MySQL migration `b7d4c2e9f001`, applied it to shared MySQL `revid_db`, and verified the schema reached Alembic head.
+- Wrote `ai/reports/REPORT-T4-004.md`, marked T4-004 `DONE`, and selected T4-011 as the next dependency-ready active Task.
 
 ## Remaining
 
-- Review the new Alembic head against shared MySQL and apply it only under an authorized runtime window.
-- After shared MySQL migration review/apply, write `REPORT-T4-004.md`, update ROADMAP/Task state, and only then advance to the next dependency-ready Task.
+- None for T4-004. T4-011 is the next active Task.
 
 ## Exact Next Action
 
-Review `b7d4c2e9f001` against shared MySQL, apply `alembic upgrade head` in the safe runtime window, and rerun the post-migration health/Auth acceptance slice before drafting `REPORT-T4-004.md`.
+Proceed with T4-011 by auditing existing project/canvas-node backend files and tests before adding connection contract tests.
 
 ## Files Changed
 
@@ -76,6 +77,12 @@ Review `b7d4c2e9f001` against shared MySQL, apply `alembic upgrade head` in the 
 - `frontend/src/views/app/WechatCallback.vue`
 - `ai/tasks/doing/TASK-T4-004-PROGRESS.md`
 - `ai/state/CURRENT.md`
+- `ai/reports/REPORT-T4-004.md`
+- `ai/state/ROADMAP.md`
+- `ai/tasks/todo/TASK-T4-004.md`
+- `ai/tasks/todo/TASK-T4-011.md`
+- `ai/tasks/doing/TASK-T4-011-PLAN.md`
+- `ai/tasks/doing/TASK-T4-011-PROGRESS.md`
 
 ## Commands And Summarized Results
 
@@ -104,6 +111,16 @@ Review `b7d4c2e9f001` against shared MySQL, apply `alembic upgrade head` in the 
 - `npm run build` in `frontend/`: passed again during backlog reconciliation.
 - `backend/.venv\Scripts\python.exe -m alembic -c alembic.ini upgrade head` against a fresh disposable SQLite DB with `REVID_USE_SQLITE=true`: passed again during backlog reconciliation.
 - `git commit -m "docs(governance): adopt codex direct delivery"`: committed the governance-only backlog separately before the remaining business-phase reconciliation.
+- Shared MySQL preflight: `revid_db` on MySQL 8.0.43 was at `a1b2c3d4e5f6` with no T4-004 auth columns or auth indexes.
+- Shared MySQL migration review: `b7d4c2e9f001` is additive for nullable `username`, `email`, `password_hash`, comments, and unique indexes; no data rewrite, drop, truncate, delete, downgrade, or reset was required.
+- Shared MySQL `alembic upgrade head`: passed; `revid_db` reached `b7d4c2e9f001`.
+- Shared MySQL post-check: auth columns are nullable with comments, `ix_users_username` and `ix_users_email` are unique, and non-null non-bcrypt `password_hash` count is `0`.
+- Runtime MySQL health/Auth smoke: `/health` returned `status=ok`, `dialect=mysql`, `connected=true`, `ready=true`, `alembic_match=true`; `/auth/registration-settings` returned only `registration_mode,wechat_login_enabled`; invalid login returned `401`.
+- `backend/.venv\Scripts\python.exe -m compileall .`: passed during final closeout.
+- `backend/.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py"`: 172 tests passed during final closeout.
+- `npm run build` in `frontend/`: passed during final closeout.
+- `git diff --check`: passed during final closeout; only LF-to-CRLF warnings were emitted.
+- Staged path and credential-pattern checks: staged paths were limited to T4-004/T4-011 documentation; no sensitive path or credential-like assignment was detected.
 
 ## Verification
 
@@ -113,8 +130,9 @@ Review `b7d4c2e9f001` against shared MySQL, apply `alembic upgrade head` in the 
 - Frontend production build is green after switching the callback flow to persist and compare the backend-issued WeChat state token.
 - The widened backend regression suite is now green at `172` passing tests, including the refreshed migration/runtime fixtures and the real-MySQL-backed migration tool coverage.
 - Disposable SQLite Alembic upgrade behavior is freshly green after the widened regression rerun.
+- Shared MySQL is now at the T4-004 head revision and runtime health/Auth smoke is green.
 
 ## Blockers
 
-- Real WeChat credentials remain a Human Owner gate for end-to-end OAuth verification.
-- Applying the new Alembic head to shared MySQL remains a runtime gate; the code and migration are ready for review, but no shared database was modified in this run.
+- No T4-004 implementation blocker remains.
+- Real WeChat credentials remain a Human Owner gate for end-to-end OAuth verification; this is recorded in `REPORT-T4-004.md` and is not claimed as completed.

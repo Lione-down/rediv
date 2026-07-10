@@ -2,7 +2,7 @@
 
 ## Status
 
- - State: `VERIFYING`
+- State: `DONE`
 - Owner: Codex Project Lead Engineer
 
 ## Task ID
@@ -47,11 +47,11 @@ T4-003 已审查通过。
 9. 微信 OAuth 若保留 real mode，统一使用 httpx，并修正 redirect method/state 校验；无法真实验证时在报告中标为未验证，不得声称完成。
 
 ## Acceptance Criteria
-- [ ] 注册三种模式、重复 username/email、弱密码、错误密码、banned/frozen 均有测试。
-- [ ] Admin seed 无硬编码密码且幂等。
-- [ ] Auth response、logs 和 Navicat 普通查询不暴露明文密码。
-- [ ] 旧微信用户记录可继续登录，不被强制补 password。
-- [ ] 所有 backend tests 通过。
+- [x] 注册三种模式、重复 username/email、弱密码、错误密码、banned/frozen 均有测试。
+- [x] Admin seed 无硬编码密码且幂等。
+- [x] Auth response、logs 和 Navicat 普通查询不暴露明文密码。
+- [x] 旧微信用户记录可继续登录，不被强制补 password。
+- [x] 所有 backend tests 通过。
 
 ## Verification Commands
 ```powershell
