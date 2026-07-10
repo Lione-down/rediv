@@ -1,5 +1,10 @@
 # Task: Home 项目/资产概览页重构
 
+## Status
+
+- State: `DOING`
+- Owner: Codex Project Lead Engineer
+
 ## Task ID
 T4-008
 

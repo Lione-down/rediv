@@ -20,83 +20,78 @@ Last updated: 2026-07-11
 
 ## Active Task
 
-- Task: `T4-007 - Login/register UI and route/session guards`
+- Task: `T4-008 - Real-data Home project and asset dashboard`
 - State: `DOING`
-- Task file: `ai/tasks/todo/TASK-T4-007.md`
-- Plan: `ai/tasks/doing/TASK-T4-007-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T4-007-PROGRESS.md`
-- Target report: `ai/reports/REPORT-T4-007.md`
+- Task file: `ai/tasks/todo/TASK-T4-008.md`
+- Plan: `ai/tasks/doing/TASK-T4-008-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T4-008-PROGRESS.md`
+- Target report: `ai/reports/REPORT-T4-008.md`
 
 ## Latest Completed Task
 
-- T4-005 Unit A: `DONE - PASS`
-- Report: `ai/reports/REPORT-T4-005.md`
-- Outcome: `generation_tasks` persistence, Alembic revision `e9f1a2b3c4d5`, store/schema/query API, provider status mapping, text/image/video task lifecycle integration, dry-run Agnes smoke script, migration-tool table coverage, and mock tests are complete.
-- Fresh verification: changed module py_compile passed; focused generate tests passed with 16 tests; store/smoke tests passed with 10 tests; affected E2E mock tests passed with 11 tests; migration guard tests passed; Alembic head is `e9f1a2b3c4d5`; full backend unittest discover passed with 188 tests; `git diff --check` passed.
-- External note: real Agnes text/image/video smoke was intentionally not run; T4-005 Unit B remains a Human cost gate.
+- T4-007: `DONE - PASS`
+- Report: `ai/reports/REPORT-T4-007.md`
+- Outcome: dark login/register UI, password/settings/guest store actions, restoration-aware auth/Admin guards, safe redirects, token-correlated 401 cleanup, and race-safe WeChat callback handling are complete.
+- Fresh verification: frontend typecheck and production build passed with 4,649 modules; backend password-auth contract passed 11 tests; mocked real-router matrix passed 16/16; real local-backend Admin/user/closed/token/WeChat/guest/logout matrix passed at 1440x900 and 375x812; visual, overflow, console, runtime-log, scope, diff, and redacted credential reviews passed.
+- Security follow-up: the frontend rejects passwords over 72 UTF-8 bytes, while the separately scoped backend direct-API trust-boundary guard remains outstanding.
 
-## T4-007 Objective
+## T4-008 Objective
 
-Implement v3 dark-design login/register entry points, registration-mode-aware register availability, route/session recovery, and auth guards without modifying backend contracts.
+Replace the marketing-oriented Home with an authenticated personal dashboard that shows real projects, recent assets, quotas, and project creation/navigation using existing backend contracts.
 
-## T4-007 Scope
+## T4-008 Scope
 
-- Allowed additions: `frontend/src/views/user/Login.vue`, `Register.vue`, and user-domain local components.
-- Allowed edits: `frontend/src/router/index.ts`, `frontend/src/store/auth.ts`, `frontend/src/api/auth.ts`, `frontend/src/types/auth.ts`, and WeChat callback page; `frontend/src/api/request.ts` is limited to stale-401 token correlation.
-- Forbidden: backend changes, Home/Space/Workspace changes, and global design token changes.
+- Allowed edits: `frontend/src/views/app/Home.vue` and related Home route entry as required.
+- Allowed additions: `frontend/src/views/app/components/home/**` and `frontend/src/modules/project/{api,types,store}.ts`.
+- Reuse: existing asset API/store/types and auth-store quota state after contract verification.
+- Forbidden: backend, database, migration, Space, Workspace, Canvas, global design-token, and new UI-library changes.
 
-## T4-007 Current State
+## T4-008 Current State
 
-- Dependencies T4-004 and T4-006 are complete.
-- PLAN and PROGRESS are active and T4-007 is `DOING`.
-- Slice A auth foundation is complete: backend-aligned types, public settings/password/logout APIs, and deterministic Pinia settings/session/password/guest actions are implemented.
-- Slice B login/register UI is complete: the scoped dark auth shell, workflow preview, password login, settings-aware alternate entries, open/invitation/closed registration states, and focused registration form are implemented.
-- Slice C routing, recovery, and callback is complete: `/login` and `/register` are wired, Workspace/Space require restored auth, every Admin route requires restored Admin identity, and authenticated auth-entry visits return through a sanitized local destination.
-- Session restoration deduplicates concurrent `/me` requests, ignores stale responses after identity changes, clears invalid tokens through the existing 401 interceptor, and preserves valid tokens across transient failures.
-- A delayed 401 now clears auth only when its request bearer still matches the current token; an old-token/new-login browser race passed.
-- Registration-mode drift is written to Pinia before forced refresh; a generation guard prevents older in-flight settings responses from reverting it. Guest browsing refuses to start over an existing or restoring account identity.
-- Accessibility review fixes associate labels/errors, focus the first invalid native input, strengthen field/focus contrast, and preserve 40px targets and form-first mobile order.
-- Safe redirect handling rejects external, protocol-relative, backslash, control-character, auth-entry loop, and normalized double-slash targets while preserving safe path/query/hash destinations across password, registration, and WeChat flows.
-- WeChat callback now requires the browser-bound stored state, suppresses legacy App restoration, applies only the still-current attempt, ignores stale completions, and does not log out an existing valid account on callback failure or mismatch.
-- Verification: final typecheck passed; Slice C production build passed with 4,649 modules.
-- Headed browser Slice B checks passed at 1440x900 and 375px, including settings states, validation focus, duplicate-submit locking, stale-401, guest identity, 72-byte password, mode-drift persistence, overflow, and JavaScript-exception checks.
-- Headed mocked real-router Slice C checks passed 16/16 with zero console errors/warnings, including invalid/valid restoration, no login flash, user/Admin guards, safe/unsafe redirects, registration, callback state binding, stale completion, and session-preserving failure paths.
-- Full local-backend desktop/mobile acceptance, screenshots, and final Task closure remain Slice D; T4-007 is not yet DONE.
+- Dependencies T4-003, T4-006, and T4-007 are complete.
+- T4-008 is activated docs-only; PLAN and PROGRESS exist, and no T4-008 business code has been changed.
+- `Home.vue` is 951 lines and mixes fabricated `quickStarts` values with real auth quota and asset-store reads.
+- Existing frontend asset API/store/types and authenticated backend `/projects` plus `/assets` routes are available for reuse.
+- The exact project schema, root-route auth behavior, and Workspace project-ID handoff remain to be read and locked before Slice A edits.
 
-## T4-007 Acceptance Focus
+## T4-008 Acceptance Focus
 
-- Username/email password login, failed-password state, closed registration state, token invalidation, Admin/user route guards.
-- Protected-page refresh restores session without flashing to the wrong page.
-- WeChat entry visibility follows backend settings; guest entry follows the existing always-available backend contract.
-- `npm run build` passes.
-- Browser checks at 1440x900 and 375px pass.
+- Home projects/assets/quotas come from real contracts with no fabricated values.
+- Project creation updates immediately and persists across refresh.
+- Loading, empty, error, partial-data, and zero-quota states are explicit.
+- `Home.vue` is reduced to at most 500 lines through domain-aligned components.
+- Workspace navigation carries an explicit project ID.
+- Build plus 1440x900, 920px, and 375px browser acceptance pass.
 
 ## Remaining In Current Task
 
-1. Run the complete local-backend auth acceptance matrix at 1440x900 and 375px with real local Admin and normal-user sessions, including screenshots, console, and overflow checks.
-2. Write REPORT and align Task/ROADMAP/CURRENT only after every non-deferred acceptance criterion passes.
-3. Track the backend direct-API 72-byte password boundary in a separately scoped backend security follow-up; the T4-007 UI guard does not replace a trust-boundary check.
+1. Complete Slice A contract audit and project-domain API/types/store foundation.
+2. Decompose Home and implement real-data UI states in Slice B.
+3. Complete real local-backend/MySQL and responsive browser acceptance in Slice C before REPORT and closure.
 
 ## Exact Next Action
 
-Run Slice D: execute the complete local-backend desktop/mobile auth matrix with real local Admin and normal-user sessions, capture required screenshots, perform the final review, and close T4-007 only if every non-deferred acceptance criterion passes.
+Read the complete Home/router/asset/project/Workspace contract surface listed in `ai/tasks/doing/TASK-T4-008-PROGRESS.md`; then implement Slice A project-domain API/types/store only, run focused typecheck/build, review, update durable state, and commit the bounded unit.
 
 ## Current Blockers
 
 - T4-005 Unit B real Agnes smoke remains a Human cost gate and must not run without explicit authorization.
-- T4-007 has no active blocker.
-- The backend direct registration API does not yet reject passwords over 72 UTF-8 bytes. This is normal engineering follow-up rather than a Human gate; a separately scoped backend validation and contract test are required before final auth hardening is complete.
+- T4-008 has no active implementation blocker.
+- Root-route behavior is a contract risk to resolve from current source before editing; escalate only if actual code leaves incompatible product choices.
+- Real MySQL acceptance later must use an authorized runtime without opening or printing `.env`/credential material.
+- The backend direct registration API 72-byte boundary remains a separate normal engineering follow-up.
 
 ## Worktree Protection
 
-- This run started from `main` at `7a558918efd6a80cc0b8d88fcb4a1301ff353ed6` with no staged, modified, unmerged, detached, or in-progress Git-operation state.
-- `frontend/.playwright-cli/` was the only pre-existing untracked browser artifact directory; current-run artifacts also exist under `output/playwright/t4-007-slice-c/`. Both are excluded from delivery staging and preserved because deletion requires Human confirmation.
+- This run started from `main` at `6a676dad570baab36019726f58bead39bdfc4725` with no staged, modified, unmerged, detached, or in-progress Git-operation state.
+- `frontend/.playwright-cli/` and `output/` were pre-existing untracked browser artifact directories. Slice D evidence was added under `output/playwright/t4-007-slice-d/run-20260711-qa/`; all are excluded from delivery staging and preserved because deletion requires Human confirmation.
 - Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
 
 ## Historical Evidence
 
 - T4-003 report: `ai/reports/REPORT-T4-003-DIRECT.md`
 - T4-004 report: `ai/reports/REPORT-T4-004.md`
+- T4-007 report: `ai/reports/REPORT-T4-007.md`
 - Former CURRENT timeline: `ai/state/archive/CURRENT-HERMES-THROUGH-2026-07-10.md`
 - Former T4-003 Hermes contracts: `ai/tasks/archive/TASK-T4-003-HERMES-THROUGH-REV47R2.md`
 - Frozen Hermes operating files: `ai/automation/archive/hermes-retired-2026-07-10/`

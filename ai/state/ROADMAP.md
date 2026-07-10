@@ -1,6 +1,6 @@
 # Revid - Phase 4 Direct Delivery Roadmap
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 ## Execution Policy
 
@@ -17,8 +17,8 @@ Last updated: 2026-07-10
 | 2 | T4-004 | Password authentication and Admin bootstrap | DONE - PASS | T4-003 done |
 | 3 | T4-011 | Canvas connection model and CRUD API | DONE - PASS | T4-003 and T4-004 |
 | 4 | T4-005 Unit A | GenerationTask persistence, provider integration and mock tests | DONE - PASS | T4-003 and T4-004 |
-| 5 | T4-007 | Login/register UI and route/session guards | DOING | T4-004 and T4-006 |
-| 6 | T4-008 | Real-data Home project and asset dashboard | TODO | T4-003 and T4-007 |
+| 5 | T4-007 | Login/register UI and route/session guards | DONE - PASS | T4-004 and T4-006 |
+| 6 | T4-008 | Real-data Home project and asset dashboard | DOING | T4-003 and T4-007 |
 | 7 | T4-009 | Real-data Space asset workspace | TODO | T4-003 and T4-007 |
 | 8 | T4-012 Unit A | Canvas decomposition, server load/save and optimistic rollback | TODO | T4-007, T4-010 and T4-011 |
 | 9 | T4-012 Unit B | Connection interaction, selection, context menu, minimap and responsive QA | TODO | T4-012 Unit A |

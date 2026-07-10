@@ -5,13 +5,13 @@ Last updated: 2026-07-11
 ## State
 
 - Before this run: `DOING`
-- Current: `DOING`
-- Completed bounded units: Slice A, auth foundation; Slice B, login/register UI; Slice C, routing, recovery, and callback
-- Next bounded unit: Slice D, full browser acceptance and Task closure
+- Current: `DONE - PASS`
+- Completed bounded units: Slice A, auth foundation; Slice B, login/register UI; Slice C, routing, recovery, and callback; Slice D, local-backend browser acceptance and closure
+- Next bounded unit: none; T4-008 is now the only active implementation Task
 - Starting branch: `main`
-- Base HEAD: `7a558918efd6a80cc0b8d88fcb4a1301ff353ed6`
+- Base HEAD: `6a676dad570baab36019726f58bead39bdfc4725`
 - Pre-existing staged/modified files: none
-- Pre-existing untracked files: `frontend/.playwright-cli/` only; known Slice B verification artifacts, excluded from delivery staging.
+- Pre-existing untracked files: `frontend/.playwright-cli/` and `output/`; known browser verification artifacts, excluded from delivery staging.
 - Unmerged paths or in-progress Git operation: none
 
 ## Completed Work
@@ -48,16 +48,23 @@ Last updated: 2026-07-11
   - required a non-empty browser-bound stored WeChat state before exchange, correlated completion to the still-current OAuth attempt, ignored stale success/failure, and preserved an existing valid account session on callback errors or mismatches.
 - Fixed two browser-discovered lifecycle races: concurrent App/router `/me` calls now share one token-keyed request, and callback startup cannot clear OAuth state or redirect before the callback component validates them.
 - Completed deep security, architecture, concurrency, and adversarial reviews; login-CSRF, normalized redirect, duplicate-callback ordering, stale completion, arbitrary callback logout, and callback/App restoration findings were fixed, and final specialist rereviews were clean apart from an acknowledged low-risk router/view import-cycle advisory that is not expanded outside this Task's allowed paths.
+- Completed Slice D against an isolated real local FastAPI/SQLite process without loading repository `.env` files or touching MySQL:
+  - verified Admin username login, bad-password feedback, protected refresh, Admin access, and Admin logout;
+  - created a normal user through the real open-registration API, verified email login, protected refresh, and normal-user Admin rejection;
+  - verified closed registration, invalid-token cleanup, WeChat enabled/disabled visibility, signed-state mock callback completion, and guest-session entry;
+  - restored the local backend settings to their original `invite_only` and WeChat-enabled values before shutdown.
+- Completed 1440x900 and 375x812 visual QA. Auth pages had no horizontal overflow; mobile kept the form before the preview, primary/provider buttons measured 44px, and the registration link measured 40px.
+- Visually inspected the settled desktop/mobile login and closed-registration screenshots; no clipping, copy-fit, hierarchy, or responsive defect remained.
+- Completed a fresh cumulative T4-007 diff review from `c68177a3` through `6a676dad`: all paths are inside the approved Task/document scope, `git diff --check` passed, and the redacted frontend diff scan found zero credential patterns, console calls, or `.env` additions.
 
 ## Remaining Work
 
-1. Run Slice D browser acceptance against the local backend for password success/failure, closed registration, invalid token, Admin/user guards, refresh restoration, WeChat visibility/callback, guest entry, and logout at 1440x900 and 375px.
-2. Capture the required screenshots, complete the final diff review, write REPORT, and align Task/ROADMAP/CURRENT only after every non-deferred acceptance criterion passes.
-3. Carry the backend direct-API 72-byte password boundary into a separately scoped backend security follow-up before final auth hardening is considered complete.
+1. No non-deferred T4-007 work remains.
+2. Carry the backend direct-API 72-byte password boundary into a separately scoped backend security follow-up before final auth hardening is considered complete.
 
 ## Exact Next Action
 
-Run the complete Slice D local-backend acceptance matrix at 1440x900 and 375px with real local Admin and normal-user sessions, including screenshots and console/overflow checks; then perform the final review and close T4-007 only if every non-deferred acceptance criterion passes.
+Continue from `ai/tasks/doing/TASK-T4-008-PROGRESS.md`; do not reopen T4-007 unless new regression evidence appears.
 
 ## Files Changed
 
@@ -69,7 +76,11 @@ Run the complete Slice D local-backend acceptance matrix at 1440x900 and 375px w
 - `frontend/src/views/user/components/RegisterForm.vue` - preserves the safe destination after registration.
 - `ai/tasks/doing/TASK-T4-007-PLAN.md` - records the Slice C bounded-unit contract.
 - `ai/tasks/doing/TASK-T4-007-PROGRESS.md` - records Slice C implementation, verification, review, and the next action.
-- `ai/state/CURRENT.md` - advances the rolling snapshot to completed Slice C and Slice D next.
+- `ai/state/CURRENT.md` - records T4-007 completion and activates T4-008 as the only implementation Task.
+- `ai/reports/REPORT-T4-007.md` - records final implementation, browser evidence, acceptance mapping, safety, and verdict.
+- `ai/tasks/todo/TASK-T4-007.md` - marks every acceptance criterion and the Task state complete.
+- `ai/state/ROADMAP.md` - marks T4-007 `DONE - PASS` and activates T4-008.
+- `ai/tasks/todo/TASK-T4-008.md`, `ai/tasks/doing/TASK-T4-008-PLAN.md`, and `ai/tasks/doing/TASK-T4-008-PROGRESS.md` - prepare the next dependency-ready Task without business-code changes.
 
 ## Commands And Summarized Results
 
@@ -99,12 +110,22 @@ Run the complete Slice D local-backend acceptance matrix at 1440x900 and 375px w
 - Headed Playwright mocked real-router matrix: PASS, 16/16 scenarios with zero console errors or warnings; covered anonymous protected/Admin redirects, invalid-token cleanup with one `/me`, valid refresh with one `/me` and no login flash, normal-user/Admin guards, authenticated auth-entry redirect, safe password/register destinations, six unsafe redirect classes, callback restoration suppression, browser-bound state, stale completion, failed-callback session preservation, and mismatch rejection without exchange.
 - Fresh deep diff review and specialist rereviews: PASS; all confirmed security, normalized-path, lifecycle, stale callback, duplicate callback, and session-preservation findings were fixed. The remaining router/view helper import cycle is low-risk advisory only and avoids an out-of-scope new module.
 - Final `git diff --check`: PASS after the durable-state update.
+- Slice D `npm exec vue-tsc -- --noEmit -p tsconfig.app.json`: PASS.
+- Slice D `npm run build`: PASS; production build transformed 4,649 modules.
+- Slice D local backend readiness: PASS; `/health` returned `status=ok` and `database.ready=true` against an isolated SQLite file under the untracked evidence directory.
+- Slice D headed browser matrix: PASS for Admin username login/logout, normal-user registration and email login, wrong password, closed registration, invalid token, Admin/user guards, protected refresh, WeChat enabled/disabled visibility, signed-state mock callback, and guest entry.
+- Slice D responsive and visual checks: PASS at 1440x900 and 375x812; no horizontal overflow, mobile form-first order preserved, 40px/44px targets verified, and settled screenshots visually inspected.
+- Clean browser sessions: zero console errors or warnings. The wrong-password and invalid-token negative sessions each produced only the expected browser failed-resource entry for HTTP 401.
+- Runtime log scan: PASS; backend/frontend stdout/stderr contained zero error-like hits. Services and browser sessions were closed after settings restoration.
+- `backend/.venv/Scripts/python.exe -m unittest tests.test_password_auth_contract`: PASS, 11 tests.
+- Cumulative T4-007 diff scope/check/redacted credential review: PASS; no out-of-scope path, credential pattern, console call, `.env` addition, or whitespace error.
 
 ## Blockers And Release Conditions
 
 - T4-007: no active blocker.
-- Verification gap: no frontend unit-test runner exists. Slice C has focused mocked real-router behavioral evidence, but the Task-required local-backend desktop/mobile matrix and screenshots remain Slice D release evidence.
+- Verification status: no frontend unit-test runner exists, but focused mocked real-router coverage plus the completed real local-backend desktop/mobile matrix satisfy every non-deferred T4-007 criterion.
 - Security follow-up: the browser UI rejects passwords over 72 UTF-8 bytes, but the backend direct registration API still lacks that trust-boundary guard. T4-007 cannot change backend; release condition for final auth hardening is a separately scoped backend validation and contract test.
 - Worktree remainder: `frontend/.playwright-cli/` contains current-run Playwright CLI artifacts and is intentionally untracked. It must remain excluded from commits; removal requires Human confirmation under repository rules.
 - Current-run verification artifacts under `output/playwright/t4-007-slice-c/` are also intentionally untracked and excluded from delivery staging; removal requires Human confirmation.
+- Slice D evidence is under `output/playwright/t4-007-slice-d/run-20260711-qa/`; it is intentionally untracked and excluded from delivery staging. Removal requires Human confirmation.
 - T4-005 Unit B remains outside this Task and requires explicit Human Owner authorization for paid real Agnes smoke.

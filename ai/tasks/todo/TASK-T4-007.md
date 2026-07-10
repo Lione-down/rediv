@@ -1,5 +1,10 @@
 # Task: 登录/注册入口与路由鉴权
 
+## Status
+
+- State: `DONE`
+- Owner: Codex Project Lead Engineer
+
 ## Task ID
 T4-007
 
@@ -43,11 +48,11 @@ T4-004、T4-006 已审查通过。
 9. 注册 UI 拒绝 UTF-8 编码后超过 bcrypt 72-byte 边界的密码；backend trust boundary 另行加固。
 
 ## Acceptance Criteria
-- [ ] 登录成功、错误密码、closed 注册、token 失效、Admin/普通用户守卫均通过。
-- [ ] 刷新受保护页面可恢复 session，不发生闪回首页。
-- [ ] 微信和游客入口根据 settings 正确显示。
-- [ ] `npm run build` 通过。
-- [ ] 1440×900 和 375px 浏览器检查通过。
+- [x] 登录成功、错误密码、closed 注册、token 失效、Admin/普通用户守卫均通过。
+- [x] 刷新受保护页面可恢复 session，不发生闪回首页。
+- [x] 微信和游客入口根据 settings 正确显示。
+- [x] `npm run build` 通过。
+- [x] 1440×900 和 375px 浏览器检查通过。
 
 ## Verification Commands
 ```powershell
