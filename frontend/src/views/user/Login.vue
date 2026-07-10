@@ -12,13 +12,15 @@ import {
 import type { FormInst, FormItemRule, FormRules } from 'naive-ui'
 import { Compass, LogIn, MessageCircle, RotateCw } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { resolveAuthRedirect } from '../../router'
 import { useAuthStore } from '../../store/auth'
 import AuthShell from './components/AuthShell.vue'
 
 type LoginAction = 'password' | 'wechat' | 'guest'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const formRef = ref<FormInst | null>(null)
 const activeAction = ref<LoginAction | null>(null)
@@ -31,6 +33,11 @@ const form = reactive({
 })
 
 const isBusy = computed(() => activeAction.value !== null)
+const authDestination = computed(() => resolveAuthRedirect(route.query.redirect))
+const registerLocation = computed(() => ({
+  name: 'register',
+  query: { redirect: authDestination.value },
+}))
 const isIdentifierInvalid = computed(
   () => hasAttemptedSubmit.value && !form.identifier.trim(),
 )
@@ -136,7 +143,7 @@ async function handlePasswordLogin() {
       identifier: form.identifier.trim(),
       password: form.password,
     })
-    await router.replace({ name: 'workspace' })
+    await router.replace(authDestination.value)
   } catch (error) {
     submitError.value = loginErrorMessage(error)
   } finally {
@@ -153,7 +160,7 @@ async function handleWechatLogin() {
   submitError.value = ''
 
   try {
-    await authStore.loginWithWechat()
+    await authStore.loginWithWechat(authDestination.value)
   } catch (error) {
     submitError.value = alternateEntryError(error, '微信登录暂时不可用，请稍后重试。')
     activeAction.value = null
@@ -339,7 +346,7 @@ onMounted(() => {
         <template v-else-if="authStore.registrationSettings">
           <span v-if="authStore.canRegister">
             还没有账号？
-            <RouterLink class="inline-link" to="/register">创建账号</RouterLink>
+            <RouterLink class="inline-link" :to="registerLocation">创建账号</RouterLink>
           </span>
           <span v-else>注册暂未开放，已有账号仍可登录。</span>
         </template>

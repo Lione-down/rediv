@@ -4,7 +4,8 @@ import { NAlert, NButton, NForm, NFormItem, NInput } from 'naive-ui'
 import type { FormInst, FormItemRule, FormRules } from 'naive-ui'
 import { UserPlus } from 'lucide-vue-next'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { resolveAuthRedirect } from '../../../router'
 import { useAuthStore } from '../../../store/auth'
 import type { RegisterPayload, RegistrationMode } from '../../../types/auth'
 
@@ -19,6 +20,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const formRef = ref<FormInst | null>(null)
 const isSubmitting = ref(false)
@@ -161,7 +163,7 @@ async function handleRegistration() {
 
   try {
     await authStore.registerWithPassword(payload)
-    await router.replace({ name: 'workspace' })
+    await router.replace(resolveAuthRedirect(route.query.redirect))
   } catch (error) {
     const detail = requestDetail(error)
     if (detail === 'Registration is closed') emit('modeMismatch', 'closed')

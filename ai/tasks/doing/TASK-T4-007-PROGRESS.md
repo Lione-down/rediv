@@ -6,13 +6,13 @@ Last updated: 2026-07-11
 
 - Before this run: `DOING`
 - Current: `DOING`
-- Completed bounded units: Slice A, auth foundation; Slice B, login/register UI
-- Next bounded unit: Slice C, routing, recovery, and callback
+- Completed bounded units: Slice A, auth foundation; Slice B, login/register UI; Slice C, routing, recovery, and callback
+- Next bounded unit: Slice D, full browser acceptance and Task closure
 - Starting branch: `main`
-- Base HEAD: `99ebd1faa1125554b8d5a66bb6691c7825f0e8fd`
-- Pre-existing staged/modified/untracked files: none
+- Base HEAD: `7a558918efd6a80cc0b8d88fcb4a1301ff353ed6`
+- Pre-existing staged/modified files: none
+- Pre-existing untracked files: `frontend/.playwright-cli/` only; known Slice B verification artifacts, excluded from delivery staging.
 - Unmerged paths or in-progress Git operation: none
-- Current-run untracked verification artifacts: `frontend/.playwright-cli/`; excluded from delivery staging and preserved because repository rules require Human confirmation before deletion.
 
 ## Completed Work
 
@@ -40,30 +40,36 @@ Last updated: 2026-07-11
   - associated labels, errors, required/invalid state, and first-invalid-field focus programmatically, with strengthened field/focus contrast and 40px minimum interactive targets.
 - Hardened the Axios 401 interceptor so a delayed failure only clears the session whose bearer token actually failed; a browser race proved an old-token 401 cannot clear a newly established session.
 - Completed fresh security, architecture, accessibility, and visual reviews; all Slice B findings were fixed. The backend direct-API bcrypt 72-byte boundary remains a documented follow-up because backend edits are forbidden in T4-007.
+- Completed Slice C routing, recovery, and callback:
+  - added `/login` and `/register`, protected Workspace/Space with `requiresAuth`, and required both restored auth and Admin role for every Admin route;
+  - made the router the navigation decision point for session restoration while deduplicating direct App/router/Home `/me` callers and suppressing legacy App restoration during the callback route;
+  - added one post-auth local-path resolver that preserves safe path/query/hash targets and rejects external, protocol-relative, backslash, control-character, auth-entry loop, and post-normalization double-slash targets;
+  - carried the safe destination through password login, registration, and the session-backed WeChat round trip;
+  - required a non-empty browser-bound stored WeChat state before exchange, correlated completion to the still-current OAuth attempt, ignored stale success/failure, and preserved an existing valid account session on callback errors or mismatches.
+- Fixed two browser-discovered lifecycle races: concurrent App/router `/me` calls now share one token-keyed request, and callback startup cannot clear OAuth state or redirect before the callback component validates them.
+- Completed deep security, architecture, concurrency, and adversarial reviews; login-CSRF, normalized redirect, duplicate-callback ordering, stale completion, arbitrary callback logout, and callback/App restoration findings were fixed, and final specialist rereviews were clean apart from an acknowledged low-risk router/view import-cycle advisory that is not expanded outside this Task's allowed paths.
 
 ## Remaining Work
 
-1. Implement Slice C routes, router-owned restoration, `requiresAuth`/`requiresAdmin` guards, safe local redirect handling, and callback navigation.
-2. Run Slice D browser acceptance for real route/session behavior at 1440x900 and 375px, then complete the final review, REPORT, Task/ROADMAP closure, and commit.
+1. Run Slice D browser acceptance against the local backend for password success/failure, closed registration, invalid token, Admin/user guards, refresh restoration, WeChat visibility/callback, guest entry, and logout at 1440x900 and 375px.
+2. Capture the required screenshots, complete the final diff review, write REPORT, and align Task/ROADMAP/CURRENT only after every non-deferred acceptance criterion passes.
 3. Carry the backend direct-API 72-byte password boundary into a separately scoped backend security follow-up before final auth hardening is considered complete.
 
 ## Exact Next Action
 
-Implement Slice C: add `/login` and `/register`, make the router the single restoration decision point, apply restoration-aware `requiresAuth`/`requiresAdmin` guards, sanitize local redirects, and preserve callback navigation; then run the production build and focused browser routing checks.
+Run the complete Slice D local-backend acceptance matrix at 1440x900 and 375px with real local Admin and normal-user sessions, including screenshots and console/overflow checks; then perform the final review and close T4-007 only if every non-deferred acceptance criterion passes.
 
 ## Files Changed
 
-- `frontend/src/views/user/components/AuthShell.vue` - adds the shared responsive auth layout and scoped accessibility/interaction styling.
-- `frontend/src/views/user/components/AuthWorkflowPreview.vue` - adds the semantic creator-workflow visual anchor.
-- `frontend/src/views/user/components/RegisterForm.vue` - adds open/invitation registration form behavior and validation.
-- `frontend/src/views/user/Login.vue` - adds password, WeChat, and guest login entry behavior.
-- `frontend/src/views/user/Register.vue` - adds registration-settings initialization and closed/error/mode state handling.
-- `frontend/src/store/auth.ts` - orders registration-settings responses and invalidates stale in-flight refreshes after a server mode mismatch.
-- `frontend/src/api/request.ts` - correlates 401 cleanup with the failed request bearer token.
-- `ai/tasks/todo/TASK-T4-007.md` - records the request-interceptor and frontend password-byte requirements.
-- `ai/tasks/doing/TASK-T4-007-PLAN.md` - records the implemented Slice B design and bounded-unit contract.
-- `ai/tasks/doing/TASK-T4-007-PROGRESS.md` - records Slice B delivery evidence and the next action.
-- `ai/state/CURRENT.md` - advances the rolling snapshot to completed Slices A and B.
+- `frontend/src/router/index.ts` - wires auth routes, route metadata, restoration-aware guards, and normalized safe redirect resolution.
+- `frontend/src/store/auth.ts` - deduplicates token-keyed `/me` calls, carries WeChat redirect state, suppresses callback restoration races, and correlates callback completion to the active attempt.
+- `frontend/src/views/app/WechatCallback.vue` - requires browser-bound state, preserves valid sessions on failure, and applies only current callback completions.
+- `frontend/src/views/user/Login.vue` - preserves safe post-login and WeChat destinations and passes them to registration.
+- `frontend/src/views/user/Register.vue` - preserves the safe destination when returning to login.
+- `frontend/src/views/user/components/RegisterForm.vue` - preserves the safe destination after registration.
+- `ai/tasks/doing/TASK-T4-007-PLAN.md` - records the Slice C bounded-unit contract.
+- `ai/tasks/doing/TASK-T4-007-PROGRESS.md` - records Slice C implementation, verification, review, and the next action.
+- `ai/state/CURRENT.md` - advances the rolling snapshot to completed Slice C and Slice D next.
 
 ## Commands And Summarized Results
 
@@ -87,11 +93,18 @@ Implement Slice C: add `/login` and `/register`, make the router the single rest
 - Post-review focused Playwright checks: PASS; a delayed pre-mismatch open-settings response could not replace the newer closed state or restore the form, keyboard focus on settings retry computed to a 3px solid `#a997ec` outline, and Login/Register forms exposed no duplicate form-level live region.
 - Final specialist rereviews: CLEAN; security/concurrency, architecture/scope, and accessibility/visual reviewers reported no remaining actionable Slice B finding.
 - `git diff --check`: PASS after the final code and durable-state updates.
+- 2026-07-11 Slice C required reads and Git baseline: PASS; `main` started at `7a558918efd6a80cc0b8d88fcb4a1301ff353ed6`, index/modified/unmerged/Git-operation state was empty, and only the known `frontend/.playwright-cli/` artifact directory was untracked.
+- `npm exec vue-tsc -- --noEmit -p tsconfig.app.json`: PASS after final Slice C fixes.
+- `npm run build` in `frontend`: PASS after final Slice C fixes; typecheck and production build completed with 4,649 transformed modules.
+- Headed Playwright mocked real-router matrix: PASS, 16/16 scenarios with zero console errors or warnings; covered anonymous protected/Admin redirects, invalid-token cleanup with one `/me`, valid refresh with one `/me` and no login flash, normal-user/Admin guards, authenticated auth-entry redirect, safe password/register destinations, six unsafe redirect classes, callback restoration suppression, browser-bound state, stale completion, failed-callback session preservation, and mismatch rejection without exchange.
+- Fresh deep diff review and specialist rereviews: PASS; all confirmed security, normalized-path, lifecycle, stale callback, duplicate callback, and session-preservation findings were fixed. The remaining router/view helper import cycle is low-risk advisory only and avoids an out-of-scope new module.
+- Final `git diff --check`: PASS after the durable-state update.
 
 ## Blockers And Release Conditions
 
 - T4-007: no active blocker.
-- Verification gap: no frontend unit-test runner exists; the current dynamic-route browser harness verifies Slice B surfaces but does not prove Slice C route guards. Release condition is the Task-required real router/session browser matrix after Slice C.
+- Verification gap: no frontend unit-test runner exists. Slice C has focused mocked real-router behavioral evidence, but the Task-required local-backend desktop/mobile matrix and screenshots remain Slice D release evidence.
 - Security follow-up: the browser UI rejects passwords over 72 UTF-8 bytes, but the backend direct registration API still lacks that trust-boundary guard. T4-007 cannot change backend; release condition for final auth hardening is a separately scoped backend validation and contract test.
 - Worktree remainder: `frontend/.playwright-cli/` contains current-run Playwright CLI artifacts and is intentionally untracked. It must remain excluded from commits; removal requires Human confirmation under repository rules.
+- Current-run verification artifacts under `output/playwright/t4-007-slice-c/` are also intentionally untracked and excluded from delivery staging; removal requires Human confirmation.
 - T4-005 Unit B remains outside this Task and requires explicit Human Owner authorization for paid real Agnes smoke.

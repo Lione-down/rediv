@@ -94,6 +94,10 @@ Implement Slice A after creating PLAN/PROGRESS. Success requires a clean `npm ru
 
 Implement Slice B only: `AuthShell.vue`, `AuthWorkflowPreview.vue`, `Login.vue`, `Register.vue`, and cohesive user-domain form components. Include review-required token-correlated 401 cleanup in `api/request.ts`, generation-ordered registration settings in the auth store, accessible label/error/focus wiring, and a registration-side bcrypt 72-byte guard without changing backend code. Success requires settings initialization to remain distinct from closed registration, one shared action lock per page, exact password-policy guidance, a clean `npm run build`, and a scoped local commit with updated durable state. Router and callback wiring remain for Slice C.
 
+## Third Bounded Unit
+
+Implement Slice C only: add the login/register routes, mark Workspace/Space as authenticated and every Admin route as authenticated plus Admin-only, await one router-owned session restoration before access decisions, preserve the WeChat callback as a restoration exception, and resolve post-auth destinations through one local-path sanitizer that rejects external, protocol-relative, backslash, control-character, and auth-entry loop targets. Carry the sanitized destination through password login, registration, and the session-backed WeChat round trip; callback failures return to login without weakening signed-state validation. Success requires focused typecheck, a production build, and real-router browser checks covering anonymous, valid-token refresh, invalid-token, normal-user/Admin, auth-entry, unsafe redirect, and callback navigation behavior. Slice D full acceptance and Task closure remain for the next bounded unit.
+
 ## Acceptance Mapping
 
 | Acceptance focus | Planned evidence |

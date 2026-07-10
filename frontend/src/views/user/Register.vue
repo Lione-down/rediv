@@ -3,7 +3,8 @@ import axios from 'axios'
 import { NAlert, NButton, NSpin } from 'naive-ui'
 import { ArrowLeft, RotateCw } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
+import { resolveAuthRedirect } from '../../router'
 import { useAuthStore } from '../../store/auth'
 import type { RegistrationMode } from '../../types/auth'
 import AuthShell from './components/AuthShell.vue'
@@ -12,7 +13,12 @@ import RegisterForm from './components/RegisterForm.vue'
 type ActiveRegistrationMode = Exclude<RegistrationMode, 'closed'>
 
 const authStore = useAuthStore()
+const route = useRoute()
 const settingsError = ref('')
+const loginLocation = computed(() => ({
+  name: 'login',
+  query: { redirect: resolveAuthRedirect(route.query.redirect) },
+}))
 const registrationMode = computed(() => authStore.registrationSettings?.registration_mode ?? null)
 const activeRegistrationMode = computed<ActiveRegistrationMode | null>(() => {
   if (registrationMode.value === 'open' || registrationMode.value === 'invite_only') {
@@ -80,7 +86,7 @@ onMounted(() => {
       <n-alert type="warning" title="注册暂未开放">
         当前只能使用已有账号登录。注册重新开放后，可在这里创建账号。
       </n-alert>
-      <RouterLink class="back-link" to="/login">
+      <RouterLink class="back-link" :to="loginLocation">
         <ArrowLeft :size="17" aria-hidden="true" />
         返回登录
       </RouterLink>
@@ -107,7 +113,7 @@ onMounted(() => {
     <template #footer>
       <p class="login-entry">
         已有账号？
-        <RouterLink class="inline-link" to="/login">返回登录</RouterLink>
+        <RouterLink class="inline-link" :to="loginLocation">返回登录</RouterLink>
       </p>
     </template>
   </AuthShell>

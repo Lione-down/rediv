@@ -21,6 +21,7 @@ import type {
 
 const TOKEN_STORAGE_KEY = 'revid_token'
 const WECHAT_STATE_STORAGE_KEY = 'revid_wechat_state'
+const WECHAT_REDIRECT_STORAGE_KEY = 'revid_wechat_redirect'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem(TOKEN_STORAGE_KEY) || '')
@@ -36,6 +37,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   let registrationSettingsRequest: Promise<RegistrationSettings> | null = null
   let registrationSettingsGeneration = 0
+  let currentUserRequest: Promise<User | null> | null = null
+  let currentUserRequestToken = ''
+  let isSessionRestoreSuppressed = false
   let sessionRestoreRequest: Promise<boolean> | null = null
 
   const isLoggedIn = computed(() => Boolean(token.value && user.value))
@@ -63,13 +67,43 @@ export const useAuthStore = defineStore('auth', () => {
     return `revid-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
   }
 
-  async function loginWithWechat() {
+  function clearWechatLoginAttempt() {
+    wechatState.value = ''
+    sessionStorage.removeItem(WECHAT_STATE_STORAGE_KEY)
+    sessionStorage.removeItem(WECHAT_REDIRECT_STORAGE_KEY)
+  }
+
+  function getPendingWechatRedirect() {
+    return sessionStorage.getItem(WECHAT_REDIRECT_STORAGE_KEY) || ''
+  }
+
+  function isWechatLoginAttemptCurrent(state: string) {
+    return Boolean(state && sessionStorage.getItem(WECHAT_STATE_STORAGE_KEY) === state)
+  }
+
+  function setSessionRestoreSuppressed(isSuppressed: boolean) {
+    isSessionRestoreSuppressed = isSuppressed
+  }
+
+  function shouldSuppressDirectSessionLoad(ignoreCallbackPath: boolean) {
+    // Root mount can overlap the initial router guard, so close that callback-only startup race.
+    return (
+      isSessionRestoreSuppressed ||
+      (!ignoreCallbackPath && window.location.pathname === '/auth/callback/wechat')
+    )
+  }
+
+  async function loginWithWechat(redirectPath = '') {
+    clearWechatLoginAttempt()
     const requestedState = createWechatState()
     const response = await getWechatAuthorize(requestedState)
     const { authorize_url: authorizeUrl, mock, state } = response.data
 
     wechatState.value = state
     sessionStorage.setItem(WECHAT_STATE_STORAGE_KEY, state)
+    if (redirectPath) {
+      sessionStorage.setItem(WECHAT_REDIRECT_STORAGE_KEY, redirectPath)
+    }
 
     if (mock) {
       const callbackUrl = new URL(`${window.location.origin}/auth/callback/wechat`)
@@ -83,14 +117,21 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function completeWechatLogin(code: string, state?: string, invitationCode?: string) {
+    const requestedState = state || ''
+    const redirectPath = getPendingWechatRedirect()
     const response = await exchangeWechatCode({
       code,
       state,
       invitation_code: invitationCode,
     })
+
+    if (!isWechatLoginAttemptCurrent(requestedState)) {
+      return { isApplied: false, redirectPath: '' }
+    }
+
     applyAuth(response.data)
-    sessionStorage.removeItem(WECHAT_STATE_STORAGE_KEY)
-    wechatState.value = ''
+    clearWechatLoginAttempt()
+    return { isApplied: true, redirectPath }
   }
 
   async function loadRegistrationSettings(force = false) {
@@ -135,35 +176,62 @@ export const useAuthStore = defineStore('auth', () => {
   async function loginWithPassword(payload: LoginPayload) {
     const response = await requestPasswordLogin(payload)
     applyAuth(response.data)
+    clearWechatLoginAttempt()
     return response.data.user
   }
 
   async function registerWithPassword(payload: RegisterPayload) {
     const response = await requestPasswordRegistration(payload)
     applyAuth(response.data)
+    clearWechatLoginAttempt()
     return response.data.user
   }
 
-  async function loadCurrentUser(): Promise<User | null> {
+  async function loadCurrentUser(ignoreCallbackPath = false): Promise<User | null> {
+    if (shouldSuppressDirectSessionLoad(ignoreCallbackPath)) {
+      return user.value
+    }
+
     const requestedToken = token.value
 
     if (!requestedToken) {
       return null
     }
 
-    const response = await fetchCurrentUser()
-
-    if (token.value !== requestedToken) {
-      return user.value
+    if (currentUserRequest && currentUserRequestToken === requestedToken) {
+      return currentUserRequest
     }
 
-    user.value = response.data.user
-    quotas.value = response.data.quotas
-    hasRestoredSession.value = true
-    return response.data.user
+    const request = (async () => {
+      const response = await fetchCurrentUser()
+
+      if (token.value !== requestedToken) {
+        return user.value
+      }
+
+      user.value = response.data.user
+      quotas.value = response.data.quotas
+      hasRestoredSession.value = true
+      return response.data.user
+    })()
+    currentUserRequest = request
+    currentUserRequestToken = requestedToken
+
+    try {
+      return await request
+    } finally {
+      if (currentUserRequest === request) {
+        currentUserRequest = null
+        currentUserRequestToken = ''
+      }
+    }
   }
 
   async function restoreSession() {
+    if (isSessionRestoreSuppressed) {
+      return isLoggedIn.value
+    }
+
     if (hasRestoredSession.value) {
       return isLoggedIn.value
     }
@@ -179,7 +247,7 @@ export const useAuthStore = defineStore('auth', () => {
           return false
         }
 
-        const restoredUser = await loadCurrentUser()
+        const restoredUser = await loadCurrentUser(true)
         hasRestoredSession.value = true
         return Boolean(restoredUser && token.value)
       } catch (error) {
@@ -205,12 +273,14 @@ export const useAuthStore = defineStore('auth', () => {
     const response = await createGuestSession()
     guestSessionId.value = response.data.session_id
     guestSessionExpiresAt.value = response.data.expires_at
+    clearWechatLoginAttempt()
     return response.data
   }
 
   async function logout() {
     const hadToken = Boolean(token.value)
     clearSession()
+    clearWechatLoginAttempt()
 
     if (!hadToken) {
       return
@@ -227,10 +297,8 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = ''
     user.value = null
     quotas.value = { text: 0, image: 0, video: 0 }
-    wechatState.value = ''
     hasRestoredSession.value = true
     localStorage.removeItem(TOKEN_STORAGE_KEY)
-    sessionStorage.removeItem(WECHAT_STATE_STORAGE_KEY)
   }
 
   return {
@@ -254,6 +322,10 @@ export const useAuthStore = defineStore('auth', () => {
     registerWithPassword,
     loginWithWechat,
     completeWechatLogin,
+    getPendingWechatRedirect,
+    isWechatLoginAttemptCurrent,
+    clearWechatLoginAttempt,
+    setSessionRestoreSuppressed,
     loadCurrentUser,
     restoreSession,
     startGuestSession,

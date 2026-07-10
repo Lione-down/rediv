@@ -51,13 +51,17 @@ Implement v3 dark-design login/register entry points, registration-mode-aware re
 - PLAN and PROGRESS are active and T4-007 is `DOING`.
 - Slice A auth foundation is complete: backend-aligned types, public settings/password/logout APIs, and deterministic Pinia settings/session/password/guest actions are implemented.
 - Slice B login/register UI is complete: the scoped dark auth shell, workflow preview, password login, settings-aware alternate entries, open/invitation/closed registration states, and focused registration form are implemented.
+- Slice C routing, recovery, and callback is complete: `/login` and `/register` are wired, Workspace/Space require restored auth, every Admin route requires restored Admin identity, and authenticated auth-entry visits return through a sanitized local destination.
 - Session restoration deduplicates concurrent `/me` requests, ignores stale responses after identity changes, clears invalid tokens through the existing 401 interceptor, and preserves valid tokens across transient failures.
 - A delayed 401 now clears auth only when its request bearer still matches the current token; an old-token/new-login browser race passed.
 - Registration-mode drift is written to Pinia before forced refresh; a generation guard prevents older in-flight settings responses from reverting it. Guest browsing refuses to start over an existing or restoring account identity.
 - Accessibility review fixes associate labels/errors, focus the first invalid native input, strengthen field/focus contrast, and preserve 40px targets and form-first mobile order.
-- Verification: final typecheck passed; Vite no-write multi-entry build passed with 4,576 modules; production build passed with 4,634 modules.
+- Safe redirect handling rejects external, protocol-relative, backslash, control-character, auth-entry loop, and normalized double-slash targets while preserving safe path/query/hash destinations across password, registration, and WeChat flows.
+- WeChat callback now requires the browser-bound stored state, suppresses legacy App restoration, applies only the still-current attempt, ignores stale completions, and does not log out an existing valid account on callback failure or mismatch.
+- Verification: final typecheck passed; Slice C production build passed with 4,649 modules.
 - Headed browser Slice B checks passed at 1440x900 and 375px, including settings states, validation focus, duplicate-submit locking, stale-401, guest identity, 72-byte password, mode-drift persistence, overflow, and JavaScript-exception checks.
-- Route/session behavior is not yet claimed; `/login` and `/register` are not wired into the repository router and Slice C remains next.
+- Headed mocked real-router Slice C checks passed 16/16 with zero console errors/warnings, including invalid/valid restoration, no login flash, user/Admin guards, safe/unsafe redirects, registration, callback state binding, stale completion, and session-preserving failure paths.
+- Full local-backend desktop/mobile acceptance, screenshots, and final Task closure remain Slice D; T4-007 is not yet DONE.
 
 ## T4-007 Acceptance Focus
 
@@ -69,13 +73,13 @@ Implement v3 dark-design login/register entry points, registration-mode-aware re
 
 ## Remaining In Current Task
 
-1. Wire `/login` and `/register`, router-owned restoration, restoration-aware user/Admin guards, safe redirects, and callback navigation.
-2. Run the complete real-router desktop/mobile acceptance matrix and close the Task only after all acceptance evidence passes.
+1. Run the complete local-backend auth acceptance matrix at 1440x900 and 375px with real local Admin and normal-user sessions, including screenshots, console, and overflow checks.
+2. Write REPORT and align Task/ROADMAP/CURRENT only after every non-deferred acceptance criterion passes.
 3. Track the backend direct-API 72-byte password boundary in a separately scoped backend security follow-up; the T4-007 UI guard does not replace a trust-boundary check.
 
 ## Exact Next Action
 
-Implement Slice C: add `/login` and `/register`, make the router the single restoration decision point, apply restoration-aware `requiresAuth`/`requiresAdmin` guards, sanitize local redirects, and preserve callback navigation; then run the production build and focused browser routing checks.
+Run Slice D: execute the complete local-backend desktop/mobile auth matrix with real local Admin and normal-user sessions, capture required screenshots, perform the final review, and close T4-007 only if every non-deferred acceptance criterion passes.
 
 ## Current Blockers
 
@@ -85,8 +89,8 @@ Implement Slice C: add `/login` and `/register`, make the router the single rest
 
 ## Worktree Protection
 
-- This run started from clean `main` at `99ebd1faa1125554b8d5a66bb6691c7825f0e8fd` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
-- `frontend/.playwright-cli/` is a known current-run untracked browser artifact directory. It is excluded from delivery staging and preserved because deletion requires Human confirmation.
+- This run started from `main` at `7a558918efd6a80cc0b8d88fcb4a1301ff353ed6` with no staged, modified, unmerged, detached, or in-progress Git-operation state.
+- `frontend/.playwright-cli/` was the only pre-existing untracked browser artifact directory; current-run artifacts also exist under `output/playwright/t4-007-slice-c/`. Both are excluded from delivery staging and preserved because deletion requires Human confirmation.
 - Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
 
 ## Historical Evidence
