@@ -2,7 +2,7 @@
 
 ## Status
 
-- State: `VERIFYING`
+- State: `DONE`
 - Owner: Codex Project Lead Engineer
 
 ## Task ID
@@ -43,10 +43,17 @@ T4-003、T4-004 已完成。
 6. 权限沿用 project ownership，跨用户和跨项目均拒绝。
 
 ## Acceptance Criteria
-- [ ] CRUD、duplicate、self-loop、cross-project、permission、node cascade 均有 tests。
-- [ ] SQLite 和 MySQL integration tests 通过。
-- [ ] Navicat 可查看 connection 与 node/project foreign keys 和备注。
-- [ ] 重启 backend 后连接仍存在。
+- [x] CRUD、duplicate、self-loop、cross-project、permission、node cascade 均有 tests。
+- [x] SQLite 和 MySQL integration tests 通过。
+- [x] Navicat 可查看 connection 与 node/project foreign keys 和备注。
+- [x] 重启 backend 后连接仍存在。
+
+## Completion Evidence
+
+- Report: `ai/reports/REPORT-T4-011.md`
+- Alembic revision: `d8c5b9a4e2f0`
+- Final backend regression: 183 tests passed on 2026-07-10.
+- SQLite-to-MySQL ETL includes `canvas_connections` after `canvas_nodes` so future migrated SQLite data retains Canvas edges.
 
 ## Verification Commands
 ```powershell

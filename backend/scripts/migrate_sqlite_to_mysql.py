@@ -30,7 +30,7 @@ from sqlalchemy.engine.url import URL
 
 
 # ---------------------------------------------------------------------------
-# FK-order-aware table list (12 tables)
+# FK-order-aware table list (13 tables)
 # ---------------------------------------------------------------------------
 TABLE_ORDER = [
     "users",
@@ -41,6 +41,7 @@ TABLE_ORDER = [
     "guests",
     "invitation_codes",
     "canvas_nodes",
+    "canvas_connections",
     "assets",
     "templates",
     "quota_ledger",
@@ -57,6 +58,7 @@ PK_MAP = {
     "guests": "id",
     "invitation_codes": "id",
     "canvas_nodes": "id",
+    "canvas_connections": "id",
     "assets": "id",
     "templates": "id",
     "quota_ledger": "id",
@@ -73,6 +75,11 @@ FK_MAP: dict[str, list[tuple[str, str]]] = {
     "guests": [("converted_user_id", "users(id)")],
     "invitation_codes": [("created_by_admin_id", "users(id)")],
     "canvas_nodes": [("project_id", "projects(id)")],
+    "canvas_connections": [
+        ("project_id", "projects(id)"),
+        ("source_node_id", "canvas_nodes(id)"),
+        ("target_node_id", "canvas_nodes(id)"),
+    ],
     "assets": [
         ("user_id", "users(id)"),
         ("project_id", "projects(id)"),
@@ -92,6 +99,7 @@ CRITICAL_JSON_COLS: dict[str, list[str]] = {
     "identities": ["raw_profile"],
     "guests": ["local_project_snapshot"],
     "canvas_nodes": ["content"],
+    "canvas_connections": ["metadata"],
     "templates": ["node_data"],
     "admin_logs": ["detail"],
 }
@@ -278,6 +286,7 @@ def setup_schema_via_alembic(test_db_url: str) -> None:
     for mod in [
         "models.user", "models.project", "models.quota",
         "models.template", "models.asset", "models.canvas_node",
+        "models.canvas_connection",
         "models.guest", "models.identity", "models.invitation",
         "models.admin_log",
     ]:

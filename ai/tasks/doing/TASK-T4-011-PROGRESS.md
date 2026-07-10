@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-10
 
-State: `VERIFYING`
+State: `DONE`
 
 ## Completed
 
@@ -21,15 +21,18 @@ State: `VERIFYING`
 - Fixed a real MySQL FK compatibility issue by making the `canvas_connections` migration inherit the existing `projects.id` column collation when running on MySQL; this keeps shared `revid_db` and disposable MySQL test databases compatible.
 - Verified shared MySQL `canvas_connections` table comment, all column comments, cascade foreign keys, project/source/target indexes, duplicate-edge unique constraint, and Alembic current/head match.
 - Recorded backend restart persistence evidence on shared MySQL by creating one acceptance user, one project, three nodes, and two connections, then reloading the first connection and connection list from a separate Python process after engine close/re-init.
+- Decided the SQLite-to-MySQL ETL scope: `canvas_connections` must be included because it is a new durable persisted table and omitting it would silently drop saved Canvas edges from future migrated SQLite databases.
+- Extended `backend/scripts/migrate_sqlite_to_mysql.py` with `canvas_connections` FK ordering, PK/FK maps, `metadata` JSON validation, and model import coverage.
+- Extended `backend/tests/test_migration_tool.py` with a two-node/one-connection fixture and a mock-safe config guard proving `canvas_connections` migrates after `canvas_nodes`.
+- Wrote `ai/reports/REPORT-T4-011.md` and marked T4-011 DONE.
 
 ## Remaining
 
-- Decide whether T4-011 should update `backend/scripts/migrate_sqlite_to_mysql.py` for future `canvas_connections` data ETL; this is outside the original allowed edit list but affects future migration completeness.
-- Write `REPORT-T4-011.md` and mark T4-011 DONE only after the ETL decision and final evidence review are recorded.
+- None for T4-011.
 
 ## Exact Next Action
 
-Decide the SQLite-to-MySQL ETL scope for `canvas_connections`, then write `ai/reports/REPORT-T4-011.md` and close T4-011 if no new implementation is required.
+Prepare T4-005 Unit A by creating `ai/tasks/doing/TASK-T4-005-PLAN.md` and `ai/tasks/doing/TASK-T4-005-PROGRESS.md`, then audit the existing Agnes generation/provider code before any business-code edits.
 
 ## Files Changed
 
@@ -39,16 +42,21 @@ Decide the SQLite-to-MySQL ETL scope for `canvas_connections`, then write `ai/re
 - `backend/migrations/versions/d8c5b9a4e2f0_add_canvas_connections.py`
 - `backend/models/__init__.py`
 - `backend/models/canvas_connection.py`
+- `backend/scripts/migrate_sqlite_to_mysql.py`
 - `backend/schemas/canvas_connection.py`
 - `backend/tests/test_canvas_connection_crud.py`
+- `backend/tests/test_migration_tool.py`
+- `ai/reports/REPORT-T4-011.md`
 - `ai/tasks/doing/TASK-T4-011-PROGRESS.md`
+- `ai/tasks/todo/TASK-T4-005.md`
 - `ai/tasks/todo/TASK-T4-011.md`
 - `ai/state/CURRENT.md`
 - `ai/state/ROADMAP.md`
 
 ## Commands And Summarized Results
 
-- `git status --short`, `git diff --stat`, `git diff --name-only`, `git diff --cached --name-status`, `git diff --name-only --diff-filter=U`, `git branch --show-current`, `git rev-parse HEAD`: starting baseline was clean on `main` at `52908f434bf00e85fc110891698a2a9d1ef0cd51`; no staged or unmerged paths.
+- Earlier backend-slice baseline: `git status --short`, `git diff --stat`, `git diff --name-only`, `git diff --cached --name-status`, `git diff --name-only --diff-filter=U`, `git branch --show-current`, `git rev-parse HEAD` showed clean `main` at `52908f434bf00e85fc110891698a2a9d1ef0cd51`; no staged or unmerged paths.
+- This run baseline: `git status --short`, `git diff --stat`, `git diff --name-only`, `git diff --cached --name-status`, `git diff --name-only --diff-filter=U`, `git branch --show-current`, `git rev-parse HEAD` showed clean `main` at `d971e56012ce0c03c1c2c0278f1a8bc197da9d9b`; no staged, modified, untracked, or unmerged paths.
 - `python -m unittest discover -s tests -p "test_canvas_connection_crud.py"` with system Python: failed before tests because global environment lacked FastAPI dependency `annotated_doc`; reran with project venv.
 - `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_canvas_connection_crud.py"`: passed, 10 tests.
 - `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_canvas_node_crud.py"`: passed, 9 tests.
@@ -65,7 +73,16 @@ Decide the SQLite-to-MySQL ETL scope for `canvas_connections`, then write `ai/re
 - `.\\.venv\\Scripts\\python.exe -m compileall models/canvas_connection.py migrations/versions/d8c5b9a4e2f0_add_canvas_connections.py tests/test_canvas_connection_crud.py`: passed.
 - First full `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_*.py"` after hardcoded collation: failed in disposable MySQL migration setup with the same FK incompatibility against a different parent collation; this drove the dynamic collation fix.
 - Final `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_*.py"` after dynamic collation: passed, 182 tests; expected migration-tool negative-path output appeared but final unittest result was OK.
+- `.\\backend\\.venv\\Scripts\\python.exe -m unittest backend.tests.test_migration_tool.TestCanvasConnectionMigrationConfig`: passed, 1 test.
+- `.\\backend\\.venv\\Scripts\\python.exe -m py_compile backend/scripts/migrate_sqlite_to_mysql.py backend/tests/test_migration_tool.py`: passed.
+- `.\\backend\\.venv\\Scripts\\python.exe -m unittest discover -s backend/tests -p "test_canvas_connection_crud.py"`: passed, 10 tests.
+- Root-level `.\\.venv\\Scripts\\python.exe ...` smoke attempts failed because the project venv is under `backend/.venv`; reran the same checks with `backend/.venv`.
+- From `backend`, `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_migration_tool.py"`: passed, 27 tests; output confirmed `canvas_connections: 1 rows` participates in migration-tool fixture paths.
+- From `backend`, `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_*.py"`: passed, 183 tests; expected migration-tool negative-path output appeared but final unittest result was OK.
 - `git diff --check`: passed with only existing LF-to-CRLF warnings.
+- Pre-commit Git recheck: branch remained `main`, HEAD remained `d971e56012ce0c03c1c2c0278f1a8bc197da9d9b`, no unmerged paths, and staged paths were limited to this T4-011 closure unit.
+- Repository secret-scanner config search found no configured scanner; staged diff credential-pattern scan passed without hits.
+- `git diff --cached --stat`, `git diff --cached --name-only`, `git diff --cached`, and `git diff --cached --check`: reviewed and passed for the T4-011 closure scope.
 
 ## Verification
 
@@ -73,7 +90,8 @@ Decide the SQLite-to-MySQL ETL scope for `canvas_connections`, then write `ai/re
 - Test MySQL upgrade paths executed inside existing regression tests and completed with final unittest OK.
 - Shared MySQL `revid_db` is upgraded from `b7d4c2e9f001` to `d8c5b9a4e2f0`.
 - Shared MySQL table/comment/FK/index/unique-constraint evidence and backend restart persistence evidence are complete.
-- Final REPORT remains pending until the SQLite-to-MySQL ETL scope decision is recorded.
+- SQLite-to-MySQL ETL now includes `canvas_connections`; focused config guard, migration-tool tests, and full backend regression passed.
+- Final REPORT is complete.
 
 ## Blockers
 

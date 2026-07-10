@@ -1,5 +1,11 @@
 # Task: 真实 Agnes API 联调与诊断信息
 
+## Status
+
+- State: `TODO`
+- Active unit: `Unit A - Implementation And Mock Verification`
+- Owner: Codex Project Lead Engineer
+
 ## Task ID
 T4-005
 

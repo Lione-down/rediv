@@ -20,67 +20,65 @@ Last updated: 2026-07-10
 
 ## Active Task
 
-- Task: `T4-011 - Canvas connection model and CRUD API`
-- State: `VERIFYING`
-- Task file: `ai/tasks/todo/TASK-T4-011.md`
-- Plan: `ai/tasks/doing/TASK-T4-011-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T4-011-PROGRESS.md`
-- Target report: `ai/reports/REPORT-T4-011.md`
+- Task: `T4-005 Unit A - GenerationTask persistence, provider integration and mock tests`
+- State: `TODO`
+- Task file: `ai/tasks/todo/TASK-T4-005.md`
+- Plan: not yet created
+- Progress: not yet created
+- Target report: `ai/reports/REPORT-T4-005.md`
 
 ## Latest Completed Task
 
-- T4-004: `DONE - PASS`
-- Report: `ai/reports/REPORT-T4-004.md`
-- Outcome: username/email password Auth, registration-mode enforcement, env-driven Admin bootstrap, retained WeChat account compatibility, signed WeChat OAuth state validation, and shared MySQL migration are complete.
+- T4-011: `DONE - PASS`
+- Report: `ai/reports/REPORT-T4-011.md`
+- Outcome: Canvas connection model, schemas, CRUD router, store methods, node-delete cleanup, migration `d8c5b9a4e2f0`, migration-tool ETL coverage, and tests are complete.
 - Shared MySQL: `revid_db` on 8.0.43
-- Alembic current/head at T4-004 close: `b7d4c2e9f001` / `b7d4c2e9f001`
-- Health: `mysql`, connected, ready, revision match
-- Fresh verification: backend compileall passed; backend unittest discover passed with 172 tests; frontend production build passed; shared MySQL health/Auth smoke passed.
-- External note: real WeChat provider E2E remains unverified until Human Owner credentials/authorization are available; mocked real-mode exchange and signed state contract tests passed.
+- Alembic current/head at T4-011 close: `d8c5b9a4e2f0` / `d8c5b9a4e2f0`
+- Fresh verification: connection tests passed with 10 tests; migration-tool tests passed with 27 tests; backend unittest discover passed with 183 tests; shared MySQL schema/comment/FK/index/unique evidence and restart persistence evidence are complete.
+- External note: real WeChat provider E2E remains unverified until Human Owner credentials/authorization are available.
 
-## T4-011 Objective
+## T4-005 Unit A Objective
 
-Add a durable backend Canvas connection model and CRUD API so node edges are persisted in MySQL, inspectable through Navicat, and restored after refresh or backend restart.
+Persist generation task diagnostics and integrate provider status mapping without making paid Agnes calls. Unit A must add `generation_tasks`, query/smoke surfaces, and mock verification for text/image/video failure and status paths.
 
-## T4-011 Scope
+## T4-005 Unit A Scope
 
-- Allowed new files: `backend/models/canvas_connection.py`, `backend/schemas/canvas_connection.py`, `backend/api/canvas_connections.py`, migration, and tests.
-- Allowed edits: model registration, router registration, store methods, and node-delete cleanup required for connections.
-- Forbidden: frontend pointer interaction, visual connection rendering, generation API, Auth changes, or broad store refactor.
+- Allowed edits: `backend/core/agnes_provider.py`, generation routers, related schemas/settings/tests.
+- Allowed additions: `GenerationTask` model, Alembic revision, task query API, and `scripts/smoke_agnes.py`.
+- Forbidden: frontend visual work, Auth changes, MySQL foundation changes, quota product-rule changes, and paid Agnes calls.
+- Unit B real smoke remains blocked until explicit Human Owner cost authorization.
 
-## T4-011 Current State
+## T4-005 Unit A Current State
 
 - Dependencies T4-003 and T4-004 are complete.
-- T4-011 PLAN and PROGRESS are created.
-- Backend connection model/API slice is implemented and verified.
-- Added `CanvasConnection` model, schemas, CRUD router, store methods, node-delete cleanup, migration `d8c5b9a4e2f0`, and focused tests.
-- Fixed the MySQL migration to inherit the existing parent-table collation before creating `canvas_connections`, preventing FK incompatibility across shared and disposable MySQL databases.
-- Shared MySQL `revid_db` is upgraded to `d8c5b9a4e2f0`; `canvas_connections` has non-empty table/field comments, cascade FKs, source/target/project indexes, and the duplicate-edge unique constraint.
-- Backend restart persistence evidence exists in shared MySQL: acceptance project `0e191223-05a7-415e-ae33-d0d86c4d3eca` has three nodes and two persisted connections (`9c662d04-ea31-46ab-a881-8be2dbd94761`, `e971be81-a7df-4d24-b1f2-345c8a434e8a`) reloaded from a separate Python process.
+- T4-011 is complete, so T4-005 Unit A is now dependency-ready.
+- PLAN and PROGRESS are not yet created; they must be created before any business-code edits.
 
-## T4-011 Acceptance Focus
+## T4-005 Unit A Acceptance Focus
 
-- CRUD, duplicate, self-loop, cross-project, permission, and node cleanup tests.
-- SQLite and MySQL integration evidence.
-- Navicat-visible connection table, foreign keys, indexes, and non-empty table/field comments.
-- Backend restart persistence.
+- Generation task persistence and Navicat-inspectable task/asset relationships.
+- Provider status mapping to `queued/running/succeeded/failed/timed_out`.
+- Mock tests for text, image, video, network failure, provider failure, timeout, asset persistence failure, and no-secret/no-paid-call smoke behavior.
+- Full backend regression remains required for Unit A closure.
 
 ## Remaining In Current Task
 
-1. Decide and document whether the SQLite-to-MySQL ETL script should be extended for future `canvas_connections` rows, because it is outside the original T4-011 allowed edit list but affects future migration completeness.
-2. Write `ai/reports/REPORT-T4-011.md`, then mark T4-011 DONE only after the ETL decision and final evidence review are recorded.
+1. Create `ai/tasks/doing/TASK-T4-005-PLAN.md`.
+2. Create `ai/tasks/doing/TASK-T4-005-PROGRESS.md`.
+3. Audit existing Agnes provider/generation router/schema/tests before business-code edits.
 
 ## Exact Next Action
 
-Decide the SQLite-to-MySQL ETL scope for `canvas_connections`, then write `ai/reports/REPORT-T4-011.md` and close T4-011 if no new implementation is required.
+Create the T4-005 Unit A PLAN and PROGRESS documents, then audit the existing Agnes provider and generation endpoints to define the first implementation slice.
 
 ## Current Blockers
 
-- No active blocker.
+- T4-005 Unit A has no active blocker.
+- T4-005 Unit B real Agnes smoke remains a Human cost gate and must not run without explicit authorization.
 
 ## Worktree Protection
 
-- This run started from clean `main` at `6d2b3759978dd3a00b7600d05b38647dd893967b`.
+- This run started from clean `main` at `d971e56012ce0c03c1c2c0278f1a8bc197da9d9b`.
 - Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
 
 ## Historical Evidence

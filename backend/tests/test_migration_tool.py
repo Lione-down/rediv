@@ -19,6 +19,9 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
 from scripts.migrate_sqlite_to_mysql import (
+    CRITICAL_JSON_COLS,
+    FK_MAP,
+    PK_MAP,
     TABLE_ORDER,
     TEST_DB_NAME,
     build_test_db_url,
@@ -212,6 +215,31 @@ def _create_fixture_sqlite(path: str) -> None:
         [
             ("cn-001", "proj-001", "image", '{"prompt":"test"}',
              100.0, 200.0, 300, 200, "active", "2024-03-01", "2024-03-01"),
+            ("cn-002", "proj-001", "text", '{"text":"next"}',
+             460.0, 200.0, 280, 160, "active", "2024-03-01", "2024-03-01"),
+        ],
+    )
+
+    # canvas_connections
+    c.execute("""
+        CREATE TABLE canvas_connections (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL,
+            source_node_id TEXT NOT NULL,
+            source_port TEXT NOT NULL,
+            target_node_id TEXT NOT NULL,
+            target_port TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'active',
+            metadata TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+    """)
+    c.executemany(
+        "INSERT INTO canvas_connections VALUES (?,?,?,?,?,?,?,?,?,?)",
+        [
+            ("cc-001", "proj-001", "cn-001", "out", "cn-002", "in", "active",
+             '{"label":"primary"}', "2024-03-01", "2024-03-01"),
         ],
     )
 
@@ -548,6 +576,31 @@ def _cleanup_orphan_and_restore_fk(
     _run_cleanup_lifecycle(engine, orphan_id, table, recorder=recorder)
 
 
+class TestCanvasConnectionMigrationConfig(unittest.TestCase):
+    """T4-011 guardrail for canvas connection ETL configuration."""
+
+    def test_canvas_connections_are_migrated_after_nodes(self):
+        self.assertIn("canvas_connections", TABLE_ORDER)
+        self.assertLess(
+            TABLE_ORDER.index("canvas_nodes"),
+            TABLE_ORDER.index("canvas_connections"),
+        )
+        self.assertLess(
+            TABLE_ORDER.index("canvas_connections"),
+            TABLE_ORDER.index("assets"),
+        )
+        self.assertEqual("id", PK_MAP["canvas_connections"])
+        self.assertEqual(
+            [
+                ("project_id", "projects(id)"),
+                ("source_node_id", "canvas_nodes(id)"),
+                ("target_node_id", "canvas_nodes(id)"),
+            ],
+            FK_MAP["canvas_connections"],
+        )
+        self.assertEqual(["metadata"], CRITICAL_JSON_COLS["canvas_connections"])
+
+
 class TestMigrationTool(unittest.TestCase):
     """Tests for all 12 acceptance criteria."""
 
@@ -633,7 +686,7 @@ class TestMigrationTool(unittest.TestCase):
     # AC9: Test schema created by Alembic upgrade head, no handwritten DDL
     # -----------------------------------------------------------------------
     def test_ac9_alembic_creates_schema(self):
-        """AC9: All 12 tables exist after Alembic upgrade head."""
+        """AC9: All configured tables exist after Alembic upgrade head."""
         from sqlalchemy import create_engine, text
         engine = create_engine(self.test_db_url, future=True)
         with engine.connect() as conn:
@@ -886,10 +939,10 @@ class TestMigrationTool(unittest.TestCase):
         reader.close()
 
     # -----------------------------------------------------------------------
-    # AC6: Migration report proves 12-table consistency
+    # AC6: Migration report proves configured-table consistency
     # -----------------------------------------------------------------------
     def test_ac6_consistency_report(self):
-        """AC6: Report contains all 12 tables with matching counts.
+        """AC6: Report contains all configured tables with matching counts.
 
         Establishes deterministic clean state by clearing all existing
         MySQL data before migration, so it is not contaminated by
@@ -918,7 +971,7 @@ class TestMigrationTool(unittest.TestCase):
                 writer.migrate_table(t, rows, report)
         writer.close()
 
-        # All 12 tables should be in report
+        # All configured tables should be in report
         for t in TABLE_ORDER:
             self.assertIn(t, report, f"Table {t} missing from report")
             self.assertIn("source_count", report[t])
