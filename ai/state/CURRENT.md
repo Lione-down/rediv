@@ -52,7 +52,9 @@ Add a durable backend Canvas connection model and CRUD API so node edges are per
 
 - Dependencies T4-003 and T4-004 are complete.
 - T4-011 PLAN and PROGRESS are created.
-- No T4-011 business code has been changed yet.
+- First backend connection slice is implemented and verified in SQLite/test-regression scope.
+- Added `CanvasConnection` model, schemas, CRUD router, store methods, node-delete cleanup, migration `d8c5b9a4e2f0`, and focused tests.
+- Shared MySQL `revid_db` is not yet upgraded to `d8c5b9a4e2f0`; Navicat/comment evidence and final REPORT remain pending.
 
 ## T4-011 Acceptance Focus
 
@@ -63,14 +65,15 @@ Add a durable backend Canvas connection model and CRUD API so node edges are per
 
 ## Remaining In Current Task
 
-1. Audit existing project/canvas-node backend files and tests.
-2. Add focused failing connection contract tests.
-3. Implement connection model/schema/router/store/migration and node-delete cleanup.
-4. Run focused and regression verification, then write `REPORT-T4-011.md`.
+1. Apply and verify Alembic head `d8c5b9a4e2f0` on shared MySQL `revid_db`.
+2. Inspect `canvas_connections` table/field comments, foreign keys, indexes, duplicate constraint, and revision match through MySQL evidence.
+3. Record backend-restart persistence evidence after shared MySQL has the connection table.
+4. Decide whether the SQLite-to-MySQL ETL script should be extended for future `canvas_connections` rows.
+5. Run final focused/regression checks, write `ai/reports/REPORT-T4-011.md`, and mark T4-011 DONE only after all acceptance criteria are satisfied.
 
 ## Exact Next Action
 
-Audit the existing project and canvas-node backend files and tests, then add the first focused connection contract tests before implementing the model/router/store changes.
+Apply and verify the additive `d8c5b9a4e2f0` migration on shared MySQL `revid_db`, then inspect `canvas_connections` comments, columns, foreign keys, indexes, and revision match without exposing credentials.
 
 ## Current Blockers
 
@@ -78,7 +81,7 @@ Audit the existing project and canvas-node backend files and tests, then add the
 
 ## Worktree Protection
 
-- Starting T4-011 from clean `main` after T4-004 closeout.
+- This run started from clean `main` at `52908f434bf00e85fc110891698a2a9d1ef0cd51`.
 - Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
 
 ## Historical Evidence

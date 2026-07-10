@@ -5,11 +5,12 @@ from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from models.admin_log import AdminLog
 from models.asset import Asset
 from models.base import StoreConfig, get_session
+from models.canvas_connection import CanvasConnection
 from models.canvas_node import CanvasNode
 from models.guest import Guest
 from models.identity import Identity
@@ -91,6 +92,7 @@ class InMemoryStore:
         self.identities: dict[str, dict] = {}
         self.guests: dict[str, dict] = {}
         self.assets: dict[str, dict] = {}
+        self.canvas_connections: dict[str, dict] = {}
         self.canvas_nodes: dict[str, dict] = {}
         self.projects: dict[str, dict] = {}
         self.templates: dict[str, dict] = {}
@@ -461,7 +463,153 @@ class InMemoryStore:
 
         node["status"] = "deleted"
         node["updated_at"] = now_iso()
+        self._delete_connections_for_node(node_id)
         return node
+
+    def _validate_connection_nodes(
+        self,
+        project_id: str,
+        source_node_id: str,
+        target_node_id: str,
+    ) -> None:
+        if source_node_id == target_node_id:
+            raise ValueError("Self-loop connections are not allowed")
+
+        source_node = self.canvas_nodes.get(source_node_id)
+        target_node = self.canvas_nodes.get(target_node_id)
+        if (
+            source_node is None
+            or target_node is None
+            or source_node["status"] == "deleted"
+            or target_node["status"] == "deleted"
+        ):
+            raise ValueError("Connection nodes must exist")
+        if source_node["project_id"] != project_id or target_node["project_id"] != project_id:
+            raise ValueError("Connection nodes must belong to project")
+
+    def _has_duplicate_connection(
+        self,
+        project_id: str,
+        source_node_id: str,
+        source_port: str,
+        target_node_id: str,
+        target_port: str,
+        exclude_connection_id: str | None = None,
+    ) -> bool:
+        for connection in self.canvas_connections.values():
+            if connection["id"] == exclude_connection_id:
+                continue
+            if connection.get("status") == "deleted":
+                continue
+            if (
+                connection["project_id"] == project_id
+                and connection["source_node_id"] == source_node_id
+                and connection["source_port"] == source_port
+                and connection["target_node_id"] == target_node_id
+                and connection["target_port"] == target_port
+            ):
+                return True
+        return False
+
+    def create_connection(
+        self,
+        project_id: str,
+        user_id: str,
+        source_node_id: str,
+        source_port: str,
+        target_node_id: str,
+        target_port: str,
+        metadata: dict | None = None,
+    ) -> dict:
+        project = self.projects.get(project_id)
+        if project is None or project["user_id"] != user_id:
+            raise PermissionError("Project does not belong to user")
+        self._validate_connection_nodes(project_id, source_node_id, target_node_id)
+        if self._has_duplicate_connection(project_id, source_node_id, source_port, target_node_id, target_port):
+            raise ValueError("Connection already exists")
+
+        timestamp = now_iso()
+        connection = {
+            "id": str(uuid4()),
+            "project_id": project_id,
+            "source_node_id": source_node_id,
+            "source_port": source_port,
+            "target_node_id": target_node_id,
+            "target_port": target_port,
+            "status": "active",
+            "metadata": deepcopy(metadata or {}),
+            "created_at": timestamp,
+            "updated_at": timestamp,
+        }
+        self.canvas_connections[connection["id"]] = connection
+        return connection
+
+    def list_connections(self, project_id: str, user_id: str) -> list[dict]:
+        project = self.projects.get(project_id)
+        if project is None or project["user_id"] != user_id:
+            raise PermissionError("Project does not belong to user")
+
+        items = [
+            connection
+            for connection in self.canvas_connections.values()
+            if connection["project_id"] == project_id and connection["status"] != "deleted"
+        ]
+        items.sort(key=lambda connection: connection["created_at"])
+        return items
+
+    def get_connection(self, connection_id: str) -> dict | None:
+        connection = self.canvas_connections.get(connection_id)
+        if connection is None or connection["status"] == "deleted":
+            return None
+        return connection
+
+    def update_connection(self, connection_id: str, user_id: str, **fields) -> dict | None:
+        connection = self.canvas_connections.get(connection_id)
+        if connection is None or connection["status"] == "deleted":
+            return None
+
+        project = self.projects.get(connection["project_id"])
+        if project is None or project["user_id"] != user_id:
+            raise PermissionError("Project does not belong to user")
+
+        source_node_id = fields.get("source_node_id", connection["source_node_id"])
+        source_port = fields.get("source_port", connection["source_port"])
+        target_node_id = fields.get("target_node_id", connection["target_node_id"])
+        target_port = fields.get("target_port", connection["target_port"])
+        self._validate_connection_nodes(connection["project_id"], source_node_id, target_node_id)
+        if self._has_duplicate_connection(
+            connection["project_id"],
+            source_node_id,
+            source_port,
+            target_node_id,
+            target_port,
+            exclude_connection_id=connection_id,
+        ):
+            raise ValueError("Connection already exists")
+
+        for key, value in fields.items():
+            connection[key] = deepcopy(value) if key == "metadata" else value
+        connection["updated_at"] = now_iso()
+        return connection
+
+    def delete_connection(self, connection_id: str, user_id: str) -> dict | None:
+        connection = self.canvas_connections.get(connection_id)
+        if connection is None:
+            return None
+
+        project = self.projects.get(connection["project_id"])
+        if project is None or project["user_id"] != user_id:
+            raise PermissionError("Project does not belong to user")
+        return self.canvas_connections.pop(connection_id)
+
+    def _delete_connections_for_node(self, node_id: str) -> None:
+        connection_ids = [
+            connection_id
+            for connection_id, connection in self.canvas_connections.items()
+            if connection["source_node_id"] == node_id or connection["target_node_id"] == node_id
+        ]
+        for connection_id in connection_ids:
+            self.canvas_connections.pop(connection_id, None)
 
     def list_projects(self, user_id: str) -> list[dict]:
         items = [project for project in self.projects.values() if project["user_id"] == user_id]
@@ -590,6 +738,7 @@ class DatabaseStore:
         self.identities: dict[str, dict] = {}
         self.guests: dict[str, dict] = {}
         self.assets: dict[str, dict] = {}
+        self.canvas_connections: dict[str, dict] = {}
         self.canvas_nodes: dict[str, dict] = {}
         self.projects: dict[str, dict] = {}
         self.templates: dict[str, dict] = {}
@@ -623,6 +772,10 @@ class DatabaseStore:
             self.assets = {
                 asset.id: self._asset_to_dict(asset)
                 for asset in session.scalars(select(Asset)).all()
+            }
+            self.canvas_connections = {
+                connection.id: self._canvas_connection_to_dict(connection)
+                for connection in session.scalars(select(CanvasConnection)).all()
             }
             self.canvas_nodes = {
                 node.id: self._canvas_node_to_dict(node)
@@ -828,6 +981,20 @@ class DatabaseStore:
             "status": node.status,
             "created_at": datetime_to_iso(node.created_at),
             "updated_at": datetime_to_iso(node.updated_at),
+        }
+
+    def _canvas_connection_to_dict(self, connection: CanvasConnection) -> dict:
+        return {
+            "id": connection.id,
+            "project_id": connection.project_id,
+            "source_node_id": connection.source_node_id,
+            "source_port": connection.source_port,
+            "target_node_id": connection.target_node_id,
+            "target_port": connection.target_port,
+            "status": connection.status,
+            "metadata": deepcopy(connection.metadata_),
+            "created_at": datetime_to_iso(connection.created_at),
+            "updated_at": datetime_to_iso(connection.updated_at),
         }
 
     def _project_to_dict(self, project: Project) -> dict:
@@ -1361,6 +1528,7 @@ class DatabaseStore:
         return payload
 
     def delete_node(self, node_id: str, user_id: str) -> dict | None:
+        deleted_connection_ids: list[str] = []
         with get_session() as session:
             node = session.get(CanvasNode, node_id)
             if node is None or node.status == "deleted":
@@ -1372,11 +1540,195 @@ class DatabaseStore:
 
             node.status = "deleted"
             node.updated_at = now_utc()
+            deleted_connection_ids = self._delete_connections_for_node_in_session(session, node_id)
             session.commit()
             payload = self._canvas_node_to_dict(node)
 
         self.canvas_nodes[node_id] = payload
+        for connection_id in deleted_connection_ids:
+            self.canvas_connections.pop(connection_id, None)
         return payload
+
+    def _validate_connection_nodes(
+        self,
+        session,
+        project_id: str,
+        source_node_id: str,
+        target_node_id: str,
+    ) -> None:
+        if source_node_id == target_node_id:
+            raise ValueError("Self-loop connections are not allowed")
+
+        source_node = session.get(CanvasNode, source_node_id)
+        target_node = session.get(CanvasNode, target_node_id)
+        if (
+            source_node is None
+            or target_node is None
+            or source_node.status == "deleted"
+            or target_node.status == "deleted"
+        ):
+            raise ValueError("Connection nodes must exist")
+        if source_node.project_id != project_id or target_node.project_id != project_id:
+            raise ValueError("Connection nodes must belong to project")
+
+    def _has_duplicate_connection(
+        self,
+        session,
+        project_id: str,
+        source_node_id: str,
+        source_port: str,
+        target_node_id: str,
+        target_port: str,
+        exclude_connection_id: str | None = None,
+    ) -> bool:
+        statement = select(CanvasConnection).where(
+            CanvasConnection.project_id == project_id,
+            CanvasConnection.source_node_id == source_node_id,
+            CanvasConnection.source_port == source_port,
+            CanvasConnection.target_node_id == target_node_id,
+            CanvasConnection.target_port == target_port,
+        )
+        if exclude_connection_id is not None:
+            statement = statement.where(CanvasConnection.id != exclude_connection_id)
+        return session.scalar(statement) is not None
+
+    def create_connection(
+        self,
+        project_id: str,
+        user_id: str,
+        source_node_id: str,
+        source_port: str,
+        target_node_id: str,
+        target_port: str,
+        metadata: dict | None = None,
+    ) -> dict:
+        project = self.get_project(project_id)
+        if project is None or project["user_id"] != user_id:
+            raise PermissionError("Project does not belong to user")
+
+        timestamp = now_utc()
+        connection = CanvasConnection(
+            id=str(uuid4()),
+            project_id=project_id,
+            source_node_id=source_node_id,
+            source_port=source_port,
+            target_node_id=target_node_id,
+            target_port=target_port,
+            status="active",
+            metadata_=deepcopy(metadata or {}),
+            created_at=timestamp,
+            updated_at=timestamp,
+        )
+        with get_session() as session:
+            self._validate_connection_nodes(session, project_id, source_node_id, target_node_id)
+            if self._has_duplicate_connection(session, project_id, source_node_id, source_port, target_node_id, target_port):
+                raise ValueError("Connection already exists")
+            session.add(connection)
+            session.commit()
+            payload = self._canvas_connection_to_dict(connection)
+
+        self.canvas_connections[connection.id] = payload
+        return payload
+
+    def list_connections(self, project_id: str, user_id: str) -> list[dict]:
+        project = self.get_project(project_id)
+        if project is None or project["user_id"] != user_id:
+            raise PermissionError("Project does not belong to user")
+
+        statement = select(CanvasConnection).where(
+            CanvasConnection.project_id == project_id,
+            CanvasConnection.status != "deleted",
+        )
+        with get_session() as session:
+            items = [self._canvas_connection_to_dict(connection) for connection in session.scalars(statement).all()]
+
+        items.sort(key=lambda connection: connection["created_at"])
+        for item in items:
+            self.canvas_connections[item["id"]] = item
+        return items
+
+    def get_connection(self, connection_id: str) -> dict | None:
+        connection = self.canvas_connections.get(connection_id)
+        if connection is not None:
+            if connection["status"] == "deleted":
+                return None
+            return connection
+
+        with get_session() as session:
+            row = session.get(CanvasConnection, connection_id)
+            if row is None or row.status == "deleted":
+                return None
+            payload = self._canvas_connection_to_dict(row)
+
+        self.canvas_connections[connection_id] = payload
+        return payload
+
+    def update_connection(self, connection_id: str, user_id: str, **fields) -> dict | None:
+        with get_session() as session:
+            connection = session.get(CanvasConnection, connection_id)
+            if connection is None or connection.status == "deleted":
+                return None
+
+            project = session.get(Project, connection.project_id)
+            if project is None or project.user_id != user_id:
+                raise PermissionError("Project does not belong to user")
+
+            source_node_id = fields.get("source_node_id", connection.source_node_id)
+            source_port = fields.get("source_port", connection.source_port)
+            target_node_id = fields.get("target_node_id", connection.target_node_id)
+            target_port = fields.get("target_port", connection.target_port)
+            self._validate_connection_nodes(session, connection.project_id, source_node_id, target_node_id)
+            if self._has_duplicate_connection(
+                session,
+                connection.project_id,
+                source_node_id,
+                source_port,
+                target_node_id,
+                target_port,
+                exclude_connection_id=connection_id,
+            ):
+                raise ValueError("Connection already exists")
+
+            for key, value in fields.items():
+                if key == "metadata":
+                    connection.metadata_ = deepcopy(value)
+                else:
+                    setattr(connection, key, value)
+            connection.updated_at = now_utc()
+            session.commit()
+            payload = self._canvas_connection_to_dict(connection)
+
+        self.canvas_connections[connection_id] = payload
+        return payload
+
+    def delete_connection(self, connection_id: str, user_id: str) -> dict | None:
+        with get_session() as session:
+            connection = session.get(CanvasConnection, connection_id)
+            if connection is None:
+                return None
+
+            project = session.get(Project, connection.project_id)
+            if project is None or project.user_id != user_id:
+                raise PermissionError("Project does not belong to user")
+            payload = self._canvas_connection_to_dict(connection)
+            session.delete(connection)
+            session.commit()
+
+        self.canvas_connections.pop(connection_id, None)
+        return payload
+
+    def _delete_connections_for_node_in_session(self, session, node_id: str) -> list[str]:
+        statement = select(CanvasConnection).where(
+            or_(
+                CanvasConnection.source_node_id == node_id,
+                CanvasConnection.target_node_id == node_id,
+            )
+        )
+        connections = session.scalars(statement).all()
+        connection_ids = [connection.id for connection in connections]
+        for connection in connections:
+            session.delete(connection)
+        return connection_ids
 
     def list_projects(self, user_id: str) -> list[dict]:
         statement = select(Project).where(Project.user_id == user_id)
