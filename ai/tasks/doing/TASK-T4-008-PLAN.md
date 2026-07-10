@@ -30,7 +30,8 @@ Replace the current marketing-oriented Home with an authenticated personal proje
 - Existing authenticated backend project endpoints provide create/list/get/delete under `/projects`; asset endpoints are under `/assets`.
 - Slice A confirmed the project response is exactly `id`, `user_id`, `name`, and `created_at`; list returns `{ items, total }` newest-first, and create returns `201 Project`.
 - The root Home route remains public to preserve the accepted T4-007 guest/auth entry contract. Authenticated project navigation must use `/app/workspace?project_id=<Project.id>`.
-- The existing asset store starts with fabricated items and lacks request deduplication, error state, and session invalidation; it must be hardened before Home can claim real or partial asset data.
+- Slice B1 confirmed the asset list response contains complete required item fields plus `items`, `total`, `page`, and `page_size`; response `type`, `source`, and `status` remain unconstrained strings at the backend boundary.
+- The asset store now starts empty and provides single-flight loading, explicit refresh/error state, synchronous token-change reset, and generation-safe stale-response suppression.
 
 ## Implementation Slices
 
@@ -49,6 +50,8 @@ Success requires a focused typecheck, production build, fresh diff review, updat
 
 #### Slice B1 - Asset-domain state hardening
 
+Status: completed and verified on 2026-07-11.
+
 1. Confirm the complete backend asset list response, filters, ordering, and field optionality.
 2. Remove fabricated asset-store initial items and add deterministic initial load, refresh error, duplicate-request, and session-reset behavior.
 3. Preserve successful same-session data on refresh failure while preventing stale cross-session response writes.
@@ -61,7 +64,7 @@ Success requires a focused runtime adapter harness, typecheck/build, fresh diff 
 1. Replace fabricated quick starts and status values with real project, asset, and quota summaries.
 2. Split Home-local sections into single-purpose components and reduce `Home.vue` to at most 500 lines.
 3. Implement loading, empty, error, partial-data, zero-quota, create-project, refresh, and enter-Workspace states.
-4. Reset project and asset state on auth-session changes, and carry the selected project ID explicitly into the existing Workspace query contract.
+4. Preserve the asset store's synchronous session reset, add equivalent project-store reset behavior, and carry the selected project ID explicitly into the existing Workspace query contract.
 
 Success requires typecheck/build plus mocked or local-backend browser behavior for the state matrix.
 
@@ -88,7 +91,8 @@ Success requires typecheck/build plus mocked or local-backend browser behavior f
 - Keep the root route public so T4-007 guest entry remains usable; Home exposes authenticated dashboard data only when `authStore.isLoggedIn` is true.
 - Workspace already consumes a scalar `route.query.project_id`; T4-008 must pass the backend `Project.id` through that query and must not modify Workspace.
 - Asset and project requests can partially fail; the page must preserve successful sections and expose scoped retry actions.
-- Both domain stores must reset on auth-session changes so one account cannot see another account's cached data or stale responses.
+- The asset store self-resets synchronously when the auth token changes; Slice B2 must add the equivalent project-store behavior before project data is rendered.
+- Home may describe the loaded asset page as recent assets, but must not present `items.length` as the account-wide total; Workspace currently mutates asset items directly and is outside this Task's allowed edit scope.
 - Real MySQL acceptance must use credentials already supplied to an authorized runtime and must never read `.env` files or expose credential material.
 
 ## Human Gates

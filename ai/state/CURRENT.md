@@ -51,10 +51,13 @@ Replace the marketing-oriented Home with an authenticated personal dashboard tha
 
 - Dependencies T4-003, T4-006, and T4-007 are complete.
 - Slice A project-domain foundation is implemented and verified.
+- Slice B1 asset-domain real-data and session hardening is implemented and verified.
 - `modules/project/{types,api,store}.ts` now matches the exact backend list/create response fields and provides generation-safe load, refresh, create, duplicate-request, error, and reset behavior without fabricated state.
+- `api/assets.ts` and `types/asset.ts` now describe the complete list filters, pagination envelope, required/nullability fields, and unconstrained response strings while preserving constrained create input.
+- The asset store now starts empty, preserves successful same-session data on refresh failure, deduplicates concurrent requests, resets synchronously on auth-token changes, and suppresses stale success/error completion across sessions.
 - `Home.vue` is 951 lines and mixes fabricated `quickStarts` values with real auth quota and asset-store reads.
 - The root route remains public for the accepted guest/auth entry; authenticated Workspace navigation must pass the backend project ID as query `project_id`.
-- The existing asset store still contains fabricated initial items and lacks request/session race controls; Slice B1 must harden it before Home uses it as truthful real or partial data.
+- Pagination metadata remains at the asset API boundary rather than Pinia because Workspace directly mutates asset items and is outside T4-008 scope; Home must describe these as recent assets, not an account-wide total.
 
 ## T4-008 Acceptance Focus
 
@@ -67,25 +70,25 @@ Replace the marketing-oriented Home with an authenticated personal dashboard tha
 
 ## Remaining In Current Task
 
-1. Complete Slice B1 asset-domain real-data/session hardening.
-2. Complete Slice B2 Home decomposition, real-data states, project creation, auth reset wiring, and explicit Workspace navigation.
-3. Complete real local-backend/MySQL and responsive browser acceptance in Slice C before REPORT and closure.
+1. Complete Slice B2 Home decomposition, real-data states, project creation, project session reset, unknown asset-value fallback, and explicit Workspace navigation.
+2. Complete real local-backend/MySQL and responsive browser acceptance in Slice C before REPORT and closure.
 
 ## Exact Next Action
 
-Read the complete backend asset list API/schema/store ordering contract; then implement only Slice B1 asset API/store/type hardening, run the focused adapter harness plus typecheck/build, review, update durable state, and commit. Do not edit Home in that bounded unit.
+Read the complete current Home template/styles plus project store, auth session, router, and Home-local component conventions; then implement Slice B2 only: replace fabricated values with project/recent-asset/quota states, add project creation and all required UI states, reset project state synchronously on token changes, reduce `Home.vue` below 500 lines, and navigate with the selected backend project ID. Do not modify backend, Space, Workspace, Canvas, or global design tokens.
 
 ## Current Blockers
 
 - T4-005 Unit B real Agnes smoke remains a Human cost gate and must not run without explicit authorization.
 - T4-008 has no active implementation blocker.
-- Slice B must wire project and asset store reset to auth-session changes before displaying cached cross-account data.
+- Slice B2 must add the project-store equivalent of the asset store's completed synchronous auth-token reset before displaying cached project data.
+- Home must not present the loaded asset page length as the account-wide total while out-of-scope Workspace direct item mutation remains unchanged.
 - Real MySQL acceptance later must use an authorized runtime without opening or printing `.env`/credential material.
 - The backend direct registration API 72-byte boundary remains a separate normal engineering follow-up.
 
 ## Worktree Protection
 
-- This run started from `main` at `5222ff8872d967890fbf8af2f90ebb0d1e1ae3d1` with no staged, modified, unmerged, detached, or in-progress Git-operation state.
+- This run started from `main` at `a30a429b106344254aa90c0d0548b496b1123dd7` with no staged, modified, unmerged, detached, or in-progress Git-operation state.
 - `frontend/.playwright-cli/` and `output/` were pre-existing untracked browser artifact directories. Slice D evidence was added under `output/playwright/t4-007-slice-d/run-20260711-qa/`; all are excluded from delivery staging and preserved because deletion requires Human confirmation.
 - Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
 
