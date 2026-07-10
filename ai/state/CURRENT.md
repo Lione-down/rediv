@@ -43,16 +43,18 @@ Replace the marketing-oriented Home with an authenticated personal dashboard tha
 
 - Allowed edits: `frontend/src/views/app/Home.vue` and related Home route entry as required.
 - Allowed additions: `frontend/src/views/app/components/home/**` and `frontend/src/modules/project/{api,types,store}.ts`.
-- Reuse: existing asset API/store/types and auth-store quota state after contract verification.
+- Allowed minimal hardening: existing asset API/store/types only to remove fabricated state and add deterministic real-data/session behavior.
+- Reuse: auth-store quota state after contract verification.
 - Forbidden: backend, database, migration, Space, Workspace, Canvas, global design-token, and new UI-library changes.
 
 ## T4-008 Current State
 
 - Dependencies T4-003, T4-006, and T4-007 are complete.
-- T4-008 is activated docs-only; PLAN and PROGRESS exist, and no T4-008 business code has been changed.
+- Slice A project-domain foundation is implemented and verified.
+- `modules/project/{types,api,store}.ts` now matches the exact backend list/create response fields and provides generation-safe load, refresh, create, duplicate-request, error, and reset behavior without fabricated state.
 - `Home.vue` is 951 lines and mixes fabricated `quickStarts` values with real auth quota and asset-store reads.
-- Existing frontend asset API/store/types and authenticated backend `/projects` plus `/assets` routes are available for reuse.
-- The exact project schema, root-route auth behavior, and Workspace project-ID handoff remain to be read and locked before Slice A edits.
+- The root route remains public for the accepted guest/auth entry; authenticated Workspace navigation must pass the backend project ID as query `project_id`.
+- The existing asset store still contains fabricated initial items and lacks request/session race controls; Slice B1 must harden it before Home uses it as truthful real or partial data.
 
 ## T4-008 Acceptance Focus
 
@@ -65,25 +67,25 @@ Replace the marketing-oriented Home with an authenticated personal dashboard tha
 
 ## Remaining In Current Task
 
-1. Complete Slice A contract audit and project-domain API/types/store foundation.
-2. Decompose Home and implement real-data UI states in Slice B.
+1. Complete Slice B1 asset-domain real-data/session hardening.
+2. Complete Slice B2 Home decomposition, real-data states, project creation, auth reset wiring, and explicit Workspace navigation.
 3. Complete real local-backend/MySQL and responsive browser acceptance in Slice C before REPORT and closure.
 
 ## Exact Next Action
 
-Read the complete Home/router/asset/project/Workspace contract surface listed in `ai/tasks/doing/TASK-T4-008-PROGRESS.md`; then implement Slice A project-domain API/types/store only, run focused typecheck/build, review, update durable state, and commit the bounded unit.
+Read the complete backend asset list API/schema/store ordering contract; then implement only Slice B1 asset API/store/type hardening, run the focused adapter harness plus typecheck/build, review, update durable state, and commit. Do not edit Home in that bounded unit.
 
 ## Current Blockers
 
 - T4-005 Unit B real Agnes smoke remains a Human cost gate and must not run without explicit authorization.
 - T4-008 has no active implementation blocker.
-- Root-route behavior is a contract risk to resolve from current source before editing; escalate only if actual code leaves incompatible product choices.
+- Slice B must wire project and asset store reset to auth-session changes before displaying cached cross-account data.
 - Real MySQL acceptance later must use an authorized runtime without opening or printing `.env`/credential material.
 - The backend direct registration API 72-byte boundary remains a separate normal engineering follow-up.
 
 ## Worktree Protection
 
-- This run started from `main` at `6a676dad570baab36019726f58bead39bdfc4725` with no staged, modified, unmerged, detached, or in-progress Git-operation state.
+- This run started from `main` at `5222ff8872d967890fbf8af2f90ebb0d1e1ae3d1` with no staged, modified, unmerged, detached, or in-progress Git-operation state.
 - `frontend/.playwright-cli/` and `output/` were pre-existing untracked browser artifact directories. Slice D evidence was added under `output/playwright/t4-007-slice-d/run-20260711-qa/`; all are excluded from delivery staging and preserved because deletion requires Human confirmation.
 - Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
 

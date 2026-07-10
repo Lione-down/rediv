@@ -31,6 +31,7 @@ Codex Project Lead Engineer
 ## Scope
 - 允许修改：`frontend/src/views/app/Home.vue`、相关路由入口。
 - 允许新增：`views/app/components/home/**`、`modules/project/**`。
+- 允许按真实数据契约最小修改：`frontend/src/api/assets.ts`、`frontend/src/store/assets.ts`、`frontend/src/types/asset.ts`，仅用于移除伪造初值并补齐 loading、error、request single-flight 和 session reset 语义。
 - 必要时允许修复前端 API 路径与现有 backend `/projects`、`/assets` 对齐。
 - 禁止修改：backend、Space、Workspace、Canvas。
 

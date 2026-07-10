@@ -42,7 +42,7 @@ T4-012 remains one product Task but has two independently mergeable units. Unit 
 
 ## Current Size Risks
 
-- `frontend/src/views/app/Home.vue`: 947 lines
+- `frontend/src/views/app/Home.vue`: 951 lines
 - `frontend/src/views/app/Space.vue`: 983 lines
 - `frontend/src/components/canvas/CanvasStage.vue`: 1071 lines
 
