@@ -21,10 +21,10 @@ Last updated: 2026-07-10
 ## Active Task
 
 - Task: `T4-007 - Login/register UI and route/session guards`
-- State: `TODO`
+- State: `DOING`
 - Task file: `ai/tasks/todo/TASK-T4-007.md`
-- Plan: not yet created
-- Progress: not yet created
+- Plan: `ai/tasks/doing/TASK-T4-007-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T4-007-PROGRESS.md`
 - Target report: `ai/reports/REPORT-T4-007.md`
 
 ## Latest Completed Task
@@ -48,25 +48,30 @@ Implement v3 dark-design login/register entry points, registration-mode-aware re
 ## T4-007 Current State
 
 - Dependencies T4-004 and T4-006 are complete.
-- PLAN and PROGRESS are not yet created; they must be created before frontend business-code edits.
+- PLAN and PROGRESS are active and T4-007 is `DOING`.
+- Slice A auth foundation is complete: backend-aligned types, public settings/password/logout APIs, and deterministic Pinia settings/session/password/guest actions are implemented.
+- Session restoration deduplicates concurrent `/me` requests, ignores stale responses after identity changes, clears invalid tokens through the existing 401 interceptor, and preserves valid tokens across transient failures.
+- Fresh deep review found and fixed four state/concurrency issues; no unresolved hard stop remains.
+- Verification: frontend `npm run build` passed with 4,634 modules; backend `.venv` password-auth contract suite passed 11 tests.
+- Browser/runtime behavior is not yet claimed; login/register views and routes do not exist yet.
 
 ## T4-007 Acceptance Focus
 
 - Username/email password login, failed-password state, closed registration state, token invalidation, Admin/user route guards.
 - Protected-page refresh restores session without flashing to the wrong page.
-- WeChat and guest entry visibility follows backend settings.
+- WeChat entry visibility follows backend settings; guest entry follows the existing always-available backend contract.
 - `npm run build` passes.
 - Browser checks at 1440x900 and 375px pass.
 
 ## Remaining In Current Task
 
-1. Create `ai/tasks/doing/TASK-T4-007-PLAN.md`.
-2. Create `ai/tasks/doing/TASK-T4-007-PROGRESS.md`.
-3. Audit existing frontend auth API/store/router/design patterns before business-code edits.
+1. Implement the shared auth shell and login/register views with validation and settings-aware alternate entries.
+2. Wire routes, restoration-aware guards, safe redirects, and callback navigation.
+3. Run desktop/mobile browser acceptance and close the Task only after all acceptance evidence passes.
 
 ## Exact Next Action
 
-Create the T4-007 PLAN and PROGRESS documents, then audit existing frontend auth, router, request, and design-system patterns before implementing login/register UI.
+Implement `frontend/src/views/user/components/AuthShell.vue`, `frontend/src/views/user/Login.vue`, and `frontend/src/views/user/Register.vue` against the completed auth store, then run `npm run build` before wiring routes.
 
 ## Current Blockers
 
@@ -75,7 +80,7 @@ Create the T4-007 PLAN and PROGRESS documents, then audit existing frontend auth
 
 ## Worktree Protection
 
-- This run started from clean `main` at `778160f044c5e644d876703dfe9cbec04bb28d89`.
+- This run started from clean `main` at `c68177a3c376201944e0c6cebc40009b6db13d7b` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
 - Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
 
 ## Historical Evidence

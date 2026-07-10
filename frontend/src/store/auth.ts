@@ -4,25 +4,58 @@ import {
   createGuestSession,
   exchangeWechatCode,
   fetchCurrentUser,
+  fetchRegistrationSettings,
   getWechatAuthorize,
+  loginWithPassword as requestPasswordLogin,
+  logoutCurrentSession,
+  registerWithPassword as requestPasswordRegistration,
 } from '../api/auth'
-import type { AuthResponse, QuotaBalance, User } from '../types/auth'
+import type {
+  AuthResponse,
+  LoginPayload,
+  QuotaBalance,
+  RegisterPayload,
+  RegistrationSettings,
+  User,
+} from '../types/auth'
+
+const TOKEN_STORAGE_KEY = 'revid_token'
+const WECHAT_STATE_STORAGE_KEY = 'revid_wechat_state'
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref(localStorage.getItem('revid_token') || '')
+  const token = ref(localStorage.getItem(TOKEN_STORAGE_KEY) || '')
   const user = ref<User | null>(null)
   const quotas = ref<QuotaBalance>({ text: 0, image: 0, video: 0 })
   const guestSessionId = ref('')
+  const guestSessionExpiresAt = ref('')
   const wechatState = ref('')
+  const registrationSettings = ref<RegistrationSettings | null>(null)
+  const isLoadingRegistrationSettings = ref(false)
+  const isRestoringSession = ref(false)
+  const hasRestoredSession = ref(!token.value)
+
+  let registrationSettingsRequest: Promise<RegistrationSettings> | null = null
+  let sessionRestoreRequest: Promise<boolean> | null = null
 
   const isLoggedIn = computed(() => Boolean(token.value && user.value))
   const isAdmin = computed(() => user.value?.role === 'admin')
+  const canRegister = computed(
+    () =>
+      registrationSettings.value !== null &&
+      registrationSettings.value.registration_mode !== 'closed',
+  )
+  const isWechatLoginEnabled = computed(
+    () => registrationSettings.value?.wechat_login_enabled === true,
+  )
 
-  function applyAuth(response: { data: AuthResponse }) {
-    token.value = response.data.token
-    user.value = response.data.user
-    quotas.value = response.data.quotas
-    localStorage.setItem('revid_token', token.value)
+  function applyAuth(payload: AuthResponse) {
+    token.value = payload.token
+    user.value = payload.user
+    quotas.value = payload.quotas
+    guestSessionId.value = ''
+    guestSessionExpiresAt.value = ''
+    hasRestoredSession.value = true
+    localStorage.setItem(TOKEN_STORAGE_KEY, token.value)
   }
 
   function createWechatState() {
@@ -35,7 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
     const { authorize_url: authorizeUrl, mock, state } = response.data
 
     wechatState.value = state
-    sessionStorage.setItem('revid_wechat_state', state)
+    sessionStorage.setItem(WECHAT_STATE_STORAGE_KEY, state)
 
     if (mock) {
       const callbackUrl = new URL(`${window.location.origin}/auth/callback/wechat`)
@@ -54,22 +87,123 @@ export const useAuthStore = defineStore('auth', () => {
       state,
       invitation_code: invitationCode,
     })
-    applyAuth(response)
-    sessionStorage.removeItem('revid_wechat_state')
+    applyAuth(response.data)
+    sessionStorage.removeItem(WECHAT_STATE_STORAGE_KEY)
     wechatState.value = ''
   }
 
-  async function loadCurrentUser() {
-    if (!token.value) return
+  async function loadRegistrationSettings(force = false) {
+    if (!force && registrationSettings.value) {
+      return registrationSettings.value
+    }
+
+    if (registrationSettingsRequest) {
+      return registrationSettingsRequest
+    }
+
+    isLoadingRegistrationSettings.value = true
+    registrationSettingsRequest = fetchRegistrationSettings().then((response) => {
+      registrationSettings.value = response.data
+      return response.data
+    })
+
+    try {
+      return await registrationSettingsRequest
+    } finally {
+      registrationSettingsRequest = null
+      isLoadingRegistrationSettings.value = false
+    }
+  }
+
+  async function loginWithPassword(payload: LoginPayload) {
+    const response = await requestPasswordLogin(payload)
+    applyAuth(response.data)
+    return response.data.user
+  }
+
+  async function registerWithPassword(payload: RegisterPayload) {
+    const response = await requestPasswordRegistration(payload)
+    applyAuth(response.data)
+    return response.data.user
+  }
+
+  async function loadCurrentUser(): Promise<User | null> {
+    const requestedToken = token.value
+
+    if (!requestedToken) {
+      return null
+    }
 
     const response = await fetchCurrentUser()
+
+    if (token.value !== requestedToken) {
+      return user.value
+    }
+
     user.value = response.data.user
     quotas.value = response.data.quotas
+    hasRestoredSession.value = true
+    return response.data.user
+  }
+
+  async function restoreSession() {
+    if (hasRestoredSession.value) {
+      return isLoggedIn.value
+    }
+
+    if (sessionRestoreRequest) {
+      return sessionRestoreRequest
+    }
+
+    isRestoringSession.value = true
+    sessionRestoreRequest = (async () => {
+      try {
+        if (!token.value) {
+          return false
+        }
+
+        const restoredUser = await loadCurrentUser()
+        hasRestoredSession.value = true
+        return Boolean(restoredUser && token.value)
+      } catch (error) {
+        if (!token.value) {
+          hasRestoredSession.value = true
+          return false
+        }
+
+        throw error
+      } finally {
+        isRestoringSession.value = false
+      }
+    })()
+
+    try {
+      return await sessionRestoreRequest
+    } finally {
+      sessionRestoreRequest = null
+    }
   }
 
   async function startGuestSession() {
     const response = await createGuestSession()
     guestSessionId.value = response.data.session_id
+    guestSessionExpiresAt.value = response.data.expires_at
+    return response.data
+  }
+
+  async function logout() {
+    const hadToken = Boolean(token.value)
+    clearSession()
+
+    if (!hadToken) {
+      return
+    }
+
+    try {
+      await logoutCurrentSession()
+    } catch {
+      // The backend logout endpoint is acknowledgement-only; local token removal is authoritative.
+    }
   }
 
   function clearSession() {
@@ -77,8 +211,9 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     quotas.value = { text: 0, image: 0, video: 0 }
     wechatState.value = ''
-    localStorage.removeItem('revid_token')
-    sessionStorage.removeItem('revid_wechat_state')
+    hasRestoredSession.value = true
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+    sessionStorage.removeItem(WECHAT_STATE_STORAGE_KEY)
   }
 
   return {
@@ -86,13 +221,25 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     quotas,
     guestSessionId,
+    guestSessionExpiresAt,
     wechatState,
+    registrationSettings,
+    isLoadingRegistrationSettings,
+    isRestoringSession,
+    hasRestoredSession,
     isLoggedIn,
     isAdmin,
+    canRegister,
+    isWechatLoginEnabled,
+    loadRegistrationSettings,
+    loginWithPassword,
+    registerWithPassword,
     loginWithWechat,
     completeWechatLogin,
     loadCurrentUser,
+    restoreSession,
     startGuestSession,
+    logout,
     clearSession,
   }
 })

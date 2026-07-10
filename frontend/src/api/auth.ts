@@ -1,5 +1,12 @@
 import { request } from './request'
-import type { AuthResponse, CurrentUserResponse } from '../types/auth'
+import type {
+  AuthResponse,
+  CurrentUserResponse,
+  GuestSession,
+  LoginPayload,
+  RegisterPayload,
+  RegistrationSettings,
+} from '../types/auth'
 
 export interface WechatAuthorizeResponse {
   authorize_url: string
@@ -23,10 +30,26 @@ export function exchangeWechatCode(payload: WechatCallbackPayload) {
   return request.post<AuthResponse>('/auth/wechat/callback', payload)
 }
 
+export function fetchRegistrationSettings() {
+  return request.get<RegistrationSettings>('/auth/registration-settings')
+}
+
+export function loginWithPassword(payload: LoginPayload) {
+  return request.post<AuthResponse>('/auth/login', payload)
+}
+
+export function registerWithPassword(payload: RegisterPayload) {
+  return request.post<AuthResponse>('/auth/register', payload)
+}
+
+export function logoutCurrentSession() {
+  return request.post<{ ok: boolean; detail: string }>('/auth/logout')
+}
+
 export function fetchCurrentUser() {
   return request.get<CurrentUserResponse>('/me')
 }
 
 export function createGuestSession() {
-  return request.post<{ session_id: string; expires_at: string }>('/auth/guest')
+  return request.post<GuestSession>('/auth/guest')
 }
