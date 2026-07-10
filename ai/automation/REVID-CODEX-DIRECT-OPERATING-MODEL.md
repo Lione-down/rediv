@@ -191,4 +191,11 @@ Human Decision Required: YES/NO
 Reason:
 ```
 
+After the state-change event block, also append a short Chinese summary for the Human Owner:
+
+- `本轮总结`: what changed, what was verified, and whether anything remains blocked.
+- `下一轮计划`: the single next bounded action expected in the next run.
+
+The Chinese summary is required in addition to the structured event block, not instead of it.
+
 When no state changes and no work is executable, output only `IDLE`.

@@ -101,3 +101,14 @@ Do not paste long command output into state documents. Record the command, resul
 Correctness > maintainability > minimal change > speed.
 
 A run is complete only when its bounded unit is implemented and verified, or when PROGRESS and CURRENT contain a precise blocker and next action. A project Task is complete only when its REPORT, code, tests, and ROADMAP status agree.
+
+## Automation Output
+
+For scheduled or automation-driven runs, keep the existing structured delivery event output when state changes.
+
+In addition to that event block, also provide:
+
+- a concise Chinese summary of what happened in this run;
+- a concise Chinese statement of what the next run should do next.
+
+Do not replace the structured event block with the Chinese summary; output both.

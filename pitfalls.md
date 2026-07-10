@@ -231,6 +231,7 @@
 - automation memory 仅作 cursor，项目文档、源码、diff 和测试才是事实源。
 - 旧 PMC automation 保持 PAUSED；新 `revid-codex-direct-delivery-controller` 每三小时持续推进唯一 active Task。
 
+- 定时/自动化执行完成后，除了原有结构化 delivery event，还要追加面向 Human Owner 的中文“本轮总结”和“下一轮计划”；两者不能互相替代。
 Evidence:
 
 - `ai/decisions/ADR-2026-07-10-CODEX-DIRECT-DELIVERY.md`
