@@ -25,7 +25,7 @@ Codex Project Lead Engineer
 
 ## Scope
 - 允许新增：`views/user/Login.vue`、`Register.vue` 及用户域局部组件。
-- 允许修改：`router/index.ts`、`store/auth.ts`、`api/auth.ts`、`types/auth.ts`、微信 callback 页面。
+- 允许修改：`router/index.ts`、`store/auth.ts`、`api/auth.ts`、`types/auth.ts`、微信 callback 页面；`api/request.ts` 仅允许修复旧请求迟到 401 清除新 session 的 token-correlation 问题。
 - 禁止修改：backend、Home/Space/Workspace、全局 design tokens。
 
 ## Dependencies
@@ -39,6 +39,8 @@ T4-004、T4-006 已审查通过。
 5. Router meta 统一 `requiresAuth`/`requiresAdmin`，避免未加载 user 时误判 Admin。
 6. redirect query 只能回到站内路径，禁止开放重定向。
 7. 密码、token 不写 console，不进入 URL。
+8. 旧 bearer token 对应请求的迟到 401 不得清除之后建立的新 session。
+9. 注册 UI 拒绝 UTF-8 编码后超过 bcrypt 72-byte 边界的密码；backend trust boundary 另行加固。
 
 ## Acceptance Criteria
 - [ ] 登录成功、错误密码、closed 注册、token 失效、Admin/普通用户守卫均通过。

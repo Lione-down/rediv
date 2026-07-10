@@ -1,6 +1,6 @@
 # Revid - Current Project State
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 ## Delivery Mode
 
@@ -42,7 +42,7 @@ Implement v3 dark-design login/register entry points, registration-mode-aware re
 ## T4-007 Scope
 
 - Allowed additions: `frontend/src/views/user/Login.vue`, `Register.vue`, and user-domain local components.
-- Allowed edits: `frontend/src/router/index.ts`, `frontend/src/store/auth.ts`, `frontend/src/api/auth.ts`, `frontend/src/types/auth.ts`, and WeChat callback page.
+- Allowed edits: `frontend/src/router/index.ts`, `frontend/src/store/auth.ts`, `frontend/src/api/auth.ts`, `frontend/src/types/auth.ts`, and WeChat callback page; `frontend/src/api/request.ts` is limited to stale-401 token correlation.
 - Forbidden: backend changes, Home/Space/Workspace changes, and global design token changes.
 
 ## T4-007 Current State
@@ -50,10 +50,14 @@ Implement v3 dark-design login/register entry points, registration-mode-aware re
 - Dependencies T4-004 and T4-006 are complete.
 - PLAN and PROGRESS are active and T4-007 is `DOING`.
 - Slice A auth foundation is complete: backend-aligned types, public settings/password/logout APIs, and deterministic Pinia settings/session/password/guest actions are implemented.
+- Slice B login/register UI is complete: the scoped dark auth shell, workflow preview, password login, settings-aware alternate entries, open/invitation/closed registration states, and focused registration form are implemented.
 - Session restoration deduplicates concurrent `/me` requests, ignores stale responses after identity changes, clears invalid tokens through the existing 401 interceptor, and preserves valid tokens across transient failures.
-- Fresh deep review found and fixed four state/concurrency issues; no unresolved hard stop remains.
-- Verification: frontend `npm run build` passed with 4,634 modules; backend `.venv` password-auth contract suite passed 11 tests.
-- Browser/runtime behavior is not yet claimed; login/register views and routes do not exist yet.
+- A delayed 401 now clears auth only when its request bearer still matches the current token; an old-token/new-login browser race passed.
+- Registration-mode drift is written to Pinia before forced refresh; a generation guard prevents older in-flight settings responses from reverting it. Guest browsing refuses to start over an existing or restoring account identity.
+- Accessibility review fixes associate labels/errors, focus the first invalid native input, strengthen field/focus contrast, and preserve 40px targets and form-first mobile order.
+- Verification: final typecheck passed; Vite no-write multi-entry build passed with 4,576 modules; production build passed with 4,634 modules.
+- Headed browser Slice B checks passed at 1440x900 and 375px, including settings states, validation focus, duplicate-submit locking, stale-401, guest identity, 72-byte password, mode-drift persistence, overflow, and JavaScript-exception checks.
+- Route/session behavior is not yet claimed; `/login` and `/register` are not wired into the repository router and Slice C remains next.
 
 ## T4-007 Acceptance Focus
 
@@ -65,22 +69,24 @@ Implement v3 dark-design login/register entry points, registration-mode-aware re
 
 ## Remaining In Current Task
 
-1. Implement the shared auth shell and login/register views with validation and settings-aware alternate entries.
-2. Wire routes, restoration-aware guards, safe redirects, and callback navigation.
-3. Run desktop/mobile browser acceptance and close the Task only after all acceptance evidence passes.
+1. Wire `/login` and `/register`, router-owned restoration, restoration-aware user/Admin guards, safe redirects, and callback navigation.
+2. Run the complete real-router desktop/mobile acceptance matrix and close the Task only after all acceptance evidence passes.
+3. Track the backend direct-API 72-byte password boundary in a separately scoped backend security follow-up; the T4-007 UI guard does not replace a trust-boundary check.
 
 ## Exact Next Action
 
-Implement `frontend/src/views/user/components/AuthShell.vue`, `frontend/src/views/user/Login.vue`, and `frontend/src/views/user/Register.vue` against the completed auth store, then run `npm run build` before wiring routes.
+Implement Slice C: add `/login` and `/register`, make the router the single restoration decision point, apply restoration-aware `requiresAuth`/`requiresAdmin` guards, sanitize local redirects, and preserve callback navigation; then run the production build and focused browser routing checks.
 
 ## Current Blockers
 
 - T4-005 Unit B real Agnes smoke remains a Human cost gate and must not run without explicit authorization.
 - T4-007 has no active blocker.
+- The backend direct registration API does not yet reject passwords over 72 UTF-8 bytes. This is normal engineering follow-up rather than a Human gate; a separately scoped backend validation and contract test are required before final auth hardening is complete.
 
 ## Worktree Protection
 
-- This run started from clean `main` at `c68177a3c376201944e0c6cebc40009b6db13d7b` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- This run started from clean `main` at `99ebd1faa1125554b8d5a66bb6691c7825f0e8fd` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- `frontend/.playwright-cli/` is a known current-run untracked browser artifact directory. It is excluded from delivery staging and preserved because deletion requires Human confirmation.
 - Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
 
 ## Historical Evidence

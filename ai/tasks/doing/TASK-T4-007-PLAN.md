@@ -1,6 +1,6 @@
 # T4-007 Plan - Login/Register UI And Route/Session Guards
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 ## Objective
 
@@ -11,6 +11,7 @@ Deliver the frontend authentication entry points and session-aware route guards 
 - Add `frontend/src/views/user/Login.vue`, `Register.vue`, and user-domain local components.
 - Update `frontend/src/types/auth.ts`, `frontend/src/api/auth.ts`, and `frontend/src/store/auth.ts` for public registration settings, password auth, session restoration, and guest/WeChat entry state.
 - Update `frontend/src/router/index.ts` for login/register routes, `requiresAuth`/`requiresAdmin`, safe redirect handling, and restoration-aware navigation.
+- Update `frontend/src/api/request.ts` only to correlate a 401 with the bearer token used by that failed request, so stale failures cannot clear a newer session.
 - Update `frontend/src/views/app/WechatCallback.vue` so success and failure return through the auth entry flow without weakening state validation.
 - Add focused frontend tests only if the existing toolchain can support them without an out-of-scope dependency change; otherwise use type/build and browser evidence explicitly.
 
@@ -39,6 +40,18 @@ Deliver the frontend authentication entry points and session-aware route guards 
 - Product references: Linear informs the reduced-navigation shell, Raycast informs the clear separation between primary login and registration, and Vercel informs a single dominant identity path with secondary providers visually demoted.
 - CSS strategy: scoped SCSS inside Vue single-file components, reusing the existing spacing/radius/type tokens and the documented dark color values; no Tailwind, CSS-in-JS, global token rewrite, new font dependency, or mixed icon library.
 - Radius scale: reuse `--radius-xs`, `--radius-sm`, `--radius-md`, `--radius-lg`, and `--radius-pill`; interactive targets remain at least 40px.
+
+## Slice B UI Specification
+
+1. **Visual theme and atmosphere**: use a deep, quiet creator-console entry surface. The page canvas is near-black, the workflow preview is the visual anchor, and the form remains the single dominant action surface.
+2. **Color palette and roles**: use scoped auth variables mapped to the documented T4-006 dark values: canvas `#0e0e12`, app surface `#13131a`, panel `#1a1a24`, raised/input surface `#1e1e2a` to `#22222e`, primary text `#f0eef6`, secondary text `rgba(240,238,246,0.72)`, muted text `rgba(240,238,246,0.56)` for small-copy contrast, standard border `rgba(240,238,246,0.10)`, primary `#6347C2`, hover `#7B61D6`, pressed `#4E35A8`, error `#d9535c`, and success `#4caf7d`. Do not consume the light root color variables as dark values.
+3. **Typography rules**: keep the existing Geist/system/CJK font stack with no new font dependency. Use a 32px to 40px form heading, 14px to 15px body copy, 12px to 13px helper copy, 650 heading weight, and normal tracking for Chinese text.
+4. **Component styling**: use Naive UI large inputs and buttons, top labels, inline field feedback, a full-width primary submit, and quieter full-width provider buttons. Every state must cover default, focus, loading, disabled, server error, and press feedback.
+5. **Layout principles**: desktop uses an asymmetric two-column grid with the workflow preview on the wider side and a form panel capped near 460px. The spacing ladder is 8, 12, 16, 24, and 32px from the existing tokens. The form is the first content on narrow screens.
+6. **Depth and elevation**: communicate hierarchy through dark background-color steps and translucent light borders. Do not add dark drop shadows, glass blur, decorative gradient text, or a second card system.
+7. **Project guardrails**: keep all styles scoped; preserve the global tokens and Naive theme; use only Lucide icons already installed; never place password or token values in URLs, logs, or copy; do not show registration before settings resolve; do not describe the in-memory guest session as an authenticated account; and position WeChat as an existing-account login when invitation-only registration is active.
+8. **Responsive behavior**: keep a 40px minimum hit target, collapse to a form-first single column below 760px, compact the workflow preview below 560px, preserve safe-area padding, prevent horizontal overflow at 375px, and disable entry and press motion under `prefers-reduced-motion`.
+9. **Implementation prompts**: build `AuthShell` on `#0e0e12` with `#13131a/#1a1a24` surface steps, 12px maximum token radius, a 40px heading at weight 650, and a semantic workflow preview; build `Login` with large Naive controls, `#6347C2` primary action, shared action locking, and settings-gated alternatives; build `Register` with an initializing state, explicit closed state, invitation-only field, exact eight-character letter-and-number password guidance, and inline server errors.
 
 ## Implementation Slices
 
@@ -76,6 +89,10 @@ Deliver the frontend authentication entry points and session-aware route guards 
 ## First Bounded Unit
 
 Implement Slice A after creating PLAN/PROGRESS. Success requires a clean `npm run build`, a fresh diff review showing only auth foundation and durable state changes, and a scoped local commit. UI/routes remain for the next bounded unit.
+
+## Second Bounded Unit
+
+Implement Slice B only: `AuthShell.vue`, `AuthWorkflowPreview.vue`, `Login.vue`, `Register.vue`, and cohesive user-domain form components. Include review-required token-correlated 401 cleanup in `api/request.ts`, generation-ordered registration settings in the auth store, accessible label/error/focus wiring, and a registration-side bcrypt 72-byte guard without changing backend code. Success requires settings initialization to remain distinct from closed registration, one shared action lock per page, exact password-policy guidance, a clean `npm run build`, and a scoped local commit with updated durable state. Router and callback wiring remain for Slice C.
 
 ## Acceptance Mapping
 

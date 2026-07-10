@@ -35,6 +35,7 @@ export const useAuthStore = defineStore('auth', () => {
   const hasRestoredSession = ref(!token.value)
 
   let registrationSettingsRequest: Promise<RegistrationSettings> | null = null
+  let registrationSettingsGeneration = 0
   let sessionRestoreRequest: Promise<boolean> | null = null
 
   const isLoggedIn = computed(() => Boolean(token.value && user.value))
@@ -102,16 +103,32 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     isLoadingRegistrationSettings.value = true
-    registrationSettingsRequest = fetchRegistrationSettings().then((response) => {
-      registrationSettings.value = response.data
+    const requestGeneration = registrationSettingsGeneration
+    const currentRequest = fetchRegistrationSettings().then((response) => {
+      if (requestGeneration === registrationSettingsGeneration) {
+        registrationSettings.value = response.data
+      }
       return response.data
     })
+    registrationSettingsRequest = currentRequest
 
     try {
-      return await registrationSettingsRequest
+      return await currentRequest
     } finally {
-      registrationSettingsRequest = null
-      isLoadingRegistrationSettings.value = false
+      if (registrationSettingsRequest === currentRequest) {
+        registrationSettingsRequest = null
+        isLoadingRegistrationSettings.value = false
+      }
+    }
+  }
+
+  function overrideRegistrationMode(mode: RegistrationSettings['registration_mode']) {
+    registrationSettingsGeneration += 1
+    registrationSettingsRequest = null
+    isLoadingRegistrationSettings.value = false
+    registrationSettings.value = {
+      registration_mode: mode,
+      wechat_login_enabled: registrationSettings.value?.wechat_login_enabled ?? false,
     }
   }
 
@@ -232,6 +249,7 @@ export const useAuthStore = defineStore('auth', () => {
     canRegister,
     isWechatLoginEnabled,
     loadRegistrationSettings,
+    overrideRegistrationMode,
     loginWithPassword,
     registerWithPassword,
     loginWithWechat,

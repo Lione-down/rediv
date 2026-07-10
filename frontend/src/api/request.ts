@@ -1,6 +1,28 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/auth'
 
+function readBearerToken(headers: unknown) {
+  if (!headers || typeof headers !== 'object') {
+    return ''
+  }
+
+  const requestHeaders = headers as {
+    Authorization?: unknown
+    authorization?: unknown
+    get?: (name: string) => unknown
+  }
+  const authorization =
+    requestHeaders.get?.('Authorization') ??
+    requestHeaders.Authorization ??
+    requestHeaders.authorization
+
+  if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) {
+    return ''
+  }
+
+  return authorization.slice('Bearer '.length).trim()
+}
+
 export const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
   timeout: 15000,
@@ -21,7 +43,14 @@ request.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const authStore = useAuthStore()
-      authStore.clearSession()
+      const failedRequestToken = readBearerToken(error.config?.headers)
+
+      if (
+        (failedRequestToken && failedRequestToken === authStore.token) ||
+        (!failedRequestToken && !authStore.token)
+      ) {
+        authStore.clearSession()
+      }
     }
 
     return Promise.reject(error)
