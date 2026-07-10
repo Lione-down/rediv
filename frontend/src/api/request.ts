@@ -28,15 +28,20 @@ export const request = axios.create({
   timeout: 15000,
 })
 
-request.interceptors.request.use((config) => {
-  const authStore = useAuthStore()
+request.interceptors.request.use(
+  (config) => {
+    const authStore = useAuthStore()
 
-  if (authStore.token) {
-    config.headers.Authorization = `Bearer ${authStore.token}`
-  }
+    if (authStore.token) {
+      config.headers.Authorization = `Bearer ${authStore.token}`
+    }
 
-  return config
-})
+    return config
+  },
+  undefined,
+  // Bind credentials before control returns so a session switch cannot retarget a mutation.
+  { synchronous: true },
+)
 
 request.interceptors.response.use(
   (response) => response,

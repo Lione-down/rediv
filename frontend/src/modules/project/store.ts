@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios'
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useAuthStore } from '../../store/auth'
 import { createProject as requestProjectCreation, fetchProjects } from './api'
 import type { Project, ProjectCreatePayload } from './types'
 
@@ -35,6 +36,7 @@ function getProjectErrorMessage(error: unknown, fallback: string) {
 }
 
 export const useProjectStore = defineStore('projects', () => {
+  const authStore = useAuthStore()
   const items = ref<Project[]>([])
   const total = ref(0)
   const hasLoaded = ref(false)
@@ -190,6 +192,20 @@ export const useProjectStore = defineStore('projects', () => {
     createError.value = ''
   }
 
+  function clearCreateError() {
+    createError.value = ''
+  }
+
+  watch(
+    () => authStore.token,
+    (token, previousToken) => {
+      if (token !== previousToken) {
+        resetProjects()
+      }
+    },
+    { flush: 'sync' },
+  )
+
   return {
     items,
     total,
@@ -202,5 +218,6 @@ export const useProjectStore = defineStore('projects', () => {
     refreshProjects,
     createProject,
     resetProjects,
+    clearCreateError,
   }
 })

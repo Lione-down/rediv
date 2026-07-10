@@ -1,370 +1,237 @@
 <script setup lang="ts">
-import axios from 'axios'
-import { useMessage } from 'naive-ui'
+import { ArrowRight, FolderKanban, LogIn, RefreshCcw, TriangleAlert } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
-import {
-  ArrowRight,
-  CheckCircle2,
-  Clock3,
-  FolderKanban,
-  Images,
-  LoaderCircle,
-  RefreshCcw,
-  Sparkles,
-  TriangleAlert,
-  UserRound,
-  WandSparkles,
-} from 'lucide-vue-next'
-import AppTopBar from '../../components/layout/AppTopBar.vue'
-import PromptComposer from '../../components/common/PromptComposer.vue'
-import { useAuthStore } from '../../store/auth'
+import { RouterLink, useRouter } from 'vue-router'
+import { useProjectStore } from '../../modules/project/store'
+import type { Project } from '../../modules/project/types'
 import { useAssetStore } from '../../store/assets'
-import type { Asset } from '../../types/asset'
+import { useAuthStore } from '../../store/auth'
+import HomeCreateProjectModal from './components/home/home-create-project-modal.vue'
+import HomeProjectsPanel from './components/home/home-projects-panel.vue'
+import HomeQuotaSummary from './components/home/home-quota-summary.vue'
+import HomeRecentAssets from './components/home/home-recent-assets.vue'
+import HomeRouteHeader from './components/home/home-route-header.vue'
 
+const router = useRouter()
 const authStore = useAuthStore()
+const projectStore = useProjectStore()
 const assetStore = useAssetStore()
-const message = useMessage()
-const isAuthenticating = ref(false)
-const authError = ref('')
-const assetError = ref('')
 
-const quickStarts = [
-  {
-    title: '故事脚本',
-    text: '把一句想法拆成镜头结构、节奏和生成顺序。',
-    tone: 'story',
-  },
-  {
-    title: '角色参考',
-    text: '整理角色外观、服装和表情，避免多轮返工。',
-    tone: 'character',
-  },
-  {
-    title: '视频草稿',
-    text: '先生成一版可讨论的短视频草稿，再继续 refine。',
-    tone: 'video',
-  },
-] as const
+const isCreateModalOpen = ref(false)
+const isRestoringSession = ref(false)
+const sessionError = ref('')
 
-const displayedAssets = computed(() => (authStore.isLoggedIn ? assetStore.items.slice(0, 3) : []))
-const quotaCards = computed(() => [
-  {
-    label: 'Text',
-    value: authStore.quotas.text,
-    tone: 'text',
-  },
-  {
-    label: 'Image',
-    value: authStore.quotas.image,
-    tone: 'image',
-  },
-  {
-    label: 'Video',
-    value: authStore.quotas.video,
-    tone: 'video',
-  },
-])
+const isRefreshingDashboard = computed(() => projectStore.isLoading || assetStore.isLoading)
 
-const statusCards = computed(() => [
-  {
-    title: '最近项目',
-    text: '雨夜车站短片、角色设定、封面探索。',
-    meta: '3 个项目持续编辑中',
-    icon: FolderKanban,
-    layout: 'wide',
-  },
-  {
-    title: '资产库',
-    text: 'Prompt、图片、视频持续沉淀，随时回流到工作流。',
-    meta: '12 个可复用素材片段',
-    icon: Images,
-    layout: 'default',
-  },
-  {
-    title: '额度',
-    text: authStore.isLoggedIn
-      ? `文本 ${authStore.quotas.text} / 图片 ${authStore.quotas.image} / 视频 ${authStore.quotas.video}`
-      : '登录后同步 text / image / video 额度',
-    meta: authStore.isLoggedIn ? '已同步当前账户额度' : '登录后可同步真实额度',
-    icon: Clock3,
-    layout: 'default',
-  },
-])
-
-const userSummary = computed(() => {
-  if (!authStore.user) {
-    return null
-  }
-
-  return {
-    nickname: authStore.user.nickname,
-    role: authStore.user.role === 'admin' ? 'Admin' : 'Creator',
-    status: authStore.user.generation_status === 'enabled' ? '可生成' : '已冻结',
-  }
+const dashboardSummary = computed(() => {
+  const projectSummary = projectStore.hasLoaded
+    ? `${projectStore.total} 个项目${projectStore.loadError ? '（刷新失败）' : ''}`
+    : projectStore.loadError
+      ? '项目加载失败'
+      : projectStore.isLoading
+        ? '项目正在同步'
+        : '项目等待同步'
+  const assetSummary = assetStore.hasLoaded
+    ? `已载入 ${Math.min(assetStore.items.length, 3)} 条最近资产${assetStore.loadError ? '（刷新失败）' : ''}`
+    : assetStore.loadError
+      ? '最近资产加载失败'
+      : assetStore.isLoading
+        ? '最近资产正在同步'
+        : '最近资产等待同步'
+  return `${projectSummary}，${assetSummary}。`
 })
 
-function getAssetTitle(asset: Asset) {
-  if (asset.content_text?.trim()) {
-    return asset.content_text.trim()
-  }
-
-  if (asset.url) {
-    return asset.url.split('/').pop() || asset.url
-  }
-
-  return '未命名资产'
-}
-
-function getAssetTypeLabel(type: Asset['type']) {
-  if (type === 'prompt') return 'Prompt'
-  if (type === 'image') return 'Image'
-  return 'Video'
-}
-
-function getAssetSourceLabel(source?: Asset['source']) {
-  return source === 'generation' ? 'Generation' : 'Upload'
-}
-
-function getAssetStatusLabel(status?: Asset['status']) {
-  if (status === 'hidden') return 'Hidden'
-  if (status === 'deleted') return 'Deleted'
-  return 'Active'
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (axios.isAxiosError(error)) {
-    const detail = error.response?.data?.detail
-    if (typeof detail === 'string' && detail.trim()) {
-      return detail
-    }
-
-    if (error.code === 'ECONNABORTED') {
-      return '请求超时，请稍后重试。'
-    }
-  }
-
-  return fallback
-}
-
-async function loadAssets() {
+async function loadDashboard(force = false) {
   if (!authStore.isLoggedIn) {
     return
   }
 
-  assetError.value = ''
+  const projectRequest = force
+    ? projectStore.refreshProjects()
+    : projectStore.loadProjects()
+  const assetRequest = force
+    ? assetStore.refreshAssets()
+    : assetStore.loadAssets(false)
+
+  await Promise.allSettled([projectRequest, assetRequest])
+}
+
+async function restoreSession() {
+  if (!authStore.token || authStore.user) {
+    return
+  }
+
+  isRestoringSession.value = true
+  sessionError.value = ''
 
   try {
-    await assetStore.loadAssets()
-  } catch (error) {
-    assetError.value = getErrorMessage(error, '资产列表加载失败，请稍后重试。')
+    await authStore.loadCurrentUser()
+  } catch {
+    sessionError.value = '暂时无法恢复登录状态，请重试或重新登录。'
+  } finally {
+    isRestoringSession.value = false
   }
 }
 
-async function handleWechatLogin() {
-  isAuthenticating.value = true
-  authError.value = ''
+function openCreateModal() {
+  projectStore.clearCreateError()
+  isCreateModalOpen.value = true
+}
 
+async function handleCreateProject(name: string) {
   try {
-    await authStore.loginWithWechat()
-  } catch (error) {
-    authError.value = getErrorMessage(error, '登录失败，请检查后端服务后重试。')
-    message.error(authError.value)
-  } finally {
-    isAuthenticating.value = false
+    await projectStore.createProject({ name })
+    isCreateModalOpen.value = false
+  } catch {
+    // The store exposes a sanitized error inside the modal and preserves the entered name.
   }
+}
+
+function openProject(project: Project) {
+  void router.push({
+    name: 'workspace',
+    query: { project_id: project.id },
+  })
+}
+
+async function refreshProjects() {
+  await Promise.allSettled([projectStore.refreshProjects()])
+}
+
+async function refreshAssets() {
+  await Promise.allSettled([assetStore.refreshAssets()])
 }
 
 watch(
-  () => authStore.isLoggedIn,
-  async (isLoggedIn) => {
-    if (isLoggedIn) {
-      await loadAssets()
+  () => authStore.token,
+  (token, previousToken) => {
+    if (token === previousToken) {
       return
     }
 
-    assetError.value = ''
+    sessionError.value = ''
+    isCreateModalOpen.value = false
+  },
+  { flush: 'sync' },
+)
+
+watch(
+  () => [authStore.token, authStore.user?.id] as const,
+  async ([token, userId], [previousToken, previousUserId]) => {
+    if (!token || !userId) {
+      return
+    }
+
+    if (token !== previousToken || userId !== previousUserId) {
+      await loadDashboard()
+    }
   },
 )
 
 onMounted(async () => {
-  if (!authStore.token) {
-    return
-  }
-
-  if (!authStore.user) {
-    try {
-      await authStore.loadCurrentUser()
-    } catch (error) {
-      authError.value = getErrorMessage(error, '当前登录状态已失效，请重新登录。')
-      return
-    }
-  }
-
-  await loadAssets()
+  await restoreSession()
+  await loadDashboard()
 })
 </script>
 
 <template>
   <main class="app-shell home-page">
-    <AppTopBar />
+    <HomeRouteHeader
+      :is-logged-in="authStore.isLoggedIn"
+      :is-admin="authStore.isAdmin"
+      :is-refreshing="isRefreshingDashboard"
+      :nickname="authStore.user?.nickname"
+      @create="openCreateModal"
+      @refresh="loadDashboard(true)"
+    />
 
-    <div class="page-shell">
-      <section class="hero" aria-label="首页主入口">
-        <article class="hero-main">
-          <div>
-            <p class="hero-label">
-              <WandSparkles :size="14" />
-              安静的创作工作台
-            </p>
-            <h1>把 prompt、图片和视频放进同一个创作空间。</h1>
-            <p class="hero-description">
-              Revid 先帮你整理脚本、角色参考和素材脉络，再把生成任务放回工作流里持续迭代，
-              让每一次试错都能沉淀为后续可复用的资产。
-            </p>
-            <div v-if="userSummary" class="account-banner" aria-label="当前登录状态">
-              <div class="account-banner__icon">
-                <UserRound :size="18" />
-              </div>
-              <div class="account-banner__copy">
-                <strong>{{ userSummary.nickname }}</strong>
-                <span>{{ userSummary.role }} · {{ userSummary.status }}</span>
-              </div>
-            </div>
-            <p v-if="authError" class="inline-feedback is-danger" role="alert">
-              <TriangleAlert :size="14" />
-              {{ authError }}
-            </p>
-            <div class="hero-actions">
-              <button
-                class="action secondary focus-ring"
-                type="button"
-                :disabled="isAuthenticating"
-                @click="handleWechatLogin"
-              >
-                <LoaderCircle v-if="isAuthenticating" :size="18" class="is-spinning" />
-                <CheckCircle2 v-else-if="authStore.isLoggedIn" :size="18" />
-                <WandSparkles v-else :size="18" />
-                {{ authStore.isLoggedIn ? '重新同步账户' : '微信登录' }}
-              </button>
-              <RouterLink class="action primary focus-ring" to="/app/workspace">
-                进入工作流
-                <ArrowRight :size="18" />
-              </RouterLink>
-            </div>
+    <div class="home-shell">
+      <template v-if="authStore.isLoggedIn && authStore.user">
+        <section class="dashboard-intro" aria-labelledby="dashboard-title">
+          <div class="intro-copy">
+            <p class="intro-kicker">Personal dashboard</p>
+            <h1 id="dashboard-title">{{ authStore.user.nickname }} 的创作工作台</h1>
+            <p>{{ dashboardSummary }}</p>
           </div>
+          <div class="intro-status" :class="{ 'is-frozen': authStore.user.generation_status === 'frozen' }">
+            <span>{{ authStore.user.role === 'admin' ? 'Admin' : 'Creator' }}</span>
+            <strong>{{ authStore.user.generation_status === 'enabled' ? '生成服务可用' : '生成服务已冻结' }}</strong>
+          </div>
+        </section>
 
-          <div class="quick-start-strip" aria-label="快速开始">
-            <article
-              v-for="item in quickStarts"
-              :key="item.title"
-              class="quick-start-card"
-              :class="item.tone"
-            >
-              <Sparkles :size="18" />
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.text }}</span>
-            </article>
-          </div>
-        </article>
+        <div class="dashboard-grid">
+          <HomeProjectsPanel
+            :projects="projectStore.items"
+            :total="projectStore.total"
+            :has-loaded="projectStore.hasLoaded"
+            :is-loading="projectStore.isLoading"
+            :error="projectStore.loadError"
+            @create="openCreateModal"
+            @open="openProject"
+            @refresh="refreshProjects"
+          />
 
-        <aside class="hero-side">
-          <PromptComposer />
-        </aside>
-      </section>
+          <aside class="dashboard-side" aria-label="账户状态与最近资产">
+            <HomeQuotaSummary
+              :quotas="authStore.quotas"
+              :generation-status="authStore.user.generation_status"
+            />
+            <HomeRecentAssets
+              :assets="assetStore.items"
+              :has-loaded="assetStore.hasLoaded"
+              :is-loading="assetStore.isLoading"
+              :error="assetStore.loadError"
+              @refresh="refreshAssets"
+            />
+          </aside>
+        </div>
+      </template>
 
-      <section class="status-grid" aria-label="最近项目和资产状态">
-        <article
-          v-for="card in statusCards"
-          :key="card.title"
-          class="status-card"
-          :class="card.layout"
-        >
-          <div class="status-icon">
-            <component :is="card.icon" :size="18" />
-          </div>
-          <div class="status-copy">
-            <p>{{ card.title }}</p>
-            <h2>{{ card.text }}</h2>
-            <span>{{ card.meta }}</span>
-          </div>
-        </article>
-      </section>
+      <section v-else class="guest-entry" aria-labelledby="guest-title">
+        <div class="guest-icon" aria-hidden="true">
+          <FolderKanban :size="26" />
+        </div>
+        <p class="intro-kicker">Revid projects</p>
+        <h1 id="guest-title">先登录，再从真实项目开始创作。</h1>
+        <p>
+          登录后可查看持久化项目、最近资产和当前额度。进入工作流前需要先选择一个项目，
+          不会再使用隐式 demo 数据。
+        </p>
 
-      <section class="data-grid" aria-label="联调结果展示">
-        <article class="data-card quota-card">
-          <div class="section-heading">
-            <div>
-              <p>当前账户</p>
-              <h2>额度总览</h2>
-            </div>
-            <span>{{ authStore.isLoggedIn ? '已连接后端' : '等待登录' }}</span>
-          </div>
+        <div v-if="sessionError" class="session-alert" role="alert">
+          <TriangleAlert :size="17" />
+          <span>{{ sessionError }}</span>
+          <button
+            class="guest-action is-secondary focus-ring"
+            type="button"
+            :disabled="isRestoringSession"
+            @click="restoreSession"
+          >
+            <RefreshCcw :size="16" />
+            {{ isRestoringSession ? '重试中…' : '重试恢复' }}
+          </button>
+        </div>
 
-          <div class="quota-grid">
-            <article
-              v-for="quota in quotaCards"
-              :key="quota.label"
-              class="quota-pill"
-              :class="quota.tone"
-            >
-              <span>{{ quota.label }}</span>
-              <strong>{{ quota.value }}</strong>
-            </article>
-          </div>
-        </article>
-
-        <article class="data-card assets-card">
-          <div class="section-heading">
-            <div>
-              <p>真实资产</p>
-              <h2>最近 3 条资产</h2>
-            </div>
-            <button
-              class="ghost-action focus-ring"
-              type="button"
-              :disabled="assetStore.isLoading || !authStore.isLoggedIn"
-              @click="loadAssets"
-            >
-              <RefreshCcw :size="14" :class="{ 'is-spinning': assetStore.isLoading }" />
-              重试加载
-            </button>
-          </div>
-
-          <p v-if="assetError" class="inline-feedback is-danger" role="alert">
-            <TriangleAlert :size="14" />
-            {{ assetError }}
-          </p>
-          <p v-else-if="!authStore.isLoggedIn" class="inline-feedback">
-            <Sparkles :size="14" />
-            登录后会自动请求 `GET /assets` 并展示真实数据。
-          </p>
-          <p v-else-if="assetStore.isLoading" class="inline-feedback">
-            <LoaderCircle :size="14" class="is-spinning" />
-            正在加载资产列表。
-          </p>
-
-          <div v-if="displayedAssets.length" class="asset-list">
-            <article
-              v-for="asset in displayedAssets"
-              :key="asset.id || getAssetTitle(asset)"
-              class="asset-row"
-            >
-              <div class="asset-copy">
-                <strong>{{ getAssetTitle(asset) }}</strong>
-                <span>{{ getAssetTypeLabel(asset.type) }} · {{ getAssetSourceLabel(asset.source) }}</span>
-              </div>
-              <div class="asset-meta">
-                <b>{{ getAssetStatusLabel(asset.status) }}</b>
-              </div>
-            </article>
-          </div>
-          <div v-else class="asset-empty">
-            <p>{{ authStore.isLoggedIn ? '当前没有可展示的资产。' : '登录后展示资产列表。' }}</p>
-          </div>
-        </article>
+        <div class="guest-actions">
+          <RouterLink class="guest-action is-primary focus-ring" to="/login?redirect=/">
+            <LogIn :size="17" />
+            登录工作台
+          </RouterLink>
+          <RouterLink class="guest-action is-secondary focus-ring" to="/register?redirect=/">
+            创建账户
+            <ArrowRight :size="17" />
+          </RouterLink>
+        </div>
       </section>
     </div>
+
+    <HomeCreateProjectModal
+      :show="isCreateModalOpen"
+      :is-creating="projectStore.isCreating"
+      :error="projectStore.createError"
+      @close="isCreateModalOpen = false"
+      @submit="handleCreateProject"
+    />
   </main>
 </template>
 
@@ -373,579 +240,260 @@ onMounted(async () => {
   color: var(--text-primary);
 }
 
-.page-shell {
+:global(.home-page .focus-ring:focus-visible) {
+  outline-color: var(--accent-select);
+}
+
+.home-shell {
   width: min(1240px, calc(100% - 40px));
   margin: 0 auto;
-  padding: 20px 0 44px;
+  padding: var(--space-6) 0 44px;
 }
 
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-  gap: 18px;
-  align-items: stretch;
+.dashboard-intro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: 10px 4px var(--space-6);
 }
 
-.hero-main,
-.hero-side,
-.status-card {
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-soft);
+.intro-copy {
   min-width: 0;
 }
 
-.hero-main {
-  min-height: 560px;
-  padding: 28px;
-  border-radius: 28px;
-  display: grid;
-  align-content: space-between;
-  gap: 28px;
-  background:
-    radial-gradient(circle at top right, oklch(84% 0.045 175 / 0.24), transparent 28%),
-    linear-gradient(180deg, oklch(100% 0.004 92 / 0.94), oklch(97% 0.006 92 / 0.96));
-}
-
-.hero-label {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: 0 0 18px;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-pill);
-  color: var(--accent-generate-hover);
-  /* Keep this soft translucent badge tone; no direct token with matching alpha exists. */
-  background: oklch(99% 0.008 92 / 0.92);
-  border: 1px solid oklch(88% 0.016 175 / 0.55);
-  font-size: var(--font-size-hint);
-  line-height: var(--line-height-hint);
-  font-weight: 600;
-}
-
-h1 {
-  max-width: 620px;
+.intro-kicker,
+.intro-copy h1,
+.intro-copy > p:last-child,
+.guest-entry h1,
+.guest-entry > p {
   margin: 0;
-  font-size: clamp(40px, 5vw, 64px);
-  line-height: 1;
-  letter-spacing: -0.03em;
 }
 
-.hero-description {
-  max-width: 620px;
-  margin: 18px 0 0;
+.intro-kicker {
+  color: var(--accent-generate-hover);
+  font-size: var(--font-size-hint);
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.intro-copy h1,
+.guest-entry h1 {
+  margin-top: var(--space-2);
+  text-wrap: balance;
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1.08;
+}
+
+.intro-copy > p:last-child,
+.guest-entry > p {
+  max-width: 65ch;
+  margin-top: var(--space-3);
   color: var(--text-secondary);
-  font-size: 15px;
   line-height: 1.75;
+  text-wrap: pretty;
 }
 
-.account-banner {
-  display: inline-grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--space-3);
-  align-items: center;
-  min-width: min(100%, 360px);
-  margin-top: 22px;
-  padding: 14px var(--space-4);
-  border-radius: 18px;
-  /* Keep this elevated account surface tone; no direct token with matching alpha exists. */
-  background: oklch(99% 0.007 92 / 0.94);
-  border: 1px solid oklch(87% 0.014 175 / 0.48);
-}
-
-.account-banner__icon {
-  width: 40px;
-  height: 40px;
+.intro-status {
   display: grid;
-  place-items: center;
-  border-radius: 14px;
+  flex: 0 0 auto;
+  gap: 5px;
+  min-width: 180px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 16px;
   color: var(--accent-generate-hover);
-  background: oklch(95% 0.018 175);
+  background: oklch(94% 0.025 175);
 }
 
-.account-banner__copy {
-  display: grid;
-  gap: var(--space-1);
+.intro-status.is-frozen {
+  color: var(--danger);
+  background: oklch(96% 0.02 27);
 }
 
-.account-banner__copy strong,
-.account-banner__copy span {
-  margin: 0;
-}
-
-.account-banner__copy span {
-  color: var(--text-secondary);
+.intro-status span {
   font-size: var(--font-size-hint);
-  line-height: var(--line-height-hint);
 }
 
-.hero-actions {
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.dashboard-side {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+
+.guest-entry {
+  display: grid;
+  min-height: calc(100dvh - 132px);
+  align-content: center;
+  justify-items: start;
+  max-width: 760px;
+  padding: 64px 4px 96px;
+}
+
+.guest-icon {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  margin-bottom: var(--space-4);
+  place-items: center;
+  border-radius: 18px;
+  color: var(--accent-generate-hover);
+  background: oklch(94% 0.025 175);
+  box-shadow: var(--shadow-soft);
+}
+
+.guest-actions,
+.session-alert,
+.guest-action {
   display: flex;
+  align-items: center;
+}
+
+.guest-actions {
   flex-wrap: wrap;
   gap: var(--space-3);
-  margin-top: 28px;
+  margin-top: var(--space-6);
 }
 
-.action {
-  display: inline-flex;
-  min-height: 46px;
-  align-items: center;
+.guest-action {
+  min-height: 44px;
   justify-content: center;
   gap: var(--space-2);
-  border-radius: 14px;
-  padding: 0 18px;
-  border: 1px solid transparent;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   transition:
     color 120ms ease,
     background-color 120ms ease,
-    box-shadow 120ms ease,
+    border-color 120ms ease,
     transform 120ms ease;
 }
 
-.action:active {
-  transform: scale(0.96);
-}
-
-.action.primary {
-  color: white;
+.guest-action.is-primary {
+  color: var(--text-primary);
+  border-color: transparent;
   background: var(--accent-generate);
   box-shadow: var(--shadow-accent);
 }
 
-.action.primary:hover {
-  background: var(--accent-generate-hover);
-}
-
-.action.secondary {
+.guest-action.is-secondary {
   color: var(--text-primary);
   background: var(--bg-panel);
-  border-color: var(--border-subtle);
 }
 
-.action.secondary:hover {
-  background: var(--bg-panel-subtle);
+.guest-action:active {
+  transform: scale(0.96);
 }
 
-.action:disabled,
-.ghost-action:disabled {
+.guest-action:disabled {
   cursor: wait;
-  opacity: 0.72;
+  opacity: 0.65;
 }
 
-.quick-start-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.quick-start-card {
-  min-height: 134px;
-  padding: 18px;
-  border-radius: 20px;
-  color: white;
-  border: 1px solid oklch(98% 0.003 92 / 0.16);
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  transition:
-    background-color 120ms ease,
-    box-shadow 120ms ease,
-    transform 120ms ease;
-}
-
-.quick-start-card:active {
-  transform: scale(0.96);
-}
-
-.quick-start-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 36px oklch(20% 0.02 245 / 0.18);
-}
-
-.quick-start-card strong {
-  font-size: 15px;
-}
-
-.quick-start-card span {
-  color: oklch(94% 0.008 92 / 0.78);
-  font-size: var(--font-size-hint);
-  line-height: 1.65;
-}
-
-.quick-start-card.story {
-  background: linear-gradient(135deg, oklch(34% 0.03 237), oklch(46% 0.06 230));
-}
-
-.quick-start-card.character {
-  background: linear-gradient(135deg, oklch(30% 0.055 340), oklch(44% 0.115 290));
-}
-
-.quick-start-card.video {
-  background: linear-gradient(135deg, oklch(38% 0.04 140), oklch(49% 0.075 150));
-}
-
-.hero-side {
-  border-radius: 28px;
-  padding: 18px;
-  background:
-    linear-gradient(180deg, oklch(21% 0.015 245 / 0.96), oklch(16% 0.013 245 / 0.98)),
-    linear-gradient(180deg, oklch(97% 0.006 92), oklch(95% 0.006 92));
-}
-
-.status-grid {
-  display: grid;
-  grid-template-columns: 1.6fr repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 18px;
-}
-
-.status-card {
-  min-height: 160px;
-  padding: 18px;
-  border-radius: 22px;
-  background: oklch(100% 0.004 92 / 0.8);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 14px;
-  align-items: start;
-}
-
-.status-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  color: var(--accent-generate-hover);
-  background: oklch(96% 0.015 175);
-}
-
-.status-copy p,
-.status-copy h2,
-.status-copy span {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.status-copy p {
-  color: var(--text-secondary);
-  font-size: var(--font-size-hint);
-}
-
-.status-copy h2 {
-  margin-top: 8px;
-  font-size: 18px;
-  line-height: 1.45;
-  letter-spacing: -0.01em;
-}
-
-.status-copy span {
-  display: block;
-  margin-top: 14px;
-  color: var(--text-muted);
-  font-size: var(--font-size-hint);
-}
-
-.data-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: 14px;
-  margin-top: 18px;
-}
-
-.data-card {
-  padding: 22px;
-  border-radius: 22px;
-  border: 1px solid var(--border-subtle);
-  background: oklch(100% 0.004 92 / 0.86);
-  box-shadow: var(--shadow-soft);
-}
-
-.section-heading {
-  display: flex;
+.session-alert {
   align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.section-heading p,
-.section-heading h2,
-.asset-empty p {
-  margin: 0;
-}
-
-.section-heading p {
-  color: var(--text-secondary);
-  font-size: var(--font-size-hint);
-  line-height: var(--line-height-hint);
-}
-
-.section-heading h2 {
-  margin-top: 6px;
-  font-size: 22px;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-.section-heading span {
-  color: var(--text-muted);
-  font-size: var(--font-size-hint);
-  white-space: nowrap;
-}
-
-.quota-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
-  margin-top: 20px;
-}
-
-.quota-pill {
-  min-height: 124px;
-  padding: var(--space-4);
-  border-radius: 18px;
-  display: grid;
-  align-content: space-between;
-  gap: 14px;
-  color: white;
-}
-
-.quota-pill span {
-  font-size: var(--font-size-hint);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.8;
-}
-
-.quota-pill strong {
-  font-size: clamp(28px, 5vw, 40px);
-  line-height: 1;
-}
-
-.quota-pill.text {
-  background: linear-gradient(135deg, oklch(34% 0.03 237), oklch(46% 0.06 230));
-}
-
-.quota-pill.image {
-  background: linear-gradient(135deg, oklch(58% 0.115 252), oklch(66% 0.082 226));
-}
-
-.quota-pill.video {
-  background: linear-gradient(135deg, oklch(43% 0.06 164), oklch(58% 0.105 175));
-}
-
-.ghost-action {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 34px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  background: var(--bg-panel);
-  transition:
-    color 120ms ease,
-    background-color 120ms ease,
-    box-shadow 120ms ease,
-    transform 120ms ease;
-}
-
-.ghost-action:hover {
-  background: var(--bg-panel-subtle);
-}
-
-.ghost-action:active {
-  transform: scale(0.96);
-}
-
-.inline-feedback {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-4) 0 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-number);
-}
-
-.inline-feedback.is-danger {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
   color: var(--danger);
+  background: oklch(97% 0.018 27);
 }
 
-.asset-list {
-  display: grid;
-  gap: var(--space-3);
-  margin-top: 18px;
+.session-alert span {
+  flex: 1;
+  line-height: 1.6;
 }
 
-.asset-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-4);
-  align-items: center;
-  padding: var(--space-4);
-  border-radius: 18px;
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, oklch(99% 0.004 92), oklch(97% 0.006 92));
+.session-alert .guest-action {
+  flex: 0 0 auto;
 }
 
-.asset-copy {
-  display: grid;
-  gap: 6px;
-}
+@media (hover: hover) {
+  .guest-action.is-primary:hover {
+    background: oklch(68% 0.085 175);
+  }
 
-.asset-copy strong {
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-height: 1.5;
-}
-
-.asset-copy span,
-.asset-meta b,
-.asset-empty p {
-  color: var(--text-secondary);
-  font-size: var(--font-size-hint);
-}
-
-.asset-meta b {
-  display: inline-flex;
-  padding: var(--space-2) 10px;
-  border-radius: var(--radius-pill);
-  color: var(--accent-generate-hover);
-  background: oklch(96% 0.018 175);
-}
-
-.asset-empty {
-  margin-top: 18px;
-  padding: 28px 18px;
-  border-radius: 18px;
-  border: 1px dashed var(--border-subtle);
-  background: oklch(98% 0.005 92);
-  text-align: center;
-}
-
-.is-spinning {
-  animation: spin 0.9s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+  .guest-action.is-secondary:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-panel-subtle);
   }
 }
 
-@media (max-width: 1080px) {
-  .quick-start-strip {
+@media (max-width: 920px) {
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 
-  .status-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .data-grid {
-    grid-template-columns: 1fr;
+  .dashboard-side {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   }
 }
 
-@media (max-width: 860px) {
-  .page-shell {
-    width: min(100%, calc(100% - 28px));
-    padding-top: 14px;
+@media (max-width: 680px) {
+  .home-shell {
+    width: min(100%, calc(100% - 24px));
+    padding-top: var(--space-4);
   }
 
-  .hero {
-    grid-template-columns: 1fr;
+  .dashboard-intro {
+    display: grid;
+    align-items: start;
   }
 
-  .hero-main,
-  .hero-side,
-  .status-card {
-    border-radius: 24px;
-  }
-
-  .hero-main {
-    min-height: auto;
-    padding: 22px;
-  }
-
-  h1 {
-    font-size: clamp(32px, 11vw, 44px);
-  }
-
-  .hero-side {
-    padding: 14px;
-  }
-
-  .quota-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 560px) {
-  .page-shell {
-    width: min(100%, calc(100% - 20px));
-    padding-bottom: var(--space-6);
-  }
-
-  .hero-main {
-    gap: 20px;
-    padding: 18px;
-  }
-
-  .hero-actions {
-    flex-direction: column;
-  }
-
-  .status-card,
-  .asset-row,
-  .section-heading {
-    grid-template-columns: 1fr;
-  }
-
-  .action {
+  .intro-status {
     width: 100%;
   }
 
-  .status-card {
-    min-height: auto;
+  .dashboard-side {
+    grid-template-columns: 1fr;
   }
 
-  .data-card {
-    padding: 18px;
+  .guest-entry {
+    min-height: calc(100dvh - 108px);
+    padding-block: 44px 72px;
   }
 
-  .section-heading {
+  .session-alert {
     display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .ghost-action {
-    width: fit-content;
-  }
-
-  .section-heading span {
-    white-space: normal;
+  .session-alert .guest-action {
+    grid-column: 2;
+    justify-self: start;
   }
 }
 
 @media (max-width: 420px) {
-  .hero-label,
-  .account-banner,
-  .asset-row,
-  .asset-empty {
-    border-radius: 16px;
+  .home-shell {
+    width: min(100%, calc(100% - 20px));
   }
 
-  .quick-start-card,
-  .status-card,
-  .data-card {
-    padding: 16px;
+  .intro-copy h1,
+  .guest-entry h1 {
+    font-size: 30px;
   }
 
-  .ghost-action {
+  .guest-actions {
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guest-action {
+    transition: none;
+  }
+
+  .guest-action:active {
+    transform: none;
   }
 }
 </style>

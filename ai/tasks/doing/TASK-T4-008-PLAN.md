@@ -12,6 +12,7 @@ Replace the current marketing-oriented Home with an authenticated personal proje
 - Add `frontend/src/views/app/components/home/**` for Home-local presentation components.
 - Add `frontend/src/modules/project/api.ts`, `types.ts`, and `store.ts` for the project domain.
 - Minimally harden `frontend/src/api/assets.ts`, `store/assets.ts`, and `types/asset.ts` when required to remove fabricated state and make real-data loading/session behavior deterministic.
+- Minimally harden the shared `frontend/src/api/request.ts` interceptor only to bind Authorization synchronously before a session switch can retarget a mutating request.
 - Reuse the auth-store quota state after verifying its actual contract.
 - Align frontend paths with existing backend `/projects` and `/assets` endpoints only when necessary.
 
@@ -61,6 +62,8 @@ Success requires a focused runtime adapter harness, typecheck/build, fresh diff 
 
 #### Slice B2 - Home presentation and real-data states
 
+Status: completed and verified on 2026-07-11.
+
 1. Replace fabricated quick starts and status values with real project, asset, and quota summaries.
 2. Split Home-local sections into single-purpose components and reduce `Home.vue` to at most 500 lines.
 3. Implement loading, empty, error, partial-data, zero-quota, create-project, refresh, and enter-Workspace states.
@@ -91,7 +94,7 @@ Success requires typecheck/build plus mocked or local-backend browser behavior f
 - Keep the root route public so T4-007 guest entry remains usable; Home exposes authenticated dashboard data only when `authStore.isLoggedIn` is true.
 - Workspace already consumes a scalar `route.query.project_id`; T4-008 must pass the backend `Project.id` through that query and must not modify Workspace.
 - Asset and project requests can partially fail; the page must preserve successful sections and expose scoped retry actions.
-- The asset store self-resets synchronously when the auth token changes; Slice B2 must add the equivalent project-store behavior before project data is rendered.
+- The asset and project stores now both reset synchronously when the auth token changes, before cached cross-session data can render.
 - Home may describe the loaded asset page as recent assets, but must not present `items.length` as the account-wide total; Workspace currently mutates asset items directly and is outside this Task's allowed edit scope.
 - Real MySQL acceptance must use credentials already supplied to an authorized runtime and must never read `.env` files or expose credential material.
 
