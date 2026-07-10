@@ -2,7 +2,7 @@
 
 ## Status
 
-- State: `DOING`
+- State: `VERIFYING`
 - Owner: Codex Project Lead Engineer
 
 ## Task ID

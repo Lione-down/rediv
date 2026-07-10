@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-10
 
-State: `DOING`
+State: `VERIFYING`
 
 ## Completed
 
@@ -17,18 +17,19 @@ State: `DOING`
   - `InMemoryStore` and `DatabaseStore` connection CRUD, project ownership checks, same-project node validation, self-loop rejection, duplicate detection, directed-cycle allowance, persistence, and node-delete connection cleanup.
   - Alembic revision `d8c5b9a4e2f0_add_canvas_connections.py`.
   - Focused connection tests covering CRUD, duplicate, self-loop, cross-project node rejection, project permission denial, node cleanup, persistence, cycle allowance, SQLite schema/model comments, and InMemory consistency.
+- Applied and verified Alembic head `d8c5b9a4e2f0` on shared MySQL `revid_db`.
+- Fixed a real MySQL FK compatibility issue by making the `canvas_connections` migration inherit the existing `projects.id` column collation when running on MySQL; this keeps shared `revid_db` and disposable MySQL test databases compatible.
+- Verified shared MySQL `canvas_connections` table comment, all column comments, cascade foreign keys, project/source/target indexes, duplicate-edge unique constraint, and Alembic current/head match.
+- Recorded backend restart persistence evidence on shared MySQL by creating one acceptance user, one project, three nodes, and two connections, then reloading the first connection and connection list from a separate Python process after engine close/re-init.
 
 ## Remaining
 
-- Apply Alembic head `d8c5b9a4e2f0` to the shared MySQL `revid_db` when the next run starts, then verify current/head match and table/field comments, foreign keys, indexes, and duplicate constraint through MySQL inspector evidence.
-- Add or record explicit backend-restart persistence evidence after shared MySQL has the connection table.
-- Decide whether T4-011 should update `backend/scripts/migrate_sqlite_to_mysql.py` for future `canvas_connections` data ETL; this is not yet implemented in the first backend API slice.
-- Run final focused/regression checks after shared MySQL migration, then write `ai/reports/REPORT-T4-011.md`.
-- Write `REPORT-T4-011.md` and mark T4-011 DONE only after all non-deferred acceptance criteria pass.
+- Decide whether T4-011 should update `backend/scripts/migrate_sqlite_to_mysql.py` for future `canvas_connections` data ETL; this is outside the original allowed edit list but affects future migration completeness.
+- Write `REPORT-T4-011.md` and mark T4-011 DONE only after the ETL decision and final evidence review are recorded.
 
 ## Exact Next Action
 
-Apply and verify the additive `d8c5b9a4e2f0` migration on shared MySQL `revid_db`, then inspect the `canvas_connections` table comments, columns, foreign keys, indexes, and revision match without exposing credentials.
+Decide the SQLite-to-MySQL ETL scope for `canvas_connections`, then write `ai/reports/REPORT-T4-011.md` and close T4-011 if no new implementation is required.
 
 ## Files Changed
 
@@ -41,7 +42,9 @@ Apply and verify the additive `d8c5b9a4e2f0` migration on shared MySQL `revid_db
 - `backend/schemas/canvas_connection.py`
 - `backend/tests/test_canvas_connection_crud.py`
 - `ai/tasks/doing/TASK-T4-011-PROGRESS.md`
+- `ai/tasks/todo/TASK-T4-011.md`
 - `ai/state/CURRENT.md`
+- `ai/state/ROADMAP.md`
 
 ## Commands And Summarized Results
 
@@ -53,13 +56,24 @@ Apply and verify the additive `d8c5b9a4e2f0` migration on shared MySQL `revid_db
 - `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_mysql_runtime_cutover.py"`: passed, 9 tests.
 - Temporary SQLite Alembic `upgrade head` smoke: passed; verified `canvas_connections`, `metadata`, `uq_canvas_connections_edge`, and source-node index exist at head.
 - `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_*.py"`: passed, 182 tests; migration-tool negative-path output appeared during expected tests but final unittest result was OK.
+- Shared MySQL first `alembic upgrade head` attempt: failed with MySQL error 3780 because the new table collation did not match parent FK columns; no `canvas_connections` table was created and revision remained `b7d4c2e9f001`.
+- Shared MySQL schema inspection: confirmed `projects.id`, `canvas_nodes.id`, and `canvas_nodes.project_id` are `varchar(36)` using `utf8mb4_unicode_ci` with comments.
+- Shared MySQL `alembic upgrade head` after dynamic collation fix: passed; `revid_db` moved from `b7d4c2e9f001` to `d8c5b9a4e2f0`; `canvas_connections` table comment, column comments, cascade FKs, indexes, unique constraint, and revision match verified.
+- Shared MySQL backend restart persistence smoke: passed; child Python process reloaded connection `9c662d04-ea31-46ab-a881-8be2dbd94761` and listed two connections in project `0e191223-05a7-415e-ae33-d0d86c4d3eca` after engine close/re-init.
+- `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_canvas_connection_crud.py"`: passed, 10 tests after the collation fix.
+- `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_mysql_runtime_cutover.py"`: passed, 9 tests after the first shared MySQL fix.
+- `.\\.venv\\Scripts\\python.exe -m compileall models/canvas_connection.py migrations/versions/d8c5b9a4e2f0_add_canvas_connections.py tests/test_canvas_connection_crud.py`: passed.
+- First full `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_*.py"` after hardcoded collation: failed in disposable MySQL migration setup with the same FK incompatibility against a different parent collation; this drove the dynamic collation fix.
+- Final `.\\.venv\\Scripts\\python.exe -m unittest discover -s tests -p "test_*.py"` after dynamic collation: passed, 182 tests; expected migration-tool negative-path output appeared but final unittest result was OK.
 - `git diff --check`: passed with only existing LF-to-CRLF warnings.
 
 ## Verification
 
 - Focused SQLite/API/store verification passed for the first backend connection slice.
 - Test MySQL upgrade paths executed inside existing regression tests and completed with final unittest OK.
-- Shared MySQL `revid_db` has not yet been upgraded from `b7d4c2e9f001` to `d8c5b9a4e2f0` in this run, so Navicat/shared-MySQL table comment evidence and final REPORT are still pending.
+- Shared MySQL `revid_db` is upgraded from `b7d4c2e9f001` to `d8c5b9a4e2f0`.
+- Shared MySQL table/comment/FK/index/unique-constraint evidence and backend restart persistence evidence are complete.
+- Final REPORT remains pending until the SQLite-to-MySQL ETL scope decision is recorded.
 
 ## Blockers
 

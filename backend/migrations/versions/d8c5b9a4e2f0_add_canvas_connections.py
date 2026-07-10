@@ -19,7 +19,29 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _mysql_connection_table_kwargs() -> dict[str, str]:
+    bind = op.get_bind()
+    if bind.dialect.name != "mysql":
+        return {}
+
+    parent_collation = bind.execute(
+        sa.text(
+            """
+            SELECT COLLATION_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'projects'
+              AND COLUMN_NAME = 'id'
+            """
+        )
+    ).scalar_one_or_none()
+    if not parent_collation:
+        return {}
+    return {"mysql_collate": parent_collation}
+
+
 def upgrade() -> None:
+    table_kwargs = _mysql_connection_table_kwargs()
     op.create_table(
         "canvas_connections",
         sa.Column("id", sa.String(length=36), primary_key=True, comment="Connection unique identifier"),
@@ -51,6 +73,7 @@ def upgrade() -> None:
         comment="Canvas node connection table",
         mysql_engine="InnoDB",
         mysql_charset="utf8mb4",
+        **table_kwargs,
     )
     op.create_index("ix_canvas_connections_project_id", "canvas_connections", ["project_id"])
     op.create_index("ix_canvas_connections_source_node_id", "canvas_connections", ["source_node_id"])

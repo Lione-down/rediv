@@ -21,7 +21,7 @@ Last updated: 2026-07-10
 ## Active Task
 
 - Task: `T4-011 - Canvas connection model and CRUD API`
-- State: `DOING`
+- State: `VERIFYING`
 - Task file: `ai/tasks/todo/TASK-T4-011.md`
 - Plan: `ai/tasks/doing/TASK-T4-011-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T4-011-PROGRESS.md`
@@ -52,9 +52,11 @@ Add a durable backend Canvas connection model and CRUD API so node edges are per
 
 - Dependencies T4-003 and T4-004 are complete.
 - T4-011 PLAN and PROGRESS are created.
-- First backend connection slice is implemented and verified in SQLite/test-regression scope.
+- Backend connection model/API slice is implemented and verified.
 - Added `CanvasConnection` model, schemas, CRUD router, store methods, node-delete cleanup, migration `d8c5b9a4e2f0`, and focused tests.
-- Shared MySQL `revid_db` is not yet upgraded to `d8c5b9a4e2f0`; Navicat/comment evidence and final REPORT remain pending.
+- Fixed the MySQL migration to inherit the existing parent-table collation before creating `canvas_connections`, preventing FK incompatibility across shared and disposable MySQL databases.
+- Shared MySQL `revid_db` is upgraded to `d8c5b9a4e2f0`; `canvas_connections` has non-empty table/field comments, cascade FKs, source/target/project indexes, and the duplicate-edge unique constraint.
+- Backend restart persistence evidence exists in shared MySQL: acceptance project `0e191223-05a7-415e-ae33-d0d86c4d3eca` has three nodes and two persisted connections (`9c662d04-ea31-46ab-a881-8be2dbd94761`, `e971be81-a7df-4d24-b1f2-345c8a434e8a`) reloaded from a separate Python process.
 
 ## T4-011 Acceptance Focus
 
@@ -65,15 +67,12 @@ Add a durable backend Canvas connection model and CRUD API so node edges are per
 
 ## Remaining In Current Task
 
-1. Apply and verify Alembic head `d8c5b9a4e2f0` on shared MySQL `revid_db`.
-2. Inspect `canvas_connections` table/field comments, foreign keys, indexes, duplicate constraint, and revision match through MySQL evidence.
-3. Record backend-restart persistence evidence after shared MySQL has the connection table.
-4. Decide whether the SQLite-to-MySQL ETL script should be extended for future `canvas_connections` rows.
-5. Run final focused/regression checks, write `ai/reports/REPORT-T4-011.md`, and mark T4-011 DONE only after all acceptance criteria are satisfied.
+1. Decide and document whether the SQLite-to-MySQL ETL script should be extended for future `canvas_connections` rows, because it is outside the original T4-011 allowed edit list but affects future migration completeness.
+2. Write `ai/reports/REPORT-T4-011.md`, then mark T4-011 DONE only after the ETL decision and final evidence review are recorded.
 
 ## Exact Next Action
 
-Apply and verify the additive `d8c5b9a4e2f0` migration on shared MySQL `revid_db`, then inspect `canvas_connections` comments, columns, foreign keys, indexes, and revision match without exposing credentials.
+Decide the SQLite-to-MySQL ETL scope for `canvas_connections`, then write `ai/reports/REPORT-T4-011.md` and close T4-011 if no new implementation is required.
 
 ## Current Blockers
 
@@ -81,7 +80,7 @@ Apply and verify the additive `d8c5b9a4e2f0` migration on shared MySQL `revid_db
 
 ## Worktree Protection
 
-- This run started from clean `main` at `52908f434bf00e85fc110891698a2a9d1ef0cd51`.
+- This run started from clean `main` at `6d2b3759978dd3a00b7600d05b38647dd893967b`.
 - Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
 
 ## Historical Evidence
