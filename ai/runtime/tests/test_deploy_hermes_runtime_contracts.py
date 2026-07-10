@@ -25,6 +25,9 @@ def test_patch_asset_contains_runtime_guards():
         "HERMES_KANBAN_SOFT_DEADLINE_EPOCH",
         "_kanban_review_finalization_reason",
         "RUNTIME REVIEW FINALIZATION MODE",
+        "fallback_prior_turn_content",
+        "turn_exit_reason=",
+        "response_previewed=",
     ):
         assert marker in text
 

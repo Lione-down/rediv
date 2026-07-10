@@ -220,3 +220,18 @@
 - PMC 可以在 Human Owner 明确要求快速收口时执行 emergency direct final acceptance，但必须记录为流程例外：不把 Reviewer BLOCKED 改写成 PASS，不伪造 HANDOFF，不修改 Reviewer/HANDOFF 文件。
 - 例外成立条件必须严格：不涉及业务代码、数据库、migration、secret、`.env`、destructive operation、产品方向或 schema contract；所有缺失证据必须可由 PMC 只读复验。
 - Queue 必须同步改成 terminal ACK-only，明确禁止 Hermes retry Reviewer、写 HANDOFF、复用历史 card 或自动发布下一 Task；下一 Task 仍由 PMC 单独发布。
+
+## 2026-07-10 Codex 直执行模式
+
+- Human Owner 终止 PMC / Hermes / Executor / Reviewer 多 Agent 交付，Codex 改为唯一 Project Lead Engineer。
+- Codex 直接负责规划、实现、测试、browser QA、fresh self-review、REPORT 与状态流转。
+- 付费调用、真实 secret、destructive/irreversible 操作和重大产品或 contract 决策仍由 Human Owner 授权。
+- CURRENT 改为精简 rolling snapshot；旧时间线进入 archive，避免每轮重复加载历史。
+- 每个 active PROGRESS 必须记录 Completed、Remaining、Exact Next Action、Files Changed、验证结果与 blocker。
+- automation memory 仅作 cursor，项目文档、源码、diff 和测试才是事实源。
+- 旧 PMC automation 保持 PAUSED；新 `revid-codex-direct-delivery-controller` 每三小时持续推进唯一 active Task。
+
+Evidence:
+
+- `ai/decisions/ADR-2026-07-10-CODEX-DIRECT-DELIVERY.md`
+- `ai/automation/REVID-CODEX-DIRECT-OPERATING-MODEL.md`

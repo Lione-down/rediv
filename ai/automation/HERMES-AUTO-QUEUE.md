@@ -1,34 +1,43 @@
 # Hermes Automatic Queue
 
 ```text
-Revision: phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1
-Status: BLOCKED - NOT EXECUTABLE
+Revision: phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2
+Status: BLOCKED - NOT EXECUTABLE / RUNTIME OWNER STALLED
 Approved By: Codex Project Master Controller
 Task ID: T4-003
 Project Task File: ai/tasks/todo/TASK-T4-003.md
 Action: NONE — terminal evidence only
-Coordinator Profile: NONE - terminal runtime evidence only
+Coordinator Profile: revid-dispatcher
 Coordinator Max Runtime: 300s
-Executor Profile: NONE - terminal runtime evidence only
+Executor Profile: revid-backend
 Executor Max Runtime: 1800s
-Review Profile: NONE - not authorized in rev47r1
-Parallel Group: serial-phase4-wave2-t4-003-rev47r1
-Attempt Policy: PMC-authorized bounded remediation attempt 1 only; no further automatic rework; no Reviewer/HANDOFF until PMC reviews REPORT
-Previous Failure Fingerprint: REV47_MYSQL_ENGINE_REFERENCE_AND_ACCEPTANCE_GATES_FAILED
-Hard Gates: fix stale _engine reference; add regression for the rev47 bug; no .env reads; no secret output; no destructive revid_db operation; MySQL schema must be Alembic-checked, not create_all patched in startup; if real MySQL/Navicat evidence is unavailable, write BLOCKED report instead of claiming PASS
-Stop After: T4_003_MYSQL_RUNTIME_REMEDIATION_REPORT_READY_REV47R1
-Expected Hermes Action: ACK_TERMINAL_VERDICT_AND_START_RUNTIME_DIAGNOSTIC
-Coordinator Idempotency Key: revid:phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1:T4-003:dispatch
-Executor Idempotency Key: revid:phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1:T4-003:execute:1
-Allowed Report Output: ai/reports/REPORT-T4-003-REV47R1.md
-PMC Review: ai/reviews/REVIEW-T4-003-PMC-RUNTIME-ADVISORY-REV47R1-2026-07-09.md
-PMC Review SHA256: 0C97B59E88278A6F4D17625379426A9E5836ED7A935756ADBEB824A9240F9D5F
-PMC Verdict: PMC_BLOCKED
-PMC Verdict Revision: phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1
-Failure Fingerprint: REV47R1_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT
+Review Profile: NONE - not authorized in rev47r2
+Parallel Group: serial-phase4-wave2-t4-003-rev47r2
+Attempt Policy: terminal runtime diagnostic reviewed and runtime owner stalled; no further automatic rework; no redispatch; no Reviewer/HANDOFF until runtime action-injection remediation returns fresh proof
+Previous Failure Fingerprint: REV47_MYSQL_ENGINE_REFERENCE_AND_ACCEPTANCE_GATES_FAILED; REV47R1_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT; REV47R2_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_ACTION_MARKER_NOT_DETECTED
+Hard Gates: do not redispatch rev47r2; do not reuse rev47/rev47r1/rev47r2 cards; do not modify business code; no .env reads; no secret output; no destructive revid_db operation; return fresh runtime remediation proof only
+Stop After: REV47R2_ACTION_INJECTION_REMEDIATION_DIAGNOSTIC_READY_OR_STALLED
+Expected Hermes Action: ACK_RUNTIME_OWNER_STALLED_OR_RETURN_FRESH_REMEDIATION_DIAGNOSTIC
+Coordinator Idempotency Key: revid:phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2:T4-003:dispatch
+Executor Idempotency Key: revid:phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2:T4-003:execute:1
+Allowed Report Output: ai/reports/REPORT-T4-003-REV47R2.md
+PMC Review: ai/reviews/REVIEW-T4-003-PMC-RUNTIME-ADVISORY-REV47R2-2026-07-10.md
+PMC Review SHA256: C21260B304C1DB12BCE3B44C2601992D5E4DA4B6B6E58B6BA9229918FBD27E30
+PMC Diagnostic Review: ai/reviews/REVIEW-T4-003-PMC-RUNTIME-DIAGNOSTIC-REV47R2-2026-07-10.md
+PMC Diagnostic Review SHA256: D8B5034156A8F0CBE2C2C4884D630EEDEDA33F652ED5A2EED896DC0F2DA70A6F
+PMC Stalled Review: ai/reviews/REVIEW-T4-003-PMC-RUNTIME-OWNER-STALLED-REV47R2-2026-07-10.md
+PMC Stalled Review SHA256: FDEAC65DD0141E99149567AD49EF63BB19BDD197945A0D090183A0009C5669D2
+Runtime Diagnostic: ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-2026-07-10.md
+Runtime Diagnostic SHA256: B54D120B5680083CE1797290FA0ECF4E20669870BEBA80C5795C52E38DD83271
+Runtime Diagnostic Verdict: STILL_INFRA_BLOCKED
+Expected Fresh Diagnostic: ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-REMEDIATION-2026-07-10.md
 PMC Reconciliation Required: YES
-Runtime Diagnostic SLA: next Hermes checkpoint, no later than 60 minutes
-Resume Condition: fresh diagnostic for Executor t_dfaef3d8 run #209 with READY_FOR_CONTINUATION, STILL_INFRA_BLOCKED, or NEEDS_HUMAN_DECISION
+PMC Verdict Revision: phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2
+PMC Verdict: PMC_BLOCKED
+Failure Fingerprint: REV47R2_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_ACTION_MARKER_NOT_DETECTED
+Expected Hermes Action: ACK_TERMINAL_VERDICT_AND_STOP
+Runtime Diagnostic SLA: REMEDIATION DIAGNOSTIC MISSED AFTER MULTIPLE HERMES CHECKPOINTS
+Resume Condition: fresh runtime remediation evidence proves worker-visible initial instruction includes exactly one standalone Action: IMPLEMENT_AND_TEST_ONLY for the Executor path without business writes, secret reads, destructive database action, or historical card reuse
 ```
 
 ## Current Hermes Cron Contract
@@ -37,10 +46,15 @@ T4-002 rev46 is terminal and acknowledged in `ai/automation/HERMES-EXECUTION-STA
 
 Rev47 reached `REPORT_READY`, but PMC found required acceptance and verification failures. Formal review: `ai/reviews/REVIEW-T4-003-PMC-REV47-REWORK-AND-REV47R1-AUTHORIZATION-2026-07-09.md`. Rev47 Coordinator `t_2f055673` and Executor `t_cef284e1` are terminal evidence and must not be reused.
 
-The current Queue revision `phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1` is terminal/non-executable after Executor `t_dfaef3d8` blocked with `WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION` before writing `ai/reports/REPORT-T4-003-REV47R1.md`. Formal runtime advisory: `ai/reviews/REVIEW-T4-003-PMC-RUNTIME-ADVISORY-REV47R1-2026-07-09.md`, SHA256 `0C97B59E88278A6F4D17625379426A9E5836ED7A935756ADBEB824A9240F9D5F`.
+Rev47r1 was dispatched as a bounded remediation attempt, but Executor `t_dfaef3d8` blocked with `WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION` before writing `ai/reports/REPORT-T4-003-REV47R1.md`. Runtime diagnostic evidence identified `fallback_prior_turn_content` in the finalization/output-capture path.
 
-Hermes next action is only `ACK_TERMINAL_VERDICT_AND_START_RUNTIME_DIAGNOSTIC` for rev47r1/fingerprint `REV47R1_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT`, then write fresh runtime diagnostic evidence. Do not retry, claim, promote, unblock, reparent, delete, archive or reuse the rev47r1 Coordinator `t_50707802`, rev47r1 Executor `t_dfaef3d8`, rev47 Coordinator `t_2f055673`, rev47 Executor `t_cef284e1`, rev46 lifecycle cards, or any historical T4-002 card. Do not create Reviewer/HANDOFF for rev47r1, touch frontend/auth/Canvas product scope, perform destructive `revid_db` operations, read `.env`, output secrets, start T4-004/T4-005, or claim PMC PASS.
+PMC remediated the installed Hermes finalization/output-capture path and added regression coverage. Runtime remediation diagnostic `ai/reports/DIAGNOSTIC-T4-003-REV47R1-FINALIZATION-REMEDIATION-2026-07-09.md`, SHA256 `9189B102CA719395535B286CE2736F50E58E9702EC67113CDAF10DD522D9B006`, returns `READY_FOR_CONTINUATION`. PMC authorization `ai/reviews/REVIEW-T4-003-PMC-RUNTIME-FINALIZATION-REMEDIATION-REV47R1-2026-07-09.md`, SHA256 `DA3CDC978379DB8063703FB325E23A46B71CC2BA5D99B0BC3FAB5FA829878C25`, publishes rev47r2.
 
+Hermes ACKed rev47r2 and created Coordinator `t_41e1a294`; the Coordinator completed run `#210` and created Executor child `t_4a0c6348`. Executor run `#211` blocked after `13s` with `WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION` before writing `ai/reports/REPORT-T4-003-REV47R2.md`. Scheduled evidence says the persisted Executor card body contained standalone `Action: IMPLEMENT_AND_TEST_ONLY`, but the `revid-backend` SOUL did not receive or detect that action marker before fail-closed blocking.
+
+PMC diagnostic review is now `PMC_BLOCKED - RUNTIME_ACTION_INJECTION_REMEDIATION_REQUIRED`. Formal review: `ai/reviews/REVIEW-T4-003-PMC-RUNTIME-DIAGNOSTIC-REV47R2-2026-07-10.md`, SHA256 `D8B5034156A8F0CBE2C2C4884D630EEDEDA33F652ED5A2EED896DC0F2DA70A6F`. Diagnostic `ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-2026-07-10.md`, SHA256 `B54D120B5680083CE1797290FA0ECF4E20669870BEBA80C5795C52E38DD83271`, verdict `STILL_INFRA_BLOCKED`. Failure fingerprint: `REV47R2_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_ACTION_MARKER_NOT_DETECTED`.
+
+Hermes next action is only `ACK_RUNTIME_OWNER_STALLED_OR_RETURN_FRESH_REMEDIATION_DIAGNOSTIC` for rev47r2 and this fingerprint. PMC recorded the one-time stalled event in `ai/reviews/REVIEW-T4-003-PMC-RUNTIME-OWNER-STALLED-REV47R2-2026-07-10.md`, SHA256 `FDEAC65DD0141E99149567AD49EF63BB19BDD197945A0D090183A0009C5669D2`, because the expected fresh diagnostic remained missing after multiple Hermes checkpoints. Expected fresh diagnostic path remains `ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-REMEDIATION-2026-07-10.md`. It must prove the worker-visible initial instruction contains exactly one standalone `Action: IMPLEMENT_AND_TEST_ONLY` for the Executor path, or return `STILL_INFRA_BLOCKED` / `NEEDS_HUMAN_DECISION`; if Hermes cannot safely produce that diagnostic, it must mark same revision/fingerprint `STALLED` with exact missing evidence and next owner/action. Do not redispatch, retry, claim, promote, unblock, reparent, delete, archive or reuse rev47r2 cards `t_41e1a294` / `t_4a0c6348`, rev47r1 cards `t_50707802` / `t_dfaef3d8`, rev47 cards `t_2f055673` / `t_cef284e1`, rev46 lifecycle cards, or any historical T4-002 card. Do not create Reviewer/HANDOFF for rev47r2, touch frontend/auth/Canvas product scope, perform destructive `revid_db` operations, read `.env`, output secrets, start T4-004/T4-005, or claim PMC PASS.
 Rev44r4 remains terminal historical evidence: Coordinator `t_a65cf87c`, Reviewer `t_bd73f60b`, HANDOFF `t_6430b878`, and PMC PASS `ai/reviews/REVIEW-T4-002-PMC-UNIT-C3-REV44-PASS-2026-07-08.md` have already been ACKed in Hermes execution status.
 
 ## 2026-07-09 T4-002 Unit D Revision 45 Runtime Advisory
@@ -512,36 +526,39 @@ T4-010 Unit B revision `-41r1` 与 `-40`/`-39`/`-38`/`-35`、revision `-34`/`-33
 
 | Field | Value |
 |---|---|
-| Revision | `phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1` |
-| Status | `BLOCKED - NOT EXECUTABLE` |
+| Revision | `phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2` |
+| Status | `BLOCKED - NOT EXECUTABLE / RUNTIME OWNER STALLED` |
 | Approved By | `Codex Project Master Controller` |
-| Approval Source | `ai/reviews/REVIEW-T4-003-PMC-REV47-REWORK-AND-REV47R1-AUTHORIZATION-2026-07-09.md` |
-| Approval Time | `2026-07-09T21:05:14+08:00` |
+| Approval Source | `ai/reviews/REVIEW-T4-003-PMC-RUNTIME-FINALIZATION-REMEDIATION-REV47R1-2026-07-09.md` |
+| Approval Time | `2026-07-09T23:59:00+08:00` |
 | Task ID | `T4-003` |
 | Project Task File | `ai/tasks/todo/TASK-T4-003.md` |
-| Task SHA256 | `FAE13FDD921F5B9BE5D0F221F1A573D219F7661720163E67AB344DE703D18E25` |
+| Task SHA256 | `A78FBB1C5E26561BEFF9118482C1F3FCE5A33612051AC6AD983396D29E0B605B` |
 | Action | `NONE — terminal evidence only` |
-| Executor Profile | `NONE - terminal runtime evidence only` |
-| Review Profile | `NONE - not authorized in rev47r1` |
-| Dispatch Profile | `NONE - terminal runtime evidence only` |
-| Parallel Group | `serial-phase4-wave2-t4-003-rev47r1` |
-| Attempt Policy | `PMC-authorized bounded remediation attempt 1 only; no further automatic rework; no Reviewer/HANDOFF until PMC reviews REPORT` |
-| Previous Failure Fingerprint | `REV47_MYSQL_ENGINE_REFERENCE_AND_ACCEPTANCE_GATES_FAILED` |
-| Hard Gates | `fix stale _engine reference; add regression for the rev47 bug; no .env reads; no secret output; no destructive revid_db operation; MySQL schema must be Alembic-checked, not create_all patched in startup; if real MySQL/Navicat evidence is unavailable, write BLOCKED report instead of claiming PASS` |
+| Executor Profile | `revid-backend` |
+| Review Profile | `NONE - not authorized in rev47r2` |
+| Dispatch Profile | `revid-dispatcher` |
+| Parallel Group | `serial-phase4-wave2-t4-003-rev47r2` |
+| Attempt Policy | `terminal runtime diagnostic reviewed and runtime owner stalled; no redispatch; no further automatic rework; no Reviewer/HANDOFF until runtime action-injection remediation returns fresh proof` |
+| Previous Failure Fingerprint | `REV47_MYSQL_ENGINE_REFERENCE_AND_ACCEPTANCE_GATES_FAILED; REV47R1_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT; REV47R2_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_ACTION_MARKER_NOT_DETECTED` |
+| Hard Gates | `do not redispatch rev47r2; do not reuse rev47/rev47r1/rev47r2 cards; do not modify business code; no .env reads; no secret output; no destructive revid_db operation; return fresh runtime remediation proof only` |
 | Coordinator Budget | `300s` |
 | Executor Budget | `1800s` |
-| Dispatcher Idempotency Key | `revid:phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1:T4-003:dispatch` |
-| Executor Idempotency Key | `revid:phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1:T4-003:execute:1` |
-| Allowed Report Output | `ai/reports/REPORT-T4-003-REV47R1.md` |
-| Stop After | `T4_003_MYSQL_RUNTIME_REMEDIATION_REPORT_READY_REV47R1` |
-| PMC Reconciliation Required | `YES` |
-| PMC Verdict Revision | `phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1` |
-| PMC Verdict | `PMC_BLOCKED` |
-| Failure Fingerprint | `REV47R1_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT` |
-| Expected Hermes Action | `ACK_TERMINAL_VERDICT_AND_START_RUNTIME_DIAGNOSTIC` |
-| Runtime Diagnostic SLA | `next Hermes checkpoint, no later than 60 minutes` |
-| Resume Condition | `fresh diagnostic for Executor t_dfaef3d8 run #209 with READY_FOR_CONTINUATION, STILL_INFRA_BLOCKED, or NEEDS_HUMAN_DECISION` |
-
+| Dispatcher Idempotency Key | `revid:phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2:T4-003:dispatch` |
+| Executor Idempotency Key | `revid:phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2:T4-003:execute:1` |
+| Allowed Report Output | `ai/reports/REPORT-T4-003-REV47R2.md` |
+| Stop After | `REV47R2_ACTION_INJECTION_REMEDIATION_DIAGNOSTIC_READY_OR_STALLED` |
+| Expected Hermes Action | `ACK_RUNTIME_OWNER_STALLED_OR_RETURN_FRESH_REMEDIATION_DIAGNOSTIC` |
+| Runtime Diagnostic | `ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-2026-07-10.md` |
+| Runtime Diagnostic SHA256 | `B54D120B5680083CE1797290FA0ECF4E20669870BEBA80C5795C52E38DD83271` |
+| Runtime Diagnostic Verdict | `STILL_INFRA_BLOCKED` |
+| Expected Fresh Diagnostic | `ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-REMEDIATION-2026-07-10.md` |
+| PMC Review | `ai/reviews/REVIEW-T4-003-PMC-RUNTIME-ADVISORY-REV47R2-2026-07-10.md` |
+| PMC Review SHA256 | `C21260B304C1DB12BCE3B44C2601992D5E4DA4B6B6E58B6BA9229918FBD27E30` |
+| PMC Diagnostic Review | `ai/reviews/REVIEW-T4-003-PMC-RUNTIME-DIAGNOSTIC-REV47R2-2026-07-10.md` |
+| PMC Diagnostic Review SHA256 | `D8B5034156A8F0CBE2C2C4884D630EEDEDA33F652ED5A2EED896DC0F2DA70A6F` |
+| PMC Stalled Review | `ai/reviews/REVIEW-T4-003-PMC-RUNTIME-OWNER-STALLED-REV47R2-2026-07-10.md` |
+| PMC Stalled Review SHA256 | `FDEAC65DD0141E99149567AD49EF63BB19BDD197945A0D090183A0009C5669D2` |
 ## Revision 32 Workspace Shell Continuation Authorization（terminal historical, not executable）
 
 Before ACK, Hermes must normalize `HERMES-EXECUTION-STATUS.md` to canonical state/action fields, preserve the exact inherited fingerprint, and remove the stale `→ FIXED` claim. Before card creation, Supervisor must run:

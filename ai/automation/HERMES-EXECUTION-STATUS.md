@@ -1,47 +1,64 @@
 # Hermes Execution Status
 
-> Last updated: 2026-07-09T22:29:42+08:00
+> Last updated: 2026-07-10T00:49:32+08:00
 
-## Active Queue — Revision 47r1 (Business Remediation)
+## Active Queue — Revision 47r2 (Terminal Runtime Advisory / Diagnostic Ready)
 
 | Field | Value |
 |---|---|
-| Queue Revision | `phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1` |
+| Queue Revision | `phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2` |
 | Task ID | `T4-003` |
 | Task Path | `ai/tasks/todo/TASK-T4-003.md` |
-| Action | `DISPATCH_ONLY` |
+| Action | `NONE — terminal evidence only` |
 | Executor Profile | `revid-backend` |
-| Review Profile | `NONE - not authorized in rev47r1` |
+| Review Profile | `NONE - not authorized in rev47r2` |
 | Coordinator Profile | `revid-dispatcher` |
-| Previous Failure Fingerprint | `REV47_MYSQL_ENGINE_REFERENCE_AND_ACCEPTANCE_GATES_FAILED` |
-| Task SHA256 | `B5D5A8DA7F9E4C2BD46AAC9B303835B23A70607D0B5C57224C0EB4B1094FD244` |
-| Queue SHA256 | `706AD341390E2CB0D8AA9EF0F602460710A9AC9A095D575CBBE1C6685A233624` |
+| Previous Failure Fingerprint | `REV47_MYSQL_ENGINE_REFERENCE_AND_ACCEPTANCE_GATES_FAILED; REV47R1_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT; REV47R2_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_ACTION_MARKER_NOT_DETECTED` |
+| Task SHA256 | `707FF1CF5FE6FF42DB3D2F220243A502E4419EB2D97D099DA483E3B804A060B2` |
+| Queue SHA256 | `AD0AA9935ECB9A22C4E660313797B1B00ADDBD57201DF3030BFCBC4FAED8E072` |
 
 ## Execution State
 
 | Field | Value |
 |---|---|
 | State | `INFRASTRUCTURE_BLOCKED` |
-| Last Transition | `2026-07-09T22:29:42+08:00` |
-| ACK | `ACK_REV47R1_AND_DISPATCH_EXECUTOR — rev47r1 DISPATCH_ONLY acknowledged. Coordinator t_50707802 completed run #208 in 106s with DISPATCH_COMPLETE and created Executor child t_dfaef3d8. Executor t_dfaef3d8 was promoted and claimed by revid-backend as run #209, session 20260709_220308_cac36d. At 2026-07-09T22:24:21+08:00 Executor run #209 blocked after 1153s with WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION and no REPORT-T4-003-REV47R1.md. State advanced to INFRASTRUCTURE_BLOCKED. Stop marker remains T4_003_MYSQL_RUNTIME_REMEDIATION_REPORT_READY_REV47R1. No Reviewer/HANDOFF authorized.` |
+| Last Transition | `2026-07-10T00:47:04+08:00` |
+| ACK | `ACK_REV47R2_AND_DISPATCH_FRESH_EXECUTOR — deploy gate returned HERMES_RUNTIME_PATCH_ALREADY_APPLIED (exit 0); verify gate returned ROLE_CONTRACTS_OK (exit 0); canonical launcher dry-run succeeded; Coordinator t_41e1a294 created with exact Action DISPATCH_ONLY, assignee revid-dispatcher, idempotency key revid:phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2:T4-003:dispatch, max runtime 300s, and exact Executor child contract revid-backend / IMPLEMENT_AND_TEST_ONLY / 1800s / T4_003_MYSQL_RUNTIME_REMEDIATION_REPORT_READY_REV47R2. Read-back show verified persisted body. Gateway claimed Coordinator run #210 under revid-dispatcher; no Executor child observed yet at this checkpoint. Historical rev47/rev47r1 cards were not reused; no Reviewer/HANDOFF/business/database/.env/secret action was performed by Supervisor.` |
 | Attempt | `1` |
-| Coordinator Card | `t_50707802` |
+| Coordinator Card | `t_41e1a294` |
 | Coordinator Status | `done` |
-| Coordinator Run | `#208 completed (106s; DISPATCH_COMPLETE; child t_dfaef3d8)` |
-| Coordinator Session | `NONE` |
-| Executor Card | `t_dfaef3d8` |
-| Executor Run | `#209 blocked (started 2026-07-09T22:05:08+08:00; ended 2026-07-09T22:24:21+08:00; duration 1153s; session 20260709_220308_cac36d)` |
-| Executor Status | `blocked — WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION` |
-| Reviewer Card | `NONE - not authorized in rev47r1` |
+| Coordinator Run | `#210 completed in 25s (DISPATCH_COMPLETE: child created and parent committed atomically; child t_4a0c6348)` |
+| Coordinator Session | `NONE - Coordinator completed before session recorded in show output` |
+| Executor Card | `t_4a0c6348` |
+| Executor Run | `#211 blocked in 13s (WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION)` |
+| Executor Status | `blocked` |
+| Reviewer Card | `NONE - not authorized in rev47r2` |
 | Reviewer Run | `NONE` |
 | Reviewer Status | `not-authorized` |
-| Handoff Card | `NONE - not authorized in rev47r1` |
+| Handoff Card | `NONE - not authorized in rev47r2` |
 | Handoff Run | `NONE` |
 | Handoff Status | `not-authorized` |
-| Evidence Path | `ai/tasks/todo/TASK-T4-003.md`; `ai/tasks/doing/TASK-T4-003-REV47R1-PLAN.md`; `ai/tasks/doing/TASK-T4-003-REV47R1-PROGRESS.md`; missing `ai/reports/REPORT-T4-003-REV47R1.md`; `ai/reviews/REVIEW-T4-003-PMC-REV47-REWORK-AND-REV47R1-AUTHORIZATION-2026-07-09.md`; `ai/automation/HERMES-NEXT-CRON-CONTRACT.md`; `ai/reports/SCHEDULED-HERMES-EVENT-T4-003-REV47R1-EXECUTOR-RUNNING-2026-07-09.md`; `ai/reports/SCHEDULED-HERMES-EVENT-T4-003-REV47R1-EXECUTOR-INFRA-BLOCKED-2026-07-09.md`; Kanban Coordinator `t_50707802` run `#208`; Kanban Executor `t_dfaef3d8` run `#209`; historical rev47 Coordinator `t_2f055673`; historical rev47 Executor `t_cef284e1`; historical rev47 REPORT `ai/reports/REPORT-T4-003.md` |
-| Evidence Hashes | `Task B5D5A8DA7F9E4C2BD46AAC9B303835B23A70607D0B5C57224C0EB4B1094FD244; PMC rev47r1 authorization review 7A0A9DE135119F0BB4C120F377D371A24DD6C913F0922C2FDEEB5CBE01A6FC9B; Queue 706AD341390E2CB0D8AA9EF0F602460710A9AC9A095D575CBBE1C6685A233624` |
-| Current Failure Fingerprint | `REV47R1_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT` |
-| PMC Verdict Confirmation | `NONE - executable rev47r1 business remediation queue acknowledged` |
+| Evidence Path | `ai/automation/HERMES-AUTO-QUEUE.md`; `ai/automation/HERMES-NEXT-CRON-CONTRACT.md`; `ai/tasks/todo/TASK-T4-003.md`; `ai/reviews/REVIEW-T4-003-PMC-RUNTIME-ADVISORY-REV47R2-2026-07-10.md`; `ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-2026-07-10.md`; Coordinator `t_41e1a294`; Executor `t_4a0c6348`; Executor run `#211`; session `20260710_003043_0a9c1b`; Kanban log `C:/Users/mkd/AppData/Local/hermes/kanban/boards/revid/logs/t_4a0c6348.log`; backend agent log `C:/Users/mkd/AppData/Local/hermes/profiles/revid-backend/logs/agent.log`; `ai/reports/SCHEDULED-HERMES-EVENT-T4-003-REV47R2-EXECUTOR-RUNTIME-BLOCK-2026-07-10.md` |
+| Evidence Hashes | `Task 707FF1CF5FE6FF42DB3D2F220243A502E4419EB2D97D099DA483E3B804A060B2; Queue AD0AA9935ECB9A22C4E660313797B1B00ADDBD57201DF3030BFCBC4FAED8E072; PMC runtime advisory C21260B304C1DB12BCE3B44C2601992D5E4DA4B6B6E58B6BA9229918FBD27E30; Runtime diagnostic B54D120B5680083CE1797290FA0ECF4E20669870BEBA80C5795C52E38DD83271; Scheduled evidence 07BC8578A0531B437FE06505070DF672BCDB252912134B5D3AECA1236E6C179A` |
+| Current Failure Fingerprint | `REV47R2_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_ACTION_MARKER_NOT_DETECTED` |
+| PMC Verdict Confirmation | `ACK_TERMINAL_VERDICT_AND_STOP` |
+
+
+## Runtime Advisory — Revision 47r2
+
+| Field | Value |
+|---|---|
+| Runtime Advisory Revision | `phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2` |
+| Runtime Advisory Fingerprint | `REV47R2_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_ACTION_MARKER_NOT_DETECTED` |
+| Runtime Advisory Path | `ai/reviews/REVIEW-T4-003-PMC-RUNTIME-ADVISORY-REV47R2-2026-07-10.md` |
+| Runtime Advisory SHA256 | `C21260B304C1DB12BCE3B44C2601992D5E4DA4B6B6E58B6BA9229918FBD27E30` |
+| Runtime Owner State | `DIAGNOSTIC_READY` |
+| Runtime Diagnostic Due | `2026-07-10T01:32:55+08:00` |
+| Runtime Diagnostic Due Status | `SATISFIED` |
+| Runtime Diagnostic Path | `ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-2026-07-10.md` |
+| Runtime Diagnostic SHA256 | `B54D120B5680083CE1797290FA0ECF4E20669870BEBA80C5795C52E38DD83271` |
+| Runtime Diagnostic Verdict | `STILL_INFRA_BLOCKED` |
+| PMC Verdict Confirmation | `ACK_TERMINAL_VERDICT_AND_START_RUNTIME_DIAGNOSTIC` |
 
 ## Historical Queue — Revision 47 (Business Execution, Terminal REPORT_READY / PMC_REWORK)
 
@@ -225,21 +242,22 @@
 | Field | Value |
 |---|---|
 | Gateway | UP (PID 30476) |
-| Board `revid` Stats | 0 ready, 0 running, 0 review, 4 todo, 27 blocked, 62 done |
-| Active Wave | `rev47r1` — `phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1` / `DISPATCH_ONLY`; Coordinator `t_50707802` completed run `#208`; Executor `t_dfaef3d8` blocked run `#209` with `WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION`; REPORT missing. |
-| Historical Blocked Cards | rev46 Reviewer `t_ef06ab15` BLOCKED by missing read-only verification before PMC emergency closure; rev44r3 pydantic_core before recovery diagnostic; rev44r2 wrong-task lifecycle; rev44r1 role-boundary block; rev43 runtime block; rev41r3 Reviewer timeout. |
+| Board `revid` Stats | 0 ready, 0 running, 0 review, 4 todo, 28 blocked, 63 done |
+| Active Wave | `rev47r2` — `phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2` / `NONE — terminal evidence only`; Coordinator `t_41e1a294` completed run `#210`; Executor `t_4a0c6348` blocked run `#211`; Runtime diagnostic `ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-2026-07-10.md` SHA256 `B54D120B5680083CE1797290FA0ECF4E20669870BEBA80C5795C52E38DD83271` returned `STILL_INFRA_BLOCKED` for action-injection omission in worker instruction. |
+| Historical Blocked Cards | rev47r1 Executor `t_dfaef3d8` terminal runtime block; rev46 Reviewer `t_ef06ab15` BLOCKED before PMC emergency closure; rev44r3 pydantic_core before recovery diagnostic; rev44r2 wrong-task lifecycle; rev44r1 role-boundary block; rev43 runtime block; rev41r3 Reviewer timeout. |
 | T4-002 Status | `PMC_PASS — EMERGENCY DIRECT FINAL ACCEPTANCE` |
-| T4-003 Status | `rev47 terminal PMC_REWORK; rev47r1 INFRASTRUCTURE_BLOCKED` |
+| T4-003 Status | `rev47r2 infrastructure blocked after Executor spawn` |
 | T4-010 Status | `PMC_PASS — ARCHIVED` |
 
 ## Reconciliation Status
 
 | Field | Value |
 |---|---|
-| Queue Status | `APPROVED — INFRASTRUCTURE_BLOCKED` |
-| PMC Verdict | `PMC_REWORK_AND_REMEDIATION_APPROVED` |
+| Queue Status | `BLOCKED — NOT EXECUTABLE / TERMINAL RECONCILIATION PENDING` |
+| PMC Verdict | `PMC_BLOCKED - RUNTIME_OWNER_DIAGNOSTIC_REQUIRED` |
 | Rev47 Reconciliation | `TERMINAL PMC_REWORK — Coordinator t_2f055673 done run #206; Executor t_cef284e1 done run #207; REPORT_READY; superseded by rev47r1 remediation` |
-| Rev47r1 Reconciliation | `ACK_REV47R1_AND_DISPATCH_EXECUTOR — INFRASTRUCTURE_BLOCKED; Coordinator t_50707802 done run #208; Executor t_dfaef3d8 blocked run #209 after 1153s with WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION; REPORT missing` |
+| Rev47r1 Reconciliation | `TERMINAL RUNTIME ADVISORY — DIAGNOSTIC_READY / READY_FOR_CONTINUATION; superseded by rev47r2 continuation` |
+| Rev47r2 Reconciliation | `ACK_TERMINAL_VERDICT_AND_START_RUNTIME_DIAGNOSTIC — DIAGNOSTIC PRODUCED` |
 | Rev44r1 Reconciliation | `ACK_TERMINAL_VERDICT_AND_STOP — COMPLETE` |
 | Rev44r2 Reconciliation | `TERMINAL — discarded, wrong-task Coordinator t_33629e6a and children operate on T4-010 evidence` |
 | Rev44r3 Reconciliation | `ACK_TERMINAL_VERDICT_AND_START_RUNTIME_DIAGNOSTIC — DIAGNOSTIC_READY / READY_FOR_CONTINUATION` |
@@ -252,10 +270,10 @@
 
 | Field | Value |
 |---|---|
-| PMC Action Required | `YES` |
-| PMC Action Type | `RUNTIME_ADVISORY` |
-| PMC Action Reason | `rev47r1 Executor t_dfaef3d8 blocked after 1153s with WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION before writing REPORT-T4-003-REV47R1.md; runtime/process incident requires PMC/runtime advisory decision.` |
-| PMC Evidence Paths | `ai/automation/HERMES-AUTO-QUEUE.md`; `ai/automation/HERMES-NEXT-CRON-CONTRACT.md`; `ai/tasks/todo/TASK-T4-003.md`; `ai/tasks/doing/TASK-T4-003-REV47R1-PLAN.md`; `ai/tasks/doing/TASK-T4-003-REV47R1-PROGRESS.md`; missing `ai/reports/REPORT-T4-003-REV47R1.md`; `ai/reviews/REVIEW-T4-003-PMC-REV47-REWORK-AND-REV47R1-AUTHORIZATION-2026-07-09.md`; `ai/reports/SCHEDULED-HERMES-EVENT-T4-003-REV47R1-EXECUTOR-RUNNING-2026-07-09.md`; `ai/reports/SCHEDULED-HERMES-EVENT-T4-003-REV47R1-EXECUTOR-INFRA-BLOCKED-2026-07-09.md`; Kanban Coordinator `t_50707802`; Kanban Executor `t_dfaef3d8` run `#209` |
+| PMC Action Required | `NO` |
+| PMC Action Type | `NONE` |
+| PMC Action Reason | `Runtime diagnostic produced for rev47r2 action-injection incident; verdict STILL_INFRA_BLOCKED; awaiting Codex PMC review of ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-2026-07-10.md` |
+| PMC Evidence Paths | `ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-2026-07-10.md`; `ai/reviews/REVIEW-T4-003-PMC-RUNTIME-ADVISORY-REV47R2-2026-07-10.md`; Coordinator `t_41e1a294`; Executor `t_4a0c6348`; Executor run `#211`; session `20260710_003043_0a9c1b`; Kanban log `C:/Users/mkd/AppData/Local/hermes/kanban/boards/revid/logs/t_4a0c6348.log` |
 | Human Decision Candidate | `NO` |
 | Human Escalation Reason | `NONE` |
 
@@ -318,6 +336,12 @@
 
 ## Historical Notes
 
+- **rev47r2 runtime diagnostic ready** (2026-07-10T00:47:04+08:00): deterministic gate first returned exit 2 because status lacked the rev47r2 Runtime Advisory section. Hermes did not modify Kanban. Fresh diagnostic `ai/reports/DIAGNOSTIC-T4-003-REV47R2-ACTION-INJECTION-2026-07-10.md` SHA256 `B54D120B5680083CE1797290FA0ECF4E20669870BEBA80C5795C52E38DD83271` returned `STILL_INFRA_BLOCKED`: persisted Executor card `t_4a0c6348` contains standalone `Action: IMPLEMENT_AND_TEST_ONLY`, but the actual `revid-backend` worker instruction was only `work kanban task t_4a0c6348`, so SOUL fail-closed before task read. Runtime Owner State is `DIAGNOSTIC_READY`; due `2026-07-10T01:32:55+08:00` is `SATISFIED`. No redispatch, retry, Reviewer/HANDOFF, business code, database, `.env`, secret, Queue/Task/CURRENT/ROADMAP or PMC PASS action performed.
+- **rev47r2 Executor runtime block** (2026-07-10T00:32:55+08:00): Coordinator `t_41e1a294` completed run `#210` in 25s with `DISPATCH_COMPLETE: child created and parent committed atomically`, creating Executor `t_4a0c6348`. Executor `t_4a0c6348` was promoted and claimed as run `#211`, but blocked after 13s with `WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION`. Kanban log/session `20260710_003043_0a9c1b` shows backend SOUL fail-closed before task read because the runtime instruction did not expose a unique standalone `Action: IMPLEMENT_AND_TEST_ONLY`, despite the persisted card body containing that Action. No PLAN/PROGRESS/REPORT was written. This is a Hermes runtime/action-injection incident, not business REWORK. No retry, duplicate Coordinator/Executor, Reviewer/HANDOFF, business code, database, `.env`, secret, T4-004/T4-005 or PMC PASS action performed.
+- **rev47r2 ACK and Coordinator running** (2026-07-10T00:30:00+08:00): after PMC/runtime patch base remediation, deploy gate returned `HERMES_RUNTIME_PATCH_ALREADY_APPLIED` and role verifier returned `ROLE_CONTRACTS_OK`. Canonical launcher dry-run succeeded, then created fresh Coordinator `t_41e1a294` with `Action: DISPATCH_ONLY`, assignee `revid-dispatcher`, idempotency key `revid:phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2:T4-003:dispatch`, and exact Executor child contract `revid-backend` / `IMPLEMENT_AND_TEST_ONLY` / `1800s` / `T4_003_MYSQL_RUNTIME_REMEDIATION_REPORT_READY_REV47R2`. Gateway claimed run `#210` (`worker_pid 36108`); no Executor child observed yet at this checkpoint. Historical rev47/rev47r1 cards were not reused; no Reviewer/HANDOFF, business code, database, `.env`, secret, T4-004/T4-005 or PMC PASS action performed.
+- **rev47r2 blocked before ACK** (2026-07-10T00:08:09+08:00): Active Wave and Next Cron Contract both point to `phase4-wave2-t4-003-mysql-runtime-cutover-remediation-continuation-2026-07-09-47r2` with `Action: DISPATCH_ONLY`; Task/Queue/PMC review/runtime diagnostic SHA256 values matched. Mandatory pre-dispatch gate `python ai/runtime/deploy-hermes-runtime-contracts.py --apply` returned `HERMES_RUNTIME_PATCH_BASE_INCOMPATIBLE` (exit 1), while `python ai/runtime/verify-hermes-role-contracts.py` returned `ROLE_CONTRACTS_OK` (exit 0). Per canonical Action Routing Matrix gate, Hermes did not create a Coordinator, did not reuse rev47/rev47r1 cards, and did not perform Reviewer/HANDOFF/business/database/.env/secret action. Failure fingerprint `SUPERVISOR_RUNTIME_PATCH_BASE_INCOMPATIBLE`; PMC action marker set to `YES / RUNTIME_ADVISORY`, Human Decision Candidate `NO`.
+- **rev47r1 fresh runtime diagnostic evidence** (2026-07-09T23:16:49+08:00): fresh diagnostic `ai/reports/DIAGNOSTIC-T4-003-REV47R1-EXECUTOR-WORKER-EXIT-FRESH-EVIDENCE-2026-07-09.md` SHA256 `F3A47D7AB7B8EB1F36F9DED1399E019BB9F5BF72EDFAC8E0559165BFE2189142`, verdict `STILL_INFRA_BLOCKED`. New evidence corrected Executor session from Coordinator session `20260709_220308_cac36d` to actual backend session `20260709_220509_df101b`; profile log shows API/tool activity through `2026-07-09T22:24:21+08:00`, finalization reason `fallback_prior_turn_content` after empty follow-up, no `kanban_complete`/`kanban_block`, REPORT still missing, PID `33476` no longer running, full stdout/stderr and OS process exit code still unavailable. No redispatch, retry, Reviewer/HANDOFF, business-code, database, `.env`, secret, Queue/Task/CURRENT/ROADMAP or PMC PASS action performed.
+- **rev47r1 runtime diagnostic ready** (2026-07-09T23:00:31+08:00): terminal PMC_BLOCKED runtime advisory acknowledged for `REV47R1_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT`; Queue Action canonicalized to `NONE — terminal evidence only`; diagnostic `ai/reports/DIAGNOSTIC-T4-003-REV47R1-EXECUTOR-WORKER-EXIT-2026-07-09.md` SHA256 `C0A5744B17F43FE502DE3C3CCB683EC049F8CE0DB1E2D8B4184104917EFCFC1F`, verdict `STILL_INFRA_BLOCKED`. Evidence: Coordinator `t_50707802` done run `#208`, Executor `t_dfaef3d8` blocked run `#209` after 1153s, spawned PID `33476` no longer running, no session/log file found for `20260709_220308_cac36d`, `REPORT-T4-003-REV47R1.md` missing, PROGRESS stopped at regression-test step. No redispatch, retry, Reviewer/HANDOFF, database, `.env`, secret, business-code, Queue/Task/CURRENT/ROADMAP or PMC PASS action performed.
 - **rev47r1 infrastructure block** (2026-07-09T22:29:42+08:00): Executor `t_dfaef3d8` run `#209` blocked after 1153s with `WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION: worker returned without calling kanban_complete or kanban_block`. PLAN `ai/tasks/doing/TASK-T4-003-REV47R1-PLAN.md` and PROGRESS `ai/tasks/doing/TASK-T4-003-REV47R1-PROGRESS.md` exist, but `ai/reports/REPORT-T4-003-REV47R1.md` is missing. State advanced from `EXECUTOR_RUNNING` to `INFRASTRUCTURE_BLOCKED`; failure fingerprint `REV47R1_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT`. PMC action marker set to `YES / RUNTIME_ADVISORY`; Human Decision Candidate remains `NO`. No retry, Reviewer/HANDOFF, business code action, database action, `.env` read, secret output, T4-004/T4-005 or PMC PASS action performed.
 - **rev47r1 Executor running** (2026-07-09T22:05:08+08:00): Coordinator `t_50707802` completed run `#208` in 106s with `DISPATCH_COMPLETE: child created and parent committed atomically`, creating Executor `t_dfaef3d8`. Executor `t_dfaef3d8` was promoted and claimed by `revid-backend` as run `#209`, session `20260709_220308_cac36d`, worker PID `33476`. State advanced from `ACKNOWLEDGED` to `EXECUTOR_RUNNING`; stop marker remains `T4_003_MYSQL_RUNTIME_REMEDIATION_REPORT_READY_REV47R1`; no Reviewer/HANDOFF authorized.
 - **rev47r1 ACK and Coordinator ready** (2026-07-09T22:02:57+08:00): Queue Active Wave and `ai/automation/HERMES-NEXT-CRON-CONTRACT.md` both point to `phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1` with `Action: DISPATCH_ONLY`. Deploy/verifier gates passed (`HERMES_RUNTIME_PATCH_ALREADY_APPLIED` / `ROLE_CONTRACTS_OK`); Task SHA256 `B5D5A8DA7F9E4C2BD46AAC9B303835B23A70607D0B5C57224C0EB4B1094FD244` and PMC authorization review SHA256 `7A0A9DE135119F0BB4C120F377D371A24DD6C913F0922C2FDEEB5CBE01A6FC9B` matched. Canonical launcher dry-run passed, then created fresh Coordinator `t_50707802` with standalone `Action: DISPATCH_ONLY`, assignee `revid-dispatcher`, idempotency key `revid:phase4-wave2-t4-003-mysql-runtime-cutover-remediation-2026-07-09-47r1:T4-003:dispatch`; body read-back verified. Coordinator status was `ready` and no Executor child was observed at ACK write time. Historical rev47 cards `t_2f055673` / `t_cef284e1` were not reused; no Reviewer/HANDOFF, business code, database, `.env`, secret, T4-004/T4-005 or PMC PASS action performed.
