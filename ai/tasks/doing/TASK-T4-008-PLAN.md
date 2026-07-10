@@ -73,6 +73,8 @@ Success requires typecheck/build plus mocked or local-backend browser behavior f
 
 ### Slice C - Real-data acceptance and closure
 
+Status: blocked at runtime preflight on 2026-07-11. The authorized local `revid_db` is at `d8c5b9a4e2f0`, while current backend startup requires `e9f1a2b3c4d5`. The pending migration creates the commented `generation_tasks` table and indexes, but T4-008 does not authorize database or migration changes.
+
 1. Run the authenticated local-backend matrix with project creation, list refresh, persistence, recent assets, quotas, and API-failure states.
 2. Cross-check the created project ID, name, and timestamp against authorized local MySQL evidence without opening or printing secrets.
 3. Capture 1440x900, 920px, and 375px screenshots; check console, keyboard access, copy fit, and horizontal overflow.
@@ -100,4 +102,4 @@ Success requires typecheck/build plus mocked or local-backend browser behavior f
 
 ## Human Gates
 
-None for the planned frontend and normal local-data work. A product-direction conflict about the root route, a required real secret/external account, a destructive data action, or a major contract change must be escalated before implementation.
+One active gate: Human Owner must either authorize applying the existing additive `e9f1a2b3c4d5` migration to local `revid_db`, or provide an authorized local runtime already at that revision. No migration was executed during T4-008. Product-direction conflicts, required real secrets/external accounts, destructive data actions, and major contract changes remain escalation gates.

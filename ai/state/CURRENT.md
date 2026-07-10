@@ -21,7 +21,7 @@ Last updated: 2026-07-11
 ## Active Task
 
 - Task: `T4-008 - Real-data Home project and asset dashboard`
-- State: `DOING`
+- State: `BLOCKED`
 - Task file: `ai/tasks/todo/TASK-T4-008.md`
 - Plan: `ai/tasks/doing/TASK-T4-008-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T4-008-PROGRESS.md`
@@ -62,6 +62,7 @@ Replace the marketing-oriented Home with an authenticated personal dashboard tha
 - Home exposes no implicit Workspace link. Existing and newly created projects enter Workspace only with the backend project ID as scalar query `project_id`.
 - Loading, empty, initial-error, refresh-error, partial-data, zero-quota, frozen-generation, create-success, and create-error states are explicit. Unknown asset wire values use neutral fallbacks.
 - Pagination metadata remains at the asset API boundary rather than Pinia because Workspace directly mutates asset items and is outside T4-008 scope; Home describes the loaded page only as recent assets and never as an account-wide total.
+- Slice C runtime preflight reached the authorized local MySQL service without reading `.env`, but current `revid_db` is at Alembic revision `d8c5b9a4e2f0` while the current backend requires `e9f1a2b3c4d5`; the backend correctly refuses startup before browser acceptance.
 
 ## T4-008 Acceptance Focus
 
@@ -74,23 +75,25 @@ Replace the marketing-oriented Home with an authenticated personal dashboard tha
 
 ## Remaining In Current Task
 
-1. Complete Slice C real local-backend/MySQL cross-check and responsive browser acceptance before REPORT and closure.
+1. Restore an authorized local MySQL runtime to Alembic revision `e9f1a2b3c4d5`.
+2. Complete Slice C real local-backend/MySQL cross-check and responsive browser acceptance before REPORT and closure.
 
 ## Exact Next Action
 
-Run Slice C against an authorized local backend/MySQL runtime: authenticate, compare Home project/asset/quota data with the real APIs, create one acceptance project and cross-check its ID/name/created_at in MySQL without opening or printing secrets, then repeat 1440x900, 920px, and 375px browser/console/overflow checks. If all non-deferred criteria pass, perform the final diff review, write REPORT, and close T4-008.
+Human Owner chooses one release path for the runtime blocker: authorize applying the existing additive `e9f1a2b3c4d5` generation-task migration to local `revid_db`, or provide an already-current authorized local runtime. After schema readiness is proven, rerun Slice C project/asset/quota/API/MySQL comparison, acceptance-project creation, and 1440x900/920px/375px browser checks.
 
 ## Current Blockers
 
 - T4-005 Unit B real Agnes smoke remains a Human cost gate and must not run without explicit authorization.
-- T4-008 has no active implementation blocker.
-- Real MySQL acceptance later must use an authorized runtime without opening or printing `.env`/credential material.
+- T4-008 is blocked before real browser acceptance because local `revid_db` is one Alembic revision behind current code. T4-008 forbids database/migration changes, so Codex did not run `alembic upgrade`.
+- Release condition: Human Owner authorizes the existing additive migration for this local database, or supplies an authorized runtime already at `e9f1a2b3c4d5`.
+- Real MySQL acceptance must continue without opening or printing `.env`/credential material.
 - The backend direct registration API 72-byte boundary remains a separate normal engineering follow-up.
 
 ## Worktree Protection
 
-- This run started from `main` at `518682b14f00189b3815fe25addcb18e48398961` with no staged, modified, unmerged, detached, or in-progress Git-operation state.
-- `frontend/.playwright-cli/` and `output/` were pre-existing untracked browser artifact directories. New mocked Slice B2 evidence is under `output/playwright/t4-008-slice-b2/`; all browser artifacts remain excluded from delivery staging and are preserved because deletion requires Human confirmation.
+- This run started from `main` at `6e2ea259c7e0b85caae6a9d72722ba02a460a546` with no staged, modified, unmerged, detached, or in-progress Git-operation state.
+- `frontend/.playwright-cli/` and `output/` were pre-existing untracked browser artifact directories. Slice C added only an ignored credential-safe launcher and startup logs under `output/playwright/t4-008-slice-c/`; all browser artifacts remain excluded from delivery staging and are preserved because deletion requires Human confirmation.
 - Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
 
 ## Historical Evidence

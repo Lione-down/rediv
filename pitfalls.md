@@ -236,3 +236,10 @@ Evidence:
 
 - `ai/decisions/ADR-2026-07-10-CODEX-DIRECT-DELIVERY.md`
 - `ai/automation/REVID-CODEX-DIRECT-OPERATING-MODEL.md`
+
+## 2026-07-11 Real MySQL 浏览器验收前置门
+
+- MySQL 端口可达不等于 backend 可验收；真实浏览器矩阵前必须先证明 `alembic_version` 与当前 migration head 一致。
+- 当前直执行规则覆盖早期 Hermes `.env` 约定：未经 Human Owner 明确授权，不打开 `.env`；runtime 只消费已注入的 process environment，证据不得输出 credential。
+- 若 backend 因 schema revision mismatch 拒绝启动，不能用 SQLite、mock 或跳过 revision check 冒充 real-service PASS。
+- Active Task 明确禁止 database/migration 变更时，不得顺手执行 `alembic upgrade`；应记录 current/head、影响和 release condition，由 Human Owner 授权 migration 或提供已就绪 runtime。

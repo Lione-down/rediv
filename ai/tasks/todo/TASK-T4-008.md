@@ -2,8 +2,12 @@
 
 ## Status
 
-- State: `DOING`
+- State: `BLOCKED`
 - Owner: Codex Project Lead Engineer
+
+## Active Blocker
+
+Slice C cannot start the current backend against local `revid_db`: the database is at Alembic revision `d8c5b9a4e2f0`, while current code requires `e9f1a2b3c4d5`. This Task forbids database and migration changes, so release requires Human Owner authorization to apply the existing additive migration to this local database, or an already-current authorized runtime.
 
 ## Task ID
 T4-008
