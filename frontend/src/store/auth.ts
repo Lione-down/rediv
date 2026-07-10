@@ -30,9 +30,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function loginWithWechat() {
-    const state = createWechatState()
-    const response = await getWechatAuthorize(state)
-    const { authorize_url: authorizeUrl, mock } = response.data
+    const requestedState = createWechatState()
+    const response = await getWechatAuthorize(requestedState)
+    const { authorize_url: authorizeUrl, mock, state } = response.data
 
     wechatState.value = state
     sessionStorage.setItem('revid_wechat_state', state)

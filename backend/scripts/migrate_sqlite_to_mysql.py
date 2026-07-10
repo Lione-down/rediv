@@ -404,7 +404,11 @@ class MySQLWriter:
             if pk_value in existing_map:
                 # Symmetric comparison: exclude PK from BOTH source and dest dicts
                 src_excluded = {k: row[k] for k in row.keys() if k != pk_col}
-                dst_excluded = {k: existing_map[pk_value][k] for k in existing_map[pk_value].keys() if k != pk_col}
+                dst_excluded = {
+                    k: existing_map[pk_value].get(k)
+                    for k in row.keys()
+                    if k != pk_col
+                }
                 src_json = json.dumps(
                     src_excluded, sort_keys=True, default=str,
                 )

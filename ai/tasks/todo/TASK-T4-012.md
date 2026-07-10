@@ -13,7 +13,7 @@ Frontend / Canvas Integration
 P0
 
 ## Assigned To
-Frontend Executor
+Codex Project Lead Engineer
 
 ## Objective
 完成节点和连线的真实加载/保存、连线 pointer 交互、双击新增、框选、右键菜单和 minimap，并拆分当前 1000+ 行 CanvasStage。
@@ -30,7 +30,21 @@ Frontend Executor
 - 禁止修改：backend contract、Auth、Home、Space、global design tokens。
 
 ## Dependencies
-T4-010、T4-011 已审查通过。
+T4-007、T4-010、T4-011 已完成。
+
+## Direct Delivery Units
+
+### Unit A — Decomposition And Persistence
+
+- 将 CanvasStage 的 render、viewport、interaction、persistence 职责拆分为明确模块。
+- 完成 project-driven nodes/connections load、create/move/delete persistence、debounce/flush 和 optimistic rollback。
+- Unit A 必须通过 build、刷新恢复和 API 失败回滚验收后才能进入 Unit B。
+
+### Unit B — Advanced Interaction And Visual Acceptance
+
+- 完成锚点拖线、双击新增、框选、多选、右键菜单、minimap、键盘和 zoom/pan 命中验收。
+- 不重新打开 Unit A 已冻结的 backend contract，除非新证据触发独立返工 Task。
+- 完成 1440×900、920px、375px 的真实浏览器验证。
 
 ## Implementation Requirements
 1. route project ID 驱动 load nodes/connections；loading 完成前不覆盖 server data。
@@ -66,4 +80,3 @@ npm run build
 
 ## Codex Prompt
 复用 Leafer UI，不引入第二 canvas engine。先拆职责再完成持久化交互，但禁止无关视觉重写。编码前维护 PLAN/PROGRESS；完成浏览器与 Navicat 双重验证后写 REPORT。
-

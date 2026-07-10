@@ -1,41 +1,57 @@
-# Revid — Phase 4 路线图
+# Revid - Phase 4 Direct Delivery Roadmap
 
-> 版本：v3.1 Personal Integration Edition
-> 状态：已批准，2026-06-21
+Last updated: 2026-07-10
 
-## Phase 4A — MySQL 主数据库
+## Execution Policy
 
-| Task | 标题 | 状态 | 依赖 |
-|---|---|---|---|
-| T4-001 | MySQL 8 引擎、模型备注与 Alembic baseline | done | 无 |
-| T4-002 | SQLite → MySQL 数据迁移工具 | done ✅ — `PMC_PASS - EMERGENCY DIRECT FINAL ACCEPTANCE` in `ai/reviews/REVIEW-T4-002-PMC-EMERGENCY-FINAL-ACCEPTANCE-2026-07-09.md`; rev46 Hermes lifecycle is terminal ACK-only evidence | T4-001 ✅ |
-| T4-003 | MySQL runtime 切换与 Navicat 验收 | blocked — rev47r1 terminal runtime advisory, waiting Hermes diagnostic for `REV47R1_EXECUTOR_WORKER_EXIT_WITHOUT_TERMINAL_TRANSITION_NO_REPORT` | T4-002 ✅ |
+- One active implementation Task at a time.
+- Codex plans, implements, verifies, self-reviews, reports, and updates state directly.
+- Each Task must leave the repository usable before the next Task starts.
+- Paid Agnes smoke calls and destructive or irreversible actions remain Human Owner gates.
 
-## Phase 4B — 认证与真实 API
+## Delivery Order
 
-| Task | 标题 | 状态 | 依赖 |
-|---|---|---|---|
-| T4-004 | 内部账号密码认证与 Admin bootstrap | blocked | T4-003 |
-| T4-005 | 真实 Agnes API 联调与诊断信息 | blocked | T4-003 |
+| Order | Task | Deliverable | State | Dependency |
+|---:|---|---|---|---|
+| 1 | T4-003 | MySQL runtime, health, persistence, restart and Navicat acceptance | DONE - PASS | T4-002 done |
+| 2 | T4-004 | Password authentication and Admin bootstrap | VERIFYING | T4-003 done |
+| 3 | T4-011 | Canvas connection model and CRUD API | TODO | T4-003 and T4-004 |
+| 4 | T4-005 Unit A | GenerationTask persistence, provider integration and mock tests | TODO | T4-003 and T4-004 |
+| 5 | T4-007 | Login/register UI and route/session guards | TODO | T4-004 and T4-006 |
+| 6 | T4-008 | Real-data Home project and asset dashboard | TODO | T4-003 and T4-007 |
+| 7 | T4-009 | Real-data Space asset workspace | TODO | T4-003 and T4-007 |
+| 8 | T4-012 Unit A | Canvas decomposition, server load/save and optimistic rollback | TODO | T4-007, T4-010 and T4-011 |
+| 9 | T4-012 Unit B | Connection interaction, selection, context menu, minimap and responsive QA | TODO | T4-012 Unit A |
+| 10 | T4-005 Unit B | Explicitly authorized real Agnes text/image/video smoke | TODO - HUMAN COST GATE | T4-005 Unit A |
+| 11 | T4-013 | Full E2E, visual QA, security checks and documentation closure | TODO | T4-005/007/008/009/012 |
 
-## Phase 4C — 前端视觉与页面
+## Completed Foundations
 
-| Task | 标题 | 状态 | 依赖 |
-|---|---|---|---|
-| T4-006 | 暗色 design system 与 Naive UI provider | done ✅ | 无 |
-| T4-007 | 登录/注册入口与路由鉴权 | blocked | T4-004、T4-006 |
-| T4-008 | Home 项目/资产概览页重构 | blocked | T4-003、T4-006 |
-| T4-009 | Space 个人资产页重构 | blocked | T4-003、T4-006 |
-| T4-010 | Workspace 组件拆分与目标布局 | done ✅ — rev41r7 REVIEW PASS、HANDOFF_READY、PMC PASS | T4-006 ✅ |
+| Task | Result |
+|---|---|
+| T4-001 | MySQL engine, model comments and Alembic baseline - DONE |
+| T4-002 | SQLite to MySQL migration tooling - DONE |
+| T4-006 | Dark design system and Naive UI provider - DONE |
+| T4-010 | Workspace component layout - DONE |
 
-## Phase 4D — Canvas 与最终联调
+## Planned Splits
 
-| Task | 标题 | 状态 | 依赖 |
-|---|---|---|---|
-| T4-011 | Canvas connection 后端持久化 | blocked | T4-003 |
-| T4-012 | Canvas 交互与前后端持久化联调 | blocked | T4-010、T4-011 |
-| T4-013 | 完整 E2E、视觉 QA 与文档收口 | blocked | T4-005、T4-007、T4-008、T4-009、T4-012 |
+T4-005 remains one product Task but has two independently verifiable units. Unit A cannot make paid calls. Unit B performs real provider smoke only after explicit Human Owner authorization.
+
+T4-012 remains one product Task but has two independently mergeable units. Unit A establishes maintainable component boundaries and persistence. Unit B adds advanced interaction and visual acceptance without reopening backend contracts.
+
+## Current Size Risks
+
+- `frontend/src/views/app/Home.vue`: 947 lines
+- `frontend/src/views/app/Space.vue`: 983 lines
+- `frontend/src/components/canvas/CanvasStage.vue`: 1071 lines
+
+The relevant Tasks must reduce each page or stage controller to at most 500 lines through domain-aligned components, without unrelated visual redesign.
 
 ## Phase Complete Definition
 
-通过账号进入项目，创建并连接 Canvas 节点，调用真实 Agnes，资产和任务数据写入 MySQL；刷新页面后数据恢复；用户可通过 Navicat 查看带备注的完整数据；目标暗色 UI 和全链路测试通过。
+An authorized user can sign in, create a project, create and connect Canvas nodes, invoke Agnes, and inspect persisted projects, nodes, connections, generation tasks, assets, and quota data in MySQL. Refresh and backend restart preserve state. Home, Space, and Workspace pass browser checks at 1440x900, 920px, and 375px. Backend tests, frontend build, E2E, security checks, and final documentation all pass.
+
+## Historical Roadmap State
+
+The former Hermes-oriented timeline and blocker history is preserved in `ai/state/archive/CURRENT-HERMES-THROUGH-2026-07-10.md`. It is not part of normal per-run context.

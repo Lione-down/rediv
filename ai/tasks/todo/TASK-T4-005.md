@@ -13,7 +13,7 @@ Backend / External API Integration
 P0
 
 ## Assigned To
-Backend Executor
+Codex Project Lead Engineer
 
 ## Objective
 用真实 Agnes 配置分别调通文本、图片、视频生成，并将可诊断的任务状态和生成结果持久化到 MySQL，供 API、日志和 Navicat 检查。
@@ -27,7 +27,21 @@ Backend Executor
 - 禁止修改：前端视觉、Auth、MySQL 基础连接、额度产品规则。
 
 ## Dependencies
-T4-003 已审查通过。Agnes endpoint 已确认可达；真实 key 由本地 env 提供。
+T4-003、T4-004 已完成。Agnes endpoint 已确认可达；真实 key 只允许由 process environment 提供。
+
+## Direct Delivery Units
+
+### Unit A — Implementation And Mock Verification
+
+- 实现 `generation_tasks`、provider 状态映射、查询 API、dry-run smoke script 和 mock tests。
+- 默认不得调用任何付费 Agnes endpoint。
+- Unit A 完成后仓库必须可独立运行和验证。
+
+### Unit B — Authorized Real Smoke
+
+- 只有 Human Owner 明确授权付费调用后，才分别执行 text/image/video real smoke。
+- 只记录 provider request ID、模型、状态、耗时和结果关联等非敏感证据。
+- 未授权或缺少 process-provided key 时保持 `TODO - HUMAN COST GATE`，不影响 Unit A 的代码验收。
 
 ## Implementation Requirements
 1. HTTP client 统一为 httpx，明确 connect/read/total timeout；不新增 requests。
@@ -64,4 +78,3 @@ Navicat 查看一次成功和一次受控失败任务；核对状态、模型、
 
 ## Codex Prompt
 复用现有 AgnesProvider，不重写 provider。真实调用可能产生额度成本，只有在本地 env 完整且显式 `--execute` 时执行。编码前维护 PLAN/PROGRESS；报告必须区分 mock tests 与真实 smoke 证据。
-

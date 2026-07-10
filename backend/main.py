@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from controllers.store import DatabaseStore, InMemoryStore, configure_store
+from controllers.store import DatabaseStore, configure_store
 from core.agnes_provider import AgnesProvider
 from database import init_db, init_mysql_engine, check_alembic_revision
 from settings.config import settings

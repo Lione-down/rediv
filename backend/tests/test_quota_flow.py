@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
-from core.security import create_token
+from core.security import create_token, hash_password
 from database import close_db, init_db
 
 
@@ -22,6 +22,7 @@ class QuotaFlowTestCase(unittest.TestCase):
         db_path = str(Path(self.temp_dir.name) / "test-revid.db")
         init_db(db_path)
         configure_store(DatabaseStore())
+        self.admin_id = store.ensure_admin_user("test-admin", hash_password("StrongPass123!"))["id"]
 
         app = FastAPI()
         include_routers(app)
@@ -62,7 +63,7 @@ class QuotaFlowTestCase(unittest.TestCase):
         self.assertEqual(150, payload["quotas"]["text"])
         self.assertEqual(150, store.quotas[user_id]["text"])
         self.assertEqual("admin_grant", payload["ledger"]["reason"])
-        self.assertEqual(self._admin_id(), payload["ledger"]["admin_id"])
+        self.assertEqual(self.admin_id, payload["ledger"]["admin_id"])
         self.assertEqual("manual grant", payload["ledger"]["note"])
 
     def test_quota_ledger_query(self) -> None:
@@ -174,12 +175,8 @@ class QuotaFlowTestCase(unittest.TestCase):
         )
 
     def _admin_headers(self) -> dict[str, str]:
-        token = create_token({"sub": self._admin_id(), "role": "admin"})
+        token = create_token({"sub": self.admin_id, "role": "admin"})
         return {"Authorization": f"Bearer {token}"}
-
-    @staticmethod
-    def _admin_id() -> str:
-        return next(user["id"] for user in store.users.values() if user["role"] == "admin")
 
 
 if __name__ == "__main__":

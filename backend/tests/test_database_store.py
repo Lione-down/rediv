@@ -5,6 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from controllers.store import DatabaseStore
+from core.security import hash_password
 from database import close_db, init_db
 
 
@@ -14,6 +15,7 @@ class DatabaseStoreTestCase(unittest.TestCase):
         self.db_path = str(Path(self.temp_dir.name) / "test-revid.db")
         init_db(self.db_path)
         self.store = DatabaseStore()
+        self.admin = self.store.ensure_admin_user("test-admin", hash_password("StrongPass123!"))
 
     def tearDown(self) -> None:
         close_db()
@@ -42,8 +44,7 @@ class DatabaseStoreTestCase(unittest.TestCase):
         self.assertEqual({}, guest["local_project_snapshot"])
 
     def test_create_invitation_code_and_use(self) -> None:
-        admin_id = next(user["id"] for user in self.store.users.values() if user["role"] == "admin")
-        invitation = self.store.create_invitation_code("HELLO123", 2, None, None, admin_id)
+        invitation = self.store.create_invitation_code("HELLO123", 2, None, None, self.admin["id"])
 
         self.assertTrue(self.store.use_invitation_code("HELLO123"))
         self.assertEqual(1, invitation["used_count"])

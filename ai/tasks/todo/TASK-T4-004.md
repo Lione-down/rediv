@@ -1,5 +1,10 @@
 # Task: 内部账号密码认证与 Admin bootstrap
 
+## Status
+
+ - State: `VERIFYING`
+- Owner: Codex Project Lead Engineer
+
 ## Task ID
 T4-004
 
@@ -13,7 +18,7 @@ Backend / Auth
 P1
 
 ## Assigned To
-Backend Executor
+Codex Project Lead Engineer
 
 ## Objective
 为个人内部使用提供账号密码登录、受 registration mode 控制的注册能力和安全的 Admin 初始化，同时保留已有微信老用户登录能力。
@@ -24,7 +29,8 @@ FastAPI + Pydantic schemas + SQLAlchemy model/Alembic revision + bcrypt hashing 
 ## Scope
 - 允许修改：`backend/api/auth.py`、`backend/core/security.py`、`backend/schemas/auth.py`、`backend/models/user.py`、`backend/controllers/store.py` 的 Auth 方法、settings、requirements。
 - 允许新增：Auth Alembic revision、`scripts/seed_admin.py`、Auth tests。
-- 禁止修改：生成 API、前端、额度规则、真实 `.env`。
+- 最小前端例外：仅允许修改 `frontend/src/api/auth.ts`、`frontend/src/store/auth.ts`、`frontend/src/views/app/WechatCallback.vue`，用于传递 backend-signed WeChat OAuth `state` 并在 callback mismatch 时 fail closed；不得扩展为登录/注册 UI 工作。
+- 禁止修改：生成 API、上述例外之外的前端、额度规则、真实 `.env`。
 
 ## Dependencies
 T4-003 已审查通过。

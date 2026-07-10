@@ -13,7 +13,7 @@ QA / Integration / Documentation
 P0
 
 ## Assigned To
-QA Reviewer / Integration Executor
+Codex Project Lead Engineer
 
 ## Objective
 验证账号、MySQL、Canvas、Agnes 和资产的完整个人工作流，收口事实源、运行文档和已知风险。
@@ -73,5 +73,4 @@ git ls-files ".env" ".env.*" "*.pem" "*.key" "*.p12" "*.pfx"
 - `ai/reviews/REVIEW-PHASE4-COMPLETE.md`
 
 ## Codex Prompt
-本任务是验证与收口，不是功能开发。先读取所有 T4 reports，编码前创建 PLAN/PROGRESS。任何失败先定位责任任务；超过 5 个业务文件的修复必须拆成返工任务。完成安全、Navicat、browser 和全量测试后提交 REPORT，等待 PMC 审查。
-
+本任务是验证与收口，不是功能开发。先读取所有 T4 reports，编码前创建 PLAN/PROGRESS。任何失败先定位责任任务；超过 5 个业务文件的修复必须拆成返工任务。完成安全、Navicat、browser 和全量测试后提交 REPORT，再执行一次 fresh diff/test self-review 后收口 Phase 4。

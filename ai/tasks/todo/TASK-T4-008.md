@@ -13,7 +13,7 @@ Frontend / Project Dashboard
 P1
 
 ## Assigned To
-Frontend Executor
+Codex Project Lead Engineer
 
 ## Objective
 把当前营销型 Home 改为个人项目工作台，真实展示 MySQL 中的项目、最近资产、额度和快捷入口。
@@ -30,7 +30,7 @@ Frontend Executor
 - 禁止修改：backend、Space、Workspace、Canvas。
 
 ## Dependencies
-T4-003、T4-006 已审查通过。
+T4-003、T4-006、T4-007 已完成。
 
 ## Implementation Requirements
 1. 数据全部来自 project/assets/quota API，不保留伪造的 quickStarts 数值。
@@ -64,4 +64,3 @@ npm run build
 
 ## Codex Prompt
 将 Home 从营销页改为真实个人工作台。禁止伪造数据和修改 backend。编码前维护 PLAN/PROGRESS；完成 MySQL 数据核对、build 和浏览器验证后写 REPORT。
-

@@ -13,7 +13,7 @@ Backend / Canvas Data
 P0
 
 ## Assigned To
-Backend Executor
+Codex Project Lead Engineer
 
 ## Objective
 为 Canvas 连线建立明确的 MySQL 数据模型和 CRUD API，使连接可通过 Navicat 查看并在刷新后恢复。
@@ -27,7 +27,7 @@ FastAPI router/schema + SQLAlchemy model + Alembic revision + existing DatabaseS
 - 禁止修改：前端、生成 API、Auth、其他 store 重构。
 
 ## Dependencies
-T4-003 已审查通过。
+T4-003、T4-004 已完成。
 
 ## Implementation Requirements
 1. 字段至少包含 id、project_id、source_node_id、source_port、target_node_id、target_port、status、metadata JSON、created_at、updated_at，并补齐表/字段备注。
@@ -61,4 +61,3 @@ python -m unittest discover -s tests -p "test_*.py"
 
 ## Codex Prompt
 只实现 connection backend 数据边界，不做前端 pointer 交互或 DAG 执行。编码前创建 PLAN/PROGRESS；所有数据库备注和权限测试必须完成后写 REPORT。
-

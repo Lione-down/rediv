@@ -9,7 +9,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sess
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql.elements import TextClause
 
-from settings.config import settings
+from settings.config import get_settings
 
 
 def utc_now() -> datetime:
@@ -49,6 +49,7 @@ def build_mysql_url() -> str:
     """
     from sqlalchemy.engine.url import URL
 
+    settings = get_settings()
     url = URL.create(
         drivername="mysql+pymysql",
         username=settings.db_user,
@@ -70,6 +71,8 @@ def init_engine(db_path: str | None = None) -> Engine:
     global _engine
     global _engine_url
     global _session_factory
+
+    settings = get_settings()
 
     if db_path and db_path.strip():
         # SQLite mode

@@ -13,7 +13,7 @@ Frontend / Asset Workspace
 P1
 
 ## Assigned To
-Frontend Executor
+Codex Project Lead Engineer
 
 ## Objective
 将 Space 重构为暗色个人资产空间，使用真实资产、模板和额度数据，并拆分当前超大单文件。
@@ -28,7 +28,7 @@ Frontend Executor
 - 禁止修改：backend、Home、Workspace、Canvas、global tokens。
 
 ## Dependencies
-T4-003、T4-006 已审查通过。
+T4-003、T4-006、T4-007 已完成。
 
 ## Implementation Requirements
 1. Tabs 至少覆盖 assets/templates/quota overview，数据来自真实 API。
@@ -62,4 +62,3 @@ npm run build
 
 ## Codex Prompt
 只重构 Space/资产域，复用 design system 和真实 API。编码前创建 PLAN/PROGRESS；完成 build、浏览器和 Navicat 数据核对后写 REPORT。
-

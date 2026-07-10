@@ -4,6 +4,7 @@ import type { AuthResponse, CurrentUserResponse } from '../types/auth'
 export interface WechatAuthorizeResponse {
   authorize_url: string
   mock: boolean
+  state: string
 }
 
 export interface WechatCallbackPayload {

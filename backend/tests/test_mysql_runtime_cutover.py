@@ -12,6 +12,7 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import MagicMock, patch
 
 # Ensure backend is on sys.path
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
@@ -21,28 +22,27 @@ class TestMySQLModeStoreConfiguration(unittest.TestCase):
     """Verify that MySQL mode uses DatabaseStore, not InMemoryStore."""
 
     def setUp(self) -> None:
-        # Save original env
+        from settings.config import settings
+
         self._orig_sqlite = os.environ.get("REVID_USE_SQLITE")
+        self._orig_settings_use_sqlite = settings.use_sqlite
 
     def tearDown(self) -> None:
+        from settings.config import settings
+
         # Restore original env
         if self._orig_sqlite is not None:
             os.environ["REVID_USE_SQLITE"] = self._orig_sqlite
         elif "REVID_USE_SQLITE" in os.environ:
             del os.environ["REVID_USE_SQLITE"]
+        settings.use_sqlite = self._orig_settings_use_sqlite
 
     def test_mysql_mode_uses_database_store(self) -> None:
         """When REVID_USE_SQLITE=false, configure_store should receive a DatabaseStore instance."""
         os.environ["REVID_USE_SQLITE"] = "false"
+        from settings.config import settings
 
-        # Force reimport to pick up new env value
-        # Clear cached modules
-        mods_to_remove = [m for m in sys.modules if m.startswith("settings.config")]
-        for mod in mods_to_remove:
-            del sys.modules[mod]
-
-        from settings.config import get_settings
-        get_settings.cache_clear()
+        settings.use_sqlite = False
 
         from controllers.store import StoreProxy, configure_store
         from models.base import _engine as prev_engine
@@ -74,21 +74,22 @@ class TestEngineReferenceFixRev47R1(unittest.TestCase):
     """
 
     def setUp(self) -> None:
+        from settings.config import settings
+
         self._orig_sqlite = os.environ.get("REVID_USE_SQLITE")
+        self._orig_settings_use_sqlite = settings.use_sqlite
         # Ensure MySQL mode
         os.environ["REVID_USE_SQLITE"] = "false"
-        # Clear cached modules to force fresh import
-        for mod in list(sys.modules.keys()):
-            if mod.startswith("settings.config"):
-                del sys.modules[mod]
-        from settings.config import get_settings
-        get_settings.cache_clear()
+        settings.use_sqlite = False
 
     def tearDown(self) -> None:
+        from settings.config import settings
+
         if self._orig_sqlite is not None:
             os.environ["REVID_USE_SQLITE"] = self._orig_sqlite
         elif "REVID_USE_SQLITE" in os.environ:
             del os.environ["REVID_USE_SQLITE"]
+        settings.use_sqlite = self._orig_settings_use_sqlite
         from database import close_db
         close_db()
 
@@ -135,30 +136,42 @@ class TestEngineReferenceFixRev47R1(unittest.TestCase):
         'Database engine is not initialized'.
         """
         import models.base as base_module
-        from database import init_mysql_engine, check_alembic_revision
+        from database import check_alembic_revision
 
-        # Reset engine to None
-        base_module._engine = None
-        base_module._session_factory = None
+        engine = MagicMock()
+        connection = engine.connect.return_value.__enter__.return_value
+        connection.execute.return_value.fetchone.return_value = ("revision-a",)
 
-        # Initialize MySQL engine (sets models.base._engine)
-        init_mysql_engine()
+        base_module._engine = engine
 
-        # Now call check_alembic_revision
-        # It should NOT raise "Database engine is not initialized"
-        # because it now reads models.base._engine at call time
-        with self.assertRaises(RuntimeError) as ctx:
-            check_alembic_revision()
+        with patch("alembic.script.ScriptDirectory.from_config") as from_config:
+            from_config.return_value.get_current_head.return_value = "revision-a"
+            result = check_alembic_revision()
 
-        # The error should NOT be about engine being uninitialized.
-        # It may fail for other reasons (no alembic_version table, no MySQL
-        # connection, etc.) but the engine reference itself must be alive.
-        self.assertNotIn(
-            "Database engine is not initialized",
-            str(ctx.exception),
-            "check_alembic_revision() raised stale-engine error — "
-            "it must read _engine from models.base at call time",
+        self.assertEqual("revision-a", result["current"])
+        self.assertEqual("revision-a", result["head"])
+        self.assertTrue(result["match"])
+        engine.connect.assert_called_once_with()
+        alembic_config = from_config.call_args.args[0]
+        expected_script_location = str((Path(__file__).parent.parent / "migrations").resolve())
+        self.assertEqual(
+            expected_script_location,
+            alembic_config.get_main_option("script_location"),
         )
+
+    def test_check_alembic_revision_rejects_schema_mismatch(self) -> None:
+        import models.base as base_module
+        from database import check_alembic_revision
+
+        engine = MagicMock()
+        connection = engine.connect.return_value.__enter__.return_value
+        connection.execute.return_value.fetchone.return_value = ("revision-old",)
+        base_module._engine = engine
+
+        with patch("alembic.script.ScriptDirectory.from_config") as from_config:
+            from_config.return_value.get_current_head.return_value = "revision-head"
+            with self.assertRaisesRegex(RuntimeError, "alembic upgrade head"):
+                check_alembic_revision()
 
 
 class TestSQLiteModeStillWorks(unittest.TestCase):
@@ -192,12 +205,12 @@ class TestSQLiteModeStillWorks(unittest.TestCase):
         """SQLite mode should support project and node CRUD."""
         from database import init_db
         from controllers.store import DatabaseStore
+        from core.security import hash_password
 
         init_db(self.db_path)
         store = DatabaseStore()
+        admin_id = store.ensure_admin_user("test-admin", hash_password("StrongPass123!"))["id"]
 
-        # Get admin user id
-        admin_id = next(uid for uid, u in store.users.items() if u["role"] == "admin")
         project = store.create_project(admin_id, "TestProject")
         self.assertIsNotNone(project)
 
@@ -218,11 +231,12 @@ class TestSQLiteModeStillWorks(unittest.TestCase):
         """SQLite mode should support asset creation."""
         from database import init_db
         from controllers.store import DatabaseStore
+        from core.security import hash_password
 
         init_db(self.db_path)
         store = DatabaseStore()
+        admin_id = store.ensure_admin_user("test-admin", hash_password("StrongPass123!"))["id"]
 
-        admin_id = next(uid for uid, u in store.users.items() if u["role"] == "admin")
         project = store.create_project(admin_id, "AssetTest")
 
         asset = store.create_asset(
@@ -260,6 +274,28 @@ class TestStoreProxyConsistency(unittest.TestCase):
         # Verify the global store is now a DatabaseStore
         from controllers.store import store as global_store
         self.assertIsInstance(global_store._backend, DatabaseStore)
+
+
+class TestMySQLWriteOrdering(unittest.TestCase):
+    def test_create_user_flushes_parent_before_quota(self) -> None:
+        from controllers.store import DatabaseStore
+
+        store = object.__new__(DatabaseStore)
+        store.users = {}
+        store.quotas = {}
+
+        session = MagicMock()
+        session_context = MagicMock()
+        session_context.__enter__.return_value = session
+        session_context.__exit__.return_value = False
+
+        with patch("controllers.store.get_session", return_value=session_context):
+            store.create_user("MySQL ordering", "", role="user")
+
+        self.assertEqual(
+            ["add", "flush", "add", "commit"],
+            [call[0] for call in session.method_calls],
+        )
 
 
 if __name__ == "__main__":

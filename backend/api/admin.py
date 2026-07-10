@@ -23,7 +23,19 @@ def _log_admin_operation(
 def dev_admin_login(admin_key: str):
     if admin_key != settings.dev_admin_key:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid admin key")
-    admin = next(user for user in store.users.values() if user["role"] == "admin")
+    admin = next(
+        (
+            user
+            for user in store.users.values()
+            if user["role"] == "admin" and user.get("username") and store.get_password_hash(user["id"])
+        ),
+        None,
+    )
+    if admin is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Admin bootstrap user is not configured",
+        )
     return {"token": create_token({"sub": admin["id"], "role": "admin"}), "user": admin}
 
 

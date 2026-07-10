@@ -39,6 +39,8 @@ class Settings(BaseSettings):
 
     # === Admin ===
     dev_admin_key: str = "dev-admin-key"
+    admin_username: str = ""
+    admin_password: str = Field(default="", repr=False)
     test_mysql_admin_url: str | None = Field(default=None, repr=False)
 
     # === Storage ===

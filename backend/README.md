@@ -61,6 +61,14 @@ cp .env.example .env
 
 按需修改 `.env` 中的配置，尤其是 `REVID_JWT_SECRET`、微信配置和 Agnes API 配置。
 
+如果本地 `.env` 位于项目根目录，从项目根目录使用以下命令启动，避免复制 secret 文件：
+
+```powershell
+.\backend\.venv\Scripts\python.exe -m uvicorn main:app --app-dir backend --env-file .env --reload
+```
+
+`--env-file` 只把配置注入 runtime process；应用日志和 `/health` 不会返回密码或完整数据库 URL。
+
 ## 启动方式
 
 ### SQLite 模式（默认）
@@ -83,6 +91,7 @@ uvicorn main:app --reload
 ```
 
 MySQL 模式下 `REVID_USE_SQLITE=false`，服务启动时不会调用 `create_all()`，而是通过 Alembic 校验 schema revision。
+`/health` 只有在数据库连接成功且 MySQL 当前 revision 与 Alembic head 一致时才返回 `database.ready=true`。
 
 ## 数据库配置
 

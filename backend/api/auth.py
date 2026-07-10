@@ -1,12 +1,28 @@
 from urllib.parse import urlencode
 
-import requests
-
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from controllers.store import store
-from core.security import create_token, current_user
-from schemas.auth import AuthResponse, GuestResponse, MockWechatLoginRequest, WechatCallbackRequest
+from core.security import (
+    create_token,
+    create_wechat_oauth_state,
+    current_user,
+    hash_password,
+    password_meets_policy,
+    verify_password,
+    verify_wechat_oauth_state,
+)
+from schemas.auth import (
+    AuthResponse,
+    GuestResponse,
+    LoginRequest,
+    MockWechatLoginRequest,
+    RegisterRequest,
+    RegistrationSettingsResponse,
+    WechatAuthorizeResponse,
+    WechatCallbackRequest,
+)
 from settings.config import settings
 
 
@@ -15,7 +31,16 @@ me_router = APIRouter(tags=["auth"])
 WECHAT_TIMEOUT_SECONDS = 10
 
 
+def _normalize_login_value(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    return normalized or None
+
+
 def _issue_auth(user: dict) -> AuthResponse:
+    if user["status"] == "banned":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is banned")
     token = create_token({"sub": user["id"], "role": user["role"]})
     return AuthResponse(token=token, user=user, quotas=store.quotas[user["id"]])
 
@@ -31,9 +56,9 @@ def _ensure_wechat_credentials_configured() -> None:
 
 def _wechat_get(url: str, params: dict[str, str]) -> dict:
     try:
-        response = requests.get(url, params=params, timeout=WECHAT_TIMEOUT_SECONDS)
+        response = httpx.get(url, params=params, timeout=WECHAT_TIMEOUT_SECONDS)
         response.raise_for_status()
-    except requests.RequestException as exc:
+    except httpx.HTTPError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Wechat OAuth request failed",
@@ -97,6 +122,13 @@ def _fetch_wechat_profile(code: str) -> dict:
     }
 
 
+def _enforce_registration_mode(invitation_code: str | None) -> None:
+    if store.registration_settings["registration_mode"] == "closed":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Registration is closed")
+    if not store.use_invitation_code(invitation_code):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid invitation code")
+
+
 def _login_or_register_wechat(profile: dict, invitation_code: str | None) -> AuthResponse:
     if not store.registration_settings["wechat_login_enabled"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Wechat login is disabled")
@@ -105,28 +137,40 @@ def _login_or_register_wechat(profile: dict, invitation_code: str | None) -> Aut
         user = store.get_user(identity["user_id"])
         store.touch_login(user["id"])
         return _issue_auth(user)
-    if store.registration_settings["registration_mode"] == "closed":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Registration is closed")
-    if not store.use_invitation_code(invitation_code):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid invitation code")
-    user = store.create_user(profile.get("nickname", "Wechat User"), profile.get("avatar_url", ""))
+    _enforce_registration_mode(invitation_code)
+    user = store.create_user(
+        profile.get("nickname", "Wechat User"),
+        profile.get("avatar_url", ""),
+        username=None,
+        email=None,
+        password_hash=None,
+    )
     store.bind_identity(user["id"], "wechat_open", profile["openid"], profile.get("unionid"), profile)
     store.grant_default_quotas(user["id"])
     return _issue_auth(user)
 
 
-@router.get("/wechat/authorize")
+@router.get("/wechat/authorize", response_model=WechatAuthorizeResponse)
 def wechat_authorize(state: str = "revid-login"):
+    signed_state = create_wechat_oauth_state(state)
     if settings.wechat_mock_enabled:
-        return {"authorize_url": f"/auth/wechat/mock?state={state}", "mock": True}
+        return WechatAuthorizeResponse(
+            authorize_url=f"/auth/wechat/mock?state={signed_state}",
+            mock=True,
+            state=signed_state,
+        )
     params = {
         "appid": settings.wechat_app_id,
         "redirect_uri": settings.wechat_redirect_uri,
         "response_type": "code",
         "scope": "snsapi_login",
-        "state": state,
+        "state": signed_state,
     }
-    return {"authorize_url": f"https://open.weixin.qq.com/connect/qrconnect?{urlencode(params)}#wechat_redirect", "mock": False}
+    return WechatAuthorizeResponse(
+        authorize_url=f"https://open.weixin.qq.com/connect/qrconnect?{urlencode(params)}#wechat_redirect",
+        mock=False,
+        state=signed_state,
+    )
 
 
 @router.post("/wechat/mock", response_model=AuthResponse)
@@ -139,11 +183,64 @@ def mock_wechat_login(payload: MockWechatLoginRequest):
 
 @router.post("/wechat/callback", response_model=AuthResponse)
 def wechat_callback(payload: WechatCallbackRequest):
+    verify_wechat_oauth_state(payload.state)
     if settings.wechat_mock_enabled:
         profile = {"openid": payload.code, "nickname": "Mock Wechat User", "avatar_url": "", "unionid": None}
         return _login_or_register_wechat(profile, payload.invitation_code)
     profile = _fetch_wechat_profile(payload.code)
     return _login_or_register_wechat(profile, payload.invitation_code)
+
+
+@router.get("/registration-settings", response_model=RegistrationSettingsResponse)
+def registration_settings():
+    return RegistrationSettingsResponse(
+        registration_mode=store.registration_settings["registration_mode"],
+        wechat_login_enabled=store.registration_settings["wechat_login_enabled"],
+    )
+
+
+@router.post("/register", response_model=AuthResponse)
+def register(payload: RegisterRequest):
+    normalized_username = _normalize_login_value(payload.username)
+    normalized_email = _normalize_login_value(payload.email)
+    if normalized_username is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username is required")
+    if not password_meets_policy(payload.password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password does not meet policy")
+    _enforce_registration_mode(payload.invitation_code)
+    if store.find_user_by_username(normalized_username):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists")
+    if normalized_email and store.find_user_by_email(normalized_email):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
+
+    user = store.create_user(
+        normalized_username,
+        "",
+        username=normalized_username,
+        email=normalized_email,
+        password_hash=hash_password(payload.password),
+    )
+    store.grant_default_quotas(user["id"])
+    store.touch_login(user["id"])
+    return _issue_auth(store.get_user(user["id"]) or user)
+
+
+@router.post("/login", response_model=AuthResponse)
+def login(payload: LoginRequest):
+    user = store.find_user_by_identifier(payload.identifier)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    if user["status"] == "banned":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is banned")
+    if not verify_password(payload.password, store.get_password_hash(user["id"])):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    store.touch_login(user["id"])
+    return _issue_auth(store.get_user(user["id"]) or user)
+
+
+@router.post("/logout")
+def logout():
+    return {"ok": True, "detail": "Client should discard the bearer token"}
 
 
 @router.post("/guest", response_model=GuestResponse)

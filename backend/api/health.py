@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from fastapi import APIRouter
 
 
@@ -11,61 +9,61 @@ def health_check():
     """Return database health without exposing secrets."""
     from models.base import _engine as engine
 
-    status = "ok"
+    status = "error"
     dialect_name = None
     connection_ok = False
     alembic_current = None
     alembic_head = None
     alembic_match = None
+    ready = False
 
     if engine is not None:
+        dialect_name = engine.dialect.name
         try:
-            dialect_name = engine.dialect.name
-            connection_ok = True
-
-            # Try to read Alembic version (may not exist in SQLite mode)
             from sqlalchemy import text
 
-            try:
-                with engine.connect() as conn:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+                connection_ok = True
+
+                try:
                     result = conn.execute(
                         text("SELECT version_num FROM alembic_version LIMIT 1")
                     )
                     row = result.fetchone()
                     alembic_current = row[0] if row else None
-            except Exception:
-                # Alembic not configured — not an error for SQLite mode
-                alembic_current = None
+                except Exception:
+                    alembic_current = None
 
-            # Read Alembic head
             try:
-                from alembic.config import Config
-                from alembic.script import ScriptDirectory
+                from database import get_alembic_head_revision
 
-                alembic_ini = Path(__file__).resolve().parent.parent / "alembic.ini"
-                alembic_cfg = Config(str(alembic_ini))
-                script = ScriptDirectory.from_config(alembic_cfg)
-                alembic_head = script.get_current_head()
+                alembic_head = get_alembic_head_revision()
             except Exception:
                 alembic_head = None
 
-            alembic_match = (
-                (alembic_current == alembic_head)
-                if (alembic_current and alembic_head)
-                else None
-            )
-
-            if alembic_match is False:
-                status = "schema_mismatch"
+            if dialect_name == "sqlite":
+                status = "ok"
+                ready = True
+            else:
+                alembic_match = bool(
+                    alembic_current
+                    and alembic_head
+                    and alembic_current == alembic_head
+                )
+                ready = connection_ok and alembic_match
+                status = "ok" if ready else "schema_mismatch"
         except Exception:
             status = "error"
             connection_ok = False
+            ready = False
 
     return {
         "status": status,
         "database": {
             "dialect": dialect_name or "none",
             "connected": connection_ok,
+            "ready": ready,
             "alembic_current": alembic_current,
             "alembic_head": alembic_head,
             "alembic_match": alembic_match,

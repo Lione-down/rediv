@@ -56,6 +56,14 @@ DEFAULT_REGISTRATION_SETTINGS = {
     "registration_mode": "invite_only",
     "default_quotas": {"text": 100, "image": 20, "video": 3},
 }
+ADMIN_BOOTSTRAP_QUOTAS = {"text": 9999, "image": 9999, "video": 9999}
+
+
+def normalize_login_value(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    return normalized or None
 
 
 class PersistentDict(dict):
@@ -79,6 +87,7 @@ class PersistentDict(dict):
 class InMemoryStore:
     def __init__(self) -> None:
         self.users: dict[str, dict] = {}
+        self._password_hashes: dict[str, str | None] = {}
         self.identities: dict[str, dict] = {}
         self.guests: dict[str, dict] = {}
         self.assets: dict[str, dict] = {}
@@ -94,33 +103,95 @@ class InMemoryStore:
         self.quotas: dict[str, dict[str, int]] = {}
         self.quota_ledger: list[dict] = []
         self.admin_logs: list[dict] = []
-        self._seed_admin()
 
-    def _seed_admin(self) -> None:
-        admin = self.create_user("Admin", "", role="admin")
-        self.grant_quota(admin["id"], "text", 9999, "default_grant", None)
-        self.grant_quota(admin["id"], "image", 9999, "default_grant", None)
-        self.grant_quota(admin["id"], "video", 9999, "default_grant", None)
+    def _ensure_admin_quotas(self, user_id: str) -> None:
+        for quota_type, target in ADMIN_BOOTSTRAP_QUOTAS.items():
+            current = self.quotas[user_id][quota_type]
+            if current < target:
+                self.grant_quota(user_id, quota_type, target - current, "default_grant", None)
 
-    def create_user(self, nickname: str, avatar_url: str, role: str = "user") -> dict:
+    def create_user(
+        self,
+        nickname: str,
+        avatar_url: str,
+        role: str = "user",
+        *,
+        username: str | None = None,
+        email: str | None = None,
+        password_hash: str | None = None,
+    ) -> dict:
         user_id = str(uuid4())
+        timestamp = now_iso()
         user = {
             "id": user_id,
+            "username": normalize_login_value(username),
+            "email": normalize_login_value(email),
             "nickname": nickname,
             "avatar_url": avatar_url,
             "role": role,
             "status": "active",
             "generation_status": "enabled",
-            "created_at": now_iso(),
-            "updated_at": now_iso(),
-            "last_login_at": now_iso(),
+            "created_at": timestamp,
+            "updated_at": timestamp,
+            "last_login_at": timestamp,
         }
         self.users[user_id] = user
+        self._password_hashes[user_id] = password_hash
         self.quotas[user_id] = {"text": 0, "image": 0, "video": 0}
         return user
 
     def get_user(self, user_id: str) -> dict | None:
         return self.users.get(user_id)
+
+    def get_password_hash(self, user_id: str) -> str | None:
+        return self._password_hashes.get(user_id)
+
+    def find_user_by_username(self, username: str | None) -> dict | None:
+        normalized = normalize_login_value(username)
+        if normalized is None:
+            return None
+        return next((user for user in self.users.values() if user.get("username") == normalized), None)
+
+    def find_user_by_email(self, email: str | None) -> dict | None:
+        normalized = normalize_login_value(email)
+        if normalized is None:
+            return None
+        return next((user for user in self.users.values() if user.get("email") == normalized), None)
+
+    def find_user_by_identifier(self, identifier: str) -> dict | None:
+        normalized = normalize_login_value(identifier)
+        if normalized is None:
+            return None
+        return self.find_user_by_username(normalized) or self.find_user_by_email(normalized)
+
+    def ensure_admin_user(self, username: str, password_hash: str, nickname: str = "Admin") -> dict:
+        normalized_username = normalize_login_value(username)
+        if normalized_username is None:
+            raise ValueError("Admin username is required")
+        user = self.find_user_by_username(normalized_username)
+        if user is None:
+            user = next((candidate for candidate in self.users.values() if candidate["role"] == "admin"), None)
+
+        if user is None:
+            user = self.create_user(
+                nickname,
+                "",
+                role="admin",
+                username=normalized_username,
+                password_hash=password_hash,
+            )
+        else:
+            user["nickname"] = nickname
+            user["role"] = "admin"
+            user["status"] = "active"
+            user["generation_status"] = "enabled"
+            user["username"] = normalized_username
+            user["updated_at"] = now_iso()
+            self._password_hashes[user["id"]] = password_hash
+
+        self._password_hashes[user["id"]] = password_hash
+        self._ensure_admin_quotas(user["id"])
+        return user
 
     def bind_identity(self, user_id: str, provider: str, provider_user_id: str, unionid: str | None, raw_profile: dict) -> dict:
         key = f"{provider}:{provider_user_id}"
@@ -515,6 +586,7 @@ class InMemoryStore:
 class DatabaseStore:
     def __init__(self) -> None:
         self.users: dict[str, PersistentDict] = {}
+        self._password_hashes: dict[str, str | None] = {}
         self.identities: dict[str, dict] = {}
         self.guests: dict[str, dict] = {}
         self.assets: dict[str, dict] = {}
@@ -530,15 +602,16 @@ class DatabaseStore:
             self._persist_registration_settings,
         )
         self._load_state()
-        self._seed_admin_if_missing()
+        self._bootstrap_admin_if_configured()
 
     def _load_state(self) -> None:
         with get_session() as session:
             self.registration_settings.replace_local(self._load_registration_settings(session))
-            self.users = {
-                user.id: PersistentDict(self._user_to_dict(user), self._persist_user)
-                for user in session.scalars(select(User)).all()
-            }
+            self.users = {}
+            self._password_hashes = {}
+            for user in session.scalars(select(User)).all():
+                self.users[user.id] = PersistentDict(self._user_to_dict(user), self._persist_user)
+                self._password_hashes[user.id] = user.password_hash
             self.identities = {
                 f"{identity.provider}:{identity.provider_user_id}": self._identity_to_dict(identity)
                 for identity in session.scalars(select(Identity)).all()
@@ -580,13 +653,36 @@ class DatabaseStore:
             self.quota_ledger = [self._quota_ledger_to_dict(record) for record in session.scalars(select(QuotaLedger)).all()]
             self.admin_logs = [self._admin_log_to_dict(record) for record in session.scalars(select(AdminLog)).all()]
 
-    def _seed_admin_if_missing(self) -> None:
-        if any(user["role"] == "admin" for user in self.users.values()):
+    def _bootstrap_admin_if_configured(self) -> None:
+        from core.security import hash_password, verify_password
+        from settings.config import settings
+
+        normalized_username = normalize_login_value(settings.admin_username)
+        password = settings.admin_password
+        if normalized_username is None or not password:
             return
-        admin = self.create_user("Admin", "", role="admin")
-        self.grant_quota(admin["id"], "text", 9999, "default_grant", None)
-        self.grant_quota(admin["id"], "image", 9999, "default_grant", None)
-        self.grant_quota(admin["id"], "video", 9999, "default_grant", None)
+
+        user = self.find_user_by_username(normalized_username)
+        if user is None:
+            user = next((candidate for candidate in self.users.values() if candidate["role"] == "admin"), None)
+
+        if user is not None:
+            password_hash = self.get_password_hash(user["id"])
+            if (
+                user["role"] == "admin"
+                and user.get("username") == normalized_username
+                and verify_password(password, password_hash)
+            ):
+                self._ensure_admin_quotas(user["id"])
+                return
+
+        self.ensure_admin_user(normalized_username, hash_password(password))
+
+    def _ensure_admin_quotas(self, user_id: str) -> None:
+        for quota_type, target in ADMIN_BOOTSTRAP_QUOTAS.items():
+            current = self.quotas[user_id][quota_type]
+            if current < target:
+                self.grant_quota(user_id, quota_type, target - current, "default_grant", None)
 
     def _load_registration_settings(self, session) -> dict:
         config = session.get(StoreConfig, "registration_settings")
@@ -621,6 +717,8 @@ class DatabaseStore:
             user = session.get(User, payload["id"])
             if user is None:
                 raise KeyError(f'User "{payload["id"]}" not found')
+            user.username = normalize_login_value(payload.get("username"))
+            user.email = normalize_login_value(payload.get("email"))
             user.nickname = payload["nickname"]
             user.avatar_url = payload["avatar_url"]
             user.role = payload["role"]
@@ -659,6 +757,8 @@ class DatabaseStore:
     def _user_to_dict(self, user: User) -> dict:
         return {
             "id": user.id,
+            "username": normalize_login_value(user.username),
+            "email": normalize_login_value(user.email),
             "nickname": user.nickname,
             "avatar_url": user.avatar_url,
             "role": user.role,
@@ -785,11 +885,25 @@ class DatabaseStore:
             "created_at": datetime_to_iso(record.created_at),
         }
 
-    def create_user(self, nickname: str, avatar_url: str, role: str = "user") -> dict:
+    def create_user(
+        self,
+        nickname: str,
+        avatar_url: str,
+        role: str = "user",
+        *,
+        username: str | None = None,
+        email: str | None = None,
+        password_hash: str | None = None,
+    ) -> dict:
+        if not hasattr(self, "_password_hashes"):
+            self._password_hashes = {}
         user_id = str(uuid4())
         timestamp = now_utc()
         user = User(
             id=user_id,
+            username=normalize_login_value(username),
+            email=normalize_login_value(email),
+            password_hash=password_hash,
             nickname=nickname,
             avatar_url=avatar_url,
             role=role,
@@ -808,6 +922,7 @@ class DatabaseStore:
         )
         with get_session() as session:
             session.add(user)
+            session.flush()
             session.add(quota)
             session.commit()
         user_payload = PersistentDict(self._user_to_dict(user), self._persist_user)
@@ -816,11 +931,80 @@ class DatabaseStore:
             lambda payload, key=user_id: self._persist_quota(key, payload),
         )
         self.users[user_id] = user_payload
+        self._password_hashes[user_id] = password_hash
         self.quotas[user_id] = quota_payload
         return user_payload
 
     def get_user(self, user_id: str) -> dict | None:
         return self.users.get(user_id)
+
+    def get_password_hash(self, user_id: str) -> str | None:
+        return self._password_hashes.get(user_id)
+
+    def set_password_hash(self, user_id: str, password_hash: str | None) -> None:
+        with get_session() as session:
+            user = session.get(User, user_id)
+            if user is None:
+                raise KeyError(f'User "{user_id}" not found')
+            user.password_hash = password_hash
+            user.updated_at = now_utc()
+            session.commit()
+            updated_at = datetime_to_iso(user.updated_at)
+
+        self._password_hashes[user_id] = password_hash
+        cached_user = self.users.get(user_id)
+        if cached_user is not None:
+            payload = dict(cached_user)
+            payload["updated_at"] = updated_at
+            cached_user.replace_local(payload)
+
+    def find_user_by_username(self, username: str | None) -> dict | None:
+        normalized = normalize_login_value(username)
+        if normalized is None:
+            return None
+        return next((user for user in self.users.values() if user.get("username") == normalized), None)
+
+    def find_user_by_email(self, email: str | None) -> dict | None:
+        normalized = normalize_login_value(email)
+        if normalized is None:
+            return None
+        return next((user for user in self.users.values() if user.get("email") == normalized), None)
+
+    def find_user_by_identifier(self, identifier: str) -> dict | None:
+        normalized = normalize_login_value(identifier)
+        if normalized is None:
+            return None
+        return self.find_user_by_username(normalized) or self.find_user_by_email(normalized)
+
+    def ensure_admin_user(self, username: str, password_hash: str, nickname: str = "Admin") -> dict:
+        normalized_username = normalize_login_value(username)
+        if normalized_username is None:
+            raise ValueError("Admin username is required")
+        user = self.find_user_by_username(normalized_username)
+        if user is None:
+            user = next((candidate for candidate in self.users.values() if candidate["role"] == "admin"), None)
+
+        if user is None:
+            user = self.create_user(
+                nickname,
+                "",
+                role="admin",
+                username=normalized_username,
+                password_hash=password_hash,
+            )
+        else:
+            user["nickname"] = nickname
+            user["role"] = "admin"
+            user["status"] = "active"
+            user["generation_status"] = "enabled"
+            user["username"] = normalized_username
+            user["updated_at"] = now_iso()
+            self.set_password_hash(user["id"], password_hash)
+
+        if user["id"] not in self._password_hashes:
+            self._password_hashes[user["id"]] = password_hash
+        self._ensure_admin_quotas(user["id"])
+        return self.get_user(user["id"]) or user
 
     def bind_identity(self, user_id: str, provider: str, provider_user_id: str, unionid: str | None, raw_profile: dict) -> dict:
         timestamp = now_utc()

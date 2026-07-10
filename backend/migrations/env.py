@@ -44,7 +44,7 @@ def get_url():
             use_sqlite = getattr(settings, "use_sqlite", True)
     
     if use_sqlite:
-        db_path = getattr(settings, "db_path", "revid.db")
+        db_path = config.get_main_option("sqlite_db_path", None) or getattr(settings, "db_path", "revid.db")
         from models.base import build_sqlite_url
         return build_sqlite_url(db_path)
     else:

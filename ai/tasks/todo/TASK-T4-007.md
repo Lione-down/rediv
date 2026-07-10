@@ -13,7 +13,7 @@ Frontend / Auth
 P1
 
 ## Assigned To
-Frontend Executor
+Codex Project Lead Engineer
 
 ## Objective
 实现符合 v3 暗色设计的账号登录入口、受 registration mode 控制的注册入口，并统一路由鉴权与 session 恢复。
@@ -64,4 +64,3 @@ npm run build
 
 ## Codex Prompt
 遵循用户域目录规范和 design system。只实现前端 Auth，不修改 backend。编码前创建 PLAN/PROGRESS；真实本地登录和浏览器响应式验证完成后写 REPORT。
-

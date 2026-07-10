@@ -25,7 +25,7 @@ onMounted(async () => {
     return
   }
 
-  if (expectedState && state && expectedState !== state) {
+  if (expectedState && expectedState !== state) {
     message.error('登录状态校验失败，请重新发起微信登录。')
     authStore.clearSession()
     await router.replace('/')

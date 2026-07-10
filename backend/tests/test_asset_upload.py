@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
-from core.security import create_token
+from core.security import create_token, hash_password
 from database import close_db, init_db
 from settings.config import settings
 
@@ -32,9 +32,9 @@ class AssetFlowTestCase(unittest.TestCase):
         self.client = TestClient(app)
 
         store.registration_settings["registration_mode"] = "open"
+        self.admin_id = store.ensure_admin_user("test-admin", hash_password("StrongPass123!"))["id"]
         self.user = self._register_user("asset-owner").json()["user"]
         self.other_user = self._register_user("asset-other").json()["user"]
-        self.admin_id = next(user["id"] for user in store.users.values() if user["role"] == "admin")
 
     def tearDown(self) -> None:
         self.client.close()

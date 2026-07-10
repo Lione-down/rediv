@@ -966,7 +966,9 @@ class TestMigrationTool(unittest.TestCase):
             with engine.connect() as conn:
                 conn.execute(
                     text(
-                        "INSERT INTO users VALUES "
+                        "INSERT INTO users "
+                        "(id, nickname, avatar_url, role, status, generation_status, created_at, updated_at, last_login_at) "
+                        "VALUES "
                         "('user-001','DIFFERENT','','admin','active','enabled',"
                         "'2024-01-01 00:00:00','2024-01-01 00:00:00','2024-01-01 00:00:00')"
                     )
@@ -1041,14 +1043,18 @@ class TestMigrationTool(unittest.TestCase):
         with engine.connect() as conn:
             conn.execute(
                 text(
-                    "INSERT INTO users VALUES "
+                    "INSERT INTO users "
+                    "(id, nickname, avatar_url, role, status, generation_status, created_at, updated_at, last_login_at) "
+                    "VALUES "
                     "('user-001','Alice','','user','active','enabled',"
                     "'2024-01-01 00:00:00','2024-01-01 00:00:00','2024-06-01 00:00:00')"
                 )
             )
             conn.execute(
                 text(
-                    "INSERT INTO users VALUES "
+                    "INSERT INTO users "
+                    "(id, nickname, avatar_url, role, status, generation_status, created_at, updated_at, last_login_at) "
+                    "VALUES "
                     "('user-002','Bob','','admin','active','enabled',"
                     "'2024-02-01 00:00:00','2024-02-01 00:00:00','2024-06-02 00:00:00')"
                 )
@@ -1746,6 +1752,58 @@ class TestUnitB(unittest.TestCase):
                          "Expected stale_same when non-PK values match")
         self.assertEqual(report["users"]["stale_diff"], 0,
                          "Expected stale_diff == 0 (PK excluded from comparison)")
+
+    def test_unit_b_ac10_ignores_target_only_nullable_auth_columns(self):
+        """AC10: target-only nullable auth columns do not create stale_diff."""
+        from sqlalchemy.engine import CursorResult
+
+        writer = MySQLWriter("sqlite:///:memory:", dry_run=False)
+
+        mock_result = mock.Mock(spec=CursorResult)
+        mock_result._mapping = {
+            "id": "user-001",
+            "username": None,
+            "email": None,
+            "password_hash": None,
+            "nickname": "Alice",
+            "avatar_url": "https://img.a",
+            "role": "user",
+            "status": "active",
+            "generation_status": "enabled",
+            "created_at": "2024-01-01T00:00:00",
+            "updated_at": "2024-01-01T00:00:00",
+            "last_login_at": "2024-06-01T00:00:00",
+        }
+        mock_result.__iter__ = lambda self: iter([mock_result])
+
+        mock_conn = mock.Mock()
+        mock_conn.execute.return_value = mock_result
+
+        mock_engine_ctx = mock.Mock()
+        mock_engine_ctx.__enter__ = mock.Mock(return_value=mock_conn)
+        mock_engine_ctx.__exit__ = mock.Mock(return_value=False)
+        writer.engine.connect = mock.Mock(return_value=mock_engine_ctx)
+
+        source_rows = [
+            {
+                "id": "user-001",
+                "nickname": "Alice",
+                "avatar_url": "https://img.a",
+                "role": "user",
+                "status": "active",
+                "generation_status": "enabled",
+                "created_at": "2024-01-01T00:00:00",
+                "updated_at": "2024-01-01T00:00:00",
+                "last_login_at": "2024-06-01T00:00:00",
+            },
+        ]
+        report = {}
+
+        writer.migrate_table("users", source_rows, report)
+        writer.close()
+
+        self.assertEqual(report["users"]["stale_same"], 1)
+        self.assertEqual(report["users"]["stale_diff"], 0)
 
     def test_unit_b_ac10_mixed_rows(self):
         """AC10: Mixed scenario — some rows new, some stale_same, one stale_diff.
