@@ -63,6 +63,40 @@ class DatabaseStoreTestCase(unittest.TestCase):
         self.assertEqual(asset["id"], self.store.assets[asset["id"]]["id"])
         self.assertEqual(user["id"], asset["user_id"])
 
+    def test_generation_task_persists_after_reload(self) -> None:
+        user = self.store.create_user("Task User", "")
+        project = self.store.create_project(user["id"], "Task Project")
+        node = self.store.create_node(project["id"], user["id"], "text", {}, 0, 0, 300, 200)
+        task = self.store.create_generation_task(
+            user["id"],
+            "text",
+            "agnes",
+            "agnes-2.0-flash",
+            project_id=project["id"],
+            canvas_node_id=node["id"],
+            status="running",
+        )
+        asset = self.store.create_asset(
+            user["id"],
+            "prompt",
+            None,
+            "generated",
+            project_id=project["id"],
+            canvas_node_id=node["id"],
+            source="generation",
+            source_model="agnes-2.0-flash",
+            source_task_id=task["id"],
+        )
+        self.store.update_generation_task(task["id"], status="succeeded", result_asset_id=asset["id"], duration_ms=12)
+
+        reloaded_store = DatabaseStore()
+        loaded_task = reloaded_store.get_generation_task(task["id"])
+
+        self.assertIsNotNone(loaded_task)
+        self.assertEqual("succeeded", loaded_task["status"])
+        self.assertEqual(asset["id"], loaded_task["result_asset_id"])
+        self.assertEqual(project["id"], loaded_task["project_id"])
+
     def test_data_persists_after_reload(self) -> None:
         user = self.store.create_user("Persisted User", "")
         self.store.create_asset(user["id"], "prompt", None, "hello")

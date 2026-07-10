@@ -1,9 +1,17 @@
 import sys
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from controllers.store import store
+from core.generation_task_utils import (
+    elapsed_ms,
+    error_code_for_exception,
+    extract_provider_request_id,
+    sanitize_error_message,
+    status_for_error_code,
+)
 from core.security import current_user
 
 
@@ -52,16 +60,37 @@ async def image_generate(payload: ImageGenerateRequest, user=Depends(current_use
 
     input_images = _resolve_input_images(payload.image_ids, user["id"])
 
+    started_at = time.perf_counter()
+    task = store.create_generation_task(
+        user["id"],
+        "image",
+        "agnes",
+        MODEL_NAME,
+        status="queued",
+    )
+    store.update_generation_task(task["id"], status="running")
+    provider_request_id: str | None = None
+
     try:
         response = await _get_agnes().generate_image(
             model=MODEL_NAME,
             prompt=payload.prompt,
             image=input_images,
         )
+        provider_request_id = extract_provider_request_id(response, "id", "request_id")
         image_url = response["data"][0]["url"]
     except HTTPException:
         raise
     except Exception as exc:
+        error_code = error_code_for_exception(exc)
+        store.update_generation_task(
+            task["id"],
+            status=status_for_error_code(error_code),
+            duration_ms=elapsed_ms(started_at),
+            provider_request_id=provider_request_id,
+            error_code=error_code,
+            error_message=sanitize_error_message(exc),
+        )
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Agnes image generation failed") from exc
 
     store.grant_quota(user["id"], "image", -1, "image_generate", None)
@@ -73,9 +102,25 @@ async def image_generate(payload: ImageGenerateRequest, user=Depends(current_use
             None,
             source="generation",
             source_model=MODEL_NAME,
+            source_task_id=task["id"],
         )
     except Exception as exc:
         store.grant_quota(user["id"], "image", 1, "image_generate_refund", None)
+        store.update_generation_task(
+            task["id"],
+            status="failed",
+            duration_ms=elapsed_ms(started_at),
+            provider_request_id=provider_request_id,
+            error_code="asset_persistence_error",
+            error_message=sanitize_error_message(exc),
+        )
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save generated asset") from exc
 
-    return {"url": image_url, "asset": asset}
+    task = store.update_generation_task(
+        task["id"],
+        status="succeeded",
+        duration_ms=elapsed_ms(started_at),
+        provider_request_id=provider_request_id,
+        result_asset_id=asset["id"],
+    )
+    return {"url": image_url, "asset": asset, "generation_task": task}

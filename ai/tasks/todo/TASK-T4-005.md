@@ -2,8 +2,9 @@
 
 ## Status
 
-- State: `TODO`
-- Active unit: `Unit A - Implementation And Mock Verification`
+- State: `DONE`
+- Active unit: `Unit A - Implementation And Mock Verification (DONE - PASS)`
+- Next unit: `Unit B - Authorized Real Smoke` remains `TODO - HUMAN COST GATE`
 - Owner: Codex Project Lead Engineer
 
 ## Task ID

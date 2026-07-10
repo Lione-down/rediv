@@ -16,6 +16,31 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
+PROVIDER_STATUS_MAP = {
+    "queued": "queued",
+    "pending": "queued",
+    "created": "queued",
+    "running": "running",
+    "processing": "running",
+    "in_progress": "running",
+    "completed": "succeeded",
+    "complete": "succeeded",
+    "succeeded": "succeeded",
+    "success": "succeeded",
+    "failed": "failed",
+    "error": "failed",
+    "cancelled": "failed",
+    "canceled": "failed",
+    "timeout": "timed_out",
+    "timed_out": "timed_out",
+}
+
+
+def normalize_provider_status(provider_status: str | None) -> str:
+    if provider_status is None:
+        return "running"
+    return PROVIDER_STATUS_MAP.get(provider_status.lower(), "running")
+
 
 class AgnesProvider:
     """Agnes AI 多模态模型统一入口。"""

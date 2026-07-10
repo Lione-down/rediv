@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from api import admin, assets, auth, canvas_connections, canvas_nodes, health, image_generate, projects, templates, text_generate, video_generate
+from api import admin, assets, auth, canvas_connections, canvas_nodes, generation_tasks, health, image_generate, projects, templates, text_generate, video_generate
 
 
 def include_routers(app: FastAPI) -> None:
@@ -12,6 +12,7 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(projects.router)
     app.include_router(canvas_nodes.router)
     app.include_router(canvas_connections.router)
+    app.include_router(generation_tasks.router)
     app.include_router(templates.router)
     app.include_router(text_generate.router)
     app.include_router(image_generate.router)

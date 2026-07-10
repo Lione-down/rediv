@@ -68,6 +68,10 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("image", payload["asset"]["type"])
         self.assertEqual("generation", payload["asset"]["source"])
         self.assertEqual("agnes-image-2.1-flash", payload["asset"]["source_model"])
+        self.assertEqual(payload["generation_task"]["id"], payload["asset"]["source_task_id"])
+        self.assertEqual("succeeded", payload["generation_task"]["status"])
+        self.assertEqual(payload["asset"]["id"], payload["generation_task"]["result_asset_id"])
+        self.assertEqual("image", payload["generation_task"]["media_type"])
         self.assertEqual(original_quota - 1, store.quotas[self.user["id"]]["image"])
         self.assertEqual("agnes-image-2.1-flash", fake_provider.calls[0]["model"])
         self.assertEqual("Create a cinematic cover frame", fake_provider.calls[0]["prompt"])
@@ -110,6 +114,10 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(500, response.status_code)
         self.assertEqual("Agnes image generation failed", response.json()["detail"])
         self.assertEqual(original_quota, store.quotas[self.user["id"]]["image"])
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="image")
+        self.assertEqual(1, total)
+        self.assertEqual("failed", tasks[0]["status"])
+        self.assertEqual("provider_error", tasks[0]["error_code"])
 
     def test_image_generate_asset_failure_refunds_quota(self) -> None:
         fake_provider = _FakeAgnesProvider()
@@ -129,6 +137,10 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(500, response.status_code)
         self.assertEqual("Failed to save generated asset", response.json()["detail"])
         self.assertEqual(original_quota, store.quotas[self.user["id"]]["image"])
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="image")
+        self.assertEqual(1, total)
+        self.assertEqual("failed", tasks[0]["status"])
+        self.assertEqual("asset_persistence_error", tasks[0]["error_code"])
         refund_records = [
             record
             for record in store.quota_ledger

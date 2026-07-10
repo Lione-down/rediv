@@ -6,6 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+import httpx
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -87,9 +88,22 @@ class TextGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("agnes-2.0-flash", payload["asset"]["source_model"])
         self.assertEqual(self.project["id"], payload["asset"]["project_id"])
         self.assertEqual(self.node["id"], payload["asset"]["canvas_node_id"])
+        self.assertEqual(payload["generation_task"]["id"], payload["asset"]["source_task_id"])
+        self.assertEqual("succeeded", payload["generation_task"]["status"])
+        self.assertEqual(payload["asset"]["id"], payload["generation_task"]["result_asset_id"])
+        self.assertEqual("text", payload["generation_task"]["media_type"])
+        self.assertEqual(self.project["id"], payload["generation_task"]["project_id"])
+        self.assertEqual(self.node["id"], payload["generation_task"]["canvas_node_id"])
         self.assertEqual(original_quota - 1, store.quotas[self.user["id"]]["text"])
         self.assertEqual("agnes-2.0-flash", fake_provider.calls[0]["model"])
         self.assertEqual("Write a short video script", fake_provider.calls[0]["messages"][0]["content"])
+
+        task_response = self.client.get(
+            f"/api/generation-tasks/{payload['generation_task']['id']}",
+            headers=self._auth_headers(self.user["id"]),
+        )
+        self.assertEqual(200, task_response.status_code)
+        self.assertEqual(payload["asset"]["id"], task_response.json()["result_asset_id"])
 
     def test_text_generate_failure_does_not_deduct_quota(self) -> None:
         fake_provider = _FakeAgnesProvider(error=RuntimeError("provider failed"))
@@ -109,6 +123,33 @@ class TextGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(500, response.status_code)
         self.assertEqual("Agnes text generation failed", response.json()["detail"])
         self.assertEqual(original_quota, store.quotas[self.user["id"]]["text"])
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="text")
+        self.assertEqual(1, total)
+        self.assertEqual("failed", tasks[0]["status"])
+        self.assertEqual("provider_error", tasks[0]["error_code"])
+
+    def test_text_generate_network_failure_records_failed_task(self) -> None:
+        request = httpx.Request("POST", "https://apihub.agnes-ai.com/v1/chat/completions")
+        fake_provider = _FakeAgnesProvider(error=httpx.ConnectError("network down", request=request))
+        original_quota = store.quotas[self.user["id"]]["text"]
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/text-generate",
+                json={
+                    "project_id": self.project["id"],
+                    "node_id": self.node["id"],
+                    "prompt": "Fail on the network",
+                },
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(500, response.status_code)
+        self.assertEqual(original_quota, store.quotas[self.user["id"]]["text"])
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="text")
+        self.assertEqual(1, total)
+        self.assertEqual("failed", tasks[0]["status"])
+        self.assertEqual("network_error", tasks[0]["error_code"])
 
     def test_text_generate_asset_failure_refunds_quota(self) -> None:
         fake_provider = _FakeAgnesProvider()
@@ -132,6 +173,10 @@ class TextGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(500, response.status_code)
         self.assertEqual("Failed to save generated asset", response.json()["detail"])
         self.assertEqual(original_quota, store.quotas[self.user["id"]]["text"])
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="text")
+        self.assertEqual(1, total)
+        self.assertEqual("failed", tasks[0]["status"])
+        self.assertEqual("asset_persistence_error", tasks[0]["error_code"])
         refund_records = [
             record
             for record in store.quota_ledger

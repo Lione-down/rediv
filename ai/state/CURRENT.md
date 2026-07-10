@@ -20,65 +20,62 @@ Last updated: 2026-07-10
 
 ## Active Task
 
-- Task: `T4-005 Unit A - GenerationTask persistence, provider integration and mock tests`
+- Task: `T4-007 - Login/register UI and route/session guards`
 - State: `TODO`
-- Task file: `ai/tasks/todo/TASK-T4-005.md`
+- Task file: `ai/tasks/todo/TASK-T4-007.md`
 - Plan: not yet created
 - Progress: not yet created
-- Target report: `ai/reports/REPORT-T4-005.md`
+- Target report: `ai/reports/REPORT-T4-007.md`
 
 ## Latest Completed Task
 
-- T4-011: `DONE - PASS`
-- Report: `ai/reports/REPORT-T4-011.md`
-- Outcome: Canvas connection model, schemas, CRUD router, store methods, node-delete cleanup, migration `d8c5b9a4e2f0`, migration-tool ETL coverage, and tests are complete.
-- Shared MySQL: `revid_db` on 8.0.43
-- Alembic current/head at T4-011 close: `d8c5b9a4e2f0` / `d8c5b9a4e2f0`
-- Fresh verification: connection tests passed with 10 tests; migration-tool tests passed with 27 tests; backend unittest discover passed with 183 tests; shared MySQL schema/comment/FK/index/unique evidence and restart persistence evidence are complete.
-- External note: real WeChat provider E2E remains unverified until Human Owner credentials/authorization are available.
+- T4-005 Unit A: `DONE - PASS`
+- Report: `ai/reports/REPORT-T4-005.md`
+- Outcome: `generation_tasks` persistence, Alembic revision `e9f1a2b3c4d5`, store/schema/query API, provider status mapping, text/image/video task lifecycle integration, dry-run Agnes smoke script, migration-tool table coverage, and mock tests are complete.
+- Fresh verification: changed module py_compile passed; focused generate tests passed with 16 tests; store/smoke tests passed with 10 tests; affected E2E mock tests passed with 11 tests; migration guard tests passed; Alembic head is `e9f1a2b3c4d5`; full backend unittest discover passed with 188 tests; `git diff --check` passed.
+- External note: real Agnes text/image/video smoke was intentionally not run; T4-005 Unit B remains a Human cost gate.
 
-## T4-005 Unit A Objective
+## T4-007 Objective
 
-Persist generation task diagnostics and integrate provider status mapping without making paid Agnes calls. Unit A must add `generation_tasks`, query/smoke surfaces, and mock verification for text/image/video failure and status paths.
+Implement v3 dark-design login/register entry points, registration-mode-aware register availability, route/session recovery, and auth guards without modifying backend contracts.
 
-## T4-005 Unit A Scope
+## T4-007 Scope
 
-- Allowed edits: `backend/core/agnes_provider.py`, generation routers, related schemas/settings/tests.
-- Allowed additions: `GenerationTask` model, Alembic revision, task query API, and `scripts/smoke_agnes.py`.
-- Forbidden: frontend visual work, Auth changes, MySQL foundation changes, quota product-rule changes, and paid Agnes calls.
-- Unit B real smoke remains blocked until explicit Human Owner cost authorization.
+- Allowed additions: `frontend/src/views/user/Login.vue`, `Register.vue`, and user-domain local components.
+- Allowed edits: `frontend/src/router/index.ts`, `frontend/src/store/auth.ts`, `frontend/src/api/auth.ts`, `frontend/src/types/auth.ts`, and WeChat callback page.
+- Forbidden: backend changes, Home/Space/Workspace changes, and global design token changes.
 
-## T4-005 Unit A Current State
+## T4-007 Current State
 
-- Dependencies T4-003 and T4-004 are complete.
-- T4-011 is complete, so T4-005 Unit A is now dependency-ready.
-- PLAN and PROGRESS are not yet created; they must be created before any business-code edits.
+- Dependencies T4-004 and T4-006 are complete.
+- PLAN and PROGRESS are not yet created; they must be created before frontend business-code edits.
 
-## T4-005 Unit A Acceptance Focus
+## T4-007 Acceptance Focus
 
-- Generation task persistence and Navicat-inspectable task/asset relationships.
-- Provider status mapping to `queued/running/succeeded/failed/timed_out`.
-- Mock tests for text, image, video, network failure, provider failure, timeout, asset persistence failure, and no-secret/no-paid-call smoke behavior.
-- Full backend regression remains required for Unit A closure.
+- Username/email password login, failed-password state, closed registration state, token invalidation, Admin/user route guards.
+- Protected-page refresh restores session without flashing to the wrong page.
+- WeChat and guest entry visibility follows backend settings.
+- `npm run build` passes.
+- Browser checks at 1440x900 and 375px pass.
 
 ## Remaining In Current Task
 
-1. Create `ai/tasks/doing/TASK-T4-005-PLAN.md`.
-2. Create `ai/tasks/doing/TASK-T4-005-PROGRESS.md`.
-3. Audit existing Agnes provider/generation router/schema/tests before business-code edits.
+1. Create `ai/tasks/doing/TASK-T4-007-PLAN.md`.
+2. Create `ai/tasks/doing/TASK-T4-007-PROGRESS.md`.
+3. Audit existing frontend auth API/store/router/design patterns before business-code edits.
 
 ## Exact Next Action
 
-Create the T4-005 Unit A PLAN and PROGRESS documents, then audit the existing Agnes provider and generation endpoints to define the first implementation slice.
+Create the T4-007 PLAN and PROGRESS documents, then audit existing frontend auth, router, request, and design-system patterns before implementing login/register UI.
 
 ## Current Blockers
 
-- T4-005 Unit A has no active blocker.
 - T4-005 Unit B real Agnes smoke remains a Human cost gate and must not run without explicit authorization.
+- T4-007 has no active blocker.
 
 ## Worktree Protection
 
-- This run started from clean `main` at `d971e56012ce0c03c1c2c0278f1a8bc197da9d9b`.
+- This run started from clean `main` at `778160f044c5e644d876703dfe9cbec04bb28d89`.
 - Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
 
 ## Historical Evidence

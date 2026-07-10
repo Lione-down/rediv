@@ -30,7 +30,7 @@ from sqlalchemy.engine.url import URL
 
 
 # ---------------------------------------------------------------------------
-# FK-order-aware table list (13 tables)
+# FK-order-aware table list (14 tables)
 # ---------------------------------------------------------------------------
 TABLE_ORDER = [
     "users",
@@ -43,6 +43,7 @@ TABLE_ORDER = [
     "canvas_nodes",
     "canvas_connections",
     "assets",
+    "generation_tasks",
     "templates",
     "quota_ledger",
     "admin_logs",
@@ -60,6 +61,7 @@ PK_MAP = {
     "canvas_nodes": "id",
     "canvas_connections": "id",
     "assets": "id",
+    "generation_tasks": "id",
     "templates": "id",
     "quota_ledger": "id",
     "admin_logs": "id",
@@ -84,6 +86,12 @@ FK_MAP: dict[str, list[tuple[str, str]]] = {
         ("user_id", "users(id)"),
         ("project_id", "projects(id)"),
         ("canvas_node_id", "canvas_nodes(id)"),
+    ],
+    "generation_tasks": [
+        ("user_id", "users(id)"),
+        ("project_id", "projects(id)"),
+        ("canvas_node_id", "canvas_nodes(id)"),
+        ("result_asset_id", "assets(id)"),
     ],
     "templates": [("user_id", "users(id)")],
     "quota_ledger": [
@@ -286,7 +294,7 @@ def setup_schema_via_alembic(test_db_url: str) -> None:
     for mod in [
         "models.user", "models.project", "models.quota",
         "models.template", "models.asset", "models.canvas_node",
-        "models.canvas_connection",
+        "models.canvas_connection", "models.generation_task",
         "models.guest", "models.identity", "models.invitation",
         "models.admin_log",
     ]:
@@ -889,6 +897,7 @@ def main() -> int:
     for table_name in TABLE_ORDER:
         rows = reader.get_rows(table_name)
         if not rows:
+            writer.migrate_table(table_name, rows, report)
             print(f"  {table_name}: skip (empty)")
             continue
         start = time.time()

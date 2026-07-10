@@ -94,6 +94,10 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("generation", payload["asset"]["source"])
         self.assertEqual("agnes-video-v2.0", payload["asset"]["source_model"])
         self.assertEqual("video-1", payload["asset"]["source_task_id"])
+        self.assertEqual("succeeded", payload["generation_task"]["status"])
+        self.assertEqual("video-1", payload["generation_task"]["provider_request_id"])
+        self.assertEqual(payload["asset"]["id"], payload["generation_task"]["result_asset_id"])
+        self.assertEqual("video", payload["generation_task"]["media_type"])
         self.assertEqual(original_quota - 1, store.quotas[self.user["id"]]["video"])
         self.assertEqual("agnes-video-v2.0", fake_provider.generate_calls[0]["model"])
         self.assertEqual("Create a dramatic cinematic shot", fake_provider.generate_calls[0]["prompt"])
@@ -113,6 +117,10 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(500, response.status_code)
         self.assertEqual("Agnes video generation failed", response.json()["detail"])
         self.assertEqual(original_quota, store.quotas[self.user["id"]]["video"])
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="video")
+        self.assertEqual(1, total)
+        self.assertEqual("failed", tasks[0]["status"])
+        self.assertEqual("provider_error", tasks[0]["error_code"])
 
     def test_video_generate_poll_failure_does_not_deduct_quota(self) -> None:
         fake_provider = _FakeAgnesProvider(poll_error=RuntimeError("poll failed"))
@@ -128,6 +136,9 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(500, response.status_code)
         self.assertEqual("Agnes video generation failed", response.json()["detail"])
         self.assertEqual(original_quota, store.quotas[self.user["id"]]["video"])
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="video")
+        self.assertEqual(1, total)
+        self.assertEqual("failed", tasks[0]["status"])
 
     def test_video_generate_timeout_does_not_deduct_quota(self) -> None:
         fake_provider = _FakeAgnesProvider(poll_responses=[{"status": "processing"}] * video_generate_module.MAX_POLL_ATTEMPTS)
@@ -144,6 +155,10 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(500, response.status_code)
         self.assertEqual("Agnes video generation timed out", response.json()["detail"])
         self.assertEqual(original_quota, store.quotas[self.user["id"]]["video"])
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="video")
+        self.assertEqual(1, total)
+        self.assertEqual("timed_out", tasks[0]["status"])
+        self.assertEqual("timeout", tasks[0]["error_code"])
 
     def test_video_generate_asset_failure_refunds_quota(self) -> None:
         fake_provider = _FakeAgnesProvider()
@@ -163,6 +178,10 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(500, response.status_code)
         self.assertEqual("Failed to save generated asset", response.json()["detail"])
         self.assertEqual(original_quota, store.quotas[self.user["id"]]["video"])
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="video")
+        self.assertEqual(1, total)
+        self.assertEqual("failed", tasks[0]["status"])
+        self.assertEqual("asset_persistence_error", tasks[0]["error_code"])
         refund_records = [
             record
             for record in store.quota_ledger

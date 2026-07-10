@@ -3,6 +3,7 @@ from models.asset import Asset
 from models.base import Base, StoreConfig, create_tables, dispose_engine, get_session, init_engine, utc_now
 from models.canvas_connection import CanvasConnection
 from models.canvas_node import CanvasNode
+from models.generation_task import GenerationTask
 from models.guest import Guest
 from models.identity import Identity
 from models.invitation import InvitationCode
@@ -17,6 +18,7 @@ __all__ = [
     "Base",
     "CanvasConnection",
     "CanvasNode",
+    "GenerationTask",
     "Guest",
     "Identity",
     "InvitationCode",

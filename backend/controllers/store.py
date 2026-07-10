@@ -12,6 +12,7 @@ from models.asset import Asset
 from models.base import StoreConfig, get_session
 from models.canvas_connection import CanvasConnection
 from models.canvas_node import CanvasNode
+from models.generation_task import GenerationTask
 from models.guest import Guest
 from models.identity import Identity
 from models.invitation import InvitationCode
@@ -92,6 +93,7 @@ class InMemoryStore:
         self.identities: dict[str, dict] = {}
         self.guests: dict[str, dict] = {}
         self.assets: dict[str, dict] = {}
+        self.generation_tasks: dict[str, dict] = {}
         self.canvas_connections: dict[str, dict] = {}
         self.canvas_nodes: dict[str, dict] = {}
         self.projects: dict[str, dict] = {}
@@ -312,6 +314,74 @@ class InMemoryStore:
         }
         self.assets[asset["id"]] = asset
         return asset
+
+    def create_generation_task(
+        self,
+        user_id: str,
+        media_type: str,
+        provider: str,
+        model: str | None,
+        *,
+        project_id: str | None = None,
+        canvas_node_id: str | None = None,
+        provider_request_id: str | None = None,
+        status: str = "queued",
+    ) -> dict:
+        timestamp = now_iso()
+        task = {
+            "id": str(uuid4()),
+            "user_id": user_id,
+            "project_id": project_id,
+            "canvas_node_id": canvas_node_id,
+            "media_type": media_type,
+            "provider": provider,
+            "model": model,
+            "provider_request_id": provider_request_id,
+            "status": status,
+            "duration_ms": None,
+            "result_asset_id": None,
+            "error_code": None,
+            "error_message": None,
+            "created_at": timestamp,
+            "updated_at": timestamp,
+        }
+        self.generation_tasks[task["id"]] = task
+        return task
+
+    def update_generation_task(self, task_id: str, **fields) -> dict:
+        task = self.generation_tasks.get(task_id)
+        if task is None:
+            raise KeyError(f'Generation task "{task_id}" not found')
+        for key, value in fields.items():
+            task[key] = value
+        task["updated_at"] = now_iso()
+        return task
+
+    def get_generation_task(self, task_id: str) -> dict | None:
+        return self.generation_tasks.get(task_id)
+
+    def list_generation_tasks(
+        self,
+        user_id: str,
+        *,
+        project_id: str | None = None,
+        media_type: str | None = None,
+        status: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[dict], int]:
+        items = [task for task in self.generation_tasks.values() if task["user_id"] == user_id]
+        if project_id:
+            items = [task for task in items if task["project_id"] == project_id]
+        if media_type:
+            items = [task for task in items if task["media_type"] == media_type]
+        if status:
+            items = [task for task in items if task["status"] == status]
+        items.sort(key=lambda task: task["created_at"], reverse=True)
+        total = len(items)
+        start = (page - 1) * page_size
+        end = start + page_size
+        return items[start:end], total
 
     def create_project(self, user_id: str, name: str) -> dict:
         timestamp = now_iso()
@@ -738,6 +808,7 @@ class DatabaseStore:
         self.identities: dict[str, dict] = {}
         self.guests: dict[str, dict] = {}
         self.assets: dict[str, dict] = {}
+        self.generation_tasks: dict[str, dict] = {}
         self.canvas_connections: dict[str, dict] = {}
         self.canvas_nodes: dict[str, dict] = {}
         self.projects: dict[str, dict] = {}
@@ -772,6 +843,10 @@ class DatabaseStore:
             self.assets = {
                 asset.id: self._asset_to_dict(asset)
                 for asset in session.scalars(select(Asset)).all()
+            }
+            self.generation_tasks = {
+                task.id: self._generation_task_to_dict(task)
+                for task in session.scalars(select(GenerationTask)).all()
             }
             self.canvas_connections = {
                 connection.id: self._canvas_connection_to_dict(connection)
@@ -959,6 +1034,25 @@ class DatabaseStore:
             "status": asset.status,
             "created_at": datetime_to_iso(asset.created_at),
             "updated_at": datetime_to_iso(asset.updated_at),
+        }
+
+    def _generation_task_to_dict(self, task: GenerationTask) -> dict:
+        return {
+            "id": task.id,
+            "user_id": task.user_id,
+            "project_id": task.project_id,
+            "canvas_node_id": task.canvas_node_id,
+            "media_type": task.media_type,
+            "provider": task.provider,
+            "model": task.model,
+            "provider_request_id": task.provider_request_id,
+            "status": task.status,
+            "duration_ms": task.duration_ms,
+            "result_asset_id": task.result_asset_id,
+            "error_code": task.error_code,
+            "error_message": task.error_message,
+            "created_at": datetime_to_iso(task.created_at),
+            "updated_at": datetime_to_iso(task.updated_at),
         }
 
     def _quota_to_dict(self, quota: Quota) -> dict:
@@ -1332,6 +1426,96 @@ class DatabaseStore:
         payload = self._asset_to_dict(asset)
         self.assets[asset.id] = payload
         return payload
+
+    def create_generation_task(
+        self,
+        user_id: str,
+        media_type: str,
+        provider: str,
+        model: str | None,
+        *,
+        project_id: str | None = None,
+        canvas_node_id: str | None = None,
+        provider_request_id: str | None = None,
+        status: str = "queued",
+    ) -> dict:
+        timestamp = now_utc()
+        task = GenerationTask(
+            id=str(uuid4()),
+            user_id=user_id,
+            project_id=project_id,
+            canvas_node_id=canvas_node_id,
+            media_type=media_type,
+            provider=provider,
+            model=model,
+            provider_request_id=provider_request_id,
+            status=status,
+            created_at=timestamp,
+            updated_at=timestamp,
+        )
+        with get_session() as session:
+            session.add(task)
+            session.commit()
+        payload = self._generation_task_to_dict(task)
+        self.generation_tasks[task.id] = payload
+        return payload
+
+    def update_generation_task(self, task_id: str, **fields) -> dict:
+        with get_session() as session:
+            task = session.get(GenerationTask, task_id)
+            if task is None:
+                raise KeyError(f'Generation task "{task_id}" not found')
+            for key, value in fields.items():
+                setattr(task, key, value)
+            task.updated_at = now_utc()
+            session.commit()
+            payload = self._generation_task_to_dict(task)
+
+        self.generation_tasks[task_id] = payload
+        return payload
+
+    def get_generation_task(self, task_id: str) -> dict | None:
+        task = self.generation_tasks.get(task_id)
+        if task is not None:
+            return task
+
+        with get_session() as session:
+            row = session.get(GenerationTask, task_id)
+            if row is None:
+                return None
+            payload = self._generation_task_to_dict(row)
+
+        self.generation_tasks[task_id] = payload
+        return payload
+
+    def list_generation_tasks(
+        self,
+        user_id: str,
+        *,
+        project_id: str | None = None,
+        media_type: str | None = None,
+        status: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[dict], int]:
+        statement = select(GenerationTask).where(GenerationTask.user_id == user_id)
+        if project_id:
+            statement = statement.where(GenerationTask.project_id == project_id)
+        if media_type:
+            statement = statement.where(GenerationTask.media_type == media_type)
+        if status:
+            statement = statement.where(GenerationTask.status == status)
+        statement = statement.order_by(GenerationTask.created_at.desc())
+
+        with get_session() as session:
+            tasks = [self._generation_task_to_dict(task) for task in session.scalars(statement).all()]
+
+        for task in tasks:
+            self.generation_tasks[task["id"]] = task
+        total = len(tasks)
+        start = (page - 1) * page_size
+        end = start + page_size
+        return tasks[start:end], total
 
     def create_project(self, user_id: str, name: str) -> dict:
         timestamp = now_utc()

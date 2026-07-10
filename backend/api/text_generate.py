@@ -1,9 +1,17 @@
 import sys
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from controllers.store import store
+from core.generation_task_utils import (
+    elapsed_ms,
+    error_code_for_exception,
+    extract_provider_request_id,
+    sanitize_error_message,
+    status_for_error_code,
+)
 from core.security import current_user
 
 
@@ -53,15 +61,38 @@ async def text_generate(payload: TextGenerateRequest, user=Depends(current_user)
     if quotas.get("text", 0) < 1:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient text quota")
 
+    started_at = time.perf_counter()
+    task = store.create_generation_task(
+        user["id"],
+        "text",
+        "agnes",
+        MODEL_NAME,
+        project_id=payload.project_id,
+        canvas_node_id=payload.node_id,
+        status="queued",
+    )
+    store.update_generation_task(task["id"], status="running")
+    provider_request_id: str | None = None
+
     try:
         response = await _get_agnes().chat(
             model=MODEL_NAME,
             messages=[{"role": "user", "content": payload.prompt}],
         )
+        provider_request_id = extract_provider_request_id(response, "id", "request_id")
         generated_text = response["choices"][0]["message"]["content"]
     except HTTPException:
         raise
     except Exception as exc:
+        error_code = error_code_for_exception(exc)
+        store.update_generation_task(
+            task["id"],
+            status=status_for_error_code(error_code),
+            duration_ms=elapsed_ms(started_at),
+            provider_request_id=provider_request_id,
+            error_code=error_code,
+            error_message=sanitize_error_message(exc),
+        )
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Agnes text generation failed") from exc
 
     store.grant_quota(user["id"], "text", -1, "text_generate", None)
@@ -75,9 +106,25 @@ async def text_generate(payload: TextGenerateRequest, user=Depends(current_user)
             canvas_node_id=payload.node_id,
             source="generation",
             source_model=MODEL_NAME,
+            source_task_id=task["id"],
         )
     except Exception as exc:
         store.grant_quota(user["id"], "text", 1, "text_generate_refund", None)
+        store.update_generation_task(
+            task["id"],
+            status="failed",
+            duration_ms=elapsed_ms(started_at),
+            provider_request_id=provider_request_id,
+            error_code="asset_persistence_error",
+            error_message=sanitize_error_message(exc),
+        )
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save generated asset") from exc
 
-    return {"content": generated_text, "asset": asset}
+    task = store.update_generation_task(
+        task["id"],
+        status="succeeded",
+        duration_ms=elapsed_ms(started_at),
+        provider_request_id=provider_request_id,
+        result_asset_id=asset["id"],
+    )
+    return {"content": generated_text, "asset": asset, "generation_task": task}

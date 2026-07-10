@@ -600,6 +600,21 @@ class TestCanvasConnectionMigrationConfig(unittest.TestCase):
         )
         self.assertEqual(["metadata"], CRITICAL_JSON_COLS["canvas_connections"])
 
+    def test_generation_tasks_are_migrated_after_assets(self):
+        self.assertIn("generation_tasks", TABLE_ORDER)
+        self.assertLess(TABLE_ORDER.index("assets"), TABLE_ORDER.index("generation_tasks"))
+        self.assertLess(TABLE_ORDER.index("generation_tasks"), TABLE_ORDER.index("templates"))
+        self.assertEqual("id", PK_MAP["generation_tasks"])
+        self.assertEqual(
+            [
+                ("user_id", "users(id)"),
+                ("project_id", "projects(id)"),
+                ("canvas_node_id", "canvas_nodes(id)"),
+                ("result_asset_id", "assets(id)"),
+            ],
+            FK_MAP["generation_tasks"],
+        )
+
 
 class TestMigrationTool(unittest.TestCase):
     """Tests for all 12 acceptance criteria."""
@@ -755,8 +770,7 @@ class TestMigrationTool(unittest.TestCase):
         report = {}
         for t in TABLE_ORDER:
             rows = reader.get_rows(t)
-            if rows:
-                writer.migrate_table(t, rows, report)
+            writer.migrate_table(t, rows, report)
         writer.close()
         reader.close()
 
@@ -794,8 +808,7 @@ class TestMigrationTool(unittest.TestCase):
         report = {}
         for t in TABLE_ORDER:
             rows = reader.get_rows(t)
-            if rows:
-                writer.migrate_table(t, rows, report)
+            writer.migrate_table(t, rows, report)
         writer.close()
         reader.close()
 
@@ -967,8 +980,7 @@ class TestMigrationTool(unittest.TestCase):
         report = {}
         for t in TABLE_ORDER:
             rows = reader.get_rows(t)
-            if rows:
-                writer.migrate_table(t, rows, report)
+            writer.migrate_table(t, rows, report)
         writer.close()
 
         # All configured tables should be in report
