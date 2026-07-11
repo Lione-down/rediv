@@ -243,3 +243,9 @@ Evidence:
 - 当前直执行规则覆盖早期 Hermes `.env` 约定：未经 Human Owner 明确授权，不打开 `.env`；runtime 只消费已注入的 process environment，证据不得输出 credential。
 - 若 backend 因 schema revision mismatch 拒绝启动，不能用 SQLite、mock 或跳过 revision check 冒充 real-service PASS。
 - Active Task 明确禁止 database/migration 变更时，不得顺手执行 `alembic upgrade`；应记录 current/head、影响和 release condition，由 Human Owner 授权 migration 或提供已就绪 runtime。
+
+## 2026-07-11 Browser QA artifact tracking
+
+- `frontend/.playwright-cli/` 与 `output/playwright/` 是本地 browser QA/tool-state 证据，不属于产品交付；root `.gitignore` 必须持续排除这两个精确目录。
+- 发现 artifact 已被误提交时，先证明 path 集合与来源 commit 完全一致，再用 `git rm --cached` 停止 tracking；本地截图、harness 和诊断文件必须保留，不能用 `git clean`、移动目录或历史重写代替。
+- cleanup commit 前必须复核 tracked count、local missing count、ignore 命中、staged path 集合和脱敏 credential-pattern scan；是否 push 或清理远端历史仍是独立 Human gate。

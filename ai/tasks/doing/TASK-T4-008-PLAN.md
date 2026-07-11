@@ -18,7 +18,8 @@ Replace the current marketing-oriented Home with an authenticated personal proje
 
 ## Non-Goals
 
-- No backend, database, migration, Space, Workspace, Canvas, global design-token, or new UI-library changes.
+- No backend code, Space, Workspace, Canvas, global design-token, or new UI-library changes.
+- No database or migration changes except the Human Owner-authorized application of the existing additive `e9f1a2b3c4d5` migration to local `revid_db` on 2026-07-11.
 - No implicit demo project or fabricated project, asset, quota, or status values.
 - No paid provider calls, real secret access, destructive database operations, or automatic push.
 - No unrelated redesign of protected application pages.
@@ -35,6 +36,15 @@ Replace the current marketing-oriented Home with an authenticated personal proje
 - The asset store now starts empty and provides single-flight loading, explicit refresh/error state, synchronous token-change reset, and generation-safe stale-response suppression.
 
 ## Implementation Slices
+
+### Authorized recovery prelude - repository hygiene and schema readiness
+
+Status: completed and verified on 2026-07-11.
+
+1. Remove the 70 mistakenly committed `frontend/.playwright-cli/**` and `output/playwright/**` paths from Git tracking while preserving the local files, add narrow root ignore rules for those two artifact trees, verify the tracked-path count reaches zero, and create a scoped local cleanup commit without rewriting history or pushing.
+2. Validate that runtime `REVID_TEST_MYSQL_ADMIN_URL` is present without printing it, resolves to a local MySQL service, and can target only `revid_db`.
+3. Prove the pre-migration database identity and revision, apply only existing migration `e9f1a2b3c4d5`, then verify the exact revision, `generation_tasks` table, indexes, foreign keys, and non-empty table/column comments.
+4. Resume Slice C real-service acceptance only after the schema proof passes.
 
 ### Slice A - Contract audit and project-domain foundation
 
@@ -73,7 +83,7 @@ Success requires typecheck/build plus mocked or local-backend browser behavior f
 
 ### Slice C - Real-data acceptance and closure
 
-Status: blocked at runtime preflight on 2026-07-11. The authorized local `revid_db` is at `d8c5b9a4e2f0`, while current backend startup requires `e9f1a2b3c4d5`. The pending migration creates the commented `generation_tasks` table and indexes, but T4-008 does not authorize database or migration changes.
+Status: completed and verified on 2026-07-11. The authorized local `revid_db` advanced from `d8c5b9a4e2f0` to `e9f1a2b3c4d5`; schema, real API/MySQL consistency, project creation/reload/restart persistence, outage recovery, responsive browser evidence, and final build all passed.
 
 1. Run the authenticated local-backend matrix with project creation, list refresh, persistence, recent assets, quotas, and API-failure states.
 2. Cross-check the created project ID, name, and timestamp against authorized local MySQL evidence without opening or printing secrets.
@@ -100,6 +110,10 @@ Status: blocked at runtime preflight on 2026-07-11. The authorized local `revid_
 - Home may describe the loaded asset page as recent assets, but must not present `items.length` as the account-wide total; Workspace currently mutates asset items directly and is outside this Task's allowed edit scope.
 - Real MySQL acceptance must use credentials already supplied to an authorized runtime and must never read `.env` files or expose credential material.
 
-## Human Gates
+## Former Human Gate
 
 One active gate: Human Owner must either authorize applying the existing additive `e9f1a2b3c4d5` migration to local `revid_db`, or provide an authorized local runtime already at that revision. No migration was executed during T4-008. Product-direction conflicts, required real secrets/external accounts, destructive data actions, and major contract changes remain escalation gates.
+
+## Human Gates
+
+The Human Owner authorized both cleanup of the mistakenly tracked browser/QA artifacts and application of the existing additive `e9f1a2b3c4d5` migration to local `revid_db` on 2026-07-11. This authorization does not allow history rewriting, automatic push, migration downgrade, other database mutations, paid provider calls, secret output, or access to non-local databases. Product-direction conflicts, required real secrets/external accounts, other destructive data actions, and major contract changes remain escalation gates.

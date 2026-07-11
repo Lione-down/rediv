@@ -20,87 +20,56 @@ Last updated: 2026-07-11
 
 ## Active Task
 
-- Task: `T4-008 - Real-data Home project and asset dashboard`
-- State: `BLOCKED`
-- Task file: `ai/tasks/todo/TASK-T4-008.md`
-- Plan: `ai/tasks/doing/TASK-T4-008-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T4-008-PROGRESS.md`
-- Target report: `ai/reports/REPORT-T4-008.md`
+- Task: `T4-009 - Real-data Space asset workspace`
+- State: `TODO`
+- Task file: `ai/tasks/todo/TASK-T4-009.md`
+- Plan: not created; next run must create `ai/tasks/doing/TASK-T4-009-PLAN.md` before business-code edits
+- Progress: not created; next run must create `ai/tasks/doing/TASK-T4-009-PROGRESS.md` before business-code edits
+- Target report: `ai/reports/REPORT-T4-009.md`
 
 ## Latest Completed Task
 
-- T4-007: `DONE - PASS`
-- Report: `ai/reports/REPORT-T4-007.md`
-- Outcome: dark login/register UI, password/settings/guest store actions, restoration-aware auth/Admin guards, safe redirects, token-correlated 401 cleanup, and race-safe WeChat callback handling are complete.
-- Fresh verification: frontend typecheck and production build passed with 4,649 modules; backend password-auth contract passed 11 tests; mocked real-router matrix passed 16/16; real local-backend Admin/user/closed/token/WeChat/guest/logout matrix passed at 1440x900 and 375x812; visual, overflow, console, runtime-log, scope, diff, and redacted credential reviews passed.
-- Security follow-up: the frontend rejects passwords over 72 UTF-8 bytes, while the separately scoped backend direct-API trust-boundary guard remains outstanding.
+- T4-008: `DONE - PASS`
+- Report: `ai/reports/REPORT-T4-008.md`
+- Outcome: Home is a 499-line authenticated real-data dashboard with project, recent-asset, quota, empty/loading/error/partial/create, session-isolation, and explicit Workspace-navigation behavior.
+- Real acceptance: local MySQL revision advanced under Human authorization to `e9f1a2b3c4d5`; schema comments/indexes/FKs/collation passed; project/API/quota/asset data matched parameterized MySQL reads; UI create/reload/backend-restart/outage-recovery and 1440/920/375 browser checks passed; fresh production build transformed 4,663 modules.
+- Artifact hygiene: mistaken browser/QA tracking was removed in local commit `3b449b2`; 70 local files remain preserved and ignored, with no history rewrite or push.
+- Residual local data: two `t4008_*` acceptance users and project `8836c578-2db1-4624-a55d-e4bdfb25bf98` remain in `revid_db`; deletion was not authorized or performed.
 
-## T4-008 Objective
+## T4-009 Objective
 
-Replace the marketing-oriented Home with an authenticated personal dashboard that shows real projects, recent assets, quotas, and project creation/navigation using existing backend contracts.
+Refactor Space into a maintainable dark personal asset workspace using real asset, template, and quota data, with filtering, pagination, accessible media previews, detail/navigation behavior, and `Space.vue` at most 500 lines.
 
-## T4-008 Scope
+## T4-009 Scope
 
-- Allowed edits: `frontend/src/views/app/Home.vue` and related Home route entry as required.
-- Allowed additions: `frontend/src/views/app/components/home/**` and `frontend/src/modules/project/{api,types,store}.ts`.
-- Allowed minimal hardening: existing asset API/store/types for deterministic real-data/session behavior, plus the shared request interceptor only for synchronous credential binding across session switches.
-- Reuse: auth-store quota state after contract verification.
-- Forbidden: backend, database, migration, Space, Workspace, Canvas, global design-token, and new UI-library changes.
-
-## T4-008 Current State
-
-- Dependencies T4-003, T4-006, and T4-007 are complete.
-- Slice A project-domain foundation is implemented and verified.
-- Slice B1 asset-domain real-data and session hardening is implemented and verified.
-- Slice B2 Home presentation, real-data states, project creation, responsive decomposition, session isolation, and explicit project navigation are implemented and verified.
-- `modules/project/{types,api,store}.ts` now matches the exact backend list/create response fields and provides generation-safe load, refresh, create, duplicate-request, error, and reset behavior without fabricated state.
-- Project state now resets synchronously on every auth-token change, and the shared Axios request interceptor binds Authorization synchronously before control returns so a session switch cannot retarget a mutating request.
-- `api/assets.ts` and `types/asset.ts` now describe the complete list filters, pagination envelope, required/nullability fields, and unconstrained response strings while preserving constrained create input.
-- The asset store now starts empty, preserves successful same-session data on refresh failure, deduplicates concurrent requests, resets synchronously on auth-token changes, and suppresses stale success/error completion across sessions.
-- `Home.vue` is 499 lines and delegates route header, project list, recent assets, quota summary, and project creation to five Home-local components.
-- The root route remains public for the accepted guest/auth entry; authenticated dashboard data is isolated behind the restored session, while Space/Admin navigation remains available.
-- Home exposes no implicit Workspace link. Existing and newly created projects enter Workspace only with the backend project ID as scalar query `project_id`.
-- Loading, empty, initial-error, refresh-error, partial-data, zero-quota, frozen-generation, create-success, and create-error states are explicit. Unknown asset wire values use neutral fallbacks.
-- Pagination metadata remains at the asset API boundary rather than Pinia because Workspace directly mutates asset items and is outside T4-008 scope; Home describes the loaded page only as recent assets and never as an account-wide total.
-- Slice C runtime preflight reached the authorized local MySQL service without reading `.env`, but current `revid_db` is at Alembic revision `d8c5b9a4e2f0` while the current backend requires `e9f1a2b3c4d5`; the backend correctly refuses startup before browser acceptance.
-
-## T4-008 Acceptance Focus
-
-- Home projects/assets/quotas come from real contracts with no fabricated values.
-- Project creation updates immediately and persists across refresh.
-- Loading, empty, error, partial-data, and zero-quota states are explicit.
-- `Home.vue` is reduced to at most 500 lines through domain-aligned components.
-- Workspace navigation carries an explicit project ID.
-- Build plus 1440x900, 920px, and 375px browser acceptance pass.
-
-## Remaining In Current Task
-
-1. Restore an authorized local MySQL runtime to Alembic revision `e9f1a2b3c4d5`.
-2. Complete Slice C real local-backend/MySQL cross-check and responsive browser acceptance before REPORT and closure.
+- Allowed edits: `frontend/src/views/app/Space.vue` and existing asset API/store/types.
+- Allowed additions: `frontend/src/views/app/components/space/**` and `frontend/src/modules/template/**`.
+- Forbidden: backend, Home, Workspace, Canvas, and global design-token changes.
+- Acceptance requires real asset/template/MySQL comparison, detail and deletion/hidden semantics, production build, and 1440x900/920px/375px browser evidence.
 
 ## Exact Next Action
 
-Human Owner chooses one release path for the runtime blocker: authorize applying the existing additive `e9f1a2b3c4d5` generation-task migration to local `revid_db`, or provide an already-current authorized local runtime. After schema readiness is proven, rerun Slice C project/asset/quota/API/MySQL comparison, acceptance-project creation, and 1440x900/920px/375px browser checks.
+Create the T4-009 PLAN and PROGRESS documents, then read the complete current Space, asset API/store/types, template endpoints/contracts, quota state, project navigation, and relevant backend models before choosing the first bounded implementation slice. Do not edit T4-009 business code before that contract audit and plan are durable.
 
 ## Current Blockers
 
-- T4-005 Unit B real Agnes smoke remains a Human cost gate and must not run without explicit authorization.
-- T4-008 is blocked before real browser acceptance because local `revid_db` is one Alembic revision behind current code. T4-008 forbids database/migration changes, so Codex did not run `alembic upgrade`.
-- Release condition: Human Owner authorizes the existing additive migration for this local database, or supplies an authorized runtime already at `e9f1a2b3c4d5`.
-- Real MySQL acceptance must continue without opening or printing `.env`/credential material.
-- The backend direct registration API 72-byte boundary remains a separate normal engineering follow-up.
+- T4-009 has no recorded Human gate or dependency blocker.
+- T4-005 Unit B real Agnes smoke remains a separate Human cost gate and must not run without explicit authorization.
+- The backend direct registration API 72-byte password boundary remains a separate normal engineering follow-up.
+- No push is authorized; local cleanup and closure commits remain local until the Human Owner explicitly requests push.
 
 ## Worktree Protection
 
-- This run started from `main` at `6e2ea259c7e0b85caae6a9d72722ba02a460a546` with no staged, modified, unmerged, detached, or in-progress Git-operation state.
-- `frontend/.playwright-cli/` and `output/` were pre-existing untracked browser artifact directories. Slice C added only an ignored credential-safe launcher and startup logs under `output/playwright/t4-008-slice-c/`; all browser artifacts remain excluded from delivery staging and are preserved because deletion requires Human confirmation.
-- Preserve unrelated modified and untracked files in future runs; do not reset, clean, or rewrite historical evidence.
+- This closure run started from `main` at `1f9a4b0534c53c7378c46ae4bce6e319d75f85a2` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- Cleanup commit `3b449b2d383777ed006c947a384f60934f0f87ee` is intentional and owned by this run.
+- `/frontend/.playwright-cli/` and `/output/playwright/` are ignored local evidence directories. Their files remain on disk and must not be deleted, moved, force-added, or included in delivery commits without a new explicit scope.
+- Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 
 ## Historical Evidence
 
 - T4-003 report: `ai/reports/REPORT-T4-003-DIRECT.md`
 - T4-004 report: `ai/reports/REPORT-T4-004.md`
 - T4-007 report: `ai/reports/REPORT-T4-007.md`
+- T4-008 report: `ai/reports/REPORT-T4-008.md`
 - Former CURRENT timeline: `ai/state/archive/CURRENT-HERMES-THROUGH-2026-07-10.md`
-- Former T4-003 Hermes contracts: `ai/tasks/archive/TASK-T4-003-HERMES-THROUGH-REV47R2.md`
 - Frozen Hermes operating files: `ai/automation/archive/hermes-retired-2026-07-10/`

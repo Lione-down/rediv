@@ -4,62 +4,70 @@ Last updated: 2026-07-11
 
 ## State
 
-- Before this run: `DOING`, Slices A, B1, and B2 completed and committed
-- Current: `BLOCKED`
-- Bounded unit: Slice C authorized-runtime preflight
+- Before this run: `BLOCKED`, Slices A, B1, and B2 completed and committed
+- Current: `DONE`
+- Bounded units: artifact-tracking cleanup, authorized local schema upgrade, Slice C real-service acceptance, and Task closure - all completed
 - Starting branch: `main`
-- Starting HEAD: `6e2ea259c7e0b85caae6a9d72722ba02a460a546`
+- Starting HEAD: `1f9a4b0534c53c7378c46ae4bce6e319d75f85a2`
 - Pre-existing staged/modified files: none
-- Pre-existing untracked files: `frontend/.playwright-cli/` and `output/`; browser evidence only, excluded from delivery staging
+- Pre-existing untracked files: none; commit `1f9a4b0` mistakenly tracked 70 local browser/QA artifact paths
 - Unmerged paths, detached HEAD, or in-progress Git operation: none
 
 ## Completed Work
 
+- Human Owner explicitly authorized cleanup of the mistakenly tracked artifacts and application of existing additive migration `e9f1a2b3c4d5` to local `revid_db`.
+- Fresh baseline proved `main` and `origin/main` aligned at `1f9a4b0`, with no staged, modified, unmerged, detached, or in-progress Git state before this run.
+- The 70 paths introduced by `1f9a4b0` were confined to `frontend/.playwright-cli/**` and `output/playwright/**`; cleanup stopped tracking them without deleting local files or rewriting history. Commit: `3b449b2 chore(repo): ignore local browser qa artifacts`.
+- Fresh migration audit confirmed `e9f1a2b3c4d5` directly revises `d8c5b9a4e2f0` and creates only the fully commented additive `generation_tasks` table plus indexes and foreign keys.
+- Applied migration `e9f1a2b3c4d5` to local `revid_db`; post-check proved exact revision, 15/15 column comments, table comment, 7/7 indexes, 4 foreign keys, matching FK collation, and zero initial rows.
+- Created a real acceptance user and project through the API/UI. Home inserted project `8836c578-2db1-4624-a55d-e4bdfb25bf98` immediately and retained it across browser reload and backend restart.
+- Real `/me`, `/projects`, and `/assets` responses matched parameterized MySQL reads for user, project ID/name/owner/timestamp, quotas `100/20/3`, and asset count `0`.
+- A real backend outage produced scoped project/asset refresh errors while retaining successful data; restart and refresh recovered cleanly.
+- Headed Chromium checks passed at 1440x900, 920x900, and 375x812 with no horizontal overflow; keyboard focus and exact scalar Workspace `project_id` passed; canonical clean-page console had zero errors/warnings.
+- Fresh `npm run build` passed with 4,663 modules, `Home.vue` remained 499 lines, and `ai/reports/REPORT-T4-008.md` records final acceptance.
 - Slice A project-domain foundation, Slice B1 asset-domain hardening, and Slice B2 Home presentation/session isolation remain complete and committed.
 - Home is a 499-line authenticated real-data dashboard with five domain-aligned local components, explicit loading/empty/error/partial/zero-quota states, immediate project creation, and scalar `project_id` Workspace navigation.
 - Previous focused evidence remains green: project-store harness 20 checks, credential-binding race harness 4 checks, mocked real-router browser matrix 12/12, responsive overflow checks at 1440/920/375, and production build with 4,663 modules.
 - Confirmed the local MySQL service is listening and that `REVID_TEST_MYSQL_ADMIN_URL` is available in process environment without printing or persisting its value.
-- Started a credential-safe backend launcher from an artifact directory with no `.env` loading. The backend reached local `revid_db` and failed closed because the database revision is `d8c5b9a4e2f0`, while current code requires `e9f1a2b3c4d5`.
-- Inspected the pending migration: it is the existing additive generation-task migration that creates the commented `generation_tasks` table and indexes. No database or migration command was run because both are outside T4-008 scope.
-- Started the frontend with Vite `envFile: false`, confirmed its local listener, then stopped the exact process owned by this run after the backend gate failed.
+- Prior pre-authorization preflight used a credential-safe backend launcher from an artifact directory with no `.env` loading. The backend reached local `revid_db` and correctly failed closed at revision `d8c5b9a4e2f0` before the Human gate was released.
+- Before authorization, inspected the pending migration and confirmed it was the existing additive generation-task migration; no database or migration command ran during that blocked preflight.
+- Prior preflight started the frontend with Vite `envFile: false`, confirmed its local listener, then stopped the exact owned process after the backend gate failed.
 
 ## Remaining Work
 
-1. Resolve the local MySQL schema-readiness gate.
-2. Run authenticated project creation, refresh persistence, recent assets, quotas, and API-failure acceptance against the real backend.
-3. Cross-check the acceptance project ID, name, and `created_at` in MySQL without exposing credentials.
-4. Capture 1440x900, 920px, and 375px browser, console, keyboard, copy-fit, and overflow evidence.
-5. Perform the final diff review, write REPORT, and close T4-008 only if every non-deferred criterion passes.
+None for T4-008. All non-deferred acceptance criteria are complete.
 
 ## Exact Next Action
 
-Human Owner chooses one release path: authorize applying existing additive migration `e9f1a2b3c4d5` to local `revid_db`, or provide an already-current authorized local runtime. Once the database reports the required revision, restart the backend and execute the full Slice C real-service matrix.
+Create `TASK-T4-009-PLAN.md` and `TASK-T4-009-PROGRESS.md`, then audit the current Space, asset, template, quota, and navigation contracts before any T4-009 business-code edit.
 
 ## Files Changed This Run
 
-- `ai/tasks/todo/TASK-T4-008.md` - records the active database revision blocker and release paths.
-- `ai/tasks/doing/TASK-T4-008-PLAN.md` - marks Slice C blocked at runtime preflight and adds the Human gate.
-- `ai/tasks/doing/TASK-T4-008-PROGRESS.md` - records fresh runtime evidence, remaining work, and the exact release condition.
-- `ai/state/CURRENT.md` - updates the rolling snapshot to `BLOCKED`.
-- `ai/state/ROADMAP.md` - aligns T4-008 state with the active blocker.
-- `pitfalls.md` - records the schema-readiness and no-mock-substitution rule.
-- `output/playwright/t4-008-slice-c/start-backend.py` and startup logs - ignored local runtime evidence; never staged.
+- `.gitignore` - ignores local browser CLI state and `output/playwright` evidence.
+- `ai/tasks/todo/TASK-T4-008.md` - marks the Task `DONE` and checks all acceptance criteria.
+- `ai/tasks/doing/TASK-T4-008-PLAN.md` - records completed authorized recovery and Slice C.
+- `ai/tasks/doing/TASK-T4-008-PROGRESS.md` - records final implementation, verification, remaining work, and next action.
+- `ai/state/CURRENT.md` - rolls forward to T4-009 after T4-008 closure.
+- `ai/state/ROADMAP.md` - marks T4-008 `DONE - PASS` and T4-009 next.
+- `ai/reports/REPORT-T4-008.md` - final acceptance report.
+- `pitfalls.md` - records the browser artifact tracking/cleanup invariant.
+- `output/playwright/t4-008-slice-c/**` - ignored local runtime/browser evidence; never staged.
 
 ## Commands And Summarized Results
 
-- Required read set, active ADR, automation memory, and Git baseline: PASS; `main` at `6e2ea259c7e0b85caae6a9d72722ba02a460a546`, no staged/modified/unmerged/Git-operation state, with only known untracked browser artifacts.
-- Codex task-list single-flight query: unavailable after timeout; branch/HEAD/index fallback was used and must be rechecked before commit.
-- `git status --short --branch -uall`: PASS; `main` is ahead of `origin/main` by 10 and all dirty paths are known untracked browser artifacts.
-- MySQL no-password probe: expected FAIL with access denied; no credential fallback was attempted.
-- Process/User/Machine environment presence check: PASS; only presence flags were printed, and the injected MySQL runtime URL was available without value disclosure.
-- Credential-safe Uvicorn startup against local `revid_db`: BLOCKED before serving HTTP; exact fingerprint `Database schema revision mismatch (current=d8c5b9a4e2f0, head=e9f1a2b3c4d5)`.
-- Pending migration source audit: PASS; `e9f1a2b3c4d5_add_generation_tasks.py` revises `d8c5b9a4e2f0`, creates one fully commented table and indexes, and was not executed.
-- Vite startup with `envFile: false`: PASS on local port 9099; the exact owned process was stopped and the port closed after backend startup failed.
-- Real-service API/MySQL/browser matrix: NOT RUN because the backend correctly rejected the stale schema. Mock evidence was not substituted.
+- Required read set, active ADR, automation memory, single-flight task list, and Git baseline: PASS; only the current controller was active and `main` started clean at `1f9a4b0`.
+- Cleanup exact-set/local-preservation/ignore/credential-pattern/staged-diff checks: PASS; 70/70 exact paths, 0 local files missing, 0 tracked artifacts, 0 secret-like added lines; local commit `3b449b2` created without push.
+- Migration preflight: PASS; local `revid_db`, current `d8c5b9a4e2f0`, head `e9f1a2b3c4d5`, no partial table.
+- Exact Alembic upgrade and post-schema inspection: PASS; revision/comments/indexes/FKs/collation/row baseline all matched.
+- Backend `/health`: PASS before and after the owned-process restart; MySQL connected/ready and revision matched.
+- Real headed browser/API/MySQL matrix: PASS; create, reload, backend restart, outage preservation, recovery, quotas/assets/project consistency, navigation, keyboard, responsive layout, and clean console verified.
+- Runtime teardown: PASS; owned Playwright session, backend, and Vite processes stopped; ports 8000 and 9099 closed.
+- `npm run build`: PASS; typecheck and production build completed with 4,663 modules.
+- `git diff --check`: PASS.
 
 ## Blockers And Release Conditions
 
-- Active blocker: local `revid_db` is one Alembic revision behind current code, so real backend and browser acceptance cannot run.
-- Release condition: Human Owner authorizes the existing additive migration for this local database, or supplies an authorized runtime already at `e9f1a2b3c4d5`.
-- Impact: T4-008 cannot write REPORT or close; Slices A/B remain implemented and previously verified.
+- T4-008 has no remaining blocker.
+- No cleanup or closure push was authorized; the local branch remains ahead until the Human Owner requests push.
+- Two local acceptance users and one acceptance project remain because destructive test-data deletion was not authorized.
 - T4-005 Unit B remains a separate Human cost gate and is outside T4-008.

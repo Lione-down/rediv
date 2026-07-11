@@ -18,8 +18,8 @@ Last updated: 2026-07-11
 | 3 | T4-011 | Canvas connection model and CRUD API | DONE - PASS | T4-003 and T4-004 |
 | 4 | T4-005 Unit A | GenerationTask persistence, provider integration and mock tests | DONE - PASS | T4-003 and T4-004 |
 | 5 | T4-007 | Login/register UI and route/session guards | DONE - PASS | T4-004 and T4-006 |
-| 6 | T4-008 | Real-data Home project and asset dashboard | BLOCKED - LOCAL DB REVISION | T4-003 and T4-007 |
-| 7 | T4-009 | Real-data Space asset workspace | TODO | T4-003 and T4-007 |
+| 6 | T4-008 | Real-data Home project and asset dashboard | DONE - PASS | T4-003 and T4-007 |
+| 7 | T4-009 | Real-data Space asset workspace | TODO - NEXT | T4-003 and T4-007 |
 | 8 | T4-012 Unit A | Canvas decomposition, server load/save and optimistic rollback | TODO | T4-007, T4-010 and T4-011 |
 | 9 | T4-012 Unit B | Connection interaction, selection, context menu, minimap and responsive QA | TODO | T4-012 Unit A |
 | 10 | T4-005 Unit B | Explicitly authorized real Agnes text/image/video smoke | TODO - HUMAN COST GATE | T4-005 Unit A |
@@ -42,7 +42,7 @@ T4-012 remains one product Task but has two independently mergeable units. Unit 
 
 ## Current Size Risks
 
-- `frontend/src/views/app/Home.vue`: 951 lines
+- `frontend/src/views/app/Home.vue`: 499 lines - T4-008 target satisfied
 - `frontend/src/views/app/Space.vue`: 983 lines
 - `frontend/src/components/canvas/CanvasStage.vue`: 1071 lines
 

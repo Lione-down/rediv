@@ -2,12 +2,12 @@
 
 ## Status
 
-- State: `BLOCKED`
+- State: `DONE`
 - Owner: Codex Project Lead Engineer
 
-## Active Blocker
+## Completed Recovery
 
-Slice C cannot start the current backend against local `revid_db`: the database is at Alembic revision `d8c5b9a4e2f0`, while current code requires `e9f1a2b3c4d5`. This Task forbids database and migration changes, so release requires Human Owner authorization to apply the existing additive migration to this local database, or an already-current authorized runtime.
+The Human Owner authorized cleanup of mistakenly tracked browser/QA artifacts and application of existing additive migration `e9f1a2b3c4d5` to local `revid_db` on 2026-07-11. Both completed under the documented safety gates; final real-service, MySQL, responsive browser, build, and diff verification passed. See `ai/reports/REPORT-T4-008.md`.
 
 ## Task ID
 T4-008
@@ -52,11 +52,11 @@ T4-003、T4-006、T4-007 已完成。
 6. 卡片、按钮、菜单使用 design tokens 和 Naive UI，不新增另一 UI library。
 
 ## Acceptance Criteria
-- [ ] MySQL 中项目和资产与 Home 显示一致。
-- [ ] 创建项目后列表即时更新，刷新后仍存在。
-- [ ] 无项目、API 失败、额度为零均正确呈现。
-- [ ] `npm run build` 通过。
-- [ ] 1440×900、920px、375px 浏览器检查通过。
+- [x] MySQL 中项目和资产与 Home 显示一致。
+- [x] 创建项目后列表即时更新，刷新后仍存在。
+- [x] 无项目、API 失败、额度为零均正确呈现。
+- [x] `npm run build` 通过。
+- [x] 1440×900、920px、375px 浏览器检查通过。
 
 ## Verification Commands
 ```powershell
