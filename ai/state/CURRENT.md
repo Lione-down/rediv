@@ -1,6 +1,6 @@
 # Revid - Current Project State
 
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 
 ## Delivery Mode
 
@@ -21,10 +21,10 @@ Last updated: 2026-07-11
 ## Active Task
 
 - Task: `T4-012 Unit A - Canvas decomposition and persistence`
-- State: `TODO - NEXT`
+- State: `DOING`
 - Task file: `ai/tasks/todo/TASK-T4-012.md`
-- Plan: not created; target `ai/tasks/doing/TASK-T4-012-PLAN.md`
-- Progress: not created; target `ai/tasks/doing/TASK-T4-012-PROGRESS.md`
+- Plan: `ai/tasks/doing/TASK-T4-012-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T4-012-PROGRESS.md`
 - Target report: `ai/reports/REPORT-T4-012.md`
 
 ## Latest Completed Task
@@ -49,14 +49,16 @@ Decompose the 1000+ line CanvasStage into clear render, viewport, interaction, a
 
 ## Latest T4-012 Progress
 
-- T4-012 Unit A is dependency-ready because T4-007, T4-010, and T4-011 are complete.
-- No T4-012 PLAN, PROGRESS, implementation, runtime mutation, or browser evidence exists yet.
-- The first bounded unit must audit CanvasStage, canvas store/types, Workspace route/project ownership, and existing node/connection API contracts before choosing decomposition and persistence boundaries.
-- Unit B advanced connection interaction, selection, context menu, minimap, keyboard, and responsive QA must not start until Unit A persistence and rollback gates pass.
+- Unit 1 contract/decomposition audit is complete; PLAN and PROGRESS now lock five bounded Unit A delivery units.
+- `CanvasStage.vue` is 1,071 lines and mixes render, Leafer lifecycle, viewport, pointer interaction, minimap, overlays, and local-only connection creation.
+- The Canvas store still contains global fixture nodes/connections and has no project identity, server mapping, async load guard, persistence, debounce/flush, or rollback.
+- Existing authenticated node/connection APIs are sufficient; Unit A requires no backend contract or migration change.
+- Unit 2 will establish project-scoped DTO/API mapping and guarded server load before optimistic mutations or CanvasStage decomposition begin.
+- Unit B advanced selection, context menu, minimap work, keyboard behavior, and responsive QA remains gated on Unit A persistence and rollback acceptance.
 
 ## Exact Next Action
 
-Create `ai/tasks/doing/TASK-T4-012-PLAN.md` and `ai/tasks/doing/TASK-T4-012-PROGRESS.md`, then audit CanvasStage, canvas store/types, Workspace integration, and the existing node/connection APIs before any T4-012 business-code edit.
+Implement Unit 2 only: add `frontend/src/modules/canvas/` DTO/API mapping and replace fixture initialization in `frontend/src/store/canvas.ts` with a generation-guarded `loadProject(projectId)` path; update Workspace only enough to bind the normalized route project ID, then run `frontend: npm run build`.
 
 ## Current Blockers
 
@@ -68,11 +70,11 @@ Create `ai/tasks/doing/TASK-T4-012-PLAN.md` and `ai/tasks/doing/TASK-T4-012-PROG
 
 ## Worktree Protection
 
-- The T4-009 closure run started from clean `main` at `8e6cba89e029ab587ffbd3cba3b3c9e575e3330a`, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
-- The Codex task-list single-flight query was unavailable, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
-- The closure commit owns only `ai/reports/REPORT-T4-009.md`, T4-009 Task/PLAN/PROGRESS, ROADMAP, CURRENT, and `pitfalls.md`. No implementation, backend, dependency, generated output, secret, or global design file belongs to this commit.
-- `/frontend/.playwright-cli/` and `/output/playwright/` are ignored local evidence directories. Their files remain on disk and must not be deleted, moved, force-added, or included in delivery commits without a new explicit scope.
-- `/.playwright-cli/page-2026-07-11T15-29-19-414Z.yml` is a current-run untracked browser snapshot created before the CLI working directory was corrected. Deletion or moving was not authorized; preserve it and never stage it with T4-009 closure.
+- This run started from clean `main` at `5b64ca13398651aaea3c29d0d095efa0bdc6e1b3`, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- The Codex task-list single-flight query did not return, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
+- Pre-run commit `5b64ca1` contains only the formerly untracked zero-byte root Playwright snapshot and is already `origin/main`; it is outside T4-012 ownership and must not be modified or reverted in this Task.
+- The current bounded unit owns only the T4-012 PLAN/PROGRESS plus CURRENT and ROADMAP state transition; no frontend business code, backend code, dependency, generated output, secret, or global design file belongs to it.
+- `/frontend/.playwright-cli/` and `/output/playwright/` remain ignored local evidence directories and must not be deleted, moved, force-added, or included without new explicit scope.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 
 ## Historical Evidence
