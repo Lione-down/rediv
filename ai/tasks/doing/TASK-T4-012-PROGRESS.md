@@ -1,13 +1,13 @@
 # T4-012 Progress - Canvas decomposition and persistence
 
 - Task: `T4-012`
-- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`DOING`)
-- State: `DOING`
+- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`DONE - PASS`)
+- State: `DONE`
 - Updated: 2026-07-12
 
 ## Current Bounded Unit
 
-Unit B2 - Context Actions And Double-click Creation. Completed with controlled browser interaction, world-coordinate verification, failure rollback, responsive menu placement, build, backend regression, and fresh diff review.
+Unit B3 - Connection, Minimap, And Responsive Acceptance. Completed with pointer and keyboard connection selection, rollback-safe deletion, rendered-size minimap geometry/navigation, 25%-200% zoom checks, and 1440x900/920x900/375x900 browser acceptance.
 
 ## Completed Work
 
@@ -61,6 +61,11 @@ Unit B2 - Context Actions And Double-click Creation. Completed with controlled b
 - Added Escape-first context-menu dismissal and retained the existing Escape interaction cancellation and selection behavior.
 - Split context actions into `use-canvas-context-menu.ts` after fresh review caught the stage composable exceeding 500 lines; final Canvas-local sizes are 110/193/425/108 lines for stage/renderer/stage-composable/context-composable.
 - Final controlled browser QA passed node duplicate, exact node delete targeting with 503 rollback and visible error, stage image creation, 50% zoom plus pan double-click creation at expected world coordinate `(321.84, 769.26)`, 375px menu containment, and Escape close. Network evidence was 3 expected POST 200, 1 expected DELETE 503, and no unexpected Canvas request.
+- Added mutually exclusive connection selection with a 16px transparent SVG hit path, visible selected state, keyboard focus/Enter semantics, Escape clearing, and Delete/Backspace through the existing optimistic persistence path.
+- Failed controlled connection deletion returned 503, restored the exact connection and connection selection, displayed the existing save error, and left no duplicate or ghost edge.
+- Minimap geometry now consumes its actual rendered dimensions instead of assuming 160x104, so the 128x86 tablet minimap maps nodes and viewport correctly; node clicks and empty-map clicks both navigate without changing zoom.
+- Controlled browser QA passed actual connection pointer hit at 25% and 200% zoom, keyboard selection/deletion, responsive minimap navigation, and 1440x900/920x900/375x900 containment with zero horizontal overflow; the minimap is intentionally hidden at 375px.
+- Final visual screenshot review used a zero-scroll 375px viewport to avoid stale automation scroll contamination and confirmed the top bar, tool rail, canvas, prompt dock, node surface, and responsive minimap policy remain coherent without a visual redesign.
 
 ## Contract Audit Findings
 
@@ -90,11 +95,11 @@ Unit B2 - Context Actions And Double-click Creation. Completed with controlled b
 
 - Unit A: none; every non-deferred Unit A gate is complete and frozen.
 - Unit B2: complete and frozen as `DONE - PASS`.
-- Unit B3: remaining connection/minimap behavior plus 1440x900/920px/375px real-browser acceptance and Task closure.
+- Unit B3: none; every non-deferred T4-012 acceptance criterion is complete.
 
 ## Exact Next Action
 
-Execute Unit B3 connection hit/selection and minimap navigation/viewport checks across 25%-200% zoom, then run 1440x900, 920x900, and 375x900 real-browser acceptance without reopening Unit A backend contracts.
+T4-012 is complete. Do not reopen it; the next project action requires Human Owner authorization for paid T4-005 Unit B real Agnes smoke.
 
 ## Files Changed
 
@@ -134,6 +139,12 @@ Execute Unit B3 connection hit/selection and minimap navigation/viewport checks 
 - `frontend/src/components/canvas/CanvasStage.vue` - rendered the manual scoped `NDropdown` at pointer coordinates.
 - `ai/tasks/doing/TASK-T4-012-PLAN.md` - decomposed Unit B and marked Unit B1 complete.
 - `ai/tasks/doing/TASK-T4-012-PROGRESS.md` - recorded Unit B1 implementation, verification, and next action.
+- `frontend/src/store/canvas.ts` - added mutually exclusive connection selection and stale-selection cleanup.
+- `frontend/src/components/canvas/canvas-geometry.ts` - made minimap geometry responsive to rendered size and added map-to-world conversion.
+- `frontend/src/components/canvas/composables/use-canvas-stage.ts` - added connection selection/delete semantics and minimap background navigation/measurement.
+- `frontend/src/components/canvas/CanvasStage.vue` - added accessible connection hit paths and responsive minimap event wiring.
+- `frontend/src/components/canvas/canvas-stage.scss` - added connection hit, focus, and selected visuals.
+- `ai/reports/REPORT-T4-012.md` - recorded final implementation and evidence.
 
 ## Commands And Summarized Results
 
@@ -170,10 +181,15 @@ Execute Unit B3 connection hit/selection and minimap navigation/viewport checks 
 - `backend: .venv/Scripts/python.exe -m unittest tests.test_canvas_node_crud tests.test_canvas_connection_crud`: PASS, 19/19.
 - Playwright CLI controlled browser QA at 1280x900 and 375x900: PASS for node/stage menus, duplicate, exact failed-delete rollback with visible message, stage image create, 50% zoom plus pan world-coordinate double-click create, mobile containment, and Escape close. Final request evidence was POST 200 x3 and expected DELETE 503 x1; screenshots are ignored `output/playwright/t4012-unitb2-context-actions.png` and `t4012-unitb2-mobile-menu.png`.
 - Unit B2 fresh diff/security/architecture review and `git diff --check`: PASS; no backend contract, auth, global token, dependency, generated output, or secret-bearing tracked path changed.
+- `frontend: npm run build` after Unit B3 and accessibility self-review: PASS; `vue-tsc -b` and Vite completed with 4,702 transformed modules.
+- `backend: .venv/Scripts/python.exe -m unittest tests.test_canvas_node_crud tests.test_canvas_connection_crud`: PASS, 19/19.
+- Playwright controlled browser QA: PASS for actual connection pointer hit at 25% and 200% zoom, focus/Enter selection, Delete 503 rollback with selection restoration, 160x104 desktop and 128x86 tablet minimap mapping/navigation, and 1440x900/920x900/375x900 no-overflow acceptance. The single console error was the expected controlled DELETE 503.
+- Final file sizes: `CanvasStage.vue` 133, `canvas-geometry.ts` 154, `canvas-stage.scss` 227, `use-canvas-stage.ts` 473, and `canvas.ts` 297 lines; all Canvas-local files remain below 500 lines.
+- Unit B3 fresh diff/security/accessibility review and `git diff --check`: PASS after removing the conflicting `aria-hidden` from the focusable connection SVG group; no backend, dependency, global design, secret, or generated tracked path changed.
 
 ## Blockers And Release Conditions
 
-- No Human gate or dependency blocker exists for Unit A closure or Unit B planning.
+- T4-012 has no remaining blocker and is complete.
 - Commit release condition is unchanged starting branch/HEAD/index, no Git operation/unmerged path, precise owned staging, staged secret scan, and clean staged diff review.
 - The pre-existing `5b64ca1` Playwright snapshot commit is outside T4-012 ownership and must remain untouched unless the Human Owner separately requests cleanup.
 - No push is authorized.

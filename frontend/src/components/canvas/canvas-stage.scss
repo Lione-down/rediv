@@ -73,6 +73,18 @@
   pointer-events: none;
 }
 
+.connection-hit {
+  stroke: transparent;
+  stroke-width: 16;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.connection-hit:focus-visible {
+  outline: none;
+  stroke: color-mix(in oklch, var(--accent-select) 22%, transparent);
+}
+
 .node-status-overlay {
   position: absolute;
   z-index: 2;
@@ -130,16 +142,24 @@
 .status-icon { flex: none; }
 .node-status-overlay.is-running .status-icon { animation: status-spin 1s linear infinite; }
 
-path {
+.connection-line,
+.draft {
   fill: none;
   stroke: oklch(37% 0.014 245 / 0.44);
   stroke-width: 1.6;
 }
 
-path.active {
+.connection-line.active {
   stroke: var(--accent-select);
   stroke-dasharray: 8 10;
   animation: dash 1.4s linear infinite;
+}
+
+.connection-line.selected {
+  stroke: var(--accent-select);
+  stroke-width: 3;
+  stroke-dasharray: none;
+  animation: none;
 }
 
 path.draft {

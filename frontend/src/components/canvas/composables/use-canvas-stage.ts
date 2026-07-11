@@ -6,6 +6,7 @@ import {
   buildConnectionPath,
   calculateMinimapMetrics,
   clampZoom,
+  minimapPointToWorld,
   minimapNodeStyle as getMinimapNodeStyle,
   minimapViewportStyle as getMinimapViewportStyle,
   nodeInputAnchor as getNodeInputAnchor,
@@ -43,9 +44,11 @@ export function useCanvasStage() {
   const canvasStore = useCanvasStore()
   const stageRef = ref<HTMLElement | null>(null)
   const canvasSurfaceRef = ref<HTMLElement | null>(null)
+  const minimapRef = ref<HTMLElement | null>(null)
   const draftConnection = ref<DraftConnectionState | null>(null)
   const marquee = ref<MarqueeState | null>(null)
   const surfaceViewportSize = ref({ width: 0, height: 0 })
+  const minimapSize = ref({ width: 160, height: 104 })
   const isSpacePressed = ref(false)
   const isPanning = ref(false)
   let renderer: CanvasRenderer | null = null
@@ -72,7 +75,7 @@ export function useCanvasStage() {
     return 'default'
   })
   const viewportWorldRect = computed(() => getViewportWorldRect(getViewport(), surfaceViewportSize.value))
-  const minimapMetrics = computed(() => calculateMinimapMetrics(canvasStore.nodes, viewportWorldRect.value))
+  const minimapMetrics = computed(() => calculateMinimapMetrics(canvasStore.nodes, viewportWorldRect.value, minimapSize.value))
   const minimapViewportStyle = computed(() => getMinimapViewportStyle(viewportWorldRect.value, minimapMetrics.value))
   const statusNodes = computed(() => canvasStore.nodes.filter(
     (node): node is CanvasNode & { status: StatusVisualState } =>
@@ -158,6 +161,23 @@ export function useCanvasStage() {
       x: surfaceViewportSize.value.width / 2 - (node.x + node.width / 2) * viewport.zoom,
       y: surfaceViewportSize.value.height / 2 - (node.y + node.height / 2) * viewport.zoom,
     })
+  }
+  function handleMinimapPointerDown(event: PointerEvent) {
+    if (event.button !== 0) return
+    const rect = minimapRef.value?.getBoundingClientRect()
+    if (!rect) return
+    const worldPoint = minimapPointToWorld({ x: event.clientX - rect.left, y: event.clientY - rect.top }, minimapMetrics.value)
+    const viewport = getViewport()
+    updateViewport({
+      x: surfaceViewportSize.value.width / 2 - worldPoint.x * viewport.zoom,
+      y: surfaceViewportSize.value.height / 2 - worldPoint.y * viewport.zoom,
+    })
+  }
+  function handleConnectionPointerDown(connectionId: string, event: PointerEvent) {
+    if (event.button !== 0 || canvasStore.mode !== 'select') return
+    cancelActiveInteraction()
+    closeContextMenu()
+    canvasStore.selectConnection(connectionId)
   }
   function retryProjectLoad() {
     if (!canvasStore.activeProjectId) return
@@ -349,6 +369,18 @@ export function useCanvasStage() {
       try { await canvasStore.deleteNode(nodeId) } catch { /* Store reports the owned failure. */ }
     }
   }
+  async function deleteSelectedConnection() {
+    const connectionId = canvasStore.selectedConnectionId
+    if (!connectionId) return
+    canvasStore.selectConnection('')
+    try {
+      await canvasStore.deleteConnection(connectionId)
+    } catch {
+      if (!canvasStore.selectedConnectionId && canvasStore.connections.some((connection) => connection.id === connectionId)) {
+        canvasStore.selectConnection(connectionId)
+      }
+    }
+  }
   function handleWindowKeyDown(event: KeyboardEvent) {
     if (event.key === ' ') isSpacePressed.value = true
     if (isEditableTarget(event.target)) return
@@ -357,7 +389,15 @@ export function useCanvasStage() {
         closeContextMenu()
         return
       }
-      if (!cancelActiveInteraction()) canvasStore.setSelection([])
+      if (!cancelActiveInteraction()) {
+        if (canvasStore.selectedConnectionId) canvasStore.selectConnection('')
+        else canvasStore.setSelection([])
+      }
+      return
+    }
+    if ((event.key === 'Delete' || event.key === 'Backspace') && canvasStore.selectedConnectionId && !event.repeat) {
+      event.preventDefault()
+      void deleteSelectedConnection()
       return
     }
     if ((event.key === 'Delete' || event.key === 'Backspace') && canvasStore.selectedNodeIds.length > 0 && !event.repeat) {
@@ -384,9 +424,16 @@ export function useCanvasStage() {
     window.addEventListener('keyup', handleWindowKeyUp)
     resizeObserver = new ResizeObserver(() => {
       surfaceViewportSize.value = { width: Math.max(stage.clientWidth, 1), height: Math.max(stage.clientHeight, 1) }
+      if (minimapRef.value) {
+        minimapSize.value = { width: Math.max(minimapRef.value.clientWidth, 1), height: Math.max(minimapRef.value.clientHeight, 1) }
+      }
       renderer?.resize()
     })
     resizeObserver.observe(stage)
+    if (minimapRef.value) {
+      minimapSize.value = { width: Math.max(minimapRef.value.clientWidth, 1), height: Math.max(minimapRef.value.clientHeight, 1) }
+      resizeObserver.observe(minimapRef.value)
+    }
   })
   watch(sceneSignature, () => renderer?.render())
   watch(nodePositions, (positions, previousPositions = []) => {
@@ -416,7 +463,8 @@ export function useCanvasStage() {
   })
 
   return {
-    buildConnectionPath, canvasStore, canvasSurfaceRef, centerNodeInViewport, minimapNodeStyle,
+    buildConnectionPath, canvasStore, canvasSurfaceRef, centerNodeInViewport, handleConnectionPointerDown,
+    handleMinimapPointerDown, minimapNodeStyle, minimapRef,
     minimapViewportStyle, nodeInputAnchor, nodeOutputAnchor, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
     viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu,

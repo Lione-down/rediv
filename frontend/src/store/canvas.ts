@@ -28,6 +28,7 @@ export const useCanvasStore = defineStore('canvas', () => {
   const activeProjectId = ref('')
   const selectedNodeId = ref('')
   const selectedNodeIds = ref<string[]>([])
+  const selectedConnectionId = ref('')
   const selectionRevision = ref(0)
   const mode = ref<CanvasMode>('select')
   const viewport = ref({ zoom: 1, x: 0, y: 0 })
@@ -75,10 +76,12 @@ export const useCanvasStore = defineStore('canvas', () => {
     if (
       selectedNodeId.value === nextPrimaryId &&
       selectedNodeIds.value.length === nextIds.length &&
-      selectedNodeIds.value.every((nodeId, index) => nodeId === nextIds[index])
+      selectedNodeIds.value.every((nodeId, index) => nodeId === nextIds[index]) &&
+      !selectedConnectionId.value
     ) return
     selectedNodeIds.value = nextIds
     selectedNodeId.value = nextPrimaryId
+    selectedConnectionId.value = ''
     selectionRevision.value += 1
   }
 
@@ -100,6 +103,17 @@ export const useCanvasStore = defineStore('canvas', () => {
       return
     }
     setSelection([nodeId], nodeId)
+  }
+
+  function selectConnection(connectionId: string) {
+    const nextConnectionId = connections.value.some((connection) => connection.id === connectionId)
+      ? connectionId
+      : ''
+    if (selectedConnectionId.value === nextConnectionId && selectedNodeIds.value.length === 0) return
+    selectedNodeId.value = ''
+    selectedNodeIds.value = []
+    selectedConnectionId.value = nextConnectionId
+    selectionRevision.value += 1
   }
 
   function setMode(nextMode: CanvasMode) {
@@ -152,6 +166,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     activeProjectId.value = projectId
     selectedNodeId.value = ''
     selectedNodeIds.value = []
+    selectedConnectionId.value = ''
     selectionRevision.value += 1
     nodes.value = []
     connections.value = []
@@ -239,10 +254,20 @@ export const useCanvasStore = defineStore('canvas', () => {
     { flush: 'sync' },
   )
 
+  watch(
+    () => connections.value.map((connection) => connection.id),
+    (connectionIds) => {
+      if (selectedConnectionId.value && !connectionIds.includes(selectedConnectionId.value)) {
+        selectedConnectionId.value = ''
+      }
+    },
+  )
+
   return {
     activeProjectId,
     selectedNodeId,
     selectedNodeIds,
+    selectedConnectionId,
     selectedNode,
     selectedNodes,
     mode,
@@ -256,6 +281,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     saveErrorRevision,
     loadProject,
     selectNode,
+    selectConnection,
     setSelection,
     setMode,
     setNodeStatus,

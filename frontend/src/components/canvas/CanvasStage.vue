@@ -11,8 +11,11 @@ const {
   closeContextMenu,
   contextMenu,
   contextMenuOptions,
+  handleConnectionPointerDown,
   handleContextMenuSelect,
+  handleMinimapPointerDown,
   minimapNodeStyle,
+  minimapRef,
   minimapViewportStyle,
   nodeInputAnchor,
   nodeOutputAnchor,
@@ -37,6 +40,10 @@ function setStageRef(element: Element | ComponentPublicInstance | null) {
 function setCanvasSurfaceRef(element: Element | ComponentPublicInstance | null) {
   canvasSurfaceRef.value = element instanceof HTMLElement ? element : null
 }
+
+function setMinimapRef(element: Element | ComponentPublicInstance | null) {
+  minimapRef.value = element instanceof HTMLElement ? element : null
+}
 </script>
 
 <template>
@@ -53,12 +60,27 @@ function setCanvasSurfaceRef(element: Element | ComponentPublicInstance | null) 
       <button v-if="stageNotice.canRetry" type="button" @click="retryProjectLoad">重新加载</button>
     </div>
     <div :ref="setCanvasSurfaceRef" class="canvas-surface" :class="`cursor-${viewportCursor}`">
-      <svg class="connection-layer" aria-hidden="true">
+      <svg class="connection-layer" role="group" aria-label="画布连线">
         <path
           v-for="connection in canvasStore.connections"
           :key="connection.id"
-          :class="{ active: connection.active }"
+          class="connection-line"
+          :class="{ active: connection.active, selected: canvasStore.selectedConnectionId === connection.id }"
           :d="buildConnectionPath(nodeOutputAnchor(connection.from), nodeInputAnchor(connection.to))"
+        />
+        <path
+          v-for="connection in canvasStore.connections"
+          :key="`hit-${connection.id}`"
+          class="connection-hit"
+          :class="{ selected: canvasStore.selectedConnectionId === connection.id }"
+          :d="buildConnectionPath(nodeOutputAnchor(connection.from), nodeInputAnchor(connection.to))"
+          role="button"
+          tabindex="0"
+          :aria-label="`选择连线 ${connection.from} 到 ${connection.to}`"
+          @pointerdown.stop="handleConnectionPointerDown(connection.id, $event)"
+          @focus="canvasStore.selectConnection(connection.id)"
+          @keydown.enter.prevent="canvasStore.selectConnection(connection.id)"
+          @keydown.space.prevent="canvasStore.selectConnection(connection.id)"
         />
         <path v-if="temporaryConnectionPath" class="draft" :d="temporaryConnectionPath" />
       </svg>
@@ -79,7 +101,7 @@ function setCanvasSurfaceRef(element: Element | ComponentPublicInstance | null) 
 
       <div v-if="marqueeStyle" class="selection-marquee" :style="marqueeStyle" aria-hidden="true"></div>
 
-      <div class="minimap" aria-label="小地图">
+      <div :ref="setMinimapRef" class="minimap" aria-label="小地图" @pointerdown.stop="handleMinimapPointerDown">
         <button
           v-for="node in canvasStore.nodes"
           :key="node.id"
@@ -88,7 +110,8 @@ function setCanvasSurfaceRef(element: Element | ComponentPublicInstance | null) 
           :class="{ selected: canvasStore.selectedNodeIds.includes(node.id) }"
           :aria-label="`定位到 ${node.title}`"
           :style="minimapNodeStyle(node)"
-          @click="centerNodeInViewport(node.id)"
+          @pointerdown.stop
+          @click.stop="centerNodeInViewport(node.id)"
         />
         <div class="minimap-viewport" :style="minimapViewportStyle"></div>
       </div>

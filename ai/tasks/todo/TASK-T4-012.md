@@ -1,5 +1,10 @@
 # Task: Canvas 交互与前后端持久化联调
 
+## Status
+
+- State: `DONE - PASS`
+- Completed: 2026-07-12
+
 ## Task ID
 T4-012
 
@@ -44,6 +49,8 @@ Status: `DONE - PASS` (2026-07-12)
 
 ### Unit B — Advanced Interaction And Visual Acceptance
 
+Status: `DONE - PASS` (2026-07-12)
+
 - 完成锚点拖线、双击新增、框选、多选、右键菜单、minimap、键盘和 zoom/pan 命中验收。
 - 不重新打开 Unit A 已冻结的 backend contract，除非新证据触发独立返工 Task。
 - 完成 1440×900、920px、375px 的真实浏览器验证。
@@ -60,10 +67,10 @@ Status: `DONE - PASS` (2026-07-12)
 ## Acceptance Criteria
 - [x] 创建项目后新增/移动/连接节点，刷新页面完整恢复。
 - [x] API 失败时 UI 回滚并显示错误，不产生幽灵节点/连接。
-- [ ] zoom 25%–200% 下锚点、框选和 minimap 正确。
+- [x] zoom 25%–200% 下锚点、框选和 minimap 正确。
 - [x] `npm run build` 通过。
 - [x] CanvasStage.vue 不超过 500 行，新增文件均职责清晰。
-- [ ] 1440×900 和 375px 真实浏览器交互检查通过。
+- [x] 1440×900 和 375px 真实浏览器交互检查通过。
 
 ## Verification Commands
 ```powershell

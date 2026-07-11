@@ -1,8 +1,8 @@
 # T4-012 Plan - Canvas decomposition and persistence
 
 - Task: `T4-012`
-- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`DOING`)
-- State: `DOING`
+- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`DONE - PASS`)
+- State: `DONE`
 - Owner: Codex Project Lead Engineer
 - Created: 2026-07-12
 
@@ -64,6 +64,8 @@ Result: PASS. Stage and node context actions, duplicate/delete behavior, world-c
 
 - Complete connection hit/selection behavior and minimap navigation/viewport checks across 25%-200% zoom.
 - Run real browser interaction and layout acceptance at 1440x900, 920x900, and 375x900; close remaining Task criteria and write REPORT only when all gates pass.
+
+Result: PASS. Wide SVG hit paths, mouse and keyboard connection selection, editable-safe deletion with rollback restoration, responsive minimap measurement and background/node navigation passed at 25%, 100%, and 200% zoom. Browser acceptance passed at 1440x900, 920x900, and 375x900 with no horizontal overflow.
 
 ### Unit A completion - PASS 2026-07-12
 

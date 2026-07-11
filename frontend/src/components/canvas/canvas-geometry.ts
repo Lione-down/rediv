@@ -99,7 +99,11 @@ export function buildConnectionPath(from: Point, to: Point) {
   return `M ${from.x} ${from.y} C ${from.x + 110} ${from.y}, ${to.x - 110} ${to.y}, ${to.x} ${to.y}`
 }
 
-export function calculateMinimapMetrics(nodes: CanvasNode[], viewport: WorldRect): MinimapMetrics {
+export function calculateMinimapMetrics(
+  nodes: CanvasNode[],
+  viewport: WorldRect,
+  mapSize: ViewportSize = { width: 160, height: 104 },
+): MinimapMetrics {
   const padding = 64
   const nodeMinX = nodes.reduce((minimum, node) => Math.min(minimum, node.x), 0)
   const nodeMinY = nodes.reduce((minimum, node) => Math.min(minimum, node.y), 0)
@@ -111,8 +115,8 @@ export function calculateMinimapMetrics(nodes: CanvasNode[], viewport: WorldRect
   const maxY = Math.max(nodeMaxY, viewport.top + viewport.height) + padding
   const boundsWidth = Math.max(maxX - minX, 1)
   const boundsHeight = Math.max(maxY - minY, 1)
-  const mapWidth = 160
-  const mapHeight = 104
+  const mapWidth = Math.max(mapSize.width, 1)
+  const mapHeight = Math.max(mapSize.height, 1)
   const scale = Math.min(mapWidth / boundsWidth, mapHeight / boundsHeight)
 
   return {
@@ -121,6 +125,13 @@ export function calculateMinimapMetrics(nodes: CanvasNode[], viewport: WorldRect
     scale,
     offsetX: (mapWidth - boundsWidth * scale) / 2,
     offsetY: (mapHeight - boundsHeight * scale) / 2,
+  }
+}
+
+export function minimapPointToWorld(point: Point, metrics: MinimapMetrics) {
+  return {
+    x: (point.x - metrics.offsetX) / metrics.scale + metrics.minX,
+    y: (point.y - metrics.offsetY) / metrics.scale + metrics.minY,
   }
 }
 
