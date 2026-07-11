@@ -21,10 +21,10 @@ Last updated: 2026-07-11
 ## Active Task
 
 - Task: `T4-009 - Real-data Space asset workspace`
-- State: `TODO`
+- State: `DOING`
 - Task file: `ai/tasks/todo/TASK-T4-009.md`
-- Plan: not created; next run must create `ai/tasks/doing/TASK-T4-009-PLAN.md` before business-code edits
-- Progress: not created; next run must create `ai/tasks/doing/TASK-T4-009-PROGRESS.md` before business-code edits
+- Plan: `ai/tasks/doing/TASK-T4-009-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T4-009-PROGRESS.md`
 - Target report: `ai/reports/REPORT-T4-009.md`
 
 ## Latest Completed Task
@@ -47,9 +47,18 @@ Refactor Space into a maintainable dark personal asset workspace using real asse
 - Forbidden: backend, Home, Workspace, Canvas, and global design-token changes.
 - Acceptance requires real asset/template/MySQL comparison, detail and deletion/hidden semantics, production build, and 1440x900/920px/375px browser evidence.
 
+## Latest T4-009 Progress
+
+- Unit 1 planning and contract audit is complete with no business-code edit.
+- Asset list contract: current-user `active` rows only, server type/project filters and pagination, newest first; user delete is soft delete, hidden is admin-only, and invalid/dangling media/project references require neutral fallbacks.
+- Template contract: current-user newest-first unpaginated list, hard delete, and use creates a new project with cloned nodes but no connections.
+- Quota contract: only remaining text/image/video counts from `/me`; no capacity, percentage, usage history, or user ledger may be invented.
+- Current Space is a 983-line prototype with no direct load, real total/filter/pagination/detail/delete/media fallback, and mock storage/history/results content.
+- Verification baseline: 29 focused temporary-SQLite backend contract tests passed; fresh frontend production build passed with 4,663 modules.
+
 ## Exact Next Action
 
-Create the T4-009 PLAN and PROGRESS documents, then read the complete current Space, asset API/store/types, template endpoints/contracts, quota state, project navigation, and relevant backend models before choosing the first bounded implementation slice. Do not edit T4-009 business code before that contract audit and plan are durable.
+Implement the independent query-aware paginated Space asset collection in the existing asset types/API/store. Preserve the current Home/Workspace default cache, API pagination metadata, identical-query single-flight, latest-query/session guards, and synchronous token reset. Do not edit Space or template UI in that bounded slice.
 
 ## Current Blockers
 
@@ -60,8 +69,9 @@ Create the T4-009 PLAN and PROGRESS documents, then read the complete current Sp
 
 ## Worktree Protection
 
-- This closure run started from `main` at `1f9a4b0534c53c7378c46ae4bce6e319d75f85a2` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
-- Cleanup commit `3b449b2d383777ed006c947a384f60934f0f87ee` is intentional and owned by this run.
+- This run started from clean `main` at `f0327cb1a490908e438cb7e23dc8fb26599d1599` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- The Codex task-list single-flight query was unavailable, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
+- This run owns only the T4-009 PLAN/PROGRESS plus CURRENT/ROADMAP state transition; no business-code path is owned by this unit.
 - `/frontend/.playwright-cli/` and `/output/playwright/` are ignored local evidence directories. Their files remain on disk and must not be deleted, moved, force-added, or included in delivery commits without a new explicit scope.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 
