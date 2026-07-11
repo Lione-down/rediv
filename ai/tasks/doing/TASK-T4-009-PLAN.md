@@ -45,7 +45,7 @@ Explicit non-goals:
 - User and context: authenticated creators reviewing personal media, reusable templates, and remaining generation quota across desktop, narrow desktop, and mobile.
 - Visual thesis: a dark, media-first utility workspace where real previews are the visual anchor, near-black surface steps carry hierarchy, and the existing violet selection accent is used sparingly.
 - Content plan: compact page orientation and status, then assets/templates/quota tabs; assets prioritize filter, total, grid, pagination, and detail; templates prioritize reuse; quota shows remaining counts only.
-- Interaction thesis: controlled tabs and pagination, a focus-managed detail drawer, 120-200ms transform/opacity feedback, press scale, and a reduced-motion path.
+- Interaction thesis: controlled native view buttons and pagination, a focus-managed detail drawer, 120-200ms transform/opacity feedback, press scale, and a reduced-motion path.
 - CSS strategy: existing component-scoped SCSS plus Naive UI only. Reuse the documented dark values, spacing, radius, focus, and status vocabulary without modifying global tokens.
 - Benchmark intent: use Runway-style media-first scanning, Figma-style compact asset discovery, and Notion-style explicit view/filter controls as interaction references, without copying branding or inventing capabilities.
 - Quiet product boundary: remove the current mock storage usage, hard-coded history/results, and unconditional availability claims. Do not show percentages, capacity, history, restore, or hide actions that the current user API cannot support.
@@ -80,12 +80,12 @@ Success criteria:
 - error and boundary behavior is explicit;
 - no page redesign is mixed into the domain change.
 
-### Unit 3 - Space controller and local components
+### Unit 3 - Space controller and local components - complete 2026-07-11
 
 Implement as bounded slices:
 
 1. Extract the verified asset detail/delete coordinator into `modules/asset/**` and the template delete/use state machine into `modules/template/**`. Keep the current Pinia refs and action contracts stable, retain list/detail cache invalidation in the owning stores, and return both stores to approximately 500 lines or less before adding UI behavior. The asset helper belongs to the domain layer so the global store does not depend on the Space presentation subtree. - complete 2026-07-11
-2. Split list, filters, media previews, quota/template sections, and detail UI into domain-aligned local components while keeping `Space.vue` as the page-level coordinator.
+2. Split list, filters, basic type-aware previews, quota/template sections, and detail UI into domain-aligned local components while keeping `Space.vue` as the page-level coordinator. Wire real asset filtering/pagination, template/quota reads, detail selection, asset project navigation, and the already-guarded template-use navigation. Keep destructive asset/template actions out of this slice so Unit 4 can add explicit confirmation and refresh semantics with the media-failure pass. - complete 2026-07-11
 
 Success criteria:
 
@@ -96,7 +96,7 @@ Success criteria:
 
 ### Unit 4 - Accessibility and failure semantics
 
-Complete prompt/image/video preview behavior, keyboard and label semantics, URL-load fallbacks, deletion/hidden refresh behavior, and responsive edge cases.
+Complete real prompt/image/video URL rendering and load fallbacks, deletion confirmation and hidden/deleted refresh behavior, plus the remaining responsive failure edges.
 
 Success criteria:
 

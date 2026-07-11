@@ -8,19 +8,28 @@
 
 ## Current Bounded Unit
 
-Unit 3, sub-slice 1 - domain extraction of the verified asset detail/delete coordinator and template delete/use state machine. This slice is complete and verified. It is limited to the two stores, new helper modules under the Task's narrowly extended allowed addition paths, and active state documents; it preserves public Pinia contracts and does not edit Space UI.
+Unit 3, sub-slice 2 is complete. The prototype Space page is now a real-data controller with domain-local presentation components, guarded template-created-project recovery, native keyboard-reachable view switching and pagination, and verified responsive loading/error/empty/boundary behavior. Destructive actions and complete real media URL/load fallback remain in Unit 4.
 
-## Current Slice Design
+## Completed Slice Design
 
-- Move the asset detail/delete refs, pending registries, request/session guards, and actions into an asset-domain coordinator. Inject collection invalidation and refresh callbacks so the global store continues to own its default and Space list caches without importing from `views/**`.
-- Move template delete/use refs, pending registries, global non-idempotent use lock, and actions into a domain-local mutation helper. Keep template list/detail cache invalidation in the store and expose the same public refs/actions through the Pinia return object.
-- Keep API clients, action names, resolved values, error messages, stale-settlement behavior, token-reset timing, and list/detail cache semantics unchanged. Do not add dependencies or edit Space UI in this slice.
-- Success requires both stores at approximately 500 lines or less, deterministic mutation/race probes passing unchanged, TypeScript and production build passing, and a fresh diff review showing only mechanical ownership movement plus necessary dependency injection.
+- Keep `Space.vue` as the page-level coordinator for authenticated loading, native assets/templates/quota view switching, asset query state, detail selection, and canonical Workspace navigation. It remains at most 500 lines.
+- Add prop-driven local components for the asset list/filter/pagination states, basic type-aware asset preview, template list/use states, quota remaining-count states, and a focus-managed asset/template detail drawer. Presentation helpers remain inside the Space subtree.
+- Load assets, templates, and `/me` quota data independently so one failed surface does not hide successful data. Preserve API totals and explicit initial-loading, retained-data error, empty, and out-of-range boundary behavior.
+- Reset asset page to one when the type filter changes, and recover any now-invalid page to the last valid page after a successful response, including a zero-result refresh. Asset project actions use `{ name: 'workspace', query: { project_id } }`; template use persists the exact returned project result before route navigation.
+- Do not expose asset or template deletion in this slice. Basic prompt/image/video differentiation uses stable labelled placeholders; complete real URL rendering/load fallback, deletion confirmation, and mutation refresh acceptance remain Unit 4 work.
+- Use the existing component-scoped SCSS and Naive UI dark theme, with near-black canvas, luminance-stepped surfaces, restrained violet selection, transform/opacity feedback, reduced-motion handling, and no global token or dependency change.
 
 ## Completed Work
 
+- Replaced the 986-line prototype `Space.vue` with a 479-line real-data page controller and nine local Space presentation/style files, all below 500 lines. Removed mock storage, hard-coded history/results, false totals, and unsupported capacity/availability claims.
+- Wired the independent Space asset collection to type filters, API pagination, retained-data errors, initial/empty/out-of-range states, detail selection, and canonical project navigation. A zero-result refresh from a later page now deterministically returns to page one.
+- Wired real template list/detail/use and `/me` quota reads as independent surfaces. Quotas remain three non-fungible remaining counts; the overview reports available types instead of inventing a total or percentage.
+- Persisted a successful template-use result in the route-independent template store. Component revision guards suppress stale navigation after leaving Space, re-entry exposes a recoverable created-project notice, navigation failures preserve the exact project ID, mutation errors are owned by template ID, and unmount clears detail controllers.
+- Replaced inaccessible Naive pagination and tabs from the installed version with native buttons. The three view buttons expose pressed/control relationships to persistent labelled regions; pagination, filters, drawer naming, bounded accessible labels, focus visibility, reduced motion, text contrast, and long-content wrapping were reviewed and corrected.
+- Completed Deep self-review plus independent security, architecture/concurrency, and UI/accessibility reviews. All findings were fixed; final architecture/concurrency and UI/accessibility re-reviews returned CLEAN.
+- Final mocked Chromium QA passed native Enter/Space view switching, Enter pagination, zero-result page correction, retained created-project recovery after stale completion, exact Workspace project navigation, 320px no-overflow checks, 375px and 1440px screenshots, and 0 console errors/warnings. Production build passed with 4,689 modules transformed.
 - Extracted the asset detail/delete refs, request registries, stale-settlement guards, and actions into `frontend/src/modules/asset/detail-controller.ts`. The asset store still owns default/Space collection invalidation and refresh, exposes the same refs/actions/resolved values, and is now 353 lines.
-- Extracted template delete/use refs, per-ID delete registry, non-idempotent global use lock, request/session guards, and actions into `frontend/src/modules/template/mutation-controller.ts`. The template store still owns list/detail cache invalidation, exposes the same public surface, and is now 355 lines.
+- Extracted template delete/use refs, per-ID delete registry, non-idempotent global use lock, request/session guards, and actions into `frontend/src/modules/template/mutation-controller.ts`. The template store still owns list/detail cache invalidation; after this slice's created-project recovery extension, the store/controller are 376/256 lines.
 - Extended the Task's allowed additions narrowly to `frontend/src/modules/asset/**` after Deep architecture review rejected a first-pass global-store import from `views/**`. The helper was moved to the domain layer; architecture re-review returned `RESOLVED`, security returned no finding, and the root adversarial pass found no remaining dependency, mutation, session, or partial-refresh hard stop.
 - Verified the extraction with a fresh TypeScript project build, 6 initial and 4 post-review Vite/Pinia/Axios runtime scenarios, and a final production build that transformed 4,664 modules. Coverage included A-B-A request reuse, empty-ID ownership, auth reset, asset soft-delete refresh, stale template-list suppression, hard-delete detail clearing, and global template-use locking.
 - Added locally validated, encoded asset detail and soft-delete clients plus independent selected-detail loading/error/cache state. Empty IDs reject before touching request ownership or issuing HTTP.
@@ -77,20 +86,21 @@ Unit 3, sub-slice 1 - domain extraction of the verified asset detail/delete coor
 
 ### UI And Verification
 
-- Current tabs are prototype-only `profile/assets/history/results`; Space does not load assets, shows at most three cached rows, uses current-page length as a total, lacks all required filters/pagination/detail/delete/media fallbacks, and contains mock storage/history/results copy.
-- The current global custom variables are light while Naive UI and `ui/design-system.md` define dark surfaces. Because global-token edits are forbidden, Space will use component-scoped dark surface values plus existing Naive UI theme behavior.
+- The former prototype-only `profile/assets/history/results` views, mock storage, three-row cache display, and false current-page total have been removed. Native asset/template/quota views now expose the real store states; deletion and full media load fallback remain intentionally absent until Unit 4.
+- Global custom variables remain light while Naive UI and `ui/design-system.md` define dark surfaces. Because global-token edits are forbidden, Space uses component-scoped dark surface values plus existing Naive UI theme behavior.
 - Frontend has no unit-test framework. The Task will not add one; verification will use `npm run build`, focused temporary-SQLite backend tests, and mocked/real browser probes for the slices that expose UI behavior.
 - Focused contract verification passed: 29 asset/template/quota backend tests using temporary SQLite and FastAPI TestClient.
-- Frontend production baseline passed: `vue-tsc -b && vite build`, 4,663 modules transformed.
+- The current frontend production build passed: `vue-tsc -b && vite build`, 4,689 modules transformed.
 
 ## Remaining Work
 
-- Replace the Space prototype with a real-data page coordinator and local asset/template/quota components, then complete accessibility, failure, responsive, real-data, and browser acceptance in Units 3-5.
+- Unit 4: render usable real image/video URLs when available, convert missing/relative/load-error media into stable accessible fallbacks, and add asset/template deletion with explicit confirmation plus contract-accurate collection/detail refresh behavior.
+- Unit 5: run authorized local real API/MySQL comparisons and final 1440x900/920px/375px browser acceptance across media, mutations, refresh, console, and network behavior.
 - Write REPORT only after all Task acceptance criteria pass.
 
 ## Exact Next Action
 
-Implement Unit 3's next bounded slice: replace the prototype Space controller with real assets/templates/quota tab orchestration and domain-local presentation components, wire asset filtering/pagination plus template/quota loading and basic selection/navigation, keep `Space.vue` at most 500 lines, and defer media fallback polish and mutation confirmation semantics to Unit 4.
+Implement Unit 4's real media rendering/fallback and confirmed asset/template deletion flows, preserving current controller/component boundaries; then verify load failures, mutation ownership, collection/detail refresh semantics, keyboard behavior, TypeScript, build, and responsive browser edges.
 
 ## Files Changed
 
@@ -101,6 +111,8 @@ Implement Unit 3's next bounded slice: replace the prototype Space controller wi
 - `frontend/src/modules/template/types.ts` - added the exact use response contract.
 - `frontend/src/modules/template/api.ts` - added validated 204 delete and project-creating use clients while preserving detail rejection behavior.
 - `frontend/src/modules/template/store.ts` - retains list/detail cache ownership and delegates delete/use state while preserving its Pinia contract.
+- `frontend/src/views/app/Space.vue` - coordinates real asset/template/quota loading, native view switching, detail state, project navigation, and created-project recovery in 479 lines.
+- `frontend/src/views/app/components/space/**` - provides the nine scoped asset, template, quota, preview, drawer, notice, presentation, and page-style files.
 - `ai/tasks/todo/TASK-T4-009.md` - records the narrow asset-domain helper addition required by architecture review.
 - `ai/tasks/doing/TASK-T4-009-PLAN.md` - marks the extraction slice complete and records the corrected domain boundary.
 - `ai/tasks/doing/TASK-T4-009-PROGRESS.md` - records the extraction, verification, review fix, remaining work, and exact next action.
@@ -108,12 +120,19 @@ Implement Unit 3's next bounded slice: replace the prototype Space controller wi
 
 ## Commands And Summarized Results
 
+- This slice started clean on `main` at `cf56c05f405115acb4766e27c28e71f6f6643ce5`, ahead of `origin/main` by seven commits, with no staged/modified/untracked/unmerged paths, detached HEAD, or Git operation. The task-list query timed out without mutation, so branch/HEAD/index drift guards remain mandatory through commit.
+- `npm exec vue-tsc -- -b --pretty false` and repeated `npm run build` runs passed after each review fix; the final production build transformed 4,689 modules.
+- Playwright CLI mocked-browser QA passed the full final assertion script at 320px: native view and pager keyboard operation, zero-result boundary correction, stale navigation suppression, store-persisted created-project recovery, and exact returned project navigation. `innerWidth`, document `scrollWidth`, and body `scrollWidth` were all 320 for asset and long-template states.
+- Final Chromium screenshots were captured at 375x900 and 1440x1000 under `output/playwright/t4-009-unit3/.playwright-cli/`; the final Space session reported 0 console errors and 0 warnings. This is mock evidence, not real API/MySQL evidence.
+- Deep review fixed stale template navigation, lost successful creation recovery, current-total semantics, owner-scoped drawer errors, lifecycle detail cleanup, inaccessible Naive controls, unreachable error rendering, zero-total pagination, contrast, long content, and ARIA ID relationships. Final architecture/concurrency and UI/accessibility re-reviews returned CLEAN; security found no remaining issue.
+- All current implementation files are below 500 lines (`Space.vue` 479; largest local component 459), and `git diff --check` passed before durable-state reconciliation.
+- Final staged review covered exactly 15 owned implementation/state paths with no unstaged remainder. The repository has no secret scanner; the redacted credential-pattern scan reported 0 candidates, `git diff --cached --check` passed, and the staged diff was non-empty.
 - Required documents, automation cursor, and Git baseline - completed; this slice started clean on `main` at `a39731f7567ffc9c32e7b232a3c7463e8927959f` with empty staged/modified/untracked/unmerged state and no Git operation. The Codex task-list query did not return and was terminated without mutation, so branch/HEAD/index drift guards remain mandatory.
 - `npm exec vue-tsc -- -b --pretty false` - passed before and after the architecture path correction.
 - Node `assert` + Vite SSR + Pinia + Axios adapter probes - passed 6 initial extraction scenarios and 4 post-review scenarios covering request reuse, stale/session guards, mutation invalidation, refresh, and global template-use single-flight.
 - `npm run build` - passed before and after the architecture correction; the final Vite run transformed 4,664 modules.
 - Deep current-diff review - security found no issue; architecture found one Medium store-to-view dependency reversal, which was fixed by moving the helper to `modules/asset/**`; architecture re-review returned `RESOLVED`; root adversarial review found no remaining hard stop.
-- Current file-size and whitespace checks - asset/template stores are 353/355 lines, new helpers are 315/248 lines, and `git diff --check` passed for tracked paths before final staging.
+- Extraction-checkpoint file-size and whitespace checks - asset/template stores were 353/355 lines, new helpers were 315/248 lines, and `git diff --check` passed for tracked paths before that unit's staging.
 - Required documents, automation cursor, and Git baseline - completed; this slice started clean on `main` at `cce0e29bc10c8909bffa934c4c5806c3710bd287` with empty staged/modified/untracked/unmerged state and no Git operation. The task-list query timed out twice without mutation, so drift guards remain mandatory.
 - Initial `npm exec vue-tsc -- -b --pretty false` and final `npm run build` - passed; the final production build transformed 4,663 modules.
 - Node `assert` + Vite SSR + Pinia + Axios adapter probes - passed 9 original detail/mutation/invalidation/session scenarios, 4 ownership/global-lock fix scenarios, and 3 final template-use busy/error/result scenarios. One first final-probe assertion failed only because PowerShell stdin altered the Chinese expected literal; the ASCII-safe rerun compared the thrown message to store state and passed.
@@ -137,5 +156,6 @@ Implement Unit 3's next bounded slice: replace the prototype Space controller wi
 
 - No T4-009 Human gate or dependency blocker is currently known.
 - Single-flight task-list inspection was unavailable for this run. Release condition for staging/commit remains an unchanged `main`/base HEAD/index and no Git operation or unmerged path at the pre-commit recheck.
-- Full browser and real API/MySQL acceptance are intentionally deferred until UI behavior exists; they are completion gates, not blockers for the next domain slice.
+- Mock browser acceptance for Unit 3 is complete. Real API/MySQL comparison and final cross-width media/mutation acceptance remain Unit 5 completion gates, not blockers for Unit 4.
 - No push is authorized. T4-005 Unit B paid provider smoke and residual T4-008 local-data cleanup remain out of scope.
+- This slice started from clean `main` at `cf56c05f405115acb4766e27c28e71f6f6643ce5`, ahead of `origin/main` by seven commits, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state. The task-list query did not return within the single-flight window, so unchanged branch/HEAD/index state is required before staging and commit.

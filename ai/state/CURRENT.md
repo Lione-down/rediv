@@ -49,18 +49,17 @@ Refactor Space into a maintainable dark personal asset workspace using real asse
 
 ## Latest T4-009 Progress
 
-- Unit 1 contract audit, all three Unit 2 domain slices, and Unit 3's store extraction slice are complete: independent Space asset queries, guarded template reads, typed detail/delete/use flows, and maintainable domain helpers.
-- Asset detail/delete IDs validate before state changes and encode path segments. Per-ID single-flight plus request/session guards prevent stale settlements; a successful soft-delete applies the returned row, clears matching detail, invalidates older requests, and refreshes previously loaded default/Space collections without converting refresh failure into mutation failure.
-- Template hard-delete handles the exact 204 empty response, removes the unpaginated row, clears matching detail, and invalidates older list/detail responses. Template use returns the exact project result, reuses identical pending IDs, and rejects a different ID locally because every backend POST creates a non-idempotent project.
-- Deterministic runtime evidence passed 9 original scenarios, 4 race-fix scenarios, and 3 final use-lock scenarios. All 22 focused backend asset/template contracts and the final 4,663-module production build passed.
-- Deep review found two concurrency defects and one use-contract documentation mismatch; all were fixed and re-probed. Security and root adversarial review found no remaining hard stop.
-- The verified asset detail/delete and template delete/use state machines now live in `modules/asset/detail-controller.ts` and `modules/template/mutation-controller.ts`; public Pinia contracts and cache ownership are unchanged, while the stores are now 353/355 lines and all four touched code files remain below 500 lines.
-- Deep review's only Medium finding was a first-pass store-to-view dependency reversal. A narrow Task scope extension moved the asset helper into the domain layer; architecture re-review resolved the finding, security found no issue, 6 initial plus 4 post-fix runtime scenarios passed, and the final production build transformed 4,664 modules.
-- Space UI, accessibility/fallbacks, real API/MySQL comparison, responsive browser QA, and REPORT closure remain.
+- Units 1-3 are complete: contract audit, guarded real-data asset/template foundations, extracted mutation/detail coordinators, and the real Space controller/local presentation slice.
+- `Space.vue` is now a 479-line page coordinator backed by real asset, template, and `/me` quota stores. Nine scoped presentation/style files provide type filters, API pagination, loading/retained-error/empty/boundary states, differentiated basic previews, template reuse, quota counts, and asset/template detail UI.
+- Native button view switching and pagination replace inaccessible controls from the installed Naive version. Persistent labelled regions, filter groups, drawer naming, bounded labels, focus visibility, contrast, reduced motion, long-content wrapping, and zero-total page correction are implemented.
+- Successful template creation is persisted in the template store before navigation. Leaving Space suppresses stale route pushes without losing the new project; re-entry exposes a recoverable notice, navigation failure retains the exact ID, and template-use errors are scoped to their owning template.
+- Final mock Chromium QA passed keyboard switching/pagination, zero-result recovery, stale template completion recovery, exact Workspace navigation, 320px no-overflow assertions, 375px and 1440px screenshots, and 0 console errors/warnings. Final `npm run build` transformed 4,689 modules.
+- Deep security, architecture/concurrency, and UI/accessibility review findings were fixed; final architecture/concurrency and UI/accessibility re-reviews returned CLEAN. All current implementation files are below 500 lines and `git diff --check` passed.
+- Unit 4 real media URL/load fallback and confirmed asset/template deletion remain, followed by Unit 5 real API/MySQL and final cross-width acceptance plus REPORT closure.
 
 ## Exact Next Action
 
-Implement Unit 3's next bounded slice: replace the prototype Space controller with real assets/templates/quota tab orchestration and domain-local presentation components, wire asset filtering/pagination plus template/quota loading and basic selection/navigation, keep `Space.vue` at most 500 lines, and defer media fallback polish and mutation confirmation semantics to Unit 4.
+Implement Unit 4's real image/video URL rendering and stable load fallback, then add explicitly confirmed asset/template deletion with contract-accurate collection/detail refresh behavior and focused failure/keyboard/browser verification.
 
 ## Current Blockers
 
@@ -71,9 +70,9 @@ Implement Unit 3's next bounded slice: replace the prototype Space controller wi
 
 ## Worktree Protection
 
-- This delivery unit started from clean `main` at `a39731f7567ffc9c32e7b232a3c7463e8927959f` with no staged, modified, untracked, or unmerged paths.
+- This delivery unit started from clean `main` at `cf56c05f405115acb4766e27c28e71f6f6643ce5`, ahead of `origin/main` by seven commits, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
 - The Codex task-list single-flight query was unavailable, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
-- The verified extraction unit owns only `frontend/src/store/assets.ts`, `frontend/src/modules/asset/detail-controller.ts`, `frontend/src/modules/template/{store,mutation-controller}.ts`, the T4-009 Task/PLAN/PROGRESS, and CURRENT; no backend, Space UI, dependency, generated output, or global design file belongs to this unit.
+- This verified UI unit owns `frontend/src/views/app/Space.vue`, `frontend/src/views/app/components/space/**`, `frontend/src/modules/template/{store,mutation-controller}.ts`, T4-009 PLAN/PROGRESS, and CURRENT. No backend, dependency, generated output, secret, or global design file belongs to the unit.
 - `/frontend/.playwright-cli/` and `/output/playwright/` are ignored local evidence directories. Their files remain on disk and must not be deleted, moved, force-added, or included in delivery commits without a new explicit scope.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 

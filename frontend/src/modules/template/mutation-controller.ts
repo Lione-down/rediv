@@ -33,6 +33,7 @@ export function createTemplateMutationController(
   const deleteError = ref('')
   const usingTemplateId = ref('')
   const useError = ref('')
+  const useErrorTemplateId = ref('')
 
   const deleteRequests = new Map<string, DeleteRequest>()
   let deleteRequestSequence = 0
@@ -148,17 +149,20 @@ export function createTemplateMutationController(
       latestUseTemplateId = requestedTemplateId
       usingTemplateId.value = requestedTemplateId
       useError.value = ''
+      useErrorTemplateId.value = ''
       return pendingRequest.promise
     }
 
     if (useRequests.size > 0) {
       useError.value = TEMPLATE_USE_BUSY_ERROR
+      useErrorTemplateId.value = requestedTemplateId
       throw new Error(TEMPLATE_USE_BUSY_ERROR)
     }
 
     latestUseTemplateId = requestedTemplateId
     usingTemplateId.value = requestedTemplateId
     useError.value = ''
+    useErrorTemplateId.value = ''
 
     const requestId = ++useRequestSequence
     const currentPromise = (async () => {
@@ -175,6 +179,7 @@ export function createTemplateMutationController(
         }
 
         useError.value = ''
+        useErrorTemplateId.value = ''
         return response.data
       } catch (error) {
         if (
@@ -191,6 +196,7 @@ export function createTemplateMutationController(
           error,
           '模板使用失败，请稍后重试。',
         )
+        useErrorTemplateId.value = requestedTemplateId
         throw error
       }
     })()
@@ -234,6 +240,7 @@ export function createTemplateMutationController(
     latestUseTemplateId = ''
     usingTemplateId.value = ''
     useError.value = ''
+    useErrorTemplateId.value = ''
   }
 
   return {
@@ -242,6 +249,7 @@ export function createTemplateMutationController(
     deleteTemplateById,
     usingTemplateId,
     useError,
+    useErrorTemplateId,
     useTemplateById,
     reset,
   }

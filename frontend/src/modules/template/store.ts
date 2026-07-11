@@ -4,7 +4,11 @@ import { ref, watch } from 'vue'
 import { useAuthStore } from '../../store/auth'
 import { fetchTemplateDetail, fetchTemplates } from './api'
 import { createTemplateMutationController } from './mutation-controller'
-import type { Template, TemplateListResponse } from './types'
+import type {
+  Template,
+  TemplateListResponse,
+  TemplateUseResponse,
+} from './types'
 
 interface TemplateErrorResponse {
   detail?: unknown
@@ -65,6 +69,7 @@ export const useTemplateStore = defineStore('templates', () => {
   const detailHasLoaded = ref(false)
   const detailIsLoading = ref(false)
   const detailLoadError = ref('')
+  const createdProject = ref<TemplateUseResponse | null>(null)
 
   let generation = 0
   let listRequest: ListRequest | null = null
@@ -277,6 +282,18 @@ export const useTemplateStore = defineStore('templates', () => {
     detailLoadError.value = ''
   }
 
+  async function useTemplateById(templateId: string) {
+    const result = await mutations.useTemplateById(templateId)
+    if (result) {
+      createdProject.value = result
+    }
+    return result
+  }
+
+  function clearCreatedProject() {
+    createdProject.value = null
+  }
+
   function invalidateDeletedTemplate(templateId: string) {
     listRequest = null
     activeListRequestId = null
@@ -315,6 +332,7 @@ export const useTemplateStore = defineStore('templates', () => {
     detailHasLoaded.value = false
     detailIsLoading.value = false
     detailLoadError.value = ''
+    createdProject.value = null
 
     mutations.reset()
   }
@@ -349,7 +367,10 @@ export const useTemplateStore = defineStore('templates', () => {
     deleteTemplateById: mutations.deleteTemplateById,
     usingTemplateId: mutations.usingTemplateId,
     useError: mutations.useError,
-    useTemplateById: mutations.useTemplateById,
+    useErrorTemplateId: mutations.useErrorTemplateId,
+    useTemplateById,
+    createdProject,
+    clearCreatedProject,
     resetTemplates,
   }
 })

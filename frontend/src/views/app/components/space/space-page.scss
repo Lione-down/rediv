@@ -1,0 +1,114 @@
+.space-page {
+  --bg-app: #0e0e12;
+  --bg-panel: #1a1a24;
+  --bg-panel-subtle: #22222e;
+  --text-primary: #f0eef6;
+  --text-secondary: rgba(240, 238, 246, 0.72);
+  --text-muted: rgba(240, 238, 246, 0.56);
+  --border-subtle: rgba(240, 238, 246, 0.1);
+  --border-strong: rgba(240, 238, 246, 0.2);
+
+  min-height: 100dvh;
+  color: var(--text-primary);
+  background: #0e0e12;
+}
+
+:global(.space-page .focus-ring:focus-visible) {
+  outline: 3px solid rgba(99, 71, 194, 0.38);
+  outline-offset: 3px;
+}
+
+:deep(.top-bar) {
+  border-color: rgba(240, 238, 246, 0.08);
+  background: #13131a;
+  backdrop-filter: none;
+}
+
+.space-shell {
+  width: min(1240px, calc(100% - 40px));
+  margin: 0 auto;
+  padding-bottom: 48px;
+}
+
+.workspace-surface {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid rgba(240, 238, 246, 0.06);
+  border-radius: 24px;
+  background: rgba(240, 238, 246, 0.022);
+}
+
+.workspace-switcher {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(240, 238, 246, 0.08);
+  scrollbar-width: none;
+}
+
+.workspace-switcher button {
+  position: relative;
+  min-height: 42px;
+  padding-inline: var(--space-4);
+  border: 0;
+  color: rgba(240, 238, 246, 0.62);
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.workspace-switcher button::after {
+  position: absolute;
+  right: var(--space-2);
+  bottom: -1px;
+  left: var(--space-2);
+  height: 2px;
+  border-radius: 999px;
+  background: transparent;
+  content: '';
+}
+
+.workspace-switcher button.is-active {
+  color: #f0eef6;
+}
+
+.workspace-switcher button.is-active::after {
+  background: #7b61d6;
+}
+
+.workspace-view {
+  padding-top: var(--space-6);
+}
+
+@media (max-width: 680px) {
+  .space-shell {
+    width: min(100%, calc(100% - 24px));
+    padding-bottom: 32px;
+  }
+
+  .workspace-surface {
+    padding: var(--space-4);
+    border-radius: 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .space-shell {
+    width: min(100%, calc(100% - 20px));
+  }
+
+  .workspace-surface {
+    padding: var(--space-3);
+    border-radius: 18px;
+  }
+
+  .workspace-switcher button {
+    padding-inline: var(--space-3);
+  }
+}
+
+@media (hover: hover) {
+  .workspace-switcher button:hover {
+    color: #f0eef6;
+  }
+}
