@@ -1,5 +1,11 @@
 # Task: Space 个人资产页重构
 
+## Status
+
+- State: `DONE`
+- Owner: Codex Project Lead Engineer
+- Report: `ai/reports/REPORT-T4-009.md`
+
 ## Task ID
 T4-009
 
@@ -39,11 +45,11 @@ T4-003、T4-006、T4-007 已完成。
 6. 保持 v3 暗色视觉，不重新发明主题 tokens。
 
 ## Acceptance Criteria
-- [ ] Navicat 中 asset/template 数据与页面列表、筛选和总数一致。
-- [ ] 详情、软删除/隐藏后的刷新行为符合 API 语义。
-- [ ] `npm run build` 通过。
-- [ ] 1440×900、920px、375px 浏览器检查通过。
-- [ ] Space.vue 不超过 500 行。
+- [x] Navicat 对应的本地 MySQL asset/template 数据与页面列表、筛选和总数一致；最终证据使用同一 `revid_db` 的参数化 SQL read-back。
+- [x] 详情、软删除/隐藏后的刷新行为符合 API 语义。
+- [x] `npm run build` 通过。
+- [x] 1440×900、920px、375px 浏览器检查通过。
+- [x] Space.vue 不超过 500 行。
 
 ## Verification Commands
 ```powershell

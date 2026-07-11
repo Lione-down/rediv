@@ -1,7 +1,7 @@
 # T4-009 Plan - Real-data Space asset workspace
 
 - Task: `T4-009`
-- State: `DOING`
+- State: `DONE`
 - Owner: Codex Project Lead Engineer
 - Updated: 2026-07-11
 - Source Task: `ai/tasks/todo/TASK-T4-009.md`
@@ -100,7 +100,7 @@ Complete real prompt/image/video URL rendering and load fallbacks, deletion conf
 
 Implement as one bounded, independently verified slice:
 
-1. Accept only credential-free absolute HTTPS media URLs whose backend source is `generation`. Treat user-supplied upload URLs, missing, malformed, credential-bearing, unsupported-scheme, and relative `/uploads/...` values as unavailable without guessing an API origin or automatically requesting owner-supplied arbitrary URLs. Keep image referrers suppressed, preserve provider media that is embeddable without an ACAO contract, and reset load-error state whenever the asset identity or URL changes.
+1. Accept only absolute HTTPS media URLs with no URL userinfo whose backend source is `generation`. Treat user-supplied upload URLs, missing, malformed, URL-userinfo-bearing, unsupported-scheme, and relative `/uploads/...` values as unavailable without guessing an API origin or automatically requesting owner-supplied arbitrary URLs. Keep image referrers suppressed, preserve provider media that is embeddable without an ACAO contract, and reset load-error state whenever the asset identity or URL changes.
 2. Keep compact cards free of nested interactive controls; render image/video media as non-interactive previews there, and expose video controls only in the detail drawer. Preserve differentiated prompt content and stable labelled fallbacks for every media failure state.
 3. Expose asset soft-delete and template hard-delete only from detail context, behind explicit focus-managed confirmation. Keep mutation failures owned by the exact asset/template, close detail only after confirmed success, correct an asset page that becomes out of range, and force-refresh templates after hard delete without reclassifying a successful delete as failed when refresh alone fails.
 4. Verify URL policy/load fallback, confirmation keyboard behavior, failure ownership, deletion refresh/boundary semantics, TypeScript, production build, and responsive browser rendering before committing the unit.
@@ -111,7 +111,7 @@ Success criteria:
 - broken or unavailable media has a stable fallback;
 - mutation and refresh behavior matches the backend contract.
 
-### Unit 5 - Real-data and browser acceptance closure
+### Unit 5 - Real-data and browser acceptance closure - complete 2026-07-11
 
 Run focused regression, a production build, authorized local real API/MySQL comparisons, and browser QA at 1440x900, 920px, and 375px. Perform a fresh diff review, write REPORT only after all non-deferred acceptance criteria pass, and reconcile Task/ROADMAP/CURRENT.
 
@@ -122,6 +122,8 @@ Success criteria:
 - production build passes;
 - browser evidence covers all required widths and relevant keyboard/console/network checks;
 - REPORT, Task, ROADMAP, PROGRESS, CURRENT, code, and tests agree.
+
+Closure evidence: real FastAPI/local MySQL/API/UI comparisons passed before and after asset/template mutations; real HTTPS image/video plus Prompt/fallback behavior passed; 1440x900, 920x900, and 375x900 Chromium geometry and screenshots passed with zero unexpected console errors/warnings; focused backend tests passed 22/22; production build transformed 4,693 modules; `Space.vue` is 497 lines; and the Deep fresh review returned CLEAN.
 
 ## Acceptance Matrix
 
@@ -149,7 +151,8 @@ Success criteria:
 - The existing global asset store feeds Home and Workspace: keep Space pagination state independent so filters and page changes cannot contaminate those consumers.
 - The frontend has no unit-test framework: do not add a dependency for this Task. Use the production build, focused temporary-SQLite backend contracts, and mocked browser/runtime probes in proportion to each slice.
 - Dirty-worktree overlap or concurrent automation drift: preserve the starting baseline and stop staging/commit on unexplained branch/HEAD/index changes.
+- MySQL asset timestamps can tie within one second and the existing backend has no stable secondary ordering key. Real pagination fixtures must use distinct timestamps; a future backend Task should add a deterministic tie-breaker without reopening this frontend Task.
 
 ## Completion Rule
 
-T4-009 can be marked `DONE` only when every non-deferred acceptance criterion has fresh evidence, `Space.vue` is at most 500 lines, required real-data and browser acceptance passes, and `ai/reports/REPORT-T4-009.md` is complete. A failed or unavailable required check must remain explicit in PROGRESS with its impact and release condition.
+Satisfied 2026-07-11: every non-deferred acceptance criterion has fresh evidence, `Space.vue` is 497 lines, required real-data and browser acceptance passed, and `ai/reports/REPORT-T4-009.md` is complete.

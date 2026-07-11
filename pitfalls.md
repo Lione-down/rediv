@@ -249,3 +249,9 @@ Evidence:
 - `frontend/.playwright-cli/` 与 `output/playwright/` 是本地 browser QA/tool-state 证据，不属于产品交付；root `.gitignore` 必须持续排除这两个精确目录。
 - 发现 artifact 已被误提交时，先证明 path 集合与来源 commit 完全一致，再用 `git rm --cached` 停止 tracking；本地截图、harness 和诊断文件必须保留，不能用 `git clean`、移动目录或历史重写代替。
 - cleanup commit 前必须复核 tracked count、local missing count、ignore 命中、staged path 集合和脱敏 credential-pattern scan；是否 push 或清理远端历史仍是独立 Human gate。
+
+## 2026-07-11 Space Real-Data Acceptance
+
+- MySQL `DATETIME` 可让同一秒创建的多条资产拥有相同 `created_at`；只按该字段排序且无稳定 secondary key 时，不能把 insertion order 当成分页 oracle。验收 fixture 应显式错开时间；backend 后续应使用 `created_at` 加稳定 ID tie-breaker。
+- `DatabaseStore.list_assets()` 每次查询数据库，但 `get_asset()` 会优先读取进程内 cache。直接 SQL 改 fixture 状态后，列表可立即变化而详情仍旧；正常产品操作应走 backend route 同步 cache，必须做 out-of-band SQL 时要重启 owned backend 后再验收详情。
+- `playwright-cli` 会在当前 working directory 生成 `.playwright-cli/` snapshot。Revid browser QA 必须从 `output/playwright/<task-unit>/` 或已忽略的 `frontend/` 目录启动；若误在仓库根生成 untracked artifact，未获删除/移动授权时保留并排除 staging，不能用 `git clean` 收口。

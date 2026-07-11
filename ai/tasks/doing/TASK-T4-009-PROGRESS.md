@@ -1,14 +1,14 @@
 # T4-009 Progress - Real-data Space asset workspace
 
 - Task: `T4-009`
-- State: `DOING`
+- State: `DONE`
 - Updated: 2026-07-11
 - Plan: `ai/tasks/doing/TASK-T4-009-PLAN.md`
 - Source Task: `ai/tasks/todo/TASK-T4-009.md`
 
 ## Current Bounded Unit
 
-Unit 4 is complete. Space now renders backend-provenance-gated, credential-free absolute HTTPS generation media with stable accessible fallback, keeps compact cards free of nested controls, and exposes asset/template deletion only through an explicitly named, focus-managed confirmation. Asset soft-delete refreshes owned collections and corrects an out-of-range page; template hard-delete invalidates guarded state and force-refreshes the list. Target-owned failures, reduced motion, and narrow-screen summary geometry are verified. Unit 5 real API/MySQL and final cross-width acceptance is the next bounded unit.
+Unit 5 and T4-009 closure are complete. Real FastAPI/local MySQL/API/UI evidence agrees before and after asset/template mutations; real media, fallback, keyboard deletion, template use, reload persistence, three-width browser geometry, focused regression, production build, Deep review, REPORT, and durable Task state all passed.
 
 ## Completed Slice Design
 
@@ -21,7 +21,15 @@ Unit 4 is complete. Space now renders backend-provenance-gated, credential-free 
 
 ## Completed Work
 
-- Added real image/video rendering for `source=generation` credential-free absolute HTTPS URLs. Owner-supplied upload URLs, relative `/uploads/...`, malformed values, userinfo, non-HTTPS schemes, missing URLs, and load/decoder failures remain stable fallbacks without guessing an API origin.
+- Completed Unit 5 real-service acceptance on local `revid_db` revision `e9f1a2b3c4d5` without opening `.env` or exposing runtime credentials. Pre-mutation evidence matched 13 visible + 1 hidden asset, prompt/image/video totals 10/2/1, 2 templates, 1 project, and quotas 100/20/3 across parameterized MySQL, authenticated API, and UI.
+- Verified real HTTPS image decode, video metadata/controls, Prompt detail, upload-provenance fallback, type filters, 12+1 pagination, active detail, hidden detail 404, and zero unexpected browser console warnings/errors.
+- Confirmed cancel-first keyboard asset soft-delete recovered page 2 to page 1 and persisted across reload; template use created exactly one Workspace project; keyboard template hard-delete persisted across reload. Post-mutation MySQL matched 12 active + 1 deleted + 1 hidden asset, 1 template, 2 projects, and unchanged quotas.
+- Passed final responsive geometry and visual inspection at 1440x900, 920x900, and 375x900. Screenshots are under `output/playwright/t4-009-unit5/`; document/body widths stayed within each viewport and the asset grid resolved to 3/2/1 columns.
+- Passed the fresh 22-test backend asset/template regression and final production build with 4,693 modules. `Space.vue` is 497 lines, all current scoped implementation files are below 500 lines, and `git diff --check` passed.
+- Completed a Deep full-Task review from `f0327cb1` through `8e6cba89`: scope is on target, backend/dependencies/protected pages are unchanged, and security, session/concurrency, mutation/error, accessibility, responsive, secret, and adversarial gates have no hard stop.
+- Wrote `ai/reports/REPORT-T4-009.md`, marked Task/PLAN/PROGRESS/ROADMAP `DONE - PASS`, and selected dependency-ready T4-012 Unit A without starting its business code.
+
+- Added real image/video rendering for `source=generation` absolute HTTPS URLs with no URL userinfo. Owner-supplied upload URLs, relative `/uploads/...`, malformed values, userinfo, non-HTTPS schemes, missing URLs, and load/decoder failures remain stable fallbacks without guessing an API origin.
 - Kept compact asset cards free of nested media controls. Detail images carry descriptive alt text, detail videos expose labelled controls, and fallback accessible names include the exact unavailable/load-error reason instead of flattening it away.
 - Added the page-local guarded deletion coordinator and a dedicated danger/confirmation component. The alertdialog has an explicit accessible name/description, starts focus on cancel despite the installed focus-trap's DIV/tabindex assumptions, supports Escape/Tab/Enter, blocks dismissal while deleting, returns focus on cancellation/failure, and disables its scale/opacity transition under reduced motion.
 - Wired confirmed asset soft-delete and template hard-delete from detail context. Successful asset deletion closes matching detail, preserves store-owned refresh semantics, and recovers an invalid last page; successful template deletion closes matching detail and force-refreshes the collection. A refresh-only failure does not relabel the successful mutation as failed.
@@ -102,14 +110,22 @@ Unit 4 is complete. Space now renders backend-provenance-gated, credential-free 
 
 ## Remaining Work
 
-- Unit 5: run authorized local real API/MySQL comparisons and final 1440x900/920px/375px browser acceptance across media, mutations, refresh, console, and network behavior.
-- Write REPORT only after all Task acceptance criteria pass.
+None for T4-009. All non-deferred acceptance criteria are complete.
 
 ## Exact Next Action
 
-Run Unit 5's authorized local real API/MySQL comparison for asset/template rows, filters, totals, detail, media, and deletion/refresh semantics; then complete final 1440x900/920px/375px browser acceptance, production regression, fresh diff review, REPORT, and Task/ROADMAP closure only if every non-deferred criterion passes.
+Create `ai/tasks/doing/TASK-T4-012-PLAN.md` and `ai/tasks/doing/TASK-T4-012-PROGRESS.md`, then audit CanvasStage, canvas store/types, Workspace integration, and the existing node/connection APIs before any T4-012 business-code edit.
 
 ## Files Changed
+
+- `ai/reports/REPORT-T4-009.md` - records final real API/MySQL/browser/build/review acceptance and residual local data.
+- `ai/tasks/todo/TASK-T4-009.md` - marks the Task `DONE` and checks every acceptance criterion.
+- `ai/tasks/doing/TASK-T4-009-PLAN.md` - marks Unit 5 and the completion rule satisfied and records the deterministic-ordering follow-up.
+- `ai/tasks/doing/TASK-T4-009-PROGRESS.md` - records closure evidence, no remaining work, and the T4-012 planning next action.
+- `ai/state/ROADMAP.md` - marks T4-009 `DONE - PASS` and T4-012 Unit A next.
+- `ai/state/CURRENT.md` - rolls the active snapshot to T4-012 Unit A.
+- `pitfalls.md` - records deterministic MySQL pagination, direct-SQL cache synchronization, and Playwright cwd artifact rules.
+- `output/playwright/t4-009-unit5/**` - ignored local fixture/runtime/browser evidence; never staged.
 
 - `frontend/src/views/app/components/space/space-presentation.ts` - accepts only safe generation-sourced absolute HTTPS media URLs while retaining neutral title/date/source helpers.
 - `frontend/src/views/app/components/space/space-asset-preview.vue` - renders real image/video media, keeps compact video non-interactive, and exposes differentiated accessible fallback reasons.
@@ -132,6 +148,15 @@ Run Unit 5's authorized local real API/MySQL comparison for asset/template rows,
 - `ai/state/CURRENT.md` - rolls the active Task snapshot and worktree ownership forward with this unit.
 
 ## Commands And Summarized Results
+
+- Real fixture/API/MySQL pre-matrix - PASS; local `revid_db` revision `e9f1a2b3c4d5`, 13 visible + 1 hidden asset, filter totals 10/2/1, page split 12+1, 2 templates, 1 project, and quotas 100/20/3 matched.
+- Real headed Chromium media and mutation phases - PASS; image/video/Prompt/fallback, asset page-boundary soft-delete, template use/hard-delete, reload persistence, keyboard confirmation, and 0 unexpected console/page/API failures.
+- Responsive Chromium - PASS; 1440/920/375 widths had no horizontal overflow, 3/2/1 grid columns, and visually clean captures at `output/playwright/t4-009-unit5/space-real-{1440,920,375}.png`.
+- Post-mutation MySQL - PASS; 12 active + 1 deleted + 1 hidden asset, active types 9/2/1, 1 template, 2 projects, and quotas 100/20/3.
+- `.venv/Scripts/python.exe -m unittest tests.test_asset_upload tests.test_template_system` from `backend/` - PASS, 22/22. Two earlier invocations failed before test discovery because the command repeated the `backend/` prefix inside that workdir; no product assertion failed.
+- `npm run build` - PASS; `vue-tsc -b` completed and Vite transformed 4,693 modules.
+- Full-Task Deep diff review from `f0327cb1` to `8e6cba89` - CLEAN; 25 delivery paths, 5,037 additions/942 removals, no backend/dependency/protected-page drift, and no security/architecture/adversarial hard stop.
+- Runtime teardown and whitespace - PASS; owned browser/backend/Vite stopped, ports 8000/9099 closed, `Space.vue` 497 lines, and `git diff --check` passed.
 
 - Required read set, automation cursor, and Git baseline - completed; this Unit 4 slice started clean on `main` at `bab95e6c6ca3d2f2367395ffac31d0c4f38308f1` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state. Task-list single-flight capability was unavailable, so branch/HEAD/index drift guards remained active.
 - Vite SSR URL-policy probe - passed 11 scenarios covering generation HTTPS acceptance plus upload provenance, HTTP, relative, data, script, userinfo, malformed, prompt, and missing rejection.
@@ -175,8 +200,11 @@ Run Unit 5's authorized local real API/MySQL comparison for asset/template rows,
 
 ## Blockers And Release Conditions
 
-- No T4-009 Human gate or dependency blocker is currently known.
+- T4-009 is complete with no remaining Human gate or dependency blocker.
 - Single-flight task-list inspection was unavailable for this run. Release condition for staging/commit remains an unchanged `main`/base HEAD/index and no Git operation or unmerged path at the pre-commit recheck.
-- Mock browser acceptance for Units 3-4 is complete. Real API/MySQL comparison and final cross-width media/mutation acceptance remain Unit 5 completion gates, not blockers.
+- Unit 5 real API/MySQL and final cross-width media/mutation acceptance are complete.
 - No push is authorized. T4-005 Unit B paid provider smoke and residual T4-008 local-data cleanup remain out of scope.
 - This Unit 4 slice started from clean `main` at `bab95e6c6ca3d2f2367395ffac31d0c4f38308f1`, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state. Task-list inspection was unavailable, so unchanged branch/HEAD/index state remains required before staging and commit.
+- This closure run started clean on `main` at `8e6cba89e029ab587ffbd3cba3b3c9e575e3330a` with no staged/modified/untracked/unmerged or Git-operation state. Playwright later created one root `.playwright-cli/page-2026-07-11T15-29-19-414Z.yml`; it is current-run local evidence, remains untracked because deletion/move was not authorized, and must not be staged.
+- Local fixture account `t4009_mrgisxgt` and its 14 asset rows, 1 remaining template, and 2 projects remain in local `revid_db`; broad destructive cleanup was not authorized.
+- Existing backend asset ordering has no stable secondary key for equal-second MySQL timestamps. It is a separate backend follow-up, not a T4-009 frontend blocker.
