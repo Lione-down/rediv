@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NDropdown } from 'naive-ui'
 import type { ComponentPublicInstance } from 'vue'
 import { useCanvasStage } from './composables/use-canvas-stage'
 
@@ -7,6 +8,10 @@ const {
   canvasStore,
   canvasSurfaceRef,
   centerNodeInViewport,
+  closeContextMenu,
+  contextMenu,
+  contextMenuOptions,
+  handleContextMenuSelect,
   minimapNodeStyle,
   minimapViewportStyle,
   nodeInputAnchor,
@@ -19,6 +24,7 @@ const {
   stageNotice,
   surfaceNodeRectStyle,
   temporaryConnectionPath,
+  updateContextMenuShow,
   marqueeStyle,
   viewportCursor,
   retryProjectLoad,
@@ -87,6 +93,17 @@ function setCanvasSurfaceRef(element: Element | ComponentPublicInstance | null) 
         <div class="minimap-viewport" :style="minimapViewportStyle"></div>
       </div>
     </div>
+    <NDropdown
+      trigger="manual"
+      placement="bottom-start"
+      :show="contextMenu.show"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      :options="contextMenuOptions"
+      @clickoutside="closeContextMenu"
+      @select="handleContextMenuSelect"
+      @update:show="updateContextMenuShow"
+    />
   </section>
 </template>
 

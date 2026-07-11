@@ -53,10 +53,12 @@ Non-goals for Unit B:
 
 Result: PASS. Ordered multi-selection, click/toggle/marquee semantics, editable-safe keyboard delete, Escape cancellation, selection rollback ownership, selected Canvas/minimap visuals, and no-op click persistence suppression passed controlled browser verification at default and 50% zoom with pan.
 
-### Unit B2 - Context Actions And Double-click Creation
+### Unit B2 - Context Actions And Double-click Creation - complete 2026-07-12
 
 - Add the scoped `NDropdown` context menu for node/stage actions and double-click node creation in world coordinates.
 - Reuse existing optimistic create/delete actions and visible mutation errors; do not duplicate persistence logic in the component.
+
+Result: PASS. Stage and node context actions, duplicate/delete behavior, world-coordinate double-click creation, zoom/pan hit testing, optimistic rollback/error reuse, Escape dismissal, and 375px menu placement passed controlled browser acceptance.
 
 ### Unit B3 - Connection, Minimap, And Responsive Acceptance
 

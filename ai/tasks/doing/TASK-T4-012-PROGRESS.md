@@ -7,7 +7,7 @@
 
 ## Current Bounded Unit
 
-Unit B1 - Selection And Keyboard Foundation. Completed with controlled browser interaction, failure rollback, build, backend regression, and fresh diff review.
+Unit B2 - Context Actions And Double-click Creation. Completed with controlled browser interaction, world-coordinate verification, failure rollback, responsive menu placement, build, backend regression, and fresh diff review.
 
 ## Completed Work
 
@@ -55,6 +55,12 @@ Unit B1 - Selection And Keyboard Foundation. Completed with controlled browser i
 - Added editable-safe `Delete`/`Backspace` multi-delete through the existing sequential ownership-safe mutation path and `Escape` behavior that clears selection or cancels active drag/pan/connection/marquee interaction.
 - Restored the exact pre-drag position when Escape cancels a drag and suppressed move persistence for ordinary pointer down/up selection clicks with no coordinate change.
 - Controlled browser QA passed default marquee, Escape clear, cancelled-drag restoration, Ctrl multi-select, input-focused Delete protection, two failed DELETE rollbacks with selection restoration, and 50% zoom plus middle-pan marquee hit testing. Final network evidence contained exactly two expected DELETE 503 responses and no selection-click PUT.
+- Added a scoped manual `NDropdown` with stage actions for text/image creation and node actions for duplicate/delete; every mutation reuses the existing optimistic store and visible `NMessage` error channel.
+- Added deterministic reverse-order world-space node hit testing for right-click and double-click behavior, independent of Leafer's unstable context-menu target and correct after zoom/pan.
+- Empty-stage double-click creates text by default or image in image mode, while hand/generate modes and node hits do not create accidental nodes.
+- Added Escape-first context-menu dismissal and retained the existing Escape interaction cancellation and selection behavior.
+- Split context actions into `use-canvas-context-menu.ts` after fresh review caught the stage composable exceeding 500 lines; final Canvas-local sizes are 110/193/425/108 lines for stage/renderer/stage-composable/context-composable.
+- Final controlled browser QA passed node duplicate, exact node delete targeting with 503 rollback and visible error, stage image creation, 50% zoom plus pan double-click creation at expected world coordinate `(321.84, 769.26)`, 375px menu containment, and Escape close. Network evidence was 3 expected POST 200, 1 expected DELETE 503, and no unexpected Canvas request.
 
 ## Contract Audit Findings
 
@@ -83,12 +89,12 @@ Unit B1 - Selection And Keyboard Foundation. Completed with controlled browser i
 ## Remaining Work
 
 - Unit A: none; every non-deferred Unit A gate is complete and frozen.
-- Unit B2: context menu and double-click creation.
+- Unit B2: complete and frozen as `DONE - PASS`.
 - Unit B3: remaining connection/minimap behavior plus 1440x900/920px/375px real-browser acceptance and Task closure.
 
 ## Exact Next Action
 
-Implement Unit B2's scoped `NDropdown` context actions and world-coordinate double-click creation through existing optimistic mutations; do not reopen Unit A backend contracts.
+Execute Unit B3 connection hit/selection and minimap navigation/viewport checks across 25%-200% zoom, then run 1440x900, 920x900, and 375x900 real-browser acceptance without reopening Unit A backend contracts.
 
 ## Files Changed
 
@@ -122,6 +128,10 @@ Implement Unit B2's scoped `NDropdown` context actions and world-coordinate doub
 - `frontend/src/components/canvas/composables/use-canvas-stage.ts` - added marquee, modifier selection, keyboard semantics, cancellation, and no-op drag suppression.
 - `frontend/src/components/canvas/CanvasStage.vue` - rendered the marquee and minimap selection state.
 - `frontend/src/components/canvas/canvas-stage.scss` - added scoped marquee and selected minimap styling.
+- `frontend/src/components/canvas/canvas-renderer.ts` - forwarded Leafer context-menu and double-click semantics without persistence knowledge.
+- `frontend/src/components/canvas/composables/use-canvas-context-menu.ts` - added world-space hit testing, scoped menu state/actions, duplicate/delete, double-click creation, and Escape-compatible dismissal.
+- `frontend/src/components/canvas/composables/use-canvas-stage.ts` - integrated context actions with viewport conversion, keyboard lifecycle, and renderer callbacks while remaining below 500 lines.
+- `frontend/src/components/canvas/CanvasStage.vue` - rendered the manual scoped `NDropdown` at pointer coordinates.
 - `ai/tasks/doing/TASK-T4-012-PLAN.md` - decomposed Unit B and marked Unit B1 complete.
 - `ai/tasks/doing/TASK-T4-012-PROGRESS.md` - recorded Unit B1 implementation, verification, and next action.
 
@@ -156,6 +166,10 @@ Implement Unit B2's scoped `NDropdown` context actions and world-coordinate doub
 - `backend: .venv/Scripts/python.exe -m unittest tests.test_canvas_node_crud tests.test_canvas_connection_crud`: PASS, 19/19. An earlier system-Python attempt failed at collection because that interpreter lacked `annotated_doc`; no dependency or code change was needed.
 - Playwright CLI controlled browser QA at 1280x900: PASS for default and modifier selection, marquee, Escape clear/cancelled-drag restoration, editable Delete guard, two-node failed-delete rollback, and 50% zoom plus middle-pan marquee hit testing. Final network evidence was 2 expected DELETE 503 responses and 0 unexpected PUT responses; screenshot: ignored `output/playwright/t4012-unitb1-selection.png`.
 - Unit B1 fresh diff/size review: PASS; all Canvas-local files remain below 500 lines (`CanvasStage.vue` 93, stage composable 407, renderer 179, geometry 143, SCSS 207, store 271, mutations 447), with no backend, global design, dependency, generated, or secret-bearing tracked path.
+- `frontend: npm run build` after Unit B2 extraction and final review: PASS; `vue-tsc -b` and Vite completed with 4,702 transformed modules.
+- `backend: .venv/Scripts/python.exe -m unittest tests.test_canvas_node_crud tests.test_canvas_connection_crud`: PASS, 19/19.
+- Playwright CLI controlled browser QA at 1280x900 and 375x900: PASS for node/stage menus, duplicate, exact failed-delete rollback with visible message, stage image create, 50% zoom plus pan world-coordinate double-click create, mobile containment, and Escape close. Final request evidence was POST 200 x3 and expected DELETE 503 x1; screenshots are ignored `output/playwright/t4012-unitb2-context-actions.png` and `t4012-unitb2-mobile-menu.png`.
+- Unit B2 fresh diff/security/architecture review and `git diff --check`: PASS; no backend contract, auth, global token, dependency, generated output, or secret-bearing tracked path changed.
 
 ## Blockers And Release Conditions
 
@@ -163,5 +177,5 @@ Implement Unit B2's scoped `NDropdown` context actions and world-coordinate doub
 - Commit release condition is unchanged starting branch/HEAD/index, no Git operation/unmerged path, precise owned staging, staged secret scan, and clean staged diff review.
 - The pre-existing `5b64ca1` Playwright snapshot commit is outside T4-012 ownership and must remain untouched unless the Human Owner separately requests cleanup.
 - No push is authorized.
-- Fifteen root `.playwright-cli/page-2026-07-11T16-*.yml` snapshots are untracked browser evidence generated after earlier and current clean baselines. They are excluded from this delivery commit and must not be deleted or staged without a separate cleanup decision.
+- Thirty-nine root `.playwright-cli/*.yml` snapshots are untracked browser evidence (26 pre-existing at this run's baseline and 13 generated during Unit B2 QA). They are excluded from this delivery commit and must not be deleted or staged without a separate cleanup decision.
 - Ignored `output/playwright/` contains current local browser screenshots/logs and remains excluded. Two normal local mock users, two projects, three final nodes, and one final connection remain in MySQL as non-production Unit 5 fixture evidence; broad cleanup was not authorized.

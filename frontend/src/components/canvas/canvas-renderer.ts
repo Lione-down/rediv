@@ -3,6 +3,8 @@ import type { CanvasNode } from '../../types/canvas'
 import { worldToSurface, type ViewportState } from './canvas-geometry'
 
 const POINTER_DOWN = 'pointer.down'
+const POINTER_MENU = 'pointer.menu'
+const DOUBLE_CLICK = 'double_click'
 
 interface NodeVisuals {
   group: Group
@@ -22,6 +24,8 @@ interface CanvasRendererOptions {
   getViewport: () => ViewportState
   cssVar: (name: string, fallback: string) => string
   onStagePointerDown: (event: PointerEventPayload) => void
+  onContextMenu: (event: PointerEventPayload) => void
+  onStageDoubleClick: (event: PointerEventPayload) => void
   onNodePointerDown: (nodeId: string, event: PointerEventPayload) => void
   onOutputPointerDown: (nodeId: string, event: PointerEventPayload) => void
 }
@@ -148,7 +152,9 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       group.add([card, input, output, typeText, titleText, contentText])
       leafer.add(group)
       nodeVisuals.set(node.id, { group, input, output })
-      ;[group, card, input, output, typeText, titleText, contentText].forEach((target) => interactiveTargets.add(target))
+      ;[group, card, input, output, typeText, titleText, contentText].forEach((target) => {
+        interactiveTargets.add(target)
+      })
       ;(group as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
         POINTER_DOWN,
         (event) => options.onNodePointerDown(node.id, event),
@@ -163,6 +169,14 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
   ;(leafer as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
     POINTER_DOWN,
     options.onStagePointerDown,
+  )
+  ;(leafer as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
+    POINTER_MENU,
+    options.onContextMenu,
+  )
+  ;(leafer as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
+    DOUBLE_CLICK,
+    options.onStageDoubleClick,
   )
 
   return {

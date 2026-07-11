@@ -20,6 +20,7 @@ import {
   type ViewportState,
 } from '../canvas-geometry'
 import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
+import { useCanvasContextMenu } from './use-canvas-context-menu'
 
 interface DragState {
   nodeId: string
@@ -33,9 +34,9 @@ interface DragState {
 interface PanState { pointerId: number | null; startClientX: number; startClientY: number; originX: number; originY: number }
 interface DraftConnectionState { fromNodeId: string; pointerId: number | null; currentX: number; currentY: number }
 interface MarqueeState { pointerId: number | null; start: Point; current: Point; additive: boolean }
-interface LeaferPointerEvent { target?: unknown; origin?: PointerEvent }
+interface NativePointerLikeEvent extends MouseEvent { pointerId?: number }
+interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLikeEvent }
 interface StageNotice { kind: 'missing' | 'loading' | 'error' | 'empty'; title: string; detail: string; canRetry?: boolean }
-
 type StatusVisualState = Extract<NonNullable<CanvasNode['status']>, 'running' | 'success' | 'warning'>
 
 export function useCanvasStage() {
@@ -101,6 +102,10 @@ export function useCanvasStage() {
     }
     return null
   })
+  const {
+    closeContextMenu, contextMenu, contextMenuOptions, handleContextMenu,
+    handleContextMenuSelect, handleStageDoubleClick, updateContextMenuShow,
+  } = useCanvasContextMenu({ cancelActiveInteraction, findNodeAtWorldPoint, getViewport, toSurfacePoint })
 
   function cssVar(name: string, fallback: string) {
     if (!canvasSurfaceRef.value) return fallback
@@ -116,6 +121,12 @@ export function useCanvasStage() {
     }
   }
   function findNode(nodeId: string) { return canvasStore.nodes.find((node) => node.id === nodeId) ?? null }
+  function findNodeAtWorldPoint(point: Point) {
+    return [...canvasStore.nodes].reverse().find((node) => (
+      point.x >= node.x && point.x <= node.x + node.width &&
+      point.y >= node.y && point.y <= node.y + node.height
+    )) ?? null
+  }
   function nodeInputAnchor(nodeId: string) {
     const node = findNode(nodeId)
     return node ? getNodeInputAnchor(node, getViewport()) : { x: 0, y: 0 }
@@ -156,7 +167,7 @@ export function useCanvasStage() {
     const rect = stageRef.value?.getBoundingClientRect()
     return rect ? { x: clientX - rect.left, y: clientY - rect.top } : null
   }
-  function shouldStartPan(origin?: PointerEvent, allowSpaceDrag = true) {
+  function shouldStartPan(origin?: NativePointerLikeEvent, allowSpaceDrag = true) {
     return Boolean(origin && (origin.button === 1 || canvasStore.mode === 'hand' || (allowSpaceDrag && isSpacePressed.value && origin.button === 0)))
   }
   function bindWindowPointerListeners() {
@@ -173,7 +184,7 @@ export function useCanvasStage() {
     window.removeEventListener('pointercancel', handleWindowPointerUp)
     windowPointerListenersBound = false
   }
-  function startPan(origin?: PointerEvent) {
+  function startPan(origin?: NativePointerLikeEvent) {
     if (!origin) return
     dragState = null
     draftConnection.value = null
@@ -342,6 +353,10 @@ export function useCanvasStage() {
     if (event.key === ' ') isSpacePressed.value = true
     if (isEditableTarget(event.target)) return
     if (event.key === 'Escape') {
+      if (contextMenu.value.show) {
+        closeContextMenu()
+        return
+      }
       if (!cancelActiveInteraction()) canvasStore.setSelection([])
       return
     }
@@ -360,6 +375,7 @@ export function useCanvasStage() {
     renderer = createCanvasRenderer({
       surface, getNodes: () => canvasStore.nodes, getSelectedNodeIds: () => canvasStore.selectedNodeIds,
       getViewport, cssVar, onStagePointerDown: handleStagePointerDown,
+      onContextMenu: handleContextMenu, onStageDoubleClick: handleStageDoubleClick,
       onNodePointerDown: handleNodePointerDown, onOutputPointerDown: handleOutputPointerDown,
     })
     renderer.render()
@@ -396,12 +412,14 @@ export function useCanvasStage() {
     panState = null
     draftConnection.value = null
     marquee.value = null
+    closeContextMenu()
   })
 
   return {
     buildConnectionPath, canvasStore, canvasSurfaceRef, centerNodeInViewport, minimapNodeStyle,
     minimapViewportStyle, nodeInputAnchor, nodeOutputAnchor, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
-    viewportCursor, retryProjectLoad,
+    viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu,
+    handleContextMenuSelect, updateContextMenuShow,
   }
 }
