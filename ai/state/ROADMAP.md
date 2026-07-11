@@ -44,7 +44,7 @@ T4-012 remains one product Task but has two independently mergeable units. Unit 
 
 - `frontend/src/views/app/Home.vue`: 499 lines - T4-008 target satisfied
 - `frontend/src/views/app/Space.vue`: 497 lines - T4-009 target satisfied
-- `frontend/src/components/canvas/CanvasStage.vue`: 1071 lines
+- `frontend/src/components/canvas/CanvasStage.vue`: 76 lines - T4-012 Unit A size target satisfied
 
 The relevant Tasks must reduce each page or stage controller to at most 500 lines through domain-aligned components, without unrelated visual redesign.
 

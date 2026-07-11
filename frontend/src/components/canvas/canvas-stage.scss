@@ -1,0 +1,154 @@
+.workspace-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(oklch(88% 0.006 92 / 0.45) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(88% 0.006 92 / 0.45) 1px, transparent 1px),
+    radial-gradient(circle at 42% 38%, oklch(92% 0.024 175 / 0.46), transparent 33%),
+    var(--bg-canvas);
+  background-size: var(--space-6) var(--space-6), var(--space-6) var(--space-6), auto, auto;
+}
+
+.canvas-surface {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 760px;
+  background: var(--bg-canvas);
+}
+
+.canvas-surface.cursor-grab { cursor: grab; }
+.canvas-surface.cursor-grabbing { cursor: grabbing; }
+
+.connection-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.node-status-overlay {
+  position: absolute;
+  z-index: 2;
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px transparent;
+}
+
+.node-status-overlay.is-running {
+  box-shadow:
+    0 0 0 2px color-mix(in oklch, var(--warning) 92%, white 8%),
+    0 0 0 10px color-mix(in oklch, var(--warning) 12%, transparent);
+  animation: node-pulse 1.8s ease-in-out infinite;
+}
+
+.node-status-overlay.is-success {
+  box-shadow:
+    0 0 0 2px color-mix(in oklch, var(--success) 90%, white 10%),
+    0 14px 30px color-mix(in oklch, var(--success) 10%, transparent);
+}
+
+.node-status-overlay.is-warning {
+  box-shadow:
+    0 0 0 2px color-mix(in oklch, var(--danger) 90%, white 10%),
+    0 14px 30px color-mix(in oklch, var(--danger) 10%, transparent);
+}
+
+.node-status-badge {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background: oklch(100% 0.004 92 / 0.94);
+  box-shadow: 0 10px 24px oklch(20% 0.02 245 / 0.08);
+}
+
+.node-status-overlay.is-running .node-status-badge { color: var(--warning); }
+.node-status-overlay.is-success .node-status-badge { color: var(--success); }
+.node-status-overlay.is-warning .node-status-badge { color: var(--danger); }
+.status-icon { flex: none; }
+.node-status-overlay.is-running .status-icon { animation: status-spin 1s linear infinite; }
+
+path {
+  fill: none;
+  stroke: oklch(37% 0.014 245 / 0.44);
+  stroke-width: 1.6;
+}
+
+path.active {
+  stroke: var(--accent-select);
+  stroke-dasharray: 8 10;
+  animation: dash 1.4s linear infinite;
+}
+
+path.draft {
+  stroke: var(--accent-select);
+  stroke-width: 2;
+  stroke-dasharray: 10 8;
+}
+
+.minimap {
+  position: absolute;
+  z-index: 3;
+  right: 20px;
+  bottom: 20px;
+  width: 160px;
+  height: 104px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: oklch(100% 0.004 92 / 0.76);
+  box-shadow: var(--shadow-soft);
+}
+
+.minimap-node {
+  position: absolute;
+  border: 0;
+  border-radius: 3px;
+  background: color-mix(in oklch, var(--accent-select) 72%, white 28%);
+  padding: 0;
+  cursor: pointer;
+}
+
+.minimap-viewport {
+  position: absolute;
+  border: 1.5px solid color-mix(in oklch, var(--accent-select) 78%, white 22%);
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--accent-select) 10%, transparent);
+  box-shadow: inset 0 0 0 1px oklch(100% 0.01 92 / 0.48);
+  pointer-events: none;
+}
+
+@keyframes dash { to { stroke-dashoffset: -36; } }
+@keyframes status-spin { to { transform: rotate(360deg); } }
+@keyframes node-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 920px) {
+  .canvas-surface { min-height: calc(100dvh - 260px); }
+  .minimap { right: 14px; bottom: 14px; width: 128px; height: 86px; }
+}
+
+@media (max-width: 720px) {
+  .canvas-surface { min-height: calc(100dvh - 280px); }
+  .minimap { display: none; }
+}
+
+@media (max-width: 480px) {
+  .canvas-surface { min-height: calc(100dvh - 300px); }
+}

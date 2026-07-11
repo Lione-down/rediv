@@ -7,7 +7,7 @@
 
 ## Current Bounded Unit
 
-Unit 3 - optimistic mutation and move queue. Completed with controlled browser failures and production-build verification in this run.
+Unit 4 - CanvasStage decomposition and Workspace persistence lifecycle. Completed with controlled browser interaction, route-leave flush, and production-build verification in this run.
 
 ## Completed Work
 
@@ -33,6 +33,13 @@ Unit 3 - optimistic mutation and move queue. Completed with controlled browser f
 - Added node coordinates to the Canvas scene signature after controlled failure QA exposed that store rollback alone did not redraw the Leafer visual.
 - Verified controlled move failure twice from the same original coordinate: each drag emitted exactly one debounced PUT, returned 503, displayed `Controlled move failure`, and restored both store and Leafer position.
 - Verified controlled connection failure twice for the same edge: both attempts emitted POST 503 and displayed `Controlled connection failure`, proving the failed optimistic edge did not remain as a ghost or block retry.
+- Extracted pure zoom clamping, viewport/world transforms, node anchors, connection paths, viewport bounds, and minimap metrics into `canvas-geometry.ts` with no Vue, Leafer, or HTTP dependency.
+- Extracted Leafer creation, resizing, scene rendering, target registration, node visual lookup, and visual-position updates into `canvas-renderer.ts`; the renderer consumes semantic pointer callbacks and contains no persistence calls.
+- Extracted pointer drag, anchor connection, pan, zoom, status/minimap overlays, and stage mount/unmount coordination into `use-canvas-stage.ts`; `CanvasStage.vue` is now a 76-line orchestration template instead of a 1,074-line mixed-responsibility component.
+- Moved the unchanged scoped Canvas visual rules into `canvas-stage.scss`; no global token or visual language was changed.
+- Added `use-canvas-persistence-lifecycle.ts` to await all queued moves before leaving Workspace or updating its project route, and issue an idempotent best-effort flush during unmount.
+- Verified a controlled failed drag emitted one PUT 503, displayed `Controlled move failure`, and restored the exact pre-drag minimap style; a failed anchor connection emitted one POST 503, displayed `Controlled connection failure`, and left zero connection paths.
+- Verified wheel zoom and middle-button pan both updated the minimap viewport; a successful SPA route leave sent exactly one queued PUT and waited about 188 ms for a deliberately 150 ms response before navigation completed.
 
 ## Contract Audit Findings
 
@@ -60,12 +67,11 @@ Unit 3 - optimistic mutation and move queue. Completed with controlled browser f
 
 ## Remaining Work
 
-- Unit 4: decompose CanvasStage and connect Workspace route lifecycle without visual redesign.
-- Unit 5: run focused regression/build plus real refresh and controlled-failure acceptance, then close Unit A.
+- Unit 5 only: run focused backend contract regression plus real local FastAPI/MySQL load, create, move, connection, delete, refresh, and persistence acceptance; repeat the remaining mutation-class failure cases and close Unit A when all gates pass.
 
 ## Exact Next Action
 
-Implement Unit 4 only: extract Canvas viewport/geometry, Leafer rendering, pointer interaction, and persistence lifecycle responsibilities so `CanvasStage.vue` becomes an orchestration shell at most 500 lines; wire awaitable route-leave flush plus best-effort unmount flush without changing backend contracts or visual design, then run controlled interaction checks and `frontend: npm run build`.
+Implement Unit 5 only: start the authorized local FastAPI/MySQL runtime without reading secrets, create or select a local user/project fixture through normal APIs, verify real node/connection load plus create/move/delete/refresh persistence and route isolation, run focused backend node/connection tests and the frontend build, then fresh-review and close Unit A only if every non-deferred gate passes.
 
 ## Files Changed
 
@@ -76,10 +82,15 @@ Implement Unit 4 only: extract Canvas viewport/geometry, Leafer rendering, point
 - `frontend/src/modules/canvas/mutations.ts` - added optimistic create/delete, ID reconciliation, ownership-safe rollback, connection deduplication, and debounced move/flush coordination.
 - `frontend/src/store/canvas.ts` - replaced fixtures with guarded project load and server-state lifecycle.
 - `frontend/src/components/canvas/CanvasStage.vue` - persisted pointer-up moves and anchor connections and made coordinate rollback trigger a Leafer redraw.
+- `frontend/src/components/canvas/canvas-geometry.ts` - isolated pure viewport/world transforms, node anchors, connection geometry, and minimap calculations.
+- `frontend/src/components/canvas/canvas-renderer.ts` - isolated Leafer instance, scene, visual target, resize, and node-position lifecycle.
+- `frontend/src/components/canvas/canvas-stage.scss` - preserved CanvasStage scoped visual rules outside the orchestration component.
+- `frontend/src/components/canvas/composables/use-canvas-stage.ts` - isolated pointer, pan, zoom, connection draft, overlay, and stage lifecycle coordination.
+- `frontend/src/components/canvas/composables/use-canvas-persistence-lifecycle.ts` - added awaited route-leave/project-update and best-effort unmount move flushing.
 - `frontend/src/types/canvas.ts` - added reusable status plus structured node/connection persistence metadata.
 - `frontend/src/views/app/Workspace.vue` - normalized and bound route project context to Canvas loading.
-- `ai/tasks/doing/TASK-T4-012-PROGRESS.md` - recorded Unit 3 implementation, verification, remaining work, and next action.
-- `ai/state/CURRENT.md` - refreshed the rolling T4-012 snapshot for the completed Unit 3 bounded unit.
+- `ai/tasks/doing/TASK-T4-012-PROGRESS.md` - recorded Unit 4 implementation, verification, remaining work, and next action.
+- `ai/state/CURRENT.md` - refreshed the rolling T4-012 snapshot for the completed Unit 4 bounded unit.
 
 ## Commands And Summarized Results
 
@@ -93,11 +104,14 @@ Implement Unit 4 only: extract Canvas viewport/geometry, Leafer rendering, point
 - `node --check output/playwright/t4012-controlled-routes.js`: PASS for the ignored browser mock evidence handler.
 - File-size check: `canvas.ts` 227 lines, `mutations.ts` 411, `persistence.ts` 60; `CanvasStage.vue` remains 1,074 lines and is the Unit 4 target.
 - Fresh scoped diff review and `git diff --check`: PASS; no fixture fallback, whitespace error, backend/global-style change, or secret-bearing path was introduced.
+- `frontend: npm run build` after Unit 4 decomposition: PASS; `vue-tsc -b` and Vite completed with 4,701 modules transformed.
+- File-size check after Unit 4: `CanvasStage.vue` 76 lines, `canvas-geometry.ts` 125, `canvas-renderer.ts` 179, `use-canvas-stage.ts` 286, persistence lifecycle 19, and scoped SCSS 154; all remain below 500 lines.
+- Playwright CLI controlled browser regression at 1280x800 with local mock routes: PASS for two-node project load, exact failed-move visual rollback and visible error, failed-connection ghost removal and visible error, wheel zoom, middle-button pan, and one awaited successful route-leave PUT. Expected mocked 503 browser resource errors were observed; unrelated Home API connection-refused entries occurred only after the route-leave destination loaded without Home mocks.
 
 ## Blockers And Release Conditions
 
-- No Human gate or dependency blocker exists for Unit 3.
+- No Human gate or dependency blocker exists for Unit 4.
 - Task-list single-flight capability was unavailable; release condition for commit is unchanged starting branch/HEAD/index and no Git operation/unmerged path at pre-commit recheck.
 - The pre-existing `5b64ca1` Playwright snapshot commit is outside T4-012 ownership and must remain untouched unless the Human Owner separately requests cleanup.
 - No push is authorized.
-- Root `.playwright-cli/page-2026-07-11T16-*.yml` snapshots were generated by the controlled browser run after the clean baseline. They are untracked, excluded from this delivery commit, and must not be deleted or staged without a separate cleanup decision.
+- Fifteen root `.playwright-cli/page-2026-07-11T16-*.yml` snapshots are untracked browser evidence generated after earlier and current clean baselines. They are excluded from this delivery commit and must not be deleted or staged without a separate cleanup decision.

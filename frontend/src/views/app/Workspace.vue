@@ -6,6 +6,7 @@ import { NDrawer, NDrawerContent, useMessage } from 'naive-ui'
 import { request } from '../../api/request'
 import AppTopBar from '../../components/layout/AppTopBar.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
+import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
 import WorkspaceToolRail from './components/workspace/WorkspaceToolRail.vue'
 import WorkspaceInspector from './components/workspace/WorkspaceInspector.vue'
 import WorkspacePromptDock from './components/workspace/WorkspacePromptDock.vue'
@@ -31,6 +32,8 @@ const message = useMessage()
 const authStore = useAuthStore()
 const assetStore = useAssetStore()
 const canvasStore = useCanvasStore()
+
+useCanvasPersistenceLifecycle()
 
 const projectId = computed(() => {
   const routeProjectId = route.query.project_id
