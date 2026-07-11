@@ -1,13 +1,13 @@
 # T4-012 Progress - Canvas decomposition and persistence
 
 - Task: `T4-012`
-- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`READY`, implementation not started)
+- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`DOING`)
 - State: `DOING`
 - Updated: 2026-07-12
 
 ## Current Bounded Unit
 
-Unit 5 - Unit A real acceptance and freeze. Completed with focused regression, real FastAPI/MySQL/API/browser persistence evidence, all mutation rollback classes, deep self-review, and production-build verification.
+Unit B1 - Selection And Keyboard Foundation. Completed with controlled browser interaction, failure rollback, build, backend regression, and fresh diff review.
 
 ## Completed Work
 
@@ -50,6 +50,11 @@ Unit 5 - Unit A real acceptance and freeze. Completed with focused regression, r
 - Added explicit missing/loading/error/empty Canvas states and a retry action. Controlled browser checks verified missing-project copy, forced loading copy, a visible controlled load error, successful retry, and return to the real graph.
 - Split coordinate changes from the Leafer structural scene signature so pointer movement uses targeted visual-position updates instead of clearing and rebuilding the full scene on every reactive coordinate change.
 - Completed deep security/architecture/adversarial review. Route encoding, bearer use, backend ownership guards, scope, secrets, and module boundaries passed after the fixes; generation status/content persistence remains an explicit pre-existing generation-scope follow-up, and the lack of a tracked frontend test runner remains a documented structural risk mitigated by deterministic browser/API evidence in Unit A.
+- Added an ordered multi-selection model that preserves one primary selected node for existing Inspector/generation consumers and uses a selection revision to prevent failed async deletion rollback from overwriting newer intent.
+- Added click replacement, Ctrl/Cmd/Shift toggle, empty-stage marquee replacement/addition, world-space rectangle intersection, and selected visuals for Leafer cards and minimap nodes.
+- Added editable-safe `Delete`/`Backspace` multi-delete through the existing sequential ownership-safe mutation path and `Escape` behavior that clears selection or cancels active drag/pan/connection/marquee interaction.
+- Restored the exact pre-drag position when Escape cancels a drag and suppressed move persistence for ordinary pointer down/up selection clicks with no coordinate change.
+- Controlled browser QA passed default marquee, Escape clear, cancelled-drag restoration, Ctrl multi-select, input-focused Delete protection, two failed DELETE rollbacks with selection restoration, and 50% zoom plus middle-pan marquee hit testing. Final network evidence contained exactly two expected DELETE 503 responses and no selection-click PUT.
 
 ## Contract Audit Findings
 
@@ -78,11 +83,12 @@ Unit 5 - Unit A real acceptance and freeze. Completed with focused regression, r
 ## Remaining Work
 
 - Unit A: none; every non-deferred Unit A gate is complete and frozen.
-- T4-012 Unit B remains: plan and implement advanced connection interaction, double-click create, selection box/multi-select, context menu, minimap/keyboard behavior, and 1440x900/920px/375px visual acceptance without reopening the backend contract.
+- Unit B2: context menu and double-click creation.
+- Unit B3: remaining connection/minimap behavior plus 1440x900/920px/375px real-browser acceptance and Task closure.
 
 ## Exact Next Action
 
-Next run, refresh this PLAN and PROGRESS for Unit B before business-code edits, then select only the first bounded advanced-interaction unit; do not reopen Unit A backend contracts without new evidence.
+Implement Unit B2's scoped `NDropdown` context actions and world-coordinate double-click creation through existing optimistic mutations; do not reopen Unit A backend contracts.
 
 ## Files Changed
 
@@ -109,6 +115,15 @@ Next run, refresh this PLAN and PROGRESS for Unit B before business-code edits, 
 - `ai/state/ROADMAP.md` - marked T4-012 Unit A `DONE - PASS`; Unit B remains TODO.
 - `ai/tasks/doing/TASK-T4-012-PROGRESS.md` - recorded Unit 4 implementation, verification, remaining work, and next action.
 - `ai/state/CURRENT.md` - refreshed the rolling T4-012 snapshot for the completed Unit 4 bounded unit.
+- `frontend/src/store/canvas.ts` - added ordered multi-selection, primary selection compatibility, and revision ownership.
+- `frontend/src/modules/canvas/mutations.ts` - reconciled temporary IDs and delete rollback with multi-selection state.
+- `frontend/src/components/canvas/canvas-geometry.ts` - added normalized rectangle and node intersection helpers.
+- `frontend/src/components/canvas/canvas-renderer.ts` - rendered every selected node with the existing selection visual language.
+- `frontend/src/components/canvas/composables/use-canvas-stage.ts` - added marquee, modifier selection, keyboard semantics, cancellation, and no-op drag suppression.
+- `frontend/src/components/canvas/CanvasStage.vue` - rendered the marquee and minimap selection state.
+- `frontend/src/components/canvas/canvas-stage.scss` - added scoped marquee and selected minimap styling.
+- `ai/tasks/doing/TASK-T4-012-PLAN.md` - decomposed Unit B and marked Unit B1 complete.
+- `ai/tasks/doing/TASK-T4-012-PROGRESS.md` - recorded Unit B1 implementation, verification, and next action.
 
 ## Commands And Summarized Results
 
@@ -137,6 +152,10 @@ Next run, refresh this PLAN and PROGRESS for Unit B before business-code edits, 
 - Deep review and adversarial pass over `git diff 5b64ca1`: PASS after fixing load-state UI, pointermove full-scene rebuild, selection rollback, and temporary-edge reconciliation; generation-state persistence was confirmed out of Unit A scope and no secret/auth/backend-contract drift was found.
 - Final file sizes: `CanvasStage.vue` 89, `canvas-geometry.ts` 125, `canvas-renderer.ts` 179, `canvas-stage.scss` 193, `use-canvas-stage.ts` 317, persistence lifecycle 19, `mutations.ts` 434, and `canvas.ts` 227 lines.
 - `git diff --check`: PASS.
+- `frontend: npm run build` after Unit B1 and the final no-op move fix: PASS; `vue-tsc -b` and Vite completed with 4,701 transformed modules.
+- `backend: .venv/Scripts/python.exe -m unittest tests.test_canvas_node_crud tests.test_canvas_connection_crud`: PASS, 19/19. An earlier system-Python attempt failed at collection because that interpreter lacked `annotated_doc`; no dependency or code change was needed.
+- Playwright CLI controlled browser QA at 1280x900: PASS for default and modifier selection, marquee, Escape clear/cancelled-drag restoration, editable Delete guard, two-node failed-delete rollback, and 50% zoom plus middle-pan marquee hit testing. Final network evidence was 2 expected DELETE 503 responses and 0 unexpected PUT responses; screenshot: ignored `output/playwright/t4012-unitb1-selection.png`.
+- Unit B1 fresh diff/size review: PASS; all Canvas-local files remain below 500 lines (`CanvasStage.vue` 93, stage composable 407, renderer 179, geometry 143, SCSS 207, store 271, mutations 447), with no backend, global design, dependency, generated, or secret-bearing tracked path.
 
 ## Blockers And Release Conditions
 

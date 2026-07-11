@@ -23,6 +23,24 @@ export interface WorldRect {
   height: number
 }
 
+export function rectFromPoints(start: Point, end: Point): WorldRect {
+  return {
+    left: Math.min(start.x, end.x),
+    top: Math.min(start.y, end.y),
+    width: Math.abs(end.x - start.x),
+    height: Math.abs(end.y - start.y),
+  }
+}
+
+export function nodeIntersectsRect(node: CanvasNode, rect: WorldRect) {
+  return (
+    node.x <= rect.left + rect.width &&
+    node.x + node.width >= rect.left &&
+    node.y <= rect.top + rect.height &&
+    node.y + node.height >= rect.top
+  )
+}
+
 export interface MinimapMetrics {
   minX: number
   minY: number

@@ -81,6 +81,15 @@
   box-shadow: 0 0 0 1px transparent;
 }
 
+.selection-marquee {
+  position: absolute;
+  z-index: 3;
+  border: 1px solid color-mix(in oklch, var(--accent-select) 86%, white 14%);
+  border-radius: 4px;
+  background: color-mix(in oklch, var(--accent-select) 10%, transparent);
+  pointer-events: none;
+}
+
 .node-status-overlay.is-running {
   box-shadow:
     0 0 0 2px color-mix(in oklch, var(--warning) 92%, white 8%),
@@ -160,6 +169,11 @@ path.draft {
   background: color-mix(in oklch, var(--accent-select) 72%, white 28%);
   padding: 0;
   cursor: pointer;
+}
+
+.minimap-node.selected {
+  outline: 2px solid var(--accent-select);
+  outline-offset: 1px;
 }
 
 .minimap-viewport {

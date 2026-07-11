@@ -24,6 +24,8 @@ interface ProjectContext {
 interface CanvasMutationOptions {
   activeProjectId: Ref<string>
   selectedNodeId: Ref<string>
+  selectedNodeIds: Ref<string[]>
+  selectionRevision: Ref<number>
   nodes: Ref<CanvasNode[]>
   connections: Ref<CanvasConnection[]>
   bumpDataRevision: () => void
@@ -38,6 +40,8 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
   const {
     activeProjectId,
     selectedNodeId,
+    selectedNodeIds,
+    selectionRevision,
     nodes,
     connections,
     bumpDataRevision,
@@ -98,6 +102,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
       to: connection.to === tempId ? serverNode.id : connection.to,
     }))
     if (selectedNodeId.value === tempId) selectedNodeId.value = serverNode.id
+    selectedNodeIds.value = selectedNodeIds.value.map((nodeId) => nodeId === tempId ? serverNode.id : nodeId)
 
     if (!move) {
       pendingMoves.set(serverNode.id, {
@@ -295,14 +300,19 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     const connectionSnapshots = connections.value
       .map((connection, index) => ({ connection, index }))
       .filter(({ connection }) => connection.from === effectiveNodeId || connection.to === effectiveNodeId)
-    const wasSelected = selectedNodeId.value === effectiveNodeId
+    const selectionSnapshot = [...selectedNodeIds.value]
+    const primarySelectionSnapshot = selectedNodeId.value
+    const capturedSelectionRevision = selectionRevision.value
     const owner = Symbol(effectiveNodeId)
     nodeOwners.set(effectiveNodeId, owner)
     nodes.value = nodes.value.filter((node) => node.id !== effectiveNodeId)
     connections.value = connections.value.filter(
       (connection) => connection.from !== effectiveNodeId && connection.to !== effectiveNodeId,
     )
-    if (selectedNodeId.value === effectiveNodeId) selectedNodeId.value = ''
+    selectedNodeIds.value = selectedNodeIds.value.filter((nodeId) => nodeId !== effectiveNodeId)
+    if (selectedNodeId.value === effectiveNodeId) {
+      selectedNodeId.value = selectedNodeIds.value[selectedNodeIds.value.length - 1] ?? ''
+    }
     bumpDataRevision()
 
     try {
@@ -317,7 +327,10 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
         for (const { connection, index } of connectionSnapshots) {
           connections.value.splice(Math.min(index, connections.value.length), 0, connection)
         }
-        if (wasSelected && selectedNodeId.value === '') selectedNodeId.value = effectiveNodeId
+        if (selectionRevision.value === capturedSelectionRevision) {
+          selectedNodeIds.value = selectionSnapshot
+          selectedNodeId.value = primarySelectionSnapshot
+        }
         nodeOwners.delete(effectiveNodeId)
         bumpDataRevision()
         reportSaveError('删除节点', error)

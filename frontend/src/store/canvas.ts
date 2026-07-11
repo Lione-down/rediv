@@ -9,6 +9,7 @@ import { useAuthStore } from './auth'
 
 type CanvasMode = 'select' | 'hand' | 'text' | 'image' | 'generate'
 type CanvasNodeStatus = CanvasNode['status']
+type CanvasSelectionMode = 'replace' | 'toggle' | 'add'
 
 interface ProjectLoadRequest {
   generation: number
@@ -26,6 +27,8 @@ export const useCanvasStore = defineStore('canvas', () => {
   const authStore = useAuthStore()
   const activeProjectId = ref('')
   const selectedNodeId = ref('')
+  const selectedNodeIds = ref<string[]>([])
+  const selectionRevision = ref(0)
   const mode = ref<CanvasMode>('select')
   const viewport = ref({ zoom: 1, x: 0, y: 0 })
   const nodes = ref<CanvasNode[]>([])
@@ -41,6 +44,10 @@ export const useCanvasStore = defineStore('canvas', () => {
   let loadRequest: ProjectLoadRequest | null = null
 
   const selectedNode = computed(() => nodes.value.find((node) => node.id === selectedNodeId.value) || null)
+  const selectedNodes = computed(() => {
+    const selectedIds = new Set(selectedNodeIds.value)
+    return nodes.value.filter((node) => selectedIds.has(node.id))
+  })
 
   function bumpDataRevision() {
     dataRevision += 1
@@ -59,8 +66,40 @@ export const useCanvasStore = defineStore('canvas', () => {
     saveErrorRevision.value += 1
   }
 
-  function selectNode(nodeId: string) {
-    selectedNodeId.value = nodes.value.some((node) => node.id === nodeId) ? nodeId : ''
+  function setSelection(nodeIds: string[], primaryNodeId = '') {
+    const availableIds = new Set(nodes.value.map((node) => node.id))
+    const nextIds = [...new Set(nodeIds)].filter((nodeId) => availableIds.has(nodeId))
+    const nextPrimaryId = nextIds.includes(primaryNodeId)
+      ? primaryNodeId
+      : (nextIds[nextIds.length - 1] ?? '')
+    if (
+      selectedNodeId.value === nextPrimaryId &&
+      selectedNodeIds.value.length === nextIds.length &&
+      selectedNodeIds.value.every((nodeId, index) => nodeId === nextIds[index])
+    ) return
+    selectedNodeIds.value = nextIds
+    selectedNodeId.value = nextPrimaryId
+    selectionRevision.value += 1
+  }
+
+  function selectNode(nodeId: string, selectionMode: CanvasSelectionMode = 'replace') {
+    if (!nodes.value.some((node) => node.id === nodeId)) {
+      if (selectionMode === 'replace') setSelection([])
+      return
+    }
+    if (selectionMode === 'add') {
+      setSelection([...selectedNodeIds.value, nodeId], nodeId)
+      return
+    }
+    if (selectionMode === 'toggle') {
+      const isSelected = selectedNodeIds.value.includes(nodeId)
+      setSelection(
+        isSelected ? selectedNodeIds.value.filter((selectedId) => selectedId !== nodeId) : [...selectedNodeIds.value, nodeId],
+        isSelected ? '' : nodeId,
+      )
+      return
+    }
+    setSelection([nodeId], nodeId)
   }
 
   function setMode(nextMode: CanvasMode) {
@@ -93,6 +132,8 @@ export const useCanvasStore = defineStore('canvas', () => {
   const canvasMutations = createCanvasMutationActions({
     activeProjectId,
     selectedNodeId,
+    selectedNodeIds,
+    selectionRevision,
     nodes,
     connections,
     bumpDataRevision,
@@ -110,6 +151,8 @@ export const useCanvasStore = defineStore('canvas', () => {
     canvasMutations.resetMutationState()
     activeProjectId.value = projectId
     selectedNodeId.value = ''
+    selectedNodeIds.value = []
+    selectionRevision.value += 1
     nodes.value = []
     connections.value = []
     hasLoaded.value = false
@@ -168,9 +211,7 @@ export const useCanvasStore = defineStore('canvas', () => {
         canvasMutations.initializeConfirmedPositions()
         hasLoaded.value = true
 
-        if (!nodes.value.some((node) => node.id === selectedNodeId.value)) {
-          selectedNodeId.value = ''
-        }
+        setSelection(selectedNodeIds.value, selectedNodeId.value)
       } catch (error) {
         if (!isCurrentLoad(request)) return
         loadError.value = getCanvasErrorMessage(error, '画布加载失败，请稍后重试。')
@@ -201,7 +242,9 @@ export const useCanvasStore = defineStore('canvas', () => {
   return {
     activeProjectId,
     selectedNodeId,
+    selectedNodeIds,
     selectedNode,
+    selectedNodes,
     mode,
     viewport,
     nodes,
@@ -213,6 +256,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     saveErrorRevision,
     loadProject,
     selectNode,
+    setSelection,
     setMode,
     setNodeStatus,
     setNodeContent,

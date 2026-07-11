@@ -11,6 +11,8 @@ import {
   nodeInputAnchor as getNodeInputAnchor,
   nodeOutputAnchor as getNodeOutputAnchor,
   normalizeViewport,
+  nodeIntersectsRect,
+  rectFromPoints,
   surfaceToWorld,
   viewportWorldRect as getViewportWorldRect,
   worldToSurface,
@@ -19,9 +21,18 @@ import {
 } from '../canvas-geometry'
 import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
 
-interface DragState { nodeId: string; pointerId: number | null; offsetX: number; offsetY: number }
+interface DragState {
+  nodeId: string
+  pointerId: number | null
+  offsetX: number
+  offsetY: number
+  originX: number
+  originY: number
+  moved: boolean
+}
 interface PanState { pointerId: number | null; startClientX: number; startClientY: number; originX: number; originY: number }
 interface DraftConnectionState { fromNodeId: string; pointerId: number | null; currentX: number; currentY: number }
+interface MarqueeState { pointerId: number | null; start: Point; current: Point; additive: boolean }
 interface LeaferPointerEvent { target?: unknown; origin?: PointerEvent }
 interface StageNotice { kind: 'missing' | 'loading' | 'error' | 'empty'; title: string; detail: string; canRetry?: boolean }
 
@@ -32,6 +43,7 @@ export function useCanvasStage() {
   const stageRef = ref<HTMLElement | null>(null)
   const canvasSurfaceRef = ref<HTMLElement | null>(null)
   const draftConnection = ref<DraftConnectionState | null>(null)
+  const marquee = ref<MarqueeState | null>(null)
   const surfaceViewportSize = ref({ width: 0, height: 0 })
   const isSpacePressed = ref(false)
   const isPanning = ref(false)
@@ -45,7 +57,7 @@ export function useCanvasStage() {
     running: Loader2, success: CheckCircle2, warning: AlertCircle,
   }
   const sceneSignature = computed(() => JSON.stringify({
-    selectedNodeId: canvasStore.selectedNodeId,
+    selectedNodeIds: canvasStore.selectedNodeIds,
     nodes: canvasStore.nodes.map(({ id, type, title, content, status, width, height }) => ({
       id, type, title, content, status, width, height,
     })),
@@ -68,6 +80,11 @@ export function useCanvasStage() {
   const temporaryConnectionPath = computed(() => {
     const draft = draftConnection.value
     return draft ? buildConnectionPath(nodeOutputAnchor(draft.fromNodeId), { x: draft.currentX, y: draft.currentY }) : ''
+  })
+  const marqueeStyle = computed(() => {
+    if (!marquee.value) return null
+    const rect = rectFromPoints(marquee.value.start, marquee.value.current)
+    return { left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` }
   })
   const stageNotice = computed<StageNotice | null>(() => {
     if (!canvasStore.activeProjectId) {
@@ -167,7 +184,13 @@ export function useCanvasStage() {
   function handleStagePointerDown(event: LeaferPointerEvent) {
     if (renderer?.isInteractiveTarget(event.target)) return
     if (shouldStartPan(event.origin)) return startPan(event.origin)
-    canvasStore.selectNode('')
+    const origin = event.origin
+    const point = origin ? toSurfacePoint(origin.clientX, origin.clientY) : null
+    if (!origin || origin.button !== 0 || !point || canvasStore.mode !== 'select') return
+    const additive = origin.ctrlKey || origin.metaKey || origin.shiftKey
+    if (!additive) canvasStore.setSelection([])
+    marquee.value = { pointerId: origin.pointerId ?? null, start: point, current: point, additive }
+    bindWindowPointerListeners()
   }
   function handleNodePointerDown(nodeId: string, event: LeaferPointerEvent) {
     if (renderer?.isPortTarget(nodeId, event.target)) return
@@ -176,8 +199,16 @@ export function useCanvasStage() {
     const point = event.origin ? toSurfacePoint(event.origin.clientX, event.origin.clientY) : null
     if (!node || !point) return
     const worldPoint = surfaceToWorld(point, getViewport())
-    canvasStore.selectNode(nodeId)
-    dragState = { nodeId, pointerId: event.origin?.pointerId ?? null, offsetX: worldPoint.x - node.x, offsetY: worldPoint.y - node.y }
+    canvasStore.selectNode(nodeId, event.origin?.ctrlKey || event.origin?.metaKey || event.origin?.shiftKey ? 'toggle' : 'replace')
+    dragState = {
+      nodeId,
+      pointerId: event.origin?.pointerId ?? null,
+      offsetX: worldPoint.x - node.x,
+      offsetY: worldPoint.y - node.y,
+      originX: node.x,
+      originY: node.y,
+      moved: false,
+    }
     bindWindowPointerListeners()
   }
   function handleOutputPointerDown(nodeId: string, event: LeaferPointerEvent) {
@@ -200,12 +231,21 @@ export function useCanvasStage() {
       const node = findNode(dragState.nodeId)
       if (!point || !node) return
       const worldPoint = surfaceToWorld(point, getViewport())
-      node.x = worldPoint.x - dragState.offsetX
-      node.y = worldPoint.y - dragState.offsetY
+      const nextX = worldPoint.x - dragState.offsetX
+      const nextY = worldPoint.y - dragState.offsetY
+      dragState.moved = dragState.moved || nextX !== dragState.originX || nextY !== dragState.originY
+      node.x = nextX
+      node.y = nextY
       renderer?.updateNodePosition(node.id)
       return
     }
     const draft = draftConnection.value
+    if (marquee.value) {
+      if (marquee.value.pointerId !== null && event.pointerId !== marquee.value.pointerId) return
+      const point = toSurfacePoint(event.clientX, event.clientY)
+      if (point) marquee.value = { ...marquee.value, current: point }
+      return
+    }
     if (!draft || (draft.pointerId !== null && event.pointerId !== draft.pointerId)) return
     const point = toSurfacePoint(event.clientX, event.clientY)
     if (point) draftConnection.value = { ...draft, currentX: point.x, currentY: point.y }
@@ -235,10 +275,11 @@ export function useCanvasStage() {
     if (panState && (panState.pointerId === null || event.pointerId === panState.pointerId)) { panState = null; isPanning.value = false }
     if (dragState && (dragState.pointerId === null || event.pointerId === dragState.pointerId)) {
       const nodeId = dragState.nodeId
+      const didMove = dragState.moved
       dragState = null
       renderer?.updateNodePosition(nodeId)
       const node = findNode(nodeId)
-      if (node) canvasStore.queueNodeMove(nodeId, node.x, node.y)
+      if (node && didMove) canvasStore.queueNodeMove(nodeId, node.x, node.y)
     }
     const draft = draftConnection.value
     if (draft && (draft.pointerId === null || event.pointerId === draft.pointerId)) {
@@ -246,7 +287,17 @@ export function useCanvasStage() {
       if (point) finalizeDraftConnection(point)
       else draftConnection.value = null
     }
-    if (!panState && !dragState && !draftConnection.value) unbindWindowPointerListeners()
+    if (marquee.value && (marquee.value.pointerId === null || event.pointerId === marquee.value.pointerId)) {
+      const selection = marquee.value
+      const worldStart = surfaceToWorld(selection.start, getViewport())
+      const worldEnd = surfaceToWorld(selection.current, getViewport())
+      const selectedIds = canvasStore.nodes
+        .filter((node) => nodeIntersectsRect(node, rectFromPoints(worldStart, worldEnd)))
+        .map((node) => node.id)
+      canvasStore.setSelection(selection.additive ? [...canvasStore.selectedNodeIds, ...selectedIds] : selectedIds)
+      marquee.value = null
+    }
+    if (!panState && !dragState && !draftConnection.value && !marquee.value) unbindWindowPointerListeners()
   }
   function applyZoomAtPoint(nextZoom: number, point: Point) {
     const viewport = getViewport()
@@ -260,7 +311,45 @@ export function useCanvasStage() {
     const point = toSurfacePoint(event.clientX, event.clientY)
     if (point) applyZoomAtPoint(getViewport().zoom * Math.exp(-event.deltaY * 0.0015), point)
   }
-  function handleWindowKeyDown(event: KeyboardEvent) { if (event.key === ' ') isSpacePressed.value = true }
+  function isEditableTarget(target: EventTarget | null) {
+    return target instanceof Element && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
+  }
+  function cancelActiveInteraction() {
+    const wasActive = Boolean(dragState || panState || draftConnection.value || marquee.value)
+    if (dragState) {
+      const node = findNode(dragState.nodeId)
+      if (node) {
+        node.x = dragState.originX
+        node.y = dragState.originY
+        renderer?.updateNodePosition(node.id)
+      }
+    }
+    dragState = null
+    panState = null
+    draftConnection.value = null
+    marquee.value = null
+    isPanning.value = false
+    unbindWindowPointerListeners()
+    return wasActive
+  }
+  async function deleteSelectedNodes() {
+    const nodeIds = [...canvasStore.selectedNodeIds]
+    for (const nodeId of nodeIds) {
+      try { await canvasStore.deleteNode(nodeId) } catch { /* Store reports the owned failure. */ }
+    }
+  }
+  function handleWindowKeyDown(event: KeyboardEvent) {
+    if (event.key === ' ') isSpacePressed.value = true
+    if (isEditableTarget(event.target)) return
+    if (event.key === 'Escape') {
+      if (!cancelActiveInteraction()) canvasStore.setSelection([])
+      return
+    }
+    if ((event.key === 'Delete' || event.key === 'Backspace') && canvasStore.selectedNodeIds.length > 0 && !event.repeat) {
+      event.preventDefault()
+      void deleteSelectedNodes()
+    }
+  }
   function handleWindowKeyUp(event: KeyboardEvent) { if (event.key === ' ') isSpacePressed.value = false }
 
   onMounted(() => {
@@ -269,7 +358,7 @@ export function useCanvasStage() {
     if (!surface || !stage) return
     surfaceViewportSize.value = { width: Math.max(stage.clientWidth, 1), height: Math.max(stage.clientHeight, 1) }
     renderer = createCanvasRenderer({
-      surface, getNodes: () => canvasStore.nodes, getSelectedNodeId: () => canvasStore.selectedNodeId,
+      surface, getNodes: () => canvasStore.nodes, getSelectedNodeIds: () => canvasStore.selectedNodeIds,
       getViewport, cssVar, onStagePointerDown: handleStagePointerDown,
       onNodePointerDown: handleNodePointerDown, onOutputPointerDown: handleOutputPointerDown,
     })
@@ -306,12 +395,13 @@ export function useCanvasStage() {
     dragState = null
     panState = null
     draftConnection.value = null
+    marquee.value = null
   })
 
   return {
     buildConnectionPath, canvasStore, canvasSurfaceRef, centerNodeInViewport, minimapNodeStyle,
     minimapViewportStyle, nodeInputAnchor, nodeOutputAnchor, stageRef, statusBadgeStyle,
-    statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath,
+    statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
     viewportCursor, retryProjectLoad,
   }
 }

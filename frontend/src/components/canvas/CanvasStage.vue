@@ -19,6 +19,7 @@ const {
   stageNotice,
   surfaceNodeRectStyle,
   temporaryConnectionPath,
+  marqueeStyle,
   viewportCursor,
   retryProjectLoad,
 } = useCanvasStage()
@@ -70,12 +71,15 @@ function setCanvasSurfaceRef(element: Element | ComponentPublicInstance | null) 
         </div>
       </div>
 
+      <div v-if="marqueeStyle" class="selection-marquee" :style="marqueeStyle" aria-hidden="true"></div>
+
       <div class="minimap" aria-label="小地图">
         <button
           v-for="node in canvasStore.nodes"
           :key="node.id"
           type="button"
           class="minimap-node"
+          :class="{ selected: canvasStore.selectedNodeIds.includes(node.id) }"
           :aria-label="`定位到 ${node.title}`"
           :style="minimapNodeStyle(node)"
           @click="centerNodeInViewport(node.id)"

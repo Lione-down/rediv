@@ -1,14 +1,14 @@
 # T4-012 Plan - Canvas decomposition and persistence
 
 - Task: `T4-012`
-- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`READY`, implementation not started)
+- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`DOING`)
 - State: `DOING`
 - Owner: Codex Project Lead Engineer
 - Created: 2026-07-12
 
 ## Objective
 
-Replace the frontend's fixture-only Canvas state with project-driven server state while decomposing `CanvasStage.vue` into explicit render, viewport, interaction, and persistence responsibilities. Unit A ends only after node and connection load/create/move/delete survive refresh, failed optimistic mutations visibly roll back, route exit flushes pending moves, the production build passes, and `CanvasStage.vue` is at most 500 lines.
+Complete the remaining Canvas interaction contract on top of frozen Unit A persistence: multi-selection and marquee selection, keyboard semantics, context actions, double-click creation, connection/minimap behavior, and responsive browser acceptance. Preserve the existing backend contract and keep every coordinate-sensitive interaction correct from 25% through 200% zoom.
 
 ## Scope
 
@@ -20,12 +20,14 @@ Allowed changes:
 - `frontend/src/store/canvas.ts` and `frontend/src/types/canvas.ts`
 - project integration in `frontend/src/views/app/Workspace.vue`
 
-Non-goals for Unit A:
+Non-goals for Unit B:
 
 - no backend route, schema, model, migration, or database contract changes;
 - no Auth, Home, Space, global design-token, or unrelated visual changes;
 - no second canvas engine;
-- no Unit B selection box, context menu, minimap redesign, keyboard-delete, responsive acceptance, or advanced connection interaction beyond preserving the existing anchor-drag behavior needed to verify connection persistence.
+- no reopening or redesign of Unit A persistence, backend contracts, or mutation ownership without new failure evidence;
+- no global visual redesign, second canvas engine, generation workflow change, or unrelated page work;
+- no paid provider call or destructive fixture cleanup.
 
 ## Dependencies And Locked Contracts
 
@@ -39,6 +41,27 @@ Non-goals for Unit A:
 - Node create coordinates must be non-negative. Drag persistence must clamp server-bound coordinates without changing viewport math.
 
 ## Delivery Units
+
+### Unit B1 - Selection And Keyboard Foundation - complete 2026-07-12
+
+- Add an explicit ordered multi-selection model while retaining one primary selected node for the existing Inspector and generation controls.
+- Support click replacement, Ctrl/Cmd/Shift toggle, and empty-stage marquee replacement/addition using world-space rectangle intersection.
+- Render a DOM selection marquee and selected-node visuals without coupling persistence state to transient pointer state.
+- Support `Escape` to cancel an active interaction or clear selection, and `Delete`/`Backspace` to delete selected nodes only when focus is not in an editable control.
+- Delete multiple nodes through the existing ownership-safe mutation contract; avoid duplicate cascaded connection work and keep failures retryable.
+- Verify focused geometry semantics, keyboard editable-target guards, production build, and controlled browser behavior at representative zoom/pan values.
+
+Result: PASS. Ordered multi-selection, click/toggle/marquee semantics, editable-safe keyboard delete, Escape cancellation, selection rollback ownership, selected Canvas/minimap visuals, and no-op click persistence suppression passed controlled browser verification at default and 50% zoom with pan.
+
+### Unit B2 - Context Actions And Double-click Creation
+
+- Add the scoped `NDropdown` context menu for node/stage actions and double-click node creation in world coordinates.
+- Reuse existing optimistic create/delete actions and visible mutation errors; do not duplicate persistence logic in the component.
+
+### Unit B3 - Connection, Minimap, And Responsive Acceptance
+
+- Complete connection hit/selection behavior and minimap navigation/viewport checks across 25%-200% zoom.
+- Run real browser interaction and layout acceptance at 1440x900, 920x900, and 375x900; close remaining Task criteria and write REPORT only when all gates pass.
 
 ### Unit A completion - PASS 2026-07-12
 

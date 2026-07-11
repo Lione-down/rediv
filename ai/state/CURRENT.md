@@ -22,7 +22,7 @@ Last updated: 2026-07-12
 
 - Task: `T4-012 - Canvas interaction and persistence`
 - State: `DOING`
-- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`READY`, implementation not started)
+- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`DOING`; Unit B1 `DONE - PASS`)
 - Task file: `ai/tasks/todo/TASK-T4-012.md`
 - Plan: `ai/tasks/doing/TASK-T4-012-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T4-012-PROGRESS.md`
@@ -39,7 +39,7 @@ Last updated: 2026-07-12
 
 ## T4-012 Current Objective
 
-Unit A is frozen as `DONE - PASS`: CanvasStage is decomposed and project-driven node/connection load plus create/move/delete persistence, debounce/flush, rollback, explicit load states, and async ownership are verified. Unit B must now add advanced interaction and visual acceptance without reopening the backend contract.
+Unit A is frozen as `DONE - PASS`. Unit B1 is also `DONE - PASS`: ordered multi-selection, marquee hit testing, editable-safe keyboard deletion, Escape cancellation, selection rollback ownership, and selected Canvas/minimap visuals are verified. Unit B2 must add context actions and world-coordinate double-click creation without reopening the backend contract.
 
 ## T4-012 Scope
 
@@ -66,15 +66,18 @@ Unit A is frozen as `DONE - PASS`: CanvasStage is decomposed and project-driven 
 - Focused backend Canvas CRUD regression passed 19/19; the final production build passed with 4,701 modules.
 - Final sizes are `CanvasStage.vue` 89, `canvas.ts` 227, `use-canvas-stage.ts` 317, `mutations.ts` 434, and all Canvas-local files remain below 500 lines.
 - Generation status/content persistence remains outside Unit A's locked scope; lack of a tracked frontend test runner remains a structural risk mitigated here with controlled and real browser/API evidence.
-- Unit B advanced selection, context menu, minimap, keyboard behavior, and responsive QA is dependency-ready but has not started.
+- Unit B1 added ordered multi-selection while retaining one primary node for existing Inspector/generation consumers; selection revisions protect rollback from newer intent.
+- Default and modifier selection, marquee replacement/addition, editable-safe Delete/Backspace, Escape clear/cancel, and selected node/minimap visuals are implemented.
+- Controlled browser QA passed cancelled-drag restoration, two failed multi-delete rollbacks, and marquee hit testing after 50% zoom plus middle-button pan; final network evidence contained 2 expected DELETE 503 responses and no selection-click PUT.
+- Final Unit B1 build passed with 4,701 modules, backend Canvas regression passed 19/19, and every Canvas-local file remains below 500 lines.
 
 ## Exact Next Action
 
-Next run, refresh the T4-012 PLAN and PROGRESS for Unit B before business-code edits, then select only its first bounded advanced-interaction unit; do not reopen Unit A backend contracts without new evidence.
+Implement Unit B2's scoped `NDropdown` context actions and world-coordinate double-click creation through existing optimistic mutations; do not reopen Unit A backend contracts.
 
 ## Current Blockers
 
-- T4-012 Unit A has no remaining blocker; Unit B has no recorded Human gate or dependency blocker.
+- T4-012 Units A and B1 have no remaining blocker; Unit B2 has no recorded Human gate or dependency blocker.
 - T4-005 Unit B real Agnes smoke remains a separate Human cost gate and must not run without explicit authorization.
 - The backend direct registration API 72-byte password boundary remains a separate normal engineering follow-up.
 - Existing backend asset ordering lacks a stable secondary key when MySQL `created_at` values tie within one second; route this to a future backend follow-up without reopening completed T4-009.
@@ -82,11 +85,11 @@ Next run, refresh the T4-012 PLAN and PROGRESS for Unit B before business-code e
 
 ## Worktree Protection
 
-- This run started from `main` at `918d0e0aaa3f5f27a01f030b3b373c60278a110d`, with no staged, modified, unmerged, detached, or in-progress Git-operation state; fifteen documented root Playwright snapshots were the only pre-existing untracked paths.
-- Single-flight task-list inspection passed: only the current same-title controller run was active; older runs were idle or not loaded.
+- This run started from `main` at `460bf4d5753af6462a073f71616080f13b2d88fc`, with no staged, modified, unmerged, detached, or in-progress Git-operation state; fifteen documented root Playwright snapshots were the only pre-existing untracked paths.
+- Single-flight task-list inspection timed out and was treated as unavailable; branch/HEAD/index and Git-operation state are the concurrency baseline for this run.
 - Pre-run commit `5b64ca1` contains only the formerly untracked zero-byte root Playwright snapshot and is already `origin/main`; it is outside T4-012 ownership and must not be modified or reverted in this Task.
-- The current bounded unit owns only the final Canvas state/position/rollback coordination fixes plus T4-012 Task/PLAN/PROGRESS, ROADMAP, and CURRENT closure paths; no backend code, dependency, generated output, secret, or global design file belongs to the commit.
-- Fifteen root `.playwright-cli/page-2026-07-11T16-*.yml` snapshots are untracked browser evidence generated across the prior and current runs; preserve and exclude them from staging pending a separate cleanup decision.
+- The current bounded unit owns only Unit B1 Canvas selection/keyboard paths plus T4-012 PLAN/PROGRESS and CURRENT; no backend code, dependency, generated output, secret, or global design file belongs to the commit.
+- Twenty-seven root `.playwright-cli/*.yml` snapshots are untracked browser evidence (15 pre-existing plus 12 created by this run); preserve and exclude them from staging pending a separate cleanup decision.
 - `/frontend/.playwright-cli/` and `/output/playwright/` remain ignored local evidence directories and must not be deleted, moved, force-added, or included without new explicit scope.
 - Two normal local mock users, two projects, three final nodes, and one final connection remain in MySQL as non-production Unit 5 fixture evidence; broad cleanup was not authorized.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
