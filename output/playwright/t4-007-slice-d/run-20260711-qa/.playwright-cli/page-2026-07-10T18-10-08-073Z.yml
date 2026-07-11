@@ -1,0 +1,66 @@
+- main [ref=f1e143]:
+  - generic [ref=f1e144]:
+    - link "返回 Revid 首页" [ref=f1e145] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f1e146]: R
+      - generic [ref=f1e147]:
+        - strong [ref=f1e148]: Revid
+        - generic [ref=f1e149]: AI 创作工作台
+    - navigation "主导航" [ref=f1e150]:
+      - link "工作流" [ref=f1e151] [cursor=pointer]:
+        - /url: /app/workspace
+      - link "个人空间" [ref=f1e156] [cursor=pointer]:
+        - /url: /app/space
+      - link "Admin" [ref=f1e160] [cursor=pointer]:
+        - /url: /admin
+  - generic [ref=f1e163]:
+    - navigation "画布工具" [ref=f1e164]:
+      - button "选择" [pressed] [ref=f1e165] [cursor=pointer]
+      - button "移动" [ref=f1e168] [cursor=pointer]
+      - button "文本" [ref=f1e174] [cursor=pointer]
+      - button "图片" [ref=f1e177] [cursor=pointer]
+      - button "生成" [ref=f1e182] [cursor=pointer]
+    - region "工作流主舞台" [ref=f1e186]:
+      - generic [ref=f1e187]:
+        - generic [ref=f1e188]:
+          - paragraph [ref=f1e189]: 当前项目
+          - heading "未选择项目" [level=1] [ref=f1e190]
+        - generic [ref=f1e191]: 选择模式
+      - region "Revid 无限画布工作区" [ref=f1e194]:
+        - generic "小地图" [ref=f1e196]:
+          - button "定位到 故事脚本" [ref=f1e197] [cursor=pointer]
+          - button "定位到 角色参考" [ref=f1e198] [cursor=pointer]
+          - button "定位到 Agnes Image" [ref=f1e199] [cursor=pointer]
+          - button "定位到 视频结果" [ref=f1e200] [cursor=pointer]
+    - complementary "资产与属性" [ref=f1e202]:
+      - tablist "工作台面板" [ref=f1e203]:
+        - tab "Assets" [selected] [ref=f1e204] [cursor=pointer]
+        - tab "Templates" [ref=f1e205] [cursor=pointer]
+        - tab "Properties" [ref=f1e206] [cursor=pointer]
+      - tabpanel [ref=f1e208]:
+        - generic [ref=f1e209]:
+          - generic [ref=f1e210]:
+            - generic [ref=f1e211]:
+              - paragraph [ref=f1e212]: 个人资产
+              - heading "最近素材" [level=2] [ref=f1e213]
+            - generic [ref=f1e214]: "2"
+          - generic [ref=f1e215]:
+            - article [ref=f1e216]:
+              - strong [ref=f1e222]: 雨夜旧车站，暖色灯光，电影感镜头。
+              - generic [ref=f1e223]: generation · active
+            - article [ref=f1e224]:
+              - strong [ref=f1e230]: 角色参考图
+              - generic [ref=f1e231]: upload · active
+      - generic [ref=f1e232]:
+        - generic [ref=f1e234]:
+          - paragraph [ref=f1e235]: 今日额度
+          - heading "Quota" [level=2] [ref=f1e236]
+        - generic [ref=f1e237]:
+          - generic [ref=f1e238]: 文本 9999
+          - generic [ref=f1e239]: 图片 9999
+          - generic [ref=f1e240]: 视频 9999
+  - generic "Prompt 输入区" [ref=f1e241]:
+    - generic [ref=f1e242]: 继续处理「角色参考」节点的生成任务。
+    - generic [ref=f1e247]:
+      - button "面板" [ref=f1e248] [cursor=pointer]
+      - button "立即生成" [ref=f1e251] [cursor=pointer]

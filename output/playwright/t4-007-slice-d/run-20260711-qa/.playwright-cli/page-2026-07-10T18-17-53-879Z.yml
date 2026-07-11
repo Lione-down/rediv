@@ -1,0 +1,96 @@
+- main [ref=e130]:
+  - generic [ref=e131]:
+    - link "返回 Revid 首页" [ref=e132] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e133]: R
+      - generic [ref=e134]:
+        - strong [ref=e135]: Revid
+        - generic [ref=e136]: AI 创作工作台
+    - navigation "主导航" [ref=e137]:
+      - link "工作流" [ref=e138] [cursor=pointer]:
+        - /url: /app/workspace
+      - link "个人空间" [ref=e143] [cursor=pointer]:
+        - /url: /app/space
+  - generic [ref=e147]:
+    - region "首页主入口" [ref=e148]:
+      - article [ref=e149]:
+        - generic [ref=e150]:
+          - paragraph [ref=e151]: 安静的创作工作台
+          - heading "把 prompt、图片和视频放进同一个创作空间。" [level=1] [ref=e155]
+          - paragraph [ref=e156]: Revid 先帮你整理脚本、角色参考和素材脉络，再把生成任务放回工作流里持续迭代， 让每一次试错都能沉淀为后续可复用的资产。
+          - generic [ref=e157]:
+            - button "微信登录" [ref=e158] [cursor=pointer]
+            - link "进入工作流" [ref=e162] [cursor=pointer]:
+              - /url: /app/workspace
+        - generic "快速开始" [ref=e165]:
+          - article [ref=e166]:
+            - strong [ref=e170]: 故事脚本
+            - generic [ref=e171]: 把一句想法拆成镜头结构、节奏和生成顺序。
+          - article [ref=e172]:
+            - strong [ref=e176]: 角色参考
+            - generic [ref=e177]: 整理角色外观、服装和表情，避免多轮返工。
+          - article [ref=e178]:
+            - strong [ref=e182]: 视频草稿
+            - generic [ref=e183]: 先生成一版可讨论的短视频草稿，再继续 refine。
+      - complementary [ref=e184]:
+        - region "快速创作入口" [ref=e185]:
+          - generic [ref=e186]:
+            - generic [ref=e187]:
+              - paragraph [ref=e188]: Prompt Composer
+              - heading "从一个想法开始，先把创作入口写清楚。" [level=2] [ref=e189]
+              - paragraph [ref=e190]: 你可以先描述角色、场景、镜头目标，再补充图片参考或润色，让后续生成结果直接回流到工作流里。
+            - generic [ref=e191]: +
+          - generic "推荐起点" [ref=e192]:
+            - button "从一句故事开始" [ref=e193] [cursor=pointer]
+            - button "补一张角色参考图" [ref=e194] [cursor=pointer]
+            - button "整理视频草稿结构" [ref=e195] [cursor=pointer]
+          - generic [ref=e196]:
+            - generic [ref=e197]: 输入你的创作目标
+            - textbox "输入你的创作目标" [ref=e198]:
+              - /placeholder: 例如：写一支 20 秒短片，场景是雨夜车站，主角在荧光路牌下停住，镜头从远景推到特写。
+            - generic [ref=e199]:
+              - button "添加图片参考" [ref=e200] [cursor=pointer]: 图片参考
+              - button "润色提示词" [ref=e205] [cursor=pointer]: 润色
+              - link "进入工作流" [ref=e209] [cursor=pointer]:
+                - /url: /app/workspace
+    - region "最近项目和资产状态" [ref=e213]:
+      - article [ref=e214]:
+        - generic [ref=e218]:
+          - paragraph [ref=e219]: 最近项目
+          - heading "雨夜车站短片、角色设定、封面探索。" [level=2] [ref=e220]
+          - generic [ref=e221]: 3 个项目持续编辑中
+      - article [ref=e222]:
+        - generic [ref=e229]:
+          - paragraph [ref=e230]: 资产库
+          - heading "Prompt、图片、视频持续沉淀，随时回流到工作流。" [level=2] [ref=e231]
+          - generic [ref=e232]: 12 个可复用素材片段
+      - article [ref=e233]:
+        - generic [ref=e238]:
+          - paragraph [ref=e239]: 额度
+          - heading "登录后同步 text / image / video 额度" [level=2] [ref=e240]
+          - generic [ref=e241]: 登录后可同步真实额度
+    - region "联调结果展示" [ref=e242]:
+      - article [ref=e243]:
+        - generic [ref=e244]:
+          - generic [ref=e245]:
+            - paragraph [ref=e246]: 当前账户
+            - heading "额度总览" [level=2] [ref=e247]
+          - generic [ref=e248]: 等待登录
+        - generic [ref=e249]:
+          - article [ref=e250]:
+            - generic [ref=e251]: Text
+            - strong [ref=e252]: "0"
+          - article [ref=e253]:
+            - generic [ref=e254]: Image
+            - strong [ref=e255]: "0"
+          - article [ref=e256]:
+            - generic [ref=e257]: Video
+            - strong [ref=e258]: "0"
+      - article [ref=e259]:
+        - generic [ref=e260]:
+          - generic [ref=e261]:
+            - paragraph [ref=e262]: 真实资产
+            - heading "最近 3 条资产" [level=2] [ref=e263]
+          - button "重试加载" [disabled] [ref=e264]
+        - paragraph [ref=e270]: "登录后会自动请求 `GET /assets` 并展示真实数据。"
+        - paragraph [ref=e275]: 登录后展示资产列表。

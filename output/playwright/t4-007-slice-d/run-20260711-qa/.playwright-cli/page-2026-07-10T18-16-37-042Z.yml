@@ -1,0 +1,66 @@
+- generic [ref=e90]:
+  - link "跳到主要内容" [ref=e91] [cursor=pointer]:
+    - /url: "#auth-main"
+  - banner [ref=e92]:
+    - link "返回 Revid 首页" [ref=e93] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e94]: R
+      - generic [ref=e95]:
+        - strong [ref=e96]: Revid
+        - generic [ref=e97]: AI 创作工作台
+    - generic [ref=e98]: 安全登录
+  - main [ref=e102]:
+    - region [ref=e103]:
+      - generic [ref=e104]:
+        - paragraph [ref=e105]: 欢迎回来
+        - heading "登录 Revid" [level=1] [ref=e106]
+        - generic [ref=e107]: 使用用户名或邮箱继续你的创作工作流。
+      - generic [ref=e108]:
+        - generic [ref=e109]:
+          - generic [ref=e110]: 用户名或邮箱
+          - generic [ref=e115]:
+            - textbox "用户名或邮箱" [ref=e116]:
+              - /placeholder: creator 或 creator@example.com
+            - generic: creator 或 creator@example.com
+        - generic [ref=e118]:
+          - generic [ref=e119]: 密码
+          - generic [ref=e124]:
+            - textbox "密码" [ref=e125]:
+              - /placeholder: 输入你的密码
+            - generic: 输入你的密码
+        - button "登录并进入工作流" [ref=e136] [cursor=pointer]
+      - separator [ref=e142]:
+        - generic [ref=e144]: 其他方式
+      - generic [ref=e146]:
+        - button "使用已有微信账号登录" [ref=e147] [cursor=pointer]
+        - button "以游客身份浏览" [ref=e152] [cursor=pointer]
+      - generic [ref=e158]: 注册暂未开放，已有账号仍可登录。
+    - region [ref=e161]:
+      - generic [ref=e162]:
+        - paragraph [ref=e163]: 让灵感持续流动
+        - heading "从一个想法，进入完整创作流。" [level=2] [ref=e167]
+        - paragraph [ref=e168]: 在同一个空间整理脚本、角色参考和生成素材，让每一次尝试都能沉淀为下一步的起点。
+      - generic "Revid 创作工作流预览" [ref=e169]:
+        - generic [ref=e170]:
+          - generic [ref=e171]: 当前工作流
+          - generic [ref=e173]: 结构预览
+        - list [ref=e178]:
+          - listitem [ref=e179]:
+            - generic [ref=e184]:
+              - strong [ref=e185]: 镜头脚本
+              - generic [ref=e186]: Prompt 已整理
+            - generic [ref=e187]: 已完成
+          - listitem [ref=e188]:
+            - generic [ref=e194]:
+              - strong [ref=e195]: 角色参考
+              - generic [ref=e196]: 角色视觉锚点
+            - generic [ref=e197]: 进行中
+          - listitem [ref=e198]:
+            - generic [ref=e202]:
+              - strong [ref=e203]: 视频草稿
+              - generic [ref=e204]: 等待进入生成队列
+            - generic [ref=e205]: 待处理
+        - generic [ref=e206]: Prompt、参考图与草稿集中整理
+  - contentinfo [ref=e212]:
+    - generic [ref=e213]: Revid
+    - generic [ref=e214]: Prompt、图片与视频的创作工作台

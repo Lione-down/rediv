@@ -1,0 +1,85 @@
+- main [ref=e130]:
+  - complementary [ref=e131]:
+    - generic [ref=e132]:
+      - generic [ref=e133]: Admin Console
+      - generic [ref=e137]:
+        - heading "Revid Admin" [level=1] [ref=e138]
+        - paragraph [ref=e139]: 内部平台控制台，优先处理注册、额度、资产和任务状态。
+    - navigation "Admin 导航" [ref=e140]:
+      - link "总览 平台状态与关键指标" [ref=e141] [cursor=pointer]:
+        - /url: /admin
+        - generic [ref=e146]:
+          - strong [ref=e147]: 总览
+          - generic [ref=e148]: 平台状态与关键指标
+      - link "用户 账号状态与权限管理" [ref=e149] [cursor=pointer]:
+        - /url: /admin/users
+        - generic [ref=e156]:
+          - strong [ref=e157]: 用户
+          - generic [ref=e158]: 账号状态与权限管理
+      - link "邀请码 注册准入与发放节奏" [ref=e159] [cursor=pointer]:
+        - /url: /admin/invitations
+        - generic [ref=e163]:
+          - strong [ref=e164]: 邀请码
+          - generic [ref=e165]: 注册准入与发放节奏
+      - link "额度 文本 图片 视频配额" [ref=e166] [cursor=pointer]:
+        - /url: /admin/quotas
+        - generic [ref=e170]:
+          - strong [ref=e171]: 额度
+          - generic [ref=e172]: 文本 图片 视频配额
+      - link "资产 上传 生成 归档状态" [ref=e173] [cursor=pointer]:
+        - /url: /admin/assets
+        - generic [ref=e179]:
+          - strong [ref=e180]: 资产
+          - generic [ref=e181]: 上传 生成 归档状态
+      - link "任务 生成队列与执行监控" [ref=e182] [cursor=pointer]:
+        - /url: /admin/tasks
+        - generic [ref=e188]:
+          - strong [ref=e189]: 任务
+          - generic [ref=e190]: 生成队列与执行监控
+    - region "当前上下文" [ref=e191]:
+      - generic [ref=e192]: 当前模块
+      - strong [ref=e193]: 总览
+      - paragraph [ref=e194]: 本轮以浅色工作台风格承接 Admin 信息密度，避免回退到普通后台列表页。
+  - generic [ref=e196]:
+    - generic [ref=e197]:
+      - generic [ref=e198]:
+        - generic [ref=e199]: 平台总览
+        - heading "把注册、额度、任务和资产状态压缩到一个可快速判断的平台视图里。" [level=2] [ref=e200]
+        - paragraph [ref=e201]: 当前先用 mock 指标建立管理台结构，后续联调时可直接替换为真实 Dashboard 查询。
+      - generic [ref=e202]:
+        - generic [ref=e203]: 当前值班
+        - strong [ref=e204]: Admin
+        - paragraph [ref=e205]: 管理员 · 最近登录 2026/7/11 02:12:22
+    - region "关键指标" [ref=e206]:
+      - article [ref=e207]:
+        - generic [ref=e208]: 注册用户数
+        - strong [ref=e216]: "1"
+        - paragraph [ref=e217]: 当前基于 mock admin 账户，后续替换为真实统计接口。
+      - article [ref=e218]:
+        - generic [ref=e219]: 今日任务数
+        - strong [ref=e225]: "12"
+        - paragraph [ref=e226]: 覆盖文本、图片和视频请求的当日总量。
+      - article [ref=e227]:
+        - generic [ref=e228]: 排队任务数
+        - strong [ref=e235]: "3"
+        - paragraph [ref=e236]: 当前等待执行或轮询完成的生成任务。
+      - article [ref=e237]:
+        - generic [ref=e238]: 系统状态
+        - strong [ref=e244]: Healthy
+        - paragraph [ref=e245]: 登录、额度和资产模块都处于可继续联调状态。
+    - generic [ref=e246]:
+      - article [ref=e247]:
+        - generic [ref=e253]:
+          - text: 资产沉淀
+          - strong [ref=e254]: 2 项
+          - paragraph [ref=e255]: 当前来自本地 store mock 数据
+      - article [ref=e256]:
+        - generic [ref=e260]:
+          - text: 额度库存
+          - strong [ref=e261]: 9999/9999/9999
+          - paragraph [ref=e262]: 文本 / 图片 / 视频余额
+      - article [ref=e263]:
+        - generic [ref=e268]:
+          - text: 最近更新
+          - strong [ref=e269]: T2-004
+          - paragraph [ref=e270]: 后台页面迁移进行中

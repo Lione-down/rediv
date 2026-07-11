@@ -1,0 +1,71 @@
+- generic [ref=f1e4]:
+  - link "跳到主要内容" [ref=f1e5] [cursor=pointer]:
+    - /url: "#auth-main"
+  - banner [ref=f1e6]:
+    - link "返回 Revid 首页" [ref=f1e7] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f1e8]: R
+      - generic [ref=f1e9]:
+        - strong [ref=f1e10]: Revid
+        - generic [ref=f1e11]: AI 创作工作台
+    - generic [ref=f1e12]: 安全登录
+  - main [ref=f1e16]:
+    - region [ref=f1e17]:
+      - generic [ref=f1e18]:
+        - paragraph [ref=f1e19]: 欢迎回来
+        - heading "登录 Revid" [level=1] [ref=f1e20]
+        - generic [ref=f1e21]: 使用用户名或邮箱继续你的创作工作流。
+      - generic [ref=f1e22]:
+        - alert [ref=f1e130]:
+          - generic [ref=f1e137]:
+            - generic [ref=f1e138]: 登录未完成
+            - generic [ref=f1e139]: 账号或密码不正确，请重新输入。
+        - generic [ref=f1e23]:
+          - generic [ref=f1e24]: 用户名或邮箱
+          - textbox "用户名或邮箱" [ref=f1e30]:
+            - /placeholder: creator 或 creator@example.com
+            - text: t4_007_qa_admin
+        - generic [ref=f1e32]:
+          - generic [ref=f1e33]: 密码
+          - textbox "密码" [ref=f1e39]:
+            - /placeholder: 输入你的密码
+            - text: Wrong-Disposable-QA-Password
+        - button "登录并进入工作流" [ref=f1e50] [cursor=pointer]
+      - separator [ref=f1e56]:
+        - generic [ref=f1e58]: 其他方式
+      - generic [ref=f1e60]:
+        - button "使用已有微信账号登录" [ref=f1e61] [cursor=pointer]
+        - button "以游客身份浏览" [ref=f1e66] [cursor=pointer]
+      - generic [ref=f1e74]:
+        - text: 还没有账号？
+        - link "创建账号" [ref=f1e75] [cursor=pointer]:
+          - /url: /register?redirect=/app/workspace
+    - region [ref=f1e76]:
+      - generic [ref=f1e77]:
+        - paragraph [ref=f1e78]: 让灵感持续流动
+        - heading "从一个想法，进入完整创作流。" [level=2] [ref=f1e82]
+        - paragraph [ref=f1e83]: 在同一个空间整理脚本、角色参考和生成素材，让每一次尝试都能沉淀为下一步的起点。
+      - generic "Revid 创作工作流预览" [ref=f1e84]:
+        - generic [ref=f1e85]:
+          - generic [ref=f1e86]: 当前工作流
+          - generic [ref=f1e88]: 结构预览
+        - list [ref=f1e93]:
+          - listitem [ref=f1e94]:
+            - generic [ref=f1e99]:
+              - strong [ref=f1e100]: 镜头脚本
+              - generic [ref=f1e101]: Prompt 已整理
+            - generic [ref=f1e102]: 已完成
+          - listitem [ref=f1e103]:
+            - generic [ref=f1e109]:
+              - strong [ref=f1e110]: 角色参考
+              - generic [ref=f1e111]: 角色视觉锚点
+            - generic [ref=f1e112]: 进行中
+          - listitem [ref=f1e113]:
+            - generic [ref=f1e117]:
+              - strong [ref=f1e118]: 视频草稿
+              - generic [ref=f1e119]: 等待进入生成队列
+            - generic [ref=f1e120]: 待处理
+        - generic [ref=f1e121]: Prompt、参考图与草稿集中整理
+  - contentinfo [ref=f1e127]:
+    - generic [ref=f1e128]: Revid
+    - generic [ref=f1e129]: Prompt、图片与视频的创作工作台
