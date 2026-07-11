@@ -39,3 +39,7 @@ _tmp_hash.py
 
 # Windows reserved-name artifact
 /nul
+
+# Local browser QA evidence and tool state
+/frontend/.playwright-cli/
+/output/playwright/
