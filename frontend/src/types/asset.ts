@@ -23,6 +23,11 @@ export interface AssetListParams {
   page_size?: number
 }
 
+export interface AssetListQuery extends AssetListParams {
+  page: number
+  page_size: number
+}
+
 export interface AssetListResponse {
   items: Asset[]
   total: number

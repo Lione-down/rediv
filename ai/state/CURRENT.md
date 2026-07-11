@@ -49,16 +49,16 @@ Refactor Space into a maintainable dark personal asset workspace using real asse
 
 ## Latest T4-009 Progress
 
-- Unit 1 planning and contract audit is complete with no business-code edit.
-- Asset list contract: current-user `active` rows only, server type/project filters and pagination, newest first; user delete is soft delete, hidden is admin-only, and invalid/dangling media/project references require neutral fallbacks.
-- Template contract: current-user newest-first unpaginated list, hard delete, and use creates a new project with cloned nodes but no connections.
-- Quota contract: only remaining text/image/video counts from `/me`; no capacity, percentage, usage history, or user ledger may be invented.
-- Current Space is a 983-line prototype with no direct load, real total/filter/pagination/detail/delete/media fallback, and mock storage/history/results content.
-- Verification baseline: 29 focused temporary-SQLite backend contract tests passed; fresh frontend production build passed with 4,663 modules.
+- Unit 1 planning/contract audit and Unit 2's first domain slice are complete.
+- The asset store now exposes an independent response-shaped Space collection with canonical query state, exact `total/page/page_size` metadata, server-equivalent identical-query single-flight, concurrent different-query handling, and A-B-A pending reuse.
+- Latest-query/request/session guards suppress stale success, error, and loading transitions; synchronous token changes clear both Space and the unchanged Home/Workspace default cache.
+- Space load actions return `Promise<void>`, so a stale request cannot misrepresent another query or session's collection as its own result.
+- Final deterministic mock runtime probe passed 7 concurrency, metadata, error, session-reset, and cache-isolation scenarios; final TypeScript check and production build passed with 4,663 modules.
+- Security and architecture review have no remaining findings. Space UI, template reads, detail/mutations, accessibility/fallbacks, real API/MySQL comparison, responsive browser QA, and REPORT closure remain.
 
 ## Exact Next Action
 
-Implement the independent query-aware paginated Space asset collection in the existing asset types/API/store. Preserve the current Home/Workspace default cache, API pagination metadata, identical-query single-flight, latest-query/session guards, and synchronous token reset. Do not edit Space or template UI in that bounded slice.
+Implement the typed template read foundation under `frontend/src/modules/template/**`: current-user unpaginated list and detail flows with identical-request single-flight, stale response protection, and synchronous token reset. Do not add mutations or edit Space UI in that bounded slice.
 
 ## Current Blockers
 
@@ -69,9 +69,9 @@ Implement the independent query-aware paginated Space asset collection in the ex
 
 ## Worktree Protection
 
-- This run started from clean `main` at `f0327cb1a490908e438cb7e23dc8fb26599d1599` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- This run started from clean `main` at `fb4d83f4a11332263f74dbda52122aaae0b2e6b5` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
 - The Codex task-list single-flight query was unavailable, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
-- This run owns only the T4-009 PLAN/PROGRESS plus CURRENT/ROADMAP state transition; no business-code path is owned by this unit.
+- This run owns only `frontend/src/types/asset.ts`, `frontend/src/store/assets.ts`, the active T4-009 PROGRESS, and CURRENT for the verified asset-query bounded unit.
 - `/frontend/.playwright-cli/` and `/output/playwright/` are ignored local evidence directories. Their files remain on disk and must not be deleted, moved, force-added, or included in delivery commits without a new explicit scope.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 
