@@ -1,16 +1,26 @@
-# T4-005 Unit A Progress - GenerationTask Persistence And Mock Verification
+# T4-005 Progress - GenerationTask Diagnostics And Real Smoke
 
-Last updated: 2026-07-10
+Last updated: 2026-07-12
 
 ## State
 
-- Task: `T4-005 Unit A - GenerationTask persistence, provider integration and mock tests`
-- State: `DONE`
+- Task: `T4-005 Unit B - Authorized real Agnes smoke`
+- State: `BLOCKED - PROCESS KEY REQUIRED`
 - Branch at start of current run: `main`
-- Base HEAD at start of current run: `778160f044c5e644d876703dfe9cbec04bb28d89`
-- Pre-existing worktree changes at start: none
+- Base HEAD at start of current run: `cec8e747b478f4bac8a18e227813be25c6f2d749`
+- Pre-existing worktree changes at start: 45 untracked root `.playwright-cli/*.yml` snapshots; no tracked modifications
 - Pre-existing staged changes at start: none
 - Unmerged paths at start: none
+
+## Unit B Work This Run
+
+- Human Owner explicitly authorized paid text/image/video Agnes real smoke.
+- The initial text execute attempt returned sanitized `401 Unauthorized`; no provider result or asset was created.
+- Root cause: `scripts/smoke_agnes.py` consumed `settings.agnes_api_key`, and `Settings(env_file=".env")` loaded a local root `.env` key even though `REVID_AGNES_API_KEY` was absent from the process environment.
+- Further image/video calls are paused until the process-only credential gate is repaired and a valid process-provided key is available.
+- Added a regression test proving a local `.env` key is ignored when the process key is absent; it failed on the old implementation and passed after the fix.
+- Updated `scripts/smoke_agnes.py` to read `REVID_AGNES_API_KEY` directly from `os.environ`.
+- Verified the root-directory execute path now exits before network access when the process key is absent.
 
 ## Completed Work
 
@@ -27,11 +37,33 @@ Last updated: 2026-07-10
 ## Remaining Work
 
 - No remaining Unit A implementation work.
-- T4-005 Unit B real Agnes smoke remains a separate Human cost gate.
+- Run authorized text/image/video real smoke with a valid process-provided key.
+- Verify non-sensitive provider metadata and the required generation task/asset relationship evidence.
 
 ## Exact Next Action
 
-Start T4-007 by creating `ai/tasks/doing/TASK-T4-007-PLAN.md` and `ai/tasks/doing/TASK-T4-007-PROGRESS.md`; do not run T4-005 Unit B real smoke without explicit Human Owner authorization.
+Supply a valid `REVID_AGNES_API_KEY` through the process environment, then rerun `scripts/smoke_agnes.py --media text --execute`; only after text succeeds, continue image and video smoke.
+
+## Unit B Files Changed This Run
+
+- `ai/state/CURRENT.md`
+- `ai/state/ROADMAP.md`
+- `ai/tasks/todo/TASK-T4-005.md`
+- `ai/tasks/doing/TASK-T4-005-PLAN.md`
+- `ai/tasks/doing/TASK-T4-005-PROGRESS.md`
+- `backend/tests/test_smoke_agnes.py`
+- `scripts/smoke_agnes.py`
+- `pitfalls.md`
+
+## Unit B Commands And Summarized Results
+
+- Process-environment presence check - `REVID_AGNES_API_KEY` absent; no value was read or printed.
+- Initial `scripts/smoke_agnes.py --media text --execute` - FAILED with sanitized `401 Unauthorized`; this exposed implicit local `.env` loading and no provider result/asset was created.
+- Regression test on old implementation - expected FAIL, return code mismatch `2 != 1`, proving the local `.env` path reached provider execution.
+- `python -m unittest tests.test_smoke_agnes` - PASS, 3 tests.
+- `python -m py_compile scripts/smoke_agnes.py backend/tests/test_smoke_agnes.py` - PASS.
+- Post-fix root execute preflight - BLOCKED before network call with exit code 2 because the process key is absent.
+- `python -m unittest discover -s tests -p "test_*.py"` - PASS, 189 tests.
 
 ## Files Changed
 
@@ -84,4 +116,5 @@ Start T4-007 by creating `ai/tasks/doing/TASK-T4-007-PLAN.md` and `ai/tasks/doin
 ## Blockers And Release Conditions
 
 - Unit A has no active blocker.
-- Unit B real Agnes smoke is blocked until the Human Owner explicitly authorizes paid Agnes calls.
+- Human cost authorization is complete.
+- Completing Unit B real smoke requires a valid `REVID_AGNES_API_KEY` supplied in the process environment; do not inspect or reuse the rejected local `.env` credential. Release condition: process key presence followed by a successful text smoke.

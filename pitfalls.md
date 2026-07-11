@@ -255,3 +255,9 @@ Evidence:
 - MySQL `DATETIME` 可让同一秒创建的多条资产拥有相同 `created_at`；只按该字段排序且无稳定 secondary key 时，不能把 insertion order 当成分页 oracle。验收 fixture 应显式错开时间；backend 后续应使用 `created_at` 加稳定 ID tie-breaker。
 - `DatabaseStore.list_assets()` 每次查询数据库，但 `get_asset()` 会优先读取进程内 cache。直接 SQL 改 fixture 状态后，列表可立即变化而详情仍旧；正常产品操作应走 backend route 同步 cache，必须做 out-of-band SQL 时要重启 owned backend 后再验收详情。
 - `playwright-cli` 会在当前 working directory 生成 `.playwright-cli/` snapshot。Revid browser QA 必须从 `output/playwright/<task-unit>/` 或已忽略的 `frontend/` 目录启动；若误在仓库根生成 untracked artifact，未获删除/移动授权时保留并排除 staging，不能用 `git clean` 收口。
+
+## 2026-07-12 Agnes real-smoke credential gate
+
+- `Settings(env_file=".env")` 会让直接读取 `settings.agnes_api_key` 的 smoke helper 隐式消费本地文件 credential；这不等价于 process-provided secret，会绕过 Unit B 的 credential source contract。
+- 付费 real-smoke entrypoint 必须直接从 `os.environ` 读取 `REVID_AGNES_API_KEY`，process variable 缺失时在任何网络调用前 fail closed；本地 `.env` 只能用于普通应用配置，不能作为授权 smoke 的 secret 来源。
+- 回归测试应在临时 cwd 放置 fake `.env` 和 loopback base URL，证明缺少 process key 时仍返回 blocked，避免测试触发外部 API。

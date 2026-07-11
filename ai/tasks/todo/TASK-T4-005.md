@@ -2,9 +2,11 @@
 
 ## Status
 
-- State: `DONE`
-- Active unit: `Unit A - Implementation And Mock Verification (DONE - PASS)`
-- Next unit: `Unit B - Authorized Real Smoke` remains `TODO - HUMAN COST GATE`
+- State: `BLOCKED`
+- Completed unit: `Unit A - Implementation And Mock Verification (DONE - PASS)`
+- Active unit: `Unit B - Authorized Real Smoke (BLOCKED - PROCESS KEY REQUIRED)`
+- Human cost authorization: granted on 2026-07-12 for text/image/video real smoke
+- Current constraint: a valid real key must be supplied through the process environment; local `.env` credentials are not an authorized source
 - Owner: Codex Project Lead Engineer
 
 ## Task ID

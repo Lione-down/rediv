@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -35,11 +36,12 @@ async def _execute(args: argparse.Namespace) -> int:
     from core.generation_task_utils import elapsed_ms, extract_provider_request_id, sanitize_error_message
     from settings.config import settings
 
-    if not settings.agnes_api_key:
+    api_key = os.environ.get("REVID_AGNES_API_KEY", "").strip()
+    if not api_key:
         print("BLOCKED: REVID_AGNES_API_KEY is not set; no Agnes call was made.")
         return 2
 
-    provider = AgnesProvider(settings.agnes_api_key, settings.agnes_base_url)
+    provider = AgnesProvider(api_key, settings.agnes_base_url)
     model_by_media = {
         "text": settings.agnes_model_text,
         "image": settings.agnes_model_image,

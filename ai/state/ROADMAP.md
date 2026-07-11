@@ -22,7 +22,7 @@ Last updated: 2026-07-12
 | 7 | T4-009 | Real-data Space asset workspace | DONE - PASS | T4-003 and T4-007 |
 | 8 | T4-012 Unit A | Canvas decomposition, server load/save and optimistic rollback | DONE - PASS | T4-007, T4-010 and T4-011 |
 | 9 | T4-012 Unit B | Connection interaction, selection, context menu, minimap and responsive QA | DONE - PASS | T4-012 Unit A |
-| 10 | T4-005 Unit B | Explicitly authorized real Agnes text/image/video smoke | TODO - HUMAN COST GATE | T4-005 Unit A |
+| 10 | T4-005 Unit B | Explicitly authorized real Agnes text/image/video smoke | BLOCKED - PROCESS KEY REQUIRED | T4-005 Unit A |
 | 11 | T4-013 | Full E2E, visual QA, security checks and documentation closure | TODO | T4-005/007/008/009/012 |
 
 ## Completed Foundations

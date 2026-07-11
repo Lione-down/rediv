@@ -19,12 +19,15 @@ Last updated: 2026-07-12
 
 ## Active Delivery
 
-- Active implementation Task: none
-- State: `WAITING HUMAN COST GATE`
-- Gate: `T4-005 Unit B - Authorized Real Agnes Smoke`
-- Gate source: `ai/tasks/todo/TASK-T4-005.md`
+- Active implementation Task: `T4-005 Unit B - Authorized Real Agnes Smoke`
+- State: `BLOCKED - PROCESS KEY REQUIRED`
+- Task: `ai/tasks/todo/TASK-T4-005.md`
+- Plan: `ai/tasks/doing/TASK-T4-005-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T4-005-PROGRESS.md`
+- Human cost authorization: granted on 2026-07-12 for text/image/video real smoke.
+- Credential gate repair: complete and covered by regression test; local `.env` keys are now ignored by the smoke helper.
+- Current constraint: Unit B requires a valid process-provided `REVID_AGNES_API_KEY`; the current process has none.
 - T4-013 is not dependency-ready until T4-005 Unit B is resolved.
-- No paid text/image/video call may run without explicit Human Owner authorization.
 
 ## Latest Completed Task
 
@@ -41,23 +44,23 @@ Last updated: 2026-07-12
 ## Project Status
 
 - T4-003, T4-004, T4-005 Unit A, T4-007, T4-008, T4-009, T4-011, and T4-012 are `DONE - PASS` within their authorized scope.
-- T4-005 Unit B is `TODO - HUMAN COST GATE`.
+- T4-005 Unit B is `BLOCKED - PROCESS KEY REQUIRED`.
 - T4-013 remains `TODO`, dependency-blocked by T4-005 Unit B.
 
 ## Exact Next Action
 
-Wait for the Human Owner to explicitly authorize or decline paid T4-005 Unit B text/image/video Agnes real smoke. If authorized, read the existing T4-005 Task/PLAN/PROGRESS/REPORT and execute only the authorized call class; if declined, record the product decision and reassess T4-013 dependency closure.
+Supply a valid `REVID_AGNES_API_KEY` through the process environment, then run authorized text smoke; continue image and video only after text succeeds.
 
 ## Current Blockers
 
-- Human Owner decision required: paid T4-005 Unit B real Agnes smoke authorization or explicit decline.
+- A valid process-provided `REVID_AGNES_API_KEY` is required to complete authorized Unit B real smoke; the rejected local `.env` credential must not be inspected or reused. Cost authorization is already complete.
 - No push is authorized; all commits remain local.
 - T4-005 direct registration 72-byte password boundary and asset ordering tie behavior remain separate future engineering follow-ups and do not reopen completed Tasks.
 
 ## Worktree Protection
 
-- This run started from clean tracked `main` at `42ec258792cae0d97f99df3bcc94ff44e06be3d5`; no staged, modified, unmerged, detached, or in-progress Git-operation state existed.
-- Thirty-eight root `.playwright-cli/*.yml` snapshots were the only pre-existing untracked paths and remain preserved/excluded.
+- This run started from clean tracked `main` at `cec8e747b478f4bac8a18e227813be25c6f2d749`; no staged, modified, unmerged, detached, or in-progress Git-operation state existed.
+- Forty-five root `.playwright-cli/*.yml` snapshots were the only pre-existing untracked paths and remain preserved/excluded.
 - Additional root `.playwright-cli` outputs and ignored `output/playwright/` evidence created during Unit B3 remain excluded from staging.
 - Local non-production Canvas fixture data remains preserved; broad cleanup was not authorized.
 - Preserve unrelated future changes; never reset, clean, or overwrite them.

@@ -1,6 +1,16 @@
-# T4-005 Unit A Plan - GenerationTask Persistence And Mock Verification
+# T4-005 Direct Delivery Plan - GenerationTask Diagnostics And Real Smoke
 
-Last updated: 2026-07-10
+Last updated: 2026-07-12
+
+## Active Bounded Unit - Unit B Credential Gate Repair
+
+Human Owner authorized paid Agnes text/image/video smoke on 2026-07-12. Before any further real call, repair the smoke helper so `REVID_AGNES_API_KEY` is accepted only from the process environment and never implicitly from a local `.env` file.
+
+1. Add a regression test proving a local `.env` key is ignored when the process variable is absent.
+2. Change `scripts/smoke_agnes.py` to read the key directly from `os.environ` while retaining non-secret model/base URL settings.
+3. Run focused smoke tests and the no-key execute preflight.
+4. If a valid process-provided key is present, run one real smoke for each of text, image, and video and record only sanitized metadata.
+5. If the process key is absent or rejected, stop further paid calls and record the exact blocker and release condition.
 
 ## Objective
 
@@ -37,7 +47,7 @@ Implement the non-paid Unit A slice for T4-005: persist generation task diagnost
 6. Add mock tests for text, image, video, provider failure, network failure, timeout, asset persistence failure, and no-secret/no-paid-call smoke behavior.
 7. Run focused tests, full backend regression, `git diff --check`, staged diff review, and credential-pattern check before commit.
 
-## First Bounded Unit
+## Unit A First Bounded Unit
 
 Create this PLAN/PROGRESS, audit the existing generation/provider code, then implement the smallest persistence slice that can be verified with focused mock tests without calling Agnes.
 
