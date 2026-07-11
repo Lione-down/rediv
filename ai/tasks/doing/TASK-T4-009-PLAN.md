@@ -67,14 +67,15 @@ Success criteria:
 
 Implement as independently verifiable sub-slices:
 
-1. Asset query-state foundation: preserve the existing default asset cache consumed by Home/Workspace, add an independent paginated collection for Space, keep API `total/page/page_size`, deduplicate only identical queries, reject stale query/session responses, and reset both collections synchronously on token change.
-2. Template read foundation: add typed API/store modules for the unpaginated newest-first list and detail response, with token-change reset and stale-response protection.
+1. Asset query-state foundation - complete 2026-07-11: preserve the existing default asset cache consumed by Home/Workspace, add an independent paginated collection for Space, keep API `total/page/page_size`, deduplicate only identical queries, reject stale query/session responses, and reset both collections synchronously on token change.
+2. Template read foundation - complete 2026-07-11: add `types.ts`, `api.ts`, and `store.ts` for the unpaginated newest-first list and owner-scoped detail response. Keep response-shaped list metadata and a separate latest-selected detail state; deduplicate identical list/detail requests, suppress superseded query/session settlements, and reset both flows synchronously on token change.
 3. Detail and mutation clients: add asset detail/soft-delete and template hard-delete/use calls with exact response handling, including the template 204 body and use-result project ID.
 
 Success criteria:
 
 - shared Home/Workspace asset behavior remains compatible and a filtered Space page never overwrites the default recent-asset cache;
 - typed asset/template/quota data flows are covered by focused tests or deterministic contract checks;
+- template list/detail loading, data, and error state cannot be closed or overwritten by an older detail selection or authentication session;
 - error and boundary behavior is explicit;
 - no page redesign is mixed into the domain change.
 

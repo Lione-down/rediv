@@ -8,10 +8,27 @@
 
 ## Current Bounded Unit
 
-Unit 2, sub-slice 1 - independent query-aware paginated Space asset collection. This slice is complete and verified without editing Space or template UI.
+Unit 2, sub-slice 2 - typed current-user template list/detail read foundation. This slice is complete and verified; it is limited to `frontend/src/modules/template/**` plus active state documents and does not add mutations or edit Space UI.
+
+## Current Slice Design
+
+- Add domain-local `types.ts`, `api.ts`, and `store.ts` following the existing project-module structure; do not add a dependency or global store surface.
+- Preserve the backend `{items,total}` list response and complete template snapshot shape, including nullable `node_data`; keep list and detail loading/error/cache state independent.
+- Deduplicate the single list endpoint and each identical template ID while allowing different detail IDs to proceed concurrently. The latest selected detail wins, including A-B-A pending reuse.
+- Use request identity plus authentication generation guards so superseded detail or session responses cannot publish data/errors or close current loading state.
+- Reset list, detail, pending-request registries, loading, and errors synchronously when the auth token changes.
+- Verify with TypeScript plus a deterministic Vite/Pinia/Axios runtime probe covering request dedupe, ordering, errors, cache independence, and token reset; run the production build before commit.
 
 ## Completed Work
 
+- Reconstructed the current run from the required documents and automation cursor. The current slice started from clean `main` at `855f907a8438b627d61be6ac088f086316ef9602` with an empty index/worktree and no unmerged paths; the task-list query remained unavailable, so branch/HEAD/index drift guards apply.
+- Refreshed PLAN and PROGRESS before business-code edits, audited the existing project/asset/auth patterns plus template routes, schemas, model, store serialization, and focused backend tests, and confirmed the slice requires no backend or product-contract change.
+- Added exact template read types for the owner-scoped response, including API `total` and nullable arbitrary-dictionary `node_data`; the incompatible Canvas UI node type is not reused.
+- Added list and detail API calls only. Detail IDs are trimmed, empty IDs reject without an HTTP call, and valid path segments are encoded.
+- Added an independent response-shaped list cache and latest-selected detail state. List requests and identical detail IDs are single-flight; different IDs may run concurrently; A-B-A reuses pending A and restores it as active.
+- Added request-identity, selection, and session-generation guards so stale success/error/finally paths cannot publish data, surface obsolete errors, delete a new same-ID request, or close current loading state.
+- Added an explicit detail-clear transition and synchronous token reset for list/detail data, errors, loading, and pending registries. Stale actions resolve as `Promise<void>` while current failures reject.
+- Completed Standard fresh review of all six delivery paths. Security/API-contract and architecture/concurrency passes reported no findings, and root review found no scope, compatibility, secret, or error-path hard stop.
 - Completed the required run read set: AGENTS, direct-delivery operating model, CURRENT, ROADMAP, active Task, linked direct-delivery ADR, and automation cursor.
 - Attempted the Codex task-list single-flight check; the query did not return and was terminated without repository or Git mutation. The run therefore uses the required branch/HEAD/index drift guard.
 - Recorded a clean starting Git baseline on `main` at `f0327cb1a490908e438cb7e23dc8fb26599d1599`: no staged, modified, untracked, or unmerged paths were reported.
@@ -60,24 +77,32 @@ Unit 2, sub-slice 1 - independent query-aware paginated Space asset collection. 
 
 ## Remaining Work
 
-- Add the template read domain module, then asset/template detail and mutation clients in later bounded slices.
+- Add typed asset detail/soft-delete and template hard-delete/use clients with exact response and refresh/invalidation behavior in Unit 2's final sub-slice.
 - Replace the Space prototype with local real-data components and complete accessibility, failure, responsive, real-data, and browser acceptance.
-- Implement and verify the remaining Unit 2 sub-slices plus Units 3-5 from the PLAN; write REPORT only after all acceptance criteria pass.
+- Implement and verify the remaining Unit 2 sub-slice plus Units 3-5 from the PLAN; write REPORT only after all acceptance criteria pass.
 
 ## Exact Next Action
 
-Implement Unit 2's template read foundation under `frontend/src/modules/template/**`: add typed current-user list and detail API/store flows for the existing unpaginated newest-first contract, with identical-request single-flight, stale response protection, and synchronous token-change reset. Do not add template mutations or edit Space UI in that bounded slice.
+Implement Unit 2, sub-slice 3: add typed asset detail/soft-delete and template hard-delete/use API/store flows with exact response handling, mutation single-flight/session guards, and coherent list/detail invalidation. Do not edit Space UI in that bounded slice.
 
 ## Files Changed
 
-- `frontend/src/types/asset.ts` - added the resolved paginated asset query type without narrowing existing asset contracts.
-- `frontend/src/store/assets.ts` - added the independent guarded Space asset collection and synchronous dual-cache reset.
+- `frontend/src/modules/template/types.ts` - added exact list/detail response types with nullable snapshot data.
+- `frontend/src/modules/template/api.ts` - added guarded current-user list/detail GET clients.
+- `frontend/src/modules/template/store.ts` - added independent guarded list/detail state, single-flight requests, clear behavior, and synchronous session reset.
+- `ai/tasks/doing/TASK-T4-009-PLAN.md` - refined and reconciled Unit 2 sub-slice status and success criteria.
 - `ai/tasks/doing/TASK-T4-009-PROGRESS.md` - recorded this bounded unit, verification, review, remaining work, and exact next action.
-- `ai/state/CURRENT.md` - rolled the active Task snapshot and worktree ownership forward.
+- `ai/state/CURRENT.md` - rolls the active Task snapshot and worktree ownership forward with this unit.
 
 ## Commands And Summarized Results
 
-- Required document reads and Git baseline commands - completed; this run started clean on `main` at `fb4d83f4a11332263f74dbda52122aaae0b2e6b5` with no staged, modified, untracked, unmerged, detached, or in-progress operation state.
+- Current required document reads and Git baseline commands - completed; this slice started clean on `main` at `855f907a8438b627d61be6ac088f086316ef9602` with no staged, modified, untracked, or unmerged paths. The previous asset-slice baseline was `fb4d83f4a11332263f74dbda52122aaae0b2e6b5`.
+- Initial and final `npm exec vue-tsc -- -b --pretty false` coverage - passed; the final production build also reran the TypeScript project build after the detail-clear change.
+- Node `assert` + Vite SSR + Pinia + Axios adapter stdin probe - final run passed 10 deterministic list/detail scenarios: exact auth-bound routes, list and same-ID single-flight, cache/force behavior, API total preservation, A-B-A reuse, current errors, detail close, empty-ID rejection without HTTP, synchronous token reset, stale 401 suppression, and same-ID cross-session record identity. The first run's only failure was PowerShell stdin encoding of a Chinese expected literal; the product value was correct and the Unicode-escaped full rerun passed.
+- `backend/.venv/Scripts/python.exe -m unittest tests.test_template_system` - passed all 9 owner, ordering, detail, delete/use, persistence, and in-memory template contract tests.
+- `npm run build` - passed; `vue-tsc` completed and Vite transformed 4,663 modules.
+- Standard actual-diff review - security/API-contract and architecture/concurrency specialist passes plus root review completed with no findings; all three untracked module files were read explicitly because ordinary unstaged diff output omits them.
+- Final staged review covered the exact six owned paths and a non-empty diff. `git diff --cached --check` passed; no repository secret scanner was found, and the redacted staged credential-pattern scan reported 0 candidates.
 - Caller, auth/session, backend contract, and test-surface searches plus complete relevant source reads - confirmed the default-cache compatibility boundary and the query/session state machine implemented above.
 - Initial `npm exec vue-tsc -- -b --pretty false` - exposed TS2454 for a closure-captured request record; replaced it with a monotonic request identity. Final typecheck passed.
 - Node `assert` + Vite SSR + Pinia + Axios adapter stdin probe - final run passed 7 deterministic scenarios: exact params, identical-query single-flight/cache, different-query ordering, A-B-A reuse, response metadata/boundary, current versus stale errors, token reset/stale suppression, and default-cache isolation. The earlier probe's only failure was PowerShell stdin encoding of a Chinese expected literal; the product value was correct and the ASCII-safe rerun passed.

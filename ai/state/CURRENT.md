@@ -49,16 +49,18 @@ Refactor Space into a maintainable dark personal asset workspace using real asse
 
 ## Latest T4-009 Progress
 
-- Unit 1 planning/contract audit and Unit 2's first domain slice are complete.
+- Unit 1 planning/contract audit and Unit 2's asset-query and template-read domain slices are complete.
 - The asset store now exposes an independent response-shaped Space collection with canonical query state, exact `total/page/page_size` metadata, server-equivalent identical-query single-flight, concurrent different-query handling, and A-B-A pending reuse.
 - Latest-query/request/session guards suppress stale success, error, and loading transitions; synchronous token changes clear both Space and the unchanged Home/Workspace default cache.
 - Space load actions return `Promise<void>`, so a stale request cannot misrepresent another query or session's collection as its own result.
-- Final deterministic mock runtime probe passed 7 concurrency, metadata, error, session-reset, and cache-isolation scenarios; final TypeScript check and production build passed with 4,663 modules.
-- Security and architecture review have no remaining findings. Space UI, template reads, detail/mutations, accessibility/fallbacks, real API/MySQL comparison, responsive browser QA, and REPORT closure remain.
+- The new template module maps the exact unpaginated `{items,total}` and owner-scoped detail contracts, keeps nullable arbitrary snapshot data, rejects empty IDs locally, and encodes detail path segments.
+- Template list and latest-detail state are independent, return `Promise<void>`, deduplicate identical requests, support concurrent IDs and A-B-A reuse, suppress stale selection/session settlements, and reset synchronously on token change or explicit detail close.
+- Final deterministic template probe passed 10 concurrency, error, close, empty-ID, auth-binding, and session-reset scenarios; 9 backend template contract tests and the 4,663-module production build passed.
+- Security/API-contract, architecture/concurrency, and root reviews have no findings. Space UI, detail/mutations, accessibility/fallbacks, real API/MySQL comparison, responsive browser QA, and REPORT closure remain.
 
 ## Exact Next Action
 
-Implement the typed template read foundation under `frontend/src/modules/template/**`: current-user unpaginated list and detail flows with identical-request single-flight, stale response protection, and synchronous token reset. Do not add mutations or edit Space UI in that bounded slice.
+Implement Unit 2's final domain sub-slice: typed asset detail/soft-delete and template hard-delete/use API/store flows with exact response handling, guarded mutation state, and coherent list/detail invalidation. Do not edit Space UI in that bounded slice.
 
 ## Current Blockers
 
@@ -69,9 +71,9 @@ Implement the typed template read foundation under `frontend/src/modules/templat
 
 ## Worktree Protection
 
-- This run started from clean `main` at `fb4d83f4a11332263f74dbda52122aaae0b2e6b5` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- This delivery unit started from clean `main` at `855f907a8438b627d61be6ac088f086316ef9602` with no staged, modified, untracked, or unmerged paths.
 - The Codex task-list single-flight query was unavailable, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
-- This run owns only `frontend/src/types/asset.ts`, `frontend/src/store/assets.ts`, the active T4-009 PROGRESS, and CURRENT for the verified asset-query bounded unit.
+- The verified template-read unit owns only `frontend/src/modules/template/{types,api,store}.ts`, the active T4-009 PLAN/PROGRESS, and CURRENT; no backend, Space UI, global store, or dependency file belongs to this unit.
 - `/frontend/.playwright-cli/` and `/output/playwright/` are ignored local evidence directories. Their files remain on disk and must not be deleted, moved, force-added, or included in delivery commits without a new explicit scope.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 
