@@ -49,17 +49,19 @@ Decompose the 1000+ line CanvasStage into clear render, viewport, interaction, a
 
 ## Latest T4-012 Progress
 
-- Units 1 and 2 are complete: the contract/decomposition map is locked and the frontend production build passes with the project-scoped Canvas domain foundation.
+- Units 1 through 3 are complete: the contract/decomposition map, project-scoped load foundation, optimistic mutations, rollback, and move queue are implemented and production-build verified.
 - Typed Canvas DTO/API functions and explicit render-model mappers now cover node list/create/update/delete plus connection list/create/delete contracts without leaking backend field names into Canvas rendering.
 - The Canvas store no longer initializes fixture nodes or connections; it tracks active project/loading/error state and loads both collections with project-generation, session, and local-revision guards.
 - Workspace normalizes the route `project_id`, clears stale project data for a missing/new ID, and immediately binds valid project context to guarded Canvas loading.
-- Unit 3 will add optimistic create/delete, per-node move debounce/flush, ownership-safe rollback, and visible save errors.
-- `CanvasStage.vue` remains 1,071 lines; its render/viewport/interaction decomposition remains Unit 4 after persistence semantics are established.
+- Node/connection create/delete now use optimistic temporary entities, server-ID reconciliation, ownership-safe rollback, duplicate-edge suppression, and node-delete connection snapshots.
+- Pointer-up moves use a per-node 400 ms trailing queue with confirmed/desired positions, serialized requests, newer-intent protection, and awaitable flush; Workspace surfaces mutation failures through `NMessage`.
+- Controlled local-browser failures verified one PUT per drag, store plus Leafer position rollback, visible move errors, connection ghost removal, and retryability without any real backend, database, secret, or paid call.
+- `canvas.ts` is 227 lines, `mutations.ts` is 411, and `persistence.ts` is 60; `CanvasStage.vue` remains 1,074 lines and is the Unit 4 decomposition target.
 - Unit B advanced selection, context menu, minimap work, keyboard behavior, and responsive QA remains gated on Unit A persistence and rollback acceptance.
 
 ## Exact Next Action
 
-Implement Unit 3 only: add optimistic node/connection create/delete and per-node debounced move persistence with `flushPendingMoves()` and ownership-safe rollback; surface save failures through Workspace `NMessage`, run controlled failure checks, then run `frontend: npm run build`.
+Implement Unit 4 only: extract Canvas viewport/geometry, Leafer rendering, pointer interaction, and persistence lifecycle responsibilities; wire awaitable route-leave flush plus best-effort unmount flush, reduce `CanvasStage.vue` to at most 500 lines, then run controlled interaction checks and `frontend: npm run build`.
 
 ## Current Blockers
 
@@ -71,10 +73,11 @@ Implement Unit 3 only: add optimistic node/connection create/delete and per-node
 
 ## Worktree Protection
 
-- This run started from clean `main` at `91b000c690b3c36dadb8f7e33567db0608cb892a`, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- This run started from clean `main` at `a656ccda6a3bf28291d94b639d9ae941185bb51a`, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
 - Codex task-list capability was unavailable, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
 - Pre-run commit `5b64ca1` contains only the formerly untracked zero-byte root Playwright snapshot and is already `origin/main`; it is outside T4-012 ownership and must not be modified or reverted in this Task.
-- The current bounded unit owns only the Canvas module/store/types, minimal Workspace route binding, T4-012 PROGRESS, and CURRENT paths documented above; no backend code, dependency, generated output, secret, or global design file belongs to it.
+- The current bounded unit owns only the Canvas stage/store/domain mutation helpers, minimal Workspace error bridge, T4-012 PROGRESS, and CURRENT paths documented above; no backend code, dependency, generated output, secret, or global design file belongs to the commit.
+- Root `.playwright-cli/page-2026-07-11T16-*.yml` snapshots are untracked browser evidence generated after baseline; preserve and exclude them from staging pending a separate cleanup decision.
 - `/frontend/.playwright-cli/` and `/output/playwright/` remain ignored local evidence directories and must not be deleted, moved, force-added, or included without new explicit scope.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 

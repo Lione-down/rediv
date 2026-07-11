@@ -47,6 +47,13 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => canvasStore.saveErrorRevision,
+  () => {
+    if (canvasStore.saveError) message.error(canvasStore.saveError)
+  },
+)
+
 const activeTab = ref<WorkspaceTab>('assets')
 const isMobilePanelOpen = ref(false)
 const isGenerating = ref(false)

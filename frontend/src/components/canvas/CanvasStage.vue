@@ -76,12 +76,14 @@ const statusIconMap: Record<StatusVisualState, typeof Loader2 | typeof CheckCirc
 const sceneSignature = computed(() =>
   JSON.stringify({
     selectedNodeId: canvasStore.selectedNodeId,
-    nodes: canvasStore.nodes.map(({ id, type, title, content, status, width, height }) => ({
+    nodes: canvasStore.nodes.map(({ id, type, title, content, status, x, y, width, height }) => ({
       id,
       type,
       title,
       content,
       status,
+      x,
+      y,
       width,
       height,
     })),
@@ -599,21 +601,18 @@ function connectionExists(fromNodeId: string, toNodeId: string) {
   return canvasStore.connections.some((connection) => connection.from === fromNodeId && connection.to === toNodeId)
 }
 
-function createConnectionId() {
-  return `edge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
 function finalizeDraftConnection(point: Point) {
   if (!draftConnection.value) return
 
   const targetNode = findConnectionTarget(point, draftConnection.value.fromNodeId)
 
   if (targetNode && !connectionExists(draftConnection.value.fromNodeId, targetNode.id)) {
-    canvasStore.connections.push({
-      id: createConnectionId(),
+    void canvasStore.createConnection({
       from: draftConnection.value.fromNodeId,
       to: targetNode.id,
-    })
+      sourcePort: 'out',
+      targetPort: 'in',
+    }).catch(() => undefined)
   }
 
   draftConnection.value = null
@@ -628,6 +627,10 @@ function handleWindowPointerUp(event: PointerEvent) {
     const releasedNodeId = dragState.nodeId
     dragState = null
     updateNodeVisualPosition(releasedNodeId)
+    const releasedNode = findNode(releasedNodeId)
+    if (releasedNode) {
+      canvasStore.queueNodeMove(releasedNodeId, releasedNode.x, releasedNode.y)
+    }
   }
 
   if (draftConnection.value && (draftConnection.value.pointerId === null || event.pointerId === draftConnection.value.pointerId)) {

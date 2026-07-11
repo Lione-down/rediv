@@ -1,17 +1,14 @@
-import { isAxiosError } from 'axios'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { fetchCanvasConnections, fetchCanvasNodes } from '../modules/canvas/api'
 import { mapCanvasConnection, mapCanvasNode } from '../modules/canvas/mappers'
+import { createCanvasMutationActions } from '../modules/canvas/mutations'
+import { getCanvasErrorMessage } from '../modules/canvas/persistence'
 import type { CanvasConnection, CanvasNode } from '../types/canvas'
 import { useAuthStore } from './auth'
 
 type CanvasMode = 'select' | 'hand' | 'text' | 'image' | 'generate'
 type CanvasNodeStatus = CanvasNode['status']
-
-interface CanvasErrorResponse {
-  detail?: unknown
-}
 
 interface ProjectLoadRequest {
   generation: number
@@ -20,19 +17,9 @@ interface ProjectLoadRequest {
   promise: Promise<void>
 }
 
-function getCanvasErrorMessage(error: unknown) {
-  if (isAxiosError<CanvasErrorResponse>(error)) {
-    const detail = error.response?.data?.detail
-    if (typeof detail === 'string' && detail.trim()) {
-      return detail
-    }
-
-    if (error.code === 'ECONNABORTED') {
-      return '画布加载超时，请稍后重试。'
-    }
-  }
-
-  return '画布加载失败，请稍后重试。'
+interface ProjectContext {
+  generation: number
+  projectId: string
 }
 
 export const useCanvasStore = defineStore('canvas', () => {
@@ -46,6 +33,8 @@ export const useCanvasStore = defineStore('canvas', () => {
   const hasLoaded = ref(false)
   const isLoading = ref(false)
   const loadError = ref('')
+  const saveError = ref('')
+  const saveErrorRevision = ref(0)
 
   let generation = 0
   let dataRevision = 0
@@ -53,10 +42,72 @@ export const useCanvasStore = defineStore('canvas', () => {
 
   const selectedNode = computed(() => nodes.value.find((node) => node.id === selectedNodeId.value) || null)
 
+  function bumpDataRevision() {
+    dataRevision += 1
+  }
+
+  function captureProjectContext(): ProjectContext {
+    return { generation, projectId: activeProjectId.value }
+  }
+
+  function isCurrentProject(context: ProjectContext) {
+    return context.generation === generation && context.projectId === activeProjectId.value
+  }
+
+  function reportSaveError(action: string, error: unknown) {
+    saveError.value = getCanvasErrorMessage(error, `${action}失败，已恢复画布状态，请重试。`)
+    saveErrorRevision.value += 1
+  }
+
+  function selectNode(nodeId: string) {
+    selectedNodeId.value = nodes.value.some((node) => node.id === nodeId) ? nodeId : ''
+  }
+
+  function setMode(nextMode: CanvasMode) {
+    mode.value = nextMode
+  }
+
+  function updateNode(nodeId: string, updater: (node: CanvasNode) => CanvasNode) {
+    const nodeIndex = nodes.value.findIndex((node) => node.id === nodeId)
+    if (nodeIndex < 0) return
+    bumpDataRevision()
+    nodes.value = nodes.value.map((node, index) => (index === nodeIndex ? updater(node) : node))
+  }
+
+  function setNodeStatus(nodeId: string, status: CanvasNodeStatus) {
+    updateNode(nodeId, (node) => ({ ...node, status: status ?? 'idle' }))
+  }
+
+  function setNodeContent(nodeId: string, content: string) {
+    updateNode(nodeId, (node) => ({
+      ...node,
+      content,
+      contentData: { ...node.contentData, text: content },
+    }))
+  }
+
+  function findNodeById(nodeId: string) {
+    return nodes.value.find((node) => node.id === nodeId) ?? null
+  }
+
+  const canvasMutations = createCanvasMutationActions({
+    activeProjectId,
+    selectedNodeId,
+    nodes,
+    connections,
+    bumpDataRevision,
+    captureProjectContext,
+    isCurrentProject,
+    reportSaveError,
+    updateNode,
+    findNodeById,
+  })
+
   function clearProjectState(projectId = '') {
     generation += 1
-    dataRevision += 1
+    bumpDataRevision()
     loadRequest = null
+    canvasMutations.resetMutationState()
     activeProjectId.value = projectId
     selectedNodeId.value = ''
     nodes.value = []
@@ -64,6 +115,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     hasLoaded.value = false
     isLoading.value = false
     loadError.value = ''
+    saveError.value = ''
   }
 
   function isCurrentLoad(request: ProjectLoadRequest) {
@@ -81,9 +133,7 @@ export const useCanvasStore = defineStore('canvas', () => {
       clearProjectState(normalizedProjectId)
     }
 
-    if (!normalizedProjectId) {
-      return
-    }
+    if (!normalizedProjectId) return
 
     if (
       loadRequest?.projectId === normalizedProjectId &&
@@ -93,13 +143,10 @@ export const useCanvasStore = defineStore('canvas', () => {
       return loadRequest.promise
     }
 
-    if (!force && hasLoaded.value) {
-      return
-    }
+    if (!force && hasLoaded.value) return
 
     isLoading.value = true
     loadError.value = ''
-
     const request: ProjectLoadRequest = {
       generation,
       projectId: normalizedProjectId,
@@ -114,29 +161,22 @@ export const useCanvasStore = defineStore('canvas', () => {
           fetchCanvasConnections(normalizedProjectId),
         ])
 
-        if (!isCurrentLoad(request)) {
-          return
-        }
+        if (!isCurrentLoad(request)) return
 
         nodes.value = nodeResponse.data.items.map(mapCanvasNode)
         connections.value = connectionResponse.data.items.map(mapCanvasConnection)
+        canvasMutations.initializeConfirmedPositions()
         hasLoaded.value = true
 
         if (!nodes.value.some((node) => node.id === selectedNodeId.value)) {
           selectedNodeId.value = ''
         }
       } catch (error) {
-        if (!isCurrentLoad(request)) {
-          return
-        }
-
-        loadError.value = getCanvasErrorMessage(error)
+        if (!isCurrentLoad(request)) return
+        loadError.value = getCanvasErrorMessage(error, '画布加载失败，请稍后重试。')
         throw error
       } finally {
-        if (loadRequest === request) {
-          loadRequest = null
-        }
-
+        if (loadRequest === request) loadRequest = null
         if (request.generation === generation && request.projectId === activeProjectId.value) {
           isLoading.value = false
         }
@@ -147,55 +187,13 @@ export const useCanvasStore = defineStore('canvas', () => {
     return request.promise
   }
 
-  function selectNode(nodeId: string) {
-    selectedNodeId.value = nodes.value.some((node) => node.id === nodeId) ? nodeId : ''
-  }
-
-  function setMode(nextMode: CanvasMode) {
-    mode.value = nextMode
-  }
-
-  function updateNode(nodeId: string, updater: (node: CanvasNode) => CanvasNode) {
-    const nodeIndex = nodes.value.findIndex((node) => node.id === nodeId)
-    if (nodeIndex < 0) return
-
-    dataRevision += 1
-    nodes.value = nodes.value.map((node, index) => (index === nodeIndex ? updater(node) : node))
-  }
-
-  function setNodeStatus(nodeId: string, status: CanvasNodeStatus) {
-    updateNode(nodeId, (node) => ({
-      ...node,
-      status: status ?? 'idle',
-    }))
-  }
-
-  function setNodeContent(nodeId: string, content: string) {
-    updateNode(nodeId, (node) => ({
-      ...node,
-      content,
-      contentData: {
-        ...node.contentData,
-        text: content,
-      },
-    }))
-  }
-
-  function findNodeById(nodeId: string) {
-    return nodes.value.find((node) => node.id === nodeId) ?? null
-  }
-
   watch(
     () => authStore.token,
     (token, previousToken) => {
       if (token === previousToken) return
-
       const projectId = activeProjectId.value
       clearProjectState()
-
-      if (token && projectId) {
-        void loadProject(projectId).catch(() => undefined)
-      }
+      if (token && projectId) void loadProject(projectId).catch(() => undefined)
     },
     { flush: 'sync' },
   )
@@ -211,11 +209,19 @@ export const useCanvasStore = defineStore('canvas', () => {
     hasLoaded,
     isLoading,
     loadError,
+    saveError,
+    saveErrorRevision,
     loadProject,
     selectNode,
     setMode,
     setNodeStatus,
     setNodeContent,
     findNodeById,
+    createNode: canvasMutations.createNode,
+    deleteNode: canvasMutations.deleteNode,
+    createConnection: canvasMutations.createConnection,
+    deleteConnection: canvasMutations.deleteConnection,
+    queueNodeMove: canvasMutations.queueNodeMove,
+    flushPendingMoves: canvasMutations.flushPendingMoves,
   }
 })
