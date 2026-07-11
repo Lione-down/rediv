@@ -49,16 +49,17 @@ Decompose the 1000+ line CanvasStage into clear render, viewport, interaction, a
 
 ## Latest T4-012 Progress
 
-- Unit 1 contract/decomposition audit is complete; PLAN and PROGRESS now lock five bounded Unit A delivery units.
-- `CanvasStage.vue` is 1,071 lines and mixes render, Leafer lifecycle, viewport, pointer interaction, minimap, overlays, and local-only connection creation.
-- The Canvas store still contains global fixture nodes/connections and has no project identity, server mapping, async load guard, persistence, debounce/flush, or rollback.
-- Existing authenticated node/connection APIs are sufficient; Unit A requires no backend contract or migration change.
-- Unit 2 will establish project-scoped DTO/API mapping and guarded server load before optimistic mutations or CanvasStage decomposition begin.
+- Units 1 and 2 are complete: the contract/decomposition map is locked and the frontend production build passes with the project-scoped Canvas domain foundation.
+- Typed Canvas DTO/API functions and explicit render-model mappers now cover node list/create/update/delete plus connection list/create/delete contracts without leaking backend field names into Canvas rendering.
+- The Canvas store no longer initializes fixture nodes or connections; it tracks active project/loading/error state and loads both collections with project-generation, session, and local-revision guards.
+- Workspace normalizes the route `project_id`, clears stale project data for a missing/new ID, and immediately binds valid project context to guarded Canvas loading.
+- Unit 3 will add optimistic create/delete, per-node move debounce/flush, ownership-safe rollback, and visible save errors.
+- `CanvasStage.vue` remains 1,071 lines; its render/viewport/interaction decomposition remains Unit 4 after persistence semantics are established.
 - Unit B advanced selection, context menu, minimap work, keyboard behavior, and responsive QA remains gated on Unit A persistence and rollback acceptance.
 
 ## Exact Next Action
 
-Implement Unit 2 only: add `frontend/src/modules/canvas/` DTO/API mapping and replace fixture initialization in `frontend/src/store/canvas.ts` with a generation-guarded `loadProject(projectId)` path; update Workspace only enough to bind the normalized route project ID, then run `frontend: npm run build`.
+Implement Unit 3 only: add optimistic node/connection create/delete and per-node debounced move persistence with `flushPendingMoves()` and ownership-safe rollback; surface save failures through Workspace `NMessage`, run controlled failure checks, then run `frontend: npm run build`.
 
 ## Current Blockers
 
@@ -70,10 +71,10 @@ Implement Unit 2 only: add `frontend/src/modules/canvas/` DTO/API mapping and re
 
 ## Worktree Protection
 
-- This run started from clean `main` at `5b64ca13398651aaea3c29d0d095efa0bdc6e1b3`, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
-- The Codex task-list single-flight query did not return, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
+- This run started from clean `main` at `91b000c690b3c36dadb8f7e33567db0608cb892a`, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- Codex task-list capability was unavailable, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
 - Pre-run commit `5b64ca1` contains only the formerly untracked zero-byte root Playwright snapshot and is already `origin/main`; it is outside T4-012 ownership and must not be modified or reverted in this Task.
-- The current bounded unit owns only the T4-012 PLAN/PROGRESS plus CURRENT and ROADMAP state transition; no frontend business code, backend code, dependency, generated output, secret, or global design file belongs to it.
+- The current bounded unit owns only the Canvas module/store/types, minimal Workspace route binding, T4-012 PROGRESS, and CURRENT paths documented above; no backend code, dependency, generated output, secret, or global design file belongs to it.
 - `/frontend/.playwright-cli/` and `/output/playwright/` remain ignored local evidence directories and must not be deleted, moved, force-added, or included without new explicit scope.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 

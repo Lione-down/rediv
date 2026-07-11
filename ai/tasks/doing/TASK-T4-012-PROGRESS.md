@@ -7,7 +7,7 @@
 
 ## Current Bounded Unit
 
-Unit 1 - contract audit and implementation map. Completed in this run without business-code edits.
+Unit 2 - project-scoped domain foundation. Completed and production-build verified in this run.
 
 ## Completed Work
 
@@ -18,6 +18,12 @@ Unit 1 - contract audit and implementation map. Completed in this run without bu
 - Confirmed the existing backend contracts are sufficient for Unit A and require no schema or migration change.
 - Locked the domain/store/viewport/renderer/interaction/persistence boundaries and five bounded delivery units in `TASK-T4-012-PLAN.md`.
 - Explained the starting HEAD difference from automation memory: pre-run commit `5b64ca1` contains only the formerly untracked zero-byte root Playwright snapshot and is already `origin/main`; the current run did not modify or revert it.
+- Added typed Canvas node/connection wire DTOs plus scoped node list/create/update/delete and connection list/create/delete request functions under `frontend/src/modules/canvas/`.
+- Added explicit DTO-to-render mapping for node type, structured content/title, coordinates, size, status, connection endpoints, ports, metadata, and active state; backend field names do not leak into Canvas render code.
+- Replaced all fixture nodes/connections with a project-scoped Canvas store containing `activeProjectId`, loading/error/loaded state, guarded parallel node/connection load, request deduplication, and selection validation.
+- Guarded load commits by project generation and local data revision so route/session changes, later loads, or newer local node changes cannot be overwritten by stale responses.
+- Bound Workspace to a trimmed scalar `project_id` route value; missing IDs clear old Canvas data, and route changes immediately load the new project without an unhandled watcher rejection.
+- Reset and conditionally reload Canvas server state when the authenticated session token changes.
 
 ## Contract Audit Findings
 
@@ -45,35 +51,37 @@ Unit 1 - contract audit and implementation map. Completed in this run without bu
 
 ## Remaining Work
 
-- Unit 2: implement project-scoped Canvas DTO/API mapping and guarded server load in the Pinia store.
 - Unit 3: implement optimistic create/delete, move debounce/flush, mutation ownership, rollback, and visible error propagation.
 - Unit 4: decompose CanvasStage and connect Workspace route lifecycle without visual redesign.
 - Unit 5: run focused regression/build plus real refresh and controlled-failure acceptance, then close Unit A.
 
 ## Exact Next Action
 
-Implement Unit 2 only: add `frontend/src/modules/canvas/` DTO/API mapping and replace fixture initialization in `frontend/src/store/canvas.ts` with a generation-guarded `loadProject(projectId)` state path; update Workspace only enough to bind the normalized route project ID, then run `frontend: npm run build`.
+Implement Unit 3 only: add optimistic node/connection create/delete operations and a per-node debounced move queue to the Canvas store, with ownership-safe rollback and an awaitable `flushPendingMoves()`; surface store save errors through Workspace `NMessage`, then run controlled failure checks and `frontend: npm run build`.
 
 ## Files Changed
 
-- `ai/tasks/doing/TASK-T4-012-PLAN.md` - created Unit A design, boundaries, risks, units, and acceptance matrix.
-- `ai/tasks/doing/TASK-T4-012-PROGRESS.md` - created audit evidence, remaining work, and exact next action.
-- `ai/state/CURRENT.md` - advanced T4-012 Unit A to `DOING` and replaced stale next-action/worktree details.
-- `ai/state/ROADMAP.md` - advanced T4-012 Unit A to `DOING`.
+- `frontend/src/modules/canvas/types.ts` - added Canvas wire DTO, list response, and mutation payload contracts.
+- `frontend/src/modules/canvas/api.ts` - added project-scoped authenticated Canvas request functions.
+- `frontend/src/modules/canvas/mappers.ts` - added explicit server DTO to client render-model mapping.
+- `frontend/src/store/canvas.ts` - replaced fixtures with guarded project load and server-state lifecycle.
+- `frontend/src/types/canvas.ts` - added reusable status plus structured node/connection persistence metadata.
+- `frontend/src/views/app/Workspace.vue` - normalized and bound route project context to Canvas loading.
+- `ai/tasks/doing/TASK-T4-012-PROGRESS.md` - recorded Unit 2 implementation, verification, remaining work, and next action.
+- `ai/state/CURRENT.md` - refreshed the rolling T4-012 snapshot for the completed Unit 2 bounded unit.
 
 ## Commands And Summarized Results
 
-- Codex task-list query for the controller title: capability did not return and was terminated after the bounded wait; branch/HEAD/index drift checks are therefore mandatory before staging and commit.
-- Required document reads: AGENTS, direct operating model, CURRENT, ROADMAP, active Task, and linked direct-delivery ADR read completely.
-- Git baseline commands: clean `main` at `5b64ca13398651aaea3c29d0d095efa0bdc6e1b3`; no staged, modified, untracked, or unmerged paths.
-- `git log`, `git reflog`, and `git show HEAD`: explained the memory cursor difference as pre-run commit `5b64ca1`; no current-run Git mutation or in-progress operation was present.
-- Relevant `rg` inventory and complete source reads: audited CanvasStage, store/types, Workspace, project/request conventions, backend APIs/schemas, and focused backend tests.
-- CanvasStage line count: 1,071 lines; Unit A target remains at most 500.
-- Frontend test inventory: no frontend test runner or test files are configured; production type/build and controlled browser/API evidence remain required.
+- Single-flight task-list capability search: unavailable; branch/HEAD/index and Git-operation state were used as the concurrency baseline.
+- Required document reads: AGENTS, direct operating model, CURRENT, ROADMAP, active Task, PLAN, PROGRESS, and linked direct-delivery ADR read completely.
+- Git baseline commands: clean `main` at `91b000c690b3c36dadb8f7e33567db0608cb892a`; no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- Relevant source reads and `rg` inventory: reviewed Canvas store/types, Workspace, request and module conventions, plus backend node/connection schemas and routes; no backend change was required.
+- `frontend: npm run build`: PASS; `vue-tsc -b` and Vite completed with 4,695 modules transformed.
+- Fresh scoped diff review and `git diff --check`: PASS; no fixture fallback, whitespace error, backend/global-style change, or secret-bearing path was introduced.
 
 ## Blockers And Release Conditions
 
-- No Human gate or dependency blocker exists for Unit 2.
+- No Human gate or dependency blocker exists for Unit 3.
 - Task-list single-flight capability was unavailable; release condition for commit is unchanged starting branch/HEAD/index and no Git operation/unmerged path at pre-commit recheck.
 - The pre-existing `5b64ca1` Playwright snapshot commit is outside T4-012 ownership and must remain untouched unless the Human Owner separately requests cleanup.
 - No push is authorized.

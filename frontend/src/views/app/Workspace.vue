@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { isAxiosError } from 'axios'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { NDrawer, NDrawerContent, useMessage } from 'naive-ui'
 import { request } from '../../api/request'
@@ -32,9 +32,20 @@ const authStore = useAuthStore()
 const assetStore = useAssetStore()
 const canvasStore = useCanvasStore()
 
-// Project context from route query (not hardcoded)
-const projectId = computed(() => (route.query.project_id as string) || '')
+const projectId = computed(() => {
+  const routeProjectId = route.query.project_id
+  const value = Array.isArray(routeProjectId) ? routeProjectId[0] : routeProjectId
+  return typeof value === 'string' ? value.trim() : ''
+})
 const projectContext = computed(() => projectId.value || '未选择项目')
+
+watch(
+  projectId,
+  (nextProjectId) => {
+    void canvasStore.loadProject(nextProjectId).catch(() => undefined)
+  },
+  { immediate: true },
+)
 
 const activeTab = ref<WorkspaceTab>('assets')
 const isMobilePanelOpen = ref(false)
