@@ -8,20 +8,26 @@
 
 ## Current Bounded Unit
 
-Unit 2, sub-slice 2 - typed current-user template list/detail read foundation. This slice is complete and verified; it is limited to `frontend/src/modules/template/**` plus active state documents and does not add mutations or edit Space UI.
+Unit 2, sub-slice 3 - typed asset detail/soft-delete and template hard-delete/use flows. This slice is complete and verified; it is limited to the existing asset domain, `frontend/src/modules/template/**`, and active state documents, and it does not edit Space UI.
 
 ## Current Slice Design
 
-- Add domain-local `types.ts`, `api.ts`, and `store.ts` following the existing project-module structure; do not add a dependency or global store surface.
-- Preserve the backend `{items,total}` list response and complete template snapshot shape, including nullable `node_data`; keep list and detail loading/error/cache state independent.
-- Deduplicate the single list endpoint and each identical template ID while allowing different detail IDs to proceed concurrently. The latest selected detail wins, including A-B-A pending reuse.
-- Use request identity plus authentication generation guards so superseded detail or session responses cannot publish data/errors or close current loading state.
-- Reset list, detail, pending-request registries, loading, and errors synchronously when the auth token changes.
-- Verify with TypeScript plus a deterministic Vite/Pinia/Axios runtime probe covering request dedupe, ordering, errors, cache independence, and token reset; run the production build before commit.
+- Add exact asset detail and soft-delete API clients plus exact template hard-delete (`204` empty body) and use-result clients without changing backend contracts or adding dependencies.
+- Keep asset and template detail state separate from collection state. Deduplicate identical detail and delete requests while allowing different IDs to proceed concurrently; the latest selected detail or delete owns visible loading/error state. Template use is intentionally global single-flight because every request creates a project: the same ID reuses the pending result, while a different ID is rejected locally with `useError` and no second HTTP request.
+- Use request identity and authentication-generation guards so stale detail, delete, or use settlements cannot publish data/errors, navigate with an old project ID, or close a newer operation's loading state.
+- On successful asset deletion, clear the matching detail, invalidate any older list/detail request that could republish the row, apply the returned soft-delete status, and refresh previously loaded default/Space collections without turning a refresh failure into a false mutation failure.
+- On successful template deletion, remove the row from the unpaginated collection, clear matching detail state, and invalidate older list/detail requests. Template use returns the exact current-session `project_id` result and never changes list/detail caches.
+- Reset all new detail/mutation state and pending registries synchronously when the auth token changes. Verify TypeScript, deterministic Vite/Pinia/Axios mutation probes, focused backend contracts, and the production build before commit.
 
 ## Completed Work
 
-- Reconstructed the current run from the required documents and automation cursor. The current slice started from clean `main` at `855f907a8438b627d61be6ac088f086316ef9602` with an empty index/worktree and no unmerged paths; the task-list query remained unavailable, so branch/HEAD/index drift guards apply.
+- Added locally validated, encoded asset detail and soft-delete clients plus independent selected-detail loading/error/cache state. Empty IDs reject before touching request ownership or issuing HTTP.
+- Added asset detail and delete per-ID single-flight with latest-selection/request/session guards. A soft-delete applies the exact returned row, suppresses older detail/list settlements, clears matching detail, and refreshes each previously loaded default/Space collection; refresh failures remain collection errors and do not misreport a successful deletion as failed.
+- Added the exact template use response type, 204 hard-delete client, and use client. Hard-delete removes the unpaginated row, clears matching detail, and invalidates any older list/detail request that could republish it.
+- Added guarded template delete/use mutation state and synchronous token reset. Delete permits different IDs while keeping only the latest visible loading/error owner. Template use is global single-flight because each POST creates a project without backend idempotency: identical IDs reuse one result and different IDs reject locally with a visible busy error before HTTP.
+- Extended the template list flow with request identity so a list started before a successful hard-delete cannot restore the deleted row. All detail/delete/use actions now validate IDs before changing latest/active state.
+- Completed a Deep fresh review. Security reported no finding. Concurrency found silent multi-project creation and invalid-ID ownership theft; both were fixed and deterministic re-probes passed. Architecture confirmed the use contract after PLAN/PROGRESS reconciliation and identified the two enlarged stores as structural debt for the next allowed-path extraction.
+- Final focused evidence passed: the original runtime probe covered 9 asset/template detail, mutation, invalidation, auth, and empty-ID scenarios; fix probes covered 4 request-ownership/global-lock scenarios and 3 final busy-state/result scenarios; 22 backend asset/template contracts and the 4,663-module production build passed.
 - Refreshed PLAN and PROGRESS before business-code edits, audited the existing project/asset/auth patterns plus template routes, schemas, model, store serialization, and focused backend tests, and confirmed the slice requires no backend or product-contract change.
 - Added exact template read types for the owner-scoped response, including API `total` and nullable arbitrary-dictionary `node_data`; the incompatible Canvas UI node type is not reused.
 - Added list and detail API calls only. Detail IDs are trimmed, empty IDs reject without an HTTP call, and valid path segments are encoded.
@@ -42,7 +48,7 @@ Unit 2, sub-slice 2 - typed current-user template list/detail read foundation. T
 - Added latest-query, request-identity, and shared session-generation guards. A-B-A reuses the still-pending A request, stale success/error/finally paths cannot overwrite or close the active query, and stale actions resolve without exposing another query's payload.
 - Extended the existing synchronous token watcher reset to clear both the default and Space collections before old-session requests can settle.
 - Preserved the complete Home/Workspace default cache surface and behavior. Filtered Space loads do not mutate `items`, `hasLoaded`, `isLoading`, or `loadError`; default loads do not mutate Space state.
-- Kept `frontend/src/api/assets.ts` unchanged after fresh review proved it already forwards query params and preserves the full typed Axios response; no duplicate endpoint wrapper or metadata-unwrapping abstraction was introduced.
+- The earlier asset-query sub-slice kept `frontend/src/api/assets.ts` unchanged because it already forwarded query params and preserved the full typed list response. This mutation slice adds only detail/delete clients and still introduces no duplicate list wrapper or metadata-unwrapping abstraction.
 - Completed a Standard fresh diff review. The security specialist found no issue; the architecture specialist's stale return-contract finding was fixed by making Space load actions `Promise<void>`, and re-review found no remaining issue.
 
 ## Resolved Contracts And Decisions
@@ -77,26 +83,33 @@ Unit 2, sub-slice 2 - typed current-user template list/detail read foundation. T
 
 ## Remaining Work
 
-- Add typed asset detail/soft-delete and template hard-delete/use clients with exact response and refresh/invalidation behavior in Unit 2's final sub-slice.
-- Replace the Space prototype with local real-data components and complete accessibility, failure, responsive, real-data, and browser acceptance.
-- Implement and verify the remaining Unit 2 sub-slice plus Units 3-5 from the PLAN; write REPORT only after all acceptance criteria pass.
+- Begin Unit 3 by extracting the Space-only asset detail/delete coordinator to `frontend/src/views/app/components/space/**` and the template mutation state machine to `frontend/src/modules/template/**`, preserving the verified public actions while returning both enlarged stores to the project's approximately 500-line boundary.
+- Replace the Space prototype with local real-data components, then complete accessibility, failure, responsive, real-data, and browser acceptance in Units 3-5.
+- Write REPORT only after all Task acceptance criteria pass.
 
 ## Exact Next Action
 
-Implement Unit 2, sub-slice 3: add typed asset detail/soft-delete and template hard-delete/use API/store flows with exact response handling, mutation single-flight/session guards, and coherent list/detail invalidation. Do not edit Space UI in that bounded slice.
+Implement Unit 3's first bounded slice: extract the verified Space-only asset detail/delete coordinator and template mutation helper into the Task's allowed addition paths, keep current store action contracts compatible, bring both stores to at most about 500 lines, and rerun the deterministic probes/build before wiring Space UI.
 
 ## Files Changed
 
-- `frontend/src/modules/template/types.ts` - added exact list/detail response types with nullable snapshot data.
-- `frontend/src/modules/template/api.ts` - added guarded current-user list/detail GET clients.
-- `frontend/src/modules/template/store.ts` - added independent guarded list/detail state, single-flight requests, clear behavior, and synchronous session reset.
-- `ai/tasks/doing/TASK-T4-009-PLAN.md` - refined and reconciled Unit 2 sub-slice status and success criteria.
-- `ai/tasks/doing/TASK-T4-009-PROGRESS.md` - recorded this bounded unit, verification, review, remaining work, and exact next action.
+- `frontend/src/api/assets.ts` - added locally validated, encoded detail and soft-delete clients.
+- `frontend/src/store/assets.ts` - added guarded detail/delete state, pending-request invalidation, exact soft-delete application, and loaded-collection refresh behavior.
+- `frontend/src/modules/template/types.ts` - added the exact use response contract.
+- `frontend/src/modules/template/api.ts` - added validated 204 delete and project-creating use clients while preserving detail rejection behavior.
+- `frontend/src/modules/template/store.ts` - added list invalidation identity, hard-delete/use state, global use single-flight, and session-safe cache/detail transitions.
+- `ai/tasks/doing/TASK-T4-009-PLAN.md` - marked Unit 2 complete and recorded the non-idempotent template-use contract.
+- `ai/tasks/doing/TASK-T4-009-PROGRESS.md` - records this bounded unit, verification, review fixes, structural debt, remaining work, and exact next action.
 - `ai/state/CURRENT.md` - rolls the active Task snapshot and worktree ownership forward with this unit.
 
 ## Commands And Summarized Results
 
-- Current required document reads and Git baseline commands - completed; this slice started clean on `main` at `855f907a8438b627d61be6ac088f086316ef9602` with no staged, modified, untracked, or unmerged paths. The previous asset-slice baseline was `fb4d83f4a11332263f74dbda52122aaae0b2e6b5`.
+- Required documents, automation cursor, and Git baseline - completed; this slice started clean on `main` at `cce0e29bc10c8909bffa934c4c5806c3710bd287` with empty staged/modified/untracked/unmerged state and no Git operation. The task-list query timed out twice without mutation, so drift guards remain mandatory.
+- Initial `npm exec vue-tsc -- -b --pretty false` and final `npm run build` - passed; the final production build transformed 4,663 modules.
+- Node `assert` + Vite SSR + Pinia + Axios adapter probes - passed 9 original detail/mutation/invalidation/session scenarios, 4 ownership/global-lock fix scenarios, and 3 final template-use busy/error/result scenarios. One first final-probe assertion failed only because PowerShell stdin altered the Chinese expected literal; the ASCII-safe rerun compared the thrown message to store state and passed.
+- `backend/.venv/Scripts/python.exe -m unittest tests.test_asset_upload tests.test_template_system` - passed all 22 detail, authorization, soft-delete, hard-delete/use, ordering, persistence, and in-memory contracts.
+- Deep actual-diff review - security found no issue; concurrency found 2 high-confidence races and both were fixed; architecture's use-contract mismatch was reconciled, while the 616-line asset store and 571-line template store are explicitly routed to Unit 3's first extraction; root adversarial review found no remaining mutation, auth, path, stale-settlement, or cache-invalidation hard stop.
+- Final `git diff --check` passed. The worktree diff contains only the 7 implementation/active-state paths owned by this slice before CURRENT reconciliation; line endings produced only Git's existing LF-to-CRLF working-copy warnings.
 - Initial and final `npm exec vue-tsc -- -b --pretty false` coverage - passed; the final production build also reran the TypeScript project build after the detail-clear change.
 - Node `assert` + Vite SSR + Pinia + Axios adapter stdin probe - final run passed 10 deterministic list/detail scenarios: exact auth-bound routes, list and same-ID single-flight, cache/force behavior, API total preservation, A-B-A reuse, current errors, detail close, empty-ID rejection without HTTP, synchronous token reset, stale 401 suppression, and same-ID cross-session record identity. The first run's only failure was PowerShell stdin encoding of a Chinese expected literal; the product value was correct and the Unicode-escaped full rerun passed.
 - `backend/.venv/Scripts/python.exe -m unittest tests.test_template_system` - passed all 9 owner, ordering, detail, delete/use, persistence, and in-memory template contract tests.
@@ -114,5 +127,6 @@ Implement Unit 2, sub-slice 3: add typed asset detail/soft-delete and template h
 
 - No T4-009 Human gate or dependency blocker is currently known.
 - Single-flight task-list inspection was unavailable for this run. Release condition for staging/commit remains an unchanged `main`/base HEAD/index and no Git operation or unmerged path at the pre-commit recheck.
+- The two touched stores exceed the project's approximate 500-line guideline after this coherent domain slice (asset 616, template 571). This is not a runtime blocker, but Unit 3 must begin with the documented allowed-path extraction before adding Space UI logic.
 - Full browser and real API/MySQL acceptance are intentionally deferred until UI behavior exists; they are completion gates, not blockers for the next domain slice.
 - No push is authorized. T4-005 Unit B paid provider smoke and residual T4-008 local-data cleanup remain out of scope.

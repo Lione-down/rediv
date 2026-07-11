@@ -49,18 +49,16 @@ Refactor Space into a maintainable dark personal asset workspace using real asse
 
 ## Latest T4-009 Progress
 
-- Unit 1 planning/contract audit and Unit 2's asset-query and template-read domain slices are complete.
-- The asset store now exposes an independent response-shaped Space collection with canonical query state, exact `total/page/page_size` metadata, server-equivalent identical-query single-flight, concurrent different-query handling, and A-B-A pending reuse.
-- Latest-query/request/session guards suppress stale success, error, and loading transitions; synchronous token changes clear both Space and the unchanged Home/Workspace default cache.
-- Space load actions return `Promise<void>`, so a stale request cannot misrepresent another query or session's collection as its own result.
-- The new template module maps the exact unpaginated `{items,total}` and owner-scoped detail contracts, keeps nullable arbitrary snapshot data, rejects empty IDs locally, and encodes detail path segments.
-- Template list and latest-detail state are independent, return `Promise<void>`, deduplicate identical requests, support concurrent IDs and A-B-A reuse, suppress stale selection/session settlements, and reset synchronously on token change or explicit detail close.
-- Final deterministic template probe passed 10 concurrency, error, close, empty-ID, auth-binding, and session-reset scenarios; 9 backend template contract tests and the 4,663-module production build passed.
-- Security/API-contract, architecture/concurrency, and root reviews have no findings. Space UI, detail/mutations, accessibility/fallbacks, real API/MySQL comparison, responsive browser QA, and REPORT closure remain.
+- Unit 1 contract audit and all three Unit 2 domain slices are complete: independent Space asset queries, guarded template reads, and typed asset/template detail/delete/use flows.
+- Asset detail/delete IDs validate before state changes and encode path segments. Per-ID single-flight plus request/session guards prevent stale settlements; a successful soft-delete applies the returned row, clears matching detail, invalidates older requests, and refreshes previously loaded default/Space collections without converting refresh failure into mutation failure.
+- Template hard-delete handles the exact 204 empty response, removes the unpaginated row, clears matching detail, and invalidates older list/detail responses. Template use returns the exact project result, reuses identical pending IDs, and rejects a different ID locally because every backend POST creates a non-idempotent project.
+- Deterministic runtime evidence passed 9 original scenarios, 4 race-fix scenarios, and 3 final use-lock scenarios. All 22 focused backend asset/template contracts and the final 4,663-module production build passed.
+- Deep review found two concurrency defects and one use-contract documentation mismatch; all were fixed and re-probed. Security and root adversarial review found no remaining hard stop.
+- The touched asset/template stores are now 616/571 lines. Unit 3 must first extract the verified Space-only coordinator and template mutation helper into already allowed paths before adding UI logic; Space UI, accessibility/fallbacks, real API/MySQL comparison, responsive browser QA, and REPORT closure remain.
 
 ## Exact Next Action
 
-Implement Unit 2's final domain sub-slice: typed asset detail/soft-delete and template hard-delete/use API/store flows with exact response handling, guarded mutation state, and coherent list/detail invalidation. Do not edit Space UI in that bounded slice.
+Implement Unit 3's first bounded slice: extract the verified Space-only asset detail/delete coordinator and template mutation helper into the Task's allowed addition paths, preserve current store action contracts, bring both stores to approximately 500 lines or less, and rerun deterministic probes/build before wiring Space UI.
 
 ## Current Blockers
 
@@ -71,9 +69,9 @@ Implement Unit 2's final domain sub-slice: typed asset detail/soft-delete and te
 
 ## Worktree Protection
 
-- This delivery unit started from clean `main` at `855f907a8438b627d61be6ac088f086316ef9602` with no staged, modified, untracked, or unmerged paths.
+- This delivery unit started from clean `main` at `cce0e29bc10c8909bffa934c4c5806c3710bd287` with no staged, modified, untracked, or unmerged paths.
 - The Codex task-list single-flight query was unavailable, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
-- The verified template-read unit owns only `frontend/src/modules/template/{types,api,store}.ts`, the active T4-009 PLAN/PROGRESS, and CURRENT; no backend, Space UI, global store, or dependency file belongs to this unit.
+- The verified detail/mutation unit owns only `frontend/src/api/assets.ts`, `frontend/src/store/assets.ts`, `frontend/src/modules/template/{types,api,store}.ts`, the active T4-009 PLAN/PROGRESS, and CURRENT; no backend, Space UI, dependency, or global design file belongs to this unit.
 - `/frontend/.playwright-cli/` and `/output/playwright/` are ignored local evidence directories. Their files remain on disk and must not be deleted, moved, force-added, or included in delivery commits without a new explicit scope.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 

@@ -13,3 +13,10 @@ export interface TemplateListResponse {
   items: Template[]
   total: number
 }
+
+export interface TemplateUseResponse {
+  template: Template
+  project_id: string
+  project_name: string
+  nodes_created: number
+}

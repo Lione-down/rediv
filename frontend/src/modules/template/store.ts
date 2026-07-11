@@ -2,14 +2,24 @@ import { isAxiosError } from 'axios'
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { useAuthStore } from '../../store/auth'
-import { fetchTemplateDetail, fetchTemplates } from './api'
-import type { Template, TemplateListResponse } from './types'
+import {
+  deleteTemplate as requestTemplateDeletion,
+  fetchTemplateDetail,
+  fetchTemplates,
+  useTemplate as requestTemplateUse,
+} from './api'
+import type {
+  Template,
+  TemplateListResponse,
+  TemplateUseResponse,
+} from './types'
 
 interface TemplateErrorResponse {
   detail?: unknown
 }
 
 interface ListRequest {
+  id: number
   generation: number
   promise: Promise<void>
 }
@@ -18,6 +28,18 @@ interface DetailRequest {
   id: number
   generation: number
   promise: Promise<void>
+}
+
+interface DeleteRequest {
+  id: number
+  generation: number
+  promise: Promise<boolean>
+}
+
+interface UseRequest {
+  id: number
+  generation: number
+  promise: Promise<TemplateUseResponse | null>
 }
 
 function createEmptyTemplateListResponse(): TemplateListResponse {
@@ -42,6 +64,17 @@ function getTemplateErrorMessage(error: unknown, fallback: string) {
   return fallback
 }
 
+function normalizeTemplateId(templateId: string) {
+  const normalizedTemplateId = templateId.trim()
+  if (!normalizedTemplateId) {
+    throw new TypeError('Template ID is required.')
+  }
+
+  return normalizedTemplateId
+}
+
+const TEMPLATE_USE_BUSY_ERROR = '已有模板正在创建项目，请等待完成。'
+
 export const useTemplateStore = defineStore('templates', () => {
   const authStore = useAuthStore()
   const collection = ref<TemplateListResponse>(createEmptyTemplateListResponse())
@@ -55,12 +88,36 @@ export const useTemplateStore = defineStore('templates', () => {
   const detailIsLoading = ref(false)
   const detailLoadError = ref('')
 
+  const deletingTemplateId = ref('')
+  const deleteError = ref('')
+  const usingTemplateId = ref('')
+  const useError = ref('')
+
   let generation = 0
   let listRequest: ListRequest | null = null
+  let listRequestSequence = 0
+  let activeListRequestId: number | null = null
   const detailRequests = new Map<string, DetailRequest>()
   let detailRequestSequence = 0
   let activeDetailRequestId: number | null = null
   let latestDetailTemplateId = ''
+  const deleteRequests = new Map<string, DeleteRequest>()
+  let deleteRequestSequence = 0
+  let activeDeleteRequestId: number | null = null
+  let latestDeleteTemplateId = ''
+  const useRequests = new Map<string, UseRequest>()
+  let useRequestSequence = 0
+  let activeUseRequestId: number | null = null
+  let latestUseTemplateId = ''
+
+  function isCurrentListRequest(
+    requestGeneration: number,
+    requestId: number,
+  ) {
+    return (
+      requestGeneration === generation && activeListRequestId === requestId
+    )
+  }
 
   async function loadTemplates(force = false): Promise<void> {
     const requestedGeneration = generation
@@ -75,19 +132,20 @@ export const useTemplateStore = defineStore('templates', () => {
 
     isLoading.value = true
     loadError.value = ''
+    const requestId = ++listRequestSequence
 
     const currentPromise = (async () => {
       try {
         const response = await fetchTemplates()
 
-        if (requestedGeneration !== generation) {
+        if (!isCurrentListRequest(requestedGeneration, requestId)) {
           return
         }
 
         collection.value = response.data
         hasLoaded.value = true
       } catch (error) {
-        if (requestedGeneration !== generation) {
+        if (!isCurrentListRequest(requestedGeneration, requestId)) {
           return
         }
 
@@ -100,16 +158,19 @@ export const useTemplateStore = defineStore('templates', () => {
     })()
 
     const currentRequest: ListRequest = {
+      id: requestId,
       generation: requestedGeneration,
       promise: currentPromise,
     }
     listRequest = currentRequest
+    activeListRequestId = requestId
 
     try {
       return await currentPromise
     } finally {
       if (listRequest === currentRequest) {
         listRequest = null
+        activeListRequestId = null
         isLoading.value = false
       }
     }
@@ -135,7 +196,7 @@ export const useTemplateStore = defineStore('templates', () => {
     templateId: string,
     force = false,
   ): Promise<void> {
-    const requestedTemplateId = templateId.trim()
+    const requestedTemplateId = normalizeTemplateId(templateId)
     const requestedGeneration = generation
     const isSameTemplate = latestDetailTemplateId === requestedTemplateId
 
@@ -245,9 +306,207 @@ export const useTemplateStore = defineStore('templates', () => {
     detailLoadError.value = ''
   }
 
+  function invalidateDeletedTemplate(templateId: string) {
+    listRequest = null
+    activeListRequestId = null
+    isLoading.value = false
+
+    if (collection.value.items.some((template) => template.id === templateId)) {
+      collection.value = {
+        items: collection.value.items.filter(
+          (template) => template.id !== templateId,
+        ),
+        total: Math.max(0, collection.value.total - 1),
+      }
+    }
+
+    detailRequests.delete(templateId)
+    if (selectedTemplateId.value === templateId) {
+      clearTemplateDetail()
+    }
+  }
+
+  function isCurrentDeleteRequest(
+    requestGeneration: number,
+    templateId: string,
+    requestId: number,
+  ) {
+    return (
+      requestGeneration === generation &&
+      activeDeleteRequestId === requestId &&
+      latestDeleteTemplateId === templateId
+    )
+  }
+
+  async function deleteTemplateById(templateId: string): Promise<boolean> {
+    const requestedTemplateId = normalizeTemplateId(templateId)
+    const requestedGeneration = generation
+    latestDeleteTemplateId = requestedTemplateId
+    deletingTemplateId.value = requestedTemplateId
+    deleteError.value = ''
+
+    const pendingRequest = deleteRequests.get(requestedTemplateId)
+    if (pendingRequest?.generation === requestedGeneration) {
+      activeDeleteRequestId = pendingRequest.id
+      return pendingRequest.promise
+    }
+
+    const requestId = ++deleteRequestSequence
+    const currentPromise = (async () => {
+      try {
+        await requestTemplateDeletion(requestedTemplateId)
+        if (requestedGeneration !== generation) {
+          return false
+        }
+
+        invalidateDeletedTemplate(requestedTemplateId)
+        return true
+      } catch (error) {
+        if (
+          !isCurrentDeleteRequest(
+            requestedGeneration,
+            requestedTemplateId,
+            requestId,
+          )
+        ) {
+          return false
+        }
+
+        deleteError.value = getTemplateErrorMessage(
+          error,
+          '模板删除失败，请稍后重试。',
+        )
+        throw error
+      }
+    })()
+
+    const currentRequest: DeleteRequest = {
+      id: requestId,
+      generation: requestedGeneration,
+      promise: currentPromise,
+    }
+    deleteRequests.set(requestedTemplateId, currentRequest)
+    activeDeleteRequestId = requestId
+
+    try {
+      return await currentPromise
+    } finally {
+      if (deleteRequests.get(requestedTemplateId) === currentRequest) {
+        deleteRequests.delete(requestedTemplateId)
+      }
+      if (
+        isCurrentDeleteRequest(
+          requestedGeneration,
+          requestedTemplateId,
+          requestId,
+        )
+      ) {
+        activeDeleteRequestId = null
+        deletingTemplateId.value = ''
+      }
+    }
+  }
+
+  function isCurrentUseRequest(
+    requestGeneration: number,
+    templateId: string,
+    requestId: number,
+  ) {
+    return (
+      requestGeneration === generation &&
+      activeUseRequestId === requestId &&
+      latestUseTemplateId === templateId
+    )
+  }
+
+  async function useTemplateById(
+    templateId: string,
+  ): Promise<TemplateUseResponse | null> {
+    const requestedTemplateId = normalizeTemplateId(templateId)
+    const requestedGeneration = generation
+
+    const pendingRequest = useRequests.get(requestedTemplateId)
+    if (pendingRequest?.generation === requestedGeneration) {
+      activeUseRequestId = pendingRequest.id
+      latestUseTemplateId = requestedTemplateId
+      usingTemplateId.value = requestedTemplateId
+      useError.value = ''
+      return pendingRequest.promise
+    }
+
+    if (useRequests.size > 0) {
+      useError.value = TEMPLATE_USE_BUSY_ERROR
+      throw new Error(TEMPLATE_USE_BUSY_ERROR)
+    }
+
+    latestUseTemplateId = requestedTemplateId
+    usingTemplateId.value = requestedTemplateId
+    useError.value = ''
+
+    const requestId = ++useRequestSequence
+    const currentPromise = (async () => {
+      try {
+        const response = await requestTemplateUse(requestedTemplateId)
+        if (!isCurrentUseRequest(
+          requestedGeneration,
+          requestedTemplateId,
+          requestId,
+        )) {
+          return null
+        }
+
+        useError.value = ''
+        return response.data
+      } catch (error) {
+        if (
+          !isCurrentUseRequest(
+            requestedGeneration,
+            requestedTemplateId,
+            requestId,
+          )
+        ) {
+          return null
+        }
+
+        useError.value = getTemplateErrorMessage(
+          error,
+          '模板使用失败，请稍后重试。',
+        )
+        throw error
+      }
+    })()
+
+    const currentRequest: UseRequest = {
+      id: requestId,
+      generation: requestedGeneration,
+      promise: currentPromise,
+    }
+    useRequests.set(requestedTemplateId, currentRequest)
+    activeUseRequestId = requestId
+
+    try {
+      return await currentPromise
+    } finally {
+      if (useRequests.get(requestedTemplateId) === currentRequest) {
+        useRequests.delete(requestedTemplateId)
+      }
+      if (
+        isCurrentUseRequest(
+          requestedGeneration,
+          requestedTemplateId,
+          requestId,
+        )
+      ) {
+        activeUseRequestId = null
+        usingTemplateId.value = ''
+      }
+    }
+  }
+
   function resetTemplates() {
     generation += 1
     listRequest = null
+    activeListRequestId = null
     detailRequests.clear()
     activeDetailRequestId = null
     latestDetailTemplateId = ''
@@ -262,6 +521,18 @@ export const useTemplateStore = defineStore('templates', () => {
     detailHasLoaded.value = false
     detailIsLoading.value = false
     detailLoadError.value = ''
+
+    deleteRequests.clear()
+    activeDeleteRequestId = null
+    latestDeleteTemplateId = ''
+    deletingTemplateId.value = ''
+    deleteError.value = ''
+
+    useRequests.clear()
+    activeUseRequestId = null
+    latestUseTemplateId = ''
+    usingTemplateId.value = ''
+    useError.value = ''
   }
 
   watch(
@@ -289,6 +560,12 @@ export const useTemplateStore = defineStore('templates', () => {
     loadTemplateDetail,
     refreshTemplateDetail,
     clearTemplateDetail,
+    deletingTemplateId,
+    deleteError,
+    deleteTemplateById,
+    usingTemplateId,
+    useError,
+    useTemplateById,
     resetTemplates,
   }
 })
