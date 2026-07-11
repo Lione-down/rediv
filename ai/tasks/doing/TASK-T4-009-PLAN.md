@@ -21,6 +21,7 @@ Allowed modifications:
 Allowed additions:
 
 - `frontend/src/views/app/components/space/**`
+- `frontend/src/modules/asset/**`
 - `frontend/src/modules/template/**`
 
 Explicit non-goals:
@@ -81,11 +82,15 @@ Success criteria:
 
 ### Unit 3 - Space controller and local components
 
-Split list, filters, media previews, quota/template sections, and detail UI into domain-aligned local components while keeping `Space.vue` as the page-level coordinator.
+Implement as bounded slices:
+
+1. Extract the verified asset detail/delete coordinator into `modules/asset/**` and the template delete/use state machine into `modules/template/**`. Keep the current Pinia refs and action contracts stable, retain list/detail cache invalidation in the owning stores, and return both stores to approximately 500 lines or less before adding UI behavior. The asset helper belongs to the domain layer so the global store does not depend on the Space presentation subtree. - complete 2026-07-11
+2. Split list, filters, media previews, quota/template sections, and detail UI into domain-aligned local components while keeping `Space.vue` as the page-level coordinator.
 
 Success criteria:
 
 - `Space.vue` is at most 500 lines;
+- the asset and template stores remain within the project's approximate 500-line maintainability boundary without changing their public contracts;
 - assets/templates/quota are backed by real APIs;
 - type filtering, pagination, detail, project navigation, loading, empty, error, and boundary states work coherently.
 

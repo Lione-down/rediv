@@ -8,19 +8,21 @@
 
 ## Current Bounded Unit
 
-Unit 2, sub-slice 3 - typed asset detail/soft-delete and template hard-delete/use flows. This slice is complete and verified; it is limited to the existing asset domain, `frontend/src/modules/template/**`, and active state documents, and it does not edit Space UI.
+Unit 3, sub-slice 1 - domain extraction of the verified asset detail/delete coordinator and template delete/use state machine. This slice is complete and verified. It is limited to the two stores, new helper modules under the Task's narrowly extended allowed addition paths, and active state documents; it preserves public Pinia contracts and does not edit Space UI.
 
 ## Current Slice Design
 
-- Add exact asset detail and soft-delete API clients plus exact template hard-delete (`204` empty body) and use-result clients without changing backend contracts or adding dependencies.
-- Keep asset and template detail state separate from collection state. Deduplicate identical detail and delete requests while allowing different IDs to proceed concurrently; the latest selected detail or delete owns visible loading/error state. Template use is intentionally global single-flight because every request creates a project: the same ID reuses the pending result, while a different ID is rejected locally with `useError` and no second HTTP request.
-- Use request identity and authentication-generation guards so stale detail, delete, or use settlements cannot publish data/errors, navigate with an old project ID, or close a newer operation's loading state.
-- On successful asset deletion, clear the matching detail, invalidate any older list/detail request that could republish the row, apply the returned soft-delete status, and refresh previously loaded default/Space collections without turning a refresh failure into a false mutation failure.
-- On successful template deletion, remove the row from the unpaginated collection, clear matching detail state, and invalidate older list/detail requests. Template use returns the exact current-session `project_id` result and never changes list/detail caches.
-- Reset all new detail/mutation state and pending registries synchronously when the auth token changes. Verify TypeScript, deterministic Vite/Pinia/Axios mutation probes, focused backend contracts, and the production build before commit.
+- Move the asset detail/delete refs, pending registries, request/session guards, and actions into an asset-domain coordinator. Inject collection invalidation and refresh callbacks so the global store continues to own its default and Space list caches without importing from `views/**`.
+- Move template delete/use refs, pending registries, global non-idempotent use lock, and actions into a domain-local mutation helper. Keep template list/detail cache invalidation in the store and expose the same public refs/actions through the Pinia return object.
+- Keep API clients, action names, resolved values, error messages, stale-settlement behavior, token-reset timing, and list/detail cache semantics unchanged. Do not add dependencies or edit Space UI in this slice.
+- Success requires both stores at approximately 500 lines or less, deterministic mutation/race probes passing unchanged, TypeScript and production build passing, and a fresh diff review showing only mechanical ownership movement plus necessary dependency injection.
 
 ## Completed Work
 
+- Extracted the asset detail/delete refs, request registries, stale-settlement guards, and actions into `frontend/src/modules/asset/detail-controller.ts`. The asset store still owns default/Space collection invalidation and refresh, exposes the same refs/actions/resolved values, and is now 353 lines.
+- Extracted template delete/use refs, per-ID delete registry, non-idempotent global use lock, request/session guards, and actions into `frontend/src/modules/template/mutation-controller.ts`. The template store still owns list/detail cache invalidation, exposes the same public surface, and is now 355 lines.
+- Extended the Task's allowed additions narrowly to `frontend/src/modules/asset/**` after Deep architecture review rejected a first-pass global-store import from `views/**`. The helper was moved to the domain layer; architecture re-review returned `RESOLVED`, security returned no finding, and the root adversarial pass found no remaining dependency, mutation, session, or partial-refresh hard stop.
+- Verified the extraction with a fresh TypeScript project build, 6 initial and 4 post-review Vite/Pinia/Axios runtime scenarios, and a final production build that transformed 4,664 modules. Coverage included A-B-A request reuse, empty-ID ownership, auth reset, asset soft-delete refresh, stale template-list suppression, hard-delete detail clearing, and global template-use locking.
 - Added locally validated, encoded asset detail and soft-delete clients plus independent selected-detail loading/error/cache state. Empty IDs reject before touching request ownership or issuing HTTP.
 - Added asset detail and delete per-ID single-flight with latest-selection/request/session guards. A soft-delete applies the exact returned row, suppresses older detail/list settlements, clears matching detail, and refreshes each previously loaded default/Space collection; refresh failures remain collection errors and do not misreport a successful deletion as failed.
 - Added the exact template use response type, 204 hard-delete client, and use client. Hard-delete removes the unpaginated row, clears matching detail, and invalidates any older list/detail request that could republish it.
@@ -83,27 +85,35 @@ Unit 2, sub-slice 3 - typed asset detail/soft-delete and template hard-delete/us
 
 ## Remaining Work
 
-- Begin Unit 3 by extracting the Space-only asset detail/delete coordinator to `frontend/src/views/app/components/space/**` and the template mutation state machine to `frontend/src/modules/template/**`, preserving the verified public actions while returning both enlarged stores to the project's approximately 500-line boundary.
-- Replace the Space prototype with local real-data components, then complete accessibility, failure, responsive, real-data, and browser acceptance in Units 3-5.
+- Replace the Space prototype with a real-data page coordinator and local asset/template/quota components, then complete accessibility, failure, responsive, real-data, and browser acceptance in Units 3-5.
 - Write REPORT only after all Task acceptance criteria pass.
 
 ## Exact Next Action
 
-Implement Unit 3's first bounded slice: extract the verified Space-only asset detail/delete coordinator and template mutation helper into the Task's allowed addition paths, keep current store action contracts compatible, bring both stores to at most about 500 lines, and rerun the deterministic probes/build before wiring Space UI.
+Implement Unit 3's next bounded slice: replace the prototype Space controller with real assets/templates/quota tab orchestration and domain-local presentation components, wire asset filtering/pagination plus template/quota loading and basic selection/navigation, keep `Space.vue` at most 500 lines, and defer media fallback polish and mutation confirmation semantics to Unit 4.
 
 ## Files Changed
 
+- `frontend/src/modules/asset/detail-controller.ts` - owns the extracted guarded asset detail/delete state machine behind injected collection callbacks.
+- `frontend/src/modules/template/mutation-controller.ts` - owns the extracted template delete/use state machine and non-idempotent use lock.
 - `frontend/src/api/assets.ts` - added locally validated, encoded detail and soft-delete clients.
-- `frontend/src/store/assets.ts` - added guarded detail/delete state, pending-request invalidation, exact soft-delete application, and loaded-collection refresh behavior.
+- `frontend/src/store/assets.ts` - retains asset collection ownership and delegates detail/delete state while preserving its Pinia contract.
 - `frontend/src/modules/template/types.ts` - added the exact use response contract.
 - `frontend/src/modules/template/api.ts` - added validated 204 delete and project-creating use clients while preserving detail rejection behavior.
-- `frontend/src/modules/template/store.ts` - added list invalidation identity, hard-delete/use state, global use single-flight, and session-safe cache/detail transitions.
-- `ai/tasks/doing/TASK-T4-009-PLAN.md` - marked Unit 2 complete and recorded the non-idempotent template-use contract.
-- `ai/tasks/doing/TASK-T4-009-PROGRESS.md` - records this bounded unit, verification, review fixes, structural debt, remaining work, and exact next action.
+- `frontend/src/modules/template/store.ts` - retains list/detail cache ownership and delegates delete/use state while preserving its Pinia contract.
+- `ai/tasks/todo/TASK-T4-009.md` - records the narrow asset-domain helper addition required by architecture review.
+- `ai/tasks/doing/TASK-T4-009-PLAN.md` - marks the extraction slice complete and records the corrected domain boundary.
+- `ai/tasks/doing/TASK-T4-009-PROGRESS.md` - records the extraction, verification, review fix, remaining work, and exact next action.
 - `ai/state/CURRENT.md` - rolls the active Task snapshot and worktree ownership forward with this unit.
 
 ## Commands And Summarized Results
 
+- Required documents, automation cursor, and Git baseline - completed; this slice started clean on `main` at `a39731f7567ffc9c32e7b232a3c7463e8927959f` with empty staged/modified/untracked/unmerged state and no Git operation. The Codex task-list query did not return and was terminated without mutation, so branch/HEAD/index drift guards remain mandatory.
+- `npm exec vue-tsc -- -b --pretty false` - passed before and after the architecture path correction.
+- Node `assert` + Vite SSR + Pinia + Axios adapter probes - passed 6 initial extraction scenarios and 4 post-review scenarios covering request reuse, stale/session guards, mutation invalidation, refresh, and global template-use single-flight.
+- `npm run build` - passed before and after the architecture correction; the final Vite run transformed 4,664 modules.
+- Deep current-diff review - security found no issue; architecture found one Medium store-to-view dependency reversal, which was fixed by moving the helper to `modules/asset/**`; architecture re-review returned `RESOLVED`; root adversarial review found no remaining hard stop.
+- Current file-size and whitespace checks - asset/template stores are 353/355 lines, new helpers are 315/248 lines, and `git diff --check` passed for tracked paths before final staging.
 - Required documents, automation cursor, and Git baseline - completed; this slice started clean on `main` at `cce0e29bc10c8909bffa934c4c5806c3710bd287` with empty staged/modified/untracked/unmerged state and no Git operation. The task-list query timed out twice without mutation, so drift guards remain mandatory.
 - Initial `npm exec vue-tsc -- -b --pretty false` and final `npm run build` - passed; the final production build transformed 4,663 modules.
 - Node `assert` + Vite SSR + Pinia + Axios adapter probes - passed 9 original detail/mutation/invalidation/session scenarios, 4 ownership/global-lock fix scenarios, and 3 final template-use busy/error/result scenarios. One first final-probe assertion failed only because PowerShell stdin altered the Chinese expected literal; the ASCII-safe rerun compared the thrown message to store state and passed.
@@ -127,6 +137,5 @@ Implement Unit 3's first bounded slice: extract the verified Space-only asset de
 
 - No T4-009 Human gate or dependency blocker is currently known.
 - Single-flight task-list inspection was unavailable for this run. Release condition for staging/commit remains an unchanged `main`/base HEAD/index and no Git operation or unmerged path at the pre-commit recheck.
-- The two touched stores exceed the project's approximate 500-line guideline after this coherent domain slice (asset 616, template 571). This is not a runtime blocker, but Unit 3 must begin with the documented allowed-path extraction before adding Space UI logic.
 - Full browser and real API/MySQL acceptance are intentionally deferred until UI behavior exists; they are completion gates, not blockers for the next domain slice.
 - No push is authorized. T4-005 Unit B paid provider smoke and residual T4-008 local-data cleanup remain out of scope.

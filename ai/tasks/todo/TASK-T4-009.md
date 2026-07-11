@@ -24,7 +24,7 @@ Codex Project Lead Engineer
 
 ## Scope
 - 允许修改：`frontend/src/views/app/Space.vue`、现有 asset API/store/types。
-- 允许新增：`views/app/components/space/**`、`modules/template/**`。
+- 允许新增：`views/app/components/space/**`、`modules/asset/**`、`modules/template/**`。
 - 禁止修改：backend、Home、Workspace、Canvas、global tokens。
 
 ## Dependencies

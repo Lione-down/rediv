@@ -43,22 +43,24 @@ Refactor Space into a maintainable dark personal asset workspace using real asse
 ## T4-009 Scope
 
 - Allowed edits: `frontend/src/views/app/Space.vue` and existing asset API/store/types.
-- Allowed additions: `frontend/src/views/app/components/space/**` and `frontend/src/modules/template/**`.
+- Allowed additions: `frontend/src/views/app/components/space/**`, `frontend/src/modules/asset/**`, and `frontend/src/modules/template/**`.
 - Forbidden: backend, Home, Workspace, Canvas, and global design-token changes.
 - Acceptance requires real asset/template/MySQL comparison, detail and deletion/hidden semantics, production build, and 1440x900/920px/375px browser evidence.
 
 ## Latest T4-009 Progress
 
-- Unit 1 contract audit and all three Unit 2 domain slices are complete: independent Space asset queries, guarded template reads, and typed asset/template detail/delete/use flows.
+- Unit 1 contract audit, all three Unit 2 domain slices, and Unit 3's store extraction slice are complete: independent Space asset queries, guarded template reads, typed detail/delete/use flows, and maintainable domain helpers.
 - Asset detail/delete IDs validate before state changes and encode path segments. Per-ID single-flight plus request/session guards prevent stale settlements; a successful soft-delete applies the returned row, clears matching detail, invalidates older requests, and refreshes previously loaded default/Space collections without converting refresh failure into mutation failure.
 - Template hard-delete handles the exact 204 empty response, removes the unpaginated row, clears matching detail, and invalidates older list/detail responses. Template use returns the exact project result, reuses identical pending IDs, and rejects a different ID locally because every backend POST creates a non-idempotent project.
 - Deterministic runtime evidence passed 9 original scenarios, 4 race-fix scenarios, and 3 final use-lock scenarios. All 22 focused backend asset/template contracts and the final 4,663-module production build passed.
 - Deep review found two concurrency defects and one use-contract documentation mismatch; all were fixed and re-probed. Security and root adversarial review found no remaining hard stop.
-- The touched asset/template stores are now 616/571 lines. Unit 3 must first extract the verified Space-only coordinator and template mutation helper into already allowed paths before adding UI logic; Space UI, accessibility/fallbacks, real API/MySQL comparison, responsive browser QA, and REPORT closure remain.
+- The verified asset detail/delete and template delete/use state machines now live in `modules/asset/detail-controller.ts` and `modules/template/mutation-controller.ts`; public Pinia contracts and cache ownership are unchanged, while the stores are now 353/355 lines and all four touched code files remain below 500 lines.
+- Deep review's only Medium finding was a first-pass store-to-view dependency reversal. A narrow Task scope extension moved the asset helper into the domain layer; architecture re-review resolved the finding, security found no issue, 6 initial plus 4 post-fix runtime scenarios passed, and the final production build transformed 4,664 modules.
+- Space UI, accessibility/fallbacks, real API/MySQL comparison, responsive browser QA, and REPORT closure remain.
 
 ## Exact Next Action
 
-Implement Unit 3's first bounded slice: extract the verified Space-only asset detail/delete coordinator and template mutation helper into the Task's allowed addition paths, preserve current store action contracts, bring both stores to approximately 500 lines or less, and rerun deterministic probes/build before wiring Space UI.
+Implement Unit 3's next bounded slice: replace the prototype Space controller with real assets/templates/quota tab orchestration and domain-local presentation components, wire asset filtering/pagination plus template/quota loading and basic selection/navigation, keep `Space.vue` at most 500 lines, and defer media fallback polish and mutation confirmation semantics to Unit 4.
 
 ## Current Blockers
 
@@ -69,9 +71,9 @@ Implement Unit 3's first bounded slice: extract the verified Space-only asset de
 
 ## Worktree Protection
 
-- This delivery unit started from clean `main` at `cce0e29bc10c8909bffa934c4c5806c3710bd287` with no staged, modified, untracked, or unmerged paths.
+- This delivery unit started from clean `main` at `a39731f7567ffc9c32e7b232a3c7463e8927959f` with no staged, modified, untracked, or unmerged paths.
 - The Codex task-list single-flight query was unavailable, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
-- The verified detail/mutation unit owns only `frontend/src/api/assets.ts`, `frontend/src/store/assets.ts`, `frontend/src/modules/template/{types,api,store}.ts`, the active T4-009 PLAN/PROGRESS, and CURRENT; no backend, Space UI, dependency, or global design file belongs to this unit.
+- The verified extraction unit owns only `frontend/src/store/assets.ts`, `frontend/src/modules/asset/detail-controller.ts`, `frontend/src/modules/template/{store,mutation-controller}.ts`, the T4-009 Task/PLAN/PROGRESS, and CURRENT; no backend, Space UI, dependency, generated output, or global design file belongs to this unit.
 - `/frontend/.playwright-cli/` and `/output/playwright/` are ignored local evidence directories. Their files remain on disk and must not be deleted, moved, force-added, or included in delivery commits without a new explicit scope.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 
