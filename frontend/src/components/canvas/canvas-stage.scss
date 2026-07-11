@@ -24,6 +24,45 @@
 .canvas-surface.cursor-grab { cursor: grab; }
 .canvas-surface.cursor-grabbing { cursor: grabbing; }
 
+.canvas-state {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--text-secondary);
+  background: color-mix(in oklch, var(--bg-canvas) 92%, transparent);
+}
+
+.canvas-state strong {
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.canvas-state span { max-width: 36rem; }
+
+.canvas-state button {
+  min-height: 36px;
+  margin-top: 4px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--text-primary);
+  background: var(--bg-panel);
+  cursor: pointer;
+}
+
+.canvas-state button:focus-visible {
+  outline: 2px solid var(--accent-select);
+  outline-offset: 2px;
+}
+
+.canvas-state.is-error strong { color: var(--danger); }
+
 .connection-layer {
   position: absolute;
   inset: 0;

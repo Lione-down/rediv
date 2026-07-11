@@ -16,9 +16,11 @@ const {
   statusIconMap,
   statusLabel,
   statusNodes,
+  stageNotice,
   surfaceNodeRectStyle,
   temporaryConnectionPath,
   viewportCursor,
+  retryProjectLoad,
 } = useCanvasStage()
 
 function setStageRef(element: Element | ComponentPublicInstance | null) {
@@ -32,6 +34,17 @@ function setCanvasSurfaceRef(element: Element | ComponentPublicInstance | null) 
 
 <template>
   <section :ref="setStageRef" class="workspace-stage" aria-label="Revid 无限画布工作区">
+    <div
+      v-if="stageNotice"
+      class="canvas-state"
+      :class="`is-${stageNotice.kind}`"
+      :role="stageNotice.kind === 'error' ? 'alert' : 'status'"
+      aria-live="polite"
+    >
+      <strong>{{ stageNotice.title }}</strong>
+      <span>{{ stageNotice.detail }}</span>
+      <button v-if="stageNotice.canRetry" type="button" @click="retryProjectLoad">重新加载</button>
+    </div>
     <div :ref="setCanvasSurfaceRef" class="canvas-surface" :class="`cursor-${viewportCursor}`">
       <svg class="connection-layer" aria-hidden="true">
         <path

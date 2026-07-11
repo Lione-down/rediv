@@ -36,6 +36,8 @@ T4-007、T4-010、T4-011 已完成。
 
 ### Unit A — Decomposition And Persistence
 
+Status: `DONE - PASS` (2026-07-12)
+
 - 将 CanvasStage 的 render、viewport、interaction、persistence 职责拆分为明确模块。
 - 完成 project-driven nodes/connections load、create/move/delete persistence、debounce/flush 和 optimistic rollback。
 - Unit A 必须通过 build、刷新恢复和 API 失败回滚验收后才能进入 Unit B。
@@ -56,11 +58,11 @@ T4-007、T4-010、T4-011 已完成。
 7. 键盘至少支持 Delete、Escape，输入框聚焦时不得误删节点。
 
 ## Acceptance Criteria
-- [ ] 创建项目后新增/移动/连接节点，刷新页面完整恢复。
-- [ ] API 失败时 UI 回滚并显示错误，不产生幽灵节点/连接。
+- [x] 创建项目后新增/移动/连接节点，刷新页面完整恢复。
+- [x] API 失败时 UI 回滚并显示错误，不产生幽灵节点/连接。
 - [ ] zoom 25%–200% 下锚点、框选和 minimap 正确。
-- [ ] `npm run build` 通过。
-- [ ] CanvasStage.vue 不超过 500 行，新增文件均职责清晰。
+- [x] `npm run build` 通过。
+- [x] CanvasStage.vue 不超过 500 行，新增文件均职责清晰。
 - [ ] 1440×900 和 375px 真实浏览器交互检查通过。
 
 ## Verification Commands

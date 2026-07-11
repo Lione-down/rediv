@@ -181,6 +181,18 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     return nodeCreateRequests.get(nodeId) ?? nodeId
   }
 
+  async function settleRelatedConnectionCreates(nodeId: string) {
+    while (true) {
+      const requests = connections.value.flatMap((connection) => {
+        if (connection.from !== nodeId && connection.to !== nodeId) return []
+        const request = connectionCreateRequests.get(connection.id)
+        return request ? [request] : []
+      })
+      if (!requests.length) return
+      await Promise.allSettled(requests)
+    }
+  }
+
   async function persistNodeMove(nodeId: string, move: PendingMove): Promise<void> {
     if (move.timer) clearTimeout(move.timer)
     move.timer = null
@@ -260,45 +272,53 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
   async function deleteNode(nodeId: string) {
     const projectId = requireProjectId()
     const context = captureProjectContext()
-    const nodeIndex = nodes.value.findIndex((node) => node.id === nodeId)
+    let effectiveNodeId = nodeId
+    const nodeCreateRequest = nodeCreateRequests.get(nodeId)
+    if (nodeCreateRequest) {
+      try {
+        effectiveNodeId = await nodeCreateRequest
+      } catch {
+        return
+      }
+    }
+    if (!isCurrentProject(context)) return
+
+    let nodeIndex = nodes.value.findIndex((node) => node.id === effectiveNodeId)
     if (nodeIndex < 0) return
 
-    await flushPendingMoves(nodeId).catch(() => undefined)
+    await flushPendingMoves(effectiveNodeId).catch(() => undefined)
+    await settleRelatedConnectionCreates(effectiveNodeId)
+    if (!isCurrentProject(context)) return
+    nodeIndex = nodes.value.findIndex((node) => node.id === effectiveNodeId)
+    if (nodeIndex < 0) return
     const nodeSnapshot = nodes.value[nodeIndex]
     const connectionSnapshots = connections.value
       .map((connection, index) => ({ connection, index }))
-      .filter(({ connection }) => connection.from === nodeId || connection.to === nodeId)
-    const owner = Symbol(nodeId)
-    nodeOwners.set(nodeId, owner)
-    nodes.value = nodes.value.filter((node) => node.id !== nodeId)
+      .filter(({ connection }) => connection.from === effectiveNodeId || connection.to === effectiveNodeId)
+    const wasSelected = selectedNodeId.value === effectiveNodeId
+    const owner = Symbol(effectiveNodeId)
+    nodeOwners.set(effectiveNodeId, owner)
+    nodes.value = nodes.value.filter((node) => node.id !== effectiveNodeId)
     connections.value = connections.value.filter(
-      (connection) => connection.from !== nodeId && connection.to !== nodeId,
+      (connection) => connection.from !== effectiveNodeId && connection.to !== effectiveNodeId,
     )
-    if (selectedNodeId.value === nodeId) selectedNodeId.value = ''
+    if (selectedNodeId.value === effectiveNodeId) selectedNodeId.value = ''
     bumpDataRevision()
 
-    let persistedNodeId = nodeId
-    let wasCreated = !isTemporaryId(nodeId)
     try {
-      persistedNodeId = await resolveNodeId(nodeId)
-      wasCreated = true
-      await deleteCanvasNode(projectId, persistedNodeId)
-      if (isCurrentProject(context) && nodeOwners.get(nodeId) === owner) {
-        nodeOwners.delete(nodeId)
-        pendingMoves.delete(nodeId)
+      await deleteCanvasNode(projectId, effectiveNodeId)
+      if (isCurrentProject(context) && nodeOwners.get(effectiveNodeId) === owner) {
+        nodeOwners.delete(effectiveNodeId)
+        pendingMoves.delete(effectiveNodeId)
       }
     } catch (error) {
-      if (!wasCreated) return
-      if (isCurrentProject(context) && nodeOwners.get(nodeId) === owner) {
-        nodes.value.splice(Math.min(nodeIndex, nodes.value.length), 0, { ...nodeSnapshot, id: persistedNodeId })
+      if (isCurrentProject(context) && nodeOwners.get(effectiveNodeId) === owner) {
+        nodes.value.splice(Math.min(nodeIndex, nodes.value.length), 0, nodeSnapshot)
         for (const { connection, index } of connectionSnapshots) {
-          connections.value.splice(Math.min(index, connections.value.length), 0, {
-            ...connection,
-            from: connection.from === nodeId ? persistedNodeId : connection.from,
-            to: connection.to === nodeId ? persistedNodeId : connection.to,
-          })
+          connections.value.splice(Math.min(index, connections.value.length), 0, connection)
         }
-        nodeOwners.delete(nodeId)
+        if (wasSelected && selectedNodeId.value === '') selectedNodeId.value = effectiveNodeId
+        nodeOwners.delete(effectiveNodeId)
         bumpDataRevision()
         reportSaveError('删除节点', error)
       }

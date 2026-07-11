@@ -1,13 +1,13 @@
 # T4-012 Progress - Canvas decomposition and persistence
 
 - Task: `T4-012`
-- Active delivery: `Unit A - Decomposition And Persistence`
+- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`READY`, implementation not started)
 - State: `DOING`
 - Updated: 2026-07-12
 
 ## Current Bounded Unit
 
-Unit 4 - CanvasStage decomposition and Workspace persistence lifecycle. Completed with controlled browser interaction, route-leave flush, and production-build verification in this run.
+Unit 5 - Unit A real acceptance and freeze. Completed with focused regression, real FastAPI/MySQL/API/browser persistence evidence, all mutation rollback classes, deep self-review, and production-build verification.
 
 ## Completed Work
 
@@ -40,6 +40,16 @@ Unit 4 - CanvasStage decomposition and Workspace persistence lifecycle. Complete
 - Added `use-canvas-persistence-lifecycle.ts` to await all queued moves before leaving Workspace or updating its project route, and issue an idempotent best-effort flush during unmount.
 - Verified a controlled failed drag emitted one PUT 503, displayed `Controlled move failure`, and restored the exact pre-drag minimap style; a failed anchor connection emitted one POST 503, displayed `Controlled connection failure`, and left zero connection paths.
 - Verified wheel zoom and middle-button pan both updated the minimap viewport; a successful SPA route leave sent exactly one queued PUT and waited about 188 ms for a deliberately 150 ms response before navigation completed.
+- Started the existing local runtime without reading secrets and verified `/health` against MySQL with `connected=true`, `ready=true`, and Alembic current/head `e9f1a2b3c4d5`.
+- Verified real API persistence across two isolated projects: initial node totals 2/1, exact move `(333.5, 444.25)`, refresh-style re-fetch with 2 nodes/1 connection, explicit connection delete, recreated connection plus node-delete cascade, and final 1 node/0 connections.
+- Verified the real frontend store against MySQL: create returned a server ID and survived refresh; connection delete survived refresh; connection recreate returned a server ID; node delete survived refresh; final Project A remained 2 nodes/1 connection with no load/save error.
+- Verified real Canvas pointer movement and anchor connection persistence across reload, plus Project A/B route isolation and refresh recovery at 2 nodes/1 connection versus 1 node/0 connections.
+- Forced controlled 503 failures for create node, move node, delete node, create connection, and delete connection; every class displayed a visible `NMessage` error and restored the owned entity/edge state without temporary ghosts.
+- Fixed delete-node rollback so the prior selection is restored only while selection remains empty; a newer selection made during the request remains authoritative.
+- Fixed temporary node/connection races found during deep review by stabilizing a creating node's server ID before deletion and repeatedly settling all related connection creates before snapshots. A delayed real connection POST plus failed node DELETE restored only server IDs; a temp node plus two concurrent temp edges then deleted successfully with all four promises fulfilled and clean refresh state.
+- Added explicit missing/loading/error/empty Canvas states and a retry action. Controlled browser checks verified missing-project copy, forced loading copy, a visible controlled load error, successful retry, and return to the real graph.
+- Split coordinate changes from the Leafer structural scene signature so pointer movement uses targeted visual-position updates instead of clearing and rebuilding the full scene on every reactive coordinate change.
+- Completed deep security/architecture/adversarial review. Route encoding, bearer use, backend ownership guards, scope, secrets, and module boundaries passed after the fixes; generation status/content persistence remains an explicit pre-existing generation-scope follow-up, and the lack of a tracked frontend test runner remains a documented structural risk mitigated by deterministic browser/API evidence in Unit A.
 
 ## Contract Audit Findings
 
@@ -67,11 +77,12 @@ Unit 4 - CanvasStage decomposition and Workspace persistence lifecycle. Complete
 
 ## Remaining Work
 
-- Unit 5 only: run focused backend contract regression plus real local FastAPI/MySQL load, create, move, connection, delete, refresh, and persistence acceptance; repeat the remaining mutation-class failure cases and close Unit A when all gates pass.
+- Unit A: none; every non-deferred Unit A gate is complete and frozen.
+- T4-012 Unit B remains: plan and implement advanced connection interaction, double-click create, selection box/multi-select, context menu, minimap/keyboard behavior, and 1440x900/920px/375px visual acceptance without reopening the backend contract.
 
 ## Exact Next Action
 
-Implement Unit 5 only: start the authorized local FastAPI/MySQL runtime without reading secrets, create or select a local user/project fixture through normal APIs, verify real node/connection load plus create/move/delete/refresh persistence and route isolation, run focused backend node/connection tests and the frontend build, then fresh-review and close Unit A only if every non-deferred gate passes.
+Next run, refresh this PLAN and PROGRESS for Unit B before business-code edits, then select only the first bounded advanced-interaction unit; do not reopen Unit A backend contracts without new evidence.
 
 ## Files Changed
 
@@ -89,6 +100,13 @@ Implement Unit 5 only: start the authorized local FastAPI/MySQL runtime without 
 - `frontend/src/components/canvas/composables/use-canvas-persistence-lifecycle.ts` - added awaited route-leave/project-update and best-effort unmount move flushing.
 - `frontend/src/types/canvas.ts` - added reusable status plus structured node/connection persistence metadata.
 - `frontend/src/views/app/Workspace.vue` - normalized and bound route project context to Canvas loading.
+- `frontend/src/modules/canvas/mutations.ts` - restored selection on owned delete rollback, stabilized temp-node server identity, and repeatedly settled related temporary connection creates before node-delete snapshots.
+- `frontend/src/components/canvas/composables/use-canvas-stage.ts` - added explicit Canvas state notices and separated coordinate updates from structural scene rebuilds.
+- `frontend/src/components/canvas/CanvasStage.vue` - rendered accessible missing/loading/error/empty Canvas states with retry.
+- `frontend/src/components/canvas/canvas-stage.scss` - styled the scoped Canvas state overlay and retry focus state.
+- `ai/tasks/todo/TASK-T4-012.md` - marked the four Unit A acceptance items complete while leaving Unit B criteria open.
+- `ai/tasks/doing/TASK-T4-012-PLAN.md` - froze Unit A as PASS and marked Unit B ready but not started.
+- `ai/state/ROADMAP.md` - marked T4-012 Unit A `DONE - PASS`; Unit B remains TODO.
 - `ai/tasks/doing/TASK-T4-012-PROGRESS.md` - recorded Unit 4 implementation, verification, remaining work, and next action.
 - `ai/state/CURRENT.md` - refreshed the rolling T4-012 snapshot for the completed Unit 4 bounded unit.
 
@@ -107,11 +125,24 @@ Implement Unit 5 only: start the authorized local FastAPI/MySQL runtime without 
 - `frontend: npm run build` after Unit 4 decomposition: PASS; `vue-tsc -b` and Vite completed with 4,701 modules transformed.
 - File-size check after Unit 4: `CanvasStage.vue` 76 lines, `canvas-geometry.ts` 125, `canvas-renderer.ts` 179, `use-canvas-stage.ts` 286, persistence lifecycle 19, and scoped SCSS 154; all remain below 500 lines.
 - Playwright CLI controlled browser regression at 1280x800 with local mock routes: PASS for two-node project load, exact failed-move visual rollback and visible error, failed-connection ghost removal and visible error, wheel zoom, middle-button pan, and one awaited successful route-leave PUT. Expected mocked 503 browser resource errors were observed; unrelated Home API connection-refused entries occurred only after the route-leave destination loaded without Home mocks.
+- Current run Git baseline: `main` at `918d0e0aaa3f5f27a01f030b3b373c60278a110d`; no staged, modified, unmerged, detached, or in-progress Git-operation state; 15 documented root Playwright YAML snapshots were the only untracked paths.
+- Single-flight task-list check: PASS; only the current controller was active and all older same-title runs were idle or not loaded.
+- `backend: python -m unittest tests.test_canvas_node_crud tests.test_canvas_connection_crud`: PASS, 19/19 tests.
+- `frontend: npm run build` before and after the final fixes: PASS; `vue-tsc -b` and Vite completed with 4,701 transformed modules.
+- Real local `/health`: PASS on MySQL; database connected/ready and Alembic current matched head at `e9f1a2b3c4d5`.
+- Real API/MySQL acceptance: PASS for normal mock auth, two project fixtures, create/move/connect/delete/cascade/re-fetch and exact route isolation; no paid provider call or secret read occurred.
+- Real Playwright/frontend acceptance: PASS for server load, store create/delete/recreate, pointer move, anchor connection, refresh persistence, A/B route isolation, explicit Canvas state notices/retry, and all five controlled mutation failure classes.
+- In-flight race regression: PASS; delayed real connection create plus failed node delete produced only server IDs, exact graph/selection rollback, successful edge cleanup, and clean refresh state.
+- Temp-identity adversarial regression: PASS; one delayed temp node, two related temp edges started across the delete wait, and the delete all fulfilled; store and refresh retained only the original 2 nodes/1 server edge with no temporary ID.
+- Deep review and adversarial pass over `git diff 5b64ca1`: PASS after fixing load-state UI, pointermove full-scene rebuild, selection rollback, and temporary-edge reconciliation; generation-state persistence was confirmed out of Unit A scope and no secret/auth/backend-contract drift was found.
+- Final file sizes: `CanvasStage.vue` 89, `canvas-geometry.ts` 125, `canvas-renderer.ts` 179, `canvas-stage.scss` 193, `use-canvas-stage.ts` 317, persistence lifecycle 19, `mutations.ts` 434, and `canvas.ts` 227 lines.
+- `git diff --check`: PASS.
 
 ## Blockers And Release Conditions
 
-- No Human gate or dependency blocker exists for Unit 4.
-- Task-list single-flight capability was unavailable; release condition for commit is unchanged starting branch/HEAD/index and no Git operation/unmerged path at pre-commit recheck.
+- No Human gate or dependency blocker exists for Unit A closure or Unit B planning.
+- Commit release condition is unchanged starting branch/HEAD/index, no Git operation/unmerged path, precise owned staging, staged secret scan, and clean staged diff review.
 - The pre-existing `5b64ca1` Playwright snapshot commit is outside T4-012 ownership and must remain untouched unless the Human Owner separately requests cleanup.
 - No push is authorized.
 - Fifteen root `.playwright-cli/page-2026-07-11T16-*.yml` snapshots are untracked browser evidence generated after earlier and current clean baselines. They are excluded from this delivery commit and must not be deleted or staged without a separate cleanup decision.
+- Ignored `output/playwright/` contains current local browser screenshots/logs and remains excluded. Two normal local mock users, two projects, three final nodes, and one final connection remain in MySQL as non-production Unit 5 fixture evidence; broad cleanup was not authorized.

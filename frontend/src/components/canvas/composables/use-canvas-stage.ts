@@ -23,6 +23,7 @@ interface DragState { nodeId: string; pointerId: number | null; offsetX: number;
 interface PanState { pointerId: number | null; startClientX: number; startClientY: number; originX: number; originY: number }
 interface DraftConnectionState { fromNodeId: string; pointerId: number | null; currentX: number; currentY: number }
 interface LeaferPointerEvent { target?: unknown; origin?: PointerEvent }
+interface StageNotice { kind: 'missing' | 'loading' | 'error' | 'empty'; title: string; detail: string; canRetry?: boolean }
 
 type StatusVisualState = Extract<NonNullable<CanvasNode['status']>, 'running' | 'success' | 'warning'>
 
@@ -45,11 +46,12 @@ export function useCanvasStage() {
   }
   const sceneSignature = computed(() => JSON.stringify({
     selectedNodeId: canvasStore.selectedNodeId,
-    nodes: canvasStore.nodes.map(({ id, type, title, content, status, x, y, width, height }) => ({
-      id, type, title, content, status, x, y, width, height,
+    nodes: canvasStore.nodes.map(({ id, type, title, content, status, width, height }) => ({
+      id, type, title, content, status, width, height,
     })),
     connections: canvasStore.connections.map(({ id, from, to, active }) => ({ id, from, to, active })),
   }))
+  const nodePositions = computed(() => canvasStore.nodes.map(({ id, x, y }) => ({ id, x, y })))
   const viewportSignature = computed(() => JSON.stringify({ ...canvasStore.viewport, ...surfaceViewportSize.value }))
   const viewportCursor = computed(() => {
     if (isPanning.value) return 'grabbing'
@@ -66,6 +68,21 @@ export function useCanvasStage() {
   const temporaryConnectionPath = computed(() => {
     const draft = draftConnection.value
     return draft ? buildConnectionPath(nodeOutputAnchor(draft.fromNodeId), { x: draft.currentX, y: draft.currentY }) : ''
+  })
+  const stageNotice = computed<StageNotice | null>(() => {
+    if (!canvasStore.activeProjectId) {
+      return { kind: 'missing', title: '未选择项目', detail: '请从项目列表进入工作流后加载画布。' }
+    }
+    if (canvasStore.isLoading && !canvasStore.hasLoaded) {
+      return { kind: 'loading', title: '正在加载画布', detail: '正在同步项目节点与连线…' }
+    }
+    if (canvasStore.loadError) {
+      return { kind: 'error', title: '画布加载失败', detail: canvasStore.loadError, canRetry: true }
+    }
+    if (canvasStore.hasLoaded && canvasStore.nodes.length === 0) {
+      return { kind: 'empty', title: '画布为空', detail: '当前项目还没有节点。' }
+    }
+    return null
   })
 
   function cssVar(name: string, fallback: string) {
@@ -113,6 +130,10 @@ export function useCanvasStage() {
       x: surfaceViewportSize.value.width / 2 - (node.x + node.width / 2) * viewport.zoom,
       y: surfaceViewportSize.value.height / 2 - (node.y + node.height / 2) * viewport.zoom,
     })
+  }
+  function retryProjectLoad() {
+    if (!canvasStore.activeProjectId) return
+    void canvasStore.loadProject(canvasStore.activeProjectId, true).catch(() => undefined)
   }
   function toSurfacePoint(clientX: number, clientY: number) {
     const rect = stageRef.value?.getBoundingClientRect()
@@ -263,6 +284,15 @@ export function useCanvasStage() {
     resizeObserver.observe(stage)
   })
   watch(sceneSignature, () => renderer?.render())
+  watch(nodePositions, (positions, previousPositions = []) => {
+    const previousById = new Map(previousPositions.map((position) => [position.id, position]))
+    for (const position of positions) {
+      const previous = previousById.get(position.id)
+      if (previous && (previous.x !== position.x || previous.y !== position.y)) {
+        renderer?.updateNodePosition(position.id)
+      }
+    }
+  })
   watch(viewportSignature, () => renderer?.render())
   onBeforeUnmount(() => {
     unbindWindowPointerListeners()
@@ -281,6 +311,7 @@ export function useCanvasStage() {
   return {
     buildConnectionPath, canvasStore, canvasSurfaceRef, centerNodeInViewport, minimapNodeStyle,
     minimapViewportStyle, nodeInputAnchor, nodeOutputAnchor, stageRef, statusBadgeStyle,
-    statusIconMap, statusLabel, statusNodes, surfaceNodeRectStyle, temporaryConnectionPath, viewportCursor,
+    statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath,
+    viewportCursor, retryProjectLoad,
   }
 }

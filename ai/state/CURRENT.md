@@ -20,8 +20,9 @@ Last updated: 2026-07-12
 
 ## Active Task
 
-- Task: `T4-012 Unit A - Canvas decomposition and persistence`
+- Task: `T4-012 - Canvas interaction and persistence`
 - State: `DOING`
+- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`READY`, implementation not started)
 - Task file: `ai/tasks/todo/TASK-T4-012.md`
 - Plan: `ai/tasks/doing/TASK-T4-012-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T4-012-PROGRESS.md`
@@ -36,20 +37,20 @@ Last updated: 2026-07-12
 - Browser/build: 1440x900, 920x900, and 375x900 had no overflow with 3/2/1 asset-grid columns and 0 unexpected console/page/API failures; 22/22 focused backend tests and the 4,693-module production build passed.
 - Residual local data: `t4009_mrgisxgt` plus 14 asset rows, 1 template, and 2 projects remain in `revid_db`; broad cleanup was not authorized. Earlier T4-008 residual fixture data also remains.
 
-## T4-012 Unit A Objective
+## T4-012 Current Objective
 
-Decompose the 1000+ line CanvasStage into clear render, viewport, interaction, and persistence responsibilities, then implement project-driven node/connection load plus create/move/delete persistence, debounce/flush, and optimistic rollback using the existing backend contracts.
+Unit A is frozen as `DONE - PASS`: CanvasStage is decomposed and project-driven node/connection load plus create/move/delete persistence, debounce/flush, rollback, explicit load states, and async ownership are verified. Unit B must now add advanced interaction and visual acceptance without reopening the backend contract.
 
-## T4-012 Unit A Scope
+## T4-012 Scope
 
 - Allowed edits: CanvasStage, canvas store/types, and Workspace project integration.
 - Allowed additions: `frontend/src/modules/canvas/**`, Canvas-specific composables, and decomposition components.
 - Forbidden: backend contract, Auth, Home, Space, global design-token, or second-canvas-engine changes.
-- Unit A acceptance requires real project-driven node/connection load, persistence across refresh, API-failure rollback with visible error, production build, and `CanvasStage.vue` at most 500 lines before Unit B begins.
+- Unit A acceptance is complete. Unit B remains limited to connection interaction, selection, context menu, minimap/keyboard behavior, and responsive browser acceptance.
 
 ## Latest T4-012 Progress
 
-- Units 1 through 4 are complete: the contract/decomposition map, project-scoped load foundation, optimistic mutations, rollback, move queue, CanvasStage decomposition, and route persistence lifecycle are implemented and production-build verified.
+- Unit A Units 1 through 5 are complete and frozen as `DONE - PASS`.
 - Typed Canvas DTO/API functions and explicit render-model mappers now cover node list/create/update/delete plus connection list/create/delete contracts without leaking backend field names into Canvas rendering.
 - The Canvas store no longer initializes fixture nodes or connections; it tracks active project/loading/error state and loads both collections with project-generation, session, and local-revision guards.
 - Workspace normalizes the route `project_id`, clears stale project data for a missing/new ID, and immediately binds valid project context to guarded Canvas loading.
@@ -58,16 +59,22 @@ Decompose the 1000+ line CanvasStage into clear render, viewport, interaction, a
 - Controlled local-browser failures verified one PUT per drag, exact store/minimap/Leafer position rollback, visible move errors, connection ghost removal, and retryability without any real backend, database, secret, or paid call.
 - Pure geometry/viewport, Leafer rendering, pointer interaction, scoped visual styling, and persistence lifecycle now have separate Canvas-local modules; Workspace route leave and project-route update guards await pending moves, and unmount performs a best-effort fallback.
 - Controlled interaction QA verified wheel zoom, middle-button pan, and a successful SPA route leave that waited for one deliberately delayed queued PUT before navigation.
-- `CanvasStage.vue` is 76 lines, `canvas.ts` 227, `mutations.ts` 411, `use-canvas-stage.ts` 286, and every new Unit 4 file is below 500 lines.
-- Unit B advanced selection, context menu, minimap work, keyboard behavior, and responsive QA remains gated on Unit A persistence and rollback acceptance.
+- Real local FastAPI/MySQL/API/browser acceptance passed load, store create, pointer move, connection create/delete, node delete/cascade, refresh recovery, and A/B route isolation using normal mock auth without a paid call or secret read.
+- Controlled browser failures passed create/move/delete node and create/delete connection rollback with visible errors, exact graph restoration, selection restoration that preserves newer intent, and no temporary ghosts.
+- Deep review fixed missing/loading/error/empty Canvas states with retry, removed pointermove full-scene rebuilds, and closed temporary node/connection rekey races by stabilizing server identity and settling all related in-flight edge creates before delete snapshots.
+- A temp node plus two concurrent temp edges deleted successfully through the real API; all four promises fulfilled and refresh retained only the original 2 nodes/1 server edge.
+- Focused backend Canvas CRUD regression passed 19/19; the final production build passed with 4,701 modules.
+- Final sizes are `CanvasStage.vue` 89, `canvas.ts` 227, `use-canvas-stage.ts` 317, `mutations.ts` 434, and all Canvas-local files remain below 500 lines.
+- Generation status/content persistence remains outside Unit A's locked scope; lack of a tracked frontend test runner remains a structural risk mitigated here with controlled and real browser/API evidence.
+- Unit B advanced selection, context menu, minimap, keyboard behavior, and responsive QA is dependency-ready but has not started.
 
 ## Exact Next Action
 
-Implement Unit 5 only: run focused backend node/connection regression plus authorized local FastAPI/MySQL real load, create, move, connect, delete, refresh, and route-isolation acceptance; repeat remaining mutation failure classes, then fresh-review and close Unit A only if every gate passes.
+Next run, refresh the T4-012 PLAN and PROGRESS for Unit B before business-code edits, then select only its first bounded advanced-interaction unit; do not reopen Unit A backend contracts without new evidence.
 
 ## Current Blockers
 
-- T4-012 Unit A has no recorded Human gate or dependency blocker.
+- T4-012 Unit A has no remaining blocker; Unit B has no recorded Human gate or dependency blocker.
 - T4-005 Unit B real Agnes smoke remains a separate Human cost gate and must not run without explicit authorization.
 - The backend direct registration API 72-byte password boundary remains a separate normal engineering follow-up.
 - Existing backend asset ordering lacks a stable secondary key when MySQL `created_at` values tie within one second; route this to a future backend follow-up without reopening completed T4-009.
@@ -75,12 +82,13 @@ Implement Unit 5 only: run focused backend node/connection regression plus autho
 
 ## Worktree Protection
 
-- This run started from `main` at `8ea8e84b9434d4805e00529158f51dbf29dd0861`, with no staged, modified, unmerged, detached, or in-progress Git-operation state; ten documented root Playwright snapshots were the only pre-existing untracked paths.
-- Codex task-list capability was unavailable, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
+- This run started from `main` at `918d0e0aaa3f5f27a01f030b3b373c60278a110d`, with no staged, modified, unmerged, detached, or in-progress Git-operation state; fifteen documented root Playwright snapshots were the only pre-existing untracked paths.
+- Single-flight task-list inspection passed: only the current same-title controller run was active; older runs were idle or not loaded.
 - Pre-run commit `5b64ca1` contains only the formerly untracked zero-byte root Playwright snapshot and is already `origin/main`; it is outside T4-012 ownership and must not be modified or reverted in this Task.
-- The current bounded unit owns only the Canvas stage decomposition modules, minimal Workspace persistence lifecycle bridge, T4-012 PROGRESS, and CURRENT paths documented above; no backend code, dependency, generated output, secret, or global design file belongs to the commit.
+- The current bounded unit owns only the final Canvas state/position/rollback coordination fixes plus T4-012 Task/PLAN/PROGRESS, ROADMAP, and CURRENT closure paths; no backend code, dependency, generated output, secret, or global design file belongs to the commit.
 - Fifteen root `.playwright-cli/page-2026-07-11T16-*.yml` snapshots are untracked browser evidence generated across the prior and current runs; preserve and exclude them from staging pending a separate cleanup decision.
 - `/frontend/.playwright-cli/` and `/output/playwright/` remain ignored local evidence directories and must not be deleted, moved, force-added, or included without new explicit scope.
+- Two normal local mock users, two projects, three final nodes, and one final connection remain in MySQL as non-production Unit 5 fixture evidence; broad cleanup was not authorized.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 
 ## Historical Evidence

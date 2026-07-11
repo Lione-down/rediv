@@ -1,7 +1,7 @@
 # T4-012 Plan - Canvas decomposition and persistence
 
 - Task: `T4-012`
-- Active delivery: `Unit A - Decomposition And Persistence`
+- Active delivery: `Unit B - Advanced Interaction And Visual Acceptance` (`READY`, implementation not started)
 - State: `DOING`
 - Owner: Codex Project Lead Engineer
 - Created: 2026-07-12
@@ -40,6 +40,13 @@ Non-goals for Unit A:
 
 ## Delivery Units
 
+### Unit A completion - PASS 2026-07-12
+
+- Real local FastAPI/MySQL and browser evidence covered project-scoped load, store/API create, pointer move, connection create, connection and node delete, cascade behavior, refresh recovery, and A/B route isolation.
+- Controlled 503 responses covered create/move/delete node and create/delete connection rollback with visible `NMessage` errors; the final delete-node check also proved selection restoration without overwriting a newer selection.
+- Focused backend Canvas CRUD regression passed 19/19, the final production build passed with 4,701 transformed modules, and `CanvasStage.vue` is 89 lines.
+- Unit A is frozen. Unit B must not reopen the backend contract unless new evidence is routed through an explicit follow-up decision.
+
 ### Unit 1 - Contract audit and implementation map - complete 2026-07-12
 
 - Audit CanvasStage, canvas store/types, Workspace route ownership, request conventions, node/connection schemas, and backend tests.
@@ -71,7 +78,7 @@ Non-goals for Unit A:
 - Drive load/flush from the normalized Workspace route `project_id`; render a clear missing-project/load/error state and prevent fixture fallback from overwriting server data.
 - Preserve the current visual language and existing pan/zoom/anchor-drag behavior.
 
-### Unit 5 - Unit A real acceptance and freeze
+### Unit 5 - Unit A real acceptance and freeze - complete 2026-07-12
 
 - Run focused backend contract tests and the frontend production build.
 - With an authorized local user/project and local FastAPI/MySQL runtime, verify server load, create, move debounce, connection create, delete cascade, refresh recovery, and stale-route protection.
