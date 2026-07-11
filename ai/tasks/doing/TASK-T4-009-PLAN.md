@@ -94,9 +94,16 @@ Success criteria:
 - assets/templates/quota are backed by real APIs;
 - type filtering, pagination, detail, project navigation, loading, empty, error, and boundary states work coherently.
 
-### Unit 4 - Accessibility and failure semantics
+### Unit 4 - Accessibility and failure semantics - complete 2026-07-11
 
 Complete real prompt/image/video URL rendering and load fallbacks, deletion confirmation and hidden/deleted refresh behavior, plus the remaining responsive failure edges.
+
+Implement as one bounded, independently verified slice:
+
+1. Accept only credential-free absolute HTTPS media URLs whose backend source is `generation`. Treat user-supplied upload URLs, missing, malformed, credential-bearing, unsupported-scheme, and relative `/uploads/...` values as unavailable without guessing an API origin or automatically requesting owner-supplied arbitrary URLs. Keep image referrers suppressed, preserve provider media that is embeddable without an ACAO contract, and reset load-error state whenever the asset identity or URL changes.
+2. Keep compact cards free of nested interactive controls; render image/video media as non-interactive previews there, and expose video controls only in the detail drawer. Preserve differentiated prompt content and stable labelled fallbacks for every media failure state.
+3. Expose asset soft-delete and template hard-delete only from detail context, behind explicit focus-managed confirmation. Keep mutation failures owned by the exact asset/template, close detail only after confirmed success, correct an asset page that becomes out of range, and force-refresh templates after hard delete without reclassifying a successful delete as failed when refresh alone fails.
+4. Verify URL policy/load fallback, confirmation keyboard behavior, failure ownership, deletion refresh/boundary semantics, TypeScript, production build, and responsive browser rendering before committing the unit.
 
 Success criteria:
 

@@ -1,13 +1,26 @@
 <script setup lang="ts">
 import { FileQuestion, Image, Sparkles, Video } from 'lucide-vue-next'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { Asset } from '../../../../types/asset'
-import { getAssetShortTitle, getAssetTypeLabel } from './space-presentation'
+import {
+  getAssetShortTitle,
+  getAssetTypeLabel,
+  getRenderableAssetMediaUrl,
+} from './space-presentation'
 
 const props = defineProps<{
   asset: Asset
   compact?: boolean
 }>()
+
+const hasMediaLoadFailed = ref(false)
+const mediaUrl = computed(() => getRenderableAssetMediaUrl(props.asset))
+const canRenderMedia = computed(
+  () => Boolean(mediaUrl.value) && !hasMediaLoadFailed.value,
+)
+const mediaLabel = computed(
+  () => `${getAssetTypeLabel(props.asset.type)}资产预览：${getAssetShortTitle(props.asset)}`,
+)
 
 const previewIcon = computed(() => {
   if (props.asset.type === 'prompt') return Sparkles
@@ -21,21 +34,70 @@ const previewText = computed(() => {
     return props.asset.content_text?.trim() || '这个 Prompt 暂无文本内容。'
   }
 
-  return props.asset.url ? '媒体预览暂不可用。' : '这个资产没有可用媒体地址。'
+  if (props.asset.type === 'image') {
+    return hasMediaLoadFailed.value
+      ? '图片加载失败，资产记录仍可查看。'
+      : '这个资产没有可安全加载的图片地址。'
+  }
+
+  if (props.asset.type === 'video') {
+    return hasMediaLoadFailed.value
+      ? '视频加载失败，资产记录仍可查看。'
+      : '这个资产没有可安全加载的视频地址。'
+  }
+
+  return '暂不支持这个资产类型的预览。'
 })
+const fallbackLabel = computed(() => `${mediaLabel.value}。${previewText.value}`)
+
+watch(
+  () => [props.asset.id, props.asset.type, props.asset.url] as const,
+  () => {
+    hasMediaLoadFailed.value = false
+  },
+  { flush: 'sync' },
+)
 </script>
 
 <template>
   <div
     class="asset-preview"
-    :class="[`is-${asset.type}`, { 'is-compact': compact }]"
-    :role="asset.type === 'prompt' ? undefined : 'img'"
-    :aria-label="asset.type === 'prompt' ? undefined : `${getAssetTypeLabel(asset.type)}资产预览：${getAssetShortTitle(asset)}`"
+    :class="[`is-${asset.type}`, { 'is-compact': compact, 'has-media': canRenderMedia }]"
+    :role="asset.type !== 'prompt' && !canRenderMedia ? 'img' : undefined"
+    :aria-label="asset.type !== 'prompt' && !canRenderMedia ? fallbackLabel : undefined"
   >
-    <span class="preview-icon" aria-hidden="true">
-      <component :is="previewIcon" :size="compact ? 20 : 24" />
-    </span>
-    <p>{{ previewText }}</p>
+    <img
+      v-if="asset.type === 'image' && canRenderMedia"
+      class="preview-media"
+      :src="mediaUrl"
+      :alt="compact ? '' : mediaLabel"
+      :aria-hidden="compact ? 'true' : undefined"
+      width="640"
+      height="360"
+      loading="lazy"
+      decoding="async"
+      referrerpolicy="no-referrer"
+      @error="hasMediaLoadFailed = true"
+    />
+    <video
+      v-else-if="asset.type === 'video' && canRenderMedia"
+      class="preview-media"
+      :src="mediaUrl"
+      :controls="!compact"
+      :muted="compact"
+      :tabindex="compact ? -1 : undefined"
+      :aria-hidden="compact ? 'true' : undefined"
+      :aria-label="compact ? undefined : mediaLabel"
+      preload="metadata"
+      playsinline
+      @error="hasMediaLoadFailed = true"
+    />
+    <template v-else>
+      <span class="preview-icon" aria-hidden="true">
+        <component :is="previewIcon" :size="compact ? 20 : 24" />
+      </span>
+      <p>{{ previewText }}</p>
+    </template>
     <span class="preview-type">{{ getAssetTypeLabel(asset.type) }}</span>
   </div>
 </template>
@@ -63,6 +125,25 @@ const previewText = computed(() => {
     radial-gradient(circle at 78% 18%, rgba(99, 71, 194, 0.25), transparent 36%),
     linear-gradient(160deg, rgba(240, 238, 246, 0.025), transparent 58%);
   content: '';
+}
+
+.preview-media {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  outline: 1px solid rgba(240, 238, 246, 0.1);
+  outline-offset: -1px;
+}
+
+video.preview-media {
+  background: #111118;
+}
+
+.asset-preview.is-compact .preview-media {
+  pointer-events: none;
 }
 
 .asset-preview.is-image::before {
@@ -112,6 +193,7 @@ const previewText = computed(() => {
 
 .preview-type {
   position: absolute;
+  z-index: 2;
   top: var(--space-3);
   right: var(--space-3);
   padding: 5px 9px;

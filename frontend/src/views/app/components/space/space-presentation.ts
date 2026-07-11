@@ -55,6 +55,31 @@ export function getAssetSourceLabel(source: string) {
   return getLabel(assetSourceLabels, source, '未知来源')
 }
 
+export function getRenderableAssetMediaUrl(asset: Asset) {
+  if (
+    (asset.type !== 'image' && asset.type !== 'video') ||
+    asset.source !== 'generation' ||
+    !asset.url?.trim()
+  ) {
+    return ''
+  }
+
+  try {
+    const mediaUrl = new URL(asset.url.trim())
+    if (
+      mediaUrl.protocol !== 'https:' ||
+      mediaUrl.username ||
+      mediaUrl.password
+    ) {
+      return ''
+    }
+
+    return mediaUrl.href
+  } catch {
+    return ''
+  }
+}
+
 export function getAssetTitle(asset: Asset) {
   const content = asset.content_text?.trim()
   if (content) {

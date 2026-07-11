@@ -49,17 +49,17 @@ Refactor Space into a maintainable dark personal asset workspace using real asse
 
 ## Latest T4-009 Progress
 
-- Units 1-3 are complete: contract audit, guarded real-data asset/template foundations, extracted mutation/detail coordinators, and the real Space controller/local presentation slice.
-- `Space.vue` is now a 479-line page coordinator backed by real asset, template, and `/me` quota stores. Nine scoped presentation/style files provide type filters, API pagination, loading/retained-error/empty/boundary states, differentiated basic previews, template reuse, quota counts, and asset/template detail UI.
-- Native button view switching and pagination replace inaccessible controls from the installed Naive version. Persistent labelled regions, filter groups, drawer naming, bounded labels, focus visibility, contrast, reduced motion, long-content wrapping, and zero-total page correction are implemented.
-- Successful template creation is persisted in the template store before navigation. Leaving Space suppresses stale route pushes without losing the new project; re-entry exposes a recoverable notice, navigation failure retains the exact ID, and template-use errors are scoped to their owning template.
-- Final mock Chromium QA passed keyboard switching/pagination, zero-result recovery, stale template completion recovery, exact Workspace navigation, 320px no-overflow assertions, 375px and 1440px screenshots, and 0 console errors/warnings. Final `npm run build` transformed 4,689 modules.
-- Deep security, architecture/concurrency, and UI/accessibility review findings were fixed; final architecture/concurrency and UI/accessibility re-reviews returned CLEAN. All current implementation files are below 500 lines and `git diff --check` passed.
-- Unit 4 real media URL/load fallback and confirmed asset/template deletion remain, followed by Unit 5 real API/MySQL and final cross-width acceptance plus REPORT closure.
+- Units 1-4 are complete: contract audit, guarded real-data asset/template foundations, extracted mutation/detail coordinators, the real Space controller/presentation slice, and accessible media/deletion failure semantics.
+- `Space.vue` is a 497-line coordinator backed by real asset, template, and `/me` quota stores. Generation-sourced credential-free HTTPS image/video URLs render directly, while upload, relative, malformed, unsupported, missing, and decoder-failed media use stable differentiated fallbacks whose accessible names include the reason.
+- Compact cards have no nested media controls; labelled video controls appear only in detail. Confirmed asset soft-delete refreshes collections and corrects an invalid last page; confirmed template hard-delete invalidates guarded detail/list state and force-refreshes the collection. Mutation failures remain owned by their exact detail target.
+- The destructive alertdialog has explicit naming, cancel-first focus, Escape/Tab/Enter behavior, deletion locks, failure focus return, and a 0s reduced-motion path compatible with the installed Naive/vueuc focus trap. The 375px overview rail no longer produces an orphaned quota character.
+- Final mock Chromium passed 18 assertions with 0 unexpected console errors/warnings, 320/375/920/1440 no-overflow geometry, no-ACAO real media, fallback, failure, keyboard, pagination, and refresh checks. Screenshots are under `output/playwright/t4-009-unit4/`; final production build transformed 4,693 modules.
+- Fresh media privacy, deletion/session/concurrency, UI/accessibility, reduced-motion, and responsive findings were fixed; final security/contract and UI/accessibility re-reviews returned CLEAN. All current implementation files remain below 500 lines and `git diff --check` passed.
+- Unit 5 real API/MySQL comparison and final cross-width acceptance remain, followed by REPORT and Task/ROADMAP closure.
 
 ## Exact Next Action
 
-Implement Unit 4's real image/video URL rendering and stable load fallback, then add explicitly confirmed asset/template deletion with contract-accurate collection/detail refresh behavior and focused failure/keyboard/browser verification.
+Run Unit 5's authorized local real API/MySQL comparison for asset/template rows, filters, totals, detail, media, and deletion/refresh semantics; then complete final 1440x900/920px/375px browser acceptance, production regression, fresh diff review, REPORT, and Task/ROADMAP closure only if every non-deferred criterion passes.
 
 ## Current Blockers
 
@@ -70,9 +70,9 @@ Implement Unit 4's real image/video URL rendering and stable load fallback, then
 
 ## Worktree Protection
 
-- This delivery unit started from clean `main` at `cf56c05f405115acb4766e27c28e71f6f6643ce5`, ahead of `origin/main` by seven commits, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- This delivery unit started from clean `main` at `bab95e6c6ca3d2f2367395ffac31d0c4f38308f1`, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state.
 - The Codex task-list single-flight query was unavailable, so branch/HEAD/index and Git-operation state must remain unchanged through staging and commit.
-- This verified UI unit owns `frontend/src/views/app/Space.vue`, `frontend/src/views/app/components/space/**`, `frontend/src/modules/template/{store,mutation-controller}.ts`, T4-009 PLAN/PROGRESS, and CURRENT. No backend, dependency, generated output, secret, or global design file belongs to the unit.
+- This verified Unit 4 owns `frontend/src/views/app/Space.vue`, `frontend/src/views/app/components/space/{space-asset-preview,space-delete-zone,space-detail-drawer,space-overview-header,space-presentation,use-space-deletion}.*`, T4-009 PLAN/PROGRESS, and CURRENT. No backend, dependency, generated output, secret, or global design file belongs to the unit.
 - `/frontend/.playwright-cli/` and `/output/playwright/` are ignored local evidence directories. Their files remain on disk and must not be deleted, moved, force-added, or included in delivery commits without a new explicit scope.
 - Preserve unrelated future worktree changes; never reset, clean, or overwrite them.
 

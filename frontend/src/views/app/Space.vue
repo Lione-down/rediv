@@ -13,6 +13,7 @@ import SpaceOverviewHeader from './components/space/space-overview-header.vue'
 import SpaceProjectNotice from './components/space/space-project-notice.vue'
 import SpaceQuotaPanel from './components/space/space-quota-panel.vue'
 import SpaceTemplatesPanel from './components/space/space-templates-panel.vue'
+import { useSpaceDeletion } from './components/space/use-space-deletion'
 import type {
   SpaceAssetFilter,
   SpaceDetailKind,
@@ -92,6 +93,20 @@ const detailUseError = computed(() =>
     ? templateStore.useError
     : '',
 )
+const {
+  deleteState: detailDeleteState,
+  deleteError: detailDeleteError,
+  deleteDetail,
+} = useSpaceDeletion({
+  assetPage,
+  detailKind,
+  drawerAsset,
+  drawerTemplate,
+  closeDetail,
+  loadAssetPage,
+  loadTemplates,
+})
+
 function getAssetQuery() {
   return {
     ...(assetType.value === 'all' ? {} : { asset_type: assetType.value }),
@@ -468,10 +483,13 @@ onMounted(async () => {
       :using-template-id="templateStore.usingTemplateId"
       :has-pending-project="Boolean(createdProjectId)"
       :use-error="detailUseError"
+      :delete-state="detailDeleteState"
+      :delete-error="detailDeleteError"
       @close="closeDetail"
       @retry="retryDetail"
       @open-project="openProject"
       @use-template="useTemplateAndOpen"
+      @delete="deleteDetail"
     />
   </main>
 </template>

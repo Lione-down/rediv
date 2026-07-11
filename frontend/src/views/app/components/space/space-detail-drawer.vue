@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import type { Template } from '../../../../modules/template/types'
 import type { Asset } from '../../../../types/asset'
 import SpaceAssetPreview from './space-asset-preview.vue'
+import SpaceDeleteZone from './space-delete-zone.vue'
 import {
   formatSpaceDate,
   getAssetSourceLabel,
@@ -13,6 +14,7 @@ import {
   shortenSpaceText,
 } from './space-presentation'
 import type { SpaceDetailKind } from './space-presentation'
+import type { SpaceDeleteState } from './use-space-deletion'
 
 const props = defineProps<{
   show: boolean
@@ -24,6 +26,8 @@ const props = defineProps<{
   usingTemplateId: string
   hasPendingProject: boolean
   useError: string
+  deleteState: SpaceDeleteState
+  deleteError: string
 }>()
 
 const emit = defineEmits<{
@@ -31,6 +35,7 @@ const emit = defineEmits<{
   retry: []
   openProject: [projectId: string]
   useTemplate: [templateId: string]
+  delete: [kind: Exclude<SpaceDetailKind, null>, id: string]
 }>()
 
 const drawerTitle = computed(() => {
@@ -45,6 +50,14 @@ const drawerTitle = computed(() => {
 
 const assetProjectId = computed(() => props.asset?.project_id?.trim() || '')
 const templateId = computed(() => props.template?.id || '')
+const deleteTargetId = computed(() =>
+  props.kind === 'asset' ? props.asset?.id || '' : props.template?.id || '',
+)
+const deleteItemName = computed(() =>
+  props.kind === 'asset' && props.asset
+    ? getAssetShortTitle(props.asset, 48)
+    : shortenSpaceText(props.template?.name || '当前模板', 48),
+)
 
 function handleShowChange(show: boolean) {
   if (!show) {
@@ -164,6 +177,16 @@ function handleShowChange(show: boolean) {
         </template>
 
         <NEmpty v-else description="没有可显示的详情。" />
+
+        <SpaceDeleteZone
+          v-if="kind && deleteTargetId"
+          :kind="kind"
+          :target-id="deleteTargetId"
+          :item-name="deleteItemName"
+          :is-deleting="deleteState === 'deleting'"
+          :error="deleteError"
+          @confirm="emit('delete', $event, deleteTargetId)"
+        />
       </div>
     </NDrawerContent>
   </NDrawer>

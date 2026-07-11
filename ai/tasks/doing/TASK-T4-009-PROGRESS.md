@@ -8,7 +8,7 @@
 
 ## Current Bounded Unit
 
-Unit 3, sub-slice 2 is complete. The prototype Space page is now a real-data controller with domain-local presentation components, guarded template-created-project recovery, native keyboard-reachable view switching and pagination, and verified responsive loading/error/empty/boundary behavior. Destructive actions and complete real media URL/load fallback remain in Unit 4.
+Unit 4 is complete. Space now renders backend-provenance-gated, credential-free absolute HTTPS generation media with stable accessible fallback, keeps compact cards free of nested controls, and exposes asset/template deletion only through an explicitly named, focus-managed confirmation. Asset soft-delete refreshes owned collections and corrects an out-of-range page; template hard-delete invalidates guarded state and force-refreshes the list. Target-owned failures, reduced motion, and narrow-screen summary geometry are verified. Unit 5 real API/MySQL and final cross-width acceptance is the next bounded unit.
 
 ## Completed Slice Design
 
@@ -16,11 +16,19 @@ Unit 3, sub-slice 2 is complete. The prototype Space page is now a real-data con
 - Add prop-driven local components for the asset list/filter/pagination states, basic type-aware asset preview, template list/use states, quota remaining-count states, and a focus-managed asset/template detail drawer. Presentation helpers remain inside the Space subtree.
 - Load assets, templates, and `/me` quota data independently so one failed surface does not hide successful data. Preserve API totals and explicit initial-loading, retained-data error, empty, and out-of-range boundary behavior.
 - Reset asset page to one when the type filter changes, and recover any now-invalid page to the last valid page after a successful response, including a zero-result refresh. Asset project actions use `{ name: 'workspace', query: { project_id } }`; template use persists the exact returned project result before route navigation.
-- Do not expose asset or template deletion in this slice. Basic prompt/image/video differentiation uses stable labelled placeholders; complete real URL rendering/load fallback, deletion confirmation, and mutation refresh acceptance remain Unit 4 work.
+- Unit 3 intentionally did not expose asset or template deletion. Its basic prompt/image/video differentiation used stable labelled placeholders; Unit 4 has now completed real URL rendering/load fallback, deletion confirmation, and mutation refresh acceptance.
 - Use the existing component-scoped SCSS and Naive UI dark theme, with near-black canvas, luminance-stepped surfaces, restrained violet selection, transform/opacity feedback, reduced-motion handling, and no global token or dependency change.
 
 ## Completed Work
 
+- Added real image/video rendering for `source=generation` credential-free absolute HTTPS URLs. Owner-supplied upload URLs, relative `/uploads/...`, malformed values, userinfo, non-HTTPS schemes, missing URLs, and load/decoder failures remain stable fallbacks without guessing an API origin.
+- Kept compact asset cards free of nested media controls. Detail images carry descriptive alt text, detail videos expose labelled controls, and fallback accessible names include the exact unavailable/load-error reason instead of flattening it away.
+- Added the page-local guarded deletion coordinator and a dedicated danger/confirmation component. The alertdialog has an explicit accessible name/description, starts focus on cancel despite the installed focus-trap's DIV/tabindex assumptions, supports Escape/Tab/Enter, blocks dismissal while deleting, returns focus on cancellation/failure, and disables its scale/opacity transition under reduced motion.
+- Wired confirmed asset soft-delete and template hard-delete from detail context. Successful asset deletion closes matching detail, preserves store-owned refresh semantics, and recovers an invalid last page; successful template deletion closes matching detail and force-refreshes the collection. A refresh-only failure does not relabel the successful mutation as failed.
+- Scoped mutation failures to the exact asset/template detail target. Closing or selecting another item does not leak an earlier deletion error, and token changes clear page-local feedback while the existing stores retain session/stale-request authority.
+- Adjusted the 420px overview rail to a two-column first row plus full-width quota row, eliminating the orphaned `用` observed at 375px without changing desktop hierarchy or global tokens.
+- Fixed all fresh review findings: fallback failure semantics now reach assistive technology; the confirmation transition honors reduced motion; arbitrary owner-supplied upload URLs are excluded from rendering; no-ACAO provider media remains embeddable; final security/contract and UI/accessibility re-reviews returned CLEAN.
+- Verified final mock Chromium behavior with 18 assertions, 0 unexpected console errors/warnings, expected controlled DELETE 500 isolation, 320/375/920/1440 no-overflow geometry, responsive screenshots, and a reduced-motion transition sample of `0s`. Final production build transformed 4,693 modules.
 - Replaced the 986-line prototype `Space.vue` with a 479-line real-data page controller and nine local Space presentation/style files, all below 500 lines. Removed mock storage, hard-coded history/results, false totals, and unsupported capacity/availability claims.
 - Wired the independent Space asset collection to type filters, API pagination, retained-data errors, initial/empty/out-of-range states, detail selection, and canonical project navigation. A zero-result refresh from a later page now deterministically returns to page one.
 - Wired real template list/detail/use and `/me` quota reads as independent surfaces. Quotas remain three non-fungible remaining counts; the overview reports available types instead of inventing a total or percentage.
@@ -86,7 +94,7 @@ Unit 3, sub-slice 2 is complete. The prototype Space page is now a real-data con
 
 ### UI And Verification
 
-- The former prototype-only `profile/assets/history/results` views, mock storage, three-row cache display, and false current-page total have been removed. Native asset/template/quota views now expose the real store states; deletion and full media load fallback remain intentionally absent until Unit 4.
+- The former prototype-only `profile/assets/history/results` views, mock storage, three-row cache display, and false current-page total have been removed. Native asset/template/quota views expose the real store states. Unit 3 intentionally left deletion and full media load fallback absent; Unit 4 now completes both behind the resolved media and deletion contracts.
 - Global custom variables remain light while Naive UI and `ui/design-system.md` define dark surfaces. Because global-token edits are forbidden, Space uses component-scoped dark surface values plus existing Naive UI theme behavior.
 - Frontend has no unit-test framework. The Task will not add one; verification will use `npm run build`, focused temporary-SQLite backend tests, and mocked/real browser probes for the slices that expose UI behavior.
 - Focused contract verification passed: 29 asset/template/quota backend tests using temporary SQLite and FastAPI TestClient.
@@ -94,16 +102,21 @@ Unit 3, sub-slice 2 is complete. The prototype Space page is now a real-data con
 
 ## Remaining Work
 
-- Unit 4: render usable real image/video URLs when available, convert missing/relative/load-error media into stable accessible fallbacks, and add asset/template deletion with explicit confirmation plus contract-accurate collection/detail refresh behavior.
 - Unit 5: run authorized local real API/MySQL comparisons and final 1440x900/920px/375px browser acceptance across media, mutations, refresh, console, and network behavior.
 - Write REPORT only after all Task acceptance criteria pass.
 
 ## Exact Next Action
 
-Implement Unit 4's real media rendering/fallback and confirmed asset/template deletion flows, preserving current controller/component boundaries; then verify load failures, mutation ownership, collection/detail refresh semantics, keyboard behavior, TypeScript, build, and responsive browser edges.
+Run Unit 5's authorized local real API/MySQL comparison for asset/template rows, filters, totals, detail, media, and deletion/refresh semantics; then complete final 1440x900/920px/375px browser acceptance, production regression, fresh diff review, REPORT, and Task/ROADMAP closure only if every non-deferred criterion passes.
 
 ## Files Changed
 
+- `frontend/src/views/app/components/space/space-presentation.ts` - accepts only safe generation-sourced absolute HTTPS media URLs while retaining neutral title/date/source helpers.
+- `frontend/src/views/app/components/space/space-asset-preview.vue` - renders real image/video media, keeps compact video non-interactive, and exposes differentiated accessible fallback reasons.
+- `frontend/src/views/app/components/space/use-space-deletion.ts` - coordinates target-owned asset/template deletion, collection refresh, page recovery, failure ownership, and session/unmount guards.
+- `frontend/src/views/app/components/space/space-delete-zone.vue` - provides the danger zone and focus-managed, reduced-motion-aware accessible confirmation dialog.
+- `frontend/src/views/app/components/space/space-detail-drawer.vue` - exposes confirmed deletion for the current asset/template detail without taking store ownership.
+- `frontend/src/views/app/components/space/space-overview-header.vue` - prevents the mobile quota summary from producing an orphaned final character.
 - `frontend/src/modules/asset/detail-controller.ts` - owns the extracted guarded asset detail/delete state machine behind injected collection callbacks.
 - `frontend/src/modules/template/mutation-controller.ts` - owns the extracted template delete/use state machine and non-idempotent use lock.
 - `frontend/src/api/assets.ts` - added locally validated, encoded detail and soft-delete clients.
@@ -111,8 +124,8 @@ Implement Unit 4's real media rendering/fallback and confirmed asset/template de
 - `frontend/src/modules/template/types.ts` - added the exact use response contract.
 - `frontend/src/modules/template/api.ts` - added validated 204 delete and project-creating use clients while preserving detail rejection behavior.
 - `frontend/src/modules/template/store.ts` - retains list/detail cache ownership and delegates delete/use state while preserving its Pinia contract.
-- `frontend/src/views/app/Space.vue` - coordinates real asset/template/quota loading, native view switching, detail state, project navigation, and created-project recovery in 479 lines.
-- `frontend/src/views/app/components/space/**` - provides the nine scoped asset, template, quota, preview, drawer, notice, presentation, and page-style files.
+- `frontend/src/views/app/Space.vue` - coordinates real asset/template/quota loading, native view switching, detail state, project navigation, created-project recovery, and the page-local deletion flow in 497 lines.
+- `frontend/src/views/app/components/space/**` - provides eleven scoped asset, template, quota, preview, deletion, drawer, notice, presentation, and page-style files.
 - `ai/tasks/todo/TASK-T4-009.md` - records the narrow asset-domain helper addition required by architecture review.
 - `ai/tasks/doing/TASK-T4-009-PLAN.md` - marks the extraction slice complete and records the corrected domain boundary.
 - `ai/tasks/doing/TASK-T4-009-PROGRESS.md` - records the extraction, verification, review fix, remaining work, and exact next action.
@@ -120,6 +133,14 @@ Implement Unit 4's real media rendering/fallback and confirmed asset/template de
 
 ## Commands And Summarized Results
 
+- Required read set, automation cursor, and Git baseline - completed; this Unit 4 slice started clean on `main` at `bab95e6c6ca3d2f2367395ffac31d0c4f38308f1` with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state. Task-list single-flight capability was unavailable, so branch/HEAD/index drift guards remained active.
+- Vite SSR URL-policy probe - passed 11 scenarios covering generation HTTPS acceptance plus upload provenance, HTTP, relative, data, script, userinfo, malformed, prompt, and missing rejection.
+- `backend/.venv/Scripts/python.exe -m unittest tests.test_asset_upload tests.test_template_system` - passed all 22 owner, list/filter/pagination, detail, soft-delete, hidden, hard-delete/use, and persistence contracts.
+- Mock Chromium final flow - passed 18 assertions for no-ACAO image/video rendering, prompt/image/video fallbacks, fallback accessible reasons, compact/detail controls, Esc/Tab/Enter confirmation, exact failure ownership, asset last-page recovery, template refresh, and 0 unexpected console errors/warnings. The deliberate failed DELETE produced one expected browser network diagnostic and no application error.
+- Responsive Chromium evidence - `innerWidth === documentElement.scrollWidth === body.scrollWidth` passed at 320, 375, 920, and 1440. Screenshots: `output/playwright/t4-009-unit4/space-375.png`, `space-920.png`, `space-1440.png`, and `delete-dialog-375.png`.
+- Reduced-motion browser probe - `prefers-reduced-motion: reduce` matched and both sampled delete-dialog enter transitions reported `duration=0s`, `property=none`.
+- Final `npm run build` - passed; `vue-tsc -b` completed and Vite transformed 4,693 modules. All current Unit 4 implementation files are below 500 lines (`Space.vue` 497; largest changed child 407), and `git diff --check` passed.
+- Fresh review - fallback AT semantics, Naive modal naming/focus/reduced motion, media provenance/privacy, no-ACAO compatibility, deletion contracts, session/concurrency, refresh, and responsive geometry findings were fixed; final security/contract and UI/accessibility targeted re-reviews returned CLEAN.
 - This slice started clean on `main` at `cf56c05f405115acb4766e27c28e71f6f6643ce5`, ahead of `origin/main` by seven commits, with no staged/modified/untracked/unmerged paths, detached HEAD, or Git operation. The task-list query timed out without mutation, so branch/HEAD/index drift guards remain mandatory through commit.
 - `npm exec vue-tsc -- -b --pretty false` and repeated `npm run build` runs passed after each review fix; the final production build transformed 4,689 modules.
 - Playwright CLI mocked-browser QA passed the full final assertion script at 320px: native view and pager keyboard operation, zero-result boundary correction, stale navigation suppression, store-persisted created-project recovery, and exact returned project navigation. `innerWidth`, document `scrollWidth`, and body `scrollWidth` were all 320 for asset and long-template states.
@@ -156,6 +177,6 @@ Implement Unit 4's real media rendering/fallback and confirmed asset/template de
 
 - No T4-009 Human gate or dependency blocker is currently known.
 - Single-flight task-list inspection was unavailable for this run. Release condition for staging/commit remains an unchanged `main`/base HEAD/index and no Git operation or unmerged path at the pre-commit recheck.
-- Mock browser acceptance for Unit 3 is complete. Real API/MySQL comparison and final cross-width media/mutation acceptance remain Unit 5 completion gates, not blockers for Unit 4.
+- Mock browser acceptance for Units 3-4 is complete. Real API/MySQL comparison and final cross-width media/mutation acceptance remain Unit 5 completion gates, not blockers.
 - No push is authorized. T4-005 Unit B paid provider smoke and residual T4-008 local-data cleanup remain out of scope.
-- This slice started from clean `main` at `cf56c05f405115acb4766e27c28e71f6f6643ce5`, ahead of `origin/main` by seven commits, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state. The task-list query did not return within the single-flight window, so unchanged branch/HEAD/index state is required before staging and commit.
+- This Unit 4 slice started from clean `main` at `bab95e6c6ca3d2f2367395ffac31d0c4f38308f1`, with no staged, modified, untracked, unmerged, detached, or in-progress Git-operation state. Task-list inspection was unavailable, so unchanged branch/HEAD/index state remains required before staging and commit.
