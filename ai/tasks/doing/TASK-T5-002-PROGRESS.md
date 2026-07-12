@@ -5,7 +5,7 @@ Last updated: 2026-07-13
 ## State
 
 - Task: `T5-002 - P0 credential cleanup and complete MySQL-only retirement`
-- State: `DOING`
+- State: `DONE - PASS`
 - Branch at activation: `main`
 - Base HEAD at activation: `b84f1b4a48f777623fd5fe280f083bb14f894bc4`
 - Pre-existing worktree: 45 untracked root `.playwright-cli/*.yml` files and untracked `output/`
@@ -54,16 +54,29 @@ Last updated: 2026-07-13
 - FastAPI lifespan now rejects a missing or blank `REVID_JWT_SECRET` before database initialization. `/admin/dev-login` is disabled with 503 unless `REVID_DEV_ADMIN_KEY` is explicitly configured, and configured keys use constant-time comparison.
 - Active backend configuration guidance now identifies the required JWT variable and the optional, disabled-by-default development admin login key without embedding a credential value.
 - Focused runtime/auth verification passed 22/22, backend regression passed 167/167, Alembic retained one head, the D1 disposable schema was cleaned, and deep security/architecture/adversarial review found no remaining D1 finding.
+- Unit D2 added `test_mysql_closure.py` on exact-name guarded schema `revid_test_t5_002_closure`. It inspects every ORM application table and database column for a non-empty MySQL comment, compares actual foreign keys with ORM metadata, and proves committed user/project data survives engine disposal and reconstruction.
+- Credential hygiene found predictable JWT/dev-admin values in `.env.example`; both example values are now blank, with required/optional guidance matching the fail-closed runtime contract.
+- Focused fixture/closure verification passed 6/6, final backend regression passed 169/169, Alembic retained the single head `e9f1a2b3c4d5`, and the D2 schema was cleaned.
+- Active retirement markers and tracked database artifacts are zero. The tracked literal credential scan classified six test/history/placeholder candidates and produced zero review candidates without displaying values.
+- Fresh diff review found no actionable issue. All T5-002 acceptance criteria are satisfied and `ai/reports/REPORT-T5-002.md` records the final evidence.
 
 ## Remaining Work
 
-- Unit D2 full verification closure: backend regression, schema comment/FK inspection, restart persistence, static retirement and secret-hygiene scans, final documentation, REPORT, and Task/ROADMAP completion if every non-deferred acceptance criterion passes.
+- None for T5-002. Conditional credential rotation and local artifact cleanup remain separate Human Owner gates, not incomplete implementation acceptance criteria.
 
 ## Exact Next Action
 
-Run Unit D2 schema comment/FK inspection and restart-persistence evidence on guarded disposable MySQL, then complete the remaining static/secret gates and reconcile README, PROGRESS, CURRENT, ROADMAP, REPORT, and Task state only if every non-deferred acceptance criterion passes.
+Create and activate T5-003 Task/PLAN/PROGRESS for the expand-first multi-canvas MySQL schema and compatibility API unit before any T5-003 business-code edit.
 
 ## Latest Completed Bounded Unit
+
+- Unit: `D2 - MySQL closure evidence and Task reconciliation`.
+- Objective: produce direct disposable-MySQL evidence for every migrated table/column comment, actual foreign keys, and committed-record persistence across SQLAlchemy engine reconstruction, then execute all remaining T5-002 closure gates.
+- Result: guarded schema lifecycle and identity checks passed; focused and full regression passed; Alembic remained single-head; retirement, tracked database-artifact, credential-hygiene, fresh-diff, and `git diff --check` gates passed; all non-deferred Task acceptance criteria have durable evidence.
+- Owned paths: the new focused closure test, this PLAN/PROGRESS, active README only if a factual gap remains, `ai/state/CURRENT.md`, `ai/state/ROADMAP.md`, `ai/tasks/todo/TASK-T5-002.md`, and `ai/reports/REPORT-T5-002.md` after verification.
+- Non-goals: business behavior or schema changes, multi-canvas work, credential rotation, opening `.env`, touching local `.db` artifacts, cleaning the pre-existing `revid_test_db`, paid calls, or writes to a user/non-test database.
+
+## Previous Completed Bounded Unit
 
 - Unit: `D1 - explicit runtime security configuration`.
 - Objective: production startup must reject a missing JWT secret, and `/admin/dev-login` must be unavailable unless its key is explicitly supplied.
@@ -97,6 +110,7 @@ Run Unit D2 schema comment/FK inspection and restart-persistence evidence on gua
 - Unit C retired tooling: `backend/scripts/migrate_sqlite_to_mysql.py`, `backend/tests/test_migration_tool.py`, `backend/test_infrastructure.py`, `backend/test_migration_flow.py`, `backend/tests/_alembic_check.py`, `backend/tests/_quick_check.py`, `backend/alembic_test.ini`, `backend/alembic_wrapper.py`, and `backend/run_alembic.py`.
 - Unit B2 runtime retirement: `backend/database.py`, `backend/models/base.py`, and `backend/models/__init__.py`.
 - Unit D1 security configuration: `backend/settings/config.py`, `backend/main.py`, `backend/api/admin.py`, `backend/tests/test_mysql_runtime_cutover.py`, `backend/tests/test_password_auth_contract.py`, and `backend/README.md`.
+- Unit D2 closure: `backend/tests/test_mysql_closure.py`, `backend/.env.example`, root `README.md`, `ai/tasks/todo/TASK-T5-002.md`, `ai/tasks/doing/TASK-T5-002-PLAN.md`, this progress document, `ai/state/CURRENT.md`, `ai/state/ROADMAP.md`, and `ai/reports/REPORT-T5-002.md`.
 - Project conversation archive: `ai/state/archive/PROJECT-CONVERSATION-ARCHIVE-THROUGH-2026-07-13.md`.
 
 ## Commands And Summarized Results
@@ -162,6 +176,10 @@ Run Unit D2 schema comment/FK inspection and restart-persistence evidence on gua
 - Unit D1 AST/caller/static gates: both security fields have empty defaults and hidden reprs; `require_runtime_security_settings()` is called by lifespan before MySQL initialization; active retirement matches and tracked database artifacts were zero; `git diff --check` passed.
 - Unit D1 cleanup probe: PASS; `revid_test_runtime_admin` did not remain after focused or full verification. The pre-existing `revid_test_db` schema and ignored local `.db` artifacts were not touched.
 - Unit D1 deep review: security, architecture, and adversarial passes found no actionable finding; scope remained limited to explicit security configuration, focused tests, active docs, and durable Task state.
+- Unit D2 `python -m compileall -q .` plus `tests.test_mysql_test_database tests.test_mysql_closure`: PASS, 6/6 in 1.356 seconds; MySQL migrations, all application table/column comments, the ORM-to-database FK set, and persistence across engine reconstruction passed.
+- Unit D2 final `python -m unittest discover -s tests -p "test_*.py"`: PASS, 169/169 in 96.311 seconds; `python -m alembic -c alembic.ini heads`: PASS, single head `e9f1a2b3c4d5`.
+- Unit D2 static/hygiene gates: active retirement marker count 0; tracked database artifact count 0; tracked literal credential scan found six classified test/history/placeholder candidates and zero review candidates; `revid_test_t5_002_closure` absent after cleanup; only pre-existing untouched `revid_test_db` observed; fresh diff review and `git diff --check` passed.
+- Final focused security/fixture/closure rerun: PASS, 28/28 in 15.504 seconds; strict UTF-8 checks for all owned paths and Task/ROADMAP/CURRENT/REPORT reconciliation checks passed.
 
 ## Blockers And Release Conditions
 

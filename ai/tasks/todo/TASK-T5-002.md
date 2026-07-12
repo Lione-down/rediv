@@ -2,7 +2,7 @@
 
 ## Status
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Owner: Codex Project Lead Engineer
 - Dependency: T5-001 complete
 
@@ -43,18 +43,18 @@ Remove the tracked credential literal and every active SQLite runtime, test, dep
 
 ## Acceptance Criteria
 
-- [ ] tracked hard-coded database password assignment is removed without value disclosure.
-- [ ] credential rotation requirement is reported separately to the Human Owner.
-- [ ] runtime has no SQLite or in-memory production fallback.
-- [ ] missing MySQL configuration, wrong dialect, connectivity failure, and revision mismatch fail closed.
-- [ ] `aiosqlite`, `REVID_USE_SQLITE`, `REVID_DB_PATH`, SQLite URL builders, active migration tools, and SQLite tests are removed.
-- [ ] database-backed tests run only on exact-name guarded `revid_test_*` MySQL schemas.
-- [ ] unit tests use pure fakes or mocks without a database engine.
-- [ ] no automated test writes, drops, truncates, deletes, downgrades, or resets `revid_db` or any non-test database.
-- [ ] `/health` is ready only for connected MySQL at Alembic head.
-- [ ] backend full regression, focused runtime/security tests, schema comments/FKs, and restart persistence pass.
-- [ ] active README and configuration describe MySQL only.
-- [ ] local `.db` artifacts remain untouched pending separate Human authorization.
+- [x] tracked hard-coded database password assignment is removed without value disclosure.
+- [x] credential rotation requirement is reported separately to the Human Owner.
+- [x] runtime has no SQLite or in-memory production fallback.
+- [x] missing MySQL configuration, wrong dialect, connectivity failure, and revision mismatch fail closed.
+- [x] `aiosqlite`, `REVID_USE_SQLITE`, `REVID_DB_PATH`, SQLite URL builders, active migration tools, and SQLite tests are removed.
+- [x] database-backed tests run only on exact-name guarded `revid_test_*` MySQL schemas.
+- [x] unit tests use pure fakes or mocks without a database engine.
+- [x] no automated test writes, drops, truncates, deletes, downgrades, or resets `revid_db` or any non-test database.
+- [x] `/health` is ready only for connected MySQL at Alembic head.
+- [x] backend full regression, focused runtime/security tests, schema comments/FKs, and restart persistence pass.
+- [x] active README and configuration describe MySQL only.
+- [x] local `.db` artifacts remain untouched pending separate Human authorization.
 
 ## Hard Gates
 
@@ -70,3 +70,11 @@ Remove the tracked credential literal and every active SQLite runtime, test, dep
 - `ai/tasks/doing/TASK-T5-002-PLAN.md`;
 - `ai/tasks/doing/TASK-T5-002-PROGRESS.md`;
 - `ai/reports/REPORT-T5-002.md` after every AC passes.
+
+## Completion Evidence
+
+- Report: `ai/reports/REPORT-T5-002.md`
+- Final backend regression: 169/169 PASS.
+- Focused fixture and MySQL closure evidence: 6/6 PASS.
+- Alembic: single head `e9f1a2b3c4d5`.
+- Active retirement scan, tracked database-artifact gate, tracked credential hygiene, disposable-schema cleanup, fresh diff review, and `git diff --check`: PASS.

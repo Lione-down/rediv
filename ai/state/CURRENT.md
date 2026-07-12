@@ -16,26 +16,24 @@ Last updated: 2026-07-13
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Visual direction: premium graphite-black and dark-purple system
-- Database direction: MySQL-only; runtime/test/tooling retirement is committed through Unit B2, and Unit D security/full closure follows
+- Database direction: MySQL-only; runtime, test, tooling, security, and closure acceptance passed in T5-002
 
 ## Active Delivery
 
-- Task: `T5-002 - P0 credential cleanup and complete MySQL-only retirement`
-- State: `DOING`
-- Task: `ai/tasks/todo/TASK-T5-002.md`
-- Plan: `ai/tasks/doing/TASK-T5-002-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-002-PROGRESS.md`
-- Dependency: T5-001 complete
+- Active implementation Task: none
+- Ready next Task: `T5-003 - Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route`
+- State: `TODO`; Task/PLAN/PROGRESS must be created and activated before business-code edits
+- Dependency: T5-002 complete
 
 ## Latest Completed Task
 
-- Task: `T5-001 - V2 documentation and architecture baseline`
+- Task: `T5-002 - P0 credential cleanup and complete MySQL-only retirement`
 - State: `DONE - PASS`
-- Task: `ai/tasks/todo/TASK-T5-001.md`
-- Plan: `ai/tasks/doing/TASK-T5-001-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-001-PROGRESS.md`
-- Report: `ai/reports/REPORT-T5-001.md`
-- Outcome: V2 product, Canvas acceptance, visual, architecture, MySQL-only, multi-canvas, roadmap, and execution contracts are decision-complete.
+- Task: `ai/tasks/todo/TASK-T5-002.md`
+- Plan: `ai/tasks/doing/TASK-T5-002-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-002-PROGRESS.md`
+- Report: `ai/reports/REPORT-T5-002.md`
+- Outcome: tracked credential literal removed without disclosure; runtime/tests/tooling are MySQL-only and fail closed; security configuration, schema/FK, restart persistence, full regression, static retirement, and hygiene gates passed.
 
 ## Locked V2 Documents
 
@@ -78,19 +76,22 @@ Last updated: 2026-07-13
 - Unit D1 removed the placeholder JWT and dev-admin defaults. Runtime startup now requires an explicit non-blank `REVID_JWT_SECRET` before any database initialization, while `/admin/dev-login` is disabled unless `REVID_DEV_ADMIN_KEY` is explicitly configured.
 - Both security settings are hidden from settings representations, configured dev-admin keys use constant-time comparison, and active backend guidance documents required versus optional configuration without embedding credential values.
 - Unit D1 compile and focused runtime/auth verification passed 22/22; backend regression passed 167/167; Alembic remained single-head; static, cleanup, diff, and deep review gates passed with no D1 finding.
+- Unit D2 exact-name guarded MySQL evidence confirmed every ORM application table/column comment, actual foreign keys, and committed-data persistence across engine reconstruction.
+- Unit D2 focused tests passed 6/6 and final backend regression passed 169/169; Alembic remained single-head `e9f1a2b3c4d5`; active retirement markers, tracked database artifacts, and credential review candidates were zero.
+- `.env.example` now leaves JWT and dev-admin credentials blank, matching required explicit JWT injection and disabled-by-default dev login.
+- T5-002 is `DONE - PASS`; conditional credential rotation and local artifact cleanup remain separate Human Owner gates.
 - A pre-existing `revid_test_db` schema was observed but not created or touched; destructive cleanup requires ownership confirmation. Ignored local `.db` artifacts remain untouched.
-- Deep review re-confirmed pre-existing placeholder JWT and dev-admin defaults; they remain an implementation security-closure item, not a Human gate, and were not mixed into Unit B1.
 - Current Canvas remains project-scoped, uses conflicting light and dark theme sources, hides its grid behind an opaque surface, and broadly rebuilds the Leafer scene.
 
 ## Exact Next Action
 
-Run Unit D2 schema comment/FK inspection and restart-persistence evidence on guarded disposable MySQL, then complete static/secret hygiene and reconcile README, PROGRESS, CURRENT, ROADMAP, REPORT, and Task state only if every non-deferred acceptance criterion passes.
+Create and activate T5-003 Task/PLAN/PROGRESS for the expand-first multi-canvas MySQL schema and compatibility API unit, then inspect overlapping code before business-code edits.
 
 ## Blockers And Release Conditions
 
 - Credential rotation becomes Human-required only if the assignment was ever real or reused; release by rotating it in the owning system and recording only the outcome.
 - Local ignored `.db` artifact deletion is blocked pending exact-path Human approval after MySQL backup and parity evidence.
-- The pre-existing `revid_test_db` schema requires ownership confirmation before destructive cleanup; it does not block Unit B2 source work.
+- The pre-existing `revid_test_db` schema requires ownership confirmation before destructive cleanup; it does not block T5-003 planning or implementation.
 - Human Owner standing authorization (2026-07-13): scheduled delivery may push completed, verified, scoped commits to `origin` for this repository. This does not authorize secret access, paid calls, operations outside this project, or destructive user/production-data operations.
 
 ## Worktree Protection

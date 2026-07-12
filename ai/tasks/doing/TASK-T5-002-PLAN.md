@@ -43,9 +43,19 @@ Deliver a usable backend whose only runtime and integration-test database is MyS
 ### Unit D: Full verification and closure
 
 - D1: remove the placeholder JWT and dev-admin defaults, require an explicit JWT secret before runtime startup, disable dev-admin login when its key is absent, and cover both gates with focused configuration/auth tests;
-- D2: run backend full regression, Alembic checks, schema comment/FK inspection, restart persistence, static retirement scan, and secret hygiene;
+- D2: add one guarded disposable-MySQL closure test that inspects every migrated table and column for non-empty comments, confirms actual foreign keys, and proves a committed record survives engine disposal and reconstruction;
+- D2: run that focused closure test first, then backend full regression, Alembic checks, static retirement scan, tracked/staged secret hygiene, and final diff review;
 - update active README/configuration guidance with D1, then update PROGRESS, CURRENT, ROADMAP, and REPORT only when D2 satisfies every remaining acceptance criterion;
 - do not delete local ignored `.db` artifacts.
+
+### Unit D2 Success Criteria
+
+- only the exact-name guarded `revid_test_t5_002_closure` schema is created and cleaned by the new test;
+- `SELECT DATABASE()` identity gates run through the reusable fixture before use and cleanup;
+- all Alembic-managed application tables and columns report non-empty MySQL comments, and the schema exposes at least one foreign key;
+- a committed persistence record remains readable after the first SQLAlchemy engine is disposed and a new engine/store is constructed from process-supplied test settings;
+- focused closure tests, full backend regression, single-head Alembic, retirement scans, database-artifact checks, credential hygiene, and `git diff --check` pass;
+- no paid provider call, user/non-test database write, `.env` access, local `.db` access, or cleanup of the pre-existing `revid_test_db` schema occurs.
 
 ## Rollback
 

@@ -26,7 +26,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | Order | Task | Deliverable | State | Dependency |
 |---:|---|---|---|---|
 | 1 | T5-001 | V2 PRD, Canvas acceptance, design system, architecture, ADRs, and roadmap | DONE - PASS | Phase 4 complete and Human direction approved |
-| 2 | T5-002 | P0 credential cleanup and complete MySQL-only runtime/test/tooling retirement | DOING | T5-001 |
+| 2 | T5-002 | P0 credential cleanup and complete MySQL-only runtime/test/tooling retirement | DONE - PASS | T5-001 |
 | 3 | T5-003 | Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route | TODO | T5-002 |
 | 4 | T5-004 | Single V2 token source, full-screen Canvas shell, canvas navigation, and viewport persistence | TODO | T5-003 |
 | 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | TODO | T5-004 |

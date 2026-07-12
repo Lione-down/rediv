@@ -9,7 +9,8 @@ Revid 是面向 AI 视觉创作的项目工作台。V2 将项目组织、无限�
 | Phase 4 初版 | 已完成并通过初版验收 |
 | Product V2 / Phase 5 | 已启动 |
 | V2 文档与架构基线 | `T5-001` 已通过 |
-| 当前实现任务 | `T5-002` MySQL-only 与 credential 清理 |
+| MySQL-only 与 credential 清理 | `T5-002` 已通过 |
+| 下一实现任务 | `T5-003` 待创建 Task/PLAN/PROGRESS 后激活 |
 | V2 整体交付 | 尚未完成 |
 
 权威进度以 [`ai/state/CURRENT.md`](ai/state/CURRENT.md) 为准，任务顺序以 [`ai/state/ROADMAP.md`](ai/state/ROADMAP.md) 为准。
@@ -51,6 +52,7 @@ Revid 是面向 AI 视觉创作的项目工作台。V2 将项目组织、无限�
 - [T5-002 Task](ai/tasks/todo/TASK-T5-002.md)
 - [T5-002 Plan](ai/tasks/doing/TASK-T5-002-PLAN.md)
 - [T5-002 Progress](ai/tasks/doing/TASK-T5-002-PROGRESS.md)
+- [T5-002 Report](ai/reports/REPORT-T5-002.md)
 
 ## 技术栈
 
@@ -68,7 +70,7 @@ Revid 是面向 AI 视觉创作的项目工作台。V2 将项目组织、无限�
 - [Backend README](backend/README.md)
 - [Frontend README](frontend/README.md)
 
-Backend runtime 与 database-backed tests 已统一使用 MySQL；当前任务状态和后续安全收尾以 `CURRENT` 为准。
+Backend runtime 与 database-backed tests 已统一使用 MySQL；T5-002 已完成，下一 Task 的激活状态以 `CURRENT` 为准。
 
 ## 安全与数据规则
 
