@@ -5,9 +5,9 @@ Last updated: 2026-07-12
 ## State
 
 - Task: `T4-013 - Full E2E, visual QA, security checks and documentation closure`
-- State: `DOING - SECURITY CLOSURE`
+- State: `VERIFYING - DOCUMENTATION CLOSURE`
 - Branch at current run start: `main`
-- Base HEAD at current run start: `a35a9661e04f6429dfb25c6660912d5b23a00d09`
+- Base HEAD at current run start: `c80f21fd6eb40965f5b2ba728dff4bc6d5d026cb`
 - Pre-existing worktree changes: 45 untracked root `.playwright-cli/*.yml` snapshots; no tracked modifications
 - Pre-existing staged changes: none
 - Unmerged paths: none
@@ -30,6 +30,9 @@ Last updated: 2026-07-12
 - Visually reviewed all 12 final screenshots and fixed two evidence-proven Workspace responsive defects: the desktop inspector remained visible at and below 920px because its base CSS rule overrode the earlier media rule, and the absolute 76px tool rail covered the project heading because the status bar lacked a rail offset.
 - Added browser regression guards that fail when the desktop inspector is visible at or below 920px, or when the project heading begins left of the tool rail's right boundary. Both guards failed on the pre-fix production bundle and pass after the scoped CSS fixes.
 - Rebuilt the production frontend and passed the complete Chromium suite 4/4 after both fixes; the final screenshot matrix was re-captured and re-inspected.
+- Completed the final repository/index security hygiene unit: secret-oriented ignore sentinels passed, the only tracked sensitive-name path is the sanctioned sanitized `.env.example`, its sensitive defaults are empty or explicitly placeholder-like, and no high-confidence tracked credential token was found.
+- Confirmed the Git index remained empty, `git diff --cached --check` and `git diff --check` passed, no local SQLite/MySQL database artifact is tracked, and all 45 pre-existing root `.playwright-cli/*.yml` snapshots remain untracked and untouched.
+- Repeated the process-only retained-runtime preflight without opening `.env`: no `REVID_DB_*` setting and no listener on ports 8000, 5173, or 9099 was present, so current retained-runtime record/restart inspection remains explicitly blocked rather than inferred.
 
 ## Acceptance Evidence Matrix
 
@@ -39,18 +42,18 @@ Last updated: 2026-07-12
 | Frontend build and browser E2E | Fresh production build passed; repository Chromium E2E 4/4 covers authenticated project creation, Canvas nodes/connections, generation success/failure, quota, reload, and Login/Home/Workspace/Space at 1440x900, 920x900, and 375x900; 12 sanitized screenshots were visually reviewed | None for the planned mock browser and responsive matrix | Reconcile mock versus real-service evidence during final report |
 | Happy and failure paths | Consolidated browser mock workflow covers project, Canvas, generated asset, quota success/failure, and reload; real Agnes and controlled persistence failure evidence remain current | Final evidence review must reconcile mock browser and real-service classifications | Reconcile during final report |
 | Navicat/schema acceptance | Read-only evidence confirms app table/column comments, foreign keys, revisions, and retained business records; generation task/asset relation passed | Fresh current-head schema/record matrix and sanitized Navicat-equivalent screenshot or inspection record | Re-run read-only inspection; do not clean retained fixtures |
-| Secret and Git hygiene | `.gitignore` excludes `.env*`, key/certificate types, and browser evidence; prior scoped scans passed | Fresh `git ls-files`, repository/staged-path, and redacted credential-pattern checks for the final delivery | Run before every T4-013 commit and at closeout |
+| Secret and Git hygiene | Final repository/index checks passed: ignore sentinels, tracked sensitive-path classification, sanitized `.env.example` validation, case-sensitive high-confidence credential scan, empty index, and diff checks | Repeat the staged-path and redacted staged-diff scan for the final documentation commit | Enforce again immediately before commit |
 | Durable documentation | Dependency reports, PLAN, PROGRESS, CURRENT, and ROADMAP agree on T4-013 ownership and scope | `REPORT-T4-013.md`, `REVIEW-PHASE4-COMPLETE.md`, final Task/ROADMAP reconciliation | Complete only after all verification passes |
 | Non-destructive/SQLite safety | T4-003 proves SQLite rollback remains; all reports record no destructive cleanup; retained MySQL fixtures are documented | Fresh existence/config check and final no-destructive-operation attestation | Verify without opening secrets or mutating user data |
 
 ## Remaining Work
 
-- Complete security hygiene, current-runtime Navicat-equivalent record inspection and restart checks when process-only runtime configuration is available, then close documentation.
-- Add only evidence-driven minimal fixes and final artifacts.
+- Reconcile current disposable-schema evidence, retained-runtime historical evidence, and the process-only runtime blocker in the final report and Phase 4 review.
+- Write `REPORT-T4-013.md` and `REVIEW-PHASE4-COMPLETE.md`, then reconcile Task, ROADMAP, PROGRESS, and CURRENT only if every non-deferred acceptance criterion is satisfied.
 
 ## Exact Next Action
 
-Run final repository and staged secret hygiene checks, repeat the process-only retained-runtime preflight without opening `.env`, and record whether runtime inspection remains blocked before documentation closure.
+Write `REPORT-T4-013.md` and `REVIEW-PHASE4-COMPLETE.md`, explicitly classifying mock, disposable-MySQL, retained-runtime, real-service, browser, and deferred evidence before deciding whether T4-013 and Phase 4 can be marked complete.
 
 ## Files Changed
 
@@ -64,6 +67,7 @@ Run final repository and staged secret hygiene checks, repeat the process-only r
 - `frontend/src/views/app/Workspace.vue`
 - `frontend/src/views/app/components/workspace/WorkspaceInspector.vue`
 - `frontend/src/views/app/components/workspace/WorkspaceStatusBar.vue`
+- `ai/tasks/todo/TASK-T4-013.md`
 
 ## Commands And Summarized Results
 
@@ -88,6 +92,9 @@ Run final repository and staged secret hygiene checks, repeat the process-only r
 - `npx playwright test -g "responsive visual matrix at 920x900"` failed on the new inspector visibility guard before the CSS fix (`visible`, expected hidden), then passed after rebuilding the production bundle with the media rule ordered last.
 - The same focused command failed on the new geometry guard before the status-bar fix (heading x=14, tool rail right edge x=76), then passed after adding the rail offset.
 - Final `npm run build` passed, and final `npm run test:e2e` passed 4/4 in 7.2 seconds. Twelve sanitized final screenshots under `output/playwright/t4-013-responsive/` were visually reviewed across all requested pages and viewports.
+- Final security unit: `.gitignore` sentinels passed for `.env*`, key files, and browser evidence; `git ls-files` found only the sanctioned `.env.example`, whose sensitive defaults were empty or placeholder-like; a case-sensitive boundary-aware scan found zero high-confidence tracked private keys, AWS keys, GitHub tokens, OpenAI-style keys, or compact JWTs.
+- `git diff --cached --name-only` confirmed an empty index before documentation edits; `git diff --cached --check` and `git diff --check` passed. `git ls-files -- '*.db' '*.sqlite' '*.sqlite3'` found no tracked local database artifact.
+- Process-only runtime preflight found no `REVID_DB_HOST`, `REVID_DB_PORT`, `REVID_DB_NAME`, `REVID_DB_USER`, `REVID_DB_PASSWORD`, or `REVID_DB_URL` and no listener on 8000/5173/9099. No `.env`, database, provider, or external service was opened or called.
 
 ## Blockers And Release Conditions
 

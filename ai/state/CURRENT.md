@@ -20,11 +20,11 @@ Last updated: 2026-07-12
 ## Active Delivery
 
 - Active implementation Task: `T4-013 - Full E2E, visual QA, security checks and documentation closure`
-- State: `DOING - SECURITY CLOSURE`
+- State: `VERIFYING - DOCUMENTATION CLOSURE`
 - Task: `ai/tasks/todo/TASK-T4-013.md`
 - Plan: `ai/tasks/doing/TASK-T4-013-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T4-013-PROGRESS.md`
-- Backend closure evidence: fresh `.venv` regression 189/189, focused MySQL/runtime 12/12, and disposable Alembic/schema/comments/FK matrix passed. Frontend production build and Chromium mock E2E pass 4/4, including the authenticated workflow plus Login, Home, Workspace, and Space at 1440x900, 920x900, and 375x900 with 12 sanitized screenshots and horizontal-overflow guards. T4-013 still requires current retained-runtime record/restart evidence, final security checks, and documentation closure.
+- Backend closure evidence: fresh `.venv` regression 189/189, focused MySQL/runtime 12/12, and disposable Alembic/schema/comments/FK matrix passed. Frontend production build and Chromium mock E2E pass 4/4, including the authenticated workflow plus Login, Home, Workspace, and Space at 1440x900, 920x900, and 375x900 with 12 sanitized screenshots and horizontal-overflow guards. Final repository/index secret hygiene passed. T4-013 now requires evidence-classified REPORT/review closure; fresh current retained-runtime record/restart inspection remains unavailable without process-supplied runtime configuration.
 
 ## Latest Completed Task
 
@@ -45,7 +45,7 @@ Last updated: 2026-07-12
 
 ## Exact Next Action
 
-Run final repository and staged secret hygiene checks, repeat the process-only retained-runtime preflight without opening `.env`, and record whether runtime inspection remains blocked before documentation closure.
+Write `REPORT-T4-013.md` and `REVIEW-PHASE4-COMPLETE.md`, explicitly classify all mock, disposable-MySQL, retained-runtime, real-service, browser, and deferred evidence, then reconcile Task/ROADMAP/CURRENT if every non-deferred acceptance criterion is satisfied.
 
 ## Current Blockers
 
@@ -55,7 +55,7 @@ Run final repository and staged secret hygiene checks, repeat the process-only r
 
 ## Worktree Protection
 
-- The responsive-QA run started from clean tracked `main` at `a35a9661e04f6429dfb25c6660912d5b23a00d09`; no staged, modified, unmerged, detached, or in-progress Git-operation state existed.
+- The security-closure run started from clean tracked `main` at `c80f21fd6eb40965f5b2ba728dff4bc6d5d026cb`; no staged, modified, unmerged, detached, or in-progress Git-operation state existed.
 - Forty-five root `.playwright-cli/*.yml` snapshots were the only pre-existing untracked paths and remain preserved/excluded.
 - Additional root `.playwright-cli` outputs and ignored `output/playwright/t4-013-responsive/` evidence created during responsive QA remain excluded from staging.
 - Local non-production Canvas fixture data remains preserved; broad cleanup was not authorized.
