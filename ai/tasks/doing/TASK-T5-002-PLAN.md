@@ -34,6 +34,7 @@ Deliver a usable backend whose only runtime and integration-test database is MyS
 ### Unit C: MySQL-only test and tooling migration
 
 - create a reusable guarded disposable MySQL fixture;
+- first bounded slice: give `test_database_store.py` its own exact-name `revid_test_*` schema, run Alembic to head, assert `SELECT DATABASE()` before use and cleanup, and restore process settings after the class;
 - move persistence and integration tests from temporary `.db` files to isolated MySQL schemas;
 - keep pure unit tests database-free;
 - remove `aiosqlite`, SQLite migration tooling, wrappers, test configs, and active SQLite documentation;
@@ -57,9 +58,12 @@ Deliver a usable backend whose only runtime and integration-test database is MyS
 Commands use the repository virtual environment and process-injected test configuration. They must not echo secrets.
 
 ```powershell
-backend/.venv/Scripts/python.exe -m compileall backend
-backend/.venv/Scripts/python.exe -m unittest discover -s backend/tests -p "test_*.py"
-backend/.venv/Scripts/python.exe -m alembic -c backend/alembic.ini heads
+Push-Location backend
+.venv/Scripts/python.exe -m compileall .
+.venv/Scripts/python.exe -m unittest tests.test_mysql_test_database tests.test_database_store
+.venv/Scripts/python.exe -m unittest discover -s tests -p "test_*.py"
+.venv/Scripts/python.exe -m alembic -c alembic.ini heads
+Pop-Location
 git diff --check
 ```
 

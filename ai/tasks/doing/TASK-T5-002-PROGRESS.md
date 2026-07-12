@@ -34,17 +34,24 @@ Last updated: 2026-07-13
 - Focused SQLite health/runtime/seed tests were replaced with pure-mock MySQL configuration, lifecycle, health, revision, and store-initialization contracts.
 - The existing migration fixture was minimally reconciled to drive the MySQL-only Alembic environment without restoring retired settings; its guarded `revid_test_t4_002` schema was created, verified, and dropped by the full regression.
 - Deep security/architecture review found and fixed SQLAlchemy `URL` pool-recycle detection and added a pre-Alembic exact-name plus `SELECT DATABASE()` identity gate; seed test semantics now distinguish subprocess env validation from pure-mock ordering/idempotence.
+- Unit C now has a reusable test-only `MySQLTestDatabase` lifecycle that accepts only process-supplied `REVID_TEST_MYSQL_ADMIN_URL`, requires an ASCII exact-name `revid_test_*` schema, uses SQLAlchemy structured URLs, applies Alembic head, and verifies `SELECT DATABASE()` after creation and before cleanup.
+- `test_database_store.py` is the first migrated persistence slice: its eight tests now run against the dedicated disposable `revid_test_database_store` schema with no SQLite path, and the fixture restores process settings after class cleanup.
 
 ## Remaining Work
 
-- Unit C reusable guarded disposable MySQL fixture and database-backed test migration.
+- Unit C migration of the remaining SQLite-backed database test slices to the reusable guarded MySQL fixture.
 - Unit B2 removal of SQLite-only engine/schema helpers after the guarded MySQL fixture replaces legacy test calls.
 - Unit C removal of `aiosqlite`, SQLite migration tooling, wrappers, test configs, and active documentation.
 - Unit D full verification and closure, including removal or explicit production gating of the pre-existing placeholder JWT secret and default dev-admin key.
 
 ## Exact Next Action
 
-Start Unit C by extracting the existing exact-name `revid_test_*` lifecycle into a reusable guarded MySQL fixture and migrate the first database-backed test slice without any SQLite fallback.
+Migrate `backend/tests/test_project_crud.py` to its own exact-name guarded MySQL schema through `MySQLTestDatabase`, with no SQLite fallback.
+
+## Latest Completed Bounded Unit
+
+- Added the reusable guarded MySQL fixture and migrated `backend/tests/test_database_store.py` to `revid_test_database_store`.
+- Fixture guard tests, focused MySQL persistence tests, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
 
 ## Files Changed
 
@@ -57,6 +64,7 @@ Start Unit C by extracting the existing exact-name `revid_test_*` lifecycle into
 - Unit B1 runtime: `backend/settings/config.py`, `backend/models/base.py`, `backend/database.py`, `backend/main.py`, `backend/api/health.py`, `backend/controllers/store.py`, `backend/migrations/env.py`, and `backend/scripts/seed_admin.py`.
 - Unit B1 compatibility and tests: `backend/scripts/migrate_sqlite_to_mysql.py`, `backend/tests/test_health.py`, `backend/tests/test_migration_tool.py`, `backend/tests/test_mysql_runtime_cutover.py`, and `backend/tests/test_password_auth_contract.py`.
 - Durable state: `ai/tasks/doing/TASK-T5-002-PLAN.md`, this progress document, and `ai/state/CURRENT.md`.
+- Unit C first slice: `backend/tests/mysql_test_database.py`, `backend/tests/test_mysql_test_database.py`, and `backend/tests/test_database_store.py`.
 
 ## Commands And Summarized Results
 
@@ -78,6 +86,9 @@ Start Unit C by extracting the existing exact-name `revid_test_*` lifecycle into
 - final `backend/.venv/Scripts/python.exe -m unittest discover -s tests -p "test_*.py"`: PASS, 190 tests in 41.586 seconds; guarded disposable `revid_test_t4_002` creation, pre-Alembic identity assertion, migration, and cleanup paths ran and the schema was dropped.
 - active runtime selector scans: PASS; no `REVID_USE_SQLITE`, `REVID_DB_PATH`, `settings.use_sqlite`, `settings.db_path`, Alembic SQLite selector, or SQLite-ready health branch remains in the runtime surface.
 - deep read-only security/architecture review: two in-scope findings fixed; pre-existing predictable JWT/dev-admin defaults recorded for later security closure without expanding this bounded unit's auth contract.
+- `python -m compileall` plus focused fixture/store tests: PASS, 12 tests; four pure guard tests and eight disposable-MySQL persistence tests.
+- backend full regression: PASS, 194 tests in 45.263 seconds; existing migration coverage used and cleaned `revid_test_t4_002`, while the new store slice used and cleaned `revid_test_database_store`.
+- fixture cleanup probe: PASS; `revid_test_database_store` did not exist after the focused and full runs. Alembic remained at the single head `e9f1a2b3c4d5`, and the migrated store test contained zero SQLite/temp-file/init-db references.
 
 ## Blockers And Release Conditions
 

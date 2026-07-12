@@ -16,7 +16,7 @@ Last updated: 2026-07-13
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Visual direction: premium graphite-black and dark-purple system
-- Database direction: MySQL-only; runtime is cut over, while legacy SQLite test/tooling helpers remain until T5-002 Unit C/B2 completes
+- Database direction: MySQL-only; runtime is cut over and the first persistence-test slice is migrated, while remaining legacy SQLite tests/tooling stay isolated until T5-002 Unit C/B2 completes
 
 ## Active Delivery
 
@@ -50,7 +50,7 @@ Last updated: 2026-07-13
 ## Current Facts And Risks
 
 - Current running health was last observed as MySQL connected and ready with `current == head == e9f1a2b3c4d5`.
-- Source defaults still select SQLite, so runtime evidence does not satisfy the MySQL-only source contract.
+- Runtime source selection is MySQL-only and fail closed; remaining SQLite code is confined to legacy test/tooling helpers owned by Unit C/B2.
 - T5-002 Unit A retired the unused `backend/run_alembic_mysql.py` helper and removed its tracked hard-coded database password assignment without opening the file or displaying the value/raw diff; the verified unit is delivered in a scoped local commit.
 - Source cleanup does not rotate a credential that may have been used. Rotation remains a separate Human Owner gate if the assignment was ever real or reused.
 - Unit A verification passed backend compile and all 189 backend tests; redacted scans found no remaining hard-coded password assignment.
@@ -59,13 +59,15 @@ Last updated: 2026-07-13
 - Unit B1 removed runtime SQLite selection, requires process-supplied MySQL host/name/user/password, and initializes MySQL only through the FastAPI lifespan.
 - Startup, health, Alembic, admin seed, and store initialization now fail closed on missing configuration, wrong dialect, connection failure, missing schema, or revision mismatch; no production in-memory fallback remains.
 - Unit B1 focused tests passed, Alembic reports the single expected head, and the full backend regression passed 190 tests with pre-Alembic identity verification and guarded disposable `revid_test_t4_002` cleanup.
+- Unit C added a reusable process-credential-only MySQL test fixture with exact ASCII `revid_test_*` names, post-create and pre-cleanup `SELECT DATABASE()` identity gates, Alembic head setup, and process-setting restoration.
+- `test_database_store.py` is the first converted persistence slice; its eight tests run on disposable `revid_test_database_store`, focused tests passed 12/12, backend regression passed 194/194, and both test schemas were cleaned.
 - Legacy SQLite engine/schema helpers, SQLite-backed database tests, dependency/tooling, and active documentation remain owned by Unit C/B2 and are not runtime-selectable.
 - Deep review re-confirmed pre-existing placeholder JWT and dev-admin defaults; they remain an implementation security-closure item, not a Human gate, and were not mixed into Unit B1.
 - Current Canvas remains project-scoped, uses conflicting light and dark theme sources, hides its grid behind an opaque surface, and broadly rebuilds the Leafer scene.
 
 ## Exact Next Action
 
-Start Unit C by extracting a reusable exact-name guarded `revid_test_*` MySQL fixture and migrate the first database-backed test slice without SQLite fallback.
+Migrate `backend/tests/test_project_crud.py` to a dedicated guarded MySQL schema through the reusable fixture, without SQLite fallback.
 
 ## Blockers And Release Conditions
 

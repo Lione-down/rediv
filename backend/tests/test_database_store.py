@@ -1,25 +1,25 @@
 from __future__ import annotations
 
 import unittest
-from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from controllers.store import DatabaseStore
 from core.security import hash_password
-from database import close_db, init_db
+from tests.mysql_test_database import MySQLTestDatabase
 
 
 class DatabaseStoreTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.mysql_database = MySQLTestDatabase("revid_test_database_store")
+        cls.mysql_database.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.mysql_database.stop()
+
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        self.db_path = str(Path(self.temp_dir.name) / "test-revid.db")
-        init_db(self.db_path)
         self.store = DatabaseStore()
         self.admin = self.store.ensure_admin_user("test-admin", hash_password("StrongPass123!"))
-
-    def tearDown(self) -> None:
-        close_db()
-        self.temp_dir.cleanup()
 
     def test_create_user_and_query(self) -> None:
         user = self.store.create_user("Alice", "avatar.png")
