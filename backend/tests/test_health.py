@@ -25,7 +25,7 @@ class TestHealthEndpoint(unittest.TestCase):
         from api.health import health_check
 
         engine = MagicMock()
-        engine.dialect.name = "sqlite"
+        engine.dialect.name = "postgresql"
 
         with patch("models.base._engine", engine):
             result = health_check()

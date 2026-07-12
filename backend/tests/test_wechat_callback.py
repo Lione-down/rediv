@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -12,16 +11,16 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from controllers.store import DatabaseStore, configure_store, store
-from database import close_db, init_db
 from main import app
 from settings.config import settings
+from tests.mysql_test_database import MySQLTestDatabase
 
 
 class WechatCallbackTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        db_path = str(Path(self.temp_dir.name) / "test-revid.db")
-        init_db(db_path)
+        self.mysql_database = MySQLTestDatabase("revid_test_wechat_callback")
+        self.mysql_database.start()
+        self.addCleanup(self.mysql_database.stop)
         configure_store(DatabaseStore())
         store.registration_settings["registration_mode"] = "open"
 
@@ -35,8 +34,6 @@ class WechatCallbackTestCase(unittest.TestCase):
         settings.wechat_mock_enabled = self.original_mock_enabled
         settings.wechat_app_id = self.original_app_id
         settings.wechat_app_secret = self.original_app_secret
-        close_db()
-        self.temp_dir.cleanup()
 
     def test_mock_mode_keeps_existing_callback_behavior(self) -> None:
         settings.wechat_mock_enabled = True

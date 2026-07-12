@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -13,14 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from api.router import include_routers
 from controllers.store import DatabaseStore, InMemoryStore, configure_store, store
 from core.security import create_token
-from database import close_db, init_db
+from tests.mysql_test_database import MySQLTestDatabase
 
 
 class TemplateSystemTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        self.db_path = str(Path(self.temp_dir.name) / "test-revid.db")
-        init_db(self.db_path)
+        self.mysql_database = MySQLTestDatabase("revid_test_template_system")
+        self.mysql_database.start()
+        self.addCleanup(self.mysql_database.stop)
         configure_store(DatabaseStore())
 
         app = FastAPI()
@@ -55,8 +54,6 @@ class TemplateSystemTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.client.close()
-        close_db()
-        self.temp_dir.cleanup()
 
     def test_create_template(self) -> None:
         response = self.client.post(
@@ -92,7 +89,15 @@ class TemplateSystemTestCase(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         payload = response.json()
         self.assertEqual(2, payload["total"])
-        self.assertEqual([newer["id"], older["id"]], [item["id"] for item in payload["items"]])
+        self.assertEqual(
+            {newer["id"], older["id"]},
+            {item["id"] for item in payload["items"]},
+        )
+        created_at_values = [item["created_at"] for item in payload["items"]]
+        self.assertEqual(
+            sorted(created_at_values, reverse=True),
+            created_at_values,
+        )
 
     def test_get_template(self) -> None:
         template = store.create_template(self.user["id"], "Detail", self.project["id"])

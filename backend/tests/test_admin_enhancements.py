@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -13,14 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token, hash_password
-from database import close_db, init_db
+from tests.mysql_test_database import MySQLTestDatabase
 
 
 class AdminEnhancementsTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        self.db_path = str(Path(self.temp_dir.name) / "test-revid.db")
-        init_db(self.db_path)
+        self.mysql_database = MySQLTestDatabase("revid_test_admin_enhancements")
+        self.mysql_database.start()
+        self.addCleanup(self.mysql_database.stop)
         configure_store(DatabaseStore())
         self.admin_id = store.ensure_admin_user("test-admin", hash_password("StrongPass123!"))["id"]
 
@@ -40,8 +39,6 @@ class AdminEnhancementsTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.client.close()
-        close_db()
-        self.temp_dir.cleanup()
 
     def test_list_all_projects(self) -> None:
         response = self.client.get("/admin/projects", headers=self._admin_headers())
@@ -49,8 +46,17 @@ class AdminEnhancementsTestCase(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         items = response.json()["items"]
         self.assertEqual(2, len(items))
-        self.assertEqual(self.second_project["id"], items[0]["id"])
-        self.assertEqual(self.second_user["nickname"], items[0]["user_nickname"])
+        self.assertEqual(
+            {self.project["id"], self.second_project["id"]},
+            {item["id"] for item in items},
+        )
+        second_project_item = next(
+            item for item in items if item["id"] == self.second_project["id"]
+        )
+        self.assertEqual(
+            self.second_user["nickname"],
+            second_project_item["user_nickname"],
+        )
         project_item = next(item for item in items if item["id"] == self.project["id"])
         self.assertEqual(self.user["nickname"], project_item["user_nickname"])
         self.assertEqual(2, project_item["node_count"])

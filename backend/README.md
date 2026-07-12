@@ -4,9 +4,9 @@ Revid Backend 是基于 FastAPI 的 API 服务，负责认证、Admin、项目�
 
 ## V2 Database Contract
 
-V2 只支持 MySQL。SQLite runtime、`aiosqlite`、SQLite database-backed tests、in-memory production fallback 和 MySQL-to-SQLite rollback 路径均进入 `T5-002` 退役范围。
+V2 只支持 MySQL。Runtime、Alembic、database-backed tests 和 failure handling 均使用同一数据库 contract，不提供 alternate-database 或 in-memory production fallback。
 
-当前源码处于过渡窗口：legacy SQLite 分支可能仍存在，但不得用于 V2 开发、验收或故障回退。权威决策见：
+权威决策见：
 
 - [`ADR-004`](../ai/decisions/ADR-004-mysql-only-runtime-and-tests.md)
 - [`T5-002`](../ai/tasks/todo/TASK-T5-002.md)
@@ -61,8 +61,6 @@ REVID_DB_USER
 REVID_DB_PASSWORD
 ```
 
-During the `T5-002` transition, set `REVID_USE_SQLITE=false`. The flag will be removed when MySQL-only retirement is complete.
-
 Inject real credential values through process environment or an ignored local secret file. Do not paste values into commands, docs, source, screenshots or issue reports. Never commit `.env` or `.env.*`.
 
 ## Schema Lifecycle
@@ -81,7 +79,7 @@ Backend readiness requires all of the following:
 - Current Alembic revision equals repository head.
 - Required production store initializes without fallback.
 
-If any check fails, startup and `/health` must report not ready. SQLite or in-memory fallback is not an accepted recovery path.
+If any check fails, startup and `/health` must report not ready. Alternate database or in-memory fallback is not an accepted recovery path.
 
 Do not run downgrade, destructive migration, reset, DROP, TRUNCATE or destructive DELETE against user data without explicit Human Owner authorization.
 
@@ -109,7 +107,7 @@ python -m unittest tests.test_health
 python -m unittest tests.test_mysql_runtime_cutover
 ```
 
-Database-backed tests must use disposable MySQL schema lifecycle and must not point to user or production databases. Tests that still create `.db` files are legacy evidence until `T5-002` retires them; they are not a V2 MySQL acceptance gate.
+Database-backed tests require the process-supplied `REVID_TEST_MYSQL_ADMIN_URL` and use exact-name guarded disposable `revid_test_*` schemas. Pure unit tests remain database-free. Tests must never point to user or production databases.
 
 ## Local Database Artifacts
 

@@ -4,7 +4,6 @@ import unittest
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 import sys
-from tempfile import TemporaryDirectory
 
 from fastapi import HTTPException
 
@@ -13,20 +12,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from api.auth import _login_or_register_wechat
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import hash_password
-from database import close_db, init_db
+from tests.mysql_test_database import MySQLTestDatabase
 
 
 class InvitationCodeFlowTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        db_path = str(Path(self.temp_dir.name) / "test-revid.db")
-        init_db(db_path)
+        self.mysql_database = MySQLTestDatabase("revid_test_invitation_code")
+        self.mysql_database.start()
+        self.addCleanup(self.mysql_database.stop)
         configure_store(DatabaseStore())
         self.admin_id = store.ensure_admin_user("test-admin", hash_password("StrongPass123!"))["id"]
-
-    def tearDown(self) -> None:
-        close_db()
-        self.temp_dir.cleanup()
 
     def test_open_mode_ignores_invalid_invitation_code(self) -> None:
         store.registration_settings["registration_mode"] = "open"

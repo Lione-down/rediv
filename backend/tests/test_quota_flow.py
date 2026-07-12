@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -13,14 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token, hash_password
-from database import close_db, init_db
+from tests.mysql_test_database import MySQLTestDatabase
 
 
 class QuotaFlowTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        db_path = str(Path(self.temp_dir.name) / "test-revid.db")
-        init_db(db_path)
+        self.mysql_database = MySQLTestDatabase("revid_test_quota_flow")
+        self.mysql_database.start()
+        self.addCleanup(self.mysql_database.stop)
         configure_store(DatabaseStore())
         self.admin_id = store.ensure_admin_user("test-admin", hash_password("StrongPass123!"))["id"]
 
@@ -32,8 +31,6 @@ class QuotaFlowTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.client.close()
-        close_db()
-        self.temp_dir.cleanup()
 
     def test_default_grant_on_registration(self) -> None:
         response = self._register_user("quota-default-user")

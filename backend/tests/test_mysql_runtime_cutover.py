@@ -100,7 +100,7 @@ class TestAlembicRevisionGate(unittest.TestCase):
         from database import check_alembic_revision
 
         engine = MagicMock()
-        engine.dialect.name = "sqlite"
+        engine.dialect.name = "postgresql"
         base_module._engine = engine
 
         with self.assertRaisesRegex(RuntimeError, "requires MySQL"):

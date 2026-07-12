@@ -5,7 +5,6 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
 
 from fastapi import FastAPI
@@ -16,15 +15,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import verify_password
-from database import close_db, init_db
 from settings.config import settings
+from tests.mysql_test_database import MySQLTestDatabase
 
 
 class PasswordAuthContractTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        self.db_path = str(Path(self.temp_dir.name) / "test-revid.db")
-        init_db(self.db_path)
+        self.mysql_database = MySQLTestDatabase("revid_test_password_auth")
+        self.mysql_database.start()
+        self.addCleanup(self.mysql_database.stop)
         configure_store(DatabaseStore())
 
         app = FastAPI()
@@ -38,8 +37,6 @@ class PasswordAuthContractTestCase(unittest.TestCase):
     def tearDown(self) -> None:
         settings.wechat_mock_enabled = self.original_wechat_mock_enabled
         self.client.close()
-        close_db()
-        self.temp_dir.cleanup()
 
     def test_public_registration_settings_expose_only_non_sensitive_fields(self) -> None:
         store.registration_settings["registration_mode"] = "closed"
@@ -215,17 +212,15 @@ class AdminBootstrapContractTestCase(unittest.TestCase):
 
 class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        self.db_path = str(Path(self.temp_dir.name) / "runtime-admin.db")
         self.original_admin_username = settings.admin_username
         self.original_admin_password = settings.admin_password
-        init_db(self.db_path)
+        self.mysql_database = MySQLTestDatabase("revid_test_runtime_admin")
+        self.mysql_database.start()
+        self.addCleanup(self.mysql_database.stop)
 
     def tearDown(self) -> None:
         settings.admin_username = self.original_admin_username
         settings.admin_password = self.original_admin_password
-        close_db()
-        self.temp_dir.cleanup()
 
     def test_database_store_skips_default_admin_without_env_credentials(self) -> None:
         settings.admin_username = ""

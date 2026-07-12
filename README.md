@@ -16,7 +16,7 @@ Revid 是面向 AI 视觉创作的项目工作台。V2 将项目组织、无限�
 
 ## V2 已锁定方向
 
-- 数据库只使用 MySQL，SQLite runtime、依赖、测试路径和回滚叙述全部退役。
+- 数据库只使用 MySQL，旧 alternate-database runtime、依赖、测试路径和回滚叙述已全部退役。
 - 一个项目可拥有多个相互独立的画布，素材、生成任务、生成历史和项目设置继续归项目所有。
 - 第一验收里程碑是 Canvas，不等待全站 UI 完成。
 - Canvas 使用 Leafer UI 持久 world group，目标是 200 nodes / 300 edges 下保持可用的桌面编辑体验。
@@ -68,7 +68,7 @@ Revid 是面向 AI 视觉创作的项目工作台。V2 将项目组织、无限�
 - [Backend README](backend/README.md)
 - [Frontend README](frontend/README.md)
 
-当前源码仍处于 `T5-002` 过渡窗口。完成该任务前，代码中可能仍能看到 legacy SQLite 分支，但它们不是 V2 支持路径，也不得用于 V2 验收或故障回退。
+Backend runtime 与 database-backed tests 已统一使用 MySQL；当前任务状态和后续安全收尾以 `CURRENT` 为准。
 
 ## 安全与数据规则
 

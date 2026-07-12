@@ -44,23 +44,25 @@ Last updated: 2026-07-13
 - `test_e2e_workflow.py` now runs its mocked Agnes full-workflow persistence case against dedicated disposable `revid_test_e2e_workflow`, preserving project, node, generated-asset, quota deduction, and provider-call assertions without a SQLite fallback.
 - `test_image_e2e.py` now runs its five mocked image-provider workflow cases against dedicated disposable `revid_test_image_e2e`, preserving asset persistence, quota deduction/refund, source-image forwarding, provider-failure, and empty-quota assertions without a SQLite fallback.
 - `test_video_e2e.py` now runs its five mocked video-provider workflow cases against dedicated disposable `revid_test_video_e2e`, preserving polling, asset persistence, quota deduction/refund, provider-failure, timeout, and empty-quota assertions without a SQLite fallback.
+- Unit C completion batch migrated the remaining 64 database-backed API, auth, Admin, quota, template, WeChat, text, image, and video tests to ten guarded per-test MySQL schemas. `addCleanup()` guarantees schema cleanup even when later setup steps fail.
+- Unit C retired `aiosqlite`, the SQLite-to-MySQL migration implementation and its 29 discovered tool-only tests, two root migration probes, two tracked test probes, the legacy Alembic test config, and two non-standard Alembic wrappers after confirming no active caller.
+- Active README, `.env.example`, `alembic.ini`, wrong-dialect tests, and dependency declarations now describe or exercise MySQL-only behavior without the retired selectors or rendered placeholder database URL.
+- Equal-timestamp project and template list assertions now verify exact membership and descending timestamps without assuming undefined ID order inside a MySQL timestamp tie.
 
 ## Remaining Work
 
-- Unit C migration of the remaining SQLite-backed database test slices to the reusable guarded MySQL fixture.
-- Unit B2 removal of SQLite-only engine/schema helpers after the guarded MySQL fixture replaces legacy test calls.
-- Unit C removal of `aiosqlite`, SQLite migration tooling, wrappers, test configs, and active documentation.
+- Unit B2 removal of the now-unreferenced SQLite-only engine/schema helpers.
 - Unit D full verification and closure, including removal or explicit production gating of the pre-existing placeholder JWT secret and default dev-admin key.
 
 ## Exact Next Action
 
-Migrate `backend/tests/test_video_generate.py` to its own exact-name guarded `revid_test_video_generate` schema through `MySQLTestDatabase`, preserving its mocked video-provider API assertions while removing only the SQLite database fallback.
+Complete Unit B2 by removing the now-unreferenced SQLite engine/schema helpers from `backend/database.py`, `backend/models/base.py`, and `backend/models/__init__.py`, then run focused runtime/fixture tests and the backend regression without changing Unit D security scope.
 
 ## Latest Completed Bounded Unit
 
-- Migrated `backend/tests/test_video_e2e.py` from a temporary SQLite database to guarded `revid_test_video_e2e` MySQL.
-- Preserved all five mocked Agnes video workflows, polling, asset persistence, quota deduction/refund, provider-failure, timeout, and empty-quota assertions without changing production behavior.
-- Fixture guard tests, focused E2E verification, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
+- Completed the Human-requested Unit C completion batch: all remaining database-backed tests now use guarded MySQL, pure unit tests remain database-free, and active SQLite test/tooling/dependency/config/documentation surfaces are retired.
+- Preserved historical ADR/Task/REPORT evidence and all ignored local `.db` artifacts; the B2 engine helpers were explicitly restored to the starting HEAD so they remain the next bounded unit.
+- Compile, focused tests, 165-test backend regression, Alembic single-head, Unit C schema cleanup, scoped static/caller scans, diff checks, and fresh self-review passed.
 
 ## Files Changed
 
@@ -82,6 +84,9 @@ Migrate `backend/tests/test_video_generate.py` to its own exact-name guarded `re
 - Unit C full-workflow E2E slice: `backend/tests/test_e2e_workflow.py`.
 - Unit C image E2E slice: `backend/tests/test_image_e2e.py`.
 - Unit C video E2E slice: `backend/tests/test_video_e2e.py`.
+- Unit C completion tests: `backend/tests/test_admin_enhancements.py`, `backend/tests/test_image_generate.py`, `backend/tests/test_invitation_code.py`, `backend/tests/test_password_auth_contract.py`, `backend/tests/test_quota_flow.py`, `backend/tests/test_template_system.py`, `backend/tests/test_text_generate.py`, `backend/tests/test_video_generate.py`, and `backend/tests/test_wechat_callback.py`.
+- Unit C dependency/config/docs: `backend/requirements.txt`, `backend/.env.example`, `backend/alembic.ini`, `backend/README.md`, and root `README.md`; wrong-dialect coverage updated in `backend/tests/test_health.py` and `backend/tests/test_mysql_runtime_cutover.py`.
+- Unit C retired tooling: `backend/scripts/migrate_sqlite_to_mysql.py`, `backend/tests/test_migration_tool.py`, `backend/test_infrastructure.py`, `backend/test_migration_flow.py`, `backend/tests/_alembic_check.py`, `backend/tests/_quick_check.py`, `backend/alembic_test.ini`, `backend/alembic_wrapper.py`, and `backend/run_alembic.py`.
 - Project conversation archive: `ai/state/archive/PROJECT-CONVERSATION-ARCHIVE-THROUGH-2026-07-13.md`.
 
 ## Commands And Summarized Results
@@ -132,8 +137,14 @@ Migrate `backend/tests/test_video_generate.py` to its own exact-name guarded `re
 - `tests.test_mysql_test_database tests.test_video_e2e` focused run: PASS, 9 tests in 1.473 seconds; four pure fixture guard tests and five mocked video-provider workflow tests used guarded MySQL for persistence.
 - `python -m compileall -q .` and backend full regression: PASS, 194 tests in 43.109 seconds. Alembic remained at the single head `e9f1a2b3c4d5`.
 - Video E2E cleanup probe: PASS; `revid_test_video_e2e` did not exist after verification. The migrated file contained zero SQLite/temp-file/init/close references, `git diff --check` passed, and fresh review confirmed no production, schema, provider, or assertion changes.
+- Unit C focused completion run reached 68 selected tests with one undefined MySQL project tie-order assertion; after the exact-membership correction, the affected Admin module passed 7/7. A later full regression exposed the equivalent template tie-order assumption; the focused template module passed 9/9 after correction.
+- Final `python -m unittest discover -s tests -p "test_*.py"`: PASS, 165 tests in 101.410 seconds. The count is 29 lower than the prior 194 because exactly 29 discovered tests belonged to the retired migration tool, not active product behavior.
+- `python -m compileall -q .`, `python -m alembic -c alembic.ini heads`, and `git diff --check`: PASS; Alembic has the single head `e9f1a2b3c4d5`.
+- Unit C static and caller scans: PASS; migrated tests/config/requirements/active README contain no retired database markers, and no active caller references the deleted tooling paths. Historical decisions and archived evidence were preserved.
+- Unit C cleanup probe: PASS; none of the ten schemas created by this batch remained. A pre-existing `revid_test_db` schema was observed but not created, selected, written, or dropped because starting ownership was not established.
 
 ## Blockers And Release Conditions
 
 - If the redacted credential was ever real, rotation in the owning system requires Human Owner action; deleting source code does not release that security condition.
 - local `.db` cleanup remains blocked pending exact-path Human approval after backup and parity verification.
+- The pre-existing `revid_test_db` schema requires ownership confirmation before any destructive cleanup; this run left it untouched and it does not block Unit B2 source work.
