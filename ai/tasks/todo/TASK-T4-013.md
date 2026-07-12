@@ -2,7 +2,7 @@
 
 ## Status
 
-- State: `DOING - BROWSER E2E`
+- State: `DOING - RESPONSIVE QA`
 - Owner: Codex Project Lead Engineer
 - Dependencies: T4-005、T4-007、T4-008、T4-009、T4-012 complete
 
@@ -49,9 +49,9 @@ T4-005、T4-007、T4-008、T4-009、T4-012 已审查通过。
 8. Home、Space、Workspace 在三个 viewport 完成视觉回归。
 
 ## Acceptance Criteria
-- [ ] backend 全量 tests 和 MySQL integration tests 通过。
-- [ ] frontend build 和 browser E2E 通过。
-- [ ] 完整 happy path 与失败 path 均有证据。
+- [x] backend 全量 tests 和 MySQL integration tests 通过。
+- [x] frontend build 和 browser E2E 通过。
+- [x] 完整 happy path 与失败 path 均有证据。
 - [ ] Navicat 验收表列、备注、foreign keys 和业务记录一致。
 - [ ] `.gitignore`、`git ls-files` 和暂存区敏感信息检查通过。
 - [ ] CURRENT、ROADMAP、任务进度、报告与源码一致。

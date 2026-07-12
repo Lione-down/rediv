@@ -20,11 +20,11 @@ Last updated: 2026-07-12
 ## Active Delivery
 
 - Active implementation Task: `T4-013 - Full E2E, visual QA, security checks and documentation closure`
-- State: `DOING - BROWSER E2E`
+- State: `DOING - RESPONSIVE QA`
 - Task: `ai/tasks/todo/TASK-T4-013.md`
 - Plan: `ai/tasks/doing/TASK-T4-013-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T4-013-PROGRESS.md`
-- Backend closure evidence: fresh `.venv` regression 189/189, focused MySQL/runtime 12/12, and disposable Alembic/schema/comments/FK matrix passed. T4-013 still requires a unified repeatable browser E2E, frontend/responsive QA, current retained-runtime record/restart evidence, final security checks, and documentation closure.
+- Backend closure evidence: fresh `.venv` regression 189/189, focused MySQL/runtime 12/12, and disposable Alembic/schema/comments/FK matrix passed. Frontend production build and a repeatable authenticated Chromium mock E2E now pass, covering project creation, Canvas load, generation success/failure, quota behavior, and session reload. T4-013 still requires the three-viewport visual matrix, current retained-runtime record/restart evidence, final security checks, and documentation closure.
 
 ## Latest Completed Task
 
@@ -45,7 +45,7 @@ Last updated: 2026-07-12
 
 ## Exact Next Action
 
-Inspect the existing frontend API/auth/test seams and add the smallest repository Playwright harness that exercises one unified authenticated mock workflow without real paid calls, then run it with the production build.
+Extend the repository Playwright harness with 1440x900, 920x900, and 375x900 visual checks for Login, Home, Workspace, and Space, capture sanitized evidence under ignored `output/playwright/`, and rerun the production build plus browser suite.
 
 ## Current Blockers
 
@@ -55,7 +55,7 @@ Inspect the existing frontend API/auth/test seams and add the smallest repositor
 
 ## Worktree Protection
 
-- The backend-verification run started from clean tracked `main` at `5cd2879b46c63cead934a30a1da64b9c93ac95e5`; no staged, modified, unmerged, detached, or in-progress Git-operation state existed.
+- The browser-E2E run started from clean tracked `main` at `e946c51b1fe1f66768c9a2e057b85d645a58213c`; no staged, modified, unmerged, detached, or in-progress Git-operation state existed.
 - Forty-five root `.playwright-cli/*.yml` snapshots were the only pre-existing untracked paths and remain preserved/excluded.
 - Additional root `.playwright-cli` outputs and ignored `output/playwright/` evidence created during Unit B3 remain excluded from staging.
 - Local non-production Canvas fixture data remains preserved; broad cleanup was not authorized.

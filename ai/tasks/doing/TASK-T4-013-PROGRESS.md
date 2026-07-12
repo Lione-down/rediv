@@ -5,9 +5,9 @@ Last updated: 2026-07-12
 ## State
 
 - Task: `T4-013 - Full E2E, visual QA, security checks and documentation closure`
-- State: `DOING - BROWSER E2E`
+- State: `DOING - RESPONSIVE QA`
 - Branch at current run start: `main`
-- Base HEAD at current run start: `5cd2879b46c63cead934a30a1da64b9c93ac95e5`
+- Base HEAD at current run start: `e946c51b1fe1f66768c9a2e057b85d645a58213c`
 - Pre-existing worktree changes: 45 untracked root `.playwright-cli/*.yml` snapshots; no tracked modifications
 - Pre-existing staged changes: none
 - Unmerged paths: none
@@ -22,14 +22,18 @@ Last updated: 2026-07-12
 - Re-ran 12 focused migration/runtime tests: structured URL and database identity, Alembic schema creation, consistency reporting, MySQL runtime cutover, live revision checks, write ordering, and SQLite fallback all passed.
 - Created a disposable MySQL schema at Alembic head `e9f1a2b3c4d5`, verified 14 application tables, 118 columns, 18 foreign keys, zero empty table comments, and zero empty column comments, then dropped only the isolated test database.
 - Confirmed no configured backend or frontend listener was running and no runtime `REVID_DB_*` settings were present in process environment; current retained-runtime record inspection remains deferred without reading `.env`.
+- Added the repository `@playwright/test` harness with an ignored evidence directory and production-preview web server; no paid provider or real database call is reachable from the stateful mock spec.
+- Added one unified authenticated Chromium workflow covering password login, project creation/open, Canvas node and connection load, image generation success and provider failure, success-only quota consumption, authenticated reload, and session restoration.
+- Fixed an evidence-proven Workspace defect where selecting a desktop inspector tab also opened the mobile drawer and hid the Prompt Dock; the drawer now opens from tab selection only at the existing `920px` mobile breakpoint.
+- Re-ran the production build and browser suite after the fix: build passed and browser E2E passed 1/1 in 4.4 seconds.
 
 ## Acceptance Evidence Matrix
 
 | T4-013 acceptance area | Existing classified evidence | Missing fresh closure evidence | Next disposition |
 |---|---|---|---|
 | Backend full regression and MySQL integration | Fresh backend 189/189; focused MySQL/runtime 12/12; disposable Alembic head/schema/comments/FK matrix passed; T4-003/T4-004/T4-008 retain real runtime, restart, and persistence evidence | Fresh current retained-runtime record matrix requires process-supplied `REVID_DB_*` settings or an already configured running backend | Carry the explicit runtime blocker to final closure; proceed with browser E2E |
-| Frontend build and browser E2E | Repeated production builds passed; Login, Home, Space, and Canvas have real or controlled browser matrices and screenshots | No repository `@playwright/test` dependency, Playwright config, or unified repeatable T4-013 E2E covering the complete authenticated workflow | Add a scoped harness only after backend verification |
-| Happy and failure paths | Mock generation E2E covers quota/task/asset success and failure; real Agnes and controlled failure persistence passed; UI error and rollback paths passed per surface | One consolidated browser/API workflow that links project, Canvas, generation task, asset, quota, refresh, and failure evidence | Cover in unified E2E and final evidence review |
+| Frontend build and browser E2E | Fresh production build passed; repository Chromium E2E 1/1 covers authenticated project creation, Canvas nodes/connections, generation success/failure, quota, and reload | Three-viewport repeatable visual checks and sanitized screenshot matrix remain | Extend the harness for responsive QA |
+| Happy and failure paths | Consolidated browser mock workflow covers project, Canvas, generated asset, quota success/failure, and reload; real Agnes and controlled persistence failure evidence remain current | Final evidence review must reconcile mock browser and real-service classifications | Reconcile during final report |
 | Navicat/schema acceptance | Read-only evidence confirms app table/column comments, foreign keys, revisions, and retained business records; generation task/asset relation passed | Fresh current-head schema/record matrix and sanitized Navicat-equivalent screenshot or inspection record | Re-run read-only inspection; do not clean retained fixtures |
 | Secret and Git hygiene | `.gitignore` excludes `.env*`, key/certificate types, and browser evidence; prior scoped scans passed | Fresh `git ls-files`, repository/staged-path, and redacted credential-pattern checks for the final delivery | Run before every T4-013 commit and at closeout |
 | Durable documentation | Dependency reports, PLAN, PROGRESS, CURRENT, and ROADMAP agree on T4-013 ownership and scope | `REPORT-T4-013.md`, `REVIEW-PHASE4-COMPLETE.md`, final Task/ROADMAP reconciliation | Complete only after all verification passes |
@@ -37,19 +41,24 @@ Last updated: 2026-07-12
 
 ## Remaining Work
 
-- Add and run a repeatable unified browser E2E, then complete frontend build and responsive visual QA.
+- Extend the browser suite and complete responsive visual QA at 1440x900, 920x900, and 375x900.
 - Complete security hygiene, current-runtime Navicat-equivalent record inspection and restart checks when process-only runtime configuration is available, then close documentation.
 - Add only evidence-driven minimal fixes and final artifacts.
 
 ## Exact Next Action
 
-Inspect the existing frontend API/auth/test seams and add the smallest repository Playwright harness that exercises one unified authenticated mock workflow without real paid calls, then run it with the production build.
+Extend the repository Playwright harness with 1440x900, 920x900, and 375x900 visual checks for Login, Home, Workspace, and Space, capture sanitized evidence under ignored `output/playwright/`, and rerun the production build plus browser suite.
 
 ## Files Changed
 
 - `ai/state/CURRENT.md`
 - `ai/tasks/todo/TASK-T4-013.md`
 - `ai/tasks/doing/TASK-T4-013-PROGRESS.md`
+- `frontend/package.json`
+- `frontend/package-lock.json`
+- `frontend/playwright.config.ts`
+- `frontend/tests/e2e/authenticated-workflow.spec.ts`
+- `frontend/src/views/app/Workspace.vue`
 
 ## Commands And Summarized Results
 
@@ -64,6 +73,11 @@ Inspect the existing frontend API/auth/test seams and add the smallest repositor
 - Disposable MySQL schema inspection passed at Alembic head `e9f1a2b3c4d5`: 14 application tables, 118 columns, 18 foreign keys, and no empty table or column comments; cleanup passed.
 - The first standalone schema probe omitted test-database creation and failed safely with MySQL 1049 before any schema write; the corrected probe reused the tested `_setup_test_db` lifecycle and passed.
 - Process-only runtime preflight found `REVID_TEST_MYSQL_ADMIN_URL` present but no `REVID_DB_*` settings; ports 8000, 5173, and 9099 were not listening, so no current retained-runtime database was queried.
+- `npm install --save-dev @playwright/test` added the single approved browser-test dependency; npm audit reported zero vulnerabilities.
+- `npm run build` passed after the harness and after the viewport-gated Workspace fix.
+- Initial `npm run test:e2e` reached generation success but selected a hidden duplicate assertion; the harness was narrowed to the visible desktop inspector.
+- The next E2E run exposed the desktop-tab/mobile-drawer defect; after the one-file viewport fix, the suite reached both provider success and failure.
+- Final `npm run test:e2e` passed 1/1 in 4.4 seconds; output uses ignored `output/playwright/`, and all backend/provider/database behavior was stateful mock evidence.
 
 ## Blockers And Release Conditions
 

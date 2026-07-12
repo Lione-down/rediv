@@ -108,7 +108,9 @@ const generationButtonLabel = computed(() => (isGenerating.value ? '生成中' :
 
 function setActiveTab(tab: WorkspaceTab) {
   activeTab.value = tab
-  isMobilePanelOpen.value = true
+  if (window.matchMedia('(max-width: 920px)').matches) {
+    isMobilePanelOpen.value = true
+  }
 }
 
 function toggleMobilePanel() {
