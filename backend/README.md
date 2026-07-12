@@ -51,7 +51,7 @@ python -m pip install -r requirements.txt
 
 ## Runtime Configuration
 
-Configuration uses the `REVID_` prefix. Database runtime requires these variable names:
+Configuration uses the `REVID_` prefix. Runtime requires these variable names:
 
 ```text
 REVID_DB_HOST
@@ -59,9 +59,12 @@ REVID_DB_PORT
 REVID_DB_NAME
 REVID_DB_USER
 REVID_DB_PASSWORD
+REVID_JWT_SECRET
 ```
 
 Inject real credential values through process environment or an ignored local secret file. Do not paste values into commands, docs, source, screenshots or issue reports. Never commit `.env` or `.env.*`.
+
+`REVID_DEV_ADMIN_KEY` is optional. When absent, `/admin/dev-login` is disabled with a service-unavailable response; configure it explicitly only when the development login route is required.
 
 ## Schema Lifecycle
 

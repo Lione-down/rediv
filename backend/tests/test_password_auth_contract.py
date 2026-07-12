@@ -214,6 +214,7 @@ class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.original_admin_username = settings.admin_username
         self.original_admin_password = settings.admin_password
+        self.original_dev_admin_key = settings.dev_admin_key
         self.mysql_database = MySQLTestDatabase("revid_test_runtime_admin")
         self.mysql_database.start()
         self.addCleanup(self.mysql_database.stop)
@@ -221,6 +222,7 @@ class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
     def tearDown(self) -> None:
         settings.admin_username = self.original_admin_username
         settings.admin_password = self.original_admin_password
+        settings.dev_admin_key = self.original_dev_admin_key
 
     def test_database_store_skips_default_admin_without_env_credentials(self) -> None:
         settings.admin_username = ""
@@ -246,6 +248,7 @@ class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
     def test_dev_login_fails_closed_without_bootstrapped_password_admin(self) -> None:
         settings.admin_username = ""
         settings.admin_password = ""
+        settings.dev_admin_key = "test-" * 8
         configure_store(DatabaseStore())
 
         app = FastAPI()
@@ -258,6 +261,20 @@ class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
 
         self.assertEqual(503, response.status_code)
         self.assertEqual("Admin bootstrap user is not configured", response.json()["detail"])
+
+    def test_dev_login_is_disabled_without_explicit_key(self) -> None:
+        settings.dev_admin_key = ""
+
+        app = FastAPI()
+        include_routers(app)
+        client = TestClient(app)
+        try:
+            response = client.post("/admin/dev-login", params={"admin_key": "test-" * 8})
+        finally:
+            client.close()
+
+        self.assertEqual(503, response.status_code)
+        self.assertEqual("Development admin login is not configured", response.json()["detail"])
 
 
 if __name__ == "__main__":

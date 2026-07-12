@@ -6,12 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from controllers.store import DatabaseStore, configure_store
 from core.agnes_provider import AgnesProvider
 from database import check_alembic_revision, close_db, init_mysql_engine
-from settings.config import settings
+from settings.config import require_runtime_security_settings, settings
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """Initialize the MySQL runtime and fail startup on any database drift."""
+    """Validate runtime security and initialize the MySQL application state."""
+    require_runtime_security_settings()
     init_mysql_engine()
     try:
         check_alembic_revision()

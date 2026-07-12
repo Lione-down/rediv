@@ -42,8 +42,9 @@ Deliver a usable backend whose only runtime and integration-test database is MyS
 
 ### Unit D: Full verification and closure
 
-- run focused security/runtime tests, backend full regression, Alembic checks, schema comment/FK inspection, restart persistence, static retirement scan, and secret hygiene;
-- update README, PROGRESS, CURRENT, ROADMAP, and REPORT;
+- D1: remove the placeholder JWT and dev-admin defaults, require an explicit JWT secret before runtime startup, disable dev-admin login when its key is absent, and cover both gates with focused configuration/auth tests;
+- D2: run backend full regression, Alembic checks, schema comment/FK inspection, restart persistence, static retirement scan, and secret hygiene;
+- update active README/configuration guidance with D1, then update PROGRESS, CURRENT, ROADMAP, and REPORT only when D2 satisfies every remaining acceptance criterion;
 - do not delete local ignored `.db` artifacts.
 
 ## Rollback

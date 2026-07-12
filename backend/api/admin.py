@@ -1,3 +1,5 @@
+import hmac
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from controllers.store import store
@@ -21,7 +23,12 @@ def _log_admin_operation(
 
 @router.post("/dev-login")
 def dev_admin_login(admin_key: str):
-    if admin_key != settings.dev_admin_key:
+    if not settings.dev_admin_key.strip():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Development admin login is not configured",
+        )
+    if not hmac.compare_digest(admin_key, settings.dev_admin_key):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid admin key")
     admin = next(
         (

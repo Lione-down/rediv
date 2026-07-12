@@ -126,11 +126,27 @@ class TestAlembicRevisionGate(unittest.TestCase):
 
 
 class TestRuntimeLifespan(unittest.IsolatedAsyncioTestCase):
+    async def test_lifespan_rejects_missing_jwt_secret_before_database_startup(self) -> None:
+        from main import lifespan, settings
+
+        with (
+            patch.object(settings, "jwt_secret", ""),
+            patch("main.init_mysql_engine") as init_mysql_engine,
+            patch("main.close_db") as close_db,
+            self.assertRaisesRegex(RuntimeError, "REVID_JWT_SECRET is required"),
+        ):
+            async with lifespan(FastAPI()):
+                self.fail("lifespan must not start without an explicit JWT secret")
+
+        init_mysql_engine.assert_not_called()
+        close_db.assert_not_called()
+
     async def test_lifespan_initializes_mysql_and_closes_engine(self) -> None:
-        from main import lifespan
+        from main import lifespan, settings
 
         database_store = object()
         with (
+            patch.object(settings, "jwt_secret", "test-" * 8),
             patch("main.init_mysql_engine") as init_mysql_engine,
             patch("main.check_alembic_revision") as check_revision,
             patch("main.DatabaseStore", return_value=database_store),
@@ -145,9 +161,10 @@ class TestRuntimeLifespan(unittest.IsolatedAsyncioTestCase):
         close_db.assert_called_once_with()
 
     async def test_lifespan_closes_engine_when_revision_gate_fails(self) -> None:
-        from main import lifespan
+        from main import lifespan, settings
 
         with (
+            patch.object(settings, "jwt_secret", "test-" * 8),
             patch("main.init_mysql_engine"),
             patch("main.check_alembic_revision", side_effect=RuntimeError("revision mismatch")),
             patch("main.configure_store") as configure_store,

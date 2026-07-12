@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     # === App ===
     app_name: str = "Revid API"
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173", "http://localhost:9099"])
-    jwt_secret: str = "change-this-secret-in-production"
+    jwt_secret: str = Field(default="", repr=False)
 
     # === Database ===
     db_host: str = ""
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     wechat_mock_enabled: bool = True
 
     # === Admin ===
-    dev_admin_key: str = "dev-admin-key"
+    dev_admin_key: str = Field(default="", repr=False)
     admin_username: str = ""
     admin_password: str = Field(default="", repr=False)
     test_mysql_admin_url: str | None = Field(default=None, repr=False)
@@ -55,3 +55,8 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
+
+def require_runtime_security_settings() -> None:
+    if not settings.jwt_secret.strip():
+        raise RuntimeError("REVID_JWT_SECRET is required")

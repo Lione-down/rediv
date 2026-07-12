@@ -75,13 +75,16 @@ Last updated: 2026-07-13
 - Unit B2 removed the final `build_sqlite_url`, `init_db`, SQLite schema-bootstrap, and runtime `create_all()` helpers; `init_engine()` is now a no-argument MySQL-only API and the retired exports are gone.
 - Unit B2 compile and focused runtime/fixture/database-store tests passed 21/21 on the stable delivery baseline, the prior backend regression passed 165/165, Alembic remained single-head, active backend retirement scans were clean, and only the pre-existing untouched `revid_test_db` schema remained after cleanup probes.
 - The earlier `70d7a5c` to `d7980f8` HEAD drift was reconciled without discarding either the Human Owner delivery policy or the verified Unit B2 changes; Unit B2 is delivered by the scoped commit containing this state update.
+- Unit D1 removed the placeholder JWT and dev-admin defaults. Runtime startup now requires an explicit non-blank `REVID_JWT_SECRET` before any database initialization, while `/admin/dev-login` is disabled unless `REVID_DEV_ADMIN_KEY` is explicitly configured.
+- Both security settings are hidden from settings representations, configured dev-admin keys use constant-time comparison, and active backend guidance documents required versus optional configuration without embedding credential values.
+- Unit D1 compile and focused runtime/auth verification passed 22/22; backend regression passed 167/167; Alembic remained single-head; static, cleanup, diff, and deep review gates passed with no D1 finding.
 - A pre-existing `revid_test_db` schema was observed but not created or touched; destructive cleanup requires ownership confirmation. Ignored local `.db` artifacts remain untouched.
 - Deep review re-confirmed pre-existing placeholder JWT and dev-admin defaults; they remain an implementation security-closure item, not a Human gate, and were not mixed into Unit B1.
 - Current Canvas remains project-scoped, uses conflicting light and dark theme sources, hides its grid behind an opaque surface, and broadly rebuilds the Leafer scene.
 
 ## Exact Next Action
 
-Start Unit D by refreshing its PLAN/PROGRESS scope, then remove or explicitly production-gate the placeholder JWT secret and default dev-admin key with focused configuration/auth tests before the remaining full-closure checks.
+Run Unit D2 schema comment/FK inspection and restart-persistence evidence on guarded disposable MySQL, then complete static/secret hygiene and reconcile README, PROGRESS, CURRENT, ROADMAP, REPORT, and Task state only if every non-deferred acceptance criterion passes.
 
 ## Blockers And Release Conditions
 
