@@ -39,7 +39,7 @@ defineProps<Props>()
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-4);
-  padding: 14px 18px var(--space-3);
+  padding: 14px 18px var(--space-3) calc(76px + 18px);
   border-bottom: 1px solid var(--border-subtle);
   background: oklch(100% 0.004 92 / 0.64);
 }
@@ -110,7 +110,7 @@ defineProps<Props>()
 
 @media (max-width: 920px) {
   .canvas-chrome {
-    padding: 12px 14px 10px;
+    padding: 12px 14px 10px calc(76px + 14px);
   }
 
   .canvas-chrome h1 {

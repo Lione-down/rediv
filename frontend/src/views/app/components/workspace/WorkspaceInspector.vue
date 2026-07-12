@@ -296,12 +296,6 @@ const tabOptions = computed(() => [
   text-align: center;
 }
 
-@media (max-width: 920px) {
-  .right-panel {
-    display: none;
-  }
-}
-
 .right-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -310,6 +304,12 @@ const tabOptions = computed(() => [
   max-width: 360px;
   border-left: 1px solid var(--border-subtle);
   background: var(--bg-panel);
+}
+
+@media (max-width: 920px) {
+  .right-panel {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

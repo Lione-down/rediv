@@ -20,11 +20,11 @@ Last updated: 2026-07-12
 ## Active Delivery
 
 - Active implementation Task: `T4-013 - Full E2E, visual QA, security checks and documentation closure`
-- State: `DOING - RESPONSIVE QA`
+- State: `DOING - SECURITY CLOSURE`
 - Task: `ai/tasks/todo/TASK-T4-013.md`
 - Plan: `ai/tasks/doing/TASK-T4-013-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T4-013-PROGRESS.md`
-- Backend closure evidence: fresh `.venv` regression 189/189, focused MySQL/runtime 12/12, and disposable Alembic/schema/comments/FK matrix passed. Frontend production build and a repeatable authenticated Chromium mock E2E now pass, covering project creation, Canvas load, generation success/failure, quota behavior, and session reload. T4-013 still requires the three-viewport visual matrix, current retained-runtime record/restart evidence, final security checks, and documentation closure.
+- Backend closure evidence: fresh `.venv` regression 189/189, focused MySQL/runtime 12/12, and disposable Alembic/schema/comments/FK matrix passed. Frontend production build and Chromium mock E2E pass 4/4, including the authenticated workflow plus Login, Home, Workspace, and Space at 1440x900, 920x900, and 375x900 with 12 sanitized screenshots and horizontal-overflow guards. T4-013 still requires current retained-runtime record/restart evidence, final security checks, and documentation closure.
 
 ## Latest Completed Task
 
@@ -41,11 +41,11 @@ Last updated: 2026-07-12
 ## Project Status
 
 - T4-003, T4-004, T4-005, T4-007, T4-008, T4-009, T4-011, and T4-012 are `DONE - PASS` within their authorized scope.
-- T4-013 is `DOING - BROWSER E2E` and is the only active implementation Task.
+- T4-013 is `DOING - SECURITY CLOSURE` and is the only active implementation Task.
 
 ## Exact Next Action
 
-Extend the repository Playwright harness with 1440x900, 920x900, and 375x900 visual checks for Login, Home, Workspace, and Space, capture sanitized evidence under ignored `output/playwright/`, and rerun the production build plus browser suite.
+Run final repository and staged secret hygiene checks, repeat the process-only retained-runtime preflight without opening `.env`, and record whether runtime inspection remains blocked before documentation closure.
 
 ## Current Blockers
 
@@ -55,9 +55,9 @@ Extend the repository Playwright harness with 1440x900, 920x900, and 375x900 vis
 
 ## Worktree Protection
 
-- The browser-E2E run started from clean tracked `main` at `e946c51b1fe1f66768c9a2e057b85d645a58213c`; no staged, modified, unmerged, detached, or in-progress Git-operation state existed.
+- The responsive-QA run started from clean tracked `main` at `a35a9661e04f6429dfb25c6660912d5b23a00d09`; no staged, modified, unmerged, detached, or in-progress Git-operation state existed.
 - Forty-five root `.playwright-cli/*.yml` snapshots were the only pre-existing untracked paths and remain preserved/excluded.
-- Additional root `.playwright-cli` outputs and ignored `output/playwright/` evidence created during Unit B3 remain excluded from staging.
+- Additional root `.playwright-cli` outputs and ignored `output/playwright/t4-013-responsive/` evidence created during responsive QA remain excluded from staging.
 - Local non-production Canvas fixture data remains preserved; broad cleanup was not authorized.
 - Preserve unrelated future changes; never reset, clean, or overwrite them.
 

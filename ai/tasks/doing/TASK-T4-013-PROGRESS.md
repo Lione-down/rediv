@@ -5,9 +5,9 @@ Last updated: 2026-07-12
 ## State
 
 - Task: `T4-013 - Full E2E, visual QA, security checks and documentation closure`
-- State: `DOING - RESPONSIVE QA`
+- State: `DOING - SECURITY CLOSURE`
 - Branch at current run start: `main`
-- Base HEAD at current run start: `e946c51b1fe1f66768c9a2e057b85d645a58213c`
+- Base HEAD at current run start: `a35a9661e04f6429dfb25c6660912d5b23a00d09`
 - Pre-existing worktree changes: 45 untracked root `.playwright-cli/*.yml` snapshots; no tracked modifications
 - Pre-existing staged changes: none
 - Unmerged paths: none
@@ -26,13 +26,17 @@ Last updated: 2026-07-12
 - Added one unified authenticated Chromium workflow covering password login, project creation/open, Canvas node and connection load, image generation success and provider failure, success-only quota consumption, authenticated reload, and session restoration.
 - Fixed an evidence-proven Workspace defect where selecting a desktop inspector tab also opened the mobile drawer and hid the Prompt Dock; the drawer now opens from tab selection only at the existing `920px` mobile breakpoint.
 - Re-ran the production build and browser suite after the fix: build passed and browser E2E passed 1/1 in 4.4 seconds.
+- Extended the repository browser suite with 1440x900, 920x900, and 375x900 visual checks for Login, Home, Workspace, and Space. Every page asserts key content visibility and no horizontal document overflow, and writes sanitized screenshots under ignored `output/playwright/t4-013-responsive/`.
+- Visually reviewed all 12 final screenshots and fixed two evidence-proven Workspace responsive defects: the desktop inspector remained visible at and below 920px because its base CSS rule overrode the earlier media rule, and the absolute 76px tool rail covered the project heading because the status bar lacked a rail offset.
+- Added browser regression guards that fail when the desktop inspector is visible at or below 920px, or when the project heading begins left of the tool rail's right boundary. Both guards failed on the pre-fix production bundle and pass after the scoped CSS fixes.
+- Rebuilt the production frontend and passed the complete Chromium suite 4/4 after both fixes; the final screenshot matrix was re-captured and re-inspected.
 
 ## Acceptance Evidence Matrix
 
 | T4-013 acceptance area | Existing classified evidence | Missing fresh closure evidence | Next disposition |
 |---|---|---|---|
 | Backend full regression and MySQL integration | Fresh backend 189/189; focused MySQL/runtime 12/12; disposable Alembic head/schema/comments/FK matrix passed; T4-003/T4-004/T4-008 retain real runtime, restart, and persistence evidence | Fresh current retained-runtime record matrix requires process-supplied `REVID_DB_*` settings or an already configured running backend | Carry the explicit runtime blocker to final closure; proceed with browser E2E |
-| Frontend build and browser E2E | Fresh production build passed; repository Chromium E2E 1/1 covers authenticated project creation, Canvas nodes/connections, generation success/failure, quota, and reload | Three-viewport repeatable visual checks and sanitized screenshot matrix remain | Extend the harness for responsive QA |
+| Frontend build and browser E2E | Fresh production build passed; repository Chromium E2E 4/4 covers authenticated project creation, Canvas nodes/connections, generation success/failure, quota, reload, and Login/Home/Workspace/Space at 1440x900, 920x900, and 375x900; 12 sanitized screenshots were visually reviewed | None for the planned mock browser and responsive matrix | Reconcile mock versus real-service evidence during final report |
 | Happy and failure paths | Consolidated browser mock workflow covers project, Canvas, generated asset, quota success/failure, and reload; real Agnes and controlled persistence failure evidence remain current | Final evidence review must reconcile mock browser and real-service classifications | Reconcile during final report |
 | Navicat/schema acceptance | Read-only evidence confirms app table/column comments, foreign keys, revisions, and retained business records; generation task/asset relation passed | Fresh current-head schema/record matrix and sanitized Navicat-equivalent screenshot or inspection record | Re-run read-only inspection; do not clean retained fixtures |
 | Secret and Git hygiene | `.gitignore` excludes `.env*`, key/certificate types, and browser evidence; prior scoped scans passed | Fresh `git ls-files`, repository/staged-path, and redacted credential-pattern checks for the final delivery | Run before every T4-013 commit and at closeout |
@@ -41,13 +45,12 @@ Last updated: 2026-07-12
 
 ## Remaining Work
 
-- Extend the browser suite and complete responsive visual QA at 1440x900, 920x900, and 375x900.
 - Complete security hygiene, current-runtime Navicat-equivalent record inspection and restart checks when process-only runtime configuration is available, then close documentation.
 - Add only evidence-driven minimal fixes and final artifacts.
 
 ## Exact Next Action
 
-Extend the repository Playwright harness with 1440x900, 920x900, and 375x900 visual checks for Login, Home, Workspace, and Space, capture sanitized evidence under ignored `output/playwright/`, and rerun the production build plus browser suite.
+Run final repository and staged secret hygiene checks, repeat the process-only retained-runtime preflight without opening `.env`, and record whether runtime inspection remains blocked before documentation closure.
 
 ## Files Changed
 
@@ -59,6 +62,8 @@ Extend the repository Playwright harness with 1440x900, 920x900, and 375x900 vis
 - `frontend/playwright.config.ts`
 - `frontend/tests/e2e/authenticated-workflow.spec.ts`
 - `frontend/src/views/app/Workspace.vue`
+- `frontend/src/views/app/components/workspace/WorkspaceInspector.vue`
+- `frontend/src/views/app/components/workspace/WorkspaceStatusBar.vue`
 
 ## Commands And Summarized Results
 
@@ -78,6 +83,11 @@ Extend the repository Playwright harness with 1440x900, 920x900, and 375x900 vis
 - Initial `npm run test:e2e` reached generation success but selected a hidden duplicate assertion; the harness was narrowed to the visible desktop inspector.
 - The next E2E run exposed the desktop-tab/mobile-drawer defect; after the one-file viewport fix, the suite reached both provider success and failure.
 - Final `npm run test:e2e` passed 1/1 in 4.4 seconds; output uses ignored `output/playwright/`, and all backend/provider/database behavior was stateful mock evidence.
+- Initial responsive run reached all three viewports but failed on an incorrect ARIA-role assumption for the prompt footer; the selector was corrected without a business-code change.
+- The first complete responsive suite then passed 4/4, allowing visual review to identify the inspector and project-heading defects that DOM overflow alone did not expose.
+- `npx playwright test -g "responsive visual matrix at 920x900"` failed on the new inspector visibility guard before the CSS fix (`visible`, expected hidden), then passed after rebuilding the production bundle with the media rule ordered last.
+- The same focused command failed on the new geometry guard before the status-bar fix (heading x=14, tool rail right edge x=76), then passed after adding the rail offset.
+- Final `npm run build` passed, and final `npm run test:e2e` passed 4/4 in 7.2 seconds. Twelve sanitized final screenshots under `output/playwright/t4-013-responsive/` were visually reviewed across all requested pages and viewports.
 
 ## Blockers And Release Conditions
 

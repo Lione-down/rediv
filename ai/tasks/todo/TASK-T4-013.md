@@ -2,7 +2,7 @@
 
 ## Status
 
-- State: `DOING - RESPONSIVE QA`
+- State: `DOING - SECURITY CLOSURE`
 - Owner: Codex Project Lead Engineer
 - Dependencies: T4-005、T4-007、T4-008、T4-009、T4-012 complete
 

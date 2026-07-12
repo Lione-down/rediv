@@ -1,4 +1,6 @@
-import { expect, test, type Page, type Route } from '@playwright/test'
+import { mkdir } from 'node:fs/promises'
+import { resolve } from 'node:path'
+import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test'
 
 const API_ORIGIN = 'http://localhost:8000'
 const APP_ORIGIN = 'http://127.0.0.1:9099'
@@ -7,6 +9,7 @@ const NOW = '2026-07-12T08:00:00Z'
 interface MockState {
   projects: Array<Record<string, unknown>>
   assets: Array<Record<string, unknown>>
+  templates: Array<Record<string, unknown>>
   imageQuota: number
   generationAttempts: number
   generationBodies: unknown[]
@@ -68,6 +71,12 @@ const canvasConnections = [
     updated_at: NOW,
   },
 ]
+
+const visualViewports = [
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'tablet', width: 920, height: 900 },
+  { name: 'mobile', width: 375, height: 900 },
+] as const
 
 function corsHeaders() {
   return {
@@ -151,6 +160,11 @@ async function installMockApi(page: Page, state: MockState) {
       return
     }
 
+    if (request.method() === 'GET' && pathname === '/templates') {
+      await fulfillJson(route, { items: state.templates, total: state.templates.length })
+      return
+    }
+
     if (request.method() === 'GET' && pathname === '/projects/project-e2e/nodes') {
       await fulfillJson(route, { items: canvasNodes, total: canvasNodes.length })
       return
@@ -195,10 +209,71 @@ async function installMockApi(page: Page, state: MockState) {
   })
 }
 
+async function captureVisualEvidence(page: Page, testInfo: TestInfo, name: string) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      ),
+    )
+    .toBeLessThanOrEqual(1)
+
+  const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't4-013-responsive')
+  const screenshotPath = resolve(evidenceDirectory, `${name}.png`)
+  await mkdir(evidenceDirectory, { recursive: true })
+  await page.screenshot({ path: screenshotPath, fullPage: true })
+  await testInfo.attach(name, { path: screenshotPath, contentType: 'image/png' })
+}
+
+function createVisualState(): MockState {
+  return {
+    projects: [
+      {
+        id: 'project-e2e',
+        user_id: user.id,
+        name: 'E2E 夏日短片',
+        created_at: NOW,
+      },
+    ],
+    assets: [
+      {
+        id: 'asset-prompt',
+        user_id: user.id,
+        project_id: 'project-e2e',
+        canvas_node_id: 'node-image',
+        type: 'prompt',
+        url: null,
+        content_text: '夏日海边电影海报，柔和日落与清晰标题留白。',
+        source: 'generation',
+        source_model: 'mock-text-model',
+        source_task_id: 'task-prompt',
+        status: 'ready',
+        created_at: NOW,
+        updated_at: NOW,
+      },
+    ],
+    templates: [
+      {
+        id: 'template-e2e',
+        name: '短片封面流程',
+        user_id: user.id,
+        node_count: 2,
+        created_at: NOW,
+        node_data: null,
+      },
+    ],
+    imageQuota: 3,
+    generationAttempts: 0,
+    generationBodies: [],
+    authenticatedRequests: [],
+  }
+}
+
 test('authenticated project and Canvas generation workflow survives reload', async ({ page }) => {
   const state: MockState = {
     projects: [],
     assets: [],
+    templates: [],
     imageQuota: 3,
     generationAttempts: 0,
     generationBodies: [],
@@ -253,3 +328,47 @@ test('authenticated project and Canvas generation workflow survives reload', asy
   expect(state.authenticatedRequests).toContain('GET /projects/project-e2e/nodes')
   expect(state.authenticatedRequests).toContain('POST /api/image-generate')
 })
+
+for (const viewport of visualViewports) {
+  test(`responsive visual matrix at ${viewport.width}x${viewport.height}`, async ({ page }, testInfo) => {
+    const state = createVisualState()
+    await page.setViewportSize(viewport)
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await installMockApi(page, state)
+
+    await page.goto('/login?redirect=/')
+    await expect(page.getByRole('heading', { name: '登录 Revid' })).toBeVisible()
+    await expect(page.getByLabel('用户名或邮箱')).toBeVisible()
+    await captureVisualEvidence(page, testInfo, `${viewport.name}-login`)
+
+    await page.getByLabel('用户名或邮箱').fill('creator')
+    await page.getByLabel('密码').fill('correct-password')
+    await page.getByRole('button', { name: '登录并进入工作流' }).click()
+    await expect(page.getByRole('heading', { name: 'E2E Creator 的创作工作台' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '进入项目 E2E 夏日短片' })).toBeVisible()
+    await captureVisualEvidence(page, testInfo, `${viewport.name}-home`)
+
+    await page.getByRole('button', { name: '进入项目 E2E 夏日短片' }).click()
+    await expect(page).toHaveURL(/\/app\/workspace\?project_id=project-e2e$/)
+    await expect(page.getByRole('region', { name: 'Revid 无限画布工作区' })).toBeVisible()
+    await expect(page.locator('footer[aria-label="Prompt 输入区"]')).toBeVisible()
+    const toolRailBox = await page.getByRole('navigation', { name: '画布工具' }).boundingBox()
+    const projectHeadingBox = await page.getByRole('heading', { name: 'project-e2e' }).boundingBox()
+    expect(toolRailBox).not.toBeNull()
+    expect(projectHeadingBox).not.toBeNull()
+    expect(projectHeadingBox!.x).toBeGreaterThanOrEqual(toolRailBox!.x + toolRailBox!.width)
+    const desktopInspector = page.locator('aside.right-panel').first()
+    if (viewport.width > 920) {
+      await expect(desktopInspector).toBeVisible()
+    } else {
+      await expect(desktopInspector).toBeHidden()
+    }
+    await captureVisualEvidence(page, testInfo, `${viewport.name}-workspace`)
+
+    await page.goto('/app/space')
+    await expect(page.getByRole('heading', { name: 'E2E Creator 的个人空间' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '个人资产' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /查看资产详情/ })).toBeVisible()
+    await captureVisualEvidence(page, testInfo, `${viewport.name}-space`)
+  })
+}
