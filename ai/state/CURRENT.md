@@ -20,11 +20,11 @@ Last updated: 2026-07-12
 ## Active Delivery
 
 - Active implementation Task: `T4-013 - Full E2E, visual QA, security checks and documentation closure`
-- State: `DOING - EVIDENCE INVENTORY`
+- State: `DOING - BACKEND VERIFICATION`
 - Task: `ai/tasks/todo/TASK-T4-013.md`
 - Plan: `ai/tasks/doing/TASK-T4-013-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T4-013-PROGRESS.md`
-- First bounded unit: inventory current Phase 4 reports and map every acceptance criterion to existing versus missing evidence before any business-code edit.
+- Evidence inventory: complete; dependency reports cover per-surface functionality, but T4-013 still requires fresh backend/MySQL verification, a unified repeatable browser E2E, final security/schema checks, and documentation closure.
 
 ## Latest Completed Task
 
@@ -45,7 +45,7 @@ Last updated: 2026-07-12
 
 ## Exact Next Action
 
-Read the current reports for T4-003, T4-004, T4-005, T4-007, T4-008, T4-009, and T4-012; build a concise acceptance matrix of existing versus missing T4-013 evidence before any business-code edit.
+Run the fresh backend full regression, then preflight process-only MySQL test capability without opening `.env`; execute the disposable MySQL integration profile when available and otherwise record its exact blocker while completing non-destructive current-runtime schema and persistence checks.
 
 ## Current Blockers
 
@@ -54,7 +54,7 @@ Read the current reports for T4-003, T4-004, T4-005, T4-007, T4-008, T4-009, and
 
 ## Worktree Protection
 
-- This run started from clean tracked `main` at `0cb8d82844c0875114db31ea45bbdf5cce0ec7b5`; no staged, modified, unmerged, detached, or in-progress Git-operation state existed.
+- The evidence-inventory run started from clean tracked `main` at `9bf53001b7b15b101babd5c27a1da464d4ad0fed`; no staged, modified, unmerged, detached, or in-progress Git-operation state existed.
 - Forty-five root `.playwright-cli/*.yml` snapshots were the only pre-existing untracked paths and remain preserved/excluded.
 - Additional root `.playwright-cli` outputs and ignored `output/playwright/` evidence created during Unit B3 remain excluded from staging.
 - Local non-production Canvas fixture data remains preserved; broad cleanup was not authorized.
