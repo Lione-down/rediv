@@ -51,26 +51,26 @@ Last updated: 2026-07-12
 
 - Current running health was last observed as MySQL connected and ready with `current == head == e9f1a2b3c4d5`.
 - Source defaults still select SQLite, so runtime evidence does not satisfy the MySQL-only source contract.
-- P0 redacted security finding: `backend/run_alembic_mysql.py:8` contains a tracked hard-coded database password assignment. The value must not be printed or copied.
-- Removing that source literal does not rotate a credential that may have been used. Rotation is a separate Human Owner gate.
+- T5-002 Unit A retired the unused `backend/run_alembic_mysql.py` helper and removed its tracked hard-coded database password assignment without opening the file or displaying the value/raw diff; the verified unit is delivered in a scoped local commit.
+- Source cleanup does not rotate a credential that may have been used. Rotation remains a separate Human Owner gate if the assignment was ever real or reused.
+- Unit A verification passed backend compile and all 189 backend tests; redacted scans found no remaining hard-coded password assignment.
 - Current Canvas remains project-scoped, uses conflicting light and dark theme sources, hides its grid behind an opaque surface, and broadly rebuilds the Leafer scene.
 
 ## Exact Next Action
 
-Execute T5-002 Unit A: remove the tracked hard-coded database password assignment without printing it, retire the redundant helper, run redacted tracked and staged credential scans, and create a scoped local commit if verification passes.
+Start Unit B by replacing SQLite-selectable runtime configuration with fail-closed MySQL-only settings and focused tests.
 
 ## Blockers And Release Conditions
 
-- Unit A source cleanup is executable and not blocked.
 - Credential rotation becomes Human-required only if the assignment was ever real or reused; release by rotating it in the owning system and recording only the outcome.
 - Local ignored `.db` artifact deletion is blocked pending exact-path Human approval after MySQL backup and parity evidence.
 - No push is authorized.
 
 ## Worktree Protection
 
-- Current planning run started from `main` at `b84f1b4a48f777623fd5fe280f083bb14f894bc4`.
+- Unit A run started from `main` at `a245dcb31065f209217095707e4067c5b0243066`.
 - Pre-existing staged, tracked-modified, unmerged, detached, and in-progress Git-operation state: none.
-- Forty-five root `.playwright-cli/*.yml` files and untracked `output/` were pre-existing and remain excluded from staging.
+- Forty-five root `.playwright-cli/*.yml` files and untracked `output/` were pre-existing and remain excluded from Unit A staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.
 
 ## Delivery Automation

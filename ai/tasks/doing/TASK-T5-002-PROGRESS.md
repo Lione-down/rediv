@@ -16,34 +16,40 @@ Last updated: 2026-07-12
 
 - Product and architecture decisions were approved and recorded by T5-001.
 - Exact MySQL/SQLite runtime, test, dependency, migration-tool, and documentation surfaces were inventoried.
-- P0 candidate identified at `backend/run_alembic_mysql.py:8` as a hard-coded database password assignment; value was not recorded or displayed.
+- Unit A retired `backend/run_alembic_mysql.py` as an unused helper, removing the tracked hard-coded database password assignment without opening the file, printing the value, or rendering its raw diff.
+- Active-code reference inspection found no caller for the retired helper.
+- Redacted tracked credential scans found no remaining hard-coded password assignment. Seven URL-shaped test/config or historical-evidence fixtures were classified in-process by path, pattern label, and fingerprint only; no candidate value was emitted.
+- Backend compile and regression verification passed: `compileall` succeeded and 189 tests passed, including guarded creation and cleanup of the exact-name disposable `revid_test_t4_002` schema.
+- Unit A is delivered in a scoped local commit together with its durable state updates.
 - Current running health was observed as MySQL connected and ready with Alembic `current == head == e9f1a2b3c4d5`; this is runtime evidence, not proof that source defaults are safe.
 - Three ignored `.db` artifact paths were identified without opening them; deletion remains outside scope.
 
 ## Remaining Work
 
-- Unit A credential source cleanup and redacted scan.
 - Unit B MySQL-only runtime and health.
 - Unit C test and tooling migration.
 - Unit D full verification and closure.
 
 ## Exact Next Action
 
-Inspect the minimal redacted structure required to remove `backend/run_alembic_mysql.py`, delete the tracked hard-coded assignment without printing it, run redacted tracked/staged credential scans, and create a scoped Unit A commit if verification passes.
+Start Unit B by replacing SQLite-selectable runtime configuration with fail-closed MySQL-only settings and focused tests.
 
 ## Files Changed
 
-- None yet for T5-002 business implementation.
-- T5-001 created this Task, PLAN, and PROGRESS as durable activation state.
+- `backend/run_alembic_mysql.py` (deleted without reading or displaying its content)
+- `ai/tasks/doing/TASK-T5-002-PROGRESS.md`
+- `ai/state/CURRENT.md`
 
 ## Commands And Summarized Results
 
-- read-only backend audit mapped runtime, tests, tooling, and schema risks;
-- no `.env`, database file, credential value, MySQL mutation, or provider call was used;
-- current repository source still defaults to SQLite and therefore does not yet satisfy ADR-004.
+- `git diff --name-status/--numstat/--summary -- backend/run_alembic_mysql.py`: confirmed one 24-line tracked deletion without rendering deleted content.
+- `rg` active-code reference check: no reference to the retired helper under existing backend, frontend, or scripts roots. An initial composite check named a nonexistent root `tests/` directory and stopped before scan/tests; the corrected command used only existing roots.
+- redacted tracked credential scans: the P0 password assignment is absent; seven remaining URL-shaped fixtures were classified without candidate output as short test/config literals, username-matching examples, or placeholder-marked historical evidence.
+- `backend/.venv/Scripts/python.exe -m compileall -q backend`: PASS.
+- `backend/.venv/Scripts/python.exe -m unittest discover -s backend/tests -p "test_*.py"`: PASS, 189 tests in 52.704 seconds; guarded disposable MySQL test schema cleanup succeeded.
+- No `.env` or `.db` file was opened, and no user database, paid provider, or secret value was accessed.
 
 ## Blockers And Release Conditions
 
-- Unit A code cleanup is executable and not blocked.
 - If the redacted credential was ever real, rotation in the owning system requires Human Owner action; deleting source code does not release that security condition.
 - local `.db` cleanup remains blocked pending exact-path Human approval after backup and parity verification.
