@@ -67,6 +67,7 @@ Migrate `backend/tests/test_canvas_node_crud.py` to its own exact-name guarded M
 - Durable state: `ai/tasks/doing/TASK-T5-002-PLAN.md`, this progress document, and `ai/state/CURRENT.md`.
 - Unit C first slice: `backend/tests/mysql_test_database.py`, `backend/tests/test_mysql_test_database.py`, and `backend/tests/test_database_store.py`.
 - Unit C project CRUD slice: `backend/tests/test_project_crud.py`.
+- Project conversation archive: `ai/state/archive/PROJECT-CONVERSATION-ARCHIVE-THROUGH-2026-07-13.md`.
 
 ## Commands And Summarized Results
 

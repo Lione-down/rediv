@@ -88,3 +88,4 @@ Migrate `backend/tests/test_canvas_node_crud.py` to a dedicated guarded MySQL sc
 - Automation: `revid-codex-direct-delivery-controller`
 - Commit policy: each completed verified unit ends in a scoped local commit; no automatic push
 - Automation memory is only a cursor and never overrides this file, ROADMAP, Tasks, code, tests, or runtime evidence.
+- Project conversation archive: `ai/state/archive/PROJECT-CONVERSATION-ARCHIVE-THROUGH-2026-07-13.md`
