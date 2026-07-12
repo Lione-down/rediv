@@ -54,6 +54,8 @@ Last updated: 2026-07-12
 - T5-002 Unit A retired the unused `backend/run_alembic_mysql.py` helper and removed its tracked hard-coded database password assignment without opening the file or displaying the value/raw diff; the verified unit is delivered in a scoped local commit.
 - Source cleanup does not rotate a credential that may have been used. Rotation remains a separate Human Owner gate if the assignment was ever real or reused.
 - Unit A verification passed backend compile and all 189 backend tests; redacted scans found no remaining hard-coded password assignment.
+- Human-requested Unit A.1 removed 24 tracked one-off diagnostics, status-repair scripts, and retired Hermes PowerShell entrypoints with no active product caller; `Agents.md` is normalized to `AGENTS.md`.
+- Root Playwright/runtime evidence and pytest cache now have durable narrow ignore rules; two zero-byte generated artifacts were removed from the tracked tree but retained locally as ignored evidence.
 - Current Canvas remains project-scoped, uses conflicting light and dark theme sources, hides its grid behind an opaque surface, and broadly rebuilds the Leafer scene.
 
 ## Exact Next Action
@@ -70,7 +72,7 @@ Start Unit B by replacing SQLite-selectable runtime configuration with fail-clos
 
 - Unit A run started from `main` at `a245dcb31065f209217095707e4067c5b0243066`.
 - Pre-existing staged, tracked-modified, unmerged, detached, and in-progress Git-operation state: none.
-- Forty-five root `.playwright-cli/*.yml` files and untracked `output/` were pre-existing and remain excluded from Unit A staging.
+- Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.
 
 ## Delivery Automation

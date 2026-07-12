@@ -16,6 +16,15 @@ Deliver a usable backend whose only runtime and integration-test database is MyS
 - report whether Human Owner rotation is required without exposing the value;
 - keep backend behavior unchanged otherwise.
 
+### Unit A.1: Human-requested repository hygiene prerequisite
+
+- remove tracked one-off diagnostics and status-repair scripts with no active product caller;
+- retire obsolete Hermes PowerShell task entrypoints without deleting historical evidence;
+- stop tracking generated browser/runtime lock artifacts and add narrow durable ignore rules;
+- normalize the root agent-instruction filename to `AGENTS.md` for cross-platform consistency;
+- preserve MySQL/SQLite migration and test surfaces owned by Units B/C, local databases, `.env`, current runtime logs, historical documents, and frontend orphan candidates;
+- verify tracked references, ignore behavior, UTF-8 text, compile/test discovery, frontend build, staged secret hygiene, and the final staged diff.
+
 ### Unit B: MySQL-only runtime and health
 
 - remove `use_sqlite`, `db_path`, SQLite URL/engine/schema branches, runtime `create_all()`, and production in-memory fallback;

@@ -1,5 +1,6 @@
 __pycache__/
 *.py[cod]
+/.pytest_cache/
 .venv/
 venv/
 .env
@@ -17,7 +18,6 @@ node_modules/
 dist/
 build/
 .DS_Store
-_tmp_hash.py
 
 # Local database files
 *.db
@@ -29,6 +29,10 @@ _tmp_hash.py
 /_run_*.py
 /_test_*.py
 /_simple.py
+/.tmp_*
+/_tmp_*
+/_verify_*.py
+/tmp_*.py
 
 # One-off backend diagnostics and verification scripts
 /backend/_test_*.py
@@ -41,5 +45,8 @@ _tmp_hash.py
 /nul
 
 # Local browser QA evidence and tool state
+/.playwright-cli/
 /frontend/.playwright-cli/
 /output/playwright/
+/output/runtime/
+/ai/evidence/runtime/

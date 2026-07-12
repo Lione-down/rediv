@@ -1,2 +1,0 @@
-#!/bin/bash
-date '+%Y-%m-%dT%H:%M:%S+08:00'
