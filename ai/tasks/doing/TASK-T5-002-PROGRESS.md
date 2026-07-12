@@ -36,6 +36,7 @@ Last updated: 2026-07-13
 - Deep security/architecture review found and fixed SQLAlchemy `URL` pool-recycle detection and added a pre-Alembic exact-name plus `SELECT DATABASE()` identity gate; seed test semantics now distinguish subprocess env validation from pure-mock ordering/idempotence.
 - Unit C now has a reusable test-only `MySQLTestDatabase` lifecycle that accepts only process-supplied `REVID_TEST_MYSQL_ADMIN_URL`, requires an ASCII exact-name `revid_test_*` schema, uses SQLAlchemy structured URLs, applies Alembic head, and verifies `SELECT DATABASE()` after creation and before cleanup.
 - `test_database_store.py` is the first migrated persistence slice: its eight tests now run against the dedicated disposable `revid_test_database_store` schema with no SQLite path, and the fixture restores process settings after class cleanup.
+- `test_project_crud.py` now runs its database-backed API and persistence cases against dedicated disposable `revid_test_project_crud`; per-test identities are unique within the class-scoped schema, while the explicit `InMemoryStore` case remains a pure database-free unit test.
 
 ## Remaining Work
 
@@ -46,12 +47,12 @@ Last updated: 2026-07-13
 
 ## Exact Next Action
 
-Migrate `backend/tests/test_project_crud.py` to its own exact-name guarded MySQL schema through `MySQLTestDatabase`, with no SQLite fallback.
+Migrate `backend/tests/test_canvas_node_crud.py` to its own exact-name guarded MySQL schema through `MySQLTestDatabase`, with no SQLite fallback.
 
 ## Latest Completed Bounded Unit
 
-- Added the reusable guarded MySQL fixture and migrated `backend/tests/test_database_store.py` to `revid_test_database_store`.
-- Fixture guard tests, focused MySQL persistence tests, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
+- Migrated `backend/tests/test_project_crud.py` from per-test temporary SQLite databases to guarded `revid_test_project_crud` MySQL, preserving its pure `InMemoryStore` unit case.
+- Fixture guard tests, focused project CRUD tests, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
 
 ## Files Changed
 
@@ -65,6 +66,7 @@ Migrate `backend/tests/test_project_crud.py` to its own exact-name guarded MySQL
 - Unit B1 compatibility and tests: `backend/scripts/migrate_sqlite_to_mysql.py`, `backend/tests/test_health.py`, `backend/tests/test_migration_tool.py`, `backend/tests/test_mysql_runtime_cutover.py`, and `backend/tests/test_password_auth_contract.py`.
 - Durable state: `ai/tasks/doing/TASK-T5-002-PLAN.md`, this progress document, and `ai/state/CURRENT.md`.
 - Unit C first slice: `backend/tests/mysql_test_database.py`, `backend/tests/test_mysql_test_database.py`, and `backend/tests/test_database_store.py`.
+- Unit C project CRUD slice: `backend/tests/test_project_crud.py`.
 
 ## Commands And Summarized Results
 
@@ -89,6 +91,10 @@ Migrate `backend/tests/test_project_crud.py` to its own exact-name guarded MySQL
 - `python -m compileall` plus focused fixture/store tests: PASS, 12 tests; four pure guard tests and eight disposable-MySQL persistence tests.
 - backend full regression: PASS, 194 tests in 45.263 seconds; existing migration coverage used and cleaned `revid_test_t4_002`, while the new store slice used and cleaned `revid_test_database_store`.
 - fixture cleanup probe: PASS; `revid_test_database_store` did not exist after the focused and full runs. Alembic remained at the single head `e9f1a2b3c4d5`, and the migrated store test contained zero SQLite/temp-file/init-db references.
+- initial focused project CRUD migration run reached all 12 selected tests and exposed one isolation failure: a class-scoped schema reused fixed OpenIDs, so `test_list_projects` observed four accumulated rows instead of two; identities were then made unique per test without destructive per-test cleanup.
+- final `tests.test_mysql_test_database tests.test_project_crud` focused run: PASS, 12 tests in 1.821 seconds; four pure guard tests and eight project CRUD tests used guarded MySQL where persistence was required.
+- `python -m compileall -q .` and backend full regression: PASS, 194 tests in 42.650 seconds; disposable `revid_test_t4_002`, `revid_test_database_store`, and `revid_test_project_crud` paths completed without a suite failure.
+- project CRUD cleanup probe: PASS; `revid_test_project_crud` did not exist after verification. Alembic remained at the single head `e9f1a2b3c4d5`, the migrated file contained zero SQLite/temp-file/init-db references, and `git diff --check` passed.
 
 ## Blockers And Release Conditions
 
