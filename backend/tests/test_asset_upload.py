@@ -13,18 +13,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token, hash_password
-from database import close_db, init_db
 from settings.config import settings
+from tests.mysql_test_database import MySQLTestDatabase
 
 
 class AssetFlowTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.mysql_database = MySQLTestDatabase("revid_test_asset_upload")
+        cls.mysql_database.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.mysql_database.stop()
+
     def setUp(self) -> None:
         self.temp_dir = TemporaryDirectory()
         self.original_storage_root = settings.storage_local_root
         settings.storage_local_root = str(Path(self.temp_dir.name) / "storage")
 
-        db_path = str(Path(self.temp_dir.name) / "test-revid.db")
-        init_db(db_path)
         configure_store(DatabaseStore())
 
         app = FastAPI()
@@ -32,13 +39,13 @@ class AssetFlowTestCase(unittest.TestCase):
         self.client = TestClient(app)
 
         store.registration_settings["registration_mode"] = "open"
+        test_id = self._testMethodName
         self.admin_id = store.ensure_admin_user("test-admin", hash_password("StrongPass123!"))["id"]
-        self.user = self._register_user("asset-owner").json()["user"]
-        self.other_user = self._register_user("asset-other").json()["user"]
+        self.user = self._register_user(f"asset-owner-{test_id}").json()["user"]
+        self.other_user = self._register_user(f"asset-other-{test_id}").json()["user"]
 
     def tearDown(self) -> None:
         self.client.close()
-        close_db()
         settings.storage_local_root = self.original_storage_root
         self.temp_dir.cleanup()
 

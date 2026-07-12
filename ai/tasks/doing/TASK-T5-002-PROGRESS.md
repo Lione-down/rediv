@@ -40,6 +40,7 @@ Last updated: 2026-07-13
 - `test_canvas_node_crud.py` now runs its database-backed API and persistence cases against dedicated disposable `revid_test_canvas_node_crud`; per-test identities isolate the class-scoped schema, while the explicit `InMemoryStore` case remains a pure database-free unit test.
 - `test_canvas_connection_crud.py` now runs its database-backed API, persistence, cascade, and schema/comment cases against dedicated disposable `revid_test_canvas_connection_crud`; per-test identities isolate the class-scoped schema, while the explicit `InMemoryStore` case remains a pure database-free unit test.
 - The migrated project-list test now accepts equal MySQL `created_at` timestamps while still asserting the exact result membership and descending timestamp contract, removing a deterministic tie-order regression without changing production behavior.
+- `test_asset_upload.py` now runs all asset API and persistence cases against dedicated disposable `revid_test_asset_upload`; per-test OpenIDs isolate the class-scoped schema, while each multipart upload retains its isolated per-test filesystem lifecycle.
 
 ## Remaining Work
 
@@ -50,13 +51,13 @@ Last updated: 2026-07-13
 
 ## Exact Next Action
 
-Migrate `backend/tests/test_asset_upload.py` to its own exact-name guarded MySQL schema through `MySQLTestDatabase`, preserving its isolated upload-file lifecycle while removing only the SQLite database fallback.
+Migrate `backend/tests/test_e2e_workflow.py` to its own exact-name guarded `revid_test_e2e_workflow` schema through `MySQLTestDatabase`, preserving the mocked Agnes call and full workflow assertions while removing only the SQLite database fallback.
 
 ## Latest Completed Bounded Unit
 
-- Migrated `backend/tests/test_canvas_connection_crud.py` from per-test temporary SQLite databases to guarded `revid_test_canvas_connection_crud` MySQL, preserving its pure `InMemoryStore` unit case and adding actual MySQL table/column comment assertions.
-- Stabilized the preceding project CRUD slice's list-order assertion for equal MySQL timestamps after the first full regression exposed the tie.
-- Fixture guard tests, focused Canvas connection CRUD tests, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
+- Migrated `backend/tests/test_asset_upload.py` from per-test temporary SQLite databases to guarded `revid_test_asset_upload` MySQL.
+- Preserved per-test upload-file isolation and made user identities unique inside the class-scoped schema without changing production behavior.
+- Fixture guard tests, focused asset API/persistence tests, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
 
 ## Files Changed
 
@@ -74,6 +75,7 @@ Migrate `backend/tests/test_asset_upload.py` to its own exact-name guarded MySQL
 - Unit C Canvas node CRUD slice: `backend/tests/test_canvas_node_crud.py`.
 - Unit C Canvas connection CRUD slice: `backend/tests/test_canvas_connection_crud.py`.
 - Unit C regression stabilization: `backend/tests/test_project_crud.py`.
+- Unit C asset upload slice: `backend/tests/test_asset_upload.py`.
 - Project conversation archive: `ai/state/archive/PROJECT-CONVERSATION-ARCHIVE-THROUGH-2026-07-13.md`.
 
 ## Commands And Summarized Results
@@ -111,6 +113,9 @@ Migrate `backend/tests/test_asset_upload.py` to its own exact-name guarded MySQL
 - Focused project-order plus fixture/Canvas connection rerun: PASS, 15 tests in 3.296 seconds.
 - `python -m compileall -q .` and final backend full regression: PASS, 194 tests in 42.771 seconds.
 - Cleanup probes: PASS; `revid_test_canvas_connection_crud` and `revid_test_project_crud` did not exist after verification. Alembic remained at the single head `e9f1a2b3c4d5`, the migrated connection test contained zero SQLite/temp-file/init-db references, and `git diff --check` passed.
+- `tests.test_mysql_test_database tests.test_asset_upload` focused run: PASS, 17 tests in 4.592 seconds; four pure fixture guard tests and 13 asset API/persistence tests used guarded MySQL where persistence was required, while multipart files used per-test temporary storage.
+- `python -m compileall -q .` and backend full regression: PASS, 194 tests in 41.118 seconds. Alembic remained at the single head `e9f1a2b3c4d5`.
+- Asset cleanup probe: PASS; `revid_test_asset_upload` did not exist after verification. The migrated file contained zero SQLite database/init/close references, remaining legacy test slices were inventoried for the next unit, and `git diff --check` passed.
 
 ## Blockers And Release Conditions
 
