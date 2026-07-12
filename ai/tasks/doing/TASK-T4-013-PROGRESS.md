@@ -5,9 +5,9 @@ Last updated: 2026-07-12
 ## State
 
 - Task: `T4-013 - Full E2E, visual QA, security checks and documentation closure`
-- State: `VERIFYING - DOCUMENTATION CLOSURE`
+- State: `DONE - PASS`
 - Branch at current run start: `main`
-- Base HEAD at current run start: `c80f21fd6eb40965f5b2ba728dff4bc6d5d026cb`
+- Base HEAD at current run start: `4b2c105ed0e98fb0a288a542ceff6071c58b78a8`
 - Pre-existing worktree changes: 45 untracked root `.playwright-cli/*.yml` snapshots; no tracked modifications
 - Pre-existing staged changes: none
 - Unmerged paths: none
@@ -33,32 +33,37 @@ Last updated: 2026-07-12
 - Completed the final repository/index security hygiene unit: secret-oriented ignore sentinels passed, the only tracked sensitive-name path is the sanctioned sanitized `.env.example`, its sensitive defaults are empty or explicitly placeholder-like, and no high-confidence tracked credential token was found.
 - Confirmed the Git index remained empty, `git diff --cached --check` and `git diff --check` passed, no local SQLite/MySQL database artifact is tracked, and all 45 pre-existing root `.playwright-cli/*.yml` snapshots remain untracked and untouched.
 - Repeated the process-only retained-runtime preflight without opening `.env`: no `REVID_DB_*` setting and no listener on ports 8000, 5173, or 9099 was present, so current retained-runtime record/restart inspection remains explicitly blocked rather than inferred.
+- Wrote `REPORT-T4-013.md` and `REVIEW-PHASE4-COMPLETE.md` with explicit unit, disposable-MySQL, stateful-mock browser, retained-runtime, real-service, and deferred evidence boundaries.
+- Reconciled T4-013, ROADMAP, PROGRESS, and CURRENT to `DONE - PASS`; all Phase 4 roadmap Tasks are complete.
 
 ## Acceptance Evidence Matrix
 
-| T4-013 acceptance area | Existing classified evidence | Missing fresh closure evidence | Next disposition |
-|---|---|---|---|
-| Backend full regression and MySQL integration | Fresh backend 189/189; focused MySQL/runtime 12/12; disposable Alembic head/schema/comments/FK matrix passed; T4-003/T4-004/T4-008 retain real runtime, restart, and persistence evidence | Fresh current retained-runtime record matrix requires process-supplied `REVID_DB_*` settings or an already configured running backend | Carry the explicit runtime blocker to final closure; proceed with browser E2E |
-| Frontend build and browser E2E | Fresh production build passed; repository Chromium E2E 4/4 covers authenticated project creation, Canvas nodes/connections, generation success/failure, quota, reload, and Login/Home/Workspace/Space at 1440x900, 920x900, and 375x900; 12 sanitized screenshots were visually reviewed | None for the planned mock browser and responsive matrix | Reconcile mock versus real-service evidence during final report |
-| Happy and failure paths | Consolidated browser mock workflow covers project, Canvas, generated asset, quota success/failure, and reload; real Agnes and controlled persistence failure evidence remain current | Final evidence review must reconcile mock browser and real-service classifications | Reconcile during final report |
-| Navicat/schema acceptance | Read-only evidence confirms app table/column comments, foreign keys, revisions, and retained business records; generation task/asset relation passed | Fresh current-head schema/record matrix and sanitized Navicat-equivalent screenshot or inspection record | Re-run read-only inspection; do not clean retained fixtures |
-| Secret and Git hygiene | Final repository/index checks passed: ignore sentinels, tracked sensitive-path classification, sanitized `.env.example` validation, case-sensitive high-confidence credential scan, empty index, and diff checks | Repeat the staged-path and redacted staged-diff scan for the final documentation commit | Enforce again immediately before commit |
-| Durable documentation | Dependency reports, PLAN, PROGRESS, CURRENT, and ROADMAP agree on T4-013 ownership and scope | `REPORT-T4-013.md`, `REVIEW-PHASE4-COMPLETE.md`, final Task/ROADMAP reconciliation | Complete only after all verification passes |
-| Non-destructive/SQLite safety | T4-003 proves SQLite rollback remains; all reports record no destructive cleanup; retained MySQL fixtures are documented | Fresh existence/config check and final no-destructive-operation attestation | Verify without opening secrets or mutating user data |
+| T4-013 acceptance area | Final classified evidence | Disposition |
+|---|---|---|
+| Backend full regression and MySQL integration | Final backend 189/189; focused MySQL/runtime 12/12; disposable Alembic head/schema/comments/FK matrix passed; T4-003/T4-004/T4-008 retain real runtime, restart, and persistence evidence | PASS; current retained-runtime repetition remains explicitly unavailable without process-only configuration |
+| Frontend build and browser E2E | Final production build passed; repository Chromium E2E 4/4 covers authenticated project creation, Canvas nodes/connections, generation success/failure, quota, reload, and Login/Home/Workspace/Space at 1440x900, 920x900, and 375x900; 12 sanitized screenshots were visually reviewed | PASS as stateful mock browser evidence |
+| Happy and failure paths | Consolidated browser mock workflow covers project, Canvas, generated asset, quota success/failure, and reload; T4-005 retains real Agnes success and controlled persisted failure evidence | PASS within the explicit mock/real-service boundaries |
+| Navicat/schema acceptance | Fresh disposable current-head inspection confirms tables, columns, comments, and FKs; retained real-MySQL reports confirm business records and GenerationTask/asset linkage | PASS as Navicat-equivalent read-only records |
+| Secret and Git hygiene | Ignore sentinels, tracked sensitive-path classification, sanitized `.env.example` validation, high-confidence credential scan, staged-path scan, and diff checks passed | PASS |
+| Durable documentation | Task, PLAN, PROGRESS, REPORT, Phase 4 review, CURRENT, and ROADMAP agree on `DONE - PASS` | PASS |
+| Non-destructive/SQLite safety | SQLite rollback remains tested; no unauthorized destructive MySQL cleanup occurred; retained fixtures remain documented | PASS |
 
 ## Remaining Work
 
-- Reconcile current disposable-schema evidence, retained-runtime historical evidence, and the process-only runtime blocker in the final report and Phase 4 review.
-- Write `REPORT-T4-013.md` and `REVIEW-PHASE4-COMPLETE.md`, then reconcile Task, ROADMAP, PROGRESS, and CURRENT only if every non-deferred acceptance criterion is satisfied.
+- None for T4-013 or the current Phase 4 roadmap.
+- Optional future follow-ups require new Tasks: backend direct-registration 72-byte boundary, deterministic asset ordering ties, and a retained-runtime re-inspection when process-only configuration is supplied.
 
 ## Exact Next Action
 
-Write `REPORT-T4-013.md` and `REVIEW-PHASE4-COMPLETE.md`, explicitly classifying mock, disposable-MySQL, retained-runtime, real-service, browser, and deferred evidence before deciding whether T4-013 and Phase 4 can be marked complete.
+Await Human Owner product direction for a new roadmap Task; do not reopen completed Phase 4 Tasks without new evidence.
 
 ## Files Changed
 
 - `ai/state/CURRENT.md`
 - `ai/tasks/todo/TASK-T4-013.md`
+- `ai/reports/REPORT-T4-013.md`
+- `ai/reviews/REVIEW-PHASE4-COMPLETE.md`
+- `ai/state/ROADMAP.md`
 - `ai/tasks/doing/TASK-T4-013-PROGRESS.md`
 - `frontend/package.json`
 - `frontend/package-lock.json`
@@ -95,8 +100,11 @@ Write `REPORT-T4-013.md` and `REVIEW-PHASE4-COMPLETE.md`, explicitly classifying
 - Final security unit: `.gitignore` sentinels passed for `.env*`, key files, and browser evidence; `git ls-files` found only the sanctioned `.env.example`, whose sensitive defaults were empty or placeholder-like; a case-sensitive boundary-aware scan found zero high-confidence tracked private keys, AWS keys, GitHub tokens, OpenAI-style keys, or compact JWTs.
 - `git diff --cached --name-only` confirmed an empty index before documentation edits; `git diff --cached --check` and `git diff --check` passed. `git ls-files -- '*.db' '*.sqlite' '*.sqlite3'` found no tracked local database artifact.
 - Process-only runtime preflight found no `REVID_DB_HOST`, `REVID_DB_PORT`, `REVID_DB_NAME`, `REVID_DB_USER`, `REVID_DB_PASSWORD`, or `REVID_DB_URL` and no listener on 8000/5173/9099. No `.env`, database, provider, or external service was opened or called.
+- Final closure documents classify the fresh 189/189 backend, 12/12 focused runtime, disposable schema matrix, 4/4 browser suite, retained real-MySQL/restart reports, and T4-005 real Agnes evidence without upgrading mock or historical evidence into a fresh-runtime claim.
+- Final closure rerun: `backend/.venv/Scripts/python.exe -m unittest discover -s tests -p "test_*.py"` passed 189/189 in 46.725 seconds. The preceding `../.venv` attempt executed zero tests because the relative interpreter path was wrong; it was corrected immediately and is not a source failure.
+- Final closure rerun: `npm run build` passed with 4,702 transformed modules; `npm run test:e2e` passed Chromium 4/4 in 7.6 seconds.
 
 ## Blockers And Release Conditions
 
-- Current retained-runtime schema/record and restart inspection is blocked because no runtime `REVID_DB_*` configuration is supplied through process environment and no configured backend is running. Release by supplying process-only runtime settings or an already configured running backend; do not open `.env`.
-- This blocker does not prevent the mock browser E2E, frontend build, responsive QA, or repository security checks. Real paid calls remain prohibited; T4-013 should reuse T4-005 real-service evidence by default.
+- No blocker prevents T4-013 or Phase 4 closure.
+- A fresh retained-runtime repetition remains unavailable because no runtime `REVID_DB_*` configuration or configured backend is supplied. Release by supplying process-only runtime settings or an already configured running backend; do not open `.env`. This does not reopen completed persistence/restart acceptance evidence.

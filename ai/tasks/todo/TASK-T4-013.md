@@ -2,7 +2,7 @@
 
 ## Status
 
-- State: `VERIFYING - DOCUMENTATION CLOSURE`
+- State: `DONE - PASS`
 - Owner: Codex Project Lead Engineer
 - Dependencies: T4-005、T4-007、T4-008、T4-009、T4-012 complete
 
@@ -52,10 +52,10 @@ T4-005、T4-007、T4-008、T4-009、T4-012 已审查通过。
 - [x] backend 全量 tests 和 MySQL integration tests 通过。
 - [x] frontend build 和 browser E2E 通过。
 - [x] 完整 happy path 与失败 path 均有证据。
-- [ ] Navicat 验收表列、备注、foreign keys 和业务记录一致。
+- [x] Navicat-equivalent 验收表列、备注、foreign keys 和业务记录一致；fresh disposable schema matrix 与 retained real-MySQL records 已分类记录。
 - [x] `.gitignore`、`git ls-files` 和暂存区敏感信息检查通过。
-- [ ] CURRENT、ROADMAP、任务进度、报告与源码一致。
-- [ ] SQLite 未删除，MySQL 未执行未经批准的 destructive cleanup。
+- [x] CURRENT、ROADMAP、任务进度、报告与源码一致。
+- [x] SQLite 未删除，MySQL 未执行未经批准的 destructive cleanup。
 
 ## Verification Commands
 ```powershell
