@@ -1,69 +1,48 @@
-# Codex 执行报告格式
+# Revid Delivery Reports
 
-## 报告文件命名
+本目录保存已完成 Task 的交付证据。Direct Delivery 下，REPORT 由 Codex 在实现和所需验证全部完成后编写，不再依赖独立 Reviewer 或 HANDOFF。
 
-```
-REPORT-{TaskID}-{YYYY-MM-DD}.md
-```
+## Naming
 
-示例：`REPORT-T1-001-2026-06-18.md`
-
-## 报告模板
-
-```markdown
-# Report: {任务标题}
-
-## Task ID
-T{Phase}-{Seq}
-
-## Status
-✅ Completed / ⚠️ Completed with Issues / ❌ Failed
-
-## Execution Summary
-简短描述执行过程（做了什么，遇到什么问题）
-
-## Acceptance Criteria 对照
-
-- [ ] 标准 1 → ✅/❌ 说明
-- [ ] 标准 2 → ✅/❌ 说明
-- [ ] 标准 3 → ✅/❌ 说明
-
-## 修改文件清单
-
-| 文件 | 操作 | 说明 |
-|------|------|------|
-| path/to/file1.py | MODIFIED | 新增 XXX 功能 |
-| path/to/file2.ts | CREATED | 新增页面 |
-
-## 自测结果
-
-### 后端
-- [ ] 可启动（uvicorn ...）
-- [ ] 冒烟测试通过
-
-### 前端
-- [ ] 构建通过（npm run build）
-- [ ] 路由正常
-
-### 其他
-- [ ] 自测命令输出
-
-## 风险与待对齐项
-- 风险 1
-- 待对齐 1
-
-## 遗留问题
-- 如有，列出未完成或需后续处理的问题
+```text
+REPORT-{TaskID}.md
 ```
 
-## 报告要求
+历史报告可保留旧命名，不需要为统一格式重写。
 
-1. 必须诚实评估——完成就写完成，有问题就写问题
-2. 不能伪造测试结果
-3. 所有 acceptance criteria 必须逐项标注通过/失败
-4. 报告是 PM 审查的唯一依据，必须准确完整
+## Required Content
 
----
+每份新 REPORT 至少包含：
 
-*维护者：Project Master Controller (QA Lead)*
-*最后更新：2026-06-18*
+- Task ID 与最终状态。
+- Outcome 和实际交付边界。
+- Acceptance Criteria 逐项结果。
+- Files Changed。
+- Verification commands、证据类型和 summarized result。
+- 未执行检查的原因、影响和 release condition。
+- 风险、deferred 项和下一 dependency-ready Task。
+
+## Evidence Labels
+
+必须区分：
+
+- unit
+- mock
+- integration
+- real service
+- browser
+- manual acceptance
+
+一种证据不能冒充另一种。例如 provider smoke 不能替代业务 route persistence，mock browser flow 不能替代 real MySQL browser acceptance。
+
+## Completion Rule
+
+只有以下事实一致时才能写 `DONE / PASS`：
+
+1. Task 全部非 deferred AC 和 Hard Gates 通过。
+2. 实现、migration、tests 和文档处于同一 contract。
+3. `PROGRESS.md` 的 Remaining 不再包含该 Task 必须项。
+4. `CURRENT.md` 与 `ROADMAP.md` 已同步。
+5. scoped staged diff 已完成安全检查和 fresh self-review。
+
+历史 PMC、Hermes、runtime 和 scheduled reports 只作历史证据，不是当前任务流入口。

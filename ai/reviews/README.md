@@ -1,83 +1,21 @@
-# 审查记录格式
+# Revid Review Records
 
-## 记录文件命名
+`ai/reviews/` 保存历史审查证据。自 2026-07-10 起，Revid 使用 Codex Direct Delivery，不再创建 Reviewer、HANDOFF 或 Hermes runtime reconciliation。
 
-```
-REVIEW-{TaskID}-{YYYY-MM-DD}.md
-```
+## Current Review Contract
 
-示例：`REVIEW-T1-001-2026-06-18.md`
+每个 bounded unit 在提交前由 Codex 对实际 diff 做 fresh self-review，至少覆盖：
 
-## 审查报告模板
+- Task Scope、Acceptance Criteria 和 Non-Goals。
+- API、schema、migration 和兼容性边界。
+- security、credential、secret 和敏感路径。
+- error path、rollback 边界和 failure semantics。
+- tests 的真实语义与证据类型。
+- UI 可访问性、responsive 和 browser evidence，若适用。
+- staged path ownership 与 dirty remainder。
 
-```markdown
-# Review: {任务标题}
+审查结论写入 active PROGRESS；Task 完成证据写入 REPORT。发现 blocker 时，必须在 PROGRESS 和 CURRENT 中写清解除条件。
 
-## Task ID
-T{Phase}-{Seq}
+## Historical Files
 
-## Report Reference
-ai/reports/REPORT-{TaskID}-...md
-
-## 审查结果
-✅ 通过（无需修改）
-⚠️ 通过但有建议（可合并）
-❌ 打回（必须修改）
-
-## 评分
-X / 5 分
-
-## 审查详情
-
-### 报告审查
-- [ ] 报告完整性
-- [ ] Acceptance Criteria 对照准确性
-
-### 代码审查
-- [ ] Scope 合规性（未越权修改）
-- [ ] 技术栈合规性
-- [ ] 架构一致性
-- [ ] 代码规范
-- [ ] 安全隐患
-
-### 功能验证
-- [ ] 可运行性
-- [ ] 冒烟测试/构建验证
-- [ ] 视觉一致性（如适用）
-
-## 发现的问题
-
-| # | 严重度 | 描述 | 文件 |
-|---|--------|------|------|
-| 1 | Critical/Major/Minor | ... | path/to/file |
-
-## 审查结论
-
-### ✅ 通过
-任务完成质量达标，可进入下一阶段。
-
-### ❌ 打回
-打回原因：
-修复要求：
-- 问题 1 必须修复
-- 问题 2 必须修复
-
-## 审查者
-Project Master Controller (QA Lead)
-
-## 审查时间
-YYYY-MM-DD HH:MM
-```
-
-## 严重度定义
-
-| 级别 | 含义 |
-|------|------|
-| Critical | 功能性故障、安全隐患、架构违规 |
-| Major | 功能不完整、代码质量差、需返工 |
-| Minor | 小问题、可优化但不阻塞 |
-
----
-
-*维护者：Project Master Controller (QA Lead)*
-*最后更新：2026-06-18*
+现有 `REVIEW-*`、Reviewer、HANDOFF 和 reconciliation 文件不得删除、改写或恢复为 active workflow。只有在 active 文档精确引用它们以解决事实冲突时才读取。

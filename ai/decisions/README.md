@@ -1,36 +1,36 @@
-# Architecture Decision Records (ADR)
+# Revid Architecture Decision Records
 
-本目录记录 Revid 项目的架构决策。
+本目录记录会影响数据、API、架构、部署或长期维护成本的决策。新实现必须遵守所有 `Accepted` ADR；若决策被替代，后续 ADR 必须明确指出替代范围。
 
-## 格式
+## ADR Format
 
-```markdown
-# ADR-NNN: 决策标题
+每份 ADR 至少包含：
 
-## 状态
-Accepted / Superseded / Deprecated
+- Status
+- Context
+- Decision
+- Consequences
+- Rollout 或 Migration
+- Acceptance Gates
+- Reversal 或 Rollback 边界
 
-## 背景
-为什么需要做这个决策？
+## Active Index
 
-## 决策
-实际做了什么决定？
-
-## 后果
-- 优点：
-- 缺点：
-- 风险：
-```
-
-## 已记录决策
-
-| ADR | 标题 | 状态 |
+| ADR | Decision | Status |
 |---|---|---|
-| ADR-001 | 本地 MySQL 8.0 作为 Revid 主数据库 | Accepted |
-| ADR-002 | v3.1 重整技术栈 | Accepted |
-| ADR-003 | T4-002 使用专用 disposable MySQL 测试环境 | Accepted |
+| [ADR-001](ADR-001-local-mysql8-primary-database.md) | Local MySQL 8 primary database | Partially superseded by ADR-004 |
+| [ADR-002](ADR-002-v3-1-technology-stack.md) | v3.1 technology stack | Accepted |
+| [ADR-003](ADR-003-t4-002-disposable-mysql-test-environment.md) | T4-002 disposable MySQL test environment | Historical scope; test policy superseded by ADR-004 |
+| [ADR-004](ADR-004-mysql-only-runtime-and-tests.md) | MySQL-only runtime and database-backed tests | Accepted |
+| [ADR-005](ADR-005-project-multi-canvas.md) | A project owns multiple independent canvases | Accepted |
+| [Direct Delivery](ADR-2026-07-10-CODEX-DIRECT-DELIVERY.md) | Codex direct delivery operating model | Accepted |
 
----
+## V2 Decision Summary
 
-*维护者：Project Master Controller (System Architect)*
-*最后更新：2026-06-23*
+- MySQL is the only database runtime, migration and database-backed test target.
+- Project is the asset and generation boundary; Canvas is the graph editing boundary.
+- A project can own multiple independent canvases.
+- Multi-canvas migration is expand-first. Automatic downgrade is not supported after a second canvas exists.
+- Real-time collaboration remains outside V2 first acceptance.
+
+The implementation sequence is maintained in [`../state/ROADMAP.md`](../state/ROADMAP.md).

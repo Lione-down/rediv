@@ -1,61 +1,94 @@
-# Revid - Phase 4 Direct Delivery Roadmap
+# Revid Product V2 / Phase 5 Direct Delivery Roadmap
 
 Last updated: 2026-07-12
+
+## Product Outcome
+
+Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted milestone is a multi-canvas infinite creative workspace. Global UI upgrades follow only after Canvas acceptance.
 
 ## Execution Policy
 
 - One active implementation Task at a time.
-- Codex plans, implements, verifies, self-reviews, reports, and updates state directly.
-- Each Task must leave the repository usable before the next Task starts.
-- Paid Agnes smoke calls and destructive or irreversible actions remain Human Owner gates.
+- Every Task is independently mergeable and leaves the repository usable.
+- Every verified unit ends in a scoped local commit; no automatic push.
+- MySQL user data, local `.db` files, paid Agnes calls, real secrets, destructive operations, and irreversible migrations remain Human Owner gates.
+- Mock, disposable MySQL, retained runtime, real service, browser, performance, accessibility, and manual evidence are classified separately.
+
+## Locked Decisions
+
+- `ADR-004`: MySQL 8 is the only runtime and database-backed test engine; no SQLite or production in-memory fallback.
+- `ADR-005`: projects own multiple canvases; graph and edit history are canvas-scoped, assets and generation data are project-scoped.
+- `ADR-002`: retain Vue 3, TypeScript, Pinia, Naive UI, Leafer UI, SCSS, FastAPI, SQLAlchemy, MySQL, and Alembic.
+- V2 Canvas is desktop-first, mobile browse/review only, single-user first, and tested at 200 nodes plus 300 connections.
 
 ## Delivery Order
 
 | Order | Task | Deliverable | State | Dependency |
 |---:|---|---|---|---|
-| 1 | T4-003 | MySQL runtime, health, persistence, restart and Navicat acceptance | DONE - PASS | T4-002 done |
-| 2 | T4-004 | Password authentication and Admin bootstrap | DONE - PASS | T4-003 done |
-| 3 | T4-011 | Canvas connection model and CRUD API | DONE - PASS | T4-003 and T4-004 |
-| 4 | T4-005 Unit A | GenerationTask persistence, provider integration and mock tests | DONE - PASS | T4-003 and T4-004 |
-| 5 | T4-007 | Login/register UI and route/session guards | DONE - PASS | T4-004 and T4-006 |
-| 6 | T4-008 | Real-data Home project and asset dashboard | DONE - PASS | T4-003 and T4-007 |
-| 7 | T4-009 | Real-data Space asset workspace | DONE - PASS | T4-003 and T4-007 |
-| 8 | T4-012 Unit A | Canvas decomposition, server load/save and optimistic rollback | DONE - PASS | T4-007, T4-010 and T4-011 |
-| 9 | T4-012 Unit B | Connection interaction, selection, context menu, minimap and responsive QA | DONE - PASS | T4-012 Unit A |
-| 10 | T4-005 Unit B | Explicitly authorized real Agnes text/image/video smoke | DONE - PASS | T4-005 Unit A |
-| 11 | T4-013 | Full E2E, visual QA, security checks and documentation closure | DONE - PASS | T4-005/007/008/009/012 |
+| 1 | T5-001 | V2 PRD, Canvas acceptance, design system, architecture, ADRs, and roadmap | DONE - PASS | Phase 4 complete and Human direction approved |
+| 2 | T5-002 | P0 credential cleanup and complete MySQL-only runtime/test/tooling retirement | DOING | T5-001 |
+| 3 | T5-003 | Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route | TODO | T5-002 |
+| 4 | T5-004 | Single V2 token source, full-screen Canvas shell, canvas navigation, and viewport persistence | TODO | T5-003 |
+| 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | TODO | T5-004 |
+| 6 | T5-006 | Autosave queue, optimistic conflict handling, 100-step undo/redo, revisions, checkpoints, and restore | TODO | T5-005 |
+| 7 | T5-007 | Node registry, project-shared assets/templates, generation tasks/results, and mock provider flows | TODO | T5-006 |
+| 8 | T5-008 | Canvas first-acceptance E2E, 200/300 performance, browser, visual, accessibility, MySQL, and security closure | TODO | T5-007 |
+| 9 | T5-009 | Global V2 app-shell and shared-component dark-purple rollout without Canvas regression | TODO | T5-008 |
+| 10 | T5-010 | Login, Home, Space, Admin, error, empty, loading, and responsive V2 UX upgrade | TODO | T5-009 |
+| 11 | T5-011 | Full V2 regression, real-runtime verification, security review, documentation, and release closure | TODO | T5-010 |
 
-## Completed Foundations
+## Task Boundaries
 
-| Task | Result |
-|---|---|
-| T4-001 | MySQL engine, model comments and Alembic baseline - DONE |
-| T4-002 | SQLite to MySQL migration tooling - DONE |
-| T4-006 | Dark design system and Naive UI provider - DONE |
-| T4-010 | Workspace component layout - DONE |
+### T5-002
 
-## Planned Splits
+The Task stays active across independently verified units so runtime and database-backed tests do not become temporarily unusable. Unit A removes the credential literal. Units B and C cut runtime and tests to MySQL-only. Unit D closes full regression and documentation.
 
-T4-005 remains one product Task but has two independently verifiable units. Unit A cannot make paid calls. Unit B performs real provider smoke only after explicit Human Owner authorization.
+### T5-003
 
-T4-012 remains one product Task but has two independently mergeable units. Unit A establishes maintainable component boundaries and persistence. Unit B adds advanced interaction and visual acceptance without reopening backend contracts.
+Schema rollout is expand-first. Existing projects receive one first canvas, node and connection IDs remain unchanged, and a first-canvas compatibility path keeps the application usable until T5-004 switches the frontend route.
 
-## Current Size Risks
+### T5-004 through T5-008
 
-- `frontend/src/views/app/Home.vue`: 499 lines - T4-008 target satisfied
-- `frontend/src/views/app/Space.vue`: 497 lines - T4-009 target satisfied
-- `frontend/src/components/canvas/CanvasStage.vue`: 76 lines - T4-012 Unit A size target satisfied
+These Tasks form the Canvas milestone. Shared V2 tokens may land in T5-004, but page-level visual redesign is prohibited until T5-008 passes.
 
-The relevant Tasks must reduce each page or stage controller to at most 500 lines through domain-aligned components, without unrelated visual redesign.
+### T5-009 through T5-011
 
-## Phase Status
+These Tasks apply the accepted visual system to the rest of the product, then close V2 with full regression and durable evidence.
 
-`PHASE 4 COMPLETE - PASS` on 2026-07-12. All delivery-order Tasks satisfy their recorded acceptance criteria and evidence boundaries. No next implementation Task is dependency-ready; future work requires a new roadmap Task.
+## Canvas First-Acceptance Gate
 
-## Phase Complete Definition
+T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:
 
-An authorized user can sign in, create a project, create and connect Canvas nodes, invoke Agnes, and inspect persisted projects, nodes, connections, generation tasks, assets, and quota data in MySQL. Refresh and backend restart preserve state. Home, Space, and Workspace pass browser checks at 1440x900, 920px, and 375px. Backend tests, frontend build, E2E, security checks, and final documentation all pass.
+- create, rename, reorder, switch, and duplicate canvas;
+- isolated graph, viewport, undo/redo, and edit history per canvas;
+- project-shared assets and generation history;
+- negative coordinates, 10% to 800% zoom, minimap, grid, edge visibility, fit, and arrange;
+- command-based selection, multi-move, duplicate, group, ungroup, connect, delete, undo, and redo;
+- 200 nodes and 300 connections with the recorded performance thresholds;
+- autosave, 409 conflict, idempotency, revision restore, refresh, and backend restart;
+- Chromium at 1440x900, 1366x768, 920x900, and 375x812;
+- mobile review-only boundary, keyboard-only operation, reduced motion, and WCAG AA;
+- MySQL comments, constraints, revision, persistence, and security hygiene.
 
-## Historical Roadmap State
+## Non-Goals For This Roadmap
 
-The former Hermes-oriented timeline and blocker history is preserved in `ai/state/archive/CURRENT-HERMES-THROUGH-2026-07-10.md`. It is not part of normal per-run context.
+- real-time collaboration or presence;
+- cross-canvas edges;
+- mobile graph editing;
+- second Canvas engine;
+- audio generation or director console in Canvas first acceptance;
+- automatic local `.db` deletion;
+- paid provider calls without action-time authorization;
+- cloud deployment, billing redesign, or public API version migration.
+
+## Human Gates
+
+- determine and perform credential rotation if the redacted tracked assignment was ever real;
+- approve exact-path quarantine or deletion of ignored `.db` artifacts after backup and parity evidence;
+- authorize paid Agnes real smoke;
+- authorize destructive or irreversible MySQL operations;
+- approve a new ADR for collaboration, cross-canvas edges, or Canvas engine replacement.
+
+## Historical Status
+
+Phase 4 completed with PASS on 2026-07-12. Its Tasks, reports, reviews, and as-built UI documentation remain historical evidence and are not rewritten by V2.

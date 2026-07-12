@@ -268,3 +268,11 @@ Evidence:
 - 真实 provider smoke 与 runtime MySQL 关系验收应分层记录：前者保留 media/model/request ID（若 provider 提供）/耗时，后者通过业务路由证明 task status、quota、asset 与外键关系。
 - provider 未返回 request ID 时必须保留 `null` 并明确记录限制，禁止用 asset URL、内部 ID 或猜测值冒充 provider request ID。
 - 受控 failure persistence 可以替换进程内 provider 为确定性失败 stub，证明失败 task 与额度语义且不产生额外付费调用；完成后必须恢复原 provider。
+
+## 2026-07-12 Product V2 数据与 Canvas 边界
+
+- V2 数据库只有 MySQL。dialect 错误、连接失败或 Alembic current/head 不一致时必须 fail closed，禁止回退 SQLite 或 in-memory store 冒充可用。
+- ignored `.db` 文件是历史本地 artifact，不是 V2 数据源；不得自动删除，必须先完成备份和数据对照，再由 Human Owner 对精确路径授权。
+- Canvas node、edge、viewport、edit revision 和 checkpoint 归 Canvas；asset、generation task、generated history 和 project setting 归 Project，API、schema 和 store 不得混淆这两个边界。
+- 删除源码中的 hard-coded credential assignment 只完成 source cleanup，不等于 credential rotation；真实或复用 credential 必须由 Human Owner 在外部系统单独轮换。
+- Canvas pan/zoom 应只变换持久 world group；不得在 viewport 变化时 clear 并全量重建 node/edge，pointer 高频事件应通过 requestAnimationFrame 合并。

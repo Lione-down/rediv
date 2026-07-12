@@ -1,238 +1,120 @@
 # Revid Backend
 
-## 项目简介
+Revid Backend 是基于 FastAPI 的 API 服务，负责认证、Admin、项目、画布、素材、额度、生成任务和 provider integration。
 
-Revid Backend 是 Revid 项目的 FastAPI 后端，当前提供认证、Admin 管理、邀请码、额度流水、资产接口以及 Agnes provider 接入基础设施。
+## V2 Database Contract
 
-默认以 SQLite 作为本地持久化存储；生产环境可切换至 MySQL。
+V2 只支持 MySQL。SQLite runtime、`aiosqlite`、SQLite database-backed tests、in-memory production fallback 和 MySQL-to-SQLite rollback 路径均进入 `T5-002` 退役范围。
 
-## 技术栈
+当前源码处于过渡窗口：legacy SQLite 分支可能仍存在，但不得用于 V2 开发、验收或故障回退。权威决策见：
+
+- [`ADR-004`](../ai/decisions/ADR-004-mysql-only-runtime-and-tests.md)
+- [`T5-002`](../ai/tasks/todo/TASK-T5-002.md)
+- [`CURRENT`](../ai/state/CURRENT.md)
+
+## Technology
 
 - FastAPI
 - Pydantic Settings
 - SQLAlchemy
-- SQLite / aiosqlite (开发)
-- MySQL + PyMySQL (生产)
-- Alembic (数据库迁移)
+- MySQL 8.x and PyMySQL
+- Alembic
 - Uvicorn
 - httpx
 
-## 目录结构
+## Structure
 
 ```text
 backend/
-├── api/            # 路由注册与 API 入口
-├── controllers/    # 业务控制与 store 实现
-├── core/           # Agnes provider 等核心能力
-├── models/         # SQLAlchemy 模型
-├── schemas/        # 请求/响应 schema
-├── settings/       # 配置读取
-├── tests/          # 后端测试
-├── database.py     # 数据库初始化
-├── main.py         # FastAPI 应用入口
-└── .env.example    # 环境变量示例
+├── api/            # Versioned route registration and API entrypoints
+├── controllers/    # Business controllers and stores
+├── core/           # Middleware, provider and cross-cutting behavior
+├── models/         # SQLAlchemy models
+├── schemas/        # Request and response schemas
+├── settings/       # Runtime configuration
+├── tests/          # Unit and integration tests
+├── database.py     # Database lifecycle
+└── main.py         # Application composition
 ```
 
-## 当前能力
+## Prerequisites
 
-- 微信 mock 登录与游客模式
-- Admin dev 登录
-- 注册开关与邀请码管理
-- 默认额度发放与 Admin 手动发放额度
-- 用户资产列表与上传占位接口
-- Agnes API 配置与 provider 基础封装
-- MySQL runtime 支持（通过 Alembic 管理 schema）
+- Python 3.11 or newer
+- MySQL 8.x
+- A dedicated local or test database with least-privilege credentials
 
-## 环境准备
-
-建议使用 Python 3.11 及以上版本。
-
-### 安装依赖
-
-```bash
-pip install -r requirements.txt
-```
-
-### 基于示例文件准备环境变量
-
-```bash
-cp .env.example .env
-```
-
-按需修改 `.env` 中的配置，尤其是 `REVID_JWT_SECRET`、微信配置和 Agnes API 配置。
-
-如果本地 `.env` 位于项目根目录，从项目根目录使用以下命令启动，避免复制 secret 文件：
+Install dependencies from `backend/`:
 
 ```powershell
-.\backend\.venv\Scripts\python.exe -m uvicorn main:app --app-dir backend --env-file .env --reload
+python -m pip install -r requirements.txt
 ```
 
-`--env-file` 只把配置注入 runtime process；应用日志和 `/health` 不会返回密码或完整数据库 URL。
+## Runtime Configuration
 
-## 启动方式
+Configuration uses the `REVID_` prefix. Database runtime requires these variable names:
 
-### SQLite 模式（默认）
-
-```bash
-uvicorn main:app --reload
+```text
+REVID_DB_HOST
+REVID_DB_PORT
+REVID_DB_NAME
+REVID_DB_USER
+REVID_DB_PASSWORD
 ```
 
-默认地址：`http://localhost:8000`
-接口文档：`http://localhost:8000/docs`
+During the `T5-002` transition, set `REVID_USE_SQLITE=false`. The flag will be removed when MySQL-only retirement is complete.
 
-### MySQL 模式
+Inject real credential values through process environment or an ignored local secret file. Do not paste values into commands, docs, source, screenshots or issue reports. Never commit `.env` or `.env.*`.
 
-```bash
-# 确保 alembic migration 已执行
-alembic upgrade head
+## Schema Lifecycle
 
-# 启动
-uvicorn main:app --reload
+From `backend/`, apply migrations only to an explicitly selected disposable or approved database:
+
+```powershell
+python -m alembic upgrade head
+python -m alembic current
 ```
 
-MySQL 模式下 `REVID_USE_SQLITE=false`，服务启动时不会调用 `create_all()`，而是通过 Alembic 校验 schema revision。
-`/health` 只有在数据库连接成功且 MySQL 当前 revision 与 Alembic head 一致时才返回 `database.ready=true`。
+Backend readiness requires all of the following:
 
-## 数据库配置
+- SQLAlchemy dialect is MySQL.
+- Database connection succeeds.
+- Current Alembic revision equals repository head.
+- Required production store initializes without fallback.
 
-配置由 [`settings/config.py`](settings/config.py) 读取，环境变量前缀统一为 `REVID_`。
+If any check fails, startup and `/health` must report not ready. SQLite or in-memory fallback is not an accepted recovery path.
 
-### SQLite 模式（默认）
+Do not run downgrade, destructive migration, reset, DROP, TRUNCATE or destructive DELETE against user data without explicit Human Owner authorization.
 
-```env
-REVID_USE_SQLITE=true
-REVID_DB_PATH=revid.db
+## Start
+
+From repository root, after the approved MySQL runtime variables are available:
+
+```powershell
+.\backend\.venv\Scripts\python.exe -m uvicorn main:app --app-dir backend --reload
 ```
 
-启动时 `main.py` 会先调用 `init_db(settings.db_path)` 创建数据库文件，再切换到 `DatabaseStore`。
+Default endpoints:
 
-### MySQL 模式
+- API: `http://127.0.0.1:8000`
+- OpenAPI: `http://127.0.0.1:8000/docs`
+- Health: `http://127.0.0.1:8000/health`
 
-```env
-REVID_USE_SQLITE=false
-REVID_DB_HOST=localhost
-REVID_DB_PORT=3306
-REVID_DB_NAME=revid_db
-REVID_DB_USER=root
-REVID_DB_PASSWORD=your_password
-```
+## Verification
 
-MySQL 模式下：
-- 启动时不调用 `create_all()`，schema 由 Alembic 管理
-- 启动时会检查 `alembic_version` 表确认当前 revision
-- 连接池使用 `NullPool` 的替代方案（pymysql pool）
-- `pool_recycle` 默认为 3600 秒
+Focused test commands depend on the active Task. Common read-only or isolated checks include:
 
-### Alembic 迁移
-
-```bash
-# 生成新迁移（自动检测模型变更）
-alembic revision --autogenerate -m "description"
-
-# 应用所有迁移到最新
-alembic upgrade head
-
-# 回退一个 revision
-alembic downgrade -1
-
-# 查看当前 revision
-alembic current
-```
-
-## 切换与回滚
-
-### SQLite → MySQL
-
-1. 在 MySQL 中创建数据库
-2. 配置 `.env` 中的 MySQL 连接信息
-3. 设置 `REVID_USE_SQLITE=false`
-4. 执行 `alembic upgrade head`
-5. 运行 `python -c "import main"` 验证启动
-
-### MySQL → SQLite（回滚）
-
-1. 设置 `REVID_USE_SQLITE=true`
-2. 删除或重命名 `.env` 中的 MySQL 相关配置
-3. 重启服务
-
-## 常用环境变量
-
-```env
-REVID_APP_NAME=Revid API
-REVID_CORS_ORIGINS=["http://localhost:5173","http://localhost:9099"]
-REVID_JWT_SECRET=change-this-secret-in-production
-REVID_WECHAT_APP_ID=
-REVID_WECHAT_APP_SECRET=
-REVID_WECHAT_REDIRECT_URI=http://localhost:8000/auth/wechat/callback
-REVID_WECHAT_MOCK_ENABLED=true
-REVID_DEV_ADMIN_KEY=dev-admin-key
-REVID_AGNES_API_KEY=
-REVID_AGNES_BASE_URL=https://apihub.agnes-ai.com
-```
-
-不要将真实 `.env`、密钥、token 或证书文件提交到 Git。
-
-## 开发检查与测试
-
-优先执行后端基础检查：
-
-```bash
-python -m compileall .
-```
-
-数据库存储相关测试：
-
-```bash
-python -m unittest discover -s tests -p "test_database_store.py"
-```
-
-MySQL runtime cutover 专项测试：
-
-```bash
-python -m unittest tests.test_mysql_runtime_cutover
+```powershell
+python -m compileall api controllers core models schemas settings
 python -m unittest tests.test_health
+python -m unittest tests.test_mysql_runtime_cutover
 ```
 
-如需快速验证应用是否可导入，可执行：
+Database-backed tests must use disposable MySQL schema lifecycle and must not point to user or production databases. Tests that still create `.db` files are legacy evidence until `T5-002` retires them; they are not a V2 MySQL acceptance gate.
 
-```bash
-python -c "import main"
-```
+## Local Database Artifacts
 
-## 开发示例
+Ignored historical `.db` files are not V2 runtime data sources. Do not delete them automatically. Each exact path requires backup/parity evidence and Human Owner approval before removal.
 
-1. 获取 Admin token：
+## Security Note
 
-```bash
-curl -X POST "http://localhost:8000/admin/dev-login?admin_key=dev-admin-key"
-```
-
-2. 创建邀请码：
-
-```bash
-curl -X POST "http://localhost:8000/admin/invitation-codes" \
-  -H "Authorization: Bearer ***" \
-  -H "Content-Type: application/json" \
-  -d '{"code":"TEST2026","max_uses":10}'
-```
-
-3. 执行微信 mock 登录：
-
-```bash
-curl -X POST "http://localhost:8000/auth/wechat/mock" \
-  -H "Content-Type: application/json" \
-  -d '{"openid":"wx-openid-1","nickname":"Test User","invitation_code":"TEST2026"}'
-```
-
-4. 查询当前用户：
-
-```bash
-curl "http://localhost:8000/me" \
-  -H "Authorization: Bearer ***"
-```
-
-5. 查看健康状态（含数据库信息）：
-
-```bash
-curl "http://localhost:8000/health"
-```
+The current `T5-002` includes a P0 source credential finding. Source cleanup must not print the candidate value, and deleting an assignment does not rotate a credential. If the value was ever real or reused, Human Owner must rotate it separately.

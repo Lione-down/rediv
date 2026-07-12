@@ -1,5 +1,7 @@
 # Revid Design System
 
+> Phase 4 historical as-built reference. Product V2 target decisions live in `ui/REVID-V2-DESIGN-SYSTEM.md`; do not use this file as the V2 implementation target.
+
 > Version: 1.0 — Phase 4C
 > Last updated: 2026-06-22
 > Source: `frontend/src/assets/styles/variables.scss` + `frontend/src/assets/styles/naive-theme.ts`
