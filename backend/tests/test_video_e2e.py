@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
@@ -13,22 +12,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import main as backend_main
 from api import video_generate as video_generate_module
 from controllers.store import DatabaseStore, configure_store, store
-from database import close_db, init_db
+from tests.mysql_test_database import MySQLTestDatabase
 
 
 class VideoGenerationE2ETestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.mysql_database = MySQLTestDatabase("revid_test_video_e2e")
+        cls.mysql_database.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.mysql_database.stop()
+
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        db_path = str(Path(self.temp_dir.name) / "test-revid.db")
-        init_db(db_path)
         configure_store(DatabaseStore())
         store.registration_settings["registration_mode"] = "open"
         self.client = TestClient(backend_main.app)
 
     def tearDown(self) -> None:
         self.client.close()
-        close_db()
-        self.temp_dir.cleanup()
 
     @patch.object(backend_main, "_agnes")
     def test_video_generation_workflow_persists_asset_after_polling(self, mock_agnes) -> None:

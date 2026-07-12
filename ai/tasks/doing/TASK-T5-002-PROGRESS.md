@@ -43,6 +43,7 @@ Last updated: 2026-07-13
 - `test_asset_upload.py` now runs all asset API and persistence cases against dedicated disposable `revid_test_asset_upload`; per-test OpenIDs isolate the class-scoped schema, while each multipart upload retains its isolated per-test filesystem lifecycle.
 - `test_e2e_workflow.py` now runs its mocked Agnes full-workflow persistence case against dedicated disposable `revid_test_e2e_workflow`, preserving project, node, generated-asset, quota deduction, and provider-call assertions without a SQLite fallback.
 - `test_image_e2e.py` now runs its five mocked image-provider workflow cases against dedicated disposable `revid_test_image_e2e`, preserving asset persistence, quota deduction/refund, source-image forwarding, provider-failure, and empty-quota assertions without a SQLite fallback.
+- `test_video_e2e.py` now runs its five mocked video-provider workflow cases against dedicated disposable `revid_test_video_e2e`, preserving polling, asset persistence, quota deduction/refund, provider-failure, timeout, and empty-quota assertions without a SQLite fallback.
 
 ## Remaining Work
 
@@ -53,12 +54,12 @@ Last updated: 2026-07-13
 
 ## Exact Next Action
 
-Migrate `backend/tests/test_video_e2e.py` to its own exact-name guarded `revid_test_video_e2e` schema through `MySQLTestDatabase`, preserving its mocked video-provider workflow assertions while removing only the SQLite database fallback.
+Migrate `backend/tests/test_video_generate.py` to its own exact-name guarded `revid_test_video_generate` schema through `MySQLTestDatabase`, preserving its mocked video-provider API assertions while removing only the SQLite database fallback.
 
 ## Latest Completed Bounded Unit
 
-- Migrated `backend/tests/test_image_e2e.py` from a temporary SQLite database to guarded `revid_test_image_e2e` MySQL.
-- Preserved all five mocked Agnes image workflows, asset persistence, quota deduction/refund, source-image forwarding, provider-failure, and empty-quota assertions without changing production behavior.
+- Migrated `backend/tests/test_video_e2e.py` from a temporary SQLite database to guarded `revid_test_video_e2e` MySQL.
+- Preserved all five mocked Agnes video workflows, polling, asset persistence, quota deduction/refund, provider-failure, timeout, and empty-quota assertions without changing production behavior.
 - Fixture guard tests, focused E2E verification, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
 
 ## Files Changed
@@ -80,6 +81,7 @@ Migrate `backend/tests/test_video_e2e.py` to its own exact-name guarded `revid_t
 - Unit C asset upload slice: `backend/tests/test_asset_upload.py`.
 - Unit C full-workflow E2E slice: `backend/tests/test_e2e_workflow.py`.
 - Unit C image E2E slice: `backend/tests/test_image_e2e.py`.
+- Unit C video E2E slice: `backend/tests/test_video_e2e.py`.
 - Project conversation archive: `ai/state/archive/PROJECT-CONVERSATION-ARCHIVE-THROUGH-2026-07-13.md`.
 
 ## Commands And Summarized Results
@@ -127,6 +129,9 @@ Migrate `backend/tests/test_video_e2e.py` to its own exact-name guarded `revid_t
 - `python -m compileall -q .` and backend full regression: PASS, 194 tests in 43.815 seconds. Alembic remained at the single head `e9f1a2b3c4d5`.
 - Image E2E cleanup probe: PASS; `revid_test_image_e2e` did not exist after verification. The migrated file contained zero SQLite/temp-file/init/close references, `git diff --check` passed, and fresh review confirmed no production, schema, provider, or assertion changes.
 - Redacted staged-addition credential scan: PASS with zero candidates. The first scanner attempt was rejected because it scanned the whole index and used hashing APIs unavailable in the local PowerShell runtime; the corrected scanner inspected only staged added lines and emitted no candidate content.
+- `tests.test_mysql_test_database tests.test_video_e2e` focused run: PASS, 9 tests in 1.473 seconds; four pure fixture guard tests and five mocked video-provider workflow tests used guarded MySQL for persistence.
+- `python -m compileall -q .` and backend full regression: PASS, 194 tests in 43.109 seconds. Alembic remained at the single head `e9f1a2b3c4d5`.
+- Video E2E cleanup probe: PASS; `revid_test_video_e2e` did not exist after verification. The migrated file contained zero SQLite/temp-file/init/close references, `git diff --check` passed, and fresh review confirmed no production, schema, provider, or assertion changes.
 
 ## Blockers And Release Conditions
 

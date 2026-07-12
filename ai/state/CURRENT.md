@@ -16,7 +16,7 @@ Last updated: 2026-07-13
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Visual direction: premium graphite-black and dark-purple system
-- Database direction: MySQL-only; runtime is cut over and six database-backed test slices are migrated, while remaining legacy SQLite tests/tooling stay isolated until T5-002 Unit C/B2 completes
+- Database direction: MySQL-only; runtime is cut over and eight database-backed test slices are migrated, while remaining legacy SQLite tests/tooling stay isolated until T5-002 Unit C/B2 completes
 
 ## Active Delivery
 
@@ -68,13 +68,14 @@ Last updated: 2026-07-13
 - `test_asset_upload.py` is the fifth converted slice; all 13 asset API and persistence cases run on disposable `revid_test_asset_upload`, while each multipart upload still uses an isolated per-test filesystem directory. Fixture plus asset focused verification passed 17/17, backend regression passed 194/194, and the schema was cleaned.
 - `test_e2e_workflow.py` is the sixth converted slice; its mocked Agnes full workflow runs on disposable `revid_test_e2e_workflow` while preserving login, project, node, generated-asset, quota, persistence, and provider-call assertions. Focused verification passed 5/5, backend regression passed 194/194, and the schema was cleaned.
 - `test_image_e2e.py` is the seventh converted slice; its five mocked Agnes image workflows run on disposable `revid_test_image_e2e` while preserving asset persistence, quota deduction/refund, source-image forwarding, provider-failure, and empty-quota assertions. Focused verification passed 9/9 with fixture guards, backend regression passed 194/194, and the schema was cleaned.
+- `test_video_e2e.py` is the eighth converted slice; its five mocked Agnes video workflows run on disposable `revid_test_video_e2e` while preserving polling, asset persistence, quota deduction/refund, provider-failure, timeout, and empty-quota assertions. Focused verification passed 9/9 with fixture guards, backend regression passed 194/194, and the schema was cleaned.
 - Legacy SQLite engine/schema helpers, SQLite-backed database tests, dependency/tooling, and active documentation remain owned by Unit C/B2 and are not runtime-selectable.
 - Deep review re-confirmed pre-existing placeholder JWT and dev-admin defaults; they remain an implementation security-closure item, not a Human gate, and were not mixed into Unit B1.
 - Current Canvas remains project-scoped, uses conflicting light and dark theme sources, hides its grid behind an opaque surface, and broadly rebuilds the Leafer scene.
 
 ## Exact Next Action
 
-Migrate `backend/tests/test_video_e2e.py` to a dedicated guarded `revid_test_video_e2e` MySQL schema, preserving the mocked video-provider workflow assertions while removing its SQLite database fallback.
+Migrate `backend/tests/test_video_generate.py` to a dedicated guarded `revid_test_video_generate` MySQL schema, preserving the mocked video-provider API assertions while removing its SQLite database fallback.
 
 ## Blockers And Release Conditions
 
