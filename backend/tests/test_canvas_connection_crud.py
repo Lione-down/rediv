@@ -229,6 +229,7 @@ class CanvasConnectionCrudTestCase(unittest.TestCase):
             {
                 "id",
                 "project_id",
+                "canvas_id",
                 "source_node_id",
                 "source_port",
                 "target_node_id",
@@ -251,6 +252,11 @@ class CanvasConnectionCrudTestCase(unittest.TestCase):
             self.assertTrue(column.comment, f"missing comment for {column.name}")
         unique_names = {constraint["name"] for constraint in inspector.get_unique_constraints("canvas_connections")}
         self.assertIn("uq_canvas_connections_edge", unique_names)
+        foreign_key_names = {constraint["name"] for constraint in inspector.get_foreign_keys("canvas_connections")}
+        self.assertEqual(
+            {"fk_canvas_connections_project_canvas", "fk_canvas_connections_source", "fk_canvas_connections_target"},
+            foreign_key_names,
+        )
 
     def test_inmemory_connection_crud(self) -> None:
         memory_store = InMemoryStore()

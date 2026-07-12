@@ -26,7 +26,7 @@ def _get_project_node_or_error(project_id: str, node_id: str) -> dict:
     node = store.get_node(node_id)
     if node is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
-    if node["project_id"] != project_id:
+    if node["project_id"] != project_id or node.get("canvas_id") != store.get_first_canvas_id(project_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     return node
 

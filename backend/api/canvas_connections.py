@@ -26,7 +26,7 @@ def _get_project_connection_or_error(project_id: str, connection_id: str) -> dic
     connection = store.get_connection(connection_id)
     if connection is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Connection not found")
-    if connection["project_id"] != project_id:
+    if connection["project_id"] != project_id or connection.get("canvas_id") != store.get_first_canvas_id(project_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     return connection
 

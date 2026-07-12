@@ -10,6 +10,7 @@ from sqlalchemy import func, or_, select
 from models.admin_log import AdminLog
 from models.asset import Asset
 from models.base import StoreConfig, get_session
+from models.canvas import Canvas
 from models.canvas_connection import CanvasConnection
 from models.canvas_node import CanvasNode
 from models.generation_task import GenerationTask
@@ -96,6 +97,7 @@ class InMemoryStore:
         self.generation_tasks: dict[str, dict] = {}
         self.canvas_connections: dict[str, dict] = {}
         self.canvas_nodes: dict[str, dict] = {}
+        self.canvases: dict[str, dict] = {}
         self.projects: dict[str, dict] = {}
         self.templates: dict[str, dict] = {}
         self.registration_settings = {
@@ -389,11 +391,38 @@ class InMemoryStore:
             "id": str(uuid4()),
             "user_id": user_id,
             "name": name,
+            "canvas_order_revision": 0,
             "created_at": timestamp,
             "updated_at": timestamp,
         }
         self.projects[project["id"]] = project
+        canvas = {
+            "id": str(uuid4()),
+            "project_id": project["id"],
+            "name": "画布 1",
+            "sort_order": 0,
+            "status": "active",
+            "viewport_x": 0.0,
+            "viewport_y": 0.0,
+            "viewport_zoom": 1.0,
+            "graph_revision": 0,
+            "created_at": timestamp,
+            "updated_at": timestamp,
+            "deleted_at": None,
+        }
+        self.canvases[canvas["id"]] = canvas
         return project
+
+    def get_first_canvas_id(self, project_id: str) -> str | None:
+        canvases = [
+            canvas
+            for canvas in self.canvases.values()
+            if canvas["project_id"] == project_id and canvas["status"] == "active"
+        ]
+        if not canvases:
+            return None
+        canvases.sort(key=lambda canvas: (canvas["sort_order"], canvas["created_at"], canvas["id"]))
+        return canvases[0]["id"]
 
     def create_template(self, user_id: str, name: str, project_id: str) -> dict:
         project = self.projects.get(project_id)
@@ -472,16 +501,24 @@ class InMemoryStore:
         if project is None or project["user_id"] != user_id:
             raise PermissionError("Project does not belong to user")
 
+        canvas_id = self.get_first_canvas_id(project_id)
+        if canvas_id is None:
+            raise RuntimeError("Project has no active canvas")
         timestamp = now_iso()
         node = {
             "id": str(uuid4()),
             "project_id": project_id,
+            "canvas_id": canvas_id,
             "node_type": node_type,
             "content": content,
             "position_x": position_x,
             "position_y": position_y,
             "width": width,
             "height": height,
+            "z_index": 0,
+            "parent_node_id": None,
+            "is_locked": False,
+            "is_collapsed": False,
             "status": "active",
             "created_at": timestamp,
             "updated_at": timestamp,
@@ -494,10 +531,13 @@ class InMemoryStore:
         if project is None or project["user_id"] != user_id:
             raise PermissionError("Project does not belong to user")
 
+        canvas_id = self.get_first_canvas_id(project_id)
         items = [
             node
             for node in self.canvas_nodes.values()
-            if node["project_id"] == project_id and node["status"] != "deleted"
+            if node["project_id"] == project_id
+            and node["canvas_id"] == canvas_id
+            and node["status"] != "deleted"
         ]
         items.sort(key=lambda node: node["position_x"])
         return items
@@ -539,6 +579,7 @@ class InMemoryStore:
     def _validate_connection_nodes(
         self,
         project_id: str,
+        canvas_id: str,
         source_node_id: str,
         target_node_id: str,
     ) -> None:
@@ -556,10 +597,12 @@ class InMemoryStore:
             raise ValueError("Connection nodes must exist")
         if source_node["project_id"] != project_id or target_node["project_id"] != project_id:
             raise ValueError("Connection nodes must belong to project")
+        if source_node["canvas_id"] != canvas_id or target_node["canvas_id"] != canvas_id:
+            raise ValueError("Connection nodes must belong to canvas")
 
     def _has_duplicate_connection(
         self,
-        project_id: str,
+        canvas_id: str,
         source_node_id: str,
         source_port: str,
         target_node_id: str,
@@ -572,7 +615,7 @@ class InMemoryStore:
             if connection.get("status") == "deleted":
                 continue
             if (
-                connection["project_id"] == project_id
+                connection["canvas_id"] == canvas_id
                 and connection["source_node_id"] == source_node_id
                 and connection["source_port"] == source_port
                 and connection["target_node_id"] == target_node_id
@@ -594,14 +637,18 @@ class InMemoryStore:
         project = self.projects.get(project_id)
         if project is None or project["user_id"] != user_id:
             raise PermissionError("Project does not belong to user")
-        self._validate_connection_nodes(project_id, source_node_id, target_node_id)
-        if self._has_duplicate_connection(project_id, source_node_id, source_port, target_node_id, target_port):
+        canvas_id = self.get_first_canvas_id(project_id)
+        if canvas_id is None:
+            raise RuntimeError("Project has no active canvas")
+        self._validate_connection_nodes(project_id, canvas_id, source_node_id, target_node_id)
+        if self._has_duplicate_connection(canvas_id, source_node_id, source_port, target_node_id, target_port):
             raise ValueError("Connection already exists")
 
         timestamp = now_iso()
         connection = {
             "id": str(uuid4()),
             "project_id": project_id,
+            "canvas_id": canvas_id,
             "source_node_id": source_node_id,
             "source_port": source_port,
             "target_node_id": target_node_id,
@@ -619,10 +666,13 @@ class InMemoryStore:
         if project is None or project["user_id"] != user_id:
             raise PermissionError("Project does not belong to user")
 
+        canvas_id = self.get_first_canvas_id(project_id)
         items = [
             connection
             for connection in self.canvas_connections.values()
-            if connection["project_id"] == project_id and connection["status"] != "deleted"
+            if connection["project_id"] == project_id
+            and connection["canvas_id"] == canvas_id
+            and connection["status"] != "deleted"
         ]
         items.sort(key=lambda connection: connection["created_at"])
         return items
@@ -646,9 +696,9 @@ class InMemoryStore:
         source_port = fields.get("source_port", connection["source_port"])
         target_node_id = fields.get("target_node_id", connection["target_node_id"])
         target_port = fields.get("target_port", connection["target_port"])
-        self._validate_connection_nodes(connection["project_id"], source_node_id, target_node_id)
+        self._validate_connection_nodes(connection["project_id"], connection["canvas_id"], source_node_id, target_node_id)
         if self._has_duplicate_connection(
-            connection["project_id"],
+            connection["canvas_id"],
             source_node_id,
             source_port,
             target_node_id,
@@ -754,7 +804,13 @@ class InMemoryStore:
             return None
         if project["user_id"] != user_id:
             raise PermissionError("Project does not belong to user")
-        return self.projects.pop(project_id)
+        payload = self.projects.pop(project_id)
+        self.canvases = {
+            canvas_id: canvas
+            for canvas_id, canvas in self.canvases.items()
+            if canvas["project_id"] != project_id
+        }
+        return payload
 
     def list_assets(
         self,
@@ -811,6 +867,7 @@ class DatabaseStore:
         self.generation_tasks: dict[str, dict] = {}
         self.canvas_connections: dict[str, dict] = {}
         self.canvas_nodes: dict[str, dict] = {}
+        self.canvases: dict[str, dict] = {}
         self.projects: dict[str, dict] = {}
         self.templates: dict[str, dict] = {}
         self.invitation_codes: dict[str, PersistentDict] = {}
@@ -855,6 +912,10 @@ class DatabaseStore:
             self.canvas_nodes = {
                 node.id: self._canvas_node_to_dict(node)
                 for node in session.scalars(select(CanvasNode)).all()
+            }
+            self.canvases = {
+                canvas.id: self._canvas_to_dict(canvas)
+                for canvas in session.scalars(select(Canvas)).all()
             }
             self.projects = {
                 project.id: self._project_to_dict(project)
@@ -1066,12 +1127,17 @@ class DatabaseStore:
         return {
             "id": node.id,
             "project_id": node.project_id,
+            "canvas_id": node.canvas_id,
             "node_type": node.node_type,
             "content": node.content,
             "position_x": node.position_x,
             "position_y": node.position_y,
             "width": node.width,
             "height": node.height,
+            "z_index": node.z_index,
+            "parent_node_id": node.parent_node_id,
+            "is_locked": node.is_locked,
+            "is_collapsed": node.is_collapsed,
             "status": node.status,
             "created_at": datetime_to_iso(node.created_at),
             "updated_at": datetime_to_iso(node.updated_at),
@@ -1081,6 +1147,7 @@ class DatabaseStore:
         return {
             "id": connection.id,
             "project_id": connection.project_id,
+            "canvas_id": connection.canvas_id,
             "source_node_id": connection.source_node_id,
             "source_port": connection.source_port,
             "target_node_id": connection.target_node_id,
@@ -1091,11 +1158,28 @@ class DatabaseStore:
             "updated_at": datetime_to_iso(connection.updated_at),
         }
 
+    def _canvas_to_dict(self, canvas: Canvas) -> dict:
+        return {
+            "id": canvas.id,
+            "project_id": canvas.project_id,
+            "name": canvas.name,
+            "sort_order": canvas.sort_order,
+            "status": canvas.status,
+            "viewport_x": canvas.viewport_x,
+            "viewport_y": canvas.viewport_y,
+            "viewport_zoom": float(canvas.viewport_zoom),
+            "graph_revision": canvas.graph_revision,
+            "created_at": datetime_to_iso(canvas.created_at),
+            "updated_at": datetime_to_iso(canvas.updated_at),
+            "deleted_at": datetime_to_iso(canvas.deleted_at),
+        }
+
     def _project_to_dict(self, project: Project) -> dict:
         return {
             "id": project.id,
             "user_id": project.user_id,
             "name": project.name,
+            "canvas_order_revision": project.canvas_order_revision,
             "created_at": datetime_to_iso(project.created_at),
             "updated_at": datetime_to_iso(project.updated_at),
         }
@@ -1519,19 +1603,48 @@ class DatabaseStore:
 
     def create_project(self, user_id: str, name: str) -> dict:
         timestamp = now_utc()
+        project_id = str(uuid4())
         project = Project(
-            id=str(uuid4()),
+            id=project_id,
             user_id=user_id,
             name=name,
+            canvas_order_revision=0,
             created_at=timestamp,
             updated_at=timestamp,
         )
+        canvas = Canvas(
+            id=str(uuid4()),
+            project_id=project_id,
+            name="画布 1",
+            sort_order=0,
+            status="active",
+            viewport_x=0.0,
+            viewport_y=0.0,
+            viewport_zoom=1,
+            graph_revision=0,
+            created_at=timestamp,
+            updated_at=timestamp,
+            deleted_at=None,
+        )
         with get_session() as session:
             session.add(project)
+            session.flush()
+            session.add(canvas)
             session.commit()
         payload = self._project_to_dict(project)
         self.projects[project.id] = payload
+        self.canvases[canvas.id] = self._canvas_to_dict(canvas)
         return payload
+
+    def get_first_canvas_id(self, project_id: str) -> str | None:
+        statement = (
+            select(Canvas.id)
+            .where(Canvas.project_id == project_id, Canvas.status == "active")
+            .order_by(Canvas.sort_order, Canvas.created_at, Canvas.id)
+            .limit(1)
+        )
+        with get_session() as session:
+            return session.scalar(statement)
 
     def create_template(self, user_id: str, name: str, project_id: str) -> dict:
         project = self.get_project(project_id)
@@ -1637,16 +1750,24 @@ class DatabaseStore:
         if project is None or project["user_id"] != user_id:
             raise PermissionError("Project does not belong to user")
 
+        canvas_id = self.get_first_canvas_id(project_id)
+        if canvas_id is None:
+            raise RuntimeError("Project has no active canvas")
         timestamp = now_utc()
         node = CanvasNode(
             id=str(uuid4()),
             project_id=project_id,
+            canvas_id=canvas_id,
             node_type=node_type,
             content=content,
             position_x=position_x,
             position_y=position_y,
             width=width,
             height=height,
+            z_index=0,
+            parent_node_id=None,
+            is_locked=False,
+            is_collapsed=False,
             status="active",
             created_at=timestamp,
             updated_at=timestamp,
@@ -1664,8 +1785,10 @@ class DatabaseStore:
         if project is None or project["user_id"] != user_id:
             raise PermissionError("Project does not belong to user")
 
+        canvas_id = self.get_first_canvas_id(project_id)
         statement = select(CanvasNode).where(
             CanvasNode.project_id == project_id,
+            CanvasNode.canvas_id == canvas_id,
             CanvasNode.status != "deleted",
         )
         with get_session() as session:
@@ -1737,6 +1860,7 @@ class DatabaseStore:
         self,
         session,
         project_id: str,
+        canvas_id: str,
         source_node_id: str,
         target_node_id: str,
     ) -> None:
@@ -1754,11 +1878,13 @@ class DatabaseStore:
             raise ValueError("Connection nodes must exist")
         if source_node.project_id != project_id or target_node.project_id != project_id:
             raise ValueError("Connection nodes must belong to project")
+        if source_node.canvas_id != canvas_id or target_node.canvas_id != canvas_id:
+            raise ValueError("Connection nodes must belong to canvas")
 
     def _has_duplicate_connection(
         self,
         session,
-        project_id: str,
+        canvas_id: str,
         source_node_id: str,
         source_port: str,
         target_node_id: str,
@@ -1766,7 +1892,7 @@ class DatabaseStore:
         exclude_connection_id: str | None = None,
     ) -> bool:
         statement = select(CanvasConnection).where(
-            CanvasConnection.project_id == project_id,
+            CanvasConnection.canvas_id == canvas_id,
             CanvasConnection.source_node_id == source_node_id,
             CanvasConnection.source_port == source_port,
             CanvasConnection.target_node_id == target_node_id,
@@ -1790,10 +1916,14 @@ class DatabaseStore:
         if project is None or project["user_id"] != user_id:
             raise PermissionError("Project does not belong to user")
 
+        canvas_id = self.get_first_canvas_id(project_id)
+        if canvas_id is None:
+            raise RuntimeError("Project has no active canvas")
         timestamp = now_utc()
         connection = CanvasConnection(
             id=str(uuid4()),
             project_id=project_id,
+            canvas_id=canvas_id,
             source_node_id=source_node_id,
             source_port=source_port,
             target_node_id=target_node_id,
@@ -1804,8 +1934,8 @@ class DatabaseStore:
             updated_at=timestamp,
         )
         with get_session() as session:
-            self._validate_connection_nodes(session, project_id, source_node_id, target_node_id)
-            if self._has_duplicate_connection(session, project_id, source_node_id, source_port, target_node_id, target_port):
+            self._validate_connection_nodes(session, project_id, canvas_id, source_node_id, target_node_id)
+            if self._has_duplicate_connection(session, canvas_id, source_node_id, source_port, target_node_id, target_port):
                 raise ValueError("Connection already exists")
             session.add(connection)
             session.commit()
@@ -1819,8 +1949,10 @@ class DatabaseStore:
         if project is None or project["user_id"] != user_id:
             raise PermissionError("Project does not belong to user")
 
+        canvas_id = self.get_first_canvas_id(project_id)
         statement = select(CanvasConnection).where(
             CanvasConnection.project_id == project_id,
+            CanvasConnection.canvas_id == canvas_id,
             CanvasConnection.status != "deleted",
         )
         with get_session() as session:
@@ -1861,10 +1993,10 @@ class DatabaseStore:
             source_port = fields.get("source_port", connection.source_port)
             target_node_id = fields.get("target_node_id", connection.target_node_id)
             target_port = fields.get("target_port", connection.target_port)
-            self._validate_connection_nodes(session, connection.project_id, source_node_id, target_node_id)
+            self._validate_connection_nodes(session, connection.project_id, connection.canvas_id, source_node_id, target_node_id)
             if self._has_duplicate_connection(
                 session,
-                connection.project_id,
+                connection.canvas_id,
                 source_node_id,
                 source_port,
                 target_node_id,
@@ -2023,6 +2155,11 @@ class DatabaseStore:
             session.commit()
 
         self.projects.pop(project_id, None)
+        self.canvases = {
+            canvas_id: canvas
+            for canvas_id, canvas in self.canvases.items()
+            if canvas["project_id"] != project_id
+        }
         return payload
 
     def list_assets(

@@ -20,9 +20,13 @@ Last updated: 2026-07-13
 
 ## Active Delivery
 
-- Active implementation Task: none
-- Ready next Task: `T5-003 - Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route`
-- State: `TODO`; Task/PLAN/PROGRESS must be created and activated before business-code edits
+- Active implementation Task: `T5-003 - Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route`
+- State: `DOING`
+- Task: `ai/tasks/todo/TASK-T5-003.md`
+- Plan: `ai/tasks/doing/TASK-T5-003-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-003-PROGRESS.md`
+- Latest bounded unit: Unit A - expand-first schema, atomic default canvas creation, and first-canvas compatibility (`COMPLETE - PASS`)
+- Exact next unit: Unit B - authenticated canvas metadata and optimistic ordering APIs
 - Dependency: T5-002 complete
 
 ## Latest Completed Task
@@ -47,45 +51,19 @@ Last updated: 2026-07-13
 
 ## Current Facts And Risks
 
-- Current running health was last observed as MySQL connected and ready with `current == head == e9f1a2b3c4d5`.
-- The verified working tree makes runtime source selection and engine initialization MySQL-only and fail closed; no active SQLite engine, schema-bootstrap, runtime `create_all()`, test, dependency, or migration-tool path remains in that tree.
-- T5-002 Unit A retired the unused `backend/run_alembic_mysql.py` helper and removed its tracked hard-coded database password assignment without opening the file or displaying the value/raw diff; the verified unit is delivered in a scoped local commit.
-- Source cleanup does not rotate a credential that may have been used. Rotation remains a separate Human Owner gate if the assignment was ever real or reused.
-- Unit A verification passed backend compile and all 189 backend tests; redacted scans found no remaining hard-coded password assignment.
-- Human-requested Unit A.1 removed 24 tracked one-off diagnostics, status-repair scripts, and retired Hermes PowerShell entrypoints with no active product caller; `Agents.md` is normalized to `AGENTS.md`.
-- Root Playwright/runtime evidence and pytest cache now have durable narrow ignore rules; two zero-byte generated artifacts were removed from the tracked tree but retained locally as ignored evidence.
-- Unit B1 removed runtime SQLite selection, requires process-supplied MySQL host/name/user/password, and initializes MySQL only through the FastAPI lifespan.
-- Startup, health, Alembic, admin seed, and store initialization now fail closed on missing configuration, wrong dialect, connection failure, missing schema, or revision mismatch; no production in-memory fallback remains.
-- Unit B1 focused tests passed, Alembic reports the single expected head, and the full backend regression passed 190 tests with pre-Alembic identity verification and guarded disposable `revid_test_t4_002` cleanup.
-- Unit C added a reusable process-credential-only MySQL test fixture with exact ASCII `revid_test_*` names, post-create and pre-cleanup `SELECT DATABASE()` identity gates, Alembic head setup, and process-setting restoration.
-- `test_database_store.py` is the first converted persistence slice; its eight tests run on disposable `revid_test_database_store`, focused tests passed 12/12, backend regression passed 194/194, and both test schemas were cleaned.
-- `test_project_crud.py` is the second converted slice; its database-backed cases run on disposable `revid_test_project_crud`, its explicit in-memory case remains a pure unit test, focused tests passed 12/12, backend regression passed 194/194, and the schema was cleaned.
-- `test_canvas_node_crud.py` is the third converted slice; its database-backed cases run on disposable `revid_test_canvas_node_crud`, its explicit in-memory case remains a pure unit test, focused tests passed 13/13, backend regression passed 194/194, and the schema was cleaned.
-- `test_canvas_connection_crud.py` is the fourth converted slice; its database-backed cases run on disposable `revid_test_canvas_connection_crud`, its explicit in-memory case remains a pure unit test, and actual MySQL table/column comments plus the edge unique constraint are asserted.
-- The first full regression exposed an equal-timestamp tie in the preceding project-list test; its assertion now verifies exact membership and descending timestamps without assuming ID order inside a tie. Focused verification passed 15/15, final backend regression passed 194/194, and both affected disposable schemas were cleaned.
-- `test_asset_upload.py` is the fifth converted slice; all 13 asset API and persistence cases run on disposable `revid_test_asset_upload`, while each multipart upload still uses an isolated per-test filesystem directory. Fixture plus asset focused verification passed 17/17, backend regression passed 194/194, and the schema was cleaned.
-- `test_e2e_workflow.py` is the sixth converted slice; its mocked Agnes full workflow runs on disposable `revid_test_e2e_workflow` while preserving login, project, node, generated-asset, quota, persistence, and provider-call assertions. Focused verification passed 5/5, backend regression passed 194/194, and the schema was cleaned.
-- `test_image_e2e.py` is the seventh converted slice; its five mocked Agnes image workflows run on disposable `revid_test_image_e2e` while preserving asset persistence, quota deduction/refund, source-image forwarding, provider-failure, and empty-quota assertions. Focused verification passed 9/9 with fixture guards, backend regression passed 194/194, and the schema was cleaned.
-- `test_video_e2e.py` is the eighth converted slice; its five mocked Agnes video workflows run on disposable `revid_test_video_e2e` while preserving polling, asset persistence, quota deduction/refund, provider-failure, timeout, and empty-quota assertions. Focused verification passed 9/9 with fixture guards, backend regression passed 194/194, and the schema was cleaned.
-- Unit C completion migrated the remaining 64 database-backed tests across nine files to ten exact-name guarded MySQL schemas, while pure unit tests remain database-free.
-- Unit C retired `aiosqlite`, the legacy migration implementation and its 29 tool-only tests, root/test probes, old Alembic config/wrappers, retired selectors, placeholder URL, and active transition documentation.
-- Final compile passed, backend regression passed 165/165, Alembic retained the single head `e9f1a2b3c4d5`, all ten Unit C schemas were cleaned, and scoped static/caller scans passed.
-- Unit B2 removed the final `build_sqlite_url`, `init_db`, SQLite schema-bootstrap, and runtime `create_all()` helpers; `init_engine()` is now a no-argument MySQL-only API and the retired exports are gone.
-- Unit B2 compile and focused runtime/fixture/database-store tests passed 21/21 on the stable delivery baseline, the prior backend regression passed 165/165, Alembic remained single-head, active backend retirement scans were clean, and only the pre-existing untouched `revid_test_db` schema remained after cleanup probes.
-- The earlier `70d7a5c` to `d7980f8` HEAD drift was reconciled without discarding either the Human Owner delivery policy or the verified Unit B2 changes; Unit B2 is delivered by the scoped commit containing this state update.
-- Unit D1 removed the placeholder JWT and dev-admin defaults. Runtime startup now requires an explicit non-blank `REVID_JWT_SECRET` before any database initialization, while `/admin/dev-login` is disabled unless `REVID_DEV_ADMIN_KEY` is explicitly configured.
-- Both security settings are hidden from settings representations, configured dev-admin keys use constant-time comparison, and active backend guidance documents required versus optional configuration without embedding credential values.
-- Unit D1 compile and focused runtime/auth verification passed 22/22; backend regression passed 167/167; Alembic remained single-head; static, cleanup, diff, and deep review gates passed with no D1 finding.
-- Unit D2 exact-name guarded MySQL evidence confirmed every ORM application table/column comment, actual foreign keys, and committed-data persistence across engine reconstruction.
-- Unit D2 focused tests passed 6/6 and final backend regression passed 169/169; Alembic remained single-head `e9f1a2b3c4d5`; active retirement markers, tracked database artifacts, and credential review candidates were zero.
-- `.env.example` now leaves JWT and dev-admin credentials blank, matching required explicit JWT injection and disabled-by-default dev login.
-- T5-002 is `DONE - PASS`; conditional credential rotation and local artifact cleanup remain separate Human Owner gates.
-- A pre-existing `revid_test_db` schema was observed but not created or touched; destructive cleanup requires ownership confirmation. Ignored local `.db` artifacts remain untouched.
-- Current Canvas remains project-scoped, uses conflicting light and dark theme sources, hides its grid behind an opaque surface, and broadly rebuilds the Leafer scene.
+- T5-002 is `DONE - PASS`; runtime and database-backed tests remain MySQL-only and fail closed.
+- Unit A adds Alembic head `f0a1b2c3d4e5`, `canvases`, `canvas_revisions`, graph `canvas_id`, group fields, project order revision, and composite MySQL scope constraints with non-empty comments.
+- Migration-from-previous-head evidence created one deterministic `画布 1` per project and preserved existing node and connection IDs.
+- New project creation inserts Project then `画布 1` in one transaction; legacy graph routes resolve and expose only the first active canvas.
+- Database constraints reject cross-canvas connection endpoints; focused verification passed 32/32 and full backend regression passed 174 tests plus 5 subtests.
+- All disposable schemas created by this run were cleaned; only the pre-existing untouched `revid_test_db` remains.
+- The new migration has not been applied to a user/runtime database. Application requires the normal reviewed migration and backup discipline before that runtime can use this code.
+- Canvas metadata/order/duplicate APIs and the explicit frontend route are not implemented yet; Unit B is next.
+- Ignored local `.db` artifacts remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Create and activate T5-003 Task/PLAN/PROGRESS for the expand-first multi-canvas MySQL schema and compatibility API unit, then inspect overlapping code before business-code edits.
+Implement T5-003 Unit B authenticated canvas create/list/read/rename and optimistic full-order replacement APIs with ownership, stale-revision, and exact-permutation tests.
 
 ## Blockers And Release Conditions
 

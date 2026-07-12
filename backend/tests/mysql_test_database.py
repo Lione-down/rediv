@@ -39,9 +39,10 @@ def assert_selected_database(engine, expected_schema: str) -> None:
 
 
 class MySQLTestDatabase:
-    def __init__(self, schema_name: str) -> None:
+    def __init__(self, schema_name: str, revision: str = "head") -> None:
         assert_test_schema_name(schema_name)
         self.schema_name = schema_name
+        self.revision = revision
         self._admin_url: URL | None = None
         self._target_url: URL | None = None
         self._original_environment: dict[str, str | None] = {}
@@ -58,7 +59,7 @@ class MySQLTestDatabase:
             self._drop_schema_if_present()
             self._create_schema()
             self._apply_runtime_settings()
-            self._upgrade_to_head()
+            self._upgrade_to_revision(self.revision)
             from models.base import init_engine
 
             init_engine()
@@ -82,6 +83,15 @@ class MySQLTestDatabase:
         finally:
             self._restore_runtime_settings()
             self._is_started = False
+
+    def upgrade_to_head(self) -> None:
+        if not self._is_started:
+            raise RuntimeError("MySQL test database is not started")
+        from models.base import dispose_engine, init_engine
+
+        dispose_engine()
+        self._upgrade_to_revision("head")
+        init_engine()
 
     def _load_urls(self) -> None:
         raw_admin_url = os.environ.get("REVID_TEST_MYSQL_ADMIN_URL", "").strip()
@@ -215,11 +225,11 @@ class MySQLTestDatabase:
         finally:
             admin_engine.dispose()
 
-    def _upgrade_to_head(self) -> None:
+    def _upgrade_to_revision(self, revision: str) -> None:
         backend_dir = Path(__file__).resolve().parents[1]
         config = Config(str(backend_dir / "alembic.ini"))
         config.set_main_option(
             "script_location",
             str((backend_dir / "migrations").resolve()),
         )
-        command.upgrade(config, "head")
+        command.upgrade(config, revision)

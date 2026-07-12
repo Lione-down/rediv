@@ -1,6 +1,6 @@
 # Revid Product V2 / Phase 5 Direct Delivery Roadmap
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 ## Product Outcome
 
@@ -27,7 +27,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 |---:|---|---|---|---|
 | 1 | T5-001 | V2 PRD, Canvas acceptance, design system, architecture, ADRs, and roadmap | DONE - PASS | Phase 4 complete and Human direction approved |
 | 2 | T5-002 | P0 credential cleanup and complete MySQL-only runtime/test/tooling retirement | DONE - PASS | T5-001 |
-| 3 | T5-003 | Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route | TODO | T5-002 |
+| 3 | T5-003 | Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route | DOING | T5-002 |
 | 4 | T5-004 | Single V2 token source, full-screen Canvas shell, canvas navigation, and viewport persistence | TODO | T5-003 |
 | 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | TODO | T5-004 |
 | 6 | T5-006 | Autosave queue, optimistic conflict handling, 100-step undo/redo, revisions, checkpoints, and restore | TODO | T5-005 |
@@ -46,6 +46,8 @@ The Task stays active across independently verified units so runtime and databas
 ### T5-003
 
 Schema rollout is expand-first. Existing projects receive one first canvas, node and connection IDs remain unchanged, and a first-canvas compatibility path keeps the application usable until T5-004 switches the frontend route.
+
+Unit A is complete: the expand-first migration, models, deterministic backfill, atomic default canvas creation, database scope constraints, and legacy first-canvas compatibility passed guarded MySQL and full backend regression evidence. Unit B canvas metadata/order APIs are next.
 
 ### T5-004 through T5-008
 
