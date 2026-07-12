@@ -37,6 +37,7 @@ Last updated: 2026-07-13
 - Unit C now has a reusable test-only `MySQLTestDatabase` lifecycle that accepts only process-supplied `REVID_TEST_MYSQL_ADMIN_URL`, requires an ASCII exact-name `revid_test_*` schema, uses SQLAlchemy structured URLs, applies Alembic head, and verifies `SELECT DATABASE()` after creation and before cleanup.
 - `test_database_store.py` is the first migrated persistence slice: its eight tests now run against the dedicated disposable `revid_test_database_store` schema with no SQLite path, and the fixture restores process settings after class cleanup.
 - `test_project_crud.py` now runs its database-backed API and persistence cases against dedicated disposable `revid_test_project_crud`; per-test identities are unique within the class-scoped schema, while the explicit `InMemoryStore` case remains a pure database-free unit test.
+- `test_canvas_node_crud.py` now runs its database-backed API and persistence cases against dedicated disposable `revid_test_canvas_node_crud`; per-test identities isolate the class-scoped schema, while the explicit `InMemoryStore` case remains a pure database-free unit test.
 
 ## Remaining Work
 
@@ -47,12 +48,12 @@ Last updated: 2026-07-13
 
 ## Exact Next Action
 
-Migrate `backend/tests/test_canvas_node_crud.py` to its own exact-name guarded MySQL schema through `MySQLTestDatabase`, with no SQLite fallback.
+Migrate `backend/tests/test_canvas_connection_crud.py` to its own exact-name guarded MySQL schema through `MySQLTestDatabase`, preserving MySQL schema/comment assertions and removing its SQLite fallback.
 
 ## Latest Completed Bounded Unit
 
-- Migrated `backend/tests/test_project_crud.py` from per-test temporary SQLite databases to guarded `revid_test_project_crud` MySQL, preserving its pure `InMemoryStore` unit case.
-- Fixture guard tests, focused project CRUD tests, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
+- Migrated `backend/tests/test_canvas_node_crud.py` from per-test temporary SQLite databases to guarded `revid_test_canvas_node_crud` MySQL, preserving its pure `InMemoryStore` unit case.
+- Fixture guard tests, focused Canvas node CRUD tests, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
 
 ## Files Changed
 
@@ -67,6 +68,7 @@ Migrate `backend/tests/test_canvas_node_crud.py` to its own exact-name guarded M
 - Durable state: `ai/tasks/doing/TASK-T5-002-PLAN.md`, this progress document, and `ai/state/CURRENT.md`.
 - Unit C first slice: `backend/tests/mysql_test_database.py`, `backend/tests/test_mysql_test_database.py`, and `backend/tests/test_database_store.py`.
 - Unit C project CRUD slice: `backend/tests/test_project_crud.py`.
+- Unit C Canvas node CRUD slice: `backend/tests/test_canvas_node_crud.py`.
 - Project conversation archive: `ai/state/archive/PROJECT-CONVERSATION-ARCHIVE-THROUGH-2026-07-13.md`.
 
 ## Commands And Summarized Results
@@ -96,6 +98,9 @@ Migrate `backend/tests/test_canvas_node_crud.py` to its own exact-name guarded M
 - final `tests.test_mysql_test_database tests.test_project_crud` focused run: PASS, 12 tests in 1.821 seconds; four pure guard tests and eight project CRUD tests used guarded MySQL where persistence was required.
 - `python -m compileall -q .` and backend full regression: PASS, 194 tests in 42.650 seconds; disposable `revid_test_t4_002`, `revid_test_database_store`, and `revid_test_project_crud` paths completed without a suite failure.
 - project CRUD cleanup probe: PASS; `revid_test_project_crud` did not exist after verification. Alembic remained at the single head `e9f1a2b3c4d5`, the migrated file contained zero SQLite/temp-file/init-db references, and `git diff --check` passed.
+- `tests.test_mysql_test_database tests.test_canvas_node_crud` focused run: PASS, 13 tests in 1.874 seconds; four pure guard tests and nine Canvas node CRUD tests used guarded MySQL where persistence was required.
+- `python -m compileall -q .` and backend full regression: PASS, 194 tests in 43.510 seconds; all disposable schemas completed without a suite failure.
+- Canvas node cleanup probe: PASS; `revid_test_canvas_node_crud` did not exist after verification. Alembic remained at the single head `e9f1a2b3c4d5`, the migrated file contained zero SQLite/temp-file/init-db references, and `git diff --check` passed.
 
 ## Blockers And Release Conditions
 

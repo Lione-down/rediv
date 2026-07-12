@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -13,14 +12,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from api.router import include_routers
 from controllers.store import DatabaseStore, InMemoryStore, configure_store, store
 from core.security import create_token
-from database import close_db, init_db
+from tests.mysql_test_database import MySQLTestDatabase
 
 
 class CanvasNodeCrudTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.mysql_database = MySQLTestDatabase("revid_test_canvas_node_crud")
+        cls.mysql_database.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.mysql_database.stop()
+
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        self.db_path = str(Path(self.temp_dir.name) / "test-revid.db")
-        init_db(self.db_path)
         configure_store(DatabaseStore())
 
         app = FastAPI()
@@ -28,15 +33,14 @@ class CanvasNodeCrudTestCase(unittest.TestCase):
         self.client = TestClient(app)
 
         store.registration_settings["registration_mode"] = "open"
-        self.user = self._register_user("canvas-owner").json()["user"]
-        self.other_user = self._register_user("canvas-other").json()["user"]
+        test_id = self._testMethodName
+        self.user = self._register_user(f"canvas-owner-{test_id}").json()["user"]
+        self.other_user = self._register_user(f"canvas-other-{test_id}").json()["user"]
         self.project = store.create_project(self.user["id"], "Storyboard")
         self.other_project = store.create_project(self.other_user["id"], "Other Storyboard")
 
     def tearDown(self) -> None:
         self.client.close()
-        close_db()
-        self.temp_dir.cleanup()
 
     def test_create_node(self) -> None:
         response = self.client.post(
