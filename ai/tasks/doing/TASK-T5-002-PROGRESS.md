@@ -41,6 +41,7 @@ Last updated: 2026-07-13
 - `test_canvas_connection_crud.py` now runs its database-backed API, persistence, cascade, and schema/comment cases against dedicated disposable `revid_test_canvas_connection_crud`; per-test identities isolate the class-scoped schema, while the explicit `InMemoryStore` case remains a pure database-free unit test.
 - The migrated project-list test now accepts equal MySQL `created_at` timestamps while still asserting the exact result membership and descending timestamp contract, removing a deterministic tie-order regression without changing production behavior.
 - `test_asset_upload.py` now runs all asset API and persistence cases against dedicated disposable `revid_test_asset_upload`; per-test OpenIDs isolate the class-scoped schema, while each multipart upload retains its isolated per-test filesystem lifecycle.
+- `test_e2e_workflow.py` now runs its mocked Agnes full-workflow persistence case against dedicated disposable `revid_test_e2e_workflow`, preserving project, node, generated-asset, quota deduction, and provider-call assertions without a SQLite fallback.
 
 ## Remaining Work
 
@@ -51,13 +52,13 @@ Last updated: 2026-07-13
 
 ## Exact Next Action
 
-Migrate `backend/tests/test_e2e_workflow.py` to its own exact-name guarded `revid_test_e2e_workflow` schema through `MySQLTestDatabase`, preserving the mocked Agnes call and full workflow assertions while removing only the SQLite database fallback.
+Migrate `backend/tests/test_image_e2e.py` to its own exact-name guarded `revid_test_image_e2e` schema through `MySQLTestDatabase`, preserving its mocked image-provider workflow assertions while removing only the SQLite database fallback.
 
 ## Latest Completed Bounded Unit
 
-- Migrated `backend/tests/test_asset_upload.py` from per-test temporary SQLite databases to guarded `revid_test_asset_upload` MySQL.
-- Preserved per-test upload-file isolation and made user identities unique inside the class-scoped schema without changing production behavior.
-- Fixture guard tests, focused asset API/persistence tests, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
+- Migrated `backend/tests/test_e2e_workflow.py` from a temporary SQLite database to guarded `revid_test_e2e_workflow` MySQL.
+- Preserved the mocked Agnes call and the complete login, project, Canvas node, generation, asset persistence, and quota workflow assertions without changing production behavior.
+- Fixture guard tests, focused E2E verification, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
 
 ## Files Changed
 
@@ -76,6 +77,7 @@ Migrate `backend/tests/test_e2e_workflow.py` to its own exact-name guarded `revi
 - Unit C Canvas connection CRUD slice: `backend/tests/test_canvas_connection_crud.py`.
 - Unit C regression stabilization: `backend/tests/test_project_crud.py`.
 - Unit C asset upload slice: `backend/tests/test_asset_upload.py`.
+- Unit C full-workflow E2E slice: `backend/tests/test_e2e_workflow.py`.
 - Project conversation archive: `ai/state/archive/PROJECT-CONVERSATION-ARCHIVE-THROUGH-2026-07-13.md`.
 
 ## Commands And Summarized Results
@@ -116,6 +118,9 @@ Migrate `backend/tests/test_e2e_workflow.py` to its own exact-name guarded `revi
 - `tests.test_mysql_test_database tests.test_asset_upload` focused run: PASS, 17 tests in 4.592 seconds; four pure fixture guard tests and 13 asset API/persistence tests used guarded MySQL where persistence was required, while multipart files used per-test temporary storage.
 - `python -m compileall -q .` and backend full regression: PASS, 194 tests in 41.118 seconds. Alembic remained at the single head `e9f1a2b3c4d5`.
 - Asset cleanup probe: PASS; `revid_test_asset_upload` did not exist after verification. The migrated file contained zero SQLite database/init/close references, remaining legacy test slices were inventoried for the next unit, and `git diff --check` passed.
+- `tests.test_mysql_test_database tests.test_e2e_workflow` focused run: PASS, 5 tests in 1.261 seconds; four pure fixture guard tests and one mocked-provider full-workflow test used guarded MySQL for persistence.
+- `python -m compileall -q .` and backend full regression: PASS, 194 tests in 41.722 seconds. Alembic remained at the single head `e9f1a2b3c4d5`.
+- E2E cleanup probe: PASS; `revid_test_e2e_workflow` did not exist after verification. The migrated file contained zero SQLite/temp-file/init/close references, `git diff --check` passed, and fresh review confirmed no production, schema, provider, or assertion changes.
 
 ## Blockers And Release Conditions
 
