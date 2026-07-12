@@ -1,5 +1,11 @@
 # 踩坑记录
 
+## 2026-07-13 自动化授权与推送边界
+
+- Human Owner 为 `project_revid` 的 scheduled delivery 提供项目内的 standing authorization：完成并验证通过的 scoped commit 必须在 secret hygiene 与 staged diff review 后推送至 `origin`，禁止 WIP 或空提交/推送。
+- 授权严格限于本仓库；不允许读取或暴露 secrets、打开 `.env`、调用付费 API、创建外部账户、修改项目外内容，或对用户/生产数据执行 destructive operation。
+- 保留 exact-name guarded `revid_test_*` disposable schema 和 `SELECT DATABASE()` identity guard；`revid_db`、非测试数据库以及 ignored local `.db` artifacts 不在本次 standing authorization 范围。
+
 ## 2026-06-17 文档编码与认证方案
 
 - 所有需求文档统一按 UTF-8 编码读取和保存，避免中文在 PowerShell 默认编码下显示乱码。

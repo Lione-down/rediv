@@ -85,7 +85,7 @@ Complete Unit B2 by removing the now-unreferenced SQLite engine/schema helpers f
 - Credential rotation becomes Human-required only if the assignment was ever real or reused; release by rotating it in the owning system and recording only the outcome.
 - Local ignored `.db` artifact deletion is blocked pending exact-path Human approval after MySQL backup and parity evidence.
 - The pre-existing `revid_test_db` schema requires ownership confirmation before destructive cleanup; it does not block Unit B2 source work.
-- No push is authorized.
+- Human Owner standing authorization (2026-07-13): scheduled delivery may push completed, verified, scoped commits to `origin` for this repository. This does not authorize secret access, paid calls, operations outside this project, or destructive user/production-data operations.
 
 ## Worktree Protection
 
@@ -97,6 +97,6 @@ Complete Unit B2 by removing the now-unreferenced SQLite engine/schema helpers f
 ## Delivery Automation
 
 - Automation: `revid-codex-direct-delivery-controller`
-- Commit policy: each completed verified unit ends in a scoped local commit; no automatic push
+- Commit/push policy: each completed verified unit ends in a scoped commit and an `origin` push after staged secret hygiene and diff review; no WIP or empty commit/push
 - Automation memory is only a cursor and never overrides this file, ROADMAP, Tasks, code, tests, or runtime evidence.
 - Project conversation archive: `ai/state/archive/PROJECT-CONVERSATION-ARCHIVE-THROUGH-2026-07-13.md`

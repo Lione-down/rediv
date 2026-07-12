@@ -10,7 +10,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 
 - One active implementation Task at a time.
 - Every Task is independently mergeable and leaves the repository usable.
-- Every verified unit ends in a scoped local commit; no automatic push.
+- Every verified unit ends in a scoped commit and an `origin` push after staged secret hygiene and diff review; no WIP or empty commit/push.
 - MySQL user data, local `.db` files, paid Agnes calls, real secrets, destructive operations, and irreversible migrations remain Human Owner gates.
 - Mock, disposable MySQL, retained runtime, real service, browser, performance, accessibility, and manual evidence are classified separately.
 
@@ -82,6 +82,8 @@ T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satis
 - cloud deployment, billing redesign, or public API version migration.
 
 ## Human Gates
+
+On 2026-07-13, the Human Owner authorized scheduled Revid delivery to perform normal project-local implementation, verification, Git commit, and `origin` push work without asking again for each run. This authorization is limited to this repository and does not permit secret access, paid API calls, external accounts, operations outside the project, or destructive user/production-data operations.
 
 - determine and perform credential rotation if the redacted tracked assignment was ever real;
 - approve exact-path quarantine or deletion of ignored `.db` artifacts after backup and parity evidence;

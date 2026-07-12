@@ -14,6 +14,7 @@ Last updated: 2026-07-13
 
 ## Completed Work
 
+- Human Owner granted project-scoped standing authorization for scheduled delivery to commit and push completed, verified scoped units to `origin`; the controller and durable project policy now retain the safety boundaries for secrets, paid calls, external accounts, local `.db` artifacts, non-test databases, and operations outside this repository.
 - Product and architecture decisions were approved and recorded by T5-001.
 - Exact MySQL/SQLite runtime, test, dependency, migration-tool, and documentation surfaces were inventoried.
 - Unit A retired `backend/run_alembic_mysql.py` as an unused helper, removing the tracked hard-coded database password assignment without opening the file, printing the value, or rendering its raw diff.
@@ -66,6 +67,7 @@ Complete Unit B2 by removing the now-unreferenced SQLite engine/schema helpers f
 
 ## Files Changed
 
+- Delivery authorization policy: `ai/automation/REVID-CODEX-DIRECT-OPERATING-MODEL.md`, `ai/state/CURRENT.md`, `ai/state/ROADMAP.md`, `pitfalls.md`, and this progress document.
 - `backend/run_alembic_mysql.py` (deleted without reading or displaying its content)
 - `ai/tasks/doing/TASK-T5-002-PROGRESS.md`
 - `ai/state/CURRENT.md`
@@ -91,6 +93,7 @@ Complete Unit B2 by removing the now-unreferenced SQLite engine/schema helpers f
 
 ## Commands And Summarized Results
 
+- Automation configuration update: PASS; `revid-codex-direct-delivery-controller` remains active and now authorizes verified scoped commit/push work only within `D:\works\codexWorks\project_revid`.
 - `git diff --name-status/--numstat/--summary -- backend/run_alembic_mysql.py`: confirmed one 24-line tracked deletion without rendering deleted content.
 - `rg` active-code reference check: no reference to the retired helper under existing backend, frontend, or scripts roots. An initial composite check named a nonexistent root `tests/` directory and stopped before scan/tests; the corrected command used only existing roots.
 - redacted tracked credential scans: the P0 password assignment is absent; seven remaining URL-shaped fixtures were classified without candidate output as short test/config literals, username-matching examples, or placeholder-marked historical evidence.

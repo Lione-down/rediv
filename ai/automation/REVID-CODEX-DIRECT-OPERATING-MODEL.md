@@ -116,7 +116,7 @@ Commit protocol:
 
 When splitting a pre-existing backlog, do not fabricate or rewrite historical intermediate CURRENT/PROGRESS states. Commit each Task/unit with its own accurate PLAN/PROGRESS/REPORT evidence when available, then place cumulative CURRENT, ROADMAP, and active PROGRESS reconciliation in the final backlog commit. After that final commit, the durable documents must agree with HEAD.
 
-Do not create an empty commit. Do not commit failed, incomplete, unverified, mixed-owner, or unknown-source business changes. A durable docs-only blocker or planning update may be committed separately when it does not stage unverified business code. Do not push unless the Human Owner explicitly requests it.
+Do not create an empty commit. Do not commit failed, incomplete, unverified, mixed-owner, or unknown-source business changes. A durable docs-only blocker or planning update may be committed separately when it does not stage unverified business code. Push a completed, verified, scoped commit to `origin` after the staged secret-hygiene and diff-review protocol. The Human Owner granted this standing authorization on 2026-07-13 for this repository only. Do not push WIP, empty commits, sensitive artifacts, or unrelated changes.
 
 Do not edit tracked files after a successful commit merely to record that commit's own hash; keep the hash in the event output and automation memory so the run does not manufacture a new uncommitted diff.
 
@@ -132,6 +132,8 @@ Do not edit tracked files after a successful commit merely to record that commit
 - Do not regenerate unchanged plans or reports.
 
 ## Human Gates
+
+The Human Owner granted standing authorization on 2026-07-13 for project-local implementation, verification, Git commit, and `origin` push work. This does not authorize secret access, paid calls, external accounts, operations outside the project, or destructive user/production-data operations.
 
 Stop business execution and request the Human Owner only for:
 
