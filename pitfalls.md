@@ -261,3 +261,10 @@ Evidence:
 - `Settings(env_file=".env")` 会让直接读取 `settings.agnes_api_key` 的 smoke helper 隐式消费本地文件 credential；这不等价于 process-provided secret，会绕过 Unit B 的 credential source contract。
 - 付费 real-smoke entrypoint 必须直接从 `os.environ` 读取 `REVID_AGNES_API_KEY`，process variable 缺失时在任何网络调用前 fail closed；本地 `.env` 只能用于普通应用配置，不能作为授权 smoke 的 secret 来源。
 - 回归测试应在临时 cwd 放置 fake `.env` 和 loopback base URL，证明缺少 process key 时仍返回 blocked，避免测试触发外部 API。
+
+## 2026-07-12 Agnes provider smoke 与 persistence 证据边界
+
+- standalone `smoke_agnes.py` 只验证 provider contract，不会写入 `generation_tasks` 或 `assets`；它成功不能替代业务路由的 persistence 验收。
+- 真实 provider smoke 与 runtime MySQL 关系验收应分层记录：前者保留 media/model/request ID（若 provider 提供）/耗时，后者通过业务路由证明 task status、quota、asset 与外键关系。
+- provider 未返回 request ID 时必须保留 `null` 并明确记录限制，禁止用 asset URL、内部 ID 或猜测值冒充 provider request ID。
+- 受控 failure persistence 可以替换进程内 provider 为确定性失败 stub，证明失败 task 与额度语义且不产生额外付费调用；完成后必须恢复原 provider。

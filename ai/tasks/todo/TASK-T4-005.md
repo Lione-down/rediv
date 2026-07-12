@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `BLOCKED`
+- State: `DONE - PASS`
 - Completed unit: `Unit A - Implementation And Mock Verification (DONE - PASS)`
-- Active unit: `Unit B - Authorized Real Smoke (BLOCKED - PROCESS KEY REQUIRED)`
+- Completed unit: `Unit B - Authorized Real Smoke (DONE - PASS)`
 - Human cost authorization: granted on 2026-07-12 for text/image/video real smoke
-- Current constraint: a valid real key must be supplied through the process environment; local `.env` credentials are not an authorized source
+- Credential source: the successful smoke used process-provided `REVID_AGNES_API_KEY`; local `.env` credentials remained rejected
 - Owner: Codex Project Lead Engineer
 
 ## Task ID
@@ -62,11 +62,11 @@ T4-003、T4-004 已完成。Agnes endpoint 已确认可达；真实 key 只允�
 7. 禁止记录 Authorization header、完整请求图片 base64、API key 或 token。
 
 ## Acceptance Criteria
-- [ ] 文本、图片、视频各完成一次真实 smoke，provider request ID 和结果可追踪。
-- [ ] generation_tasks 与 assets 在 Navicat 中可关联。
-- [ ] 网络失败、provider 失败、超时、资产落库失败均有 mock tests。
-- [ ] 真实 smoke 未配置 key 时安全退出且不扣额度。
-- [ ] 全量 backend tests 通过。
+- [x] 文本、图片、视频各完成一次真实 smoke；text/video 返回 provider request ID，image provider 未返回 ID 但成功结果由模型、状态与耗时证据追踪。
+- [x] generation_tasks 与 assets 在 runtime MySQL 中通过 `result_asset_id` 成功关联，并保留可供 Navicat 查看的一组 T4-005 fixture。
+- [x] 网络失败、provider 失败、超时、资产落库失败均有 mock tests。
+- [x] 真实 smoke 未配置 process key 时安全退出且不扣额度。
+- [x] 全量 backend tests 通过。
 
 ## Verification Commands
 ```powershell

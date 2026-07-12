@@ -1,12 +1,12 @@
-# REPORT T4-005 Unit A - GenerationTask Persistence And Mock Verification
+# REPORT T4-005 - GenerationTask Persistence And Authorized Agnes Smoke
 
-Date: 2026-07-10
+Date: 2026-07-12
 
 ## Result
 
-`DONE - PASS` for T4-005 Unit A.
+`DONE - PASS` for T4-005 Units A and B.
 
-Unit A implemented non-paid generation task persistence, provider status mapping, task query API, dry-run-safe Agnes smoke behavior, and mock verification. T4-005 Unit B real Agnes text/image/video smoke remains a separate Human cost gate and was not executed.
+Unit A implemented non-paid generation task persistence, provider status mapping, task query API, dry-run-safe Agnes smoke behavior, and mock verification. Unit B used an explicitly authorized process-provided credential to complete text/image/video real smoke and runtime MySQL task/asset acceptance.
 
 ## Delivered
 
@@ -42,11 +42,25 @@ Unit A implemented non-paid generation task persistence, provider status mapping
 - Diff hygiene:
   - `git diff --check` - PASS.
 
-## Real Smoke Status
+## Unit B Real Smoke
 
-No real Agnes API call was made in Unit A. This is intentional. Real text/image/video smoke belongs to T4-005 Unit B and requires explicit Human Owner cost authorization before running `scripts/smoke_agnes.py --media <type> --execute`.
+- Credential source: process environment only; no local `.env` credential was inspected or used.
+- Text: `succeeded`, model `agnes-2.0-flash`, provider request ID present, 67,558 ms.
+- Image: `succeeded`, model `agnes-image-2.1-flash`, 16,843 ms. This provider response did not expose a request ID; no ID was fabricated.
+- Video: `succeeded`, model `agnes-video-v2.0`, provider request ID present, 6,374 ms.
+- A second authorized real text call used the existing FastAPI business path and persisted a `succeeded` GenerationTask with provider request ID and a valid `result_asset_id -> assets.id` relationship in runtime MySQL.
+- A controlled local image-provider failure used the same business path without an external call and persisted `failed/provider_error` with no result asset.
+- The non-production fixture is retained under project name prefix `T4-005 Agnes Smoke` for Navicat inspection.
+
+## Final Verification
+
+- Focused persistence/smoke tests: PASS, 11/11.
+- Generate tests: PASS, 16/16.
+- Full backend regression: PASS, 189/189.
+- Runtime MySQL task/asset relationship: PASS.
+- Controlled failure persistence: PASS.
 
 ## Residual Risk
 
-- Real Agnes provider behavior is still unverified until Unit B authorization.
-- Manual Navicat inspection of a real successful and controlled-failure task remains part of the later real-service acceptance path.
+- Agnes image generation returned a successful result without a provider request ID. Evidence records this provider behavior explicitly; the application leaves `provider_request_id` nullable by contract.
+- Cross-surface browser E2E, final security checks, and Phase 4 documentation closure remain in T4-013.

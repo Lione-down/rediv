@@ -1,5 +1,11 @@
 # Task: 完整 E2E、视觉 QA 与文档收口
 
+## Status
+
+- State: `DOING - EVIDENCE INVENTORY`
+- Owner: Codex Project Lead Engineer
+- Dependencies: T4-005、T4-007、T4-008、T4-009、T4-012 complete
+
 ## Task ID
 T4-013
 

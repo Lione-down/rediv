@@ -5,22 +5,21 @@ Last updated: 2026-07-12
 ## State
 
 - Task: `T4-005 Unit B - Authorized real Agnes smoke`
-- State: `BLOCKED - PROCESS KEY REQUIRED`
+- State: `DONE - PASS`
 - Branch at start of current run: `main`
-- Base HEAD at start of current run: `cec8e747b478f4bac8a18e227813be25c6f2d749`
+- Base HEAD at start of current run: `0cb8d82844c0875114db31ea45bbdf5cce0ec7b5`
 - Pre-existing worktree changes at start: 45 untracked root `.playwright-cli/*.yml` snapshots; no tracked modifications
 - Pre-existing staged changes at start: none
 - Unmerged paths at start: none
 
 ## Unit B Work This Run
 
-- Human Owner explicitly authorized paid text/image/video Agnes real smoke.
-- The initial text execute attempt returned sanitized `401 Unauthorized`; no provider result or asset was created.
-- Root cause: `scripts/smoke_agnes.py` consumed `settings.agnes_api_key`, and `Settings(env_file=".env")` loaded a local root `.env` key even though `REVID_AGNES_API_KEY` was absent from the process environment.
-- Further image/video calls are paused until the process-only credential gate is repaired and a valid process-provided key is available.
-- Added a regression test proving a local `.env` key is ignored when the process key is absent; it failed on the old implementation and passed after the fix.
-- Updated `scripts/smoke_agnes.py` to read `REVID_AGNES_API_KEY` directly from `os.environ`.
-- Verified the root-directory execute path now exits before network access when the process key is absent.
+- Confirmed the restarted Codex process inherited `REVID_AGNES_API_KEY` without reading or printing its value.
+- Authorized provider smoke succeeded for text (`agnes-2.0-flash`, request ID present, 67,558 ms), image (`agnes-image-2.1-flash`, provider returned no request ID, 16,843 ms), and video (`agnes-video-v2.0`, request ID present, 6,374 ms).
+- Runtime MySQL initially contained zero generation tasks, proving standalone provider smoke alone did not satisfy the persistence acceptance criterion.
+- Created a clearly named non-production T4-005 fixture through the existing FastAPI business path. Real text generation returned HTTP 200, persisted `succeeded`, retained a provider request ID, and linked `generation_tasks.result_asset_id` to an existing `assets.id`.
+- Executed a controlled local image-provider failure through the same business path without an external call. It returned HTTP 500 and persisted `failed/provider_error` with no result asset.
+- Preserved all fixture data for Navicat inspection; no destructive cleanup was performed.
 
 ## Completed Work
 
@@ -36,13 +35,24 @@ Last updated: 2026-07-12
 
 ## Remaining Work
 
-- No remaining Unit A implementation work.
-- Run authorized text/image/video real smoke with a valid process-provided key.
-- Verify non-sensitive provider metadata and the required generation task/asset relationship evidence.
+- No remaining T4-005 work.
 
 ## Exact Next Action
 
-Supply a valid `REVID_AGNES_API_KEY` through the process environment, then rerun `scripts/smoke_agnes.py --media text --execute`; only after text succeeds, continue image and video smoke.
+Continue T4-013 from its PLAN/PROGRESS by inventorying Phase 4 reports and mapping remaining E2E, MySQL, browser, security, and documentation evidence gaps.
+
+## Unit B Completion Verification
+
+- Process key presence check - PASS; value was never read or printed.
+- `scripts/smoke_agnes.py --media text --execute` - real-service PASS; request ID present.
+- `scripts/smoke_agnes.py --media image --execute` - real-service PASS; provider response contained no request ID.
+- `scripts/smoke_agnes.py --media video --execute` - real-service PASS; request ID present.
+- Runtime MySQL read-only precheck - 0 existing generation tasks.
+- FastAPI real text persistence smoke - HTTP 200, task `succeeded`, provider request ID present, result asset relation valid.
+- FastAPI controlled image provider failure - HTTP 500, task `failed/provider_error`, no result asset, no paid call.
+- `python -m unittest tests.test_smoke_agnes tests.test_database_store` - PASS, 11 tests.
+- `python -m unittest discover -s tests -p "test_*generate*.py"` - PASS, 16 tests.
+- `python -m unittest discover -s tests -p "test_*.py"` - PASS, 189 tests.
 
 ## Unit B Files Changed This Run
 
@@ -115,6 +125,4 @@ Supply a valid `REVID_AGNES_API_KEY` through the process environment, then rerun
 
 ## Blockers And Release Conditions
 
-- Unit A has no active blocker.
-- Human cost authorization is complete.
-- Completing Unit B real smoke requires a valid `REVID_AGNES_API_KEY` supplied in the process environment; do not inspect or reuse the rejected local `.env` credential. Release condition: process key presence followed by a successful text smoke.
+- None for T4-005. Human cost authorization and the process credential gate are complete.

@@ -2,15 +2,18 @@
 
 Last updated: 2026-07-12
 
-## Active Bounded Unit - Unit B Credential Gate Repair
+## Completed Bounded Unit - Unit B Authorized Real Smoke
 
-Human Owner authorized paid Agnes text/image/video smoke on 2026-07-12. Before any further real call, repair the smoke helper so `REVID_AGNES_API_KEY` is accepted only from the process environment and never implicitly from a local `.env` file.
+Human Owner authorized paid Agnes text/image/video smoke on 2026-07-12. The credential gate and authorized real-service verification are complete.
 
 1. Add a regression test proving a local `.env` key is ignored when the process variable is absent.
 2. Change `scripts/smoke_agnes.py` to read the key directly from `os.environ` while retaining non-secret model/base URL settings.
 3. Run focused smoke tests and the no-key execute preflight.
-4. If a valid process-provided key is present, run one real smoke for each of text, image, and video and record only sanitized metadata.
-5. If the process key is absent or rejected, stop further paid calls and record the exact blocker and release condition.
+4. With a valid process-provided key, run one real smoke for each of text, image, and video and record only sanitized metadata.
+5. Verify a real text business-path task/asset relationship plus a controlled non-paid provider failure in runtime MySQL.
+6. Run focused and full backend regression, update durable state, and close T4-005.
+
+Completed evidence: text/image/video provider smoke succeeded; runtime text generation persisted a succeeded task linked to its asset; a controlled image provider failure persisted a failed task without an asset; focused 11/11, generate 16/16, and full backend 189/189 tests passed.
 
 ## Objective
 
