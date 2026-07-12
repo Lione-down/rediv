@@ -63,7 +63,10 @@ class ProjectCrudTestCase(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         payload = response.json()
         self.assertEqual(2, payload["total"])
-        self.assertEqual([newer["id"], older["id"]], [item["id"] for item in payload["items"]])
+        items = payload["items"]
+        self.assertCountEqual([newer["id"], older["id"]], [item["id"] for item in items])
+        created_times = [item["created_at"] for item in items]
+        self.assertEqual(sorted(created_times, reverse=True), created_times)
 
     def test_get_project_own(self) -> None:
         project = store.create_project(self.user["id"], "My Project")

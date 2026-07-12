@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -14,16 +13,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from api.router import include_routers
 from controllers.store import DatabaseStore, InMemoryStore, configure_store, store
 from core.security import create_token
-from database import close_db, init_db
 from models import base as model_base
 from models.canvas_connection import CanvasConnection
+from tests.mysql_test_database import MySQLTestDatabase
 
 
 class CanvasConnectionCrudTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.mysql_database = MySQLTestDatabase("revid_test_canvas_connection_crud")
+        cls.mysql_database.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.mysql_database.stop()
+
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        self.db_path = str(Path(self.temp_dir.name) / "test-revid-connections.db")
-        init_db(self.db_path)
         configure_store(DatabaseStore())
 
         app = FastAPI()
@@ -31,15 +36,14 @@ class CanvasConnectionCrudTestCase(unittest.TestCase):
         self.client = TestClient(app)
 
         store.registration_settings["registration_mode"] = "open"
-        self.user = self._register_user("connection-owner").json()["user"]
-        self.other_user = self._register_user("connection-other").json()["user"]
+        test_id = self._testMethodName
+        self.user = self._register_user(f"connection-owner-{test_id}").json()["user"]
+        self.other_user = self._register_user(f"connection-other-{test_id}").json()["user"]
         self.project = store.create_project(self.user["id"], "Connection Storyboard")
         self.other_project = store.create_project(self.other_user["id"], "Other Connection Storyboard")
 
     def tearDown(self) -> None:
         self.client.close()
-        close_db()
-        self.temp_dir.cleanup()
 
     def test_create_list_update_delete_connection(self) -> None:
         source = self._create_node("source", 10)
@@ -214,12 +218,13 @@ class CanvasConnectionCrudTestCase(unittest.TestCase):
         self.assertNotEqual(forward["id"], backward["id"])
         self.assertEqual(2, len(store.list_connections(self.project["id"], self.user["id"])))
 
-    def test_sqlite_schema_and_model_comments(self) -> None:
+    def test_mysql_schema_and_comments(self) -> None:
         self.assertIsNotNone(model_base._engine)
         inspector = inspect(model_base._engine)
 
         self.assertIn("canvas_connections", inspector.get_table_names())
-        columns = {column["name"] for column in inspector.get_columns("canvas_connections")}
+        inspected_columns = inspector.get_columns("canvas_connections")
+        columns = {column["name"] for column in inspected_columns}
         self.assertEqual(
             {
                 "id",
@@ -235,6 +240,12 @@ class CanvasConnectionCrudTestCase(unittest.TestCase):
             },
             columns,
         )
+        self.assertEqual(
+            "Canvas node connection table",
+            inspector.get_table_comment("canvas_connections")["text"],
+        )
+        for column in inspected_columns:
+            self.assertTrue(column["comment"], f"missing database comment for {column['name']}")
         self.assertEqual("Canvas node connection table", CanvasConnection.__table__.comment)
         for column in CanvasConnection.__table__.columns:
             self.assertTrue(column.comment, f"missing comment for {column.name}")

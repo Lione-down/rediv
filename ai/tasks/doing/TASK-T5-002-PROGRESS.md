@@ -38,6 +38,8 @@ Last updated: 2026-07-13
 - `test_database_store.py` is the first migrated persistence slice: its eight tests now run against the dedicated disposable `revid_test_database_store` schema with no SQLite path, and the fixture restores process settings after class cleanup.
 - `test_project_crud.py` now runs its database-backed API and persistence cases against dedicated disposable `revid_test_project_crud`; per-test identities are unique within the class-scoped schema, while the explicit `InMemoryStore` case remains a pure database-free unit test.
 - `test_canvas_node_crud.py` now runs its database-backed API and persistence cases against dedicated disposable `revid_test_canvas_node_crud`; per-test identities isolate the class-scoped schema, while the explicit `InMemoryStore` case remains a pure database-free unit test.
+- `test_canvas_connection_crud.py` now runs its database-backed API, persistence, cascade, and schema/comment cases against dedicated disposable `revid_test_canvas_connection_crud`; per-test identities isolate the class-scoped schema, while the explicit `InMemoryStore` case remains a pure database-free unit test.
+- The migrated project-list test now accepts equal MySQL `created_at` timestamps while still asserting the exact result membership and descending timestamp contract, removing a deterministic tie-order regression without changing production behavior.
 
 ## Remaining Work
 
@@ -48,12 +50,13 @@ Last updated: 2026-07-13
 
 ## Exact Next Action
 
-Migrate `backend/tests/test_canvas_connection_crud.py` to its own exact-name guarded MySQL schema through `MySQLTestDatabase`, preserving MySQL schema/comment assertions and removing its SQLite fallback.
+Migrate `backend/tests/test_asset_upload.py` to its own exact-name guarded MySQL schema through `MySQLTestDatabase`, preserving its isolated upload-file lifecycle while removing only the SQLite database fallback.
 
 ## Latest Completed Bounded Unit
 
-- Migrated `backend/tests/test_canvas_node_crud.py` from per-test temporary SQLite databases to guarded `revid_test_canvas_node_crud` MySQL, preserving its pure `InMemoryStore` unit case.
-- Fixture guard tests, focused Canvas node CRUD tests, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
+- Migrated `backend/tests/test_canvas_connection_crud.py` from per-test temporary SQLite databases to guarded `revid_test_canvas_connection_crud` MySQL, preserving its pure `InMemoryStore` unit case and adding actual MySQL table/column comment assertions.
+- Stabilized the preceding project CRUD slice's list-order assertion for equal MySQL timestamps after the first full regression exposed the tie.
+- Fixture guard tests, focused Canvas connection CRUD tests, backend regression, Alembic head, schema cleanup, static retirement, and fresh diff review passed.
 
 ## Files Changed
 
@@ -69,6 +72,8 @@ Migrate `backend/tests/test_canvas_connection_crud.py` to its own exact-name gua
 - Unit C first slice: `backend/tests/mysql_test_database.py`, `backend/tests/test_mysql_test_database.py`, and `backend/tests/test_database_store.py`.
 - Unit C project CRUD slice: `backend/tests/test_project_crud.py`.
 - Unit C Canvas node CRUD slice: `backend/tests/test_canvas_node_crud.py`.
+- Unit C Canvas connection CRUD slice: `backend/tests/test_canvas_connection_crud.py`.
+- Unit C regression stabilization: `backend/tests/test_project_crud.py`.
 - Project conversation archive: `ai/state/archive/PROJECT-CONVERSATION-ARCHIVE-THROUGH-2026-07-13.md`.
 
 ## Commands And Summarized Results
@@ -101,6 +106,11 @@ Migrate `backend/tests/test_canvas_connection_crud.py` to its own exact-name gua
 - `tests.test_mysql_test_database tests.test_canvas_node_crud` focused run: PASS, 13 tests in 1.874 seconds; four pure guard tests and nine Canvas node CRUD tests used guarded MySQL where persistence was required.
 - `python -m compileall -q .` and backend full regression: PASS, 194 tests in 43.510 seconds; all disposable schemas completed without a suite failure.
 - Canvas node cleanup probe: PASS; `revid_test_canvas_node_crud` did not exist after verification. Alembic remained at the single head `e9f1a2b3c4d5`, the migrated file contained zero SQLite/temp-file/init-db references, and `git diff --check` passed.
+- `tests.test_mysql_test_database tests.test_canvas_connection_crud` focused run: PASS, 14 tests in 2.081 seconds; four pure guard tests and ten Canvas connection CRUD/schema tests used guarded MySQL where persistence was required.
+- The first backend regression reached all 194 tests with one failure in `test_project_crud.test_list_projects`: two MySQL rows shared the same `created_at`, so the prior strict ID order assertion was not defined. A focused reproduction failed consistently; the assertion now verifies exact membership and descending timestamps without assuming order inside a tie.
+- Focused project-order plus fixture/Canvas connection rerun: PASS, 15 tests in 3.296 seconds.
+- `python -m compileall -q .` and final backend full regression: PASS, 194 tests in 42.771 seconds.
+- Cleanup probes: PASS; `revid_test_canvas_connection_crud` and `revid_test_project_crud` did not exist after verification. Alembic remained at the single head `e9f1a2b3c4d5`, the migrated connection test contained zero SQLite/temp-file/init-db references, and `git diff --check` passed.
 
 ## Blockers And Release Conditions
 
