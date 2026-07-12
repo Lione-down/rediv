@@ -49,21 +49,21 @@ Last updated: 2026-07-13
 - Unit C retired `aiosqlite`, the SQLite-to-MySQL migration implementation and its 29 discovered tool-only tests, two root migration probes, two tracked test probes, the legacy Alembic test config, and two non-standard Alembic wrappers after confirming no active caller.
 - Active README, `.env.example`, `alembic.ini`, wrong-dialect tests, and dependency declarations now describe or exercise MySQL-only behavior without the retired selectors or rendered placeholder database URL.
 - Equal-timestamp project and template list assertions now verify exact membership and descending timestamps without assuming undefined ID order inside a MySQL timestamp tie.
+- Unit B2 removed the final SQLite engine, schema-bootstrap, URL-builder, and runtime `create_all()` helpers. `init_engine()` is now a no-argument MySQL-only API, and the retired helpers are no longer exported from `models`; the earlier concurrent HEAD drift was reconciled and the scoped delivery commit preserves the Human Owner policy changes.
 
 ## Remaining Work
 
-- Unit B2 removal of the now-unreferenced SQLite-only engine/schema helpers.
-- Unit D full verification and closure, including removal or explicit production gating of the pre-existing placeholder JWT secret and default dev-admin key.
+- Unit D security and full verification closure, including removal or explicit production gating of the pre-existing placeholder JWT secret and default dev-admin key.
 
 ## Exact Next Action
 
-Complete Unit B2 by removing the now-unreferenced SQLite engine/schema helpers from `backend/database.py`, `backend/models/base.py`, and `backend/models/__init__.py`, then run focused runtime/fixture tests and the backend regression without changing Unit D security scope.
+Start Unit D by refreshing its PLAN/PROGRESS scope, then remove or explicitly production-gate the placeholder JWT secret and default dev-admin key with focused configuration/auth tests before the remaining full-closure checks.
 
 ## Latest Completed Bounded Unit
 
-- Completed the Human-requested Unit C completion batch: all remaining database-backed tests now use guarded MySQL, pure unit tests remain database-free, and active SQLite test/tooling/dependency/config/documentation surfaces are retired.
-- Preserved historical ADR/Task/REPORT evidence and all ignored local `.db` artifacts; the B2 engine helpers were explicitly restored to the starting HEAD so they remain the next bounded unit.
-- Compile, focused tests, 165-test backend regression, Alembic single-head, Unit C schema cleanup, scoped static/caller scans, diff checks, and fresh self-review passed.
+- Implemented and verified Unit B2 by deleting the final unreferenced SQLite engine/schema helpers from the three planned backend modules while preserving the MySQL lifecycle, session, revision, and cleanup APIs.
+- Compile and focused runtime/fixture/database-store verification passed 21/21; backend regression passed 165/165; Alembic retained one head; the disposable test schemas were cleaned; active backend SQLite and tracked database-artifact scans returned zero matches.
+- The pre-existing `revid_test_db` schema and ignored local `.db` artifacts remain untouched. The later stable-baseline verification passed and Unit B2 is delivered in the scoped commit containing this progress update.
 
 ## Files Changed
 
@@ -89,6 +89,7 @@ Complete Unit B2 by removing the now-unreferenced SQLite engine/schema helpers f
 - Unit C completion tests: `backend/tests/test_admin_enhancements.py`, `backend/tests/test_image_generate.py`, `backend/tests/test_invitation_code.py`, `backend/tests/test_password_auth_contract.py`, `backend/tests/test_quota_flow.py`, `backend/tests/test_template_system.py`, `backend/tests/test_text_generate.py`, `backend/tests/test_video_generate.py`, and `backend/tests/test_wechat_callback.py`.
 - Unit C dependency/config/docs: `backend/requirements.txt`, `backend/.env.example`, `backend/alembic.ini`, `backend/README.md`, and root `README.md`; wrong-dialect coverage updated in `backend/tests/test_health.py` and `backend/tests/test_mysql_runtime_cutover.py`.
 - Unit C retired tooling: `backend/scripts/migrate_sqlite_to_mysql.py`, `backend/tests/test_migration_tool.py`, `backend/test_infrastructure.py`, `backend/test_migration_flow.py`, `backend/tests/_alembic_check.py`, `backend/tests/_quick_check.py`, `backend/alembic_test.ini`, `backend/alembic_wrapper.py`, and `backend/run_alembic.py`.
+- Unit B2 runtime retirement: `backend/database.py`, `backend/models/base.py`, and `backend/models/__init__.py`.
 - Project conversation archive: `ai/state/archive/PROJECT-CONVERSATION-ARCHIVE-THROUGH-2026-07-13.md`.
 
 ## Commands And Summarized Results
@@ -145,6 +146,10 @@ Complete Unit B2 by removing the now-unreferenced SQLite engine/schema helpers f
 - `python -m compileall -q .`, `python -m alembic -c alembic.ini heads`, and `git diff --check`: PASS; Alembic has the single head `e9f1a2b3c4d5`.
 - Unit C static and caller scans: PASS; migrated tests/config/requirements/active README contain no retired database markers, and no active caller references the deleted tooling paths. Historical decisions and archived evidence were preserved.
 - Unit C cleanup probe: PASS; none of the ten schemas created by this batch remained. A pre-existing `revid_test_db` schema was observed but not created, selected, written, or dropped because starting ownership was not established.
+- Unit B2 `python -m compileall -q .` plus `tests.test_mysql_runtime_cutover tests.test_mysql_test_database tests.test_database_store`: PASS, 21 tests in 3.673 seconds; pure runtime guards and a disposable-MySQL persistence slice exercised the no-argument engine API and safe cleanup.
+- Unit B2 `python -m unittest discover -s tests -p "test_*.py"`: PASS, 165 tests in 120.535 seconds.
+- Unit B2 Alembic/static/cleanup checks: single head `e9f1a2b3c4d5`; no active backend SQLite helper/selector marker and no tracked database artifact; only the pre-existing `revid_test_db` schema remained after verification and was not touched; `git diff --check` passed.
+- Stable-baseline Unit B2 re-verification: `python -m compileall -q .` plus the focused runtime/fixture/database-store suite passed 21/21 in 3.014 seconds; Alembic retained the single head `e9f1a2b3c4d5`; active retirement, tracked database-artifact, HEAD-stability, and `git diff --check` gates passed.
 
 ## Blockers And Release Conditions
 

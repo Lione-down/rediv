@@ -1,6 +1,6 @@
 from models.admin_log import AdminLog
 from models.asset import Asset
-from models.base import Base, StoreConfig, create_tables, dispose_engine, get_session, init_engine, utc_now
+from models.base import Base, StoreConfig, dispose_engine, get_session, init_engine, utc_now
 from models.canvas_connection import CanvasConnection
 from models.canvas_node import CanvasNode
 from models.generation_task import GenerationTask
@@ -28,7 +28,6 @@ __all__ = [
     "StoreConfig",
     "Template",
     "User",
-    "create_tables",
     "dispose_engine",
     "get_session",
     "init_engine",

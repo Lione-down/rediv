@@ -16,7 +16,7 @@ Last updated: 2026-07-13
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Visual direction: premium graphite-black and dark-purple system
-- Database direction: MySQL-only; runtime and all database-backed tests are cut over, Unit C test/tooling retirement is complete, and only the isolated B2 engine/schema helpers remain before full closure
+- Database direction: MySQL-only; runtime/test/tooling retirement is committed through Unit B2, and Unit D security/full closure follows
 
 ## Active Delivery
 
@@ -50,7 +50,7 @@ Last updated: 2026-07-13
 ## Current Facts And Risks
 
 - Current running health was last observed as MySQL connected and ready with `current == head == e9f1a2b3c4d5`.
-- Runtime source selection is MySQL-only and fail closed; remaining SQLite code is confined to now-unreferenced engine/schema helpers owned by Unit B2.
+- The verified working tree makes runtime source selection and engine initialization MySQL-only and fail closed; no active SQLite engine, schema-bootstrap, runtime `create_all()`, test, dependency, or migration-tool path remains in that tree.
 - T5-002 Unit A retired the unused `backend/run_alembic_mysql.py` helper and removed its tracked hard-coded database password assignment without opening the file or displaying the value/raw diff; the verified unit is delivered in a scoped local commit.
 - Source cleanup does not rotate a credential that may have been used. Rotation remains a separate Human Owner gate if the assignment was ever real or reused.
 - Unit A verification passed backend compile and all 189 backend tests; redacted scans found no remaining hard-coded password assignment.
@@ -72,13 +72,16 @@ Last updated: 2026-07-13
 - Unit C completion migrated the remaining 64 database-backed tests across nine files to ten exact-name guarded MySQL schemas, while pure unit tests remain database-free.
 - Unit C retired `aiosqlite`, the legacy migration implementation and its 29 tool-only tests, root/test probes, old Alembic config/wrappers, retired selectors, placeholder URL, and active transition documentation.
 - Final compile passed, backend regression passed 165/165, Alembic retained the single head `e9f1a2b3c4d5`, all ten Unit C schemas were cleaned, and scoped static/caller scans passed.
+- Unit B2 removed the final `build_sqlite_url`, `init_db`, SQLite schema-bootstrap, and runtime `create_all()` helpers; `init_engine()` is now a no-argument MySQL-only API and the retired exports are gone.
+- Unit B2 compile and focused runtime/fixture/database-store tests passed 21/21 on the stable delivery baseline, the prior backend regression passed 165/165, Alembic remained single-head, active backend retirement scans were clean, and only the pre-existing untouched `revid_test_db` schema remained after cleanup probes.
+- The earlier `70d7a5c` to `d7980f8` HEAD drift was reconciled without discarding either the Human Owner delivery policy or the verified Unit B2 changes; Unit B2 is delivered by the scoped commit containing this state update.
 - A pre-existing `revid_test_db` schema was observed but not created or touched; destructive cleanup requires ownership confirmation. Ignored local `.db` artifacts remain untouched.
 - Deep review re-confirmed pre-existing placeholder JWT and dev-admin defaults; they remain an implementation security-closure item, not a Human gate, and were not mixed into Unit B1.
 - Current Canvas remains project-scoped, uses conflicting light and dark theme sources, hides its grid behind an opaque surface, and broadly rebuilds the Leafer scene.
 
 ## Exact Next Action
 
-Complete Unit B2 by removing the now-unreferenced SQLite engine/schema helpers from `backend/database.py`, `backend/models/base.py`, and `backend/models/__init__.py`, then run focused runtime/fixture tests and the backend regression without entering Unit D security work.
+Start Unit D by refreshing its PLAN/PROGRESS scope, then remove or explicitly production-gate the placeholder JWT secret and default dev-admin key with focused configuration/auth tests before the remaining full-closure checks.
 
 ## Blockers And Release Conditions
 

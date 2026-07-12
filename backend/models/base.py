@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from pathlib import Path
 
 from sqlalchemy import JSON, DateTime, String, create_engine
 from sqlalchemy.engine import Engine, URL
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
-from sqlalchemy.pool import NullPool
 from sqlalchemy.sql.elements import TextClause
 
 from settings.config import get_settings
@@ -31,15 +29,7 @@ class StoreConfig(Base):
 
 _engine: Engine | None = None
 _session_factory: sessionmaker[Session] | None = None
-_engine_url: URL | str | None = None
-
-
-def build_sqlite_url(db_path: str) -> str:
-    path = Path(db_path)
-    if not path.is_absolute():
-        path = Path.cwd() / path
-    path.parent.mkdir(parents=True, exist_ok=True)
-    return f"sqlite:///{path.resolve().as_posix()}"
+_engine_url: URL | None = None
 
 
 def build_mysql_url() -> URL:
@@ -73,29 +63,14 @@ def build_mysql_url() -> URL:
     return url
 
 
-def init_engine(db_path: str | None = None) -> Engine:
-    """Initialize the database engine.
-
-    Args:
-        db_path: SQLite database file path. When None or empty, uses MySQL
-                 settings from environment/config.
-    """
+def init_engine() -> Engine:
+    """Initialize the MySQL database engine."""
     global _engine
     global _engine_url
     global _session_factory
 
     settings = get_settings()
-
-    if db_path and db_path.strip():
-        # SQLite mode
-        engine_url = build_sqlite_url(db_path)
-        poolclass = NullPool  # SQLite needs NullPool
-        connect_args: dict = {"check_same_thread": False}
-    else:
-        # MySQL mode
-        engine_url = build_mysql_url()
-        poolclass = None
-        connect_args = {}
+    engine_url = build_mysql_url()
 
     if _engine is not None and _engine_url != engine_url:
         _engine.dispose()
@@ -106,21 +81,8 @@ def init_engine(db_path: str | None = None) -> Engine:
         engine_kwargs: dict = {
             "future": True,
             "pool_pre_ping": True,
-            "connect_args": connect_args,
+            "pool_recycle": getattr(settings, "db_pool_recycle", 3600),
         }
-
-        if poolclass is not None:
-            engine_kwargs["poolclass"] = poolclass
-
-        # MySQL pool settings
-        is_mysql = (
-            engine_url.get_backend_name() == "mysql"
-            if isinstance(engine_url, URL)
-            else engine_url.startswith("mysql")
-        )
-        if is_mysql:
-            pool_recycle = getattr(settings, "db_pool_recycle", 3600)
-            engine_kwargs["pool_recycle"] = pool_recycle
 
         _engine = create_engine(engine_url, **engine_kwargs)
         _session_factory = sessionmaker(bind=_engine, autoflush=False, expire_on_commit=False)
@@ -133,12 +95,6 @@ def get_session() -> Session:
     if _session_factory is None:
         raise RuntimeError("Database engine is not initialized")
     return _session_factory()
-
-
-def create_tables() -> None:
-    if _engine is None:
-        raise RuntimeError("Database engine is not initialized")
-    Base.metadata.create_all(_engine)
 
 
 def dispose_engine() -> None:
