@@ -6,6 +6,7 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import MagicMock, patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -159,64 +160,57 @@ class PasswordAuthContractTestCase(unittest.TestCase):
 
 class AdminBootstrapContractTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp_dir = TemporaryDirectory()
-        self.backend_dir = Path(__file__).resolve().parents[1]
-        self.db_path = str(Path(self.temp_dir.name) / "test-revid.db")
-        init_db(self.db_path)
-        close_db()
+        from scripts.seed_admin import settings as seed_settings
+
+        self.seed_settings = seed_settings
+        self.original_username = seed_settings.admin_username
+        self.original_password = seed_settings.admin_password
 
     def tearDown(self) -> None:
-        close_db()
-        self.temp_dir.cleanup()
+        self.seed_settings.admin_username = self.original_username
+        self.seed_settings.admin_password = self.original_password
 
     def test_seed_admin_requires_explicit_password_env(self) -> None:
-        result = self._run_seed_admin(
-            {
-                "REVID_USE_SQLITE": "true",
-                "REVID_DB_PATH": self.db_path,
-                "REVID_ADMIN_USERNAME": "seed-admin",
-            }
-        )
-
-        self.assertNotEqual(0, result.returncode)
-
-    def test_seed_admin_script_is_env_driven_and_idempotent(self) -> None:
-        env = {
-            "REVID_USE_SQLITE": "true",
-            "REVID_DB_PATH": self.db_path,
-            "REVID_ADMIN_USERNAME": "seed-admin",
-            "REVID_ADMIN_PASSWORD": "StrongPass123!",
-        }
-
-        first_run = self._run_seed_admin(env)
-        self.assertEqual(0, first_run.returncode, msg=first_run.stderr or first_run.stdout)
-
-        second_run = self._run_seed_admin(env)
-        self.assertEqual(0, second_run.returncode, msg=second_run.stderr or second_run.stdout)
-
-        combined_output = first_run.stdout + first_run.stderr + second_run.stdout + second_run.stderr
-        self.assertNotIn("StrongPass123!", combined_output)
-
-        init_db(self.db_path)
-        seeded_store = DatabaseStore()
-        admin_users = [user for user in seeded_store.users.values() if user["role"] == "admin"]
-
-        self.assertEqual(1, len(admin_users))
-        self.assertEqual("seed-admin", admin_users[0]["username"])
-        self.assertNotIn("password_hash", admin_users[0])
-
-    def _run_seed_admin(self, overrides: dict[str, str]) -> subprocess.CompletedProcess[str]:
-        script_path = self.backend_dir / "scripts" / "seed_admin.py"
+        script_path = Path(__file__).resolve().parents[1] / "scripts" / "seed_admin.py"
         env = os.environ.copy()
-        env.update(overrides)
-        return subprocess.run(
+        env["REVID_ADMIN_USERNAME"] = "seed-admin"
+        env.pop("REVID_ADMIN_PASSWORD", None)
+
+        result = subprocess.run(
             [sys.executable, str(script_path)],
-            cwd=self.backend_dir,
+            cwd=script_path.parent.parent,
             env=env,
             capture_output=True,
             text=True,
             check=False,
         )
+
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("REVID_ADMIN_PASSWORD is required", result.stderr)
+
+    def test_seed_admin_orders_mysql_gates_and_is_idempotent(self) -> None:
+        from scripts.seed_admin import main
+
+        self.seed_settings.admin_username = "seed-admin"
+        self.seed_settings.admin_password = "unit-test-password"
+        admin = {"id": "admin-1", "username": "seed-admin", "role": "admin"}
+        store = MagicMock()
+        store.find_user_by_username.side_effect = [None, admin]
+        store.ensure_admin_user.return_value = admin
+        store.get_password_hash.return_value = "stored-hash"
+
+        with (
+            patch("scripts.seed_admin.init_mysql_engine") as init_mysql_engine,
+            patch("scripts.seed_admin.check_alembic_revision") as check_revision,
+            patch("scripts.seed_admin.DatabaseStore", return_value=store),
+            patch("core.security.hash_password", return_value="new-hash"),
+        ):
+            self.assertEqual(0, main())
+            self.assertEqual(0, main())
+
+        self.assertEqual(2, init_mysql_engine.call_count)
+        self.assertEqual(2, check_revision.call_count)
+        store.ensure_admin_user.assert_called_once()
 
 
 class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):

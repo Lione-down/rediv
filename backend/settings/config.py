@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="REVID_", env_file=".env")
+    model_config = SettingsConfigDict(env_prefix="REVID_")
 
     # === App ===
     app_name: str = "Revid API"
@@ -13,12 +13,10 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-this-secret-in-production"
 
     # === Database ===
-    use_sqlite: bool = True
-    db_path: str = "revid.db"
-    db_host: str = "localhost"
+    db_host: str = ""
     db_port: int = 3306
-    db_name: str = "revid_db"
-    db_user: str = "root"
+    db_name: str = ""
+    db_user: str = ""
     db_password: str = ""
     db_pool_recycle: int = 3600
 

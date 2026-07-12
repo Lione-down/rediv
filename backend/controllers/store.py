@@ -2092,17 +2092,19 @@ class DatabaseStore:
 
 
 class StoreProxy:
-    def __init__(self, backend: InMemoryStore | DatabaseStore) -> None:
+    def __init__(self, backend: InMemoryStore | DatabaseStore | None = None) -> None:
         self._backend = backend
 
     def configure(self, backend: InMemoryStore | DatabaseStore) -> None:
         self._backend = backend
 
     def __getattr__(self, name: str):
+        if self._backend is None:
+            raise RuntimeError("Store is not initialized; MySQL startup must complete first")
         return getattr(self._backend, name)
 
 
-store = StoreProxy(InMemoryStore())
+store = StoreProxy()
 
 
 def configure_store(backend: InMemoryStore | DatabaseStore) -> None:

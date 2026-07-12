@@ -1,19 +1,24 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from controllers.store import DatabaseStore, configure_store
 from core.agnes_provider import AgnesProvider
-from database import init_db, init_mysql_engine, check_alembic_revision
+from database import check_alembic_revision, close_db, init_mysql_engine
 from settings.config import settings
 
-if settings.use_sqlite:
-    init_db(settings.db_path)
-    configure_store(DatabaseStore())
-else:
-    # MySQL mode: initialize engine (no create_all), verify schema via Alembic
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Initialize the MySQL runtime and fail startup on any database drift."""
     init_mysql_engine()
-    check_alembic_revision()
-    configure_store(DatabaseStore())
+    try:
+        check_alembic_revision()
+        configure_store(DatabaseStore())
+        yield
+    finally:
+        close_db()
 
 from api.router import include_routers
 
@@ -29,7 +34,7 @@ def get_agnes() -> AgnesProvider:
     return _agnes
 
 
-app = FastAPI(title=settings.app_name)
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

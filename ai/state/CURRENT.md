@@ -1,6 +1,6 @@
 # Revid Current Project State
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 ## Delivery Mode
 
@@ -16,7 +16,7 @@ Last updated: 2026-07-12
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Visual direction: premium graphite-black and dark-purple system
-- Database direction: MySQL-only; SQLite support is approved for retirement but still exists in Phase 4 source until T5-002 completes
+- Database direction: MySQL-only; runtime is cut over, while legacy SQLite test/tooling helpers remain until T5-002 Unit C/B2 completes
 
 ## Active Delivery
 
@@ -56,11 +56,16 @@ Last updated: 2026-07-12
 - Unit A verification passed backend compile and all 189 backend tests; redacted scans found no remaining hard-coded password assignment.
 - Human-requested Unit A.1 removed 24 tracked one-off diagnostics, status-repair scripts, and retired Hermes PowerShell entrypoints with no active product caller; `Agents.md` is normalized to `AGENTS.md`.
 - Root Playwright/runtime evidence and pytest cache now have durable narrow ignore rules; two zero-byte generated artifacts were removed from the tracked tree but retained locally as ignored evidence.
+- Unit B1 removed runtime SQLite selection, requires process-supplied MySQL host/name/user/password, and initializes MySQL only through the FastAPI lifespan.
+- Startup, health, Alembic, admin seed, and store initialization now fail closed on missing configuration, wrong dialect, connection failure, missing schema, or revision mismatch; no production in-memory fallback remains.
+- Unit B1 focused tests passed, Alembic reports the single expected head, and the full backend regression passed 190 tests with pre-Alembic identity verification and guarded disposable `revid_test_t4_002` cleanup.
+- Legacy SQLite engine/schema helpers, SQLite-backed database tests, dependency/tooling, and active documentation remain owned by Unit C/B2 and are not runtime-selectable.
+- Deep review re-confirmed pre-existing placeholder JWT and dev-admin defaults; they remain an implementation security-closure item, not a Human gate, and were not mixed into Unit B1.
 - Current Canvas remains project-scoped, uses conflicting light and dark theme sources, hides its grid behind an opaque surface, and broadly rebuilds the Leafer scene.
 
 ## Exact Next Action
 
-Start Unit B by replacing SQLite-selectable runtime configuration with fail-closed MySQL-only settings and focused tests.
+Start Unit C by extracting a reusable exact-name guarded `revid_test_*` MySQL fixture and migrate the first database-backed test slice without SQLite fallback.
 
 ## Blockers And Release Conditions
 

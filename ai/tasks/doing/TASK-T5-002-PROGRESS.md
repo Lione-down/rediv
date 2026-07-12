@@ -1,6 +1,6 @@
 # T5-002 Progress: P0 credential cleanup and complete MySQL-only retirement
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 ## State
 
@@ -26,16 +26,25 @@ Last updated: 2026-07-12
 - Historical documents, `.hermes` evidence, MySQL/SQLite migration and test surfaces owned by Units B/C, local databases, `.env`, current runtime logs, and frontend orphan candidates were preserved.
 - Current running health was observed as MySQL connected and ready with Alembic `current == head == e9f1a2b3c4d5`; this is runtime evidence, not proof that source defaults are safe.
 - Three ignored `.db` artifact paths were identified without opening them; deletion remains outside scope.
+- Unit B1 removed runtime `use_sqlite` / `db_path` selection and `.env` file loading, made DB host/name/user/password process configuration mandatory, and kept credential-bearing URLs as SQLAlchemy `URL` objects rather than rendered strings.
+- FastAPI now initializes only MySQL through its lifespan, validates the Alembic revision before configuring `DatabaseStore`, and closes the engine on normal shutdown or startup-gate failure.
+- Runtime revision and health gates reject non-MySQL engines; `/health` is ready only after a successful MySQL connection with `current == head` and does not return connection error details.
+- The global store proxy now starts unconfigured and raises until MySQL startup completes, removing the production `InMemoryStore` fallback while preserving explicit fake injection for tests.
+- Admin seed and the standard Alembic environment are MySQL-only and fail closed on missing schema or revision drift.
+- Focused SQLite health/runtime/seed tests were replaced with pure-mock MySQL configuration, lifecycle, health, revision, and store-initialization contracts.
+- The existing migration fixture was minimally reconciled to drive the MySQL-only Alembic environment without restoring retired settings; its guarded `revid_test_t4_002` schema was created, verified, and dropped by the full regression.
+- Deep security/architecture review found and fixed SQLAlchemy `URL` pool-recycle detection and added a pre-Alembic exact-name plus `SELECT DATABASE()` identity gate; seed test semantics now distinguish subprocess env validation from pure-mock ordering/idempotence.
 
 ## Remaining Work
 
-- Unit B MySQL-only runtime and health.
-- Unit C test and tooling migration.
-- Unit D full verification and closure.
+- Unit C reusable guarded disposable MySQL fixture and database-backed test migration.
+- Unit B2 removal of SQLite-only engine/schema helpers after the guarded MySQL fixture replaces legacy test calls.
+- Unit C removal of `aiosqlite`, SQLite migration tooling, wrappers, test configs, and active documentation.
+- Unit D full verification and closure, including removal or explicit production gating of the pre-existing placeholder JWT secret and default dev-admin key.
 
 ## Exact Next Action
 
-Start Unit B by replacing SQLite-selectable runtime configuration with fail-closed MySQL-only settings and focused tests.
+Start Unit C by extracting the existing exact-name `revid_test_*` lifecycle into a reusable guarded MySQL fixture and migrate the first database-backed test slice without any SQLite fallback.
 
 ## Files Changed
 
@@ -45,6 +54,9 @@ Start Unit B by replacing SQLite-selectable runtime configuration with fail-clos
 - Unit A.1 repository hygiene: `.gitignore`, `Agents.md` -> `AGENTS.md`, 12 root one-off files, 4 `ai/reports/*.py` repair/probe files, 4 backend debug/smoke files, and 4 retired `scripts/*.ps1` Hermes entrypoints.
 - Unit A.1 generated tracking cleanup: `.playwright-cli/page-2026-07-11T15-29-19-414Z.yml` and `ai/evidence/runtime/reviewer-finalization-smoke/kanban.db.init.lock` removed from the tracked tree and retained locally under ignore rules.
 - `ai/tasks/doing/TASK-T5-002-PLAN.md` and this progress document updated for the bounded hygiene prerequisite.
+- Unit B1 runtime: `backend/settings/config.py`, `backend/models/base.py`, `backend/database.py`, `backend/main.py`, `backend/api/health.py`, `backend/controllers/store.py`, `backend/migrations/env.py`, and `backend/scripts/seed_admin.py`.
+- Unit B1 compatibility and tests: `backend/scripts/migrate_sqlite_to_mysql.py`, `backend/tests/test_health.py`, `backend/tests/test_migration_tool.py`, `backend/tests/test_mysql_runtime_cutover.py`, and `backend/tests/test_password_auth_contract.py`.
+- Durable state: `ai/tasks/doing/TASK-T5-002-PLAN.md`, this progress document, and `ai/state/CURRENT.md`.
 
 ## Commands And Summarized Results
 
@@ -59,6 +71,13 @@ Start Unit B by replacing SQLite-selectable runtime configuration with fail-clos
 - `backend/.venv/Scripts/python.exe -m unittest discover -s backend/tests -p "test_*.py"`: PASS after hygiene cleanup, 189 tests in 51.645 seconds; guarded disposable schema cleanup succeeded.
 - `npm --prefix frontend run build`: PASS; TypeScript/Vite production build transformed 4702 modules.
 - strict UTF-8, exact ignore-rule probes, generated-tracked check, and `git diff --check`: PASS.
+- `backend/.venv/Scripts/python.exe -m compileall -q backend`: PASS for Unit B1.
+- focused runtime/health/seed/schema-guard tests: PASS, 19 tests; only pure mocks plus a missing-password subprocess contract, with no real database connection in this focused set.
+- `backend/.venv/Scripts/python.exe -m alembic -c alembic.ini heads` from `backend/`: PASS, single head `e9f1a2b3c4d5`. The first root-cwd attempt failed before migration because `script_location` is relative; rerunning from the documented backend cwd resolved the command-only issue.
+- first backend regression after the cutover reached 174 tests with one migration-fixture error and one dependent seed failure because legacy tooling still wrote the removed field; the MySQL-only compatibility correction removed those stale writes without restoring SQLite selection.
+- final `backend/.venv/Scripts/python.exe -m unittest discover -s tests -p "test_*.py"`: PASS, 190 tests in 41.586 seconds; guarded disposable `revid_test_t4_002` creation, pre-Alembic identity assertion, migration, and cleanup paths ran and the schema was dropped.
+- active runtime selector scans: PASS; no `REVID_USE_SQLITE`, `REVID_DB_PATH`, `settings.use_sqlite`, `settings.db_path`, Alembic SQLite selector, or SQLite-ready health branch remains in the runtime surface.
+- deep read-only security/architecture review: two in-scope findings fixed; pre-existing predictable JWT/dev-admin defaults recorded for later security closure without expanding this bounded unit's auth contract.
 
 ## Blockers And Release Conditions
 

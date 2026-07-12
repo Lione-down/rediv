@@ -110,6 +110,8 @@ def check_alembic_revision() -> dict:
 
     if engine is None:
         raise RuntimeError("Database engine is not initialized")
+    if engine.dialect.name != "mysql":
+        raise RuntimeError("Unsupported database dialect; Revid requires MySQL")
 
     # Try to read the Alembic version table to determine current revision.
     try:

@@ -1,6 +1,6 @@
 # T5-002 Plan: P0 credential cleanup and complete MySQL-only retirement
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 ## Objective
 
@@ -27,10 +27,9 @@ Deliver a usable backend whose only runtime and integration-test database is MyS
 
 ### Unit B: MySQL-only runtime and health
 
-- remove `use_sqlite`, `db_path`, SQLite URL/engine/schema branches, runtime `create_all()`, and production in-memory fallback;
-- make MySQL configuration and Alembic head validation fail closed;
-- update lifecycle, health, admin seed, and standard Alembic entrypoints;
-- add focused runtime and health tests.
+- B1: remove runtime `use_sqlite` / `db_path` selection, require MySQL configuration, initialize only through the FastAPI lifespan, reject non-MySQL engines, require Alembic head parity, and update health, admin seed, standard Alembic entrypoints, and focused pure-mock tests;
+- B2: remove the temporary SQLite-only engine/schema helpers still used by legacy database-backed tests, after Unit C provides the guarded disposable MySQL fixture;
+- remove runtime `create_all()` and production in-memory fallback before Unit B closes.
 
 ### Unit C: MySQL-only test and tooling migration
 

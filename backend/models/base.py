@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import JSON, DateTime, String, create_engine
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Engine, URL
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql.elements import TextClause
@@ -31,7 +31,7 @@ class StoreConfig(Base):
 
 _engine: Engine | None = None
 _session_factory: sessionmaker[Session] | None = None
-_engine_url: str | None = None
+_engine_url: URL | str | None = None
 
 
 def build_sqlite_url(db_path: str) -> str:
@@ -42,14 +42,26 @@ def build_sqlite_url(db_path: str) -> str:
     return f"sqlite:///{path.resolve().as_posix()}"
 
 
-def build_mysql_url() -> str:
+def build_mysql_url() -> URL:
     """Build MySQL connection URL from settings.
 
     Uses SQLAlchemy URL API to handle special characters in password safely.
     """
-    from sqlalchemy.engine.url import URL
-
     settings = get_settings()
+    required_values = {
+        "REVID_DB_HOST": settings.db_host,
+        "REVID_DB_NAME": settings.db_name,
+        "REVID_DB_USER": settings.db_user,
+        "REVID_DB_PASSWORD": settings.db_password,
+    }
+    missing = [name for name, value in required_values.items() if not value.strip()]
+    if missing:
+        raise RuntimeError(
+            "Missing required MySQL configuration: " + ", ".join(missing)
+        )
+    if not 1 <= settings.db_port <= 65535:
+        raise RuntimeError("REVID_DB_PORT must be between 1 and 65535")
+
     url = URL.create(
         drivername="mysql+pymysql",
         username=settings.db_user,
@@ -58,7 +70,7 @@ def build_mysql_url() -> str:
         port=settings.db_port,
         database=settings.db_name,
     )
-    return url.render_as_string(hide_password=False)
+    return url
 
 
 def init_engine(db_path: str | None = None) -> Engine:
@@ -101,7 +113,12 @@ def init_engine(db_path: str | None = None) -> Engine:
             engine_kwargs["poolclass"] = poolclass
 
         # MySQL pool settings
-        if "mysql" in engine_url:
+        is_mysql = (
+            engine_url.get_backend_name() == "mysql"
+            if isinstance(engine_url, URL)
+            else engine_url.startswith("mysql")
+        )
+        if is_mysql:
             pool_recycle = getattr(settings, "db_pool_recycle", 3600)
             engine_kwargs["pool_recycle"] = pool_recycle
 

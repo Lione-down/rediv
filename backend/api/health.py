@@ -19,6 +19,18 @@ def health_check():
 
     if engine is not None:
         dialect_name = engine.dialect.name
+        if dialect_name != "mysql":
+            return {
+                "status": "wrong_dialect",
+                "database": {
+                    "dialect": dialect_name,
+                    "connected": False,
+                    "ready": False,
+                    "alembic_current": None,
+                    "alembic_head": None,
+                    "alembic_match": False,
+                },
+            }
         try:
             from sqlalchemy import text
 
@@ -42,17 +54,13 @@ def health_check():
             except Exception:
                 alembic_head = None
 
-            if dialect_name == "sqlite":
-                status = "ok"
-                ready = True
-            else:
-                alembic_match = bool(
-                    alembic_current
-                    and alembic_head
-                    and alembic_current == alembic_head
-                )
-                ready = connection_ok and alembic_match
-                status = "ok" if ready else "schema_mismatch"
+            alembic_match = bool(
+                alembic_current
+                and alembic_head
+                and alembic_current == alembic_head
+            )
+            ready = connection_ok and alembic_match
+            status = "ok" if ready else "schema_mismatch"
         except Exception:
             status = "error"
             connection_ok = False

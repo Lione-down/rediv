@@ -27,6 +27,7 @@ from scripts.migrate_sqlite_to_mysql import (
     build_test_db_url,
     get_admin_url,
     assert_database_name,
+    assert_test_database_name,
     setup_schema_via_alembic,
     SQLiteReader,
     MySQLWriter,
@@ -614,6 +615,14 @@ class TestCanvasConnectionMigrationConfig(unittest.TestCase):
             ],
             FK_MAP["generation_tasks"],
         )
+
+    def test_test_database_name_gate_accepts_only_revid_test_prefix(self):
+        assert_test_database_name("revid_test_worker_1")
+
+        for unsafe_name in ("revid_db", "revid_test_", "other_test_schema", "revid_test_bad-name"):
+            with self.subTest(database_name=unsafe_name):
+                with self.assertRaisesRegex(RuntimeError, "revid_test"):
+                    assert_test_database_name(unsafe_name)
 
 
 class TestMigrationTool(unittest.TestCase):

@@ -209,6 +209,8 @@ def build_test_db_url(admin_url: str) -> str:
         database=TEST_DB_NAME,
     )
 
+    assert_test_database_name(TEST_DB_NAME)
+
     # Hard gate: assert database identity
     actual_db = db_url.database
     if actual_db != TEST_DB_NAME:
@@ -223,8 +225,20 @@ def build_test_db_url(admin_url: str) -> str:
 # Database identity assertion
 # ---------------------------------------------------------------------------
 
+def assert_test_database_name(database_name: str) -> None:
+    """Require an exact, non-empty revid_test_* schema identifier."""
+    suffix = database_name.removeprefix("revid_test_")
+    if (
+        not database_name.startswith("revid_test_")
+        or not suffix
+        or not suffix.replace("_", "").isalnum()
+    ):
+        raise RuntimeError("Test database name must match revid_test_*")
+
+
 def assert_database_name(engine: Engine, expected: str) -> None:
     """Assert the current database name matches expected. Raises on mismatch."""
+    assert_test_database_name(expected)
     with engine.connect() as conn:
         result = conn.execute(text("SELECT DATABASE()"))
         actual = result.scalar()
@@ -250,7 +264,17 @@ def setup_schema_via_alembic(test_db_url: str) -> None:
     # env vars override the defaults in the cached Settings singleton.
     from urllib.parse import urlparse, unquote_plus
     parsed = urlparse(test_db_url)
-    os.environ["REVID_USE_SQLITE"] = "false"
+    selected_database = parsed.path.lstrip("/")
+    assert_test_database_name(selected_database)
+    if selected_database != TEST_DB_NAME:
+        raise RuntimeError("Test database URL does not select the expected schema")
+
+    identity_engine = create_engine(test_db_url, future=True)
+    try:
+        assert_database_name(identity_engine, TEST_DB_NAME)
+    finally:
+        identity_engine.dispose()
+
     os.environ["REVID_DB_HOST"] = parsed.hostname or "localhost"
     if parsed.port:
         os.environ["REVID_DB_PORT"] = str(parsed.port)
@@ -260,21 +284,13 @@ def setup_schema_via_alembic(test_db_url: str) -> None:
     if parsed.password:
         os.environ["REVID_DB_PASSWORD"] = unquote_plus(parsed.password)
 
-    # Invalidate the cached settings singleton so env vars take effect.
-    # This is critical because env.py imports settings.config which caches
-    # the Settings object — without clearing, stale defaults persist.
-    from settings.config import get_settings, settings as _settings
-    get_settings.cache_clear()
-    # Re-read settings from env (now contains our overrides)
-    from pydantic_settings import SettingsConfigDict
-    from pydantic import BaseModel
-    # Directly patch the settings object used by build_mysql_url()
+    # Patch the already-cached settings singleton used by Alembic in this process.
+    from settings.config import settings as _settings
     _settings.db_host = parsed.hostname or "localhost"
     _settings.db_port = parsed.port or 3306
     _settings.db_name = TEST_DB_NAME
     _settings.db_user = parsed.username or "root"
     _settings.db_password = parsed.password or ""
-    _settings.use_sqlite = False
 
     import alembic.config
     from importlib import import_module
@@ -305,11 +321,6 @@ def setup_schema_via_alembic(test_db_url: str) -> None:
 
     cfg = alembic.config.Config(str(ALEMBIC_INI_PATH))
     cfg.set_main_option("script_location", str(ALEMBIC_SCRIPTS_DIR))
-    cfg.set_main_option("use_sqlite", "false")
-
-    # Override the URL — env.py's engine_from_config reads this
-    cfg.set_main_option("sqlalchemy.url", test_db_url)
-
     # Run upgrade head
     from alembic import command
     command.upgrade(cfg, "head")
@@ -701,6 +712,7 @@ def cleanup_test_database(admin_url: str) -> None:
     from sqlalchemy.exc import OperationalError
 
     parsed = urlparse(admin_url)
+    assert_test_database_name(TEST_DB_NAME)
     # Connect to admin URL (no database) to check existence
     admin_conn_url = URL.create(
         drivername=parsed.scheme,
