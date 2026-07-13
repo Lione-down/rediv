@@ -20,9 +20,13 @@ Last updated: 2026-07-13
 
 ## Active Delivery
 
-- Active implementation Task: none
-- Next Task: `T5-004 - Single V2 token source, full-screen Canvas shell, canvas navigation, and viewport persistence`
-- Next state: `TODO`; create Task, PLAN, and PROGRESS before implementation
+- Active implementation Task: `T5-004 - V2 Canvas shell, navigation, and viewport persistence`
+- State: `DOING`
+- Latest completed unit: Unit A - single-source V2 Canvas token foundation (`COMPLETE - PASS`)
+- Next unit: Unit B - Canvas metadata client/store and canonical route resolution
+- Task: `ai/tasks/todo/TASK-T5-004.md`
+- Plan: `ai/tasks/doing/TASK-T5-004-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-004-PROGRESS.md`
 - Dependency: T5-003 `DONE - PASS`
 
 ## Latest Completed Task
@@ -60,11 +64,11 @@ Last updated: 2026-07-13
 
 ## Exact Next Action
 
-Create and activate T5-004 Task/PLAN/PROGRESS, then inspect the existing frontend design system, router, Canvas workspace, stores, and overlapping changes before implementation.
+Inspect the exact backend Canvas response contracts and add the Unit B frontend metadata API/store plus canonical and legacy route-resolution tests before connecting the shell.
 
 ## Blockers And Release Conditions
 
-- No blocker prevents T5-004 planning or repository implementation.
+- No blocker prevents T5-004 Unit B repository implementation.
 - Applying `f0a1b2c3d4e5` to user/runtime data requires reviewed backup discipline and Human migration authorization.
 - Credential rotation becomes Human-required only if the removed assignment was ever real or reused.
 - Local ignored `.db` deletion requires exact-path Human approval after MySQL backup/parity evidence.

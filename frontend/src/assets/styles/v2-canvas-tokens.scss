@@ -1,0 +1,91 @@
+$v2-canvas-compact-breakpoint: 1023px;
+$v2-canvas-review-breakpoint: 767px;
+
+@mixin v2-canvas-tokens {
+  color-scheme: dark;
+
+  --v2-canvas: oklch(9.5% 0.018 292);
+  --v2-surface-1: oklch(14.5% 0.026 292);
+  --v2-surface-2: oklch(17.5% 0.03 292);
+  --v2-surface-3: oklch(21% 0.035 292);
+  --v2-surface-prominent: oklch(24% 0.04 292);
+  --v2-surface-disabled: oklch(16% 0.02 292);
+
+  --v2-text-primary: oklch(94% 0.012 292);
+  --v2-text-secondary: oklch(74% 0.024 292);
+  --v2-text-muted: oklch(62% 0.028 292);
+  --v2-text-disabled: oklch(50% 0.022 292);
+  --v2-text-on-accent: oklch(12% 0.02 292);
+
+  --v2-accent: oklch(65% 0.19 292);
+  --v2-accent-hover: oklch(70% 0.18 292);
+  --v2-accent-pressed: oklch(59% 0.2 292);
+  --v2-accent-soft: oklch(65% 0.19 292 / 0.14);
+  --v2-accent-disabled: oklch(54% 0.08 292);
+  --v2-focus-ring: oklch(72% 0.17 292 / 0.48);
+
+  --v2-border-subtle: oklch(94% 0.015 292 / 0.06);
+  --v2-border-standard: oklch(94% 0.015 292 / 0.1);
+  --v2-border-strong: oklch(94% 0.015 292 / 0.18);
+
+  --v2-success: oklch(72% 0.13 155);
+  --v2-warning: oklch(78% 0.14 82);
+  --v2-danger: oklch(66% 0.19 24);
+  --v2-info: oklch(74% 0.024 292);
+
+  --v2-space-1: 4px;
+  --v2-space-2: 8px;
+  --v2-space-3: 12px;
+  --v2-space-4: 16px;
+  --v2-space-5: 20px;
+  --v2-space-6: 24px;
+  --v2-space-8: 32px;
+
+  --v2-radius-xs: 4px;
+  --v2-radius-sm: 8px;
+  --v2-radius-md: 12px;
+  --v2-radius-lg: 16px;
+  --v2-radius-pill: 999px;
+
+  --v2-font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
+  --v2-font-size-caption: 12px;
+  --v2-font-size-body: 13px;
+  --v2-font-size-control: 14px;
+  --v2-font-size-title: 15px;
+  --v2-font-weight-regular: 450;
+  --v2-font-weight-medium: 550;
+  --v2-font-weight-semibold: 600;
+  --v2-line-height-caption: 1.5;
+  --v2-line-height-body: 1.7;
+  --v2-line-height-control: 1.4;
+  --v2-line-height-title: 1.4;
+
+  --v2-control-min-size: 40px;
+  --v2-grid-size: 24px;
+  --v2-panel-width: 320px;
+  --v2-panel-width-wide: 360px;
+
+  --v2-duration-fast: 120ms;
+  --v2-duration-enter: 180ms;
+  --v2-duration-exit: 140ms;
+  --v2-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --v2-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --v2-ease-exit: ease-in;
+  --v2-press-scale: 0.96;
+
+  --v2-shadow-floating: 0 18px 44px oklch(3% 0.01 292 / 0.42);
+  --v2-shadow-prominent: 0 24px 64px oklch(3% 0.01 292 / 0.52);
+}
+
+.v2-canvas-theme {
+  @include v2-canvas-tokens;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v2-canvas-theme {
+    --v2-duration-fast: 0ms;
+    --v2-duration-enter: 0ms;
+    --v2-duration-exit: 0ms;
+    --v2-press-scale: 1;
+  }
+}
