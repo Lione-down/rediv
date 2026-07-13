@@ -394,10 +394,10 @@ for (const viewport of visualViewports) {
     const stage = page.getByRole('region', { name: 'Revid 无限画布工作区' })
     if (viewport.width < 768) {
       await expect(page.getByText('浏览审阅模式', { exact: true })).toBeVisible()
-      await expect(stage).toHaveAttribute('aria-readonly', 'true')
+      await expect(stage).toHaveAttribute('aria-description', '只读审阅模式')
     } else {
       await expect(page.getByText('浏览审阅模式', { exact: true })).toHaveCount(0)
-      await expect(stage).toHaveAttribute('aria-readonly', 'false')
+      await expect(stage).toHaveAttribute('aria-description', '可编辑画布')
     }
     await captureVisualEvidence(page, testInfo, `${viewport.name}-workspace`)
 

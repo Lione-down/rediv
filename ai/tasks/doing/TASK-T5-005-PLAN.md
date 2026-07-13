@@ -1,16 +1,17 @@
 # TASK-T5-005 Plan
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Completed unit: Unit A - persistent keyed Leafer world and incremental node reconciliation (`COMPLETE - PASS`)
 - Completed unit: Unit B - command contract, selection, and multi-node editing (`COMPLETE - PASS`)
 - Completed unit: Unit C - grouping, connection, shortcuts, and accessibility list (`COMPLETE - PASS`)
 - Completed unit: Unit D - view and arrange commands (`COMPLETE - PASS`)
-- Next unit: Unit E - closure evidence
+- Completed unit: Unit E - closure evidence (`COMPLETE - PASS`)
+- Next Task: T5-006 - autosave, conflicts, history, revisions, checkpoints, and restore
 - Updated: 2026-07-13
 
 ## Objective
 
-Deliver T5-005 as independently verified interaction units. Units A-D now cover persistent rendering, deterministic command editing, flat grouping, validated connection, Canvas-focus shortcuts, synchronized DOM graph access, complete view controls, arrangement, and lock protection; Unit E owns closure evidence.
+Deliver T5-005 as independently verified interaction units. Units A-E now cover persistent rendering, deterministic command editing, flat grouping, validated connection, Canvas-focus shortcuts, synchronized DOM graph access, complete view controls, arrangement, lock protection, focused performance, accessibility, and Task closure evidence.
 
 ## Direction Lock
 
@@ -169,4 +170,39 @@ Deliver T5-005 as independently verified interaction units. Units A-D now cover 
 
 ### Unit E - Closure evidence
 
-Run focused render/performance, required viewports, accessibility, full regression, and documentation reconciliation before REPORT and `DONE - PASS`.
+### Scope
+
+1. Add a deterministic mock-browser Canvas seed containing exactly 200 nodes and 300 directed connections with representative text, image, video, audio, status, and locked-node states.
+2. Record the Windows/Chromium reference environment and a scripted 30-second pan, zoom, single-drag, and multi-drag profile. Gate average FPS at 55 or higher, p95 frame interval at 33 ms or lower, pointer feedback p95 at 50 ms or lower, and every observed interaction long task below 200 ms.
+3. Prove the large graph reaches a stable first render within 3 seconds at the mock document boundary and retains the persistent keyed renderer contract during viewport and selection work. Classify this as mock-browser evidence; local MySQL load/save/reopen certification remains T5-008 scope.
+4. Exercise repeated Canvas navigation for listener duplication and monotonic retained-heap signals where Chromium exposes comparable metrics. Treat unavailable or noisy heap data explicitly rather than presenting it as deterministic memory certification.
+5. Add automated axe coverage for the Canvas route plus keyboard-only node locate, selection, connection review, panel controls, visible focus, reduced motion, mobile review-only behavior, and 200% browser zoom access.
+6. Re-run the four required Chromium viewports at 1440x900, 1366x768, 920x900, and 375x812, retaining deterministic screenshots under ignored output for manual review.
+7. Make only benchmark-proven renderer, pointer, minimap, or accessibility repairs required by this matrix; do not broaden into T5-006 history/autosave or T5-008 final milestone work.
+8. Run focused tests first, then full frontend Chromium, frontend build, relevant guarded backend/full regression, fresh diff review, `git diff --check`, strict UTF-8, file-size, sensitive-path, secret-candidate, and database-artifact gates.
+9. Reconcile Task, PLAN, PROGRESS, CURRENT, ROADMAP, and `REPORT-T5-005.md`; mark `DONE - PASS` only when every non-deferred T5-005 criterion has reproducible evidence.
+
+### Non-goals
+
+- final local-MySQL 200/300 load, save, close, reopen, checksum, restart, or milestone performance certification owned by T5-008;
+- autosave batching, command history, undo/redo, conflict recovery, revisions, checkpoints, and restore UI owned by T5-006;
+- node registry, asset/generation redesign, paid provider calls, real secrets, user/runtime migration execution, local database artifact handling, or destructive operations;
+- global visual redesign, a second Canvas engine, or unrelated refactoring.
+
+### Success Criteria
+
+- The focused 200/300 mock-browser test records environment and summarized metrics and passes all T5-005 interaction thresholds without renderer rebuilds.
+- Automated axe analysis reports zero serious or critical Canvas violations, and focused assertions cover keyboard-only access, focus, reduced motion, mobile mutation exclusion, and 200% zoom access.
+- All four required viewports render usable Canvas controls with reviewed deterministic screenshots.
+- Full Chromium, frontend build, relevant backend regression, fresh diff review, and hygiene gates pass with exact evidence classification.
+- `REPORT-T5-005.md` and all active state documents agree on completed scope, deferred T5-008 certification, verification, blockers, and the T5-006 next action.
+
+### Outcome
+
+- The focused mock-browser seed contains exactly 200 nodes and 300 connections and records a 330 ms stable render, 60.03 average FPS, 16.8 ms frame p95, 4.2 ms pointer-feedback p95, no observed interaction long task, and 11.93 minimap updates/s.
+- requestAnimationFrame coalescing, world-space SVG edges under one transform, memoized stable path/minimap subtrees, and 15 FPS minimap sampling closed the measured frame-budget gap without changing the command or persistence contract.
+- Twenty Canvas switches retained bounded global listeners and guarded heap signals; axe reported zero serious or critical violations.
+- Keyboard-only graph review, reduced motion, 200% access, mobile review-only behavior, and all four required viewport screenshots passed focused evidence.
+- Full Chromium passed 36/36, guarded backend regression passed 190 tests, and the final frontend build passed with 4731 modules.
+- Fresh diff review and UTF-8, file-size, forbidden-pattern, sensitive-path, secret-candidate, database-artifact, and `git diff --check` gates passed.
+- `REPORT-T5-005.md` classifies this as Task-level mock-browser evidence and leaves final local-MySQL 200/300 milestone certification to T5-008.

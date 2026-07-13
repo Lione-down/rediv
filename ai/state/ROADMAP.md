@@ -29,7 +29,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 2 | T5-002 | P0 credential cleanup and complete MySQL-only runtime/test/tooling retirement | DONE - PASS | T5-001 |
 | 3 | T5-003 | Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route | DONE - PASS | T5-002 |
 | 4 | T5-004 | Single V2 token source, full-screen Canvas shell, canvas navigation, and viewport persistence | DONE - PASS | T5-003 |
-| 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | DOING | T5-004 |
+| 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | DONE - PASS | T5-004 |
 | 6 | T5-006 | Autosave queue, optimistic conflict handling, 100-step undo/redo, revisions, checkpoints, and restore | TODO | T5-005 |
 | 7 | T5-007 | Node registry, project-shared assets/templates, generation tasks/results, and mock provider flows | TODO | T5-006 |
 | 8 | T5-008 | Canvas first-acceptance E2E, 200/300 performance, browser, visual, accessibility, MySQL, and security closure | TODO | T5-007 |
@@ -55,7 +55,7 @@ These Tasks form the Canvas milestone. Shared V2 tokens may land in T5-004, but 
 
 T5-004 is `DONE - PASS`. Units A-E delivered a Canvas-scoped token source, strict metadata store and routing, dedicated full-screen V2 shell, Canvas navigation, contextual generation compatibility, mobile review-only enforcement, one exact Canvas document boundary, explicit graph mutations, independent debounced viewport persistence, and browser-verified language, focus, contrast, target, reduced-motion, responsive, and regression closure. `REPORT-T5-004.md` is authoritative evidence.
 
-T5-005 is `DOING`. Units A-D passed with one persistent keyed Leafer world, deterministic multi-selection, typed graph commands, Canvas-focus shortcuts, synchronized DOM graph access, 10%-800% view controls, lock protection, and stable arrange operations. Unit D passed 15/15 focused frontend tests, 1 guarded MySQL field test with 3 deselected, 33/33 Chromium tests, and a 4728-module build. Unit E owns focused performance, accessibility, full regression, and Task closure evidence.
+T5-005 is `DONE - PASS`. Units A-E deliver one persistent keyed Leafer world, requestAnimationFrame pointer coalescing, world-space SVG edges, 15 FPS minimap sampling, deterministic typed selection/edit/group/connect/arrange/lock commands, Canvas-focus shortcuts, synchronized DOM graph access, 10%-800% view controls, and focused accessibility/performance closure. Final evidence passed Unit E 3/3, full Chromium 36/36, guarded backend 190/190, a 4731-module build, and the four required viewports. The mock-browser 200/300 profile recorded 330 ms stable render, 60.03 FPS, 16.8 ms frame p95, 4.2 ms pointer p95, no observed interaction long task, and 11.93 minimap updates/s. `REPORT-T5-005.md` is authoritative; final local-MySQL 200/300 milestone certification remains T5-008 scope.
 
 ### T5-009 through T5-011
 

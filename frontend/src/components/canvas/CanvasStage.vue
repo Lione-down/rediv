@@ -12,10 +12,11 @@ const props = withDefaults(defineProps<{ readonly?: boolean }>(), {
 })
 
 const {
-  buildConnectionPath,
   canvasStore,
   canvasSurfaceRef,
   centerNodeInViewport,
+  connectionPaths,
+  connectionWorldTransform,
   closeContextMenu,
   contextMenu,
   contextMenuOptions,
@@ -23,10 +24,9 @@ const {
   handleContextMenuSelect,
   handleMinimapPointerDown,
   minimapNodeStyle,
+  minimapNodes,
   minimapRef,
   minimapViewportStyle,
-  nodeInputAnchor,
-  nodeOutputAnchor,
   stageRef,
   statusBadgeStyle,
   statusIconMap,
@@ -99,7 +99,7 @@ function closeGraphAccessPanel() {
     :ref="setStageRef"
     class="workspace-stage"
     aria-label="Revid 无限画布工作区"
-    :aria-readonly="readonly"
+    :aria-description="readonly ? '只读审阅模式' : '可编辑画布'"
     aria-keyshortcuts="Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+L Meta+L Control+0 Meta+0 Control++ Meta++ Control+- Meta+- Alt+Shift+F Delete Backspace Escape ?"
     tabindex="0"
   >
@@ -120,25 +120,31 @@ function closeGraphAccessPanel() {
       :class="[`cursor-${viewportCursor}`, { 'is-grid-hidden': !isGridEnabled }]"
     >
       <svg v-show="areEdgesVisible" class="connection-layer" role="group" aria-label="画布连线">
-        <path
-          v-for="connection in canvasStore.connections"
-          :key="connection.id"
-          class="connection-line"
-          :class="{ active: connection.active, selected: canvasStore.selectedConnectionId === connection.id }"
-          :d="buildConnectionPath(nodeOutputAnchor(connection.from), nodeInputAnchor(connection.to))"
-        />
-        <path
-          v-for="connection in canvasStore.connections"
-          :key="`hit-${connection.id}`"
-          class="connection-hit"
-          :class="{ selected: canvasStore.selectedConnectionId === connection.id }"
-          :d="buildConnectionPath(nodeOutputAnchor(connection.from), nodeInputAnchor(connection.to))"
-          aria-hidden="true"
-          @pointerdown.stop="handleConnectionPointerDown(connection.id, $event)"
-          @focus="canvasStore.selectConnection(connection.id)"
-          @keydown.enter.prevent="canvasStore.selectConnection(connection.id)"
-          @keydown.space.prevent="canvasStore.selectConnection(connection.id)"
-        />
+        <g :transform="connectionWorldTransform">
+          <g v-memo="[connectionPaths, canvasStore.selectedConnectionId]">
+            <path
+              v-for="connection in connectionPaths"
+              :key="connection.id"
+              class="connection-line"
+              :class="{ active: connection.active, selected: canvasStore.selectedConnectionId === connection.id }"
+              :d="connection.path"
+              vector-effect="non-scaling-stroke"
+            />
+            <path
+              v-for="connection in connectionPaths"
+              :key="`hit-${connection.id}`"
+              class="connection-hit"
+              :class="{ selected: canvasStore.selectedConnectionId === connection.id }"
+              :d="connection.path"
+              aria-hidden="true"
+              vector-effect="non-scaling-stroke"
+              @pointerdown.stop="handleConnectionPointerDown(connection.id, $event)"
+              @focus="canvasStore.selectConnection(connection.id)"
+              @keydown.enter.prevent="canvasStore.selectConnection(connection.id)"
+              @keydown.space.prevent="canvasStore.selectConnection(connection.id)"
+            />
+          </g>
+        </g>
         <path v-if="temporaryConnectionPath" class="draft" :d="temporaryConnectionPath" />
       </svg>
 
@@ -181,18 +187,20 @@ function closeGraphAccessPanel() {
       />
 
       <div v-if="isMinimapVisible" :ref="setMinimapRef" class="minimap" aria-label="小地图" @pointerdown.stop="handleMinimapPointerDown">
-        <button
-          v-for="node in canvasStore.nodes"
-          :key="node.id"
-          type="button"
-          class="minimap-node"
-          :class="{ selected: canvasStore.selectedNodeIds.includes(node.id) }"
-          :aria-label="`定位到 ${node.title}`"
-          :style="minimapNodeStyle(node)"
-          @pointerdown.stop
-          @click.stop="centerNodeInViewport(node.id)"
-        />
-        <div class="minimap-viewport" :style="minimapViewportStyle"></div>
+        <div v-memo="[minimapNodes, canvasStore.selectedNodeIds, minimapViewportStyle]" class="minimap-content">
+          <button
+            v-for="node in minimapNodes"
+            :key="node.id"
+            type="button"
+            class="minimap-node"
+            :class="{ selected: canvasStore.selectedNodeIds.includes(node.id) }"
+            :aria-label="`定位到 ${node.title}`"
+            :style="minimapNodeStyle(node)"
+            @pointerdown.stop
+            @click.stop="centerNodeInViewport(node.id)"
+          />
+          <div class="minimap-viewport" :style="minimapViewportStyle"></div>
+        </div>
       </div>
     </div>
     <CanvasViewControls

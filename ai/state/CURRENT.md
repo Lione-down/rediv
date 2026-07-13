@@ -20,28 +20,24 @@ Last updated: 2026-07-13
 
 ## Active Delivery
 
-- Active implementation Task: `T5-005 - Incremental renderer and command interactions`
-- State: `DOING`
-- Completed unit: Unit A - persistent keyed Leafer world and incremental node reconciliation (`COMPLETE - PASS`)
-- Completed unit: Unit B - command contract, selection, and multi-node editing (`COMPLETE - PASS`)
-- Completed unit: Unit C - grouping, connection, shortcuts, and accessibility list (`COMPLETE - PASS`)
-- Completed unit: Unit D - view and arrange commands (`COMPLETE - PASS`)
-- Next unit: Unit E - closure evidence
+- Active implementation Task: none; repository is between completed T5-005 and planned T5-006
+- State: `READY FOR NEXT TASK`
+- Latest completed Task: `T5-005 - Incremental renderer and command interactions` (`DONE - PASS`)
 - Task: `ai/tasks/todo/TASK-T5-005.md`
 - Plan: `ai/tasks/doing/TASK-T5-005-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-005-PROGRESS.md`
-- Latest completed Task: `T5-004 - V2 Canvas shell, navigation, and viewport persistence` (`DONE - PASS`)
-- Latest report: `ai/reports/REPORT-T5-004.md`
+- Report: `ai/reports/REPORT-T5-005.md`
+- Next Task: `T5-006 - Autosave queue, optimistic conflict handling, 100-step undo/redo, revisions, checkpoints, and restore`
 
 ## Previous Completed Task
 
-- Task: `T5-003 - Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route`
+- Task: `T5-004 - V2 Canvas shell, navigation, and viewport persistence`
 - State: `DONE - PASS`
-- Task: `ai/tasks/todo/TASK-T5-003.md`
-- Plan: `ai/tasks/doing/TASK-T5-003-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-003-PROGRESS.md`
-- Report: `ai/reports/REPORT-T5-003.md`
-- Outcome: guarded MySQL expand-first migration, atomic default Canvas, strict metadata APIs, optimistic ordering, first-canvas compatibility, and transactional duplication with complete graph ID remapping all passed closure.
+- Task: `ai/tasks/todo/TASK-T5-004.md`
+- Plan: `ai/tasks/doing/TASK-T5-004-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-004-PROGRESS.md`
+- Report: `ai/reports/REPORT-T5-004.md`
+- Outcome: canonical multi-Canvas routing, full-screen V2 shell, server-revision metadata navigation, exact graph scope, independent viewport persistence, mobile review boundary, and accessibility closure all passed.
 
 ## Locked V2 Documents
 
@@ -72,25 +68,20 @@ Last updated: 2026-07-13
 - Unit D passed 3 focused guarded MySQL tests, 39 Canvas backend regression tests, 189 full backend tests, 14 full Chromium tests, and a 4711-module production build.
 - Unit E corrected Chinese document language, 40px Canvas-switch geometry, reduced-motion stage animation, and the shared focus-ring alpha after real Chromium measured the prior ring at 2.52:1.
 - T5-004 closure passed 6 focused shell tests, 16 full Chromium tests, a 4711-module production build, and real screenshot review at 1440x900, 1366x768, 920x900, and 375x812.
-- T5-005 Unit A now keeps one persistent Leafer world group, reconciles keyed node visuals, caches appearance state, updates viewport by world transform only, and removes full-scene JSON invalidation.
-- Unit A passed 2/2 focused reconciliation tests, 8/8 focused Canvas browser tests, 18/18 full Chromium tests, a 4712-module build, forbidden rebuild-pattern scans, and real desktop/mobile screenshot review.
-- T5-005 Unit B now routes pointer, keyboard, toolbar, and context-menu multi-move, duplicate, and delete intent through one typed command dispatcher.
-- Selection normalization follows graph order, filters stale IDs, preserves one primary node, and makes node and connection selection exclusive; multi-drag previews locally and sends no request during pointermove.
-- Unit B passed 7/7 focused command/interaction tests, 25/25 full Chromium tests, a 4719-module production build, and real desktop/mobile screenshot review.
-- T5-005 Unit C now preserves existing group structure fields through the canonical API, provides typed flat group/ungroup/validated-connect commands, scopes shortcuts to Canvas focus, and exposes a synchronized keyboard-reachable graph/shortcut panel.
-- Unit C passed 9/9 focused frontend tests, 13/13 focused guarded backend tests, 190 full backend tests plus 5 subtests, 27/27 full Chromium tests, a 4723-module production build, and real desktop/mobile screenshot review.
-- T5-005 Unit D now provides 10%-800% zoom, graph/selection fit, grid-and-snap, edge/minimap toggles, deterministic align/distribute/auto-arrange commands, and canonical lock persistence with mutation protection.
-- Unit D passed 15/15 focused frontend tests, 1 focused guarded MySQL field test with 3 deselected, 33/33 full Chromium tests, a 4728-module production build, real desktop/mobile screenshot review, and fresh diff/hygiene gates.
+- T5-005 is `DONE - PASS`: one persistent keyed Leafer world, typed convergent commands, deterministic selection/multi-drag/group/connect/arrange/lock, synchronized DOM graph access, and 10%-800% view controls are complete.
+- Unit E adds requestAnimationFrame pointer coalescing, world-space SVG edges under one transform, memoized stable subtrees, 15 FPS minimap sampling, official axe analysis, and exact 200-node/300-connection mock-browser evidence.
+- Final performance recorded a 330 ms stable render, 60.03 FPS average, 16.8 ms frame p95, 4.2 ms pointer p95, no observed interaction long task, and 11.93 minimap updates/s on Chromium 149 SwiftShader with hardware acceleration disabled.
+- T5-005 closure passed Unit E 3/3, full Chromium 36/36, guarded backend 190/190, a 4731-module build, four required viewport screenshots, fresh diff review, and hygiene gates; `REPORT-T5-005.md` is authoritative.
 - The migration has not been applied to a user/runtime database and requires normal backup and Human migration authorization.
 - Ignored local `.db` artifacts and the pre-existing `revid_test_db` remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Define Unit E's focused 200-node/300-connection performance and accessibility closure matrix, then run required viewport, full regression, and documentation reconciliation checks before REPORT and `DONE - PASS`.
+Create and activate T5-006 Task/PLAN/PROGRESS before implementing autosave batching, idempotency, conflict handling, 100-step undo/redo, revisions, checkpoints, and restore.
 
 ## Blockers And Release Conditions
 
-- No blocker prevents T5-005 Unit E closure work.
+- No blocker prevents T5-006 planning and implementation.
 - Applying `f0a1b2c3d4e5` to user/runtime data requires reviewed backup discipline and Human migration authorization.
 - Credential rotation becomes Human-required only if the removed assignment was ever real or reused.
 - Local ignored `.db` deletion requires exact-path Human approval after MySQL backup/parity evidence.
@@ -98,7 +89,7 @@ Define Unit E's focused 200-node/300-connection performance and accessibility cl
 
 ## Worktree Protection
 
-- T5-005 Unit D started from clean `main` at `09bafc9d5affdb80bdda60ba92445cc4c1d68098`.
+- T5-005 Unit E started from clean `main` at `5a0372765d17e0447b68b2fa57e922ae6ceccaf1`.
 - Pre-existing staged, tracked-modified, untracked, unmerged, detached, and in-progress Git-operation state: none.
 - Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.

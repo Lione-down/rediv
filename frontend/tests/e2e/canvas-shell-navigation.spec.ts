@@ -268,7 +268,7 @@ test('mobile shell is rendered read-only and keeps accessible route controls', a
   await openShell(page, state, { width: 375, height: 812 })
 
   const stage = page.getByRole('region', { name: 'Revid 无限画布工作区' })
-  await expect(stage).toHaveAttribute('aria-readonly', 'true')
+  await expect(stage).toHaveAttribute('aria-description', '只读审阅模式')
   await expect(page.getByText('浏览审阅模式', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '画布 1' }).click()
   await expect(page.getByRole('button', { name: '新建画布' })).toHaveCount(0)

@@ -1,14 +1,16 @@
 # TASK-T5-005 Progress
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Completed unit: Unit A - persistent keyed Leafer world and incremental node reconciliation (`COMPLETE - PASS`)
 - Completed unit: Unit B - command contract, selection, and multi-node editing (`COMPLETE - PASS`)
 - Completed unit: Unit C - grouping, connection, shortcuts, and accessibility list (`COMPLETE - PASS`)
 - Completed unit: Unit D - view and arrange commands (`COMPLETE - PASS`)
-- Next unit: Unit E - closure evidence
+- Completed unit: Unit E - closure evidence (`COMPLETE - PASS`)
+- Next Task: T5-006 - autosave, conflicts, history, revisions, checkpoints, and restore
 - Updated: 2026-07-13
 - Unit C baseline HEAD: `29bfd5b23a596bb6bfc84adc5a6ff58513c4378b`
 - Unit D baseline HEAD: `09bafc9d5affdb80bdda60ba92445cc4c1d68098`
+- Unit E baseline HEAD: `5a0372765d17e0447b68b2fa57e922ae6ceccaf1`
 
 ## Completed Work
 
@@ -63,14 +65,28 @@
 - Persisted lock changes through the canonical node API with optimistic rollback and protected locked nodes from drag, duplicate, delete, group, ungroup, connect, and arrangement entry points.
 - Routed toolbar, context-menu, keyboard, and view-dock intent through the shared command dispatcher, retaining `Ctrl+Enter` and adding `Ctrl+L`, `Ctrl+0`, zoom shortcuts, and `Alt+Shift+F` help.
 - Added pure geometry/command and browser coverage, reviewed desktop/mobile screenshots, and completed focused, full Chromium, build, MySQL field, diff, UTF-8, file-size, sensitive-path, secret-candidate, and database-artifact checks.
+- Started Unit E from clean `main` at `5a0372765d17e0447b68b2fa57e922ae6ceccaf1`; local and `origin/main` were aligned at ahead/behind `0/0` with no staged, tracked-modified, untracked, unmerged, detached, or in-progress Git-operation state.
+- Re-read AGENTS, CURRENT, ROADMAP, the exact T5-005 Task/PLAN/PROGRESS, all linked ADRs, and the applicable performance, accessibility, architecture, and V2 design-system requirements.
+- Confirmed the current tool surface exposes no same-automation instance query, so concurrent execution could not be established before repository writes.
+- Inspected the renderer, stage watchers and pointer listeners, minimap path, current command/browser suites, Playwright configuration, package scripts, and the four-viewport accessibility evidence.
+- Locked Unit E to deterministic mock-browser 200-node/300-connection performance, automated axe and keyboard/zoom checks, required viewport review, full regression, and Task documentation reconciliation. Final local-MySQL 200/300 persistence certification remains T5-008 scope.
+- Added the official `@axe-core/playwright` dev dependency and deterministic Unit E browser harness with exact 200/300 seeding, recorded environment, 30-second interaction trace, twenty Canvas switches, bounded global-listener/heap signals, keyboard-only accessibility, 200% layout access, and four viewport screenshots.
+- Reproduced a focused baseline at 42.71 FPS with a 33.4 ms frame p95, then isolated repeated per-event viewport/edge/minimap work as the bounded performance gap.
+- Added requestAnimationFrame pointer coalescing, world-space SVG connection paths under one transform, memoized stable connection/minimap subtrees, and 15 FPS minimap snapshot sampling without changing graph persistence or command semantics.
+- Replaced unsupported `aria-readonly` on the Canvas region with accurate editable/read-only `aria-description`; axe serious/critical analysis now has zero violations.
+- Final mock-browser performance passed at 330 ms stable render, 60.03 average FPS, 16.8 ms frame p95, 4.2 ms pointer-feedback p95, no observed interaction long task, and 11.93 minimap updates/s on recorded SwiftShader Chromium.
+- Passed Unit E 3/3 focused tests, four required viewport screenshot review, full Chromium 36/36, guarded backend 190/190, and the 4731-module frontend build.
+- Completed fresh diff review plus strict UTF-8, 500-line, forbidden-render-pattern, sensitive-path, secret-candidate, tracked database-artifact, and `git diff --check` gates.
+- Wrote `REPORT-T5-005.md` and reconciled Task, PLAN, PROGRESS, CURRENT, and ROADMAP to `DONE - PASS` with T5-008 local-MySQL milestone certification explicitly deferred.
 
 ## Remaining Work
 
-- Complete Unit E focused performance, browser, accessibility, regression, and Task closure evidence.
+- No T5-005 implementation or verification work remains.
+- T5-008 retains final local-MySQL 200/300 load, save, close, reopen, checksum, restart, and Canvas milestone certification.
 
 ## Exact Next Action
 
-Start Unit E by defining the focused 200-node/300-connection performance and accessibility closure matrix, then run the required viewport, full regression, and documentation reconciliation checks before REPORT and `DONE - PASS`.
+Create and activate T5-006 Task/PLAN/PROGRESS before implementing autosave batching, idempotency, conflict handling, 100-step undo/redo, revisions, checkpoints, and restore.
 
 ## Files Changed
 
@@ -119,6 +135,15 @@ Start Unit E by defining the focused 200-node/300-connection performance and acc
 - `frontend/src/components/canvas/CanvasSelectionToolbar.vue`, `CanvasStage.vue`, `CanvasGraphAccessPanel.vue`, `canvas-renderer.ts`, `canvas-stage.scss` - arrange/lock surfaces, view integration, accessible help, locked visuals, and responsive geometry.
 - `frontend/src/components/canvas/composables/use-canvas-command-interactions.ts`, `use-canvas-context-menu.ts`, `use-canvas-stage-keyboard.ts`, `use-canvas-stage.ts`, `use-canvas-stage-presentation.ts`, `use-canvas-view-controls.ts` - shared entry points, view state, presentation geometry, keyboard ownership, and protected pointer behavior.
 - `frontend/tests/e2e/canvas-view-arrangement.spec.ts`, `canvas-command-contract.spec.ts`, `canvas-command-interactions.spec.ts` - pure geometry/command, browser interaction, mobile boundary, and screenshot evidence.
+- `frontend/package.json`, `frontend/package-lock.json` - official axe Playwright development dependency.
+- `frontend/src/components/canvas/canvas-pointer-frame.ts` - requestAnimationFrame pointermove coalescing with exact flush and cancellation.
+- `frontend/src/components/canvas/composables/use-canvas-connection-presentation.ts` - stable world-space SVG paths and one viewport transform.
+- `frontend/src/components/canvas/composables/use-canvas-minimap-presentation.ts` - 15 FPS sampled minimap nodes, metrics, and cached styles.
+- `frontend/src/components/canvas/CanvasStage.vue`, `canvas-stage.scss`, `composables/use-canvas-stage.ts` - world-transform edges, memoized subtrees, coalesced pointer flow, semantic read-only description, and minimap integration.
+- `frontend/tests/e2e/canvas-performance-accessibility.spec.ts` - exact 200/300 performance, environment, switch, axe, keyboard, zoom, mobile, and viewport evidence.
+- `frontend/tests/e2e/authenticated-workflow.spec.ts`, `canvas-shell-navigation.spec.ts` - semantic Canvas edit/review description assertions.
+- `ai/reports/REPORT-T5-005.md` - Task completion evidence and deferred boundary classification.
+- `ai/tasks/todo/TASK-T5-005.md`, `ai/tasks/doing/TASK-T5-005-PLAN.md`, `ai/tasks/doing/TASK-T5-005-PROGRESS.md`, `ai/state/CURRENT.md`, `ai/state/ROADMAP.md` - Unit E closure and T5-006 handoff.
 
 ## Commands And Results
 
@@ -171,6 +196,22 @@ Start Unit E by defining the focused 200-node/300-connection performance and acc
 - Unit D real screenshot review - PASS; inspected 1366x768 view dock and arrange/lock states plus 375x812 mobile-review controls, with the view dock, graph trigger, minimap, and graph panel clear of the review boundary.
 - Unit D initial static-gate wrapper - INVALID CHECK before execution because PowerShell parsed a colon after a variable name; no repository content or external state changed, and the corrected wrapper passed.
 - Unit D fresh diff and static gates - PASS; `git diff --check`, strict UTF-8, business-file size, forbidden-pattern, sensitive-path, secret-candidate, and database-artifact checks have zero findings.
+- Unit E required source-document and Git baseline reads - PASS; clean `main`, HEAD `5a0372765d17e0447b68b2fa57e922ae6ceccaf1`, local and upstream ahead/behind `0/0`.
+- Unit E same-automation instance query - unavailable in the current tool surface; repository and memory baseline showed no overlapping work.
+- Design and Playwright skill preflight - PASS with installation caveat; `npx` is available, while the optional design update script and durable-context file are absent with no implementation impact.
+- Initial Unit E focused run - EXPECTED BASELINE FAILURE; 42.71 FPS and 33.4 ms frame p95 exposed repeated viewport work, listener instrumentation retained detached-DOM IDs, and axe found unsupported `aria-readonly` on a region.
+- Corrected focused harness - PASS; listener audit scopes global targets, pointer feedback samples once per frame, minimap counts update batches, and SwiftShader is classified as hardware acceleration disabled.
+- Final Unit E focused suite - PASS; 3/3 tests cover exact 200/300 performance, twenty switches, axe, keyboard, 200% access, mobile review, and four viewport screenshots.
+- Final performance selector after environment correction - PASS; stable render 330 ms, 60.03 FPS, frame p95 16.8 ms, pointer p95 4.2 ms, longest observed interaction task 0 ms, minimap 11.93 updates/s.
+- Required viewport screenshot review - PASS; reviewed 1440x900, 1366x768, 920x900, and 375x812 output under `output/playwright/t5-005-unit-e/` with stable graph, panel, route, dock, minimap, and mobile review geometry.
+- First full Chromium run - RESOLVED TEST CONTRACT; 32/36 passed and four viewport tests retained stale `aria-readonly` assertions after the axe fix. Updating only those assertions produced 4/4 focused viewport PASS.
+- Final full Chromium regression - PASS; 36/36 tests in 73.4 seconds.
+- Final guarded backend regression - PASS; 190/190 tests in 179.16 seconds using the project virtual environment and guarded MySQL fixtures.
+- Final frontend build - PASS; `vue-tsc` and Vite completed with 4731 modules.
+- Final dependency audit - PASS; npm reported zero vulnerabilities after adding the axe development dependency.
+- Fresh diff and static gates - PASS; `git diff --check`, strict UTF-8, business-file size, forbidden renderer patterns, sensitive paths, secret candidates, and tracked database artifacts have zero findings.
+- Initial staged env/database wrapper - INVALID CHECK; its repo-wide `.env.*` match included pre-existing tracked `.env.example` template paths that were not opened, modified, or staged. The corrected scoped gate checks staged sensitive paths separately from repo-wide database artifacts.
+- Exact staging and hygiene - PASS; exactly 17 owned paths, no unstaged or untracked remainder, cached diff, strict UTF-8, trailing whitespace, 500-line limit, staged sensitive paths, strong secret candidates, tracked database artifacts, and real `.env` ignore probes all passed. Pre-existing `.env.example` templates remain untouched and outside the commit.
 
 ## Blockers And Release Conditions
 
@@ -178,6 +219,6 @@ Start Unit E by defining the focused 200-node/300-connection performance and acc
 - No Unit B implementation or verification blocker remains.
 - No Unit C implementation or verification blocker remains.
 - No Unit D implementation or verification blocker remains.
-- No blocker prevents Unit E closure work.
+- No T5-005 blocker remains.
 - Applying the existing migration to user/runtime data still requires Human authorization; T5-005 did not apply it or access a user/runtime database.
 - Ignored `.env`, local `.db`, and the pre-existing `revid_test_db` remain untouched.

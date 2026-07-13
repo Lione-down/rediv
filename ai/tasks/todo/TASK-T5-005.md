@@ -1,10 +1,11 @@
 # TASK-T5-005 - Incremental renderer and command interactions
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Phase: Product V2 / Phase 5
 - Dependency: T5-004 `DONE - PASS`
 - Owner: Codex Project Lead Engineer
 - Started: 2026-07-13
+- Completed: 2026-07-13
 
 ## Objective
 
@@ -46,7 +47,7 @@ Replace the rebuild-on-change Canvas renderer with a persistent keyed Leafer sce
 - [x] The shortcut contract is Canvas-focus scoped, ignores editable controls, and is documented in an accessible panel.
 - [x] Leafer visuals have a synchronized keyboard-reachable DOM list for locate, selection, connection review, and allowed deletion.
 - [x] Zoom spans 10% to 800%; fit graph/selection and view toggles remain usable across the required viewport matrix.
-- [ ] Focused unit/browser tests, frontend build, relevant regression, fresh diff review, and hygiene gates pass for completed Units A-D; Unit E Task-level closure certification remains.
+- [x] Focused unit/browser tests, frontend build, relevant regression, fresh diff review, and hygiene gates pass for all Units A-E.
 
 ## Linked Decisions And Specifications
 

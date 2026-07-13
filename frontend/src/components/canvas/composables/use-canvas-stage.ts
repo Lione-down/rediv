@@ -10,11 +10,8 @@ import {
 } from '../../../modules/canvas/canvas-commands'
 import {
   buildConnectionPath,
-  calculateMinimapMetrics,
   clampZoom,
   minimapPointToWorld,
-  minimapNodeStyle as getMinimapNodeStyle,
-  minimapViewportStyle as getMinimapViewportStyle,
   nodeInputAnchor as getNodeInputAnchor,
   nodeOutputAnchor as getNodeOutputAnchor,
   normalizeViewport,
@@ -22,31 +19,26 @@ import {
   rectFromPoints,
   snapDeltaToGrid,
   surfaceToWorld,
-  viewportWorldRect as getViewportWorldRect,
   type Point,
   type ViewportState,
 } from '../canvas-geometry'
 import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
+import { createPointerFrameQueue } from '../canvas-pointer-frame'
 import { useCanvasCommandInteractions } from './use-canvas-command-interactions'
+import { useCanvasConnectionPresentation } from './use-canvas-connection-presentation'
 import { useCanvasContextMenu } from './use-canvas-context-menu'
+import { useCanvasMinimapPresentation } from './use-canvas-minimap-presentation'
 import { useCanvasStageKeyboard } from './use-canvas-stage-keyboard'
 import { useCanvasStagePresentation } from './use-canvas-stage-presentation'
 import { useCanvasViewControls } from './use-canvas-view-controls'
 
-interface DragState {
-  pointerId: number | null
-  startWorldPoint: Point
-  origins: CanvasNodePosition[]
-  moved: boolean
-}
+interface DragState { pointerId: number | null; startWorldPoint: Point; origins: CanvasNodePosition[]; moved: boolean }
 interface PanState { pointerId: number | null; startClientX: number; startClientY: number; originX: number; originY: number }
 interface DraftConnectionState { fromNodeId: string; pointerId: number | null; currentX: number; currentY: number }
 interface MarqueeState { pointerId: number | null; start: Point; current: Point; additive: boolean }
 interface NativePointerLikeEvent extends MouseEvent { pointerId?: number }
 interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLikeEvent }
-interface CanvasStageOptions {
-  isReadOnly?: () => boolean
-}
+interface CanvasStageOptions { isReadOnly?: () => boolean }
 export function useCanvasStage(options: CanvasStageOptions = {}) {
   const canvasStore = useCanvasStore()
   const stageRef = ref<HTMLElement | null>(null)
@@ -69,9 +61,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (canvasStore.mode === 'hand' || isSpacePressed.value) return 'grab'
     return 'default'
   })
-  const viewportWorldRect = computed(() => getViewportWorldRect(getViewport(), surfaceViewportSize.value))
-  const minimapMetrics = computed(() => calculateMinimapMetrics(canvasStore.nodes, viewportWorldRect.value, minimapSize.value))
-  const minimapViewportStyle = computed(() => getMinimapViewportStyle(viewportWorldRect.value, minimapMetrics.value))
   const temporaryConnectionPath = computed(() => {
     const draft = draftConnection.value
     return draft ? buildConnectionPath(nodeOutputAnchor(draft.fromNodeId), { x: draft.currentX, y: draft.currentY }) : ''
@@ -137,6 +126,13 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       y: next.y ?? current.y,
     })
   }
+  const { minimapMetrics, minimapNodes, minimapNodeStyle, minimapViewportStyle } = useCanvasMinimapPresentation({
+    getMinimapSize: () => minimapSize.value,
+    getNodes: () => canvasStore.nodes,
+    getViewport,
+    getViewportSize: () => surfaceViewportSize.value,
+  })
+  const { connectionPaths, connectionWorldTransform } = useCanvasConnectionPresentation({ getConnections: () => canvasStore.connections, getNodes: () => canvasStore.nodes, getViewport })
   const {
     applyZoomAtPoint, areEdgesVisible, fitGraph, fitSelection, handleViewKeyDown,
     isGridEnabled, isMinimapVisible, maybeAutoFitReadonly, setZoomPercent,
@@ -175,7 +171,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     const node = findNode(nodeId)
     return node ? getNodeOutputAnchor(node, getViewport()) : { x: 0, y: 0 }
   }
-  function minimapNodeStyle(node: CanvasNode) { return getMinimapNodeStyle(node, minimapMetrics.value) }
   function centerNodeInViewport(nodeId: string) {
     const node = findNode(nodeId)
     if (!node) return
@@ -296,7 +291,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     draftConnection.value = { fromNodeId: nodeId, pointerId: event.origin?.pointerId ?? null, currentX: anchor.x, currentY: anchor.y }
     bindWindowPointerListeners()
   }
-  function handleWindowPointerMove(event: PointerEvent) {
+  function processWindowPointerMove(event: PointerEvent) {
     if (panState) {
       if (panState.pointerId !== null && event.pointerId !== panState.pointerId) return
       updateViewport({ x: panState.originX + event.clientX - panState.startClientX, y: panState.originY + event.clientY - panState.startClientY })
@@ -335,6 +330,10 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     const point = toSurfacePoint(event.clientX, event.clientY)
     if (point) draftConnection.value = { ...draft, currentX: point.x, currentY: point.y }
   }
+  function handleWindowPointerMove(event: PointerEvent) {
+    pointerMoveQueue.schedule(event)
+  }
+  const pointerMoveQueue = createPointerFrameQueue(processWindowPointerMove)
   function findConnectionTarget(point: Point, sourceNodeId: string) {
     let match: CanvasNode | null = null
     let matchedDistance = Number.POSITIVE_INFINITY
@@ -354,6 +353,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     draftConnection.value = null
   }
   function handleWindowPointerUp(event: PointerEvent) {
+    pointerMoveQueue.flush()
     if (panState && (panState.pointerId === null || event.pointerId === panState.pointerId)) { panState = null; isPanning.value = false }
     if (dragState && (dragState.pointerId === null || event.pointerId === dragState.pointerId)) {
       const origins = dragState.origins
@@ -401,6 +401,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     draftConnection.value = null
     marquee.value = null
     isPanning.value = false
+    pointerMoveQueue.clear()
     unbindWindowPointerListeners()
     return wasActive
   }
@@ -466,6 +467,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     () => renderer?.updateViewport(),
   )
   onBeforeUnmount(() => {
+    pointerMoveQueue.clear()
     unbindWindowPointerListeners()
     canvasSurfaceRef.value?.removeEventListener('wheel', handleSurfaceWheel)
     window.removeEventListener('keydown', handleWindowKeyDown, true)
@@ -482,9 +484,9 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   })
 
   return {
-    buildConnectionPath, canvasStore, canvasSurfaceRef, centerNodeInViewport, handleConnectionPointerDown,
-    handleMinimapPointerDown, minimapNodeStyle, minimapRef,
-    minimapViewportStyle, nodeInputAnchor, nodeOutputAnchor, stageRef, statusBadgeStyle,
+    canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionWorldTransform, handleConnectionPointerDown,
+    handleMinimapPointerDown, minimapNodeStyle, minimapNodes, minimapRef,
+    minimapViewportStyle, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
     viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu, selectionToolbarStyle,
     canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection, closeGraphPanel, connectSelection,

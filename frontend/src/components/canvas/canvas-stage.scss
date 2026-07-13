@@ -215,6 +215,8 @@ path.draft {
   box-shadow: var(--shadow-soft);
 }
 
+.minimap-content { display: contents; }
+
 .minimap-node {
   position: absolute;
   border: 0;
