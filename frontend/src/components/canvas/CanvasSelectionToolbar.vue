@@ -1,21 +1,53 @@
 <script setup lang="ts">
-import { Copy, Group, Link2, Trash2, Ungroup } from 'lucide-vue-next'
+import { Copy, Group, Link2, LockKeyhole, LockKeyholeOpen, Trash2, Ungroup, Workflow } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 
-defineProps<{
+type CanvasArrangeMenuKey =
+  | 'align-left' | 'align-center-x' | 'align-right' | 'align-top' | 'align-center-y' | 'align-bottom'
+  | 'distribute-horizontal' | 'distribute-vertical' | 'auto-arrange'
+
+const props = defineProps<{
   count: number
   canConnect: boolean
+  canDelete: boolean
   canDuplicate: boolean
   canGroup: boolean
+  canAlign: boolean
+  canAutoArrange: boolean
+  canDistribute: boolean
   canUngroup: boolean
+  hasLocked: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
+  arrange: [action: CanvasArrangeMenuKey]
   duplicate: []
   group: []
   ungroup: []
   connect: []
   delete: []
+  toggleLock: []
 }>()
+const isArrangeOpen = ref(false)
+
+const arrangeOptions = computed(() => [
+  ...((props.canAlign || props.canGroup) ? [
+    { label: '左对齐', key: 'align-left' }, { label: '水平居中', key: 'align-center-x' },
+    { label: '右对齐', key: 'align-right' }, { label: '顶部对齐', key: 'align-top' },
+    { label: '垂直居中', key: 'align-center-y' }, { label: '底部对齐', key: 'align-bottom' },
+  ] : []),
+  ...(props.canDistribute ? [
+    { label: '水平分布', key: 'distribute-horizontal' },
+    { label: '垂直分布', key: 'distribute-vertical' },
+  ] : []),
+  ...(props.canAutoArrange ? [{ label: '自动排列', key: 'auto-arrange' }] : []),
+])
+const canArrangeNodes = computed(() => arrangeOptions.value.length > 0)
+
+function handleArrangeSelect(key: string | number) {
+  emit('arrange', key as CanvasArrangeMenuKey)
+  isArrangeOpen.value = false
+}
 </script>
 
 <template>
@@ -27,13 +59,42 @@ defineEmits<{
     <button v-if="canUngroup" type="button" aria-label="取消组合" title="取消组合 (Ctrl+Shift+G)" @click="$emit('ungroup')">
       <Ungroup :size="16" aria-hidden="true" />
     </button>
-    <button v-if="canConnect" type="button" aria-label="连接所选两个节点" title="连接所选两个节点 (Ctrl+Enter)" @click="$emit('connect')">
+    <button v-if="canConnect" type="button" aria-label="连接所选两个节点" title="连接所选两个节点 (Ctrl+L)" @click="$emit('connect')">
       <Link2 :size="16" aria-hidden="true" />
+    </button>
+    <div v-if="canArrangeNodes" class="arrange-menu" @keydown.esc.stop="isArrangeOpen = false">
+      <button
+        type="button"
+        aria-label="排列所选节点"
+        title="排列所选节点"
+        :aria-expanded="isArrangeOpen"
+        @click="isArrangeOpen = !isArrangeOpen"
+      >
+        <Workflow :size="16" aria-hidden="true" />
+      </button>
+      <div v-if="isArrangeOpen" class="arrange-panel" role="menu" aria-label="排列所选节点">
+        <button
+          v-for="option in arrangeOptions"
+          :key="option.key"
+          type="button"
+          role="menuitem"
+          @click="handleArrangeSelect(option.key)"
+        >{{ option.label }}</button>
+      </div>
+    </div>
+    <button
+      type="button"
+      :aria-label="hasLocked ? '解锁所选节点' : '锁定所选节点'"
+      :title="hasLocked ? '解锁所选节点' : '锁定所选节点'"
+      @click="$emit('toggleLock')"
+    >
+      <LockKeyholeOpen v-if="hasLocked" :size="16" aria-hidden="true" />
+      <LockKeyhole v-else :size="16" aria-hidden="true" />
     </button>
     <button v-if="canDuplicate" type="button" aria-label="复制所选节点" title="复制所选节点 (Ctrl+D)" @click="$emit('duplicate')">
       <Copy :size="16" aria-hidden="true" />
     </button>
-    <button class="is-danger" type="button" aria-label="删除所选节点" title="删除所选节点 (Delete)" @click="$emit('delete')">
+    <button v-if="canDelete" class="is-danger" type="button" aria-label="删除所选节点" title="删除所选节点 (Delete)" @click="$emit('delete')">
       <Trash2 :size="16" aria-hidden="true" />
     </button>
   </div>
@@ -62,6 +123,31 @@ defineEmits<{
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.arrange-menu { position: relative; }
+.arrange-panel {
+  position: absolute;
+  top: var(--arrange-menu-top, calc(100% + 10px));
+  bottom: var(--arrange-menu-bottom, auto);
+  left: 50%;
+  display: grid;
+  width: 144px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-floating, var(--shadow-soft));
+  transform: translateX(-50%);
+}
+.arrange-panel button {
+  display: flex;
+  width: 136px;
+  justify-content: flex-start;
+  padding: 0 10px;
+  font-size: 12px;
 }
 
 button {

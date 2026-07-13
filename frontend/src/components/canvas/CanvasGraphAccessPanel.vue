@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link2, LocateFixed, Trash2, X } from 'lucide-vue-next'
+import { Link2, LocateFixed, LockKeyhole, Trash2, X } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useCanvasStore } from '../../store/canvas'
 import { useCanvasCommandInteractions } from './composables/use-canvas-command-interactions'
@@ -21,6 +21,10 @@ const shortcuts = [
   ['Ctrl+G', '组合所选节点'],
   ['Ctrl+Shift+G', '取消组合'],
   ['Ctrl+Enter', '连接两个所选节点'],
+  ['Ctrl+L', '连接两个所选节点'],
+  ['Ctrl+0', '适配全部节点'],
+  ['Ctrl++ / Ctrl+-', '放大或缩小画布'],
+  ['Alt+Shift+F', '自动排列节点'],
   ['Delete', '删除所选内容'],
   ['Esc', '取消操作或清除选择'],
   ['?', '打开此面板'],
@@ -97,10 +101,13 @@ onMounted(() => {
             @click="selectAndLocateNode(node.id)"
           >
             <LocateFixed :size="15" aria-hidden="true" />
-            <span><strong>{{ node.title }}</strong><small>{{ node.type === 'group' ? '组合' : node.type }}</small></span>
+            <span>
+              <strong>{{ node.title }}</strong>
+              <small><LockKeyhole v-if="node.isLocked" :size="12" aria-hidden="true" />{{ node.isLocked ? '已锁定 · ' : '' }}{{ node.type === 'group' ? '组合' : node.type }}</small>
+            </span>
           </button>
           <button
-            v-if="!readonly"
+            v-if="!readonly && !node.isLocked"
             class="danger-action"
             type="button"
             :aria-label="`删除节点 ${node.title}`"
@@ -188,6 +195,7 @@ header strong { font-size: 14px; }
 header span,
 small,
 .empty-copy { color: var(--text-secondary); font-size: 12px; }
+small { display: flex; align-items: center; gap: 4px; }
 
 h2 {
   margin: 14px 0 8px;
@@ -254,5 +262,12 @@ kbd {
 @media (hover: hover) {
   button:hover { background: var(--bg-panel-subtle); }
   .danger-action:hover { color: var(--danger); }
+}
+
+@media (max-width: 720px) {
+  .graph-access-panel {
+    bottom: max(174px, calc(env(safe-area-inset-bottom) + 158px));
+    max-height: calc(100% - 206px);
+  }
 }
 </style>

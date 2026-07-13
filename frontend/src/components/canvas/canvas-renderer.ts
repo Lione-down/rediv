@@ -22,6 +22,7 @@ interface NodeVisualState {
   content: string
   height: number
   isSelected: boolean
+  isLocked: boolean
   status: CanvasNode['status']
   title: string
   type: CanvasNode['type']
@@ -73,6 +74,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       content: node.content ?? '',
       height: node.height,
       isSelected: options.getSelectedNodeIds().includes(node.id),
+      isLocked: Boolean(node.isLocked),
       status: node.status,
       title: node.title,
       type: node.type,
@@ -85,6 +87,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       left.content === right.content &&
       left.height === right.height &&
       left.isSelected === right.isSelected &&
+      left.isLocked === right.isLocked &&
       left.status === right.status &&
       left.title === right.title &&
       left.type === right.type &&
@@ -155,7 +158,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       fill: options.cssVar('--bg-panel', 'white'),
       stroke: options.cssVar('--border-strong', 'oklch(80% 0.014 245)'),
       strokeWidth: 1.5,
-      visible: !isGroup,
+      visible: !isGroup && !node.isLocked,
     })
     const output = new Ellipse({
       x: node.width - 8,
@@ -165,12 +168,12 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       fill: options.cssVar('--accent-select', 'oklch(58% 0.115 252)'),
       stroke: options.cssVar('--canvas-port-outline', 'rgba(255, 255, 255, 0.95)'),
       strokeWidth: 2,
-      visible: !isGroup,
+      visible: !isGroup && !node.isLocked,
     })
     const typeText = new Text({
       x: 16,
       y: 14,
-      text: isGroup ? node.title : node.type.toUpperCase(),
+      text: `${node.isLocked ? '已锁定 · ' : ''}${isGroup ? node.title : node.type.toUpperCase()}`,
       fill: options.cssVar('--text-muted', 'oklch(62% 0.014 245)'),
       fontSize: 11,
       fontWeight: '500',
@@ -235,12 +238,12 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     const hasEmphasis = node.status === 'running' || node.status === 'success' || node.status === 'warning' || nextState.isSelected
     visual.card.strokeWidth = hasEmphasis ? 2 : 1
     visual.card.shadow = node.type === 'group' ? undefined : { x: 0, y: 18, blur: 42, color: nodeShadowColor(node) }
-    visual.input.visible = node.type !== 'group'
-    visual.output.visible = node.type !== 'group'
+    visual.input.visible = node.type !== 'group' && !node.isLocked
+    visual.output.visible = node.type !== 'group' && !node.isLocked
     visual.input.y = node.height / 2 - 8
     visual.output.x = node.width - 8
     visual.output.y = node.height / 2 - 8
-    visual.typeText.text = node.type === 'group' ? node.title : node.type.toUpperCase()
+    visual.typeText.text = `${node.isLocked ? '已锁定 · ' : ''}${node.type === 'group' ? node.title : node.type.toUpperCase()}`
     visual.titleText.width = node.width - 32
     visual.titleText.text = node.type === 'group' ? '' : node.title
     visual.contentText.width = node.width - 32

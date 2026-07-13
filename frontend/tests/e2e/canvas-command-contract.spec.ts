@@ -97,6 +97,7 @@ test('duplicate command copies selected nodes and only their internal connection
     deleteNode: async () => undefined,
     deleteConnection: async () => undefined,
     updateNodeParent: async () => undefined,
+    updateNodeLocked: async () => undefined,
     queueNodeMove: () => undefined,
     setSelection: (nodeIds) => { selection = nodeIds },
     selectConnection: () => undefined,
@@ -130,6 +131,7 @@ test('move and delete envelopes execute each selected target through one dispatc
     deleteNode: async (nodeId) => { deletedNodes.push(nodeId) },
     deleteConnection: async (connectionId) => { deletedConnections.push(connectionId) },
     updateNodeParent: async () => undefined,
+    updateNodeLocked: async () => undefined,
     queueNodeMove: (nodeId, x, y) => { queuedMoves.push([nodeId, x, y]) },
     setSelection: () => undefined,
     selectConnection: () => undefined,
@@ -182,6 +184,7 @@ test('group, ungroup, and connect commands validate and execute deterministic gr
       const target = nodes.find((node) => node.id === nodeId)
       if (target) target.parentNodeId = parentNodeId
     },
+    updateNodeLocked: async () => undefined,
     deleteNode: async (nodeId) => { deletedNodes.push(nodeId) },
     deleteConnection: async () => undefined,
     queueNodeMove: () => undefined,

@@ -1,8 +1,13 @@
-import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
-import { createMoveNodesCommand, type CanvasNodePosition } from '../../../modules/canvas/canvas-commands'
+import {
+  createMoveNodesCommand,
+  isArrangeEligibleNode,
+  type CanvasAlignment,
+  type CanvasDistribution,
+  type CanvasNodePosition,
+} from '../../../modules/canvas/canvas-commands'
 import {
   buildConnectionPath,
   calculateMinimapMetrics,
@@ -15,9 +20,9 @@ import {
   normalizeViewport,
   nodeIntersectsRect,
   rectFromPoints,
+  snapDeltaToGrid,
   surfaceToWorld,
   viewportWorldRect as getViewportWorldRect,
-  worldToSurface,
   type Point,
   type ViewportState,
 } from '../canvas-geometry'
@@ -25,6 +30,8 @@ import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
 import { useCanvasCommandInteractions } from './use-canvas-command-interactions'
 import { useCanvasContextMenu } from './use-canvas-context-menu'
 import { useCanvasStageKeyboard } from './use-canvas-stage-keyboard'
+import { useCanvasStagePresentation } from './use-canvas-stage-presentation'
+import { useCanvasViewControls } from './use-canvas-view-controls'
 
 interface DragState {
   pointerId: number | null
@@ -37,9 +44,6 @@ interface DraftConnectionState { fromNodeId: string; pointerId: number | null; c
 interface MarqueeState { pointerId: number | null; start: Point; current: Point; additive: boolean }
 interface NativePointerLikeEvent extends MouseEvent { pointerId?: number }
 interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLikeEvent }
-interface StageNotice { kind: 'missing' | 'loading' | 'error' | 'empty'; title: string; detail: string; canRetry?: boolean }
-type StatusVisualState = Extract<NonNullable<CanvasNode['status']>, 'running' | 'success' | 'warning'>
-
 interface CanvasStageOptions {
   isReadOnly?: () => boolean
 }
@@ -60,13 +64,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   let dragState: DragState | null = null
   let panState: PanState | null = null
   let windowPointerListenersBound = false
-  const statusIconMap: Record<StatusVisualState, typeof Loader2 | typeof CheckCircle2 | typeof AlertCircle> = {
-    running: Loader2, success: CheckCircle2, warning: AlertCircle,
-  }
-  const nodeAppearances = computed(() => canvasStore.nodes.map(({ id, type, title, content, status, width, height }) => ({
-    id, type, title, content, status, width, height,
-  })))
-  const nodePositions = computed(() => canvasStore.nodes.map(({ id, x, y }) => ({ id, x, y })))
   const viewportCursor = computed(() => {
     if (isPanning.value) return 'grabbing'
     if (canvasStore.mode === 'hand' || isSpacePressed.value) return 'grab'
@@ -75,10 +72,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   const viewportWorldRect = computed(() => getViewportWorldRect(getViewport(), surfaceViewportSize.value))
   const minimapMetrics = computed(() => calculateMinimapMetrics(canvasStore.nodes, viewportWorldRect.value, minimapSize.value))
   const minimapViewportStyle = computed(() => getMinimapViewportStyle(viewportWorldRect.value, minimapMetrics.value))
-  const statusNodes = computed(() => canvasStore.nodes.filter(
-    (node): node is CanvasNode & { status: StatusVisualState } =>
-      node.status === 'running' || node.status === 'success' || node.status === 'warning',
-  ))
   const temporaryConnectionPath = computed(() => {
     const draft = draftConnection.value
     return draft ? buildConnectionPath(nodeOutputAnchor(draft.fromNodeId), { x: draft.currentX, y: draft.currentY }) : ''
@@ -87,32 +80,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (!marquee.value) return null
     const rect = rectFromPoints(marquee.value.start, marquee.value.current)
     return { left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` }
-  })
-  const selectionToolbarStyle = computed(() => {
-    if (options.isReadOnly?.() || !canvasStore.selectedNodes.length) return null
-    const viewport = getViewport()
-    const left = Math.min(...canvasStore.selectedNodes.map((node) => worldToSurface({ x: node.x, y: node.y }, viewport).x))
-    const right = Math.max(...canvasStore.selectedNodes.map((node) => worldToSurface({ x: node.x + node.width, y: node.y }, viewport).x))
-    const top = Math.min(...canvasStore.selectedNodes.map((node) => worldToSurface({ x: node.x, y: node.y }, viewport).y))
-    const bottom = Math.max(...canvasStore.selectedNodes.map((node) => worldToSurface({ x: node.x, y: node.y + node.height }, viewport).y))
-    const x = Math.max(92, Math.min((left + right) / 2, surfaceViewportSize.value.width - 92))
-    const y = top >= 60 ? top - 56 : Math.min(bottom + 12, surfaceViewportSize.value.height - 52)
-    return { left: `${x}px`, top: `${Math.max(12, y)}px` }
-  })
-  const stageNotice = computed<StageNotice | null>(() => {
-    if (!canvasStore.activeProjectId) {
-      return { kind: 'missing', title: '未选择项目', detail: '请从项目列表进入工作流后加载画布。' }
-    }
-    if (canvasStore.isLoading && !canvasStore.hasLoaded) {
-      return { kind: 'loading', title: '正在加载画布', detail: '正在同步项目节点与连线…' }
-    }
-    if (canvasStore.loadError) {
-      return { kind: 'error', title: '画布加载失败', detail: canvasStore.loadError, canRetry: true }
-    }
-    if (canvasStore.hasLoaded && canvasStore.nodes.length === 0) {
-      return { kind: 'empty', title: '画布为空', detail: '当前项目还没有节点。' }
-    }
-    return null
   })
   const {
     closeContextMenu, contextMenu, contextMenuOptions, handleContextMenu,
@@ -125,7 +92,13 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     toSurfacePoint,
   })
   const {
+    alignSelection,
+    autoArrange,
+    canAlignSelection: canAlignSelectionNow,
+    canAutoArrange: canAutoArrangeNow,
     canConnectSelection: canConnectSelectionNow,
+    canDeleteSelection: canDeleteSelectionNow,
+    canDistributeSelection: canDistributeSelectionNow,
     canDuplicateSelection: canDuplicateSelectionNow,
     canGroupSelection: canGroupSelectionNow,
     canUngroupSelection: canUngroupSelectionNow,
@@ -133,16 +106,24 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     connectSelection,
     deleteSelection,
     duplicateSelection,
+    distributeSelection,
     groupSelection,
     handleCommandKeyDown,
+    hasLockedSelection: hasLockedSelectionNow,
+    toggleLockSelection,
     ungroupSelection,
   } = useCanvasCommandInteractions({
     isReadOnly: () => options.isReadOnly?.() ?? false,
   })
   const canConnectSelection = computed(() => canConnectSelectionNow())
+  const canDeleteSelection = computed(() => canDeleteSelectionNow())
   const canDuplicateSelection = computed(() => canDuplicateSelectionNow())
   const canGroupSelection = computed(() => canGroupSelectionNow())
   const canUngroupSelection = computed(() => canUngroupSelectionNow())
+  const canAlignSelection = computed(() => canAlignSelectionNow())
+  const canDistributeSelection = computed(() => canDistributeSelectionNow())
+  const canAutoArrange = computed(() => canAutoArrangeNow())
+  const hasLockedSelection = computed(() => hasLockedSelectionNow())
   function cssVar(name: string, fallback: string) {
     if (!canvasSurfaceRef.value) return fallback
     return getComputedStyle(canvasSurfaceRef.value).getPropertyValue(name).trim() || fallback
@@ -156,6 +137,26 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       y: next.y ?? current.y,
     })
   }
+  const {
+    applyZoomAtPoint, areEdgesVisible, fitGraph, fitSelection, handleViewKeyDown,
+    isGridEnabled, isMinimapVisible, maybeAutoFitReadonly, setZoomPercent,
+    toggleEdges, toggleGrid, toggleMinimap, zoomIn, zoomOut, zoomPercent,
+  } = useCanvasViewControls({
+    focusStage: focusCanvasStage,
+    getViewport,
+    getViewportSize: () => surfaceViewportSize.value,
+    isReadOnly: () => options.isReadOnly?.() ?? false,
+    updateViewport,
+  })
+  const {
+    nodeAppearances, nodePositions, selectionToolbarStyle, stageNotice, statusBadgeStyle,
+    statusIconMap, statusLabel, statusNodes, surfaceNodeRectStyle,
+  } = useCanvasStagePresentation({
+    canvasStore,
+    getViewport,
+    getViewportSize: () => surfaceViewportSize.value,
+    isReadOnly: () => options.isReadOnly?.() ?? false,
+  })
   function findNode(nodeId: string) { return canvasStore.nodes.find((node) => node.id === nodeId) ?? null }
   function findNodeAtWorldPoint(point: Point) {
     const orderedNodes = [...canvasStore.nodes].sort((left, right) => (
@@ -175,20 +176,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     return node ? getNodeOutputAnchor(node, getViewport()) : { x: 0, y: 0 }
   }
   function minimapNodeStyle(node: CanvasNode) { return getMinimapNodeStyle(node, minimapMetrics.value) }
-  function surfaceNodeRectStyle(node: CanvasNode) {
-    const position = worldToSurface({ x: node.x, y: node.y }, getViewport())
-    const zoom = getViewport().zoom
-    return { left: `${position.x}px`, top: `${position.y}px`, width: `${node.width * zoom}px`, height: `${node.height * zoom}px` }
-  }
-  function statusBadgeStyle() {
-    const zoom = getViewport().zoom
-    return { left: `${16 * zoom}px`, top: `${14 * zoom}px`, transform: `scale(${Math.max(0.88, Math.min(zoom, 1.2))})`, transformOrigin: 'top left' }
-  }
-  function statusLabel(status: StatusVisualState) {
-    if (status === 'running') return '运行中'
-    if (status === 'success') return '已完成'
-    return '生成失败'
-  }
   function centerNodeInViewport(nodeId: string) {
     const node = findNode(nodeId)
     if (!node) return
@@ -199,6 +186,15 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     })
   }
   function focusCanvasStage() { stageRef.value?.focus({ preventScroll: true }) }
+  function arrangeSelectionFromToolbar(action: string) {
+    if (action.startsWith('align-')) {
+      return alignSelection('toolbar', action.slice('align-'.length) as CanvasAlignment)
+    }
+    if (action.startsWith('distribute-')) {
+      return distributeSelection('toolbar', action.slice('distribute-'.length) as CanvasDistribution)
+    }
+    return autoArrange('toolbar')
+  }
   function closeGraphPanel() { isGraphPanelOpen.value = false }
   function toggleGraphPanel() { isGraphPanelOpen.value = !isGraphPanelOpen.value }
   function handleMinimapPointerDown(event: PointerEvent) {
@@ -277,7 +273,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (hasModifier) canvasStore.selectNode(nodeId, 'toggle')
     else if (!canvasStore.selectedNodeIds.includes(nodeId)) canvasStore.selectNode(nodeId)
     if (options.isReadOnly?.()) return
-    if (node.type === 'group' || node.parentNodeId) return
+    if (!isArrangeEligibleNode(node) || canvasStore.selectedNodes.some((selectedNode) => !isArrangeEligibleNode(selectedNode))) return
     if (!canvasStore.selectedNodeIds.includes(nodeId)) return
     const worldPoint = surfaceToWorld(point, getViewport())
     dragState = {
@@ -293,7 +289,8 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (shouldStartPan(event.origin, false)) return startPan(event.origin)
     canvasStore.selectNode(nodeId)
     if (options.isReadOnly?.()) return
-    if (findNode(nodeId)?.parentNodeId) return
+    const sourceNode = findNode(nodeId)
+    if (!sourceNode || !isArrangeEligibleNode(sourceNode)) return
     const anchor = nodeOutputAnchor(nodeId)
     dragState = null
     draftConnection.value = { fromNodeId: nodeId, pointerId: event.origin?.pointerId ?? null, currentX: anchor.x, currentY: anchor.y }
@@ -310,8 +307,13 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       const point = toSurfacePoint(event.clientX, event.clientY)
       if (!point) return
       const worldPoint = surfaceToWorld(point, getViewport())
-      const deltaX = worldPoint.x - dragState.startWorldPoint.x
-      const deltaY = worldPoint.y - dragState.startWorldPoint.y
+      let deltaX = worldPoint.x - dragState.startWorldPoint.x
+      let deltaY = worldPoint.y - dragState.startWorldPoint.y
+      if (isGridEnabled.value && dragState.origins.length) {
+        const snapped = snapDeltaToGrid(dragState.origins[0], { x: deltaX, y: deltaY })
+        deltaX = snapped.x
+        deltaY = snapped.y
+      }
       dragState.moved = dragState.moved || deltaX !== 0 || deltaY !== 0
       for (const origin of dragState.origins) {
         const selectedNode = findNode(origin.nodeId)
@@ -378,13 +380,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     }
     if (!panState && !dragState && !draftConnection.value && !marquee.value) unbindWindowPointerListeners()
   }
-  function applyZoomAtPoint(nextZoom: number, point: Point) {
-    const viewport = getViewport()
-    const zoom = clampZoom(nextZoom)
-    if (Math.abs(zoom - viewport.zoom) < 0.0001) return
-    const worldPoint = surfaceToWorld(point, viewport)
-    updateViewport({ zoom, x: point.x - worldPoint.x * zoom, y: point.y - worldPoint.y * zoom })
-  }
   function handleSurfaceWheel(event: WheelEvent) {
     event.preventDefault()
     const point = toSurfacePoint(event.clientX, event.clientY)
@@ -421,6 +416,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     closeContextMenu,
     closeGraphPanel,
     toggleGraphPanel,
+    handleViewKeyDown,
     handleCommandKeyDown,
   })
 
@@ -437,6 +433,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     })
     renderer.updateViewport()
     renderer.syncNodes()
+    maybeAutoFitReadonly()
     surface.addEventListener('wheel', handleSurfaceWheel, { passive: false })
     window.addEventListener('keydown', handleWindowKeyDown, true)
     window.addEventListener('keyup', handleWindowKeyUp, true)
@@ -491,7 +488,11 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
     viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu, selectionToolbarStyle,
     canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection, closeGraphPanel, connectSelection,
+    canAlignSelection, canAutoArrange, canDeleteSelection, canDistributeSelection, hasLockedSelection,
     deleteSelection, duplicateSelection, groupSelection, isGraphPanelOpen, toggleGraphPanel, ungroupSelection,
+    arrangeSelectionFromToolbar, autoArrange, toggleLockSelection,
+    areEdgesVisible, fitGraph, fitSelection, isGridEnabled, isMinimapVisible, setZoomPercent,
+    toggleEdges, toggleGrid, toggleMinimap, zoomIn, zoomOut, zoomPercent,
     handleContextMenuSelect, updateContextMenuShow,
   }
 }

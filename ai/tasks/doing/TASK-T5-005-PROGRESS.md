@@ -4,9 +4,11 @@
 - Completed unit: Unit A - persistent keyed Leafer world and incremental node reconciliation (`COMPLETE - PASS`)
 - Completed unit: Unit B - command contract, selection, and multi-node editing (`COMPLETE - PASS`)
 - Completed unit: Unit C - grouping, connection, shortcuts, and accessibility list (`COMPLETE - PASS`)
-- Next unit: Unit D - view and arrange commands
+- Completed unit: Unit D - view and arrange commands (`COMPLETE - PASS`)
+- Next unit: Unit E - closure evidence
 - Updated: 2026-07-13
 - Unit C baseline HEAD: `29bfd5b23a596bb6bfc84adc5a6ff58513c4378b`
+- Unit D baseline HEAD: `09bafc9d5affdb80bdda60ba92445cc4c1d68098`
 
 ## Completed Work
 
@@ -49,15 +51,26 @@
 - Added an accessible localized graph/shortcut panel with synchronized node locate/select, connection review/select, edit-only deletion, focus restoration, 40 px targets, and existing V2 tokens.
 - Added a behind-content group visual with stable z-order, single-line group label, non-overlapping padding, no child/group duplicate action, and safe group deletion that releases children before soft deletion.
 - Reviewed real desktop group, desktop graph panel, and mobile review-only graph panel screenshots retained under `output/playwright/t5-005-unit-c/`.
+- Started Unit D from clean `main` at `09bafc9d5affdb80bdda60ba92445cc4c1d68098`; the current tool surface exposes no same-automation instance query, so concurrent execution could not be established.
+- Re-read AGENTS, CURRENT, ROADMAP, the exact T5-005 Task/PLAN/PROGRESS, all linked ADRs, and the applicable Canvas acceptance and V2 design constraints.
+- Inspected zoom normalization and persistence, fit/selection geometry, renderer transforms, viewport save behavior, existing minimap/grid/edge surfaces, command factories/executor, node mutation rollback, lock DTO mapping, shortcut ownership, toolbar/context-menu entry points, and focused browser suites.
+- Confirmed renderer geometry clamps zoom at 300% while canonical persistence already accepts 800%; no fit or bottom-left view controls exist; grid, edge, and minimap are always-on CSS/DOM surfaces; and the current Canvas shortcut contract lacks Unit D view/arrange keys.
+- Confirmed `is_locked` already round-trips through the commented MySQL schema and canonical API, but no lock mutation or locked-node protection exists; align, distribute, and stable auto-arrange have no typed command output.
+- Locked Unit D to pure fit/arrange geometry, explicit reversible move payloads, existing-field lock persistence, a compact V2-token view surface, and focused browser evidence. History stacks, grouped-node reflow, schema changes, and performance closure remain non-goals.
+- Raised zoom to 10%-800%, added center-anchored preset and numeric zoom, graph/selection fit, Canvas-focus view shortcuts, and per-Canvas grid, edge, and minimap preferences without changing persistence schema.
+- Added 24-unit grid snapping and a compact bottom-left view dock with 40 px controls, visible focus, reduced-motion behavior, and mobile placement above the review-only boundary.
+- Added deterministic typed align, distribute, stable graph-ordered auto-arrange, lock, and unlock commands with explicit reversible move payloads and graph-state validation.
+- Persisted lock changes through the canonical node API with optimistic rollback and protected locked nodes from drag, duplicate, delete, group, ungroup, connect, and arrangement entry points.
+- Routed toolbar, context-menu, keyboard, and view-dock intent through the shared command dispatcher, retaining `Ctrl+Enter` and adding `Ctrl+L`, `Ctrl+0`, zoom shortcuts, and `Alt+Shift+F` help.
+- Added pure geometry/command and browser coverage, reviewed desktop/mobile screenshots, and completed focused, full Chromium, build, MySQL field, diff, UTF-8, file-size, sensitive-path, secret-candidate, and database-artifact checks.
 
 ## Remaining Work
 
-- Complete Unit D fit, zoom, view toggles, align/distribute/lock, and stable auto-arrange commands.
 - Complete Unit E focused performance, browser, accessibility, regression, and Task closure evidence.
 
 ## Exact Next Action
 
-Inspect existing zoom/view controls, selection geometry, lock fields, and arrange entry points, then refresh Unit D scope before business-code edits.
+Start Unit E by defining the focused 200-node/300-connection performance and accessibility closure matrix, then run the required viewport, full regression, and documentation reconciliation checks before REPORT and `DONE - PASS`.
 
 ## Files Changed
 
@@ -97,6 +110,15 @@ Inspect existing zoom/view controls, selection geometry, lock fields, and arrang
 - `frontend/src/components/canvas/composables/use-canvas-command-interactions.ts`, `use-canvas-context-menu.ts` - shared mutation entry points and guards.
 - `frontend/src/components/canvas/composables/use-canvas-stage.ts`, `use-canvas-stage-keyboard.ts` - pointer connect dispatch, focus ownership, shortcuts, and panel state.
 - `frontend/tests/e2e/canvas-command-contract.spec.ts`, `canvas-command-interactions.spec.ts` - focused command, focus, DOM, mobile, and screenshot evidence.
+- `ai/tasks/doing/TASK-T5-005-PLAN.md` - dependency-ready Unit D scope, non-goals, and success criteria.
+- `ai/tasks/doing/TASK-T5-005-PROGRESS.md` - Unit D baseline, inspection findings, remaining work, and exact next action.
+- `ai/tasks/todo/TASK-T5-005.md`, `ai/state/CURRENT.md`, `ai/state/ROADMAP.md` - Unit D acceptance evidence and Unit E handoff.
+- `frontend/src/components/canvas/canvas-geometry.ts` - 10%-800% zoom, fit bounds, and 24-unit snapping geometry.
+- `frontend/src/modules/canvas/canvas-commands.ts`, `canvas-command-executor.ts`, `mutations.ts` - typed arrange/lock contracts, protected execution, canonical persistence, and rollback.
+- `frontend/src/components/canvas/CanvasViewControls.vue` - compact fit, view-toggle, zoom, and edit-only auto-arrange dock.
+- `frontend/src/components/canvas/CanvasSelectionToolbar.vue`, `CanvasStage.vue`, `CanvasGraphAccessPanel.vue`, `canvas-renderer.ts`, `canvas-stage.scss` - arrange/lock surfaces, view integration, accessible help, locked visuals, and responsive geometry.
+- `frontend/src/components/canvas/composables/use-canvas-command-interactions.ts`, `use-canvas-context-menu.ts`, `use-canvas-stage-keyboard.ts`, `use-canvas-stage.ts`, `use-canvas-stage-presentation.ts`, `use-canvas-view-controls.ts` - shared entry points, view state, presentation geometry, keyboard ownership, and protected pointer behavior.
+- `frontend/tests/e2e/canvas-view-arrangement.spec.ts`, `canvas-command-contract.spec.ts`, `canvas-command-interactions.spec.ts` - pure geometry/command, browser interaction, mobile boundary, and screenshot evidence.
 
 ## Commands And Results
 
@@ -138,12 +160,24 @@ Inspect existing zoom/view controls, selection geometry, lock fields, and arrang
 - Unit C final frontend build - PASS; `vue-tsc` and Vite completed with 4723 modules.
 - Unit C real screenshot review - PASS; inspected desktop group bounds, desktop graph panel, and 375px review-only graph panel; corrected label overlap and panel/context-bar geometry before final evidence.
 - Unit C fresh diff and static gates - PASS; `git diff --check`, suspicious-pattern scan, tracked database-artifact scan, business-file size limit, and final focused rerun have zero findings.
+- Unit D required source-document and Git baseline reads - PASS; clean `main`, HEAD `09bafc9d5affdb80bdda60ba92445cc4c1d68098`.
+- Unit D same-automation instance query - unavailable in the current tool surface; no concurrent instance could be established before repository writes.
+- Unit D design skill preflight - PASS with installation caveat; core app-shell, token, interaction, responsive, and rendered-evidence rules loaded, while the optional update script and durable-context file are absent with no implementation impact.
+- Unit D targeted view/arrange inspection - PASS; the 300% renderer clamp, missing fit/view surface, absent arrange commands, and unowned lock semantics are the bounded gaps.
+- Unit D focused frontend suite - PASS; 15/15 tests cover fit geometry, zoom bounds, snapping, deterministic arrange output, lock protection, view toggles, command convergence, and mobile review behavior.
+- Unit D focused guarded MySQL regression - PASS; 1 passed and 3 deselected for canonical group/lock field round-trip, with no schema or backend code change.
+- Unit D full frontend Chromium regression - PASS; 33/33 tests across authenticated workflow, required viewports, Canvas commands, persistence, metadata, renderer, shell, accessibility, and mobile review.
+- Unit D final frontend build - PASS; `vue-tsc` and Vite completed with 4728 modules.
+- Unit D real screenshot review - PASS; inspected 1366x768 view dock and arrange/lock states plus 375x812 mobile-review controls, with the view dock, graph trigger, minimap, and graph panel clear of the review boundary.
+- Unit D initial static-gate wrapper - INVALID CHECK before execution because PowerShell parsed a colon after a variable name; no repository content or external state changed, and the corrected wrapper passed.
+- Unit D fresh diff and static gates - PASS; `git diff --check`, strict UTF-8, business-file size, forbidden-pattern, sensitive-path, secret-candidate, and database-artifact checks have zero findings.
 
 ## Blockers And Release Conditions
 
 - No Unit A implementation or verification blocker remains.
 - No Unit B implementation or verification blocker remains.
 - No Unit C implementation or verification blocker remains.
-- No blocker prevents Unit D planning and implementation.
+- No Unit D implementation or verification blocker remains.
+- No blocker prevents Unit E closure work.
 - Applying the existing migration to user/runtime data still requires Human authorization; T5-005 did not apply it or access a user/runtime database.
 - Ignored `.env`, local `.db`, and the pre-existing `revid_test_db` remain untouched.

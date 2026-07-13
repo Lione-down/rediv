@@ -50,6 +50,25 @@ export interface ConnectNodesCommand {
   targetPort: 'in'
 }
 
+export type CanvasAlignment = 'left' | 'center-x' | 'right' | 'top' | 'center-y' | 'bottom'
+export type CanvasDistribution = 'horizontal' | 'vertical'
+export type CanvasArrangeOperation =
+  | { kind: 'align'; alignment: CanvasAlignment }
+  | { kind: 'distribute'; distribution: CanvasDistribution }
+  | { kind: 'auto-arrange' }
+
+export interface ArrangeNodesCommand {
+  type: 'arrange-nodes'
+  operation: CanvasArrangeOperation
+  moves: CanvasNodeMove[]
+}
+
+export interface SetNodesLockedCommand {
+  type: 'set-nodes-locked'
+  nodeIds: string[]
+  locked: boolean
+}
+
 export type CanvasCommand =
   | MoveNodesCommand
   | DuplicateNodesCommand
@@ -57,6 +76,8 @@ export type CanvasCommand =
   | GroupNodesCommand
   | UngroupNodesCommand
   | ConnectNodesCommand
+  | ArrangeNodesCommand
+  | SetNodesLockedCommand
 
 export interface CanvasCommandEnvelope {
   source: CanvasCommandSource
@@ -137,11 +158,15 @@ export function createUngroupNodesCommand(
   nodeIds: readonly string[],
 ): UngroupNodesCommand | null {
   const selectedIds = new Set(uniqueIds(nodeIds))
+  const selectedNodes = nodes.filter((node) => selectedIds.has(node.id))
+  if (selectedNodes.length !== selectedIds.size || selectedNodes.some((node) => node.isLocked)) return null
   const groupIds = uniqueIds(nodes.flatMap((node) => {
     if (!selectedIds.has(node.id)) return []
     if (node.type === 'group') return [node.id]
     return node.parentNodeId ? [node.parentNodeId] : []
-  })).filter((groupId) => nodes.some((node) => node.id === groupId && node.type === 'group'))
+  })).filter((groupId) => nodes.some((node) => (
+    node.id === groupId && node.type === 'group' && !node.isLocked
+  )))
   return groupIds.length ? { type: 'ungroup-nodes', groupIds } : null
 }
 
@@ -169,4 +194,159 @@ export function createConnectNodesCommand(
   return duplicate ? null : {
     type: 'connect-nodes', sourceNodeId, targetNodeId, sourcePort, targetPort,
   }
+}
+
+export function isArrangeEligibleNode(node: CanvasNode) {
+  return node.type !== 'group' && !node.parentNodeId && !node.isLocked
+}
+
+function getArrangeTargets(
+  nodes: readonly CanvasNode[],
+  nodeIds: readonly string[],
+  minimum: number,
+) {
+  const requestedIds = new Set(uniqueIds(nodeIds))
+  const targets = nodes.filter((node) => requestedIds.has(node.id))
+  if (
+    targets.length < minimum || targets.length !== requestedIds.size ||
+    targets.some((node) => !isArrangeEligibleNode(node))
+  ) return null
+  return targets
+}
+
+function createArrangeCommand(
+  operation: CanvasArrangeOperation,
+  targets: readonly CanvasNode[],
+  positions: ReadonlyMap<string, { x: number; y: number }>,
+): ArrangeNodesCommand | null {
+  const moves = targets.flatMap((node) => {
+    const position = positions.get(node.id)
+    if (!position || (position.x === node.x && position.y === node.y)) return []
+    return [{
+      nodeId: node.id,
+      from: { nodeId: node.id, x: node.x, y: node.y },
+      to: { nodeId: node.id, x: position.x, y: position.y },
+    }]
+  })
+  return moves.length ? { type: 'arrange-nodes', operation, moves } : null
+}
+
+export function createAlignNodesCommand(
+  nodes: readonly CanvasNode[],
+  nodeIds: readonly string[],
+  alignment: CanvasAlignment,
+): ArrangeNodesCommand | null {
+  const targets = getArrangeTargets(nodes, nodeIds, 2)
+  if (!targets) return null
+  const left = Math.min(...targets.map((node) => node.x))
+  const right = Math.max(...targets.map((node) => node.x + node.width))
+  const top = Math.min(...targets.map((node) => node.y))
+  const bottom = Math.max(...targets.map((node) => node.y + node.height))
+  const positions = new Map(targets.map((node) => {
+    let x = node.x
+    let y = node.y
+    if (alignment === 'left') x = left
+    else if (alignment === 'center-x') x = (left + right - node.width) / 2
+    else if (alignment === 'right') x = right - node.width
+    else if (alignment === 'top') y = top
+    else if (alignment === 'center-y') y = (top + bottom - node.height) / 2
+    else y = bottom - node.height
+    return [node.id, { x, y }]
+  }))
+  return createArrangeCommand({ kind: 'align', alignment }, targets, positions)
+}
+
+export function createDistributeNodesCommand(
+  nodes: readonly CanvasNode[],
+  nodeIds: readonly string[],
+  distribution: CanvasDistribution,
+): ArrangeNodesCommand | null {
+  const targets = getArrangeTargets(nodes, nodeIds, 3)
+  if (!targets) return null
+  const graphOrder = new Map(targets.map((node, index) => [node.id, index]))
+  const isHorizontal = distribution === 'horizontal'
+  const ordered = [...targets].sort((left, right) => {
+    const leftCenter = isHorizontal ? left.x + left.width / 2 : left.y + left.height / 2
+    const rightCenter = isHorizontal ? right.x + right.width / 2 : right.y + right.height / 2
+    return leftCenter - rightCenter || graphOrder.get(left.id)! - graphOrder.get(right.id)!
+  })
+  const first = ordered[0]
+  const last = ordered.at(-1)!
+  const start = isHorizontal ? first.x + first.width / 2 : first.y + first.height / 2
+  const end = isHorizontal ? last.x + last.width / 2 : last.y + last.height / 2
+  const step = (end - start) / (ordered.length - 1)
+  const positions = new Map(ordered.map((node, index) => [node.id, {
+    x: isHorizontal ? start + step * index - node.width / 2 : node.x,
+    y: isHorizontal ? node.y : start + step * index - node.height / 2,
+  }]))
+  return createArrangeCommand({ kind: 'distribute', distribution }, targets, positions)
+}
+
+export function createAutoArrangeNodesCommand(
+  nodes: readonly CanvasNode[],
+  connections: readonly CanvasConnection[],
+  nodeIds: readonly string[],
+): ArrangeNodesCommand | null {
+  const targets = getArrangeTargets(nodes, nodeIds, 2)
+  if (!targets) return null
+  const order = new Map(targets.map((node, index) => [node.id, index]))
+  const targetIds = new Set(targets.map((node) => node.id))
+  const outgoing = new Map(targets.map((node) => [node.id, [] as string[]]))
+  const indegree = new Map(targets.map((node) => [node.id, 0]))
+  for (const connection of connections) {
+    if (!targetIds.has(connection.from) || !targetIds.has(connection.to) || connection.from === connection.to) continue
+    const targetsFromSource = outgoing.get(connection.from)!
+    if (targetsFromSource.includes(connection.to)) continue
+    targetsFromSource.push(connection.to)
+    indegree.set(connection.to, indegree.get(connection.to)! + 1)
+  }
+  for (const targetsFromSource of outgoing.values()) {
+    targetsFromSource.sort((left, right) => order.get(left)! - order.get(right)!)
+  }
+  const levels = new Map(targets.map((node) => [node.id, 0]))
+  const queue = targets.filter((node) => indegree.get(node.id) === 0).map((node) => node.id)
+  const visited = new Set<string>()
+  while (queue.length) {
+    queue.sort((left, right) => order.get(left)! - order.get(right)!)
+    const nodeId = queue.shift()!
+    visited.add(nodeId)
+    for (const targetId of outgoing.get(nodeId)!) {
+      levels.set(targetId, Math.max(levels.get(targetId)!, levels.get(nodeId)! + 1))
+      indegree.set(targetId, indegree.get(targetId)! - 1)
+      if (indegree.get(targetId) === 0) queue.push(targetId)
+    }
+  }
+  const resolvedMaximum = Math.max(0, ...[...visited].map((nodeId) => levels.get(nodeId)!))
+  for (const node of targets) {
+    if (!visited.has(node.id)) levels.set(node.id, resolvedMaximum + 1)
+  }
+  const anchorX = Math.min(...targets.map((node) => node.x))
+  const anchorY = Math.min(...targets.map((node) => node.y))
+  const columnWidth = Math.max(...targets.map((node) => node.width)) + 96
+  const positions = new Map<string, { x: number; y: number }>()
+  const columns = new Map<number, CanvasNode[]>()
+  for (const node of targets) {
+    const level = levels.get(node.id)!
+    columns.set(level, [...(columns.get(level) ?? []), node])
+  }
+  for (const [level, columnNodes] of [...columns.entries()].sort(([left], [right]) => left - right)) {
+    let y = anchorY
+    for (const node of columnNodes) {
+      positions.set(node.id, { x: anchorX + level * columnWidth, y })
+      y += node.height + 48
+    }
+  }
+  return createArrangeCommand({ kind: 'auto-arrange' }, targets, positions)
+}
+
+export function createSetNodesLockedCommand(
+  nodes: readonly CanvasNode[],
+  nodeIds: readonly string[],
+  locked: boolean,
+): SetNodesLockedCommand | null {
+  const requestedIds = new Set(uniqueIds(nodeIds))
+  const targets = nodes.filter((node) => requestedIds.has(node.id))
+  if (!targets.length || targets.length !== requestedIds.size) return null
+  const changedIds = targets.filter((node) => Boolean(node.isLocked) !== locked).map((node) => node.id)
+  return changedIds.length ? { type: 'set-nodes-locked', nodeIds: changedIds, locked } : null
 }

@@ -13,6 +13,7 @@ interface CanvasStageKeyboardOptions {
   closeContextMenu: () => void
   closeGraphPanel: () => void
   toggleGraphPanel: () => void
+  handleViewKeyDown: (event: KeyboardEvent) => boolean
   handleCommandKeyDown: (event: KeyboardEvent) => boolean
 }
 
@@ -42,7 +43,7 @@ export function useCanvasStageKeyboard(options: CanvasStageKeyboardOptions) {
       options.toggleGraphPanel()
       return
     }
-    options.handleCommandKeyDown(event)
+    if (!options.handleViewKeyDown(event)) options.handleCommandKeyDown(event)
   }
 
   function handleWindowKeyUp(event: KeyboardEvent) {

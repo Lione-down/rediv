@@ -50,7 +50,8 @@ export interface MinimapMetrics {
 }
 
 export const MIN_ZOOM = 0.1
-export const MAX_ZOOM = 3
+export const MAX_ZOOM = 8
+export const CANVAS_GRID_SIZE = 24
 
 export function clampZoom(zoom: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
@@ -61,6 +62,42 @@ export function normalizeViewport(viewport: ViewportState): ViewportState {
     zoom: clampZoom(viewport.zoom || 1),
     x: viewport.x || 0,
     y: viewport.y || 0,
+  }
+}
+
+export function getNodesBounds(nodes: readonly CanvasNode[]): WorldRect | null {
+  if (!nodes.length) return null
+  const left = Math.min(...nodes.map((node) => node.x))
+  const top = Math.min(...nodes.map((node) => node.y))
+  const right = Math.max(...nodes.map((node) => node.x + node.width))
+  const bottom = Math.max(...nodes.map((node) => node.y + node.height))
+  if (![left, top, right, bottom].every(Number.isFinite)) return null
+  return { left, top, width: Math.max(right - left, 1), height: Math.max(bottom - top, 1) }
+}
+
+export function fitViewportToNodes(
+  nodes: readonly CanvasNode[],
+  size: ViewportSize,
+  padding = 48,
+): ViewportState | null {
+  const bounds = getNodesBounds(nodes)
+  if (!bounds || size.width <= 0 || size.height <= 0) return null
+  const safePadding = Math.max(0, padding)
+  const availableWidth = Math.max(size.width - safePadding * 2, 1)
+  const availableHeight = Math.max(size.height - safePadding * 2, 1)
+  const zoom = clampZoom(Math.min(availableWidth / bounds.width, availableHeight / bounds.height))
+  return normalizeViewport({
+    zoom,
+    x: size.width / 2 - (bounds.left + bounds.width / 2) * zoom,
+    y: size.height / 2 - (bounds.top + bounds.height / 2) * zoom,
+  })
+}
+
+export function snapDeltaToGrid(origin: Point, delta: Point, gridSize = CANVAS_GRID_SIZE): Point {
+  const safeGridSize = Number.isFinite(gridSize) && gridSize > 0 ? gridSize : CANVAS_GRID_SIZE
+  return {
+    x: Math.round((origin.x + delta.x) / safeGridSize) * safeGridSize - origin.x,
+    y: Math.round((origin.y + delta.y) / safeGridSize) * safeGridSize - origin.y,
   }
 }
 

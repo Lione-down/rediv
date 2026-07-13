@@ -41,12 +41,12 @@ Replace the rebuild-on-change Canvas renderer with a persistent keyed Leafer sce
 - [x] Node create, content/status/selection update, position update, and delete reconcile keyed visuals incrementally.
 - [x] Single, modifier, marquee, and connection selection are deterministic and Canvas-scoped.
 - [x] Dragging any selected node moves the whole selection as one command, with no API request during pointermove.
-- [ ] Pointer, keyboard, toolbar, and context-menu mutations dispatch one typed command contract.
-- [ ] Duplicate, group, ungroup, connect, delete, align, distribute, lock, unlock, and stable auto-arrange validate their selection and graph constraints.
+- [x] Pointer, keyboard, toolbar, and context-menu mutations dispatch one typed command contract.
+- [x] Duplicate, group, ungroup, connect, delete, align, distribute, lock, unlock, and stable auto-arrange validate their selection and graph constraints.
 - [x] The shortcut contract is Canvas-focus scoped, ignores editable controls, and is documented in an accessible panel.
 - [x] Leafer visuals have a synchronized keyboard-reachable DOM list for locate, selection, connection review, and allowed deletion.
-- [ ] Zoom spans 10% to 800%; fit graph/selection and view toggles remain usable across the required viewport matrix.
-- [ ] Focused unit/browser tests, frontend build, relevant regression, fresh diff review, and hygiene gates pass.
+- [x] Zoom spans 10% to 800%; fit graph/selection and view toggles remain usable across the required viewport matrix.
+- [ ] Focused unit/browser tests, frontend build, relevant regression, fresh diff review, and hygiene gates pass for completed Units A-D; Unit E Task-level closure certification remains.
 
 ## Linked Decisions And Specifications
 

@@ -91,6 +91,14 @@ async function installCommandApi(page: Page, state: CommandState) {
     if (method === 'GET' && path.endsWith('/document')) {
       return fulfillJson(route, { canvas, nodes: state.nodes, connections: state.connections, revision: 0 })
     }
+    if (method === 'PATCH' && path.endsWith('/viewport') && body) {
+      return fulfillJson(route, {
+        ...canvas,
+        viewport_x: Number(body.x),
+        viewport_y: Number(body.y),
+        viewport_zoom: Number(body.zoom),
+      })
+    }
 
     const nodePath = path.match(/\/nodes(?:\/([^/]+))?$/)
     if (nodePath && method === 'POST' && body) {
@@ -163,6 +171,12 @@ async function captureCommandEvidence(page: Page, name: string) {
   return resolve(directory, `${name}.png`)
 }
 
+async function captureUnitDEvidence(page: Page, name: string) {
+  const directory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-005-unit-d')
+  await mkdir(directory, { recursive: true })
+  return resolve(directory, `${name}.png`)
+}
+
 test('modifier selection stays deterministic and dragging one selected node moves the full selection', async ({ page }, testInfo) => {
   const state = createState()
   await openCommandCanvas(page, state)
@@ -189,8 +203,8 @@ test('modifier selection stays deterministic and dragging one selected node move
   await expect.poll(() => state.requests.filter((request) => request.method === 'PUT').length).toBe(2)
   const moves = state.requests.filter((request) => request.method === 'PUT').map((request) => request.body)
   expect(moves).toEqual(expect.arrayContaining([
-    expect.objectContaining({ position_x: 100, position_y: 320 }),
-    expect.objectContaining({ position_x: 440, position_y: 320 }),
+    expect.objectContaining({ position_x: 96, position_y: 312 }),
+    expect.objectContaining({ position_x: 436, position_y: 312 }),
   ]))
   await expect(page.getByRole('toolbar', { name: '2 个已选节点的操作' })).toBeVisible()
   const desktopEvidence = await captureCommandEvidence(page, 'desktop-multi-selection-toolbar')
@@ -226,8 +240,20 @@ test('mobile review mode never exposes or dispatches selection mutation commands
   await openCommandCanvas(page, state, 375)
   await clickNode(page, 180)
   await expect(page.getByRole('toolbar', { name: /已选节点的操作/ })).toHaveCount(0)
+  await expect(page.getByRole('toolbar', { name: '画布视图控制' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '自动排列节点' })).toHaveCount(0)
+  const mobileZoom = page.getByLabel('缩放百分比')
+  await expect(mobileZoom).toBeVisible()
+  const zoomBefore = Number(await mobileZoom.inputValue())
+  await page.getByRole('button', { name: '放大画布' }).click()
+  await expect.poll(async () => Number(await mobileZoom.inputValue())).toBeGreaterThan(zoomBefore)
+  const mobileViewEvidence = await captureUnitDEvidence(page, 'mobile-review-view-dock')
+  await page.screenshot({ path: mobileViewEvidence })
+  await testInfo.attach('mobile-review-view-dock', { path: mobileViewEvidence, contentType: 'image/png' })
   await page.keyboard.press('Control+d')
   await page.keyboard.press('Delete')
+  await page.keyboard.press('Backspace')
+  await expect(page).toHaveURL(/\/app\/projects\/project-command\/canvases\/canvas-command$/)
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toBeVisible()
   await expect(page.getByRole('button', { name: /删除节点/ })).toHaveCount(0)
@@ -236,6 +262,64 @@ test('mobile review mode never exposes or dispatches selection mutation commands
   const mobileEvidence = await captureCommandEvidence(page, 'mobile-graph-access-panel')
   await page.screenshot({ path: mobileEvidence })
   await testInfo.attach('mobile-graph-access-panel', { path: mobileEvidence, contentType: 'image/png' })
+})
+
+test('view dock supports numeric zoom, fit, and independent grid edge minimap toggles', async ({ page }, testInfo) => {
+  const state = createState()
+  await openCommandCanvas(page, state)
+  const viewToolbar = page.getByRole('toolbar', { name: '画布视图控制' })
+  await expect(viewToolbar).toBeVisible()
+  const zoomInput = viewToolbar.getByLabel('缩放百分比')
+  await zoomInput.fill('800')
+  await zoomInput.press('Enter')
+  await expect(zoomInput).toHaveValue('800')
+  await expect.poll(() => state.requests.some((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/viewport') && request.body?.zoom === 8
+  ))).toBe(true)
+
+  await viewToolbar.getByLabel('打开视图选项').click()
+  await viewToolbar.getByLabel('隐藏网格与吸附').click()
+  await expect(page.locator('.canvas-surface')).toHaveClass(/is-grid-hidden/)
+  await viewToolbar.getByLabel('隐藏连线').click()
+  await expect(page.getByRole('group', { name: '画布连线' })).toBeHidden()
+  await viewToolbar.getByLabel('隐藏小地图').click()
+  await expect(page.locator('.minimap')).toHaveCount(0)
+
+  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
+  await page.keyboard.press('Control+0')
+  await expect(zoomInput).not.toHaveValue('800')
+  await expect(page.getByRole('button', { name: '交互画布' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '画布已同步 · r0' })).toBeVisible()
+  const evidence = await captureUnitDEvidence(page, 'desktop-view-dock')
+  await page.screenshot({ path: evidence })
+  await testInfo.attach('desktop-view-dock', { path: evidence, contentType: 'image/png' })
+})
+
+test('typed align and lock commands persist once and locked nodes reject mutation', async ({ page }, testInfo) => {
+  const state = createState()
+  await openCommandCanvas(page, state)
+  await clickNode(page, 180)
+  await clickNode(page, 520, ['Control'])
+  await clickNode(page, 860, ['Control'])
+  const toolbar = page.getByRole('toolbar', { name: '3 个已选节点的操作' })
+  await toolbar.getByRole('button', { name: '排列所选节点' }).click()
+  await page.getByText('左对齐', { exact: true }).click()
+  await expect.poll(() => state.nodes.every((item) => item.position_x === 180)).toBe(true)
+
+  await toolbar.getByRole('button', { name: '锁定所选节点' }).click()
+  await expect.poll(() => state.nodes.every((item) => item.is_locked === true)).toBe(true)
+  const deleteCount = state.requests.filter((request) => request.method === 'DELETE').length
+  await page.keyboard.press('Delete')
+  expect(state.nodes).toHaveLength(3)
+  expect(state.requests.filter((request) => request.method === 'DELETE')).toHaveLength(deleteCount)
+
+  await toolbar.getByRole('button', { name: '解锁所选节点' }).click()
+  await expect.poll(() => state.nodes.every((item) => item.is_locked === false)).toBe(true)
+  await page.keyboard.press('Alt+Shift+f')
+  await expect.poll(() => new Set(state.nodes.map((item) => item.position_x)).size).toBe(3)
+  const evidence = await captureUnitDEvidence(page, 'desktop-arrange-lock')
+  await page.screenshot({ path: evidence })
+  await testInfo.attach('desktop-arrange-lock', { path: evidence, contentType: 'image/png' })
 })
 
 test('Canvas-focus shortcuts group, ungroup, connect, and expose synchronized DOM graph access', async ({ page }, testInfo) => {

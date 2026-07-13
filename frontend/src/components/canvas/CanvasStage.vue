@@ -4,6 +4,7 @@ import { Keyboard } from 'lucide-vue-next'
 import { nextTick, ref, type ComponentPublicInstance } from 'vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
+import CanvasViewControls from './CanvasViewControls.vue'
 import { useCanvasStage } from './composables/use-canvas-stage'
 
 const props = withDefaults(defineProps<{ readonly?: boolean }>(), {
@@ -42,15 +43,35 @@ const {
   deleteSelection,
   duplicateSelection,
   canConnectSelection,
+  canDeleteSelection,
   canDuplicateSelection,
   canGroupSelection,
   canUngroupSelection,
+  canAlignSelection,
+  canAutoArrange,
+  canDistributeSelection,
   closeGraphPanel,
   connectSelection,
   groupSelection,
   isGraphPanelOpen,
   toggleGraphPanel,
   ungroupSelection,
+  arrangeSelectionFromToolbar,
+  autoArrange,
+  toggleLockSelection,
+  hasLockedSelection,
+  areEdgesVisible,
+  fitGraph,
+  fitSelection,
+  isGridEnabled,
+  isMinimapVisible,
+  setZoomPercent,
+  toggleEdges,
+  toggleGrid,
+  toggleMinimap,
+  zoomIn,
+  zoomOut,
+  zoomPercent,
 } = useCanvasStage({ isReadOnly: () => props.readonly })
 
 const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
@@ -79,7 +100,7 @@ function closeGraphAccessPanel() {
     class="workspace-stage"
     aria-label="Revid 无限画布工作区"
     :aria-readonly="readonly"
-    aria-keyshortcuts="Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+Enter Meta+Enter Delete Backspace Escape ?"
+    aria-keyshortcuts="Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+L Meta+L Control+0 Meta+0 Control++ Meta++ Control+- Meta+- Alt+Shift+F Delete Backspace Escape ?"
     tabindex="0"
   >
     <div
@@ -93,8 +114,12 @@ function closeGraphAccessPanel() {
       <span>{{ stageNotice.detail }}</span>
       <button v-if="stageNotice.canRetry" type="button" @click="retryProjectLoad">重新加载</button>
     </div>
-    <div :ref="setCanvasSurfaceRef" class="canvas-surface" :class="`cursor-${viewportCursor}`">
-      <svg class="connection-layer" role="group" aria-label="画布连线">
+    <div
+      :ref="setCanvasSurfaceRef"
+      class="canvas-surface"
+      :class="[`cursor-${viewportCursor}`, { 'is-grid-hidden': !isGridEnabled }]"
+    >
+      <svg v-show="areEdgesVisible" class="connection-layer" role="group" aria-label="画布连线">
         <path
           v-for="connection in canvasStore.connections"
           :key="connection.id"
@@ -137,18 +162,25 @@ function closeGraphAccessPanel() {
         v-if="selectionToolbarStyle && !readonly"
         :count="canvasStore.selectedNodeIds.length"
         :can-connect="canConnectSelection"
+        :can-delete="canDeleteSelection"
         :can-duplicate="canDuplicateSelection"
         :can-group="canGroupSelection"
+        :can-align="canAlignSelection"
+        :can-auto-arrange="canAutoArrange && canvasStore.selectedNodes.length >= 2"
+        :can-distribute="canDistributeSelection"
         :can-ungroup="canUngroupSelection"
+        :has-locked="hasLockedSelection"
         :style="selectionToolbarStyle"
         @duplicate="duplicateSelection('toolbar')"
         @group="groupSelection('toolbar')"
         @ungroup="ungroupSelection('toolbar')"
         @connect="connectSelection('toolbar')"
+        @arrange="arrangeSelectionFromToolbar"
+        @toggle-lock="toggleLockSelection('toolbar')"
         @delete="deleteSelection('toolbar')"
       />
 
-      <div :ref="setMinimapRef" class="minimap" aria-label="小地图" @pointerdown.stop="handleMinimapPointerDown">
+      <div v-if="isMinimapVisible" :ref="setMinimapRef" class="minimap" aria-label="小地图" @pointerdown.stop="handleMinimapPointerDown">
         <button
           v-for="node in canvasStore.nodes"
           :key="node.id"
@@ -163,6 +195,24 @@ function closeGraphAccessPanel() {
         <div class="minimap-viewport" :style="minimapViewportStyle"></div>
       </div>
     </div>
+    <CanvasViewControls
+      :are-edges-visible="areEdgesVisible"
+      :can-auto-arrange="canAutoArrange"
+      :can-fit-selection="canvasStore.selectedNodes.length > 0"
+      :is-grid-enabled="isGridEnabled"
+      :is-minimap-visible="isMinimapVisible"
+      :readonly="readonly"
+      :zoom-percent="zoomPercent"
+      @auto-arrange="autoArrange('toolbar')"
+      @fit-graph="fitGraph"
+      @fit-selection="fitSelection"
+      @set-zoom="setZoomPercent"
+      @toggle-edges="toggleEdges"
+      @toggle-grid="toggleGrid"
+      @toggle-minimap="toggleMinimap"
+      @zoom-in="zoomIn"
+      @zoom-out="zoomOut"
+    />
     <button
       ref="graphPanelTriggerRef"
       class="graph-access-trigger"

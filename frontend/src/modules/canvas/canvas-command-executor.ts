@@ -3,8 +3,11 @@ import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import type { CanvasConnectionDraft, CanvasNodeDraft } from './persistence'
 import {
   createConnectNodesCommand,
+  createSetNodesLockedCommand,
   createGroupNodesCommand,
   createUngroupNodesCommand,
+  isArrangeEligibleNode,
+  type ArrangeNodesCommand,
   getInternalConnections,
   type CanvasCommandEnvelope,
   type ConnectNodesCommand,
@@ -12,6 +15,7 @@ import {
   type DuplicateNodesCommand,
   type GroupNodesCommand,
   type MoveNodesCommand,
+  type SetNodesLockedCommand,
   type UngroupNodesCommand,
 } from './canvas-commands'
 
@@ -23,6 +27,7 @@ interface CanvasCommandExecutorOptions {
   deleteNode: (nodeId: string) => Promise<void>
   deleteConnection: (connectionId: string) => Promise<void>
   updateNodeParent: (nodeId: string, parentNodeId: string | null) => Promise<void>
+  updateNodeLocked: (nodeId: string, locked: boolean) => Promise<void>
   queueNodeMove: (nodeId: string, x: number, y: number) => void
   setSelection: (nodeIds: string[], primaryNodeId?: string) => void
   selectConnection: (connectionId: string) => void
@@ -44,7 +49,7 @@ function cloneNodeDraft(node: CanvasNode, offset: { x: number; y: number }): Can
 
 export function createCanvasCommandExecutor(options: CanvasCommandExecutorOptions) {
   function moveNodes(command: MoveNodesCommand) {
-    const availableIds = new Set(options.getNodes().map((node) => node.id))
+    const availableIds = new Set(options.getNodes().filter(isArrangeEligibleNode).map((node) => node.id))
     for (const move of command.moves) {
       if (availableIds.has(move.nodeId)) options.queueNodeMove(move.nodeId, move.to.x, move.to.y)
     }
@@ -52,8 +57,8 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
 
   async function duplicateNodes(command: DuplicateNodesCommand) {
     const selectedIds = new Set(command.nodeIds)
-    const sourceNodes = options.getNodes().filter((node) => selectedIds.has(node.id))
-    if (!sourceNodes.length) return
+    const sourceNodes = options.getNodes().filter((node) => selectedIds.has(node.id) && isArrangeEligibleNode(node))
+    if (!sourceNodes.length || sourceNodes.length !== selectedIds.size) return
     const sourceConnections = getInternalConnections(options.getConnections(), sourceNodes.map((node) => node.id))
     const createdNodes = await Promise.all(
       sourceNodes.map((node) => options.createNode(cloneNodeDraft(node, command.offset))),
@@ -84,7 +89,9 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
       }
     }
     for (const nodeId of command.nodeIds) {
+      if (options.getNodes().find((node) => node.id === nodeId)?.isLocked) continue
       const group = options.getNodes().find((node) => node.id === nodeId && node.type === 'group')
+      if (group && options.getNodes().some((node) => node.parentNodeId === group.id && node.isLocked)) continue
       const detachedIds: string[] = []
       if (group) {
         for (const child of options.getNodes().filter((node) => node.parentNodeId === group.id)) {
@@ -177,6 +184,29 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     })
   }
 
+  function arrangeNodes(command: ArrangeNodesCommand) {
+    const eligibleIds = new Set(options.getNodes().filter(isArrangeEligibleNode).map((node) => node.id))
+    if (!command.moves.length || command.moves.some((move) => !eligibleIds.has(move.nodeId))) return
+    moveNodes({ type: 'move-nodes', moves: command.moves })
+  }
+
+  async function setNodesLocked(command: SetNodesLockedCommand) {
+    const validated = createSetNodesLockedCommand(options.getNodes(), command.nodeIds, command.locked)
+    if (!validated) return
+    const changedIds: string[] = []
+    try {
+      for (const nodeId of validated.nodeIds) {
+        await options.updateNodeLocked(nodeId, validated.locked)
+        changedIds.push(nodeId)
+      }
+    } catch (error) {
+      for (const nodeId of changedIds.reverse()) {
+        await options.updateNodeLocked(nodeId, !validated.locked).catch(() => undefined)
+      }
+      throw error
+    }
+  }
+
   async function executeCommand(envelope: CanvasCommandEnvelope) {
     const { command } = envelope
     if (command.type === 'move-nodes') return moveNodes(command)
@@ -184,7 +214,9 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'delete-selection') return deleteSelection(command)
     if (command.type === 'group-nodes') return groupNodes(command)
     if (command.type === 'ungroup-nodes') return ungroupNodes(command)
-    return connectNodes(command)
+    if (command.type === 'connect-nodes') return connectNodes(command)
+    if (command.type === 'arrange-nodes') return arrangeNodes(command)
+    return setNodesLocked(command)
   }
 
   return { executeCommand }

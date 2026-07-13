@@ -4,12 +4,13 @@
 - Completed unit: Unit A - persistent keyed Leafer world and incremental node reconciliation (`COMPLETE - PASS`)
 - Completed unit: Unit B - command contract, selection, and multi-node editing (`COMPLETE - PASS`)
 - Completed unit: Unit C - grouping, connection, shortcuts, and accessibility list (`COMPLETE - PASS`)
-- Next unit: Unit D - view and arrange commands
+- Completed unit: Unit D - view and arrange commands (`COMPLETE - PASS`)
+- Next unit: Unit E - closure evidence
 - Updated: 2026-07-13
 
 ## Objective
 
-Deliver T5-005 as independently verified interaction units. Units A-C now cover persistent rendering, deterministic command editing, flat grouping, validated connection, Canvas-focus shortcuts, and synchronized DOM graph access; Unit D completes view and arrange commands.
+Deliver T5-005 as independently verified interaction units. Units A-D now cover persistent rendering, deterministic command editing, flat grouping, validated connection, Canvas-focus shortcuts, synchronized DOM graph access, complete view controls, arrangement, and lock protection; Unit E owns closure evidence.
 
 ## Direction Lock
 
@@ -132,7 +133,39 @@ Deliver T5-005 as independently verified interaction units. Units A-C now cover 
 
 ### Unit D - View and arrange commands
 
-Complete zoom presets and numeric entry, fit graph/selection, view toggles, align/distribute/lock, and stable undoable auto-arrange command output.
+### Scope
+
+1. Raise the renderer zoom contract to the already-persisted 10% to 800% range, add center-anchored preset stepping, direct 10-800 numeric entry, `Ctrl++`, `Ctrl+-`, and `Ctrl+0` fit-graph handling.
+2. Add pure fit geometry for graph or selection bounds with finite viewport normalization, stable padding, pointer/center anchoring, and empty-graph rejection.
+3. Add one compact bottom-left view surface for graph/selection fit, grid-and-snap, edge, minimap, zoom, and edit-only auto-arrange controls. Preserve 40 px targets, existing V2 tokens, focus visibility, reduced motion, and the mobile review-only mutation boundary.
+4. Add typed, deterministic arrange command output for horizontal/vertical alignment, horizontal/vertical distribution, and stable auto-arrange. Every output carries explicit `from` and `to` positions so T5-006 can invert or replay it as one command.
+5. Auto-arrange only unlocked, top-level non-group nodes; use graph order and directed-edge levels for stable ordering, preserve non-overlap with fixed gaps, and reject stale, grouped, locked, or undersized selections.
+6. Add typed lock/unlock commands over the existing `is_locked` field, persist through the canonical Canvas node API with optimistic rollback, and prevent locked nodes from drag, duplicate, delete, group, connect, or arrange mutations until unlocked.
+7. Route selection-toolbar, context-menu, keyboard, and view-dock arrange/lock intent through the same command dispatcher. Add `Ctrl+L` while retaining the existing `Ctrl+Enter` alias, and document Unit D shortcuts in the accessible panel.
+8. Add focused pure command/geometry coverage plus browser coverage for zoom bounds and anchoring, fit, view toggles, align/distribute, lock protection, stable auto-arrange, mobile review behavior, and required viewport control geometry.
+
+### Non-goals
+
+- command history storage, inversion stacks, autosave batching, revisions, conflicts, checkpoints, or restore UI owned by T5-006;
+- nested groups, group movement/reflow, grouped-child arrangement, new database fields or migrations, minimap throttling/performance certification, or global page redesign;
+- paid calls, secret access, user/runtime migration execution, local database artifact handling, or destructive data operations.
+
+### Success Criteria
+
+- Pure tests prove 10%-800% zoom clamping, stable fit geometry, deterministic alignment/distribution, non-overlapping auto-arrange output, and explicit reversible move payloads.
+- Direct numeric zoom, preset stepping, wheel anchoring, `Ctrl+0`, fit selection, grid-and-snap, edge, and minimap toggles work without rebuilding keyed node visuals.
+- Align, distribute, auto-arrange, lock, and unlock validate current graph state and dispatch through one typed boundary; locked nodes cannot be mutated by other command entry points.
+- Desktop editing exposes bottom-left view/arrange controls; mobile review retains view controls and exposes no arrange, lock, delete, or other graph mutation action.
+- Focused browser tests, relevant/full Chromium regression, production build, real 1366x768 and 375x812 review, fresh diff review, `git diff --check`, UTF-8, file-size, sensitive-path, secret-candidate, and database-artifact gates pass.
+
+### Outcome
+
+- The Canvas now supports center-anchored 10%-800% preset and numeric zoom, graph/selection fit, `Ctrl+0`, grid-and-snap, edge visibility, and minimap visibility without rebuilding keyed node visuals.
+- One compact bottom-left view dock preserves the accepted V2 tokens, 40 px targets, visible focus, reduced motion, and mobile review-only mutation boundary.
+- Typed alignment, distribution, stable graph-ordered auto-arrange, lock, and unlock commands carry explicit reversible moves or node targets through the shared dispatcher.
+- Locked nodes reject drag, duplicate, delete, group, ungroup, connect, and arrangement entry points until unlocked; canonical API persistence rolls optimistic lock changes back on failure.
+- Focused frontend tests passed 15/15, the guarded MySQL field regression passed 1 test with 3 deselected, full Chromium passed 33/33, and the production build passed with 4728 modules.
+- Real 1366x768 desktop and 375x812 mobile-review screenshots were reviewed under `output/playwright/t5-005-unit-d/`; fresh diff and hygiene gates passed.
 
 ### Unit E - Closure evidence
 

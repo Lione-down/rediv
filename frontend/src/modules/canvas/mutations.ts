@@ -15,6 +15,7 @@ import {
   toNodeCreatePayload,
 } from './persistence'
 import type { CanvasConnectionDraft, CanvasNodeDraft, PendingMove } from './persistence'
+import type { CanvasNodeUpdatePayload } from './types'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 
 interface DocumentContext {
@@ -344,30 +345,33 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     }
   }
 
-  async function updateNodeParent(nodeId: string, parentNodeId: string | null) {
+  async function updateNodeState(nodeId: string, payload: CanvasNodeUpdatePayload, apply: (node: CanvasNode) => CanvasNode, action: string) {
     const { projectId, canvasId } = requireDocumentIdentity()
     const context = captureDocumentContext()
     const effectiveNodeId = await resolveNodeId(nodeId)
-    const effectiveParentId = parentNodeId ? await resolveNodeId(parentNodeId) : null
     if (!isCurrentDocument(context)) return
     await flushPendingMoves(effectiveNodeId)
     const snapshot = findNodeById(effectiveNodeId)
     if (!snapshot) return
-    updateNode(effectiveNodeId, (node) => ({ ...node, parentNodeId: effectiveParentId }))
+    updateNode(effectiveNodeId, apply)
     try {
-      const response = await updateCanvasNode(projectId, canvasId, effectiveNodeId, {
-        parent_node_id: effectiveParentId,
-      })
+      const response = await updateCanvasNode(projectId, canvasId, effectiveNodeId, payload)
       if (!isCurrentDocument(context)) return
-      const serverNode = mapCanvasNode(response.data)
-      updateNode(effectiveNodeId, () => serverNode)
+      updateNode(effectiveNodeId, () => mapCanvasNode(response.data))
     } catch (error) {
       if (isCurrentDocument(context)) {
         updateNode(effectiveNodeId, () => snapshot)
-        reportSaveError(effectiveParentId ? '组合节点' : '取消组合', error)
+        reportSaveError(action, error)
       }
       throw error
     }
+  }
+  async function updateNodeParent(nodeId: string, parentNodeId: string | null) {
+    const effectiveParentId = parentNodeId ? await resolveNodeId(parentNodeId) : null
+    return updateNodeState(nodeId, { parent_node_id: effectiveParentId }, (node) => ({ ...node, parentNodeId: effectiveParentId }), effectiveParentId ? '组合节点' : '取消组合')
+  }
+  async function updateNodeLocked(nodeId: string, locked: boolean) {
+    return updateNodeState(nodeId, { is_locked: locked }, (node) => ({ ...node, isLocked: locked }), locked ? '锁定节点' : '解锁节点')
   }
 
   async function createConnection(draft: CanvasConnectionDraft): Promise<CanvasConnection> {
@@ -473,6 +477,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     deleteNode,
     deleteConnection,
     updateNodeParent,
+    updateNodeLocked,
     queueNodeMove,
     setSelection,
     selectConnection,
@@ -486,6 +491,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     createConnection,
     deleteConnection,
     updateNodeParent,
+    updateNodeLocked,
     queueNodeMove,
     flushPendingMoves,
     executeCommand: commandExecutor.executeCommand,

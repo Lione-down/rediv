@@ -22,13 +22,20 @@ interface CanvasContextMenuOptions {
   toSurfacePoint: (clientX: number, clientY: number) => Point | null
 }
 
-type ContextMenuKey = 'create-text' | 'create-image' | 'duplicate-node' | 'group-nodes' | 'ungroup-nodes' | 'connect-nodes' | 'delete-node'
+type ContextMenuKey =
+  | 'create-text' | 'create-image' | 'duplicate-node' | 'group-nodes' | 'ungroup-nodes'
+  | 'connect-nodes' | 'delete-node' | 'align-left' | 'align-center-x' | 'align-right'
+  | 'align-top' | 'align-center-y' | 'align-bottom' | 'distribute-horizontal'
+  | 'distribute-vertical' | 'auto-arrange' | 'toggle-lock'
 
 export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
   const canvasStore = useCanvasStore()
   const {
-    canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection,
-    connectSelection, deleteSelection, duplicateSelection, groupSelection, ungroupSelection,
+    alignSelection, autoArrange, canAlignSelection, canAutoArrange, canConnectSelection,
+    canDeleteSelection, canDistributeSelection, canDuplicateSelection, canGroupSelection,
+    canToggleLockSelection, canUngroupSelection, connectSelection, deleteSelection,
+    distributeSelection, duplicateSelection, groupSelection, hasLockedSelection,
+    toggleLockSelection, ungroupSelection,
   } = useCanvasCommandInteractions({ isReadOnly: options.isReadOnly })
   const contextMenu = ref<ContextMenuState>({ show: false, x: 0, y: 0, nodeId: null, worldPoint: { x: 0, y: 0 } })
   const contextMenuOptions = computed<Array<DropdownOption | DropdownDividerOption>>(() => contextMenu.value.nodeId
@@ -37,8 +44,24 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
         ...(canGroupSelection() ? [{ label: '组合所选节点', key: 'group-nodes' }] : []),
         ...(canUngroupSelection() ? [{ label: '取消组合', key: 'ungroup-nodes' }] : []),
         ...(canConnectSelection() ? [{ label: '连接所选两个节点', key: 'connect-nodes' }] : []),
-        { type: 'divider', key: 'node-actions-divider' },
-        { label: canvasStore.selectedNodeIds.length > 1 ? `删除所选节点 (${canvasStore.selectedNodeIds.length})` : '删除节点', key: 'delete-node' },
+        ...((canAlignSelection() || canDistributeSelection() || canAutoArrange()) ? [{
+          label: '排列', key: 'arrange-nodes', children: [
+            ...(canAlignSelection() ? [
+              { label: '左对齐', key: 'align-left' }, { label: '水平居中', key: 'align-center-x' },
+              { label: '右对齐', key: 'align-right' }, { label: '顶部对齐', key: 'align-top' },
+              { label: '垂直居中', key: 'align-center-y' }, { label: '底部对齐', key: 'align-bottom' },
+            ] : []),
+            ...(canDistributeSelection() ? [
+              { label: '水平分布', key: 'distribute-horizontal' }, { label: '垂直分布', key: 'distribute-vertical' },
+            ] : []),
+            ...(canAutoArrange() ? [{ label: '自动排列', key: 'auto-arrange' }] : []),
+          ],
+        }] : []),
+        ...(canToggleLockSelection() ? [{ label: hasLockedSelection() ? '解锁所选节点' : '锁定所选节点', key: 'toggle-lock' }] : []),
+        ...(canDeleteSelection() ? [
+          { type: 'divider', key: 'node-actions-divider' },
+          { label: canvasStore.selectedNodeIds.length > 1 ? `删除所选节点 (${canvasStore.selectedNodeIds.length})` : '删除节点', key: 'delete-node' },
+        ] : []),
       ]
     : [
         { label: '新建文本节点', key: 'create-text' },
@@ -108,6 +131,14 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
       ungroupSelection('context-menu')
     } else if (action === 'connect-nodes') {
       connectSelection('context-menu')
+    } else if (action.startsWith('align-')) {
+      alignSelection('context-menu', action.slice('align-'.length) as Parameters<typeof alignSelection>[1])
+    } else if (action.startsWith('distribute-')) {
+      distributeSelection('context-menu', action.slice('distribute-'.length) as Parameters<typeof distributeSelection>[1])
+    } else if (action === 'auto-arrange') {
+      autoArrange('context-menu')
+    } else if (action === 'toggle-lock') {
+      toggleLockSelection('context-menu')
     } else if (action === 'delete-node') {
       deleteSelection('context-menu')
     }
