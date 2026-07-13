@@ -1,10 +1,20 @@
 # TASK-T5-003 Progress
 
 - State: `DOING`
-- Active unit: Unit B - canvas metadata and optimistic ordering APIs (`COMPLETE - PASS`)
+- Active unit: Unit C - transactional Canvas duplication and graph ID remapping (`COMPLETE - PASS`)
 - Updated: 2026-07-13
 
 ## Completed
+
+- Started Unit C from clean `main` baseline `017ecea25522be0e48055f5d156d1cf8e6227f5b`; no pre-existing tracked, untracked, staged, unmerged, or Git-operation state was present.
+- Re-read AGENTS, CURRENT, ROADMAP, the exact active Task/PLAN/PROGRESS, ADR-004/005, Canvas architecture and Canvas acceptance; automation memory agrees that Unit C is next.
+- The Codex thread concurrency query did not return within 70 seconds and was terminated; no repository write occurred before the clean Git baseline and authoritative project state were confirmed.
+- Defined Unit C before business-code edits: optimistic project-order lock, optional duplicate name, independent revision history, complete graph ID remap, preserved project-scoped JSON references, and forced rollback evidence.
+- Added the authenticated Canvas duplicate route and strict request schema with required optimistic order revision and optional name; omitted names default safely to `源名称 副本` within the 255-character contract.
+- Added one MySQL transaction that locks Project/active Canvas/source graph rows, appends the duplicate densely, preserves viewport state, starts graph revision 0, remaps every node/connection ID, and increments order revision exactly once.
+- Node rows are inserted without parents then updated with remapped group parents; connection endpoints use the same node map. Node content and connection metadata are deep-copied so project asset references remain unchanged.
+- Added guarded real-MySQL evidence for auth/ownership, repeated names, default naming, viewport copy, new graph IDs, group/endpoint remapping, preserved asset references, stale conflict atomicity, and forced commit rollback.
+- Unit C compile, 4-test focused verification, 44-test adjacent regression, 186-test full backend regression plus 5 subtests, Alembic single-head, and initial fresh-diff gates passed.
 
 - Started Unit B from clean `main` baseline `d8352bad80fc217ad1c4c3cb991ef83c1c648048`; no pre-existing tracked, untracked, staged, unmerged, or Git-operation state was present.
 - Re-read the authoritative Task, PLAN, PROGRESS, ADR-002/004/005, Canvas architecture, Canvas acceptance, ROADMAP, CURRENT, and automation cursor.
@@ -29,13 +39,22 @@
 
 ## Remaining
 
-- Deliver Unit C transactional duplication and Unit D closure in later runs.
+- Deliver Unit D T5-003 closure: acceptance reconciliation, full MySQL/API compatibility review, final documentation, REPORT, and DONE state alignment.
 
 ## Exact Next Action
 
-Implement Unit C transactional canvas duplication with new graph IDs, group-parent and endpoint remapping, project ownership, order revision, and rollback tests.
+Perform Unit D T5-003 closure verification and reconcile Task, PLAN, PROGRESS, ROADMAP, CURRENT, and REPORT only if every non-deferred criterion has evidence.
 
 ## Files Changed
+
+- `ai/tasks/doing/TASK-T5-003-PLAN.md` - activate and bound Unit C.
+- `ai/tasks/doing/TASK-T5-003-PROGRESS.md` - record Unit C baseline, scope, and exact next action.
+- `ai/state/CURRENT.md` - record Unit C completion and Unit D next.
+- `ai/state/ROADMAP.md` - reconcile T5-003 delivery-unit status.
+- `backend/schemas/canvas.py` - add the strict duplicate request contract.
+- `backend/controllers/canvases.py` - add transactional graph duplication and complete ID remapping.
+- `backend/api/canvases.py` - expose the authenticated duplicate route.
+- `backend/tests/test_canvas_duplication_api.py` - add guarded real-MySQL transaction and remapping evidence.
 
 - `ai/tasks/doing/TASK-T5-003-PLAN.md` - activate and bound Unit B.
 - `ai/tasks/doing/TASK-T5-003-PROGRESS.md` - record Unit B baseline, scope, and next action.
@@ -61,6 +80,15 @@ Implement Unit C transactional canvas duplication with new graph IDs, group-pare
 
 ## Commands And Results
 
+- Unit C required source reads and Git baseline commands - PASS; clean `main` HEAD `017ecea25522be0e48055f5d156d1cf8e6227f5b`.
+- `backend/.venv/Scripts/python.exe -m compileall -q api controllers schemas tests` - PASS.
+- `backend/.venv/Scripts/python.exe -m pytest -q tests/test_canvas_duplication_api.py` - 4/4 PASS.
+- focused Canvas/project/legacy graph regression - 44/44 PASS.
+- full backend `pytest -q` - 186 tests plus 5 subtests PASS in 153.75 seconds.
+- `backend/.venv/Scripts/python.exe -m alembic heads` - one head, `f0a1b2c3d4e5`.
+- guarded read-only cleanup probe - only the pre-existing untouched `revid_test_db` schema remains.
+- fresh diff review and `git diff --check` - PASS; exact-staged 8 paths, UTF-8, sensitive-path, secret-candidate, and database-artifact gates all passed with zero findings.
+
 - Unit B required source reads and git baseline commands - PASS; clean HEAD `d8352bad80fc217ad1c4c3cb991ef83c1c648048`.
 - Initial compile command used a duplicated `backend/` prefix from the backend working directory and did not start; corrected command then passed.
 - `.venv/Scripts/python.exe -m compileall -q api controllers core models schemas settings tests migrations` - PASS.
@@ -85,6 +113,7 @@ Implement Unit C transactional canvas duplication with new graph IDs, group-pare
 
 ## Blockers And Release Conditions
 
+- No Unit C implementation blocker.
 - No Unit B implementation blocker.
 - No Unit A implementation blocker.
 - The migration was applied only to guarded disposable `revid_test_*` schemas. Applying it to a user/runtime database requires the normal backup and Human migration authorization; this does not block Unit B repository work.

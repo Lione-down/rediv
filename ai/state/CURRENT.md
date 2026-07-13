@@ -25,8 +25,8 @@ Last updated: 2026-07-13
 - Task: `ai/tasks/todo/TASK-T5-003.md`
 - Plan: `ai/tasks/doing/TASK-T5-003-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-003-PROGRESS.md`
-- Latest bounded unit: Unit B - authenticated Canvas metadata and optimistic ordering APIs (`COMPLETE - PASS`)
-- Exact next unit: Unit C - transactional Canvas duplication and graph ID remapping
+- Latest bounded unit: Unit C - transactional Canvas duplication and graph ID remapping (`COMPLETE - PASS`)
+- Exact next unit: Unit D - T5-003 verification, documentation, REPORT, and closure reconciliation
 - Dependency: T5-002 complete
 
 ## Latest Completed Task
@@ -60,14 +60,17 @@ Last updated: 2026-07-13
 - Create, archive, and reorder lock the Project row, enforce `base_order_revision`, increment it atomically, and return HTTP 409 on stale requests without partial writes.
 - Reorder requires an exact active-ID permutation and writes dense zero-based order; archive compacts remaining order and rejects the last active Canvas.
 - Unit B focused verification passed 40/40 and full backend regression passed 182 tests plus 5 subtests; Alembic remains at the single head `f0a1b2c3d4e5`.
+- Unit C adds authenticated optimistic Canvas duplication in one MySQL transaction, with dense append ordering, copied viewport state, independent graph revision 0, new Canvas/node/connection IDs, remapped group parents and endpoints, and preserved project-scoped JSON asset references.
+- Stale order revisions and forced commit failure leave no partial Canvas, graph, or order-revision writes; duplicate Canvas names remain valid and omitted names default to `源名称 副本`.
+- Unit C focused verification passed 4/4, adjacent Canvas/project/legacy graph regression passed 44/44, and full backend regression passed 186 tests plus 5 subtests; Alembic remains at the single head `f0a1b2c3d4e5`.
 - All disposable schemas created by this run were cleaned; only the pre-existing untouched `revid_test_db` remains.
 - The new migration has not been applied to a user/runtime database. Application requires the normal reviewed migration and backup discipline before that runtime can use this code.
-- Canvas duplication and the explicit frontend route are not implemented yet; Unit C duplication is next.
+- The explicit frontend route remains unimplemented by design for T5-004; T5-003 Unit D closure is next.
 - Ignored local `.db` artifacts remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Implement T5-003 Unit C transactional Canvas duplication with graph ID remapping and rollback evidence.
+Perform T5-003 Unit D closure verification and write the REPORT only after all non-deferred acceptance criteria are reconciled.
 
 ## Blockers And Release Conditions
 
@@ -78,7 +81,7 @@ Implement T5-003 Unit C transactional Canvas duplication with graph ID remapping
 
 ## Worktree Protection
 
-- Unit B run started from clean `main` at `d8352bad80fc217ad1c4c3cb991ef83c1c648048`.
+- Unit C run started from clean `main` at `017ecea25522be0e48055f5d156d1cf8e6227f5b`.
 - Pre-existing staged, tracked-modified, unmerged, detached, and in-progress Git-operation state: none.
 - Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.

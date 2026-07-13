@@ -1,7 +1,7 @@
 # TASK-T5-003 Plan
 
 - State: `DOING`
-- Active unit: Unit B - canvas metadata and optimistic ordering APIs (`COMPLETE - PASS`)
+- Active unit: Unit C - transactional Canvas duplication and graph ID remapping (`COMPLETE - PASS`)
 - Updated: 2026-07-13
 
 ## Objective
@@ -51,6 +51,33 @@ Deliver the multi-canvas backend in independently mergeable units while keeping 
   6. Add focused real-MySQL API tests for authentication, ownership, revision conflicts, permutation validation, dense persistence, and last-active protection.
 - Unit C: deterministic transactional duplication and graph remapping.
 - Unit D: complete T5-003 verification, compatibility review, REPORT, and DONE reconciliation.
+
+## Unit C - Transactional duplication
+
+### Scope
+
+1. Add `POST /api/projects/{project_id}/canvases/{canvas_id}/duplicate` with required `base_order_revision` and an optional duplicate name.
+2. Lock the owning Project and active Canvas set, enforce request-scoped ownership and the optimistic order revision, then append the duplicate at the dense active-order tail.
+3. Copy Canvas viewport state into a new active Canvas while starting an independent graph history at revision 0.
+4. Copy source graph rows with new Canvas, node, and connection IDs; insert nodes without parents first, then remap group parents and connection endpoints before commit.
+5. Deep-copy node content and connection metadata so project-scoped asset references remain unchanged without sharing mutable Python payloads.
+6. Increment the project order revision only in the same transaction as the complete duplicate.
+7. Add guarded real-MySQL API evidence for authentication/ownership, stale revision atomicity, graph remapping, duplicate-name behavior, and forced transaction rollback.
+
+### Non-goals
+
+- Copying CanvasRevision history; the duplicate starts a new independent revision history at revision 0.
+- Frontend routing or duplicate UI, graph document mutation APIs, hard deletion, or user/runtime database migration.
+- Rewriting or cloning project-scoped assets, generation tasks, or asset IDs embedded in node content.
+
+### Success criteria
+
+- Duplicate requires authentication, project ownership, an active source Canvas, and the current project order revision.
+- The new Canvas is appended densely, preserves viewport state, and advances `canvas_order_revision` exactly once.
+- Every copied node and connection receives a new ID; group parents and edge endpoints reference only remapped nodes in the duplicate Canvas.
+- Node content and connection metadata retain project-shared references exactly, while source graph rows remain unchanged.
+- A stale revision or forced database failure leaves no Canvas, node, connection, or order-revision partial write.
+- Focused MySQL tests, relevant backend regression, diff, staged secret hygiene, scoped commit, and push pass.
 
 ### Unit B non-goals
 

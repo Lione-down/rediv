@@ -4,6 +4,7 @@ from controllers import canvases as canvas_controller
 from core.security import current_user
 from schemas.canvas import (
     CanvasCreateRequest,
+    CanvasDuplicateRequest,
     CanvasListResponse,
     CanvasMutationResponse,
     CanvasReorderRequest,
@@ -88,6 +89,29 @@ def update_canvas(
             name=payload.name,
             status=payload.status,
             base_order_revision=payload.base_order_revision,
+        )
+    except canvas_controller.CanvasDomainError as error:
+        raise _map_domain_error(error) from error
+
+
+@router.post(
+    "/{canvas_id}/duplicate",
+    response_model=CanvasMutationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def duplicate_canvas(
+    project_id: str,
+    canvas_id: str,
+    payload: CanvasDuplicateRequest,
+    user=Depends(current_user),
+):
+    try:
+        return canvas_controller.duplicate_canvas(
+            project_id,
+            canvas_id,
+            user["id"],
+            payload.base_order_revision,
+            payload.name,
         )
     except canvas_controller.CanvasDomainError as error:
         raise _map_domain_error(error) from error

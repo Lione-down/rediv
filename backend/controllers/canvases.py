@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -7,6 +8,8 @@ from sqlalchemy import select
 
 from models.base import get_session
 from models.canvas import Canvas
+from models.canvas_connection import CanvasConnection
+from models.canvas_node import CanvasNode
 from models.project import Project
 
 
@@ -149,6 +152,111 @@ def create_canvas(project_id: str, user_id: str, name: str, base_order_revision:
         session.add(canvas)
         session.commit()
         return {"item": _canvas_to_dict(canvas), "order_revision": project.canvas_order_revision}
+
+
+def duplicate_canvas(
+    project_id: str,
+    canvas_id: str,
+    user_id: str,
+    base_order_revision: int,
+    name: str | None,
+) -> dict:
+    with get_session() as session:
+        project = _owned_project(session, project_id, user_id, lock=True)
+        _check_revision(project, base_order_revision)
+        canvases = _active_canvases(session, project_id, lock=True)
+        source = next((canvas for canvas in canvases if canvas.id == canvas_id), None)
+        if source is None:
+            raise CanvasNotFoundError
+
+        source_nodes = list(
+            session.scalars(
+                select(CanvasNode)
+                .where(CanvasNode.project_id == project_id, CanvasNode.canvas_id == canvas_id)
+                .order_by(CanvasNode.created_at, CanvasNode.id)
+                .with_for_update()
+            ).all()
+        )
+        source_connections = list(
+            session.scalars(
+                select(CanvasConnection)
+                .where(
+                    CanvasConnection.project_id == project_id,
+                    CanvasConnection.canvas_id == canvas_id,
+                )
+                .order_by(CanvasConnection.created_at, CanvasConnection.id)
+                .with_for_update()
+            ).all()
+        )
+
+        timestamp = _now()
+        duplicate = Canvas(
+            id=str(uuid4()),
+            project_id=project_id,
+            name=name if name is not None else f"{source.name[:252]} 副本",
+            sort_order=len(canvases),
+            status="active",
+            viewport_x=source.viewport_x,
+            viewport_y=source.viewport_y,
+            viewport_zoom=source.viewport_zoom,
+            graph_revision=0,
+            created_at=timestamp,
+            updated_at=timestamp,
+            deleted_at=None,
+        )
+        session.add(duplicate)
+        session.flush()
+
+        node_id_map = {node.id: str(uuid4()) for node in source_nodes}
+        duplicated_nodes: dict[str, CanvasNode] = {}
+        for source_node in source_nodes:
+            duplicated_node = CanvasNode(
+                id=node_id_map[source_node.id],
+                project_id=project_id,
+                canvas_id=duplicate.id,
+                node_type=source_node.node_type,
+                content=deepcopy(source_node.content),
+                position_x=source_node.position_x,
+                position_y=source_node.position_y,
+                width=source_node.width,
+                height=source_node.height,
+                z_index=source_node.z_index,
+                parent_node_id=None,
+                is_locked=source_node.is_locked,
+                is_collapsed=source_node.is_collapsed,
+                status=source_node.status,
+                created_at=timestamp,
+                updated_at=timestamp,
+            )
+            duplicated_nodes[source_node.id] = duplicated_node
+            session.add(duplicated_node)
+        session.flush()
+
+        for source_node in source_nodes:
+            if source_node.parent_node_id is not None:
+                duplicated_nodes[source_node.id].parent_node_id = node_id_map[source_node.parent_node_id]
+
+        for source_connection in source_connections:
+            session.add(
+                CanvasConnection(
+                    id=str(uuid4()),
+                    project_id=project_id,
+                    canvas_id=duplicate.id,
+                    source_node_id=node_id_map[source_connection.source_node_id],
+                    source_port=source_connection.source_port,
+                    target_node_id=node_id_map[source_connection.target_node_id],
+                    target_port=source_connection.target_port,
+                    status=source_connection.status,
+                    metadata_=deepcopy(source_connection.metadata_),
+                    created_at=timestamp,
+                    updated_at=timestamp,
+                )
+            )
+
+        project.canvas_order_revision += 1
+        project.updated_at = timestamp
+        session.commit()
+        return {"item": _canvas_to_dict(duplicate), "order_revision": project.canvas_order_revision}
 
 
 def update_canvas(

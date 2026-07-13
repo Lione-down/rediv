@@ -42,6 +42,11 @@ class CanvasReorderRequest(StrictCanvasModel):
         return canvas_ids
 
 
+class CanvasDuplicateRequest(StrictCanvasModel):
+    base_order_revision: int = Field(..., ge=0)
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+
+
 class CanvasResponse(BaseModel):
     id: str
     project_id: str
