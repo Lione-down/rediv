@@ -1,7 +1,7 @@
 # TASK-T5-003 Plan
 
 - State: `DOING`
-- Active unit: Unit A - schema and first-canvas compatibility (`COMPLETE - PASS`)
+- Active unit: Unit B - canvas metadata and optimistic ordering APIs (`COMPLETE - PASS`)
 - Updated: 2026-07-13
 
 ## Objective
@@ -42,9 +42,30 @@ Deliver the multi-canvas backend in independently mergeable units while keeping 
 
 ## Later Units
 
-- Unit B (next): canvas metadata CRUD, active-list ordering, optimistic order revision, and last-active protection.
+- Unit B (`COMPLETE - PASS`):
+  1. Add strict Canvas request/response schemas and `/api/projects/{project_id}/canvases` routes.
+  2. Implement request-scoped MySQL controllers for authenticated create/list/read/rename/archive operations.
+  3. Lock the owning Project for create/archive/reorder, require `base_order_revision`, and increment it atomically.
+  4. Reorder only when `ordered_canvas_ids` is the exact permutation of active Canvas IDs; persist dense zero-based order.
+  5. Reject stale revisions without partial writes and reject archiving the last active Canvas.
+  6. Add focused real-MySQL API tests for authentication, ownership, revision conflicts, permutation validation, dense persistence, and last-active protection.
 - Unit C: deterministic transactional duplication and graph remapping.
 - Unit D: complete T5-003 verification, compatibility review, REPORT, and DONE reconciliation.
+
+### Unit B non-goals
+
+- Canvas duplication and graph ID remapping (Unit C).
+- Hard delete, destructive purge, graph document mutation, revision restore, or frontend routing.
+- Applying the migration to a user/runtime database.
+
+### Unit B success criteria
+
+- Canvas metadata routes require authentication and reject cross-owner access.
+- Active Canvas listing is deterministic and returns the current project order revision.
+- Create and archive serialize on the Project row and reject stale order revisions.
+- Reorder is one transaction, accepts only an exact active-ID permutation, writes dense order, and returns HTTP 409 on stale revision without partial writes.
+- The final active Canvas cannot be archived.
+- Focused MySQL tests, relevant backend regression, diff, staged secret hygiene, scoped commit, and push pass.
 
 ## Verification Order
 

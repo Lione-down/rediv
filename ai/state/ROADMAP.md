@@ -47,7 +47,7 @@ The Task stays active across independently verified units so runtime and databas
 
 Schema rollout is expand-first. Existing projects receive one first canvas, node and connection IDs remain unchanged, and a first-canvas compatibility path keeps the application usable until T5-004 switches the frontend route.
 
-Unit A is complete: the expand-first migration, models, deterministic backfill, atomic default canvas creation, database scope constraints, and legacy first-canvas compatibility passed guarded MySQL and full backend regression evidence. Unit B canvas metadata/order APIs are next.
+Units A and B are complete: the expand-first migration, atomic default Canvas, database scope constraints, legacy compatibility, authenticated Canvas metadata APIs, optimistic exact-permutation ordering, and last-active protection passed guarded MySQL and full backend regression evidence. Unit C transactional duplication is next.
 
 ### T5-004 through T5-008
 
