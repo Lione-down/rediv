@@ -1,6 +1,6 @@
 # TASK-T5-003 - Multi-canvas schema, APIs, duplication, and compatibility
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Phase: Product V2 / Phase 5
 - Dependency: T5-002 `DONE - PASS`
 - Owner: Codex Project Lead Engineer
@@ -37,15 +37,15 @@ Move graph ownership from an implicit project canvas to explicit project-owned c
 
 ## Acceptance Criteria
 
-- [ ] Every project has at least one active canvas and new project creation atomically creates `画布 1`.
-- [ ] Existing node and connection IDs survive migration unchanged.
-- [ ] Every graph row has a non-null `canvas_id` and no orphan or cross-canvas edge exists.
-- [ ] MySQL enforces canvas/project scope, endpoint scope, group-parent scope, comments, indexes, and uniqueness contracts.
-- [ ] Legacy project-scoped graph APIs resolve only the first active canvas until frontend migration.
-- [ ] Canvas create, list, read, rename, reorder, and duplicate operations enforce authentication and project ownership.
-- [ ] Reorder is atomic, dense, complete, and returns 409 for stale order revisions without partial writes.
-- [ ] Duplicate remaps node IDs, group parents, and endpoints transactionally while preserving project-scoped asset references.
-- [ ] Focused MySQL tests, relevant backend regression, Alembic single-head, diff, and secret-hygiene gates pass.
+- [x] Every project has at least one active canvas and new project creation atomically creates `画布 1`.
+- [x] Existing node and connection IDs survive migration unchanged.
+- [x] Every graph row has a non-null `canvas_id` and no orphan or cross-canvas edge exists.
+- [x] MySQL enforces canvas/project scope, endpoint scope, group-parent scope, comments, indexes, and uniqueness contracts.
+- [x] Legacy project-scoped graph APIs resolve only the first active canvas until frontend migration.
+- [x] Canvas create, list, read, rename, reorder, and duplicate operations enforce authentication and project ownership.
+- [x] Reorder is atomic, dense, complete, and returns 409 for stale order revisions without partial writes.
+- [x] Duplicate remaps node IDs, group parents, and endpoints transactionally while preserving project-scoped asset references.
+- [x] Focused MySQL tests, relevant backend regression, Alembic single-head, diff, and secret-hygiene gates pass.
 
 ## Linked Decisions And Specifications
 

@@ -16,28 +16,24 @@ Last updated: 2026-07-13
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Visual direction: premium graphite-black and dark-purple system
-- Database direction: MySQL-only; runtime, test, tooling, security, and closure acceptance passed in T5-002
+- Database direction: MySQL-only; runtime/test/tooling/security closure passed in T5-002, and multi-canvas persistence foundation passed in T5-003
 
 ## Active Delivery
 
-- Active implementation Task: `T5-003 - Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route`
-- State: `DOING`
-- Task: `ai/tasks/todo/TASK-T5-003.md`
-- Plan: `ai/tasks/doing/TASK-T5-003-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-003-PROGRESS.md`
-- Latest bounded unit: Unit C - transactional Canvas duplication and graph ID remapping (`COMPLETE - PASS`)
-- Exact next unit: Unit D - T5-003 verification, documentation, REPORT, and closure reconciliation
-- Dependency: T5-002 complete
+- Active implementation Task: none
+- Next Task: `T5-004 - Single V2 token source, full-screen Canvas shell, canvas navigation, and viewport persistence`
+- Next state: `TODO`; create Task, PLAN, and PROGRESS before implementation
+- Dependency: T5-003 `DONE - PASS`
 
 ## Latest Completed Task
 
-- Task: `T5-002 - P0 credential cleanup and complete MySQL-only retirement`
+- Task: `T5-003 - Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route`
 - State: `DONE - PASS`
-- Task: `ai/tasks/todo/TASK-T5-002.md`
-- Plan: `ai/tasks/doing/TASK-T5-002-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-002-PROGRESS.md`
-- Report: `ai/reports/REPORT-T5-002.md`
-- Outcome: tracked credential literal removed without disclosure; runtime/tests/tooling are MySQL-only and fail closed; security configuration, schema/FK, restart persistence, full regression, static retirement, and hygiene gates passed.
+- Task: `ai/tasks/todo/TASK-T5-003.md`
+- Plan: `ai/tasks/doing/TASK-T5-003-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-003-PROGRESS.md`
+- Report: `ai/reports/REPORT-T5-003.md`
+- Outcome: guarded MySQL expand-first migration, atomic default Canvas, strict metadata APIs, optimistic ordering, first-canvas compatibility, and transactional duplication with complete graph ID remapping all passed closure.
 
 ## Locked V2 Documents
 
@@ -51,38 +47,33 @@ Last updated: 2026-07-13
 
 ## Current Facts And Risks
 
-- T5-002 is `DONE - PASS`; runtime and database-backed tests remain MySQL-only and fail closed.
-- Unit A adds Alembic head `f0a1b2c3d4e5`, `canvases`, `canvas_revisions`, graph `canvas_id`, group fields, project order revision, and composite MySQL scope constraints with non-empty comments.
-- Migration-from-previous-head evidence created one deterministic `画布 1` per project and preserved existing node and connection IDs.
-- New project creation inserts Project then `画布 1` in one transaction; legacy graph routes resolve and expose only the first active canvas.
-- Database constraints reject cross-canvas connection endpoints; focused verification passed 32/32 and full backend regression passed 174 tests plus 5 subtests.
-- Unit B adds strict authenticated Canvas create/list/read/rename/archive/reorder APIs with request-scoped ownership checks and deterministic active ordering.
-- Create, archive, and reorder lock the Project row, enforce `base_order_revision`, increment it atomically, and return HTTP 409 on stale requests without partial writes.
-- Reorder requires an exact active-ID permutation and writes dense zero-based order; archive compacts remaining order and rejects the last active Canvas.
-- Unit B focused verification passed 40/40 and full backend regression passed 182 tests plus 5 subtests; Alembic remains at the single head `f0a1b2c3d4e5`.
-- Unit C adds authenticated optimistic Canvas duplication in one MySQL transaction, with dense append ordering, copied viewport state, independent graph revision 0, new Canvas/node/connection IDs, remapped group parents and endpoints, and preserved project-scoped JSON asset references.
-- Stale order revisions and forced commit failure leave no partial Canvas, graph, or order-revision writes; duplicate Canvas names remain valid and omitted names default to `源名称 副本`.
-- Unit C focused verification passed 4/4, adjacent Canvas/project/legacy graph regression passed 44/44, and full backend regression passed 186 tests plus 5 subtests; Alembic remains at the single head `f0a1b2c3d4e5`.
-- All disposable schemas created by this run were cleaned; only the pre-existing untouched `revid_test_db` remains.
-- The new migration has not been applied to a user/runtime database. Application requires the normal reviewed migration and backup discipline before that runtime can use this code.
-- The explicit frontend route remains unimplemented by design for T5-004; T5-003 Unit D closure is next.
-- Ignored local `.db` artifacts remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
+- T5-002 and T5-003 are `DONE - PASS`; runtime and database-backed tests remain MySQL-only and fail closed.
+- Alembic head `f0a1b2c3d4e5` adds Canvas ownership, deterministic backfill, graph scope constraints, comments, ordering revision, viewport state, and revision storage foundation while preserving legacy graph IDs.
+- New project creation inserts Project and `画布 1` atomically; legacy project-scoped graph routes expose only the first active Canvas during the frontend migration window.
+- Canvas metadata APIs enforce authentication and ownership; create, archive, reorder, and duplicate use optimistic project order revision and atomic transactions.
+- Reorder requires an exact active-ID permutation and persists dense order; archive rejects the last active Canvas.
+- Duplication copies viewport and graph content into new IDs, remaps group parents and endpoints, retains project-shared asset references, and rolls back completely on conflict or commit failure.
+- T5-003 closure passed 44 focused guarded MySQL/API/compatibility tests and 186 full backend tests plus 5 subtests; Alembic has one head.
+- The explicit frontend route and viewport persistence UI remain intentionally unimplemented for T5-004.
+- The migration has not been applied to a user/runtime database and requires normal backup and Human migration authorization.
+- Ignored local `.db` artifacts and the pre-existing `revid_test_db` remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Perform T5-003 Unit D closure verification and write the REPORT only after all non-deferred acceptance criteria are reconciled.
+Create and activate T5-004 Task/PLAN/PROGRESS, then inspect the existing frontend design system, router, Canvas workspace, stores, and overlapping changes before implementation.
 
 ## Blockers And Release Conditions
 
-- Credential rotation becomes Human-required only if the assignment was ever real or reused; release by rotating it in the owning system and recording only the outcome.
-- Local ignored `.db` artifact deletion is blocked pending exact-path Human approval after MySQL backup and parity evidence.
-- The pre-existing `revid_test_db` schema requires ownership confirmation before destructive cleanup; it does not block T5-003 planning or implementation.
-- Human Owner standing authorization (2026-07-13): scheduled delivery may push completed, verified, scoped commits to `origin` for this repository. This does not authorize secret access, paid calls, operations outside this project, or destructive user/production-data operations.
+- No blocker prevents T5-004 planning or repository implementation.
+- Applying `f0a1b2c3d4e5` to user/runtime data requires reviewed backup discipline and Human migration authorization.
+- Credential rotation becomes Human-required only if the removed assignment was ever real or reused.
+- Local ignored `.db` deletion requires exact-path Human approval after MySQL backup/parity evidence.
+- The pre-existing `revid_test_db` schema requires ownership confirmation before destructive cleanup.
 
 ## Worktree Protection
 
-- Unit C run started from clean `main` at `017ecea25522be0e48055f5d156d1cf8e6227f5b`.
-- Pre-existing staged, tracked-modified, unmerged, detached, and in-progress Git-operation state: none.
+- Unit D started from clean `main` at `1631bfb443915222576ee6edd4294ec98a4f0f4e`.
+- Pre-existing staged, tracked-modified, untracked, unmerged, detached, and in-progress Git-operation state: none.
 - Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.
 

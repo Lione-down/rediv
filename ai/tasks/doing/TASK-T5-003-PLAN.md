@@ -1,7 +1,7 @@
 # TASK-T5-003 Plan
 
-- State: `DOING`
-- Active unit: Unit C - transactional Canvas duplication and graph ID remapping (`COMPLETE - PASS`)
+- State: `DONE - PASS`
+- Active unit: Unit D - T5-003 verification, documentation, REPORT, and closure reconciliation (`COMPLETE - PASS`)
 - Updated: 2026-07-13
 
 ## Objective
@@ -51,6 +51,30 @@ Deliver the multi-canvas backend in independently mergeable units while keeping 
   6. Add focused real-MySQL API tests for authentication, ownership, revision conflicts, permutation validation, dense persistence, and last-active protection.
 - Unit C: deterministic transactional duplication and graph remapping.
 - Unit D: complete T5-003 verification, compatibility review, REPORT, and DONE reconciliation.
+
+## Unit D - Closure verification and reconciliation
+
+### Scope
+
+1. Reconcile every T5-003 acceptance criterion against migration, model, API, transaction, and guarded real-MySQL evidence from Units A-C.
+2. Run focused multi-canvas migration/API/compatibility tests first, then the complete backend regression and Alembic single-head check.
+3. Re-review the compatibility window, authentication/ownership enforcement, schema comments and composite constraints, optimistic ordering, duplication remapping, and rollback atomicity.
+4. Run fresh diff, UTF-8, sensitive-path, secret-candidate, and tracked database-artifact gates on the exact closure-document paths.
+5. Write `REPORT-T5-003.md` and reconcile Task, PLAN, PROGRESS, CURRENT, and ROADMAP to `DONE - PASS` only when every non-deferred T5-003 criterion has evidence.
+
+### Non-goals
+
+- Applying the migration to a user/runtime database or modifying any local `.db` artifact.
+- Frontend route/store work, browser UI acceptance, graph document mutation/history APIs, or provider integration assigned to T5-004 and later Tasks.
+- New schema, API, or refactoring work unless closure verification exposes a T5-003 acceptance defect.
+
+### Success criteria
+
+- Focused guarded MySQL/API compatibility tests and the full backend suite pass from clean `main` at the Unit D baseline.
+- Alembic reports exactly one head at `f0a1b2c3d4e5`; no disposable schema created by the run remains.
+- Every Task acceptance criterion maps to reproducible evidence with mock versus real-MySQL classification preserved.
+- Fresh diff review, `git diff --check`, exact staging, UTF-8, sensitive-path, secret-candidate, and tracked database-artifact gates pass.
+- REPORT and all authoritative state documents agree on T5-003 completion and identify T5-004 as the next Task.
 
 ## Unit C - Transactional duplication
 

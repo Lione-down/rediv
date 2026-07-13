@@ -1,10 +1,20 @@
 # TASK-T5-003 Progress
 
-- State: `DOING`
-- Active unit: Unit C - transactional Canvas duplication and graph ID remapping (`COMPLETE - PASS`)
+- State: `DONE - PASS`
+- Active unit: Unit D - T5-003 verification, documentation, REPORT, and closure reconciliation (`COMPLETE - PASS`)
 - Updated: 2026-07-13
 
 ## Completed
+
+- Started Unit D from clean `main` baseline `1631bfb443915222576ee6edd4294ec98a4f0f4e`; no pre-existing tracked, untracked, staged, unmerged, or Git-operation state was present.
+- Re-read AGENTS, automation memory, CURRENT, ROADMAP, the exact Task/PLAN/PROGRESS, ADR-002/004/005, Canvas architecture, and Canvas acceptance before repository writes.
+- No active-instance query capability was available in the current tool surface; the clean Git baseline and authoritative repository state were confirmed before activating Unit D.
+- Defined Unit D as closure-only verification and documentation: no user/runtime migration, local database mutation, frontend work, graph-document API expansion, or unrelated refactor.
+- Unit D compile and 44-test focused guarded MySQL/API/legacy compatibility verification passed.
+- Full backend regression passed 186 tests plus 5 subtests; Alembic reports the single head `f0a1b2c3d4e5`.
+- Closure review mapped all nine T5-003 acceptance criteria to migration, schema, API, transaction, ownership, compatibility, and rollback evidence from Units A-C and the fresh Unit D regression.
+- The read-only schema probe found only the pre-existing untouched `revid_test_db`; no disposable schema created by Unit D remains.
+- Wrote `REPORT-T5-003.md` and reconciled Task, PLAN, PROGRESS, CURRENT, and ROADMAP to `DONE - PASS` with T5-004 next.
 
 - Started Unit C from clean `main` baseline `017ecea25522be0e48055f5d156d1cf8e6227f5b`; no pre-existing tracked, untracked, staged, unmerged, or Git-operation state was present.
 - Re-read AGENTS, CURRENT, ROADMAP, the exact active Task/PLAN/PROGRESS, ADR-004/005, Canvas architecture and Canvas acceptance; automation memory agrees that Unit C is next.
@@ -39,13 +49,20 @@
 
 ## Remaining
 
-- Deliver Unit D T5-003 closure: acceptance reconciliation, full MySQL/API compatibility review, final documentation, REPORT, and DONE state alignment.
+- No T5-003 implementation or verification work remains.
 
 ## Exact Next Action
 
-Perform Unit D T5-003 closure verification and reconcile Task, PLAN, PROGRESS, ROADMAP, CURRENT, and REPORT only if every non-deferred criterion has evidence.
+Create and activate the T5-004 Task, PLAN, and PROGRESS before implementing the V2 token source, full-screen Canvas shell, explicit route/navigation, and viewport persistence.
 
 ## Files Changed
+
+- `ai/reports/REPORT-T5-003.md` - final T5-003 delivery and acceptance evidence.
+- `ai/tasks/todo/TASK-T5-003.md` - mark all acceptance criteria and Task `DONE - PASS`.
+- `ai/tasks/doing/TASK-T5-003-PLAN.md` - define and close Unit D.
+- `ai/tasks/doing/TASK-T5-003-PROGRESS.md` - record Unit D verification and exact next action.
+- `ai/state/CURRENT.md` - roll the current snapshot forward to T5-003 completion and T5-004 next.
+- `ai/state/ROADMAP.md` - mark T5-003 `DONE - PASS`.
 
 - `ai/tasks/doing/TASK-T5-003-PLAN.md` - activate and bound Unit C.
 - `ai/tasks/doing/TASK-T5-003-PROGRESS.md` - record Unit C baseline, scope, and exact next action.
@@ -80,6 +97,13 @@ Perform Unit D T5-003 closure verification and reconcile Task, PLAN, PROGRESS, R
 
 ## Commands And Results
 
+- Unit D required source reads and Git baseline commands - PASS; clean `main` HEAD `1631bfb443915222576ee6edd4294ec98a4f0f4e`.
+- `.venv/Scripts/python.exe -m compileall -q api controllers core models schemas settings tests migrations` - PASS.
+- focused multi-canvas migration/metadata/duplication/project/legacy graph suite - 44/44 PASS in 16.08 seconds.
+- full backend `.venv/Scripts/python.exe -m pytest -q` - 186 tests plus 5 subtests PASS in 154.59 seconds.
+- `.venv/Scripts/python.exe -m alembic heads` - one head, `f0a1b2c3d4e5`.
+- guarded read-only schema probe - only the pre-existing untouched `revid_test_db` remains.
+
 - Unit C required source reads and Git baseline commands - PASS; clean `main` HEAD `017ecea25522be0e48055f5d156d1cf8e6227f5b`.
 - `backend/.venv/Scripts/python.exe -m compileall -q api controllers schemas tests` - PASS.
 - `backend/.venv/Scripts/python.exe -m pytest -q tests/test_canvas_duplication_api.py` - 4/4 PASS.
@@ -113,6 +137,7 @@ Perform Unit D T5-003 closure verification and reconcile Task, PLAN, PROGRESS, R
 
 ## Blockers And Release Conditions
 
+- No T5-003 implementation or verification blocker remains.
 - No Unit C implementation blocker.
 - No Unit B implementation blocker.
 - No Unit A implementation blocker.

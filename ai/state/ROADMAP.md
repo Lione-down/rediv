@@ -27,7 +27,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 |---:|---|---|---|---|
 | 1 | T5-001 | V2 PRD, Canvas acceptance, design system, architecture, ADRs, and roadmap | DONE - PASS | Phase 4 complete and Human direction approved |
 | 2 | T5-002 | P0 credential cleanup and complete MySQL-only runtime/test/tooling retirement | DONE - PASS | T5-001 |
-| 3 | T5-003 | Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route | DOING | T5-002 |
+| 3 | T5-003 | Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route | DONE - PASS | T5-002 |
 | 4 | T5-004 | Single V2 token source, full-screen Canvas shell, canvas navigation, and viewport persistence | TODO | T5-003 |
 | 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | TODO | T5-004 |
 | 6 | T5-006 | Autosave queue, optimistic conflict handling, 100-step undo/redo, revisions, checkpoints, and restore | TODO | T5-005 |
@@ -47,7 +47,7 @@ The Task stays active across independently verified units so runtime and databas
 
 Schema rollout is expand-first. Existing projects receive one first canvas, node and connection IDs remain unchanged, and a first-canvas compatibility path keeps the application usable until T5-004 switches the frontend route.
 
-Units A, B, and C are complete: the expand-first migration, atomic default Canvas, database scope constraints, legacy compatibility, authenticated Canvas metadata APIs, optimistic exact-permutation ordering, last-active protection, and transactional duplication with complete graph ID remapping passed guarded MySQL and full backend regression evidence. Unit D closure is next.
+Units A-D are complete. The expand-first migration, atomic default Canvas, database scope constraints, legacy compatibility, authenticated Canvas metadata APIs, optimistic exact-permutation ordering, last-active protection, and transactional duplication with complete graph ID remapping passed guarded MySQL evidence. Final closure passed 44 focused tests, 186 full backend tests plus 5 subtests, a single Alembic head, cleanup, diff, and hygiene gates; `REPORT-T5-003.md` is authoritative evidence.
 
 ### T5-004 through T5-008
 
