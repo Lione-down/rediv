@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+from typing import Literal
+
+from pydantic import BaseModel
 
 
 class AssetListItem(BaseModel):
@@ -26,7 +28,7 @@ class AssetListResponse(BaseModel):
 
 
 class AssetCreateRequest(BaseModel):
-    type: str = Field(pattern="^(prompt|image|video)$")
+    type: Literal["prompt", "image", "video", "audio"]
     url: str | None = None
     content_text: str | None = None
     project_id: str | None = None
@@ -34,7 +36,7 @@ class AssetCreateRequest(BaseModel):
 
 
 class AssetFromGenerationRequest(BaseModel):
-    type: str = Field(pattern="^(prompt|image|video)$")
+    type: Literal["prompt", "image", "video"]
     url: str | None = None
     content_text: str | None = None
     source_model: str | None = None

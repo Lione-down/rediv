@@ -31,6 +31,7 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(canvas_connections.router)
     app.include_router(generation_tasks.router)
     app.include_router(templates.router)
+    app.include_router(templates.canvas_router)
     app.include_router(text_generate.router)
     app.include_router(image_generate.router)
     app.include_router(video_generate.router)

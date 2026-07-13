@@ -25,8 +25,8 @@ Last updated: 2026-07-13
 - Plan: `ai/tasks/doing/TASK-T5-007-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-007-PROGRESS.md`
 - Most recently completed: `T5-006 - Autosave, conflicts, history, and recovery` (`DONE - PASS`)
-- Completed T5-007 units: Unit A - node registry and compatibility boundary; Unit B - additive MySQL resource contract (`PASS`)
-- Active T5-007 unit: Unit C - project assets and templates
+- Completed T5-007 units: Unit A - node registry and compatibility boundary; Unit B - additive MySQL resource contract; Unit C - project assets and templates (`PASS`)
+- Active T5-007 unit: Unit D - generation transactions and frontend service
 
 ## Current Verified Facts
 
@@ -38,22 +38,25 @@ Last updated: 2026-07-13
 - T5-007 Unit A final evidence passed 71 Canvas Chromium tests, 6 authenticated workflow tests, a post-review 7/7 focused browser run, a 4,747-module build, four-viewport visual inspection, independent review at 0 HIGH / 0 MEDIUM, diff hygiene, and the 500-line gate.
 - T5-007 Unit B added Alembic head `a6b7c8d9e0f1`, resource origin attribution, strict versioned template graphs, guarded legacy backfill/downgrade, database-enforced scope, transactional node-link clearing, database-authoritative resource reads, and non-destructive `409` project-delete conflicts.
 - T5-007 Unit B final evidence passed 47 guarded schema/project/Canvas tests and 49 affected resource/template/mock-generation tests; safe downgrade, compile, single-head, diff, file-size, and independent review gates passed at 0 HIGH / 0 MEDIUM.
+- T5-007 Unit C added project-owned asset filters, audio upload support, cross-Canvas resource visibility, versioned graph capture, atomic target-Canvas template instantiation, deterministic create-only ID remapping, exact retry metadata, and one-transaction legacy template project creation.
+- T5-007 Unit C final evidence passed 123 affected backend tests plus independent template/document/revision reruns; compile, restart, diff, file-size, single-head, and independent review gates passed at 0 HIGH / 0 MEDIUM / 0 LOW.
 - Browser offline and 200/300 performance evidence remains deterministic mock-browser evidence. T5-008 owns final local-MySQL 200/300 persistence, restart, performance, accessibility, visual, and security certification.
-- Repository Alembic head is `a6b7c8d9e0f1`; no user/runtime migration occurred.
+- Repository Alembic head is `b8c9d0e1f2a3`; no user/runtime migration occurred.
 
 ## Exact Next Action
 
-Establish guarded MySQL/API RED tests for audio assets, owner/project filters, cross-Canvas resource visibility, exact template graph capture, and atomic target-Canvas instantiation before implementing Unit C services.
+Establish mock-integration RED tests for generation ownership, provider and asset-persistence failures, exact task/result linkage, no-charge failure semantics, authoritative quota replacement, and restart persistence before implementing Unit D orchestration.
 
 ## Blockers And Human Gates
 
-- No repository blocker prevents T5-007 Unit C.
+- No repository blocker prevents T5-007 Unit D.
 - Applying `a6b7c8d9e0f1` to user/runtime data requires reviewed backup discipline and Human authorization.
+- Applying `b8c9d0e1f2a3` to user/runtime data is covered by the same migration gate.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.
 
 ## Worktree And Automation
 
-- T5-007 Unit B was developed from clean Unit A baseline `029605230b49040d327cbc72cb1c4d5046837777`.
+- T5-007 Unit C was developed from clean Unit B baseline `ac487a0ce4751705f813882d9f60fd2f249117b2`.
 - Ignored `.env`, `.db`, Playwright output, and runtime artifacts remain excluded from staging.
 - Automation memory is only a cursor; repository documents, code, diff, tests, and runtime evidence are authoritative.

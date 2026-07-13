@@ -1,9 +1,9 @@
 # TASK-T5-007 Progress
 
 - Task state: `DOING`
-- Active unit: Unit C - project assets and templates
+- Active unit: Unit D - generation transactions and frontend service
 - Updated: 2026-07-13
-- Unit B baseline: `029605230b49040d327cbc72cb1c4d5046837777`
+- Unit C baseline: `ac487a0ce4751705f813882d9f60fd2f249117b2`
 
 ## Completed Work
 
@@ -15,17 +15,22 @@
 - Added one node-link helper used by every semantic delete/restore path. It locks node IDs deterministically, clears asset/task node links in the caller transaction, and preserves origin history.
 - Made asset/task getters database-authoritative so direct document mutations cannot expose stale cached links.
 - Defined safe project deletion semantics: linked resources block deletion with an authenticated `409`; neither store silently deletes or orphans resource history.
+- Completed Unit C through RED -> GREEN -> affected regression -> independent review.
+- Added project-owned asset queries with validated project/origin filters, stable database pagination, audio upload support, cross-Canvas visibility, and real production-lifespan restart evidence. Audio generation remains explicitly unsupported.
+- Added authenticated Canvas template capture and atomic target-Canvas instantiation with strict version-1 graph validation, parent/connection preservation, relative anchor placement, deterministic structured ID remapping, create-only collision checks, and one canonical document revision.
+- Made template instantiation exactly idempotent through revision metadata, including retry after source-template deletion; changed requests reusing a mutation ID fail with `409`.
+- Preserved legacy template-to-new-project behavior while creating the project, first Canvas, complete graph, and revision in one database transaction.
+- Added Alembic head `b8c9d0e1f2a3` to document the already-supported audio asset subtype in the MySQL column comment; no user/runtime migration ran.
 - Preserved mock-only provider evidence and did not access real secrets, call paid providers, apply user/runtime migrations, or touch the retained `revid_test_db` schema.
 
 ## Remaining Work
 
-- Unit C: project-scoped asset/template services, audio assets, exact graph capture, and atomic target-Canvas instantiation.
 - Unit D: durable mock-provider generation transactions, task/result linkage, failure rollback, and authoritative quota synchronization.
 - Unit E: Canvas resource/generation UI, responsive/mobile boundaries, full regression, review, REPORT, and Task closure.
 
 ## Exact Next Action
 
-Write guarded MySQL/API RED tests for audio assets, ownership and project/origin filters, cross-Canvas visibility, exact graph template capture, atomic target-Canvas instantiation, ID remapping, and invalid graph rejection; then introduce focused services instead of adding domain orchestration to `store.py`.
+Write mock-integration RED tests for generation ownership, provider failure, asset persistence failure, exact task/result linkage, no-charge failures, authoritative quota response, and restart persistence; then extract shared generation orchestration without changing the public text/image/video routes.
 
 ## Files Changed
 
@@ -33,6 +38,9 @@ Write guarded MySQL/API RED tests for audio assets, ownership and project/origin
 - Controllers/APIs: `resource_scope.py`, `resource_links.py`, scoped store wiring, all semantic node-delete paths, asset/task query surfaces, and controlled project-delete conflict handling.
 - Schemas: asset, generation-task, and strict template graph response contracts.
 - Tests: resource schema/backfill/downgrade, resource node-link/cache/race coverage, asset scope/API coverage, and project deletion consistency.
+- Unit C controllers/APIs: `controllers/assets.py`, `controllers/template_graphs.py`, `controllers/template_projects.py`, project asset query wiring, Canvas template routes, and the caller-owned Canvas document transaction boundary.
+- Unit C schema/migration: audio upload request contract, template capture/instantiate contracts, asset type comment migration `b8c9d0e1f2a3`, and updated ORM comment.
+- Unit C tests: project asset services, template graph services, template security/restart, legacy template project use, and the updated resource head assertion.
 - State/docs: active Task, PLAN, PROGRESS, CURRENT, ROADMAP, and `pitfalls.md`.
 
 ## Commands And Results
@@ -43,10 +51,16 @@ Write guarded MySQL/API RED tests for audio assets, ownership and project/origin
 - Additional focused evidence - PASS: migration foundation `7 passed`; asset/schema/link combined `25 passed`; project/Canvas regression `29 passed`; Alembic single head `a6b7c8d9e0f1`; compileall and `git diff --check` clean apart from CRLF notices.
 - Safe downgrade evidence - PASS on an empty disposable schema; unsafe retained-origin/template-connection downgrade refusal is covered by the guarded foundation suite.
 - Independent Unit B review - PASS after remediation, `0 HIGH / 0 MEDIUM`.
+- Unit C TDD RED - PASS: asset coverage first observed missing audio schema/comment and unguarded foreign/mismatched filters; template coverage first observed missing Canvas routes, graph capture, atomic instantiate, deterministic identity, create-only collision, retry, and legacy transaction behavior.
+- Unit C focused GREEN - PASS: project asset services `9 passed`; latest template graph/security/project-use plus legacy template coverage passed; real engine/session recreation and production FastAPI lifespan are exercised.
+- Unit C affected regression - PASS: `123 passed` across assets, resource schema/links, templates, Canvas document/fingerprint/revision/duplication, project/store, text/image/video mocks, and workflow/image/video E2E.
+- Unit C static/migration gates - PASS: `compileall`, `git diff --check`, Alembic single head `b8c9d0e1f2a3`, UTF-8/file-size review, and no staged secret or database artifact finding.
+- Independent Unit C review - PASS after remediation, `0 HIGH / 0 MEDIUM / 0 LOW`; separate reviewer runs passed template `12`, legacy template `9`, Canvas document `8`, and Canvas revision `4` tests.
 
 ## Blockers And Release Conditions
 
-- No repository blocker prevents Unit C.
+- No repository blocker prevents Unit D.
 - Applying `a6b7c8d9e0f1` to user/runtime data remains a Human Owner gate and did not occur.
+- Applying `b8c9d0e1f2a3` to user/runtime data remains part of the same Human Owner migration gate and did not occur.
 - Automatic deletion or detachment of project resources is intentionally not inferred; any destructive lifecycle requires explicit product direction and authorization.
 - Paid provider calls, real secret access, destructive MySQL/filesystem work, and ignored artifact cleanup remain Human Owner gates.

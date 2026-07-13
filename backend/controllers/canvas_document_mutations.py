@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from copy import deepcopy
 from uuid import uuid4
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from controllers.canvas_documents import _connection_to_dict, _datetime_to_iso, _node_to_dict
 from controllers.canvas_revisions import capture_graph_snapshot, prune_revisions, should_checkpoint
@@ -92,12 +94,22 @@ def _validate_connection_graph(connections: dict[str, dict], nodes: dict[str, di
         edge_keys.add(edge_key)
 
 
-def patch_document(project_id: str, canvas_id: str, user_id: str, payload: dict) -> dict:
+def _patch_document(
+    project_id: str,
+    canvas_id: str,
+    user_id: str,
+    payload: dict,
+    *,
+    session: Session | None,
+    should_commit: bool,
+) -> dict:
     try:
         fingerprint = mutation_fingerprint(payload)
     except (TypeError, ValueError) as error:
         raise CanvasDocumentValidationError("mutation_payload_not_canonical_json") from error
-    with get_session() as session:
+    session_context = get_session() if session is None else nullcontext(session)
+    with session_context as active_session:
+        session = active_session
         _owned_project(session, project_id, user_id)
         canvas = _active_canvas(session, project_id, canvas_id, lock=True)
         existing_revision = session.scalar(
@@ -303,5 +315,34 @@ def patch_document(project_id: str, canvas_id: str, user_id: str, payload: dict)
         session.add(revision)
         session.flush()
         prune_revisions(session, canvas_id, next_revision)
-        session.commit()
+        if should_commit:
+            session.commit()
         return _response_from_revision(revision)
+
+
+def patch_document(project_id: str, canvas_id: str, user_id: str, payload: dict) -> dict:
+    return _patch_document(
+        project_id,
+        canvas_id,
+        user_id,
+        payload,
+        session=None,
+        should_commit=True,
+    )
+
+
+def apply_document_patch_in_session(
+    session: Session,
+    project_id: str,
+    canvas_id: str,
+    user_id: str,
+    payload: dict,
+) -> dict:
+    return _patch_document(
+        project_id,
+        canvas_id,
+        user_id,
+        payload,
+        session=session,
+        should_commit=False,
+    )

@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
+from controllers import assets as asset_controller
 from controllers.store import now_iso, store
 from core.security import current_user
 from schemas.asset import AssetCreateRequest, AssetFromGenerationRequest, AssetListResponse
@@ -29,6 +30,12 @@ def _asset_scope_http_error(error: KeyError | PermissionError) -> HTTPException:
     return HTTPException(status_code=status_code, detail=str(error.args[0]))
 
 
+def _asset_query_http_error(error: asset_controller.AssetQueryError) -> HTTPException:
+    if isinstance(error, asset_controller.AssetProjectNotFoundError | asset_controller.AssetOriginNotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
+    return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))
+
+
 @router.get("", response_model=AssetListResponse)
 def list_assets(
     asset_type: str | None = None,
@@ -41,14 +48,17 @@ def list_assets(
     if page < 1 or page_size < 1:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid pagination")
 
-    items, total = store.list_assets(
-        user["id"],
-        asset_type=asset_type,
-        project_id=project_id,
-        origin_canvas_id=origin_canvas_id,
-        page=page,
-        page_size=page_size,
-    )
+    try:
+        items, total = asset_controller.list_assets(
+            user["id"],
+            asset_type=asset_type,
+            project_id=project_id,
+            origin_canvas_id=origin_canvas_id,
+            page=page,
+            page_size=page_size,
+        )
+    except asset_controller.AssetQueryError as error:
+        raise _asset_query_http_error(error) from error
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 

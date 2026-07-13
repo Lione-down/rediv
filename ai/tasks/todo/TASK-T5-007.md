@@ -54,7 +54,7 @@ Deliver the first-acceptance node registry and connect Canvas to project-shared 
 - [x] Legacy graphs remain usable; unknown future node types render a safe labeled unsupported state and round-trip without graph corruption.
 - [x] Image/video results use real media previews when available or explicit labeled placeholders; audio is supported only as an asset subtype.
 - [ ] Project assets, templates, generation tasks, and generated assets are available from every Canvas without copying ownership.
-- [ ] Template graphs preserve nodes, connections, relative placement, parent relationships, and version metadata while remapping IDs into the target Canvas atomically.
+- [x] Template graphs preserve nodes, connections, relative placement, parent relationships, and version metadata while remapping IDs into the target Canvas atomically.
 - [x] MySQL comments, indexes, checks, and composite foreign keys enforce project/Canvas attribution and clear node links without erasing retained origin history.
 - [ ] Provider success persists one task, one generated project asset, and a linked result; provider or asset persistence failure records a specific task failure, creates no success asset/result, and consumes no quota.
 - [ ] Generation success/failure and project resource visibility survive backend restart.

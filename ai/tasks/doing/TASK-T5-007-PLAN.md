@@ -1,8 +1,8 @@
 # TASK-T5-007 Plan
 
 - State: `DOING`
-- Completed units: Unit A - node registry and compatibility boundary; Unit B - additive MySQL resource contract
-- Active unit: Unit C - project assets and templates
+- Completed units: Unit A - node registry and compatibility boundary; Unit B - additive MySQL resource contract; Unit C - project assets and templates
+- Active unit: Unit D - generation transactions and frontend service
 - Updated: 2026-07-13
 
 ## Objective
@@ -59,4 +59,4 @@ Land T5-007 as five independently verified units. Every behavior change follows 
 
 ## Exact Next Action
 
-Add failing guarded-MySQL/API tests for audio assets, owner/project filters, cross-Canvas resource visibility, exact versioned template graph capture, atomic target-Canvas instantiation, ID remapping, and invalid graph rejection before adding the focused Unit C services.
+Add failing mock integration tests for project/Canvas/node ownership, provider and persistence failures, exact task/result linkage, no-charge failure semantics, authoritative quota replacement, and restart persistence before extracting shared generation orchestration.

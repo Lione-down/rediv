@@ -37,7 +37,9 @@ class Asset(Base):
     canvas_node_id: Mapped[str | None] = mapped_column(
         ForeignKey("canvas_nodes.id", ondelete="SET NULL"), nullable=True, index=True, comment="关联画布节点ID"
     )
-    type: Mapped[str] = mapped_column(String(32), nullable=False, index=True, comment="资源类型: image/video/text/prompt")
+    type: Mapped[str] = mapped_column(
+        String(32), nullable=False, index=True, comment="资源类型: image/video/audio/text/prompt"
+    )
     url: Mapped[str | None] = mapped_column(String(2048), nullable=True, comment="资源URL")
     content_text: Mapped[str | None] = mapped_column(Text, nullable=True, comment="文本内容")
     source: Mapped[str] = mapped_column(String(64), nullable=False, default="upload", comment="来源: upload/generation")

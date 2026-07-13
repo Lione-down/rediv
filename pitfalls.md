@@ -296,3 +296,11 @@ Evidence:
 - Resource create 与 semantic node delete 必须锁定同一边界。创建按 `Project -> Canvas -> CanvasNode` 执行 `FOR UPDATE` 并在最终锁后重验 active/scope；删除对排序后的 node IDs 加锁，再在同一 transaction 清 asset/task link，避免并发重新挂回 deleted node。
 - 任何会绕过 process cache 的 document mutation 后，asset/task 详情必须以数据库为 authoritative source；不能从旧 cache 返回已清除的 `canvas_node_id`。
 - Project 仍有关联 asset/task 时，当前安全语义是 `409 Project has linked resources`。禁止在没有明确产品决策和 destructive authorization 时自动级联删除或抹掉资源归属。
+
+## 2026-07-13 Template graph 幂等与原子实例化
+
+- Template remap ID 不能用分隔符拼接多个未经约束的 identity 字段；不同字段组合可能生成同一字符串。应对结构化字段列表做 canonical serialization，再生成 UUIDv5。
+- Deterministic ID 只保证重试稳定，不代表可以覆盖已有 row。目标 Canvas 锁定后必须先检查 node/connection ID 是否已占用，并以 create-only collision 拒绝异常预占。
+- Exact retry 不能依赖 source Template 仍存在。首轮成功应把 request fingerprint、ID maps 和创建计数写入同一 Canvas revision；重试先按 Canvas 与 mutation ID 读取 revision，完全一致才回放，变更请求返回 `409`。
+- Legacy template-to-project 兼容路由必须把 Project、first Canvas、完整 graph 和 revision 放在同一 transaction。复用 canonical document mutation 时应允许 caller-owned session，并明确只有最外层 orchestration commit。
+- Backend restart evidence 必须重建 engine/session 并进入 production FastAPI lifespan；测试即使断言失败也要在 `finally` 恢复 owned runtime，避免污染后续 schema case。
