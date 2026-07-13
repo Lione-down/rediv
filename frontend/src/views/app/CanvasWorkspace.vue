@@ -12,6 +12,7 @@ import CanvasStage from '../../components/canvas/CanvasStage.vue'
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
 import { useCanvasRevisionStore } from '../../modules/canvas/canvas-revision-store'
+import { requestCanvasGeneration } from '../../modules/canvas/generation-service'
 import { canvasRouteLocation, normalizeRouteIdentifier } from '../../modules/canvas/metadata'
 import { getLegacyGenerationQuotaType } from '../../modules/canvas/node-registry'
 import { useProjectStore } from '../../modules/project/store'
@@ -207,9 +208,14 @@ async function requestGeneration(node: CanvasNode) {
   if (node.type !== 'image' && node.type !== 'model' && node.type !== 'video') {
     throw new Error('当前节点类型暂不支持生成。')
   }
-  const path = node.type === 'video' ? '/api/video-generate' : '/api/image-generate'
-  const response = await request.post(path, { prompt })
-  return response.data.asset as Asset | undefined
+  const response = await requestCanvasGeneration({
+    mediaType: node.type === 'video' ? 'video' : 'image',
+    projectId: projectId.value,
+    originCanvasId: canvasId.value,
+    canvasNodeId: node.id,
+    prompt,
+  }, authStore, request)
+  return response.asset
 }
 
 async function generateFromSelectedNode() {
@@ -234,10 +240,6 @@ async function generateFromSelectedNode() {
   try {
     const asset = await requestGeneration(node)
     prependAsset(asset)
-    authStore.quotas = {
-      ...authStore.quotas,
-      [quotaType]: Math.max(0, authStore.quotas[quotaType] - 1),
-    }
     canvasDocumentStore.setNodeStatus(node.id, 'success')
     if (asset?.url) {
       canvasDocumentStore.setNodeContent(

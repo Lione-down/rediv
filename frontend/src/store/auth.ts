@@ -27,6 +27,7 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem(TOKEN_STORAGE_KEY) || '')
   const user = ref<User | null>(null)
   const quotas = ref<QuotaBalance>({ text: 0, image: 0, video: 0 })
+  const quotaRevision = ref(-1)
   const guestSessionId = ref('')
   const guestSessionExpiresAt = ref('')
   const wechatState = ref('')
@@ -53,10 +54,21 @@ export const useAuthStore = defineStore('auth', () => {
     () => registrationSettings.value?.wechat_login_enabled === true,
   )
 
+  function applyQuotaSnapshot(
+    nextQuotas: QuotaBalance,
+    nextRevision: number,
+    force = false,
+  ) {
+    if (!force && nextRevision < quotaRevision.value) return false
+    quotas.value = nextQuotas
+    quotaRevision.value = nextRevision
+    return true
+  }
+
   function applyAuth(payload: AuthResponse) {
     token.value = payload.token
     user.value = payload.user
-    quotas.value = payload.quotas
+    applyQuotaSnapshot(payload.quotas, payload.quota_revision ?? -1, true)
     guestSessionId.value = ''
     guestSessionExpiresAt.value = ''
     hasRestoredSession.value = true
@@ -210,7 +222,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       user.value = response.data.user
-      quotas.value = response.data.quotas
+      applyQuotaSnapshot(response.data.quotas, response.data.quota_revision ?? -1)
       hasRestoredSession.value = true
       return response.data.user
     })()
@@ -297,6 +309,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = ''
     user.value = null
     quotas.value = { text: 0, image: 0, video: 0 }
+    quotaRevision.value = -1
     hasRestoredSession.value = true
     localStorage.removeItem(TOKEN_STORAGE_KEY)
   }
@@ -305,6 +318,7 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     user,
     quotas,
+    quotaRevision,
     guestSessionId,
     guestSessionExpiresAt,
     wechatState,
@@ -331,5 +345,6 @@ export const useAuthStore = defineStore('auth', () => {
     startGuestSession,
     logout,
     clearSession,
+    applyQuotaSnapshot,
   }
 })

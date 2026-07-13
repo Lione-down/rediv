@@ -1,9 +1,9 @@
 # TASK-T5-007 Plan
 
 - State: `DOING`
-- Completed units: Unit A - node registry and compatibility boundary; Unit B - additive MySQL resource contract; Unit C - project assets and templates
-- Active unit: Unit D - generation transactions and frontend service
-- Updated: 2026-07-13
+- Completed units: Unit A - node registry and compatibility boundary; Unit B - additive MySQL resource contract; Unit C - project assets and templates; Unit D - generation transactions and frontend service
+- Active unit: Unit E - Canvas resource and generation experience
+- Updated: 2026-07-14
 
 ## Objective
 
@@ -59,4 +59,4 @@ Land T5-007 as five independently verified units. Every behavior change follows 
 
 ## Exact Next Action
 
-Add failing mock integration tests for project/Canvas/node ownership, provider and persistence failures, exact task/result linkage, no-charge failure semantics, authoritative quota replacement, and restart persistence before extracting shared generation orchestration.
+Add failing browser tests for cross-Canvas project resources, asset/template insertion, generation success/failure/result states, narrow drawers, keyboard focus, and the 375px review-only boundary before implementing the Unit E UI.

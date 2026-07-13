@@ -304,3 +304,11 @@ Evidence:
 - Exact retry 不能依赖 source Template 仍存在。首轮成功应把 request fingerprint、ID maps 和创建计数写入同一 Canvas revision；重试先按 Canvas 与 mutation ID 读取 revision，完全一致才回放，变更请求返回 `409`。
 - Legacy template-to-project 兼容路由必须把 Project、first Canvas、完整 graph 和 revision 放在同一 transaction。复用 canonical document mutation 时应允许 caller-owned session，并明确只有最外层 orchestration commit。
 - Backend restart evidence 必须重建 engine/session 并进入 production FastAPI lifespan；测试即使断言失败也要在 `finally` 恢复 owned runtime，避免污染后续 schema case。
+
+## 2026-07-14 Generation transaction、reservation 与 quota revision
+
+- Provider await 不能持有数据库 transaction。请求开始阶段应先用 `Quota FOR UPDATE` 与 active task reservation 原子占位，provider 完成后再用独立 transaction 锁定 quota 与 task；reservation lease 必须长于受控 provider/polling 上限，并同时支持 startup 与 request-time stale reconciliation。
+- Generation completion 必须是受限 state machine：同一 task 的 duplicate completion 返回同一 asset，terminal state 不允许被 late failure 覆盖，asset、task、quota debit 与 ledger 必须在一个 transaction 中提交。跨资源 writer 的 lock order 需要与 semantic delete 对齐，避免 `Asset <-> GenerationTask` 锁环。
+- Quota balance 与 revision 必须来自同一数据库 snapshot，并与 ledger 在同一 transaction 内更新。前端只接受 backend response，按 auth session 单调应用 revision；logout/login 必须重置 revision，不能用跨 session 的 module-level cache。
+- Provider content、HTTPS URL、request ID 与 input asset IDs 必须在 completion/debit 前做结构化、长度和 ownership 校验。任何 malformed result、cancel、timeout、provider failure 或 persistence failure都应 durable terminalize task，且不得创建 success asset 或消耗 quota。
+- 需要以时间排序的高频 MySQL ledger 不能依赖秒级 `DATETIME`；使用 `DATETIME(6)` 并保留稳定 secondary key，避免同秒 grant/debit 的展示顺序不确定。

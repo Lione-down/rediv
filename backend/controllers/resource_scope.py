@@ -69,6 +69,7 @@ def resolve_database_resource_scope(
     project_id: str | None,
     origin_canvas_id: str | None,
     canvas_node_id: str | None,
+    require_active: bool = True,
 ) -> ResourceScope:
     node_scope = None
     if canvas_node_id:
@@ -106,7 +107,9 @@ def resolve_database_resource_scope(
     canvas = session.scalar(
         select(Canvas).where(Canvas.id == origin_canvas_id).with_for_update()
     ) if origin_canvas_id else None
-    if origin_canvas_id and (canvas is None or canvas.status != "active"):
+    if origin_canvas_id and canvas is None:
+        raise KeyError(f'Canvas "{origin_canvas_id}" not found')
+    if require_active and canvas is not None and canvas.status != "active":
         raise KeyError(f'Canvas "{origin_canvas_id}" not found')
     if canvas is not None and canvas.project_id != project_id:
         raise PermissionError("Origin canvas does not belong to project")
@@ -114,7 +117,9 @@ def resolve_database_resource_scope(
     node = session.scalar(
         select(CanvasNode).where(CanvasNode.id == canvas_node_id).with_for_update()
     ) if canvas_node_id else None
-    if canvas_node_id and (node is None or node.status != "active"):
+    if canvas_node_id and node is None:
+        raise KeyError(f'Canvas node "{canvas_node_id}" not found')
+    if require_active and node is not None and node.status != "active":
         raise KeyError(f'Canvas node "{canvas_node_id}" not found')
     if node is not None and (node.project_id != project_id or node.canvas_id != origin_canvas_id):
         raise PermissionError("Canvas node scope changed during resource creation")

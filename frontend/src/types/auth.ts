@@ -16,11 +16,13 @@ export interface AuthResponse {
   token: string
   user: User
   quotas: QuotaBalance
+  quota_revision: number
 }
 
 export interface CurrentUserResponse {
   user: User
   quotas: QuotaBalance
+  quota_revision: number
 }
 
 export interface QuotaBalance {

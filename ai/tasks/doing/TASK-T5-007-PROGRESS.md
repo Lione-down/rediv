@@ -1,9 +1,9 @@
 # TASK-T5-007 Progress
 
 - Task state: `DOING`
-- Active unit: Unit D - generation transactions and frontend service
-- Updated: 2026-07-13
-- Unit C baseline: `ac487a0ce4751705f813882d9f60fd2f249117b2`
+- Active unit: Unit E - Canvas resource and generation experience
+- Updated: 2026-07-14
+- Unit D baseline: `af8196fc165eb5d2cacc16a8ede9fa57213e0942`
 
 ## Completed Work
 
@@ -21,16 +21,22 @@
 - Made template instantiation exactly idempotent through revision metadata, including retry after source-template deletion; changed requests reusing a mutation ID fail with `409`.
 - Preserved legacy template-to-new-project behavior while creating the project, first Canvas, complete graph, and revision in one database transaction.
 - Added Alembic head `b8c9d0e1f2a3` to document the already-supported audio asset subtype in the MySQL column comment; no user/runtime migration ran.
+- Completed Unit D through transaction, concurrency, provider-validation, restart, browser, build, migration, independent-review, and hygiene closure.
+- Added one database transaction boundary that links a durable generation task, one generated project asset, one quota debit, and one ledger record. Duplicate completion is idempotent, late failure cannot overwrite success, and all terminal failure paths remain no-charge.
+- Added project/Canvas/node ownership validation, project-scoped task queries, cross-Canvas retained origin history, bulk-bounded input asset validation, and database-authoritative task/quota reads.
+- Added quota reservation leases with startup and request-time reconciliation. `Quota` row locking serializes reservations, debit, and admin grant without holding a transaction open during provider work.
+- Added Alembic head `c9d0e1f2a3b4` with non-null commented quota revision state and microsecond quota-ledger timestamps. Balance, revision, and ledger mutations commit atomically.
+- Added strict provider result validation for content, HTTPS URLs, and bounded request identifiers before completion. Malformed results, cancellation, timeout, provider failure, and persistence failure durably terminate the task without creating an asset or consuming quota.
+- Extracted the frontend Canvas generation service and replaced manual quota decrement with same-transaction backend quota snapshots. Pinia applies snapshots monotonically per auth session and resets revision state across logout/login.
 - Preserved mock-only provider evidence and did not access real secrets, call paid providers, apply user/runtime migrations, or touch the retained `revid_test_db` schema.
 
 ## Remaining Work
 
-- Unit D: durable mock-provider generation transactions, task/result linkage, failure rollback, and authoritative quota synchronization.
 - Unit E: Canvas resource/generation UI, responsive/mobile boundaries, full regression, review, REPORT, and Task closure.
 
 ## Exact Next Action
 
-Write mock-integration RED tests for generation ownership, provider failure, asset persistence failure, exact task/result linkage, no-charge failures, authoritative quota response, and restart persistence; then extract shared generation orchestration without changing the public text/image/video routes.
+Write Unit E browser RED tests for cross-Canvas resources, asset/template insertion, contextual generation controls, task/result states, narrow drawers, keyboard focus, and the 375px review-only boundary; then implement the smallest responsive UI slice with existing Canvas tokens and command/autosave boundaries.
 
 ## Files Changed
 
@@ -41,6 +47,9 @@ Write mock-integration RED tests for generation ownership, provider failure, ass
 - Unit C controllers/APIs: `controllers/assets.py`, `controllers/template_graphs.py`, `controllers/template_projects.py`, project asset query wiring, Canvas template routes, and the caller-owned Canvas document transaction boundary.
 - Unit C schema/migration: audio upload request contract, template capture/instantiate contracts, asset type comment migration `b8c9d0e1f2a3`, and updated ORM comment.
 - Unit C tests: project asset services, template graph services, template security/restart, legacy template project use, and the updated resource head assertion.
+- Unit D transaction/runtime: generation transaction, reservation, record, quota, provider, and provider-result modules; scoped text/image/video APIs; generation task query updates; quota revision model/migration; atomic store quota grant/cache synchronization.
+- Unit D frontend: Canvas generation service, auth quota revision state/types, both workspace generation callers, and authenticated/service Playwright coverage.
+- Unit D tests: transaction success/failure/restart, duplicate completion, late failure, reservation expiry, lock ordering, grant/debit concurrency, provider malformed results, quota revision migration, and updated endpoint/E2E coverage.
 - State/docs: active Task, PLAN, PROGRESS, CURRENT, ROADMAP, and `pitfalls.md`.
 
 ## Commands And Results
@@ -56,11 +65,17 @@ Write mock-integration RED tests for generation ownership, provider failure, ass
 - Unit C affected regression - PASS: `123 passed` across assets, resource schema/links, templates, Canvas document/fingerprint/revision/duplication, project/store, text/image/video mocks, and workflow/image/video E2E.
 - Unit C static/migration gates - PASS: `compileall`, `git diff --check`, Alembic single head `b8c9d0e1f2a3`, UTF-8/file-size review, and no staged secret or database artifact finding.
 - Independent Unit C review - PASS after remediation, `0 HIGH / 0 MEDIUM / 0 LOW`; separate reviewer runs passed template `12`, legacy template `9`, Canvas document `8`, and Canvas revision `4` tests.
+- Unit D focused transaction/provider/migration GREEN - PASS: `24 passed`.
+- Unit D affected backend regression - PASS: `94 passed, 3 subtests passed` across generation transactions, concurrency, provider validation, restart, text/image/video routes and E2E, quota/admin/store, resource schema, assets, and templates.
+- Unit D browser/build evidence - PASS: generation service `5 passed`, authenticated workflow and four accepted viewports `6 passed`, and the Vue TypeScript/Vite production build completed with `4,748` transformed modules.
+- Unit D migration/static gates - PASS: `compileall`, Alembic single head `c9d0e1f2a3b4`, `git diff --check`, file-size review, and staged/tracked sensitive-path checks. No user/runtime migration ran.
+- Independent Unit D review - PASS, `0 HIGH / 0 MEDIUM / 0 LOW`; independent backend runs passed `53 + 3 subtests` and `34`, frontend Playwright passed `11`, and build/migration/diff gates passed.
 
 ## Blockers And Release Conditions
 
-- No repository blocker prevents Unit D.
+- No repository blocker prevents Unit E.
 - Applying `a6b7c8d9e0f1` to user/runtime data remains a Human Owner gate and did not occur.
 - Applying `b8c9d0e1f2a3` to user/runtime data remains part of the same Human Owner migration gate and did not occur.
+- Applying `c9d0e1f2a3b4` to user/runtime data remains part of the same Human Owner migration gate and did not occur.
 - Automatic deletion or detachment of project resources is intentionally not inferred; any destructive lifecycle requires explicit product direction and authorization.
 - Paid provider calls, real secret access, destructive MySQL/filesystem work, and ignored artifact cleanup remain Human Owner gates.

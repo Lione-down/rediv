@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy.dialects.mysql import DATETIME
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, utc_now
@@ -17,6 +18,12 @@ class Quota(Base):
     text_quota: Mapped[int] = mapped_column(nullable=False, default=0, comment="文本生成剩余次数")
     image_quota: Mapped[int] = mapped_column(nullable=False, default=0, comment="图片生成剩余次数")
     video_quota: Mapped[int] = mapped_column(nullable=False, default=0, comment="视频生成剩余次数")
+    revision: Mapped[int] = mapped_column(
+        nullable=False,
+        default=0,
+        server_default="0",
+        comment="Monotonic quota balance revision",
+    )
 
 
 class QuotaLedger(Base):
@@ -36,4 +43,6 @@ class QuotaLedger(Base):
         comment="Related generation task ID",
     )
     admin_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True, comment="操作管理员ID")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False, comment="创建时间")
+    created_at: Mapped[datetime] = mapped_column(
+        DATETIME(fsp=6), default=utc_now, nullable=False, comment="创建时间"
+    )

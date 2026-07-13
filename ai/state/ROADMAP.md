@@ -1,6 +1,6 @@
 # Revid Product V2 / Phase 5 Direct Delivery Roadmap
 
-Last updated: 2026-07-13
+Last updated: 2026-07-14
 
 ## Product Outcome
 
@@ -59,7 +59,7 @@ T5-005 is `DONE - PASS`. Units A-E deliver one persistent keyed Leafer world, re
 
 T5-006 is `DONE - PASS`. Units A-E delivered one atomic idempotent document PATCH, serialized autosave and exact local recovery, Canvas-keyed 100-command undo/redo, reconstructable latest-50 history, periodic/restore checkpoints, non-destructive restore-to-new-head, explicit conflict recovery, and guarded restart evidence through the production FastAPI lifespan. Final closure passed 12 guarded MySQL document/revision tests, 16 focused Chromium tests, 200 full backend tests, 56 full Chromium tests, a 4,739-module build, accessibility coverage, independent review, and hygiene gates. `REPORT-T5-006.md` is authoritative.
 
-T5-007 is `DOING`. Units A-C are `PASS`: canonical/legacy/unknown node behavior is registry-driven; Alembic heads through `b8c9d0e1f2a3` provide guarded resource origin attribution, versioned template graphs, project/Canvas constraints, transactional node-link clearing, audio asset documentation, and controlled project-resource deletion conflicts; project assets are cross-Canvas and template graphs instantiate atomically with exact retry semantics. Unit D, durable mock-provider generation transactions and frontend service extraction, is active. Unit E delivers responsive Canvas resource/generation UI plus closure; templates remain versioned, quotas backend-authoritative, and automated provider evidence mock-only.
+T5-007 is `DOING`. Units A-D are `PASS`: canonical/legacy/unknown node behavior is registry-driven; Alembic heads through `c9d0e1f2a3b4` provide guarded resource origin attribution, versioned template graphs, project/Canvas constraints, transactional node-link clearing, audio asset documentation, and monotonic quota revisions; project assets are cross-Canvas, template graphs instantiate atomically with exact retry semantics, and mock-provider generation now has idempotent task/asset/ledger transactions, reservation leases, no-charge failures, restart recovery, and backend-authoritative frontend quota snapshots. Unit E, responsive Canvas resource/generation UI plus Task closure, is active; templates remain versioned and automated provider evidence remains mock-only.
 
 ### T5-009 through T5-011
 

@@ -25,6 +25,7 @@ class AuthResponse(BaseModel):
     token: str
     user: dict
     quotas: dict[str, int]
+    quota_revision: int = Field(ge=0)
 
 
 class RegisterRequest(BaseModel):

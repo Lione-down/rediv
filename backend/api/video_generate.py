@@ -1,20 +1,25 @@
 import asyncio
-import sys
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
 
-from controllers.store import store
+from api.generation_common import map_generation_error
+from controllers import generation_transactions as generation_controller
 from core.agnes_provider import normalize_provider_status
+from core.generation_provider import GenerationProvider, get_generation_provider
+from core.generation_results import (
+    ProviderResultError,
+    validate_https_url,
+    validate_provider_identifier,
+)
 from core.generation_task_utils import (
     elapsed_ms,
     error_code_for_exception,
-    extract_provider_request_id,
     sanitize_error_message,
     status_for_error_code,
 )
 from core.security import current_user
+from schemas.generation import VideoGenerateRequest, VideoGenerateResponse
 
 
 MODEL_NAME = "agnes-video-v2.0"
@@ -24,53 +29,60 @@ MAX_POLL_ATTEMPTS = 120
 router = APIRouter(prefix="/api", tags=["video-generate"])
 
 
-class VideoGenerateRequest(BaseModel):
-    prompt: str = Field(..., min_length=1)
-
-
-def _get_agnes():
-    # `main` imports `api.router`, so importing `main` here would create a circular import.
-    main_module = sys.modules.get("main") or sys.modules.get("backend.main")
-    if main_module is None or not hasattr(main_module, "get_agnes"):
-        raise RuntimeError("Agnes provider is unavailable")
-    return main_module.get_agnes()
-
-
-def _extract_video_id(response: dict) -> str:
+def _extract_video_id(response: object) -> str:
+    if not isinstance(response, dict):
+        raise ProviderResultError("Provider returned invalid video task data")
     video_id = response.get("video_id")
     if isinstance(video_id, str) and video_id:
-        return video_id
+        return validate_provider_identifier(video_id)
 
     data = response.get("data")
     if isinstance(data, dict):
         nested_video_id = data.get("video_id")
         if isinstance(nested_video_id, str) and nested_video_id:
-            return nested_video_id
+            return validate_provider_identifier(nested_video_id)
 
-    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Agnes video generation failed")
+    raise ProviderResultError("Provider returned invalid video task identifier")
 
 
-def _extract_video_url(response: dict) -> str | None:
+def _extract_video_url(response: object) -> str | None:
+    if not isinstance(response, dict):
+        raise ProviderResultError("Provider returned invalid video result data")
     video_url = response.get("video_url")
     if isinstance(video_url, str) and video_url:
-        return video_url
+        return validate_https_url(video_url, media_type="video")
 
     data = response.get("data")
     if isinstance(data, dict):
         nested_video_url = data.get("video_url")
         if isinstance(nested_video_url, str) and nested_video_url:
-            return nested_video_url
+            return validate_https_url(nested_video_url, media_type="video")
 
     return None
 
 
-async def _poll_video_url(video_id: str, generation_task_id: str, started_at: float) -> str:
+async def _poll_video_url(
+    provider: GenerationProvider,
+    video_id: str,
+    generation_task_id: str,
+    started_at: float,
+) -> str:
     for attempt in range(MAX_POLL_ATTEMPTS):
         try:
-            response = await _get_agnes().poll_video_result(video_id)
+            response = await provider.poll_video_result(video_id)
+        except asyncio.CancelledError:
+            generation_controller.fail_generation_task(
+                generation_task_id,
+                status="failed",
+                duration_ms=elapsed_ms(started_at),
+                provider_request_id=video_id,
+                error_code="request_cancelled",
+                error_message="Video generation request was cancelled",
+            )
+            raise
         except Exception as exc:
             error_code = error_code_for_exception(exc)
-            store.update_generation_task(
+            generation_controller.fail_generation_task(
                 generation_task_id,
                 status=status_for_error_code(error_code),
                 duration_ms=elapsed_ms(started_at),
@@ -88,7 +100,7 @@ async def _poll_video_url(video_id: str, generation_task_id: str, started_at: fl
         if normalized_status == "succeeded":
             video_url = _extract_video_url(response)
             if video_url is None:
-                store.update_generation_task(
+                generation_controller.fail_generation_task(
                     generation_task_id,
                     status="failed",
                     duration_ms=elapsed_ms(started_at),
@@ -102,7 +114,7 @@ async def _poll_video_url(video_id: str, generation_task_id: str, started_at: fl
                 )
             return video_url
         if normalized_status == "failed":
-            store.update_generation_task(
+            generation_controller.fail_generation_task(
                 generation_task_id,
                 status="failed",
                 duration_ms=elapsed_ms(started_at),
@@ -114,7 +126,7 @@ async def _poll_video_url(video_id: str, generation_task_id: str, started_at: fl
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Agnes video generation failed",
             )
-        store.update_generation_task(
+        generation_controller.update_generation_task_state(
             generation_task_id,
             status=normalized_status,
             duration_ms=elapsed_ms(started_at),
@@ -122,9 +134,20 @@ async def _poll_video_url(video_id: str, generation_task_id: str, started_at: fl
         )
 
         if attempt < MAX_POLL_ATTEMPTS - 1:
-            await asyncio.sleep(POLL_INTERVAL_SECONDS)
+            try:
+                await asyncio.sleep(POLL_INTERVAL_SECONDS)
+            except asyncio.CancelledError:
+                generation_controller.fail_generation_task(
+                    generation_task_id,
+                    status="failed",
+                    duration_ms=elapsed_ms(started_at),
+                    provider_request_id=video_id,
+                    error_code="request_cancelled",
+                    error_message="Video generation request was cancelled",
+                )
+                raise
 
-    store.update_generation_task(
+    generation_controller.fail_generation_task(
         generation_task_id,
         status="timed_out",
         duration_ms=elapsed_ms(started_at),
@@ -138,50 +161,67 @@ async def _poll_video_url(video_id: str, generation_task_id: str, started_at: fl
     )
 
 
-@router.post("/video-generate")
-async def video_generate(payload: VideoGenerateRequest, user=Depends(current_user)):
-    quotas = store.quotas.get(user["id"], {"text": 0, "image": 0, "video": 0})
-    if quotas.get("video", 0) < 1:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient video quota")
-
+@router.post("/video-generate", response_model=VideoGenerateResponse)
+async def video_generate(
+    payload: VideoGenerateRequest,
+    user=Depends(current_user),
+    provider: GenerationProvider = Depends(get_generation_provider),
+):
+    try:
+        task = generation_controller.start_generation_task(
+            user_id=user["id"],
+            media_type="video",
+            provider="agnes",
+            model=MODEL_NAME,
+            project_id=payload.project_id,
+            origin_canvas_id=payload.origin_canvas_id,
+            canvas_node_id=payload.canvas_node_id,
+        )
+    except generation_controller.GenerationTransactionError as error:
+        raise map_generation_error(error) from error
     started_at = time.perf_counter()
-    task = store.create_generation_task(
-        user["id"],
-        "video",
-        "agnes",
-        MODEL_NAME,
-        status="queued",
-    )
-    store.update_generation_task(task["id"], status="running")
     provider_request_id: str | None = None
 
     try:
-        create_response = await _get_agnes().generate_video(
+        create_response = await provider.generate_video(
             model=MODEL_NAME,
             prompt=payload.prompt,
         )
-        provider_request_id = extract_provider_request_id(create_response, "video_id", "task_id", "id")
         video_id = _extract_video_id(create_response)
         provider_request_id = video_id
-        store.update_generation_task(task["id"], status="running", provider_request_id=provider_request_id)
-        video_url = await _poll_video_url(video_id, task["id"], started_at)
+        generation_controller.update_generation_task_state(
+            task["id"], status="running", provider_request_id=provider_request_id
+        )
+        video_url = await _poll_video_url(provider, video_id, task["id"], started_at)
+    except asyncio.CancelledError:
+        generation_controller.fail_generation_task(
+            task["id"],
+            status="failed",
+            duration_ms=elapsed_ms(started_at),
+            provider_request_id=provider_request_id,
+            error_code="request_cancelled",
+            error_message="Video generation request was cancelled",
+        )
+        raise
     except HTTPException as exc:
-        current_task = store.get_generation_task(task["id"])
-        if current_task is None or current_task.get("error_code") is None:
-            detail = str(exc.detail)
-            error_code = "timeout" if "timed out" in detail else "provider_error"
-            store.update_generation_task(
-                task["id"],
-                status=status_for_error_code(error_code),
-                duration_ms=elapsed_ms(started_at),
-                provider_request_id=provider_request_id,
-                error_code=error_code,
-                error_message=sanitize_error_message(detail),
-            )
+        detail = str(exc.detail)
+        error_code = "timeout" if "timed out" in detail else "provider_error"
+        generation_controller.fail_generation_task(
+            task["id"],
+            status=status_for_error_code(error_code),
+            duration_ms=elapsed_ms(started_at),
+            provider_request_id=provider_request_id,
+            error_code=error_code,
+            error_message=sanitize_error_message(detail),
+        )
         raise
     except Exception as exc:
-        error_code = error_code_for_exception(exc)
-        store.update_generation_task(
+        error_code = (
+            "provider_result_invalid"
+            if isinstance(exc, ProviderResultError)
+            else error_code_for_exception(exc)
+        )
+        generation_controller.fail_generation_task(
             task["id"],
             status=status_for_error_code(error_code),
             duration_ms=elapsed_ms(started_at),
@@ -191,34 +231,26 @@ async def video_generate(payload: VideoGenerateRequest, user=Depends(current_use
         )
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Agnes video generation failed") from exc
 
-    store.grant_quota(user["id"], "video", -1, "video_generate", None)
     try:
-        asset = store.create_asset(
-            user["id"],
-            "video",
-            video_url,
-            None,
-            source="generation",
+        result = generation_controller.complete_generation_task(
+            task["id"],
+            asset_type="video",
+            url=video_url,
+            content_text=None,
             source_model=MODEL_NAME,
-            source_task_id=video_id,
+            duration_ms=elapsed_ms(started_at),
+            provider_request_id=provider_request_id,
         )
-    except Exception as exc:
-        store.grant_quota(user["id"], "video", 1, "video_generate_refund", None)
-        store.update_generation_task(
+    except generation_controller.GenerationPersistenceError as error:
+        generation_controller.fail_generation_task(
             task["id"],
             status="failed",
             duration_ms=elapsed_ms(started_at),
             provider_request_id=provider_request_id,
             error_code="asset_persistence_error",
-            error_message=sanitize_error_message(exc),
+            error_message=sanitize_error_message(error.__cause__ or error),
         )
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save generated asset") from exc
-
-    task = store.update_generation_task(
-        task["id"],
-        status="succeeded",
-        duration_ms=elapsed_ms(started_at),
-        provider_request_id=provider_request_id,
-        result_asset_id=asset["id"],
-    )
-    return {"video_id": video_id, "url": video_url, "asset": asset, "generation_task": task}
+        raise map_generation_error(error) from error
+    except generation_controller.GenerationTransactionError as error:
+        raise map_generation_error(error) from error
+    return {"video_id": video_id, "url": video_url, **result}

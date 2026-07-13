@@ -99,7 +99,7 @@ class TemplateGraphSecurityPersistenceTestCase(unittest.TestCase):
 
         self.client.close()
         restart = self.mysql_database.restart_runtime()
-        self.assertEqual("b8c9d0e1f2a3", restart["current"])
+        self.assertEqual("c9d0e1f2a3b4", restart["current"])
         from database import close_db
         from main import app as production_app
         from settings.config import settings

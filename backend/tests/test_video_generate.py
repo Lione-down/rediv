@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -15,6 +16,7 @@ from api import video_generate as video_generate_module
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token
+from models.asset import Asset
 from tests.mysql_test_database import MySQLTestDatabase
 
 
@@ -62,6 +64,11 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         store.registration_settings["registration_mode"] = "open"
         auth_payload = self._register_user("video-generate-user").json()
         self.user = auth_payload["user"]
+        self.project = store.create_project(self.user["id"], "Video Generation Project")
+        self.canvas_id = store.get_first_canvas_id(self.project["id"])
+        self.node = store.create_node(
+            self.project["id"], self.user["id"], "generation", {}, 0, 0, 320, 180
+        )
 
     def tearDown(self) -> None:
         self.client.close()
@@ -79,7 +86,7 @@ class VideoGenerateApiTestCase(unittest.TestCase):
             with patch.object(video_generate_module.asyncio, "sleep", new=self._fake_sleep):
                 response = self.client.post(
                     "/api/video-generate",
-                    json={"prompt": "Create a dramatic cinematic shot"},
+                    json=self._payload("Create a dramatic cinematic shot"),
                     headers=self._auth_headers(self.user["id"]),
                 )
 
@@ -90,11 +97,14 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("video", payload["asset"]["type"])
         self.assertEqual("generation", payload["asset"]["source"])
         self.assertEqual("agnes-video-v2.0", payload["asset"]["source_model"])
-        self.assertEqual("video-1", payload["asset"]["source_task_id"])
+        self.assertEqual(payload["generation_task"]["id"], payload["asset"]["source_task_id"])
         self.assertEqual("succeeded", payload["generation_task"]["status"])
         self.assertEqual("video-1", payload["generation_task"]["provider_request_id"])
         self.assertEqual(payload["asset"]["id"], payload["generation_task"]["result_asset_id"])
         self.assertEqual("video", payload["generation_task"]["media_type"])
+        self.assertEqual(self.project["id"], payload["asset"]["project_id"])
+        self.assertEqual(self.canvas_id, payload["asset"]["origin_canvas_id"])
+        self.assertEqual(original_quota - 1, payload["quotas"]["video"])
         self.assertEqual(original_quota - 1, store.quotas[self.user["id"]]["video"])
         self.assertEqual("agnes-video-v2.0", fake_provider.generate_calls[0]["model"])
         self.assertEqual("Create a dramatic cinematic shot", fake_provider.generate_calls[0]["prompt"])
@@ -107,7 +117,7 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         with patch.object(backend_main, "_agnes", fake_provider):
             response = self.client.post(
                 "/api/video-generate",
-                json={"prompt": "Fail this video request"},
+                json=self._payload("Fail this video request"),
                 headers=self._auth_headers(self.user["id"]),
             )
 
@@ -126,7 +136,7 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         with patch.object(backend_main, "_agnes", fake_provider):
             response = self.client.post(
                 "/api/video-generate",
-                json={"prompt": "Fail while polling"},
+                json=self._payload("Fail while polling"),
                 headers=self._auth_headers(self.user["id"]),
             )
 
@@ -145,7 +155,7 @@ class VideoGenerateApiTestCase(unittest.TestCase):
             with patch.object(video_generate_module.asyncio, "sleep", new=self._fake_sleep):
                 response = self.client.post(
                     "/api/video-generate",
-                    json={"prompt": "Keep waiting forever"},
+                    json=self._payload("Keep waiting forever"),
                     headers=self._auth_headers(self.user["id"]),
                 )
 
@@ -157,20 +167,24 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("timed_out", tasks[0]["status"])
         self.assertEqual("timeout", tasks[0]["error_code"])
 
-    def test_video_generate_asset_failure_refunds_quota(self) -> None:
+    def test_video_generate_asset_failure_is_not_charged(self) -> None:
         fake_provider = _FakeAgnesProvider()
         original_quota = store.quotas[self.user["id"]]["video"]
 
-        def failing_create_asset(*args, **kwargs):
-            raise RuntimeError("db write failed")
+        def fail_generated_asset(_mapper, _connection, target: Asset) -> None:
+            if target.source == "generation":
+                raise RuntimeError("db write failed")
 
-        with patch.object(backend_main, "_agnes", fake_provider):
-            with patch.object(store, "create_asset", side_effect=failing_create_asset):
+        event.listen(Asset, "before_insert", fail_generated_asset)
+        try:
+            with patch.object(backend_main, "_agnes", fake_provider):
                 response = self.client.post(
                     "/api/video-generate",
-                    json={"prompt": "Generate then fail saving"},
+                    json=self._payload("Generate then fail saving"),
                     headers=self._auth_headers(self.user["id"]),
                 )
+        finally:
+            event.remove(Asset, "before_insert", fail_generated_asset)
 
         self.assertEqual(500, response.status_code)
         self.assertEqual("Failed to save generated asset", response.json()["detail"])
@@ -179,24 +193,33 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(1, total)
         self.assertEqual("failed", tasks[0]["status"])
         self.assertEqual("asset_persistence_error", tasks[0]["error_code"])
-        refund_records = [
+        generation_records = [
             record
             for record in store.quota_ledger
-            if record["user_id"] == self.user["id"] and record["reason"] == "video_generate_refund"
+            if record["user_id"] == self.user["id"]
+            and record["reason"] in {"video_generate", "video_generate_refund"}
         ]
-        self.assertEqual(1, len(refund_records))
+        self.assertEqual([], generation_records)
 
     def test_video_generate_requires_available_quota(self) -> None:
         store.grant_quota(self.user["id"], "video", -store.quotas[self.user["id"]]["video"], "drain_for_test", None)
 
         response = self.client.post(
             "/api/video-generate",
-            json={"prompt": "Try without quota"},
+            json=self._payload("Try without quota"),
             headers=self._auth_headers(self.user["id"]),
         )
 
         self.assertEqual(403, response.status_code)
         self.assertEqual("Insufficient video quota", response.json()["detail"])
+
+    def _payload(self, prompt: str) -> dict:
+        return {
+            "project_id": self.project["id"],
+            "origin_canvas_id": self.canvas_id,
+            "canvas_node_id": self.node["id"],
+            "prompt": prompt,
+        }
 
     def _register_user(self, openid: str):
         return self.client.post(

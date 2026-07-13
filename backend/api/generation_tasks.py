@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from controllers import generation_tasks as generation_task_controller
 from controllers.store import store
 from core.security import current_user
 from schemas.generation_task import GenerationTaskItem, GenerationTaskListResponse
@@ -18,15 +19,20 @@ def list_generation_tasks(
     page_size: int = Query(default=20, ge=1, le=100),
     user=Depends(current_user),
 ):
-    items, total = store.list_generation_tasks(
-        user["id"],
-        project_id=project_id,
-        origin_canvas_id=origin_canvas_id,
-        media_type=media_type,
-        status=task_status,
-        page=page,
-        page_size=page_size,
-    )
+    try:
+        items, total = generation_task_controller.list_generation_tasks(
+            user["id"],
+            project_id=project_id,
+            origin_canvas_id=origin_canvas_id,
+            media_type=media_type,
+            status=task_status,
+            page=page,
+            page_size=page_size,
+        )
+    except generation_task_controller.GenerationTaskQueryNotFoundError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except generation_task_controller.GenerationTaskQueryForbiddenError as error:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error)) from error
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
+from threading import Lock
 from uuid import uuid4
 
 from sqlalchemy import func, or_, select
@@ -28,6 +29,7 @@ from controllers.resource_scope import (
     resolve_memory_resource_scope,
 )
 from controllers.resource_links import clear_resource_node_links
+from controllers.generation_reservations import reconcile_stale_generation_reservations
 
 
 def now_iso() -> str:
@@ -114,6 +116,8 @@ class InMemoryStore:
         }
         self.invitation_codes: dict[str, dict] = {}
         self.quotas: dict[str, dict[str, int]] = {}
+        self._quota_revisions: dict[str, int] = {}
+        self._quota_cache_lock = Lock()
         self.quota_ledger: list[dict] = []
         self.admin_logs: list[dict] = []
 
@@ -289,7 +293,16 @@ class InMemoryStore:
             "created_at": now_iso(),
         }
         self.quota_ledger.append(record)
+        self._quota_revisions[user_id] = self._quota_revisions.get(user_id, 0) + 1
         return record
+
+    def replace_quota_snapshot(self, user_id: str, payload: dict, revision: int) -> bool:
+        with self._quota_cache_lock:
+            if revision < self._quota_revisions.get(user_id, -1):
+                return False
+            self.quotas[user_id] = dict(payload)
+            self._quota_revisions[user_id] = revision
+            return True
 
     def create_asset(
         self,
@@ -920,12 +933,15 @@ class DatabaseStore:
         self.templates: dict[str, dict] = {}
         self.invitation_codes: dict[str, PersistentDict] = {}
         self.quotas: dict[str, PersistentDict] = {}
+        self._quota_revisions: dict[str, int] = {}
+        self._quota_cache_lock = Lock()
         self.quota_ledger: list[dict] = []
         self.admin_logs: list[dict] = []
         self.registration_settings = PersistentDict(
             DEFAULT_REGISTRATION_SETTINGS,
             self._persist_registration_settings,
         )
+        reconcile_stale_generation_reservations()
         self._load_state()
         self._bootstrap_admin_if_configured()
 
@@ -980,13 +996,15 @@ class DatabaseStore:
                 )
                 for invitation in session.scalars(select(InvitationCode)).all()
             }
+            quota_rows = list(session.scalars(select(Quota)).all())
             self.quotas = {
                 quota.user_id: PersistentDict(
                     self._quota_to_dict(quota),
                     lambda payload, user_id=quota.user_id: self._persist_quota(user_id, payload),
                 )
-                for quota in session.scalars(select(Quota)).all()
+                for quota in quota_rows
             }
+            self._quota_revisions = {quota.user_id: quota.revision for quota in quota_rows}
             self.quota_ledger = [self._quota_ledger_to_dict(record) for record in session.scalars(select(QuotaLedger)).all()]
             self.admin_logs = [self._admin_log_to_dict(record) for record in session.scalars(select(AdminLog)).all()]
 
@@ -1089,7 +1107,10 @@ class DatabaseStore:
             quota.text_quota = payload["text"]
             quota.image_quota = payload["image"]
             quota.video_quota = payload["video"]
+            quota.revision += 1
+            revision = quota.revision
             session.commit()
+        self._quota_revisions[user_id] = revision
 
     def _user_to_dict(self, user: User) -> dict:
         return {
@@ -1330,6 +1351,7 @@ class DatabaseStore:
         self.users[user_id] = user_payload
         self._password_hashes[user_id] = password_hash
         self.quotas[user_id] = quota_payload
+        self._quota_revisions[user_id] = quota.revision
         return user_payload
 
     def get_user(self, user_id: str) -> dict | None:
@@ -1490,41 +1512,63 @@ class DatabaseStore:
             self.grant_quota(user_id, quota_type, amount, "default_grant", None)
 
     def grant_quota(self, user_id: str, quota_type: str, amount: int, reason: str, admin_id: str | None) -> dict:
-        quota_bucket = self.quotas.get(user_id)
-        if quota_bucket is None:
-            quota_row = Quota(
+        with get_session() as session:
+            quota_row = session.scalar(
+                select(Quota).where(Quota.user_id == user_id).with_for_update()
+            )
+            if quota_row is None:
+                quota_row = Quota(
+                    id=str(uuid4()),
+                    user_id=user_id,
+                    text_quota=0,
+                    image_quota=0,
+                    video_quota=0,
+                    revision=0,
+                )
+                session.add(quota_row)
+                session.flush()
+            quota_field = f"{quota_type}_quota"
+            next_value = getattr(quota_row, quota_field) + amount
+            if next_value < 0:
+                raise ValueError(f"Insufficient {quota_type} quota")
+            setattr(quota_row, quota_field, next_value)
+            quota_row.revision += 1
+            record = QuotaLedger(
                 id=str(uuid4()),
                 user_id=user_id,
-                text_quota=0,
-                image_quota=0,
-                video_quota=0,
+                quota_type=quota_type,
+                change_amount=amount,
+                reason=reason,
+                related_task_id=None,
+                admin_id=admin_id,
+                created_at=now_utc(),
             )
-            with get_session() as session:
-                session.add(quota_row)
-                session.commit()
-            quota_bucket = PersistentDict(
-                self._quota_to_dict(quota_row),
-                lambda payload, key=user_id: self._persist_quota(key, payload),
-            )
-            self.quotas[user_id] = quota_bucket
-
-        quota_bucket[quota_type] += amount
-        record = QuotaLedger(
-            id=str(uuid4()),
-            user_id=user_id,
-            quota_type=quota_type,
-            change_amount=amount,
-            reason=reason,
-            related_task_id=None,
-            admin_id=admin_id,
-            created_at=now_utc(),
-        )
-        with get_session() as session:
             session.add(record)
+            session.flush()
+            quota_payload = self._quota_to_dict(quota_row)
+            quota_revision = quota_row.revision
+            payload = self._quota_ledger_to_dict(record)
             session.commit()
-        payload = self._quota_ledger_to_dict(record)
+
+        self.replace_quota_snapshot(user_id, quota_payload, quota_revision)
         self.quota_ledger.append(payload)
         return payload
+
+    def replace_quota_snapshot(self, user_id: str, payload: dict, revision: int) -> bool:
+        with self._quota_cache_lock:
+            if revision < self._quota_revisions.get(user_id, -1):
+                return False
+            quota_bucket = self.quotas.get(user_id)
+            if quota_bucket is None:
+                quota_bucket = PersistentDict(
+                    payload,
+                    lambda value, key=user_id: self._persist_quota(key, value),
+                )
+                self.quotas[user_id] = quota_bucket
+            else:
+                quota_bucket.replace_local(payload)
+            self._quota_revisions[user_id] = revision
+            return True
 
     def create_asset(
         self,

@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from controllers import quotas as quota_controller
 from controllers.store import store
 from core.security import (
     create_token,
@@ -42,7 +43,16 @@ def _issue_auth(user: dict) -> AuthResponse:
     if user["status"] == "banned":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is banned")
     token = create_token({"sub": user["id"], "role": user["role"]})
-    return AuthResponse(token=token, user=user, quotas=store.quotas[user["id"]])
+    quota_snapshot = quota_controller.get_quota_snapshot(user["id"])
+    if quota_snapshot is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User quota not found")
+    quotas, quota_revision = quota_snapshot
+    return AuthResponse(
+        token=token,
+        user=user,
+        quotas=quotas,
+        quota_revision=quota_revision,
+    )
 
 
 def _ensure_wechat_credentials_configured() -> None:
@@ -251,9 +261,17 @@ def create_guest():
 
 @router.get("/me")
 def me(user=Depends(current_user)):
-    return {"user": user, "quotas": store.quotas[user["id"]]}
+    quota_snapshot = quota_controller.get_quota_snapshot(user["id"])
+    if quota_snapshot is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User quota not found")
+    quotas, quota_revision = quota_snapshot
+    return {"user": user, "quotas": quotas, "quota_revision": quota_revision}
 
 
 @me_router.get("/me")
 def root_me(user=Depends(current_user)):
-    return {"user": user, "quotas": store.quotas[user["id"]]}
+    quota_snapshot = quota_controller.get_quota_snapshot(user["id"])
+    if quota_snapshot is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User quota not found")
+    quotas, quota_revision = quota_snapshot
+    return {"user": user, "quotas": quotas, "quota_revision": quota_revision}

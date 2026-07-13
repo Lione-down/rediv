@@ -13,6 +13,7 @@ interface MockState {
   assets: Array<Record<string, unknown>>
   templates: Array<Record<string, unknown>>
   imageQuota: number
+  quotaRevision: number
   generationAttempts: number
   generationBodies: unknown[]
   authenticatedRequests: string[]
@@ -145,6 +146,7 @@ async function installMockApi(page: Page, state: MockState) {
         token: 'mock-session-token',
         user,
         quotas: { text: 5, image: state.imageQuota, video: 2 },
+        quota_revision: state.quotaRevision,
       })
       return
     }
@@ -153,6 +155,7 @@ async function installMockApi(page: Page, state: MockState) {
       await fulfillJson(route, {
         user,
         quotas: { text: 5, image: state.imageQuota, video: 2 },
+        quota_revision: state.quotaRevision,
       })
       return
     }
@@ -235,8 +238,13 @@ async function installMockApi(page: Page, state: MockState) {
         updated_at: NOW,
       }
       state.assets.unshift(asset)
-      state.imageQuota -= 1
-      await fulfillJson(route, { asset })
+      state.imageQuota = 3
+      state.quotaRevision += 1
+      await fulfillJson(route, {
+        asset,
+        quotas: { text: 5, image: state.imageQuota, video: 2 },
+        quota_revision: state.quotaRevision,
+      })
       return
     }
 
@@ -300,6 +308,7 @@ function createVisualState(): MockState {
       },
     ],
     imageQuota: 3,
+    quotaRevision: 0,
     generationAttempts: 0,
     generationBodies: [],
     authenticatedRequests: [],
@@ -313,7 +322,8 @@ test('authenticated project and Canvas generation workflow survives reload', asy
     canvasOrderRevision: 0,
     assets: [],
     templates: [],
-    imageQuota: 3,
+    imageQuota: 1,
+    quotaRevision: 0,
     generationAttempts: 0,
     generationBodies: [],
     authenticatedRequests: [],
@@ -349,10 +359,16 @@ test('authenticated project and Canvas generation workflow survives reload', asy
 
   await page.getByRole('button', { name: '立即生成' }).click()
   await expect(nodeContext.getByText('mock provider unavailable')).toBeVisible()
-  expect(state.imageQuota).toBe(2)
+  expect(state.imageQuota).toBe(3)
   expect(state.generationBodies).toEqual([
-    { prompt: '夏日海边电影海报' },
-    { prompt: '关键帧已生成，可在 Assets 面板查看。' },
+    {
+      project_id: 'project-e2e', origin_canvas_id: 'canvas-first',
+      canvas_node_id: 'node-image', prompt: '夏日海边电影海报',
+    },
+    {
+      project_id: 'project-e2e', origin_canvas_id: 'canvas-first',
+      canvas_node_id: 'node-image', prompt: '关键帧已生成，可在 Assets 面板查看。',
+    },
   ])
 
   await page.reload()

@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -14,6 +15,7 @@ import main as backend_main
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token
+from models.asset import Asset
 from tests.mysql_test_database import MySQLTestDatabase
 
 
@@ -44,6 +46,11 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         store.registration_settings["registration_mode"] = "open"
         auth_payload = self._register_user("image-generate-user").json()
         self.user = auth_payload["user"]
+        self.project = store.create_project(self.user["id"], "Image Generation Project")
+        self.canvas_id = store.get_first_canvas_id(self.project["id"])
+        self.node = store.create_node(
+            self.project["id"], self.user["id"], "generation", {}, 0, 0, 320, 180
+        )
 
     def tearDown(self) -> None:
         self.client.close()
@@ -55,7 +62,7 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         with patch.object(backend_main, "_agnes", fake_provider):
             response = self.client.post(
                 "/api/image-generate",
-                json={"prompt": "Create a cinematic cover frame"},
+                json=self._payload("Create a cinematic cover frame"),
                 headers=self._auth_headers(self.user["id"]),
             )
 
@@ -69,6 +76,10 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("succeeded", payload["generation_task"]["status"])
         self.assertEqual(payload["asset"]["id"], payload["generation_task"]["result_asset_id"])
         self.assertEqual("image", payload["generation_task"]["media_type"])
+        self.assertEqual(self.project["id"], payload["asset"]["project_id"])
+        self.assertEqual(self.canvas_id, payload["asset"]["origin_canvas_id"])
+        self.assertEqual(self.node["id"], payload["asset"]["canvas_node_id"])
+        self.assertEqual(original_quota - 1, payload["quotas"]["image"])
         self.assertEqual(original_quota - 1, store.quotas[self.user["id"]]["image"])
         self.assertEqual("agnes-image-2.1-flash", fake_provider.calls[0]["model"])
         self.assertEqual("Create a cinematic cover frame", fake_provider.calls[0]["prompt"])
@@ -81,16 +92,17 @@ class ImageGenerateApiTestCase(unittest.TestCase):
             "image",
             "https://example.com/source-image.png",
             None,
+            project_id=self.project["id"],
+            origin_canvas_id=self.canvas_id,
             source="upload",
         )
 
         with patch.object(backend_main, "_agnes", fake_provider):
             response = self.client.post(
                 "/api/image-generate",
-                json={
-                    "prompt": "Make this frame brighter",
-                    "image_ids": [source_asset["id"]],
-                },
+                json=self._payload(
+                    "Make this frame brighter", image_ids=[source_asset["id"]]
+                ),
                 headers=self._auth_headers(self.user["id"]),
             )
 
@@ -104,7 +116,7 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         with patch.object(backend_main, "_agnes", fake_provider):
             response = self.client.post(
                 "/api/image-generate",
-                json={"prompt": "Fail this image request"},
+                json=self._payload("Fail this image request"),
                 headers=self._auth_headers(self.user["id"]),
             )
 
@@ -116,20 +128,24 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("failed", tasks[0]["status"])
         self.assertEqual("provider_error", tasks[0]["error_code"])
 
-    def test_image_generate_asset_failure_refunds_quota(self) -> None:
+    def test_image_generate_asset_failure_is_not_charged(self) -> None:
         fake_provider = _FakeAgnesProvider()
         original_quota = store.quotas[self.user["id"]]["image"]
 
-        def failing_create_asset(*args, **kwargs):
-            raise RuntimeError("db write failed")
+        def fail_generated_asset(_mapper, _connection, target: Asset) -> None:
+            if target.source == "generation":
+                raise RuntimeError("db write failed")
 
-        with patch.object(backend_main, "_agnes", fake_provider):
-            with patch.object(store, "create_asset", side_effect=failing_create_asset):
+        event.listen(Asset, "before_insert", fail_generated_asset)
+        try:
+            with patch.object(backend_main, "_agnes", fake_provider):
                 response = self.client.post(
                     "/api/image-generate",
-                    json={"prompt": "Generate then fail saving"},
+                    json=self._payload("Generate then fail saving"),
                     headers=self._auth_headers(self.user["id"]),
                 )
+        finally:
+            event.remove(Asset, "before_insert", fail_generated_asset)
 
         self.assertEqual(500, response.status_code)
         self.assertEqual("Failed to save generated asset", response.json()["detail"])
@@ -138,24 +154,36 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(1, total)
         self.assertEqual("failed", tasks[0]["status"])
         self.assertEqual("asset_persistence_error", tasks[0]["error_code"])
-        refund_records = [
+        generation_records = [
             record
             for record in store.quota_ledger
-            if record["user_id"] == self.user["id"] and record["reason"] == "image_generate_refund"
+            if record["user_id"] == self.user["id"]
+            and record["reason"] in {"image_generate", "image_generate_refund"}
         ]
-        self.assertEqual(1, len(refund_records))
+        self.assertEqual([], generation_records)
 
     def test_image_generate_requires_available_quota(self) -> None:
         store.grant_quota(self.user["id"], "image", -store.quotas[self.user["id"]]["image"], "drain_for_test", None)
 
         response = self.client.post(
             "/api/image-generate",
-            json={"prompt": "Try without quota"},
+            json=self._payload("Try without quota"),
             headers=self._auth_headers(self.user["id"]),
         )
 
         self.assertEqual(403, response.status_code)
         self.assertEqual("Insufficient image quota", response.json()["detail"])
+
+    def _payload(self, prompt: str, *, image_ids: list[str] | None = None) -> dict:
+        payload = {
+            "project_id": self.project["id"],
+            "origin_canvas_id": self.canvas_id,
+            "canvas_node_id": self.node["id"],
+            "prompt": prompt,
+        }
+        if image_ids is not None:
+            payload["image_ids"] = image_ids
+        return payload
 
     def _register_user(self, openid: str):
         return self.client.post(

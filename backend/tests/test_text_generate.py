@@ -8,6 +8,7 @@ from unittest.mock import patch
 import httpx
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -15,6 +16,7 @@ import main as backend_main
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token
+from models.asset import Asset
 from tests.mysql_test_database import MySQLTestDatabase
 
 
@@ -84,13 +86,16 @@ class TextGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("generation", payload["asset"]["source"])
         self.assertEqual("agnes-2.0-flash", payload["asset"]["source_model"])
         self.assertEqual(self.project["id"], payload["asset"]["project_id"])
+        self.assertEqual(self.node["canvas_id"], payload["asset"]["origin_canvas_id"])
         self.assertEqual(self.node["id"], payload["asset"]["canvas_node_id"])
         self.assertEqual(payload["generation_task"]["id"], payload["asset"]["source_task_id"])
         self.assertEqual("succeeded", payload["generation_task"]["status"])
         self.assertEqual(payload["asset"]["id"], payload["generation_task"]["result_asset_id"])
         self.assertEqual("text", payload["generation_task"]["media_type"])
         self.assertEqual(self.project["id"], payload["generation_task"]["project_id"])
+        self.assertEqual(self.node["canvas_id"], payload["generation_task"]["origin_canvas_id"])
         self.assertEqual(self.node["id"], payload["generation_task"]["canvas_node_id"])
+        self.assertEqual(original_quota - 1, payload["quotas"]["text"])
         self.assertEqual(original_quota - 1, store.quotas[self.user["id"]]["text"])
         self.assertEqual("agnes-2.0-flash", fake_provider.calls[0]["model"])
         self.assertEqual("Write a short video script", fake_provider.calls[0]["messages"][0]["content"])
@@ -148,15 +153,17 @@ class TextGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("failed", tasks[0]["status"])
         self.assertEqual("network_error", tasks[0]["error_code"])
 
-    def test_text_generate_asset_failure_refunds_quota(self) -> None:
+    def test_text_generate_asset_failure_is_not_charged(self) -> None:
         fake_provider = _FakeAgnesProvider()
         original_quota = store.quotas[self.user["id"]]["text"]
 
-        def failing_create_asset(*args, **kwargs):
-            raise RuntimeError("db write failed")
+        def fail_generated_asset(_mapper, _connection, target: Asset) -> None:
+            if target.source == "generation":
+                raise RuntimeError("db write failed")
 
-        with patch.object(backend_main, "_agnes", fake_provider):
-            with patch.object(store, "create_asset", side_effect=failing_create_asset):
+        event.listen(Asset, "before_insert", fail_generated_asset)
+        try:
+            with patch.object(backend_main, "_agnes", fake_provider):
                 response = self.client.post(
                     "/api/text-generate",
                     json={
@@ -166,6 +173,8 @@ class TextGenerateApiTestCase(unittest.TestCase):
                     },
                     headers=self._auth_headers(self.user["id"]),
                 )
+        finally:
+            event.remove(Asset, "before_insert", fail_generated_asset)
 
         self.assertEqual(500, response.status_code)
         self.assertEqual("Failed to save generated asset", response.json()["detail"])
@@ -174,12 +183,13 @@ class TextGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(1, total)
         self.assertEqual("failed", tasks[0]["status"])
         self.assertEqual("asset_persistence_error", tasks[0]["error_code"])
-        refund_records = [
+        generation_records = [
             record
             for record in store.quota_ledger
-            if record["user_id"] == self.user["id"] and record["reason"] == "text_generate_refund"
+            if record["user_id"] == self.user["id"]
+            and record["reason"] in {"text_generate", "text_generate_refund"}
         ]
-        self.assertEqual(1, len(refund_records))
+        self.assertEqual([], generation_records)
 
     def test_text_generate_requires_available_quota(self) -> None:
         store.grant_quota(self.user["id"], "text", -store.quotas[self.user["id"]]["text"], "drain_for_test", None)

@@ -2,6 +2,7 @@ import hmac
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from controllers import quotas as quota_controller
 from controllers.store import store
 from core.security import create_token, current_admin
 from schemas.admin import InvitationCodeCreate, QuotaGrantRequest, RegistrationSettingsUpdate
@@ -131,23 +132,23 @@ def disable_invitation_code(code: str, admin=Depends(current_admin)):
 
 @router.get("/users/{user_id}/quotas")
 def get_user_quotas(user_id: str, _admin=Depends(current_admin)):
-    if user_id not in store.quotas:
+    quotas = quota_controller.get_quota_balances(user_id)
+    if quotas is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return {"user_id": user_id, "quotas": store.quotas[user_id]}
+    return {"user_id": user_id, "quotas": quotas}
 
 
 @router.get("/users/{user_id}/quotas/ledger")
 def get_user_quota_ledger(user_id: str, _admin=Depends(current_admin)):
-    if user_id not in store.quotas:
+    if quota_controller.get_quota_balances(user_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    ledger = [record for record in store.quota_ledger if record["user_id"] == user_id]
-    ledger.sort(key=lambda record: record.get("created_at", ""), reverse=True)
+    ledger = quota_controller.list_quota_ledger(user_id)
     return {"user_id": user_id, "ledger": ledger}
 
 
 @router.post("/users/{user_id}/quotas/grant")
 def grant_user_quota(user_id: str, payload: QuotaGrantRequest, admin=Depends(current_admin)):
-    if user_id not in store.quotas:
+    if quota_controller.get_quota_balances(user_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     record = store.grant_quota(user_id, payload.quota_type, payload.amount, "admin_grant", admin["id"])
     record["note"] = payload.reason
@@ -158,12 +159,12 @@ def grant_user_quota(user_id: str, payload: QuotaGrantRequest, admin=Depends(cur
         user_id,
         f"Granted {payload.amount} {payload.quota_type} quota to user {user_id}: {payload.reason}",
     )
-    return {"quotas": store.quotas[user_id], "ledger": record}
+    return {"quotas": quota_controller.get_quota_balances(user_id), "ledger": record}
 
 
 @router.get("/quota-ledger")
 def list_quota_ledger(_admin=Depends(current_admin)):
-    return {"items": store.quota_ledger}
+    return {"items": quota_controller.list_quota_ledger()}
 
 
 @router.get("/assets")

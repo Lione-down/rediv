@@ -11,6 +11,7 @@ import WorkspaceToolRail from './components/workspace/WorkspaceToolRail.vue'
 import WorkspaceInspector from './components/workspace/WorkspaceInspector.vue'
 import WorkspacePromptDock from './components/workspace/WorkspacePromptDock.vue'
 import WorkspaceStatusBar from './components/workspace/WorkspaceStatusBar.vue'
+import { requestCanvasGeneration } from '../../modules/canvas/generation-service'
 import { useAssetStore } from '../../store/assets'
 import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
@@ -145,23 +146,25 @@ function prependAsset(asset?: Asset) {
   assetStore.items = [asset, ...assetStore.items.filter((item) => item.id !== asset.id)]
 }
 
-function consumeQuota(quotaType: QuotaType) {
-  authStore.quotas = {
-    ...authStore.quotas,
-    [quotaType]: Math.max(0, authStore.quotas[quotaType] - 1),
-  }
-}
-
 async function requestGeneration(node: CanvasNode): Promise<GenerationOutcome> {
   const prompt = buildPrompt(node)
-
   if (node.type === 'text') {
     throw new Error('当前工作流页尚未接入真实 project_id，文本节点暂不能直连 Agnes 文本生成接口。')
   }
+  const mediaType = getQuotaType(node)
+  if (!mediaType) throw new Error('当前节点类型暂不支持生成。')
+  const originCanvasId = canvasStore.activeCanvasId
+  if (!originCanvasId) throw new Error('当前项目没有可用画布，无法发起生成。')
+  const response = await requestCanvasGeneration({
+    mediaType,
+    projectId: projectId.value,
+    originCanvasId,
+    canvasNodeId: node.id,
+    prompt,
+  }, authStore, request)
 
-  if (node.type === 'image' || node.type === 'model') {
-    const response = await request.post('/api/image-generate', { prompt })
-    const asset = response.data.asset as Asset | undefined
+  if (mediaType === 'image') {
+    const asset = response.asset
     return {
       asset,
       successMessage: '图片生成完成，结果已写入资产区。',
@@ -169,9 +172,8 @@ async function requestGeneration(node: CanvasNode): Promise<GenerationOutcome> {
     }
   }
 
-  if (node.type === 'video') {
-    const response = await request.post('/api/video-generate', { prompt })
-    const asset = response.data.asset as Asset | undefined
+  if (mediaType === 'video') {
+    const asset = response.asset
     return {
       asset,
       successMessage: '视频生成完成，结果已写入资产区。',
@@ -220,7 +222,6 @@ async function handleGenerate() {
   try {
     const outcome = await requestGeneration(node)
     prependAsset(outcome.asset)
-    consumeQuota(quotaType)
     canvasStore.setNodeStatus(node.id, 'success')
 
     if (outcome.updatedContent) {
