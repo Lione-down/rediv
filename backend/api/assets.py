@@ -24,10 +24,16 @@ def _storage_upload_root() -> Path:
     return Path(settings.storage_local_root) / "uploads"
 
 
+def _asset_scope_http_error(error: KeyError | PermissionError) -> HTTPException:
+    status_code = status.HTTP_404_NOT_FOUND if isinstance(error, KeyError) else status.HTTP_403_FORBIDDEN
+    return HTTPException(status_code=status_code, detail=str(error.args[0]))
+
+
 @router.get("", response_model=AssetListResponse)
 def list_assets(
     asset_type: str | None = None,
     project_id: str | None = None,
+    origin_canvas_id: str | None = None,
     page: int = 1,
     page_size: int = 20,
     user=Depends(current_user),
@@ -39,6 +45,7 @@ def list_assets(
         user["id"],
         asset_type=asset_type,
         project_id=project_id,
+        origin_canvas_id=origin_canvas_id,
         page=page,
         page_size=page_size,
     )
@@ -52,6 +59,7 @@ async def upload_asset(
 ):
     request_payload: AssetCreateRequest
     file = None
+    saved_path: Path | None = None
     content_type = request.headers.get("content-type", "")
     if "multipart/form-data" in content_type or "application/x-www-form-urlencoded" in content_type:
         form = await request.form()
@@ -63,6 +71,9 @@ async def upload_asset(
             url=str(form.get("url")) if form.get("url") is not None else None,
             content_text=str(form.get("content_text")) if form.get("content_text") is not None else None,
             project_id=str(form.get("project_id")) if form.get("project_id") is not None else None,
+            origin_canvas_id=(
+                str(form.get("origin_canvas_id")) if form.get("origin_canvas_id") is not None else None
+            ),
         )
         maybe_file = form.get("file")
         if hasattr(maybe_file, "filename") and hasattr(maybe_file, "read"):
@@ -87,30 +98,42 @@ async def upload_asset(
     if asset_url is None and request_payload.content_text is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Asset content is required")
 
-    asset = store.create_asset(
-        user["id"],
-        request_payload.type,
-        asset_url,
-        request_payload.content_text,
-        project_id=request_payload.project_id,
-        source="upload",
-    )
+    try:
+        asset = store.create_asset(
+            user["id"],
+            request_payload.type,
+            asset_url,
+            request_payload.content_text,
+            project_id=request_payload.project_id,
+            origin_canvas_id=request_payload.origin_canvas_id,
+            source="upload",
+        )
+    except Exception as error:
+        if saved_path is not None:
+            saved_path.unlink(missing_ok=True)
+        if isinstance(error, (KeyError, PermissionError)):
+            raise _asset_scope_http_error(error) from error
+        raise
     return asset
 
 
 @router.post("/from_generation")
 def from_generation(payload: AssetFromGenerationRequest, user=Depends(current_user)):
-    asset = store.create_asset(
-        user["id"],
-        payload.type,
-        payload.url,
-        payload.content_text,
-        project_id=payload.project_id,
-        canvas_node_id=payload.canvas_node_id,
-        source="generation",
-        source_model=payload.source_model,
-        source_task_id=payload.source_task_id,
-    )
+    try:
+        asset = store.create_asset(
+            user["id"],
+            payload.type,
+            payload.url,
+            payload.content_text,
+            project_id=payload.project_id,
+            origin_canvas_id=payload.origin_canvas_id,
+            canvas_node_id=payload.canvas_node_id,
+            source="generation",
+            source_model=payload.source_model,
+            source_task_id=payload.source_task_id,
+        )
+    except (KeyError, PermissionError) as error:
+        raise _asset_scope_http_error(error) from error
     return asset
 
 

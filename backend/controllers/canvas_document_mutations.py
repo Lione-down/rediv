@@ -8,6 +8,7 @@ from sqlalchemy import select
 from controllers.canvas_documents import _connection_to_dict, _datetime_to_iso, _node_to_dict
 from controllers.canvas_revisions import capture_graph_snapshot, prune_revisions, should_checkpoint
 from controllers.canvases import CanvasDomainError, _active_canvas, _owned_project
+from controllers.resource_links import clear_resource_node_links
 from core.canvas_document_fingerprint import mutation_fingerprint
 from models.base import get_session, utc_now
 from models.canvas_connection import CanvasConnection
@@ -241,6 +242,7 @@ def patch_document(project_id: str, canvas_id: str, user_id: str, payload: dict)
         session.flush()
         for node in normalized_node_models:
             node.parent_node_id = desired_parents[node.id]
+        clear_resource_node_links(session, node_delete_ids)
         for node_id in node_delete_ids:
             current_nodes[node_id].status = "deleted"
             current_nodes[node_id].updated_at = timestamp

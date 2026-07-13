@@ -35,6 +35,8 @@ Deliver the first-acceptance node registry and connect Canvas to project-shared 
 - Unknown `node_type` values and content remain byte-for-byte representable through load/save and render as a labeled unsupported state; the client never coerces them to `script`, `note`, or another known type.
 - Templates use versioned `graph_data` containing nodes and connections. Existing template/project creation behavior remains compatible while Canvas receives an explicit graph-instantiation path.
 - Project ownership is authoritative for assets and generation history. `origin_canvas_id` is attribution/filtering metadata, not ownership.
+- Resource writers derive and lock scope in `Project -> Canvas -> CanvasNode` order; semantic node deletion locks the same node before clearing links, while retaining origin history.
+- Project deletion is non-destructive: projects with linked assets or generation tasks return `409` until a separately approved resource lifecycle removes those links.
 - Quota state is changed only by the backend transaction and returned by the generation response; the client replaces local quota state from that response.
 
 ## Delivery Units
@@ -53,7 +55,7 @@ Deliver the first-acceptance node registry and connect Canvas to project-shared 
 - [x] Image/video results use real media previews when available or explicit labeled placeholders; audio is supported only as an asset subtype.
 - [ ] Project assets, templates, generation tasks, and generated assets are available from every Canvas without copying ownership.
 - [ ] Template graphs preserve nodes, connections, relative placement, parent relationships, and version metadata while remapping IDs into the target Canvas atomically.
-- [ ] MySQL comments, indexes, checks, and composite foreign keys enforce project/Canvas attribution and clear node links without erasing retained origin history.
+- [x] MySQL comments, indexes, checks, and composite foreign keys enforce project/Canvas attribution and clear node links without erasing retained origin history.
 - [ ] Provider success persists one task, one generated project asset, and a linked result; provider or asset persistence failure records a specific task failure, creates no success asset/result, and consumes no quota.
 - [ ] Generation success/failure and project resource visibility survive backend restart.
 - [ ] Generation responses include authoritative quotas and the frontend never invents quota changes.

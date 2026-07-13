@@ -11,6 +11,7 @@ class GenerationTaskItem(BaseModel):
     id: str
     user_id: str
     project_id: str | None = None
+    origin_canvas_id: str | None = None
     canvas_node_id: str | None = None
     media_type: GenerationTaskMediaType
     provider: str
@@ -34,6 +35,7 @@ class GenerationTaskListResponse(BaseModel):
 
 class GenerationTaskQueryParams(BaseModel):
     project_id: str | None = None
+    origin_canvas_id: str | None = None
     media_type: GenerationTaskMediaType | None = None
     status: GenerationTaskStatus | None = None
     page: int = Field(default=1, ge=1)

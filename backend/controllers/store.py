@@ -22,6 +22,13 @@ from models.quota import Quota, QuotaLedger
 from models.template import Template
 from models.user import User
 
+from controllers.resource_scope import (
+    ProjectResourceConflictError,
+    resolve_database_resource_scope,
+    resolve_memory_resource_scope,
+)
+from controllers.resource_links import clear_resource_node_links
+
 
 def now_iso() -> str:
     return datetime.now(UTC).isoformat()
@@ -292,17 +299,28 @@ class InMemoryStore:
         content_text: str | None,
         *,
         project_id: str | None = None,
+        origin_canvas_id: str | None = None,
         canvas_node_id: str | None = None,
         source: str = "upload",
         source_model: str | None = None,
         source_task_id: str | None = None,
         status: str = "active",
     ) -> dict:
+        scope = resolve_memory_resource_scope(
+            user_id=user_id,
+            project_id=project_id,
+            origin_canvas_id=origin_canvas_id,
+            canvas_node_id=canvas_node_id,
+            projects=self.projects,
+            canvases=self.canvases,
+            nodes=self.canvas_nodes,
+        )
         timestamp = now_iso()
         asset = {
             "id": str(uuid4()),
             "user_id": user_id,
-            "project_id": project_id,
+            "project_id": scope.project_id,
+            "origin_canvas_id": scope.origin_canvas_id,
             "canvas_node_id": canvas_node_id,
             "type": asset_type,
             "url": url,
@@ -325,15 +343,26 @@ class InMemoryStore:
         model: str | None,
         *,
         project_id: str | None = None,
+        origin_canvas_id: str | None = None,
         canvas_node_id: str | None = None,
         provider_request_id: str | None = None,
         status: str = "queued",
     ) -> dict:
+        scope = resolve_memory_resource_scope(
+            user_id=user_id,
+            project_id=project_id,
+            origin_canvas_id=origin_canvas_id,
+            canvas_node_id=canvas_node_id,
+            projects=self.projects,
+            canvases=self.canvases,
+            nodes=self.canvas_nodes,
+        )
         timestamp = now_iso()
         task = {
             "id": str(uuid4()),
             "user_id": user_id,
-            "project_id": project_id,
+            "project_id": scope.project_id,
+            "origin_canvas_id": scope.origin_canvas_id,
             "canvas_node_id": canvas_node_id,
             "media_type": media_type,
             "provider": provider,
@@ -367,6 +396,7 @@ class InMemoryStore:
         user_id: str,
         *,
         project_id: str | None = None,
+        origin_canvas_id: str | None = None,
         media_type: str | None = None,
         status: str | None = None,
         page: int = 1,
@@ -375,6 +405,8 @@ class InMemoryStore:
         items = [task for task in self.generation_tasks.values() if task["user_id"] == user_id]
         if project_id:
             items = [task for task in items if task["project_id"] == project_id]
+        if origin_canvas_id:
+            items = [task for task in items if task["origin_canvas_id"] == origin_canvas_id]
         if media_type:
             items = [task for task in items if task["media_type"] == media_type]
         if status:
@@ -435,6 +467,8 @@ class InMemoryStore:
             "name": name,
             "user_id": user_id,
             "node_data": node_data,
+            "schema_version": 1,
+            "graph_data": {"schema_version": 1, "nodes": deepcopy(node_data), "connections": []},
             "node_count": len(node_data),
             "created_at": now_iso(),
         }
@@ -571,6 +605,10 @@ class InMemoryStore:
         if project is None or project["user_id"] != user_id:
             raise PermissionError("Project does not belong to user")
 
+        for resources in (self.assets.values(), self.generation_tasks.values()):
+            for resource in resources:
+                if resource.get("canvas_node_id") == node_id:
+                    resource["canvas_node_id"] = None
         node["status"] = "deleted"
         node["updated_at"] = now_iso()
         self._delete_connections_for_node(node_id)
@@ -804,6 +842,13 @@ class InMemoryStore:
             return None
         if project["user_id"] != user_id:
             raise PermissionError("Project does not belong to user")
+        has_resources = any(
+            resource.get("project_id") == project_id
+            for resources in (self.assets.values(), self.generation_tasks.values())
+            for resource in resources
+        )
+        if has_resources:
+            raise ProjectResourceConflictError("Project has linked resources")
         payload = self.projects.pop(project_id)
         self.canvases = {
             canvas_id: canvas
@@ -817,6 +862,7 @@ class InMemoryStore:
         user_id: str,
         asset_type: str | None = None,
         project_id: str | None = None,
+        origin_canvas_id: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[dict], int]:
@@ -829,6 +875,8 @@ class InMemoryStore:
             items = [asset for asset in items if asset["type"] == asset_type]
         if project_id:
             items = [asset for asset in items if asset["project_id"] == project_id]
+        if origin_canvas_id:
+            items = [asset for asset in items if asset["origin_canvas_id"] == origin_canvas_id]
         items.sort(key=lambda asset: asset["created_at"], reverse=True)
         total = len(items)
         start = (page - 1) * page_size
@@ -1085,6 +1133,7 @@ class DatabaseStore:
             "id": asset.id,
             "user_id": asset.user_id,
             "project_id": asset.project_id,
+            "origin_canvas_id": asset.origin_canvas_id,
             "canvas_node_id": asset.canvas_node_id,
             "type": asset.type,
             "url": asset.url,
@@ -1102,6 +1151,7 @@ class DatabaseStore:
             "id": task.id,
             "user_id": task.user_id,
             "project_id": task.project_id,
+            "origin_canvas_id": task.origin_canvas_id,
             "canvas_node_id": task.canvas_node_id,
             "media_type": task.media_type,
             "provider": task.provider,
@@ -1190,6 +1240,8 @@ class DatabaseStore:
             "user_id": template.user_id,
             "name": template.name,
             "node_data": deepcopy(template.node_data),
+            "schema_version": template.schema_version,
+            "graph_data": deepcopy(template.graph_data),
             "node_count": template.node_count,
             "created_at": datetime_to_iso(template.created_at),
         }
@@ -1482,6 +1534,7 @@ class DatabaseStore:
         content_text: str | None,
         *,
         project_id: str | None = None,
+        origin_canvas_id: str | None = None,
         canvas_node_id: str | None = None,
         source: str = "upload",
         source_model: str | None = None,
@@ -1489,22 +1542,30 @@ class DatabaseStore:
         status: str = "active",
     ) -> dict:
         timestamp = now_utc()
-        asset = Asset(
-            id=str(uuid4()),
-            user_id=user_id,
-            project_id=project_id,
-            canvas_node_id=canvas_node_id,
-            type=asset_type,
-            url=url,
-            content_text=content_text,
-            source=source,
-            source_model=source_model,
-            source_task_id=source_task_id,
-            status=status,
-            created_at=timestamp,
-            updated_at=timestamp,
-        )
         with get_session() as session:
+            scope = resolve_database_resource_scope(
+                session,
+                user_id=user_id,
+                project_id=project_id,
+                origin_canvas_id=origin_canvas_id,
+                canvas_node_id=canvas_node_id,
+            )
+            asset = Asset(
+                id=str(uuid4()),
+                user_id=user_id,
+                project_id=scope.project_id,
+                origin_canvas_id=scope.origin_canvas_id,
+                canvas_node_id=canvas_node_id,
+                type=asset_type,
+                url=url,
+                content_text=content_text,
+                source=source,
+                source_model=source_model,
+                source_task_id=source_task_id,
+                status=status,
+                created_at=timestamp,
+                updated_at=timestamp,
+            )
             session.add(asset)
             session.commit()
         payload = self._asset_to_dict(asset)
@@ -1519,25 +1580,34 @@ class DatabaseStore:
         model: str | None,
         *,
         project_id: str | None = None,
+        origin_canvas_id: str | None = None,
         canvas_node_id: str | None = None,
         provider_request_id: str | None = None,
         status: str = "queued",
     ) -> dict:
         timestamp = now_utc()
-        task = GenerationTask(
-            id=str(uuid4()),
-            user_id=user_id,
-            project_id=project_id,
-            canvas_node_id=canvas_node_id,
-            media_type=media_type,
-            provider=provider,
-            model=model,
-            provider_request_id=provider_request_id,
-            status=status,
-            created_at=timestamp,
-            updated_at=timestamp,
-        )
         with get_session() as session:
+            scope = resolve_database_resource_scope(
+                session,
+                user_id=user_id,
+                project_id=project_id,
+                origin_canvas_id=origin_canvas_id,
+                canvas_node_id=canvas_node_id,
+            )
+            task = GenerationTask(
+                id=str(uuid4()),
+                user_id=user_id,
+                project_id=scope.project_id,
+                origin_canvas_id=scope.origin_canvas_id,
+                canvas_node_id=canvas_node_id,
+                media_type=media_type,
+                provider=provider,
+                model=model,
+                provider_request_id=provider_request_id,
+                status=status,
+                created_at=timestamp,
+                updated_at=timestamp,
+            )
             session.add(task)
             session.commit()
         payload = self._generation_task_to_dict(task)
@@ -1559,10 +1629,6 @@ class DatabaseStore:
         return payload
 
     def get_generation_task(self, task_id: str) -> dict | None:
-        task = self.generation_tasks.get(task_id)
-        if task is not None:
-            return task
-
         with get_session() as session:
             row = session.get(GenerationTask, task_id)
             if row is None:
@@ -1577,6 +1643,7 @@ class DatabaseStore:
         user_id: str,
         *,
         project_id: str | None = None,
+        origin_canvas_id: str | None = None,
         media_type: str | None = None,
         status: str | None = None,
         page: int = 1,
@@ -1585,6 +1652,8 @@ class DatabaseStore:
         statement = select(GenerationTask).where(GenerationTask.user_id == user_id)
         if project_id:
             statement = statement.where(GenerationTask.project_id == project_id)
+        if origin_canvas_id:
+            statement = statement.where(GenerationTask.origin_canvas_id == origin_canvas_id)
         if media_type:
             statement = statement.where(GenerationTask.media_type == media_type)
         if status:
@@ -1657,6 +1726,8 @@ class DatabaseStore:
             user_id=user_id,
             name=name,
             node_data=node_data,
+            schema_version=1,
+            graph_data={"schema_version": 1, "nodes": deepcopy(node_data), "connections": []},
             node_count=len(node_data),
             created_at=now_utc(),
         )
@@ -1847,6 +1918,7 @@ class DatabaseStore:
 
             node.status = "deleted"
             node.updated_at = now_utc()
+            clear_resource_node_links(session, [node_id])
             deleted_connection_ids = self._delete_connections_for_node_in_session(session, node_id)
             session.commit()
             payload = self._canvas_node_to_dict(node)
@@ -2145,11 +2217,21 @@ class DatabaseStore:
 
     def delete_project(self, project_id: str, user_id: str) -> dict | None:
         with get_session() as session:
-            project = session.get(Project, project_id)
+            project = session.scalar(
+                select(Project).where(Project.id == project_id).with_for_update()
+            )
             if project is None:
                 return None
             if project.user_id != user_id:
                 raise PermissionError("Project does not belong to user")
+            asset_count = session.scalar(
+                select(func.count()).select_from(Asset).where(Asset.project_id == project_id)
+            )
+            task_count = session.scalar(
+                select(func.count()).select_from(GenerationTask).where(GenerationTask.project_id == project_id)
+            )
+            if asset_count or task_count:
+                raise ProjectResourceConflictError("Project has linked resources")
             payload = self._project_to_dict(project)
             session.delete(project)
             session.commit()
@@ -2167,6 +2249,7 @@ class DatabaseStore:
         user_id: str,
         asset_type: str | None = None,
         project_id: str | None = None,
+        origin_canvas_id: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[dict], int]:
@@ -2175,6 +2258,8 @@ class DatabaseStore:
             statement = statement.where(Asset.type == asset_type)
         if project_id:
             statement = statement.where(Asset.project_id == project_id)
+        if origin_canvas_id:
+            statement = statement.where(Asset.origin_canvas_id == origin_canvas_id)
 
         with get_session() as session:
             assets = [self._asset_to_dict(asset) for asset in session.scalars(statement).all()]
@@ -2186,10 +2271,6 @@ class DatabaseStore:
         return assets[start:end], total
 
     def get_asset(self, asset_id: str) -> dict | None:
-        asset = self.assets.get(asset_id)
-        if asset is not None:
-            return asset
-
         with get_session() as session:
             row = session.get(Asset, asset_id)
             if row is None:

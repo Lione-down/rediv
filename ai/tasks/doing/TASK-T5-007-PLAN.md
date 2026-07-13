@@ -1,8 +1,8 @@
 # TASK-T5-007 Plan
 
 - State: `DOING`
-- Completed units: Unit A - node registry and compatibility boundary
-- Active unit: Unit B - additive MySQL resource contract
+- Completed units: Unit A - node registry and compatibility boundary; Unit B - additive MySQL resource contract
+- Active unit: Unit C - project assets and templates
 - Updated: 2026-07-13
 
 ## Objective
@@ -59,4 +59,4 @@ Land T5-007 as five independently verified units. Every behavior change follows 
 
 ## Exact Next Action
 
-Read the FastAPI structure guidance, then add failing guarded-MySQL tests for resource comments, origin attribution, same-project/same-Canvas constraints, node-link clearing, versioned template graph backfill, and safe downgrade behavior before creating the additive Alembic revision after `f0a1b2c3d4e5`.
+Add failing guarded-MySQL/API tests for audio assets, owner/project filters, cross-Canvas resource visibility, exact versioned template graph capture, atomic target-Canvas instantiation, ID remapping, and invalid graph rejection before adding the focused Unit C services.

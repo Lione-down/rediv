@@ -78,19 +78,50 @@ class AssetFlowTestCase(unittest.TestCase):
         self.assertTrue(all(item["type"] == "image" for item in payload["items"]))
 
     def test_list_assets_filter_by_project(self) -> None:
-        store.create_asset(self.user["id"], "image", "/uploads/a.png", None, project_id="project-a")
-        store.create_asset(self.user["id"], "image", "/uploads/b.png", None, project_id="project-b")
+        project_a = store.create_project(self.user["id"], "Project A")
+        project_b = store.create_project(self.user["id"], "Project B")
+        store.create_asset(self.user["id"], "image", "/uploads/a.png", None, project_id=project_a["id"])
+        store.create_asset(self.user["id"], "image", "/uploads/b.png", None, project_id=project_b["id"])
 
         response = self.client.get(
             "/assets",
-            params={"project_id": "project-a"},
+            params={"project_id": project_a["id"]},
             headers=self._auth_headers(self.user["id"]),
         )
 
         self.assertEqual(200, response.status_code)
         payload = response.json()
         self.assertEqual(1, payload["total"])
-        self.assertEqual("project-a", payload["items"][0]["project_id"])
+        self.assertEqual(project_a["id"], payload["items"][0]["project_id"])
+
+    def test_list_assets_filter_by_origin_canvas(self) -> None:
+        project = store.create_project(self.user["id"], "Origin Project")
+        node = store.create_node(project["id"], self.user["id"], "text", {}, 0, 0, 300, 200)
+        canvas_id = store.get_first_canvas_id(project["id"])
+        linked = store.create_asset(
+            self.user["id"],
+            "image",
+            "/uploads/linked.png",
+            None,
+            project_id=project["id"],
+            canvas_node_id=node["id"],
+        )
+        store.create_asset(
+            self.user["id"],
+            "image",
+            "/uploads/project-only.png",
+            None,
+            project_id=project["id"],
+        )
+
+        response = self.client.get(
+            "/assets",
+            params={"origin_canvas_id": canvas_id},
+            headers=self._auth_headers(self.user["id"]),
+        )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([linked["id"]], [item["id"] for item in response.json()["items"]])
 
     def test_list_assets_pagination(self) -> None:
         for index in range(5):
@@ -110,13 +141,14 @@ class AssetFlowTestCase(unittest.TestCase):
         self.assertEqual(2, len(payload["items"]))
 
     def test_upload_url_asset(self) -> None:
+        project = store.create_project(self.user["id"], "URL Project")
         response = self.client.post(
             "/assets/upload",
             json={
                 "type": "image",
                 "url": "https://example.com/image.png",
                 "content_text": None,
-                "project_id": "project-url",
+                "project_id": project["id"],
             },
             headers=self._auth_headers(self.user["id"]),
         )
@@ -125,12 +157,25 @@ class AssetFlowTestCase(unittest.TestCase):
         payload = response.json()
         self.assertEqual("image", payload["type"])
         self.assertEqual("https://example.com/image.png", payload["url"])
-        self.assertEqual("project-url", payload["project_id"])
+        self.assertEqual(project["id"], payload["project_id"])
 
-    def test_upload_multipart_file(self) -> None:
+    def test_upload_rejects_foreign_project(self) -> None:
+        project = store.create_project(self.other_user["id"], "Foreign Project")
+
         response = self.client.post(
             "/assets/upload",
-            data={"type": "image", "content_text": "cover", "project_id": "project-file"},
+            json={"type": "image", "url": "https://example.com/image.png", "project_id": project["id"]},
+            headers=self._auth_headers(self.user["id"]),
+        )
+
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("Project does not belong to user", response.json()["detail"])
+
+    def test_upload_multipart_file(self) -> None:
+        project = store.create_project(self.user["id"], "File Project")
+        response = self.client.post(
+            "/assets/upload",
+            data={"type": "image", "content_text": "cover", "project_id": project["id"]},
             files={"file": ("poster.png", b"fake-image-bytes", "image/png")},
             headers=self._auth_headers(self.user["id"]),
         )
@@ -143,6 +188,9 @@ class AssetFlowTestCase(unittest.TestCase):
         self.assertEqual(b"fake-image-bytes", saved_file.read_bytes())
 
     def test_from_generation(self) -> None:
+        project = store.create_project(self.user["id"], "Generation Project")
+        node = store.create_node(project["id"], self.user["id"], "text", {}, 0, 0, 300, 200)
+        canvas_id = store.get_first_canvas_id(project["id"])
         response = self.client.post(
             "/assets/from_generation",
             json={
@@ -151,8 +199,8 @@ class AssetFlowTestCase(unittest.TestCase):
                 "content_text": "generated clip",
                 "source_model": "agnes-video-v2.0",
                 "source_task_id": "task-123",
-                "canvas_node_id": "node-1",
-                "project_id": "project-gen",
+                "canvas_node_id": node["id"],
+                "project_id": project["id"],
             },
             headers=self._auth_headers(self.user["id"]),
         )
@@ -162,7 +210,27 @@ class AssetFlowTestCase(unittest.TestCase):
         self.assertEqual("generation", payload["source"])
         self.assertEqual("agnes-video-v2.0", payload["source_model"])
         self.assertEqual("task-123", payload["source_task_id"])
-        self.assertEqual("node-1", payload["canvas_node_id"])
+        self.assertEqual(node["id"], payload["canvas_node_id"])
+        self.assertEqual(canvas_id, payload["origin_canvas_id"])
+
+    def test_from_generation_rejects_cross_project_node(self) -> None:
+        project = store.create_project(self.user["id"], "Target Project")
+        other_project = store.create_project(self.user["id"], "Other Project")
+        other_node = store.create_node(other_project["id"], self.user["id"], "text", {}, 0, 0, 300, 200)
+
+        response = self.client.post(
+            "/assets/from_generation",
+            json={
+                "type": "image",
+                "url": "https://example.com/generated.png",
+                "project_id": project["id"],
+                "canvas_node_id": other_node["id"],
+            },
+            headers=self._auth_headers(self.user["id"]),
+        )
+
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("Canvas node does not belong to project", response.json()["detail"])
 
     def test_get_asset_own(self) -> None:
         asset = store.create_asset(self.user["id"], "prompt", None, "hello")

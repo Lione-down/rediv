@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from controllers.store import store
+from controllers.resource_scope import ProjectResourceConflictError
 from core.security import current_user
 from schemas.project import ProjectCreateRequest, ProjectListResponse, ProjectResponse
 
@@ -40,7 +41,10 @@ def get_project(project_id: str, user=Depends(current_user)):
 def delete_project(project_id: str, user=Depends(current_user)):
     """删除项目，只能删除自己的项目"""
     _owned_project_or_error(project_id, user["id"])
-    deleted = store.delete_project(project_id, user["id"])
+    try:
+        deleted = store.delete_project(project_id, user["id"])
+    except ProjectResourceConflictError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
     if deleted is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

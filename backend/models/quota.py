@@ -28,6 +28,12 @@ class QuotaLedger(Base):
     quota_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True, comment="配额类型: text/image/video")
     change_amount: Mapped[int] = mapped_column(nullable=False, comment="变动数量(正数增加,负数减少)")
     reason: Mapped[str] = mapped_column(String(64), nullable=False, index=True, comment="变动原因")
-    related_task_id: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="关联任务ID")
+    related_task_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("generation_tasks.id", ondelete="RESTRICT", name="fk_quota_ledger_generation_task"),
+        nullable=True,
+        index=True,
+        comment="Related generation task ID",
+    )
     admin_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True, comment="操作管理员ID")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False, comment="创建时间")

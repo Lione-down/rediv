@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, utc_now
@@ -10,13 +10,41 @@ from models.base import Base, utc_now
 
 class GenerationTask(Base):
     __tablename__ = "generation_tasks"
-    __table_args__ = {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4", "comment": "Generation task diagnostics table"}
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["project_id", "origin_canvas_id"],
+            ["canvases.project_id", "canvases.id"],
+            ondelete="RESTRICT",
+            name="fk_generation_tasks_project_origin_canvas",
+        ),
+        ForeignKeyConstraint(
+            ["origin_canvas_id", "canvas_node_id"],
+            ["canvas_nodes.canvas_id", "canvas_nodes.id"],
+            ondelete="RESTRICT",
+            name="fk_generation_tasks_origin_node",
+        ),
+        CheckConstraint(
+            "(origin_canvas_id IS NULL OR project_id IS NOT NULL) "
+            "AND (canvas_node_id IS NULL OR origin_canvas_id IS NOT NULL)",
+            name="ck_generation_tasks_origin_scope",
+        ),
+        Index("ix_generation_tasks_origin_canvas_id", "origin_canvas_id"),
+        Index("ix_generation_tasks_project_status_created", "project_id", "status", "created_at"),
+        {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4", "comment": "Generation task diagnostics table"},
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, comment="Generation task unique identifier")
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True, comment="Owning user ID")
-    project_id: Mapped[str | None] = mapped_column(ForeignKey("projects.id"), nullable=True, index=True, comment="Related project ID")
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True, comment="Owning user ID"
+    )
+    project_id: Mapped[str | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="RESTRICT"), nullable=True, index=True, comment="Related project ID"
+    )
+    origin_canvas_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, comment="Origin canvas attribution for filtering"
+    )
     canvas_node_id: Mapped[str | None] = mapped_column(
-        ForeignKey("canvas_nodes.id"),
+        String(36),
         nullable=True,
         index=True,
         comment="Related canvas node ID",
@@ -27,7 +55,9 @@ class GenerationTask(Base):
     provider_request_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True, comment="Provider request or task ID")
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True, comment="Task status: queued/running/succeeded/failed/timed_out")
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="Task duration in milliseconds")
-    result_asset_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id"), nullable=True, index=True, comment="Result asset ID")
+    result_asset_id: Mapped[str | None] = mapped_column(
+        ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True, comment="Result asset ID"
+    )
     error_code: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="Sanitized error code")
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True, comment="Sanitized error message")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False, comment="Created time")

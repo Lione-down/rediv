@@ -11,6 +11,7 @@ router = APIRouter(prefix="/api/generation-tasks", tags=["generation-tasks"])
 @router.get("", response_model=GenerationTaskListResponse)
 def list_generation_tasks(
     project_id: str | None = None,
+    origin_canvas_id: str | None = None,
     media_type: str | None = Query(default=None, pattern="^(text|image|video)$"),
     task_status: str | None = Query(default=None, alias="status", pattern="^(queued|running|succeeded|failed|timed_out)$"),
     page: int = Query(default=1, ge=1),
@@ -20,6 +21,7 @@ def list_generation_tasks(
     items, total = store.list_generation_tasks(
         user["id"],
         project_id=project_id,
+        origin_canvas_id=origin_canvas_id,
         media_type=media_type,
         status=task_status,
         page=page,

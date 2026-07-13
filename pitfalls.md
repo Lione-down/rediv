@@ -289,3 +289,10 @@ Evidence:
 - 恢复 parser 必须在写入 live graph 前校验 identity、revision、范围、operation set、父子和 endpoint 关系。无效副本 fail closed、保留原始 localStorage；旧 version-1 payload 快照缺少 batch state 时，可从当前服务器 graph 与原 payload 确定性重建 post-state。
 - recovery/conflict UI 的条件渲染会移除当前按钮；成功、丢弃和失败转 conflict 后都要在 `nextTick` 后把焦点放回 dialog，关闭时实际 opener 失效或 disabled 才回退固定 trigger。
 - backend restart 测试不能只换 store 对象。必须 dispose/recreate engine 与 session factory，重新执行 database identity 和 Alembic gate，并覆盖 production FastAPI lifespan；任一 gate 失败都要再次 dispose 后 re-raise。
+
+## 2026-07-13 MySQL 资源归属与删除锁
+
+- MySQL 8 禁止 `CHECK` 引用带 `ON DELETE SET NULL` referential action 的列；asset node link 要同时实现自动清空和保留 `origin_canvas_id` 时，不能伪造冗余 CHECK。应保留真实 node FK `SET NULL`、project/origin composite FK，并在统一 writer 中校验 node scope。
+- Resource create 与 semantic node delete 必须锁定同一边界。创建按 `Project -> Canvas -> CanvasNode` 执行 `FOR UPDATE` 并在最终锁后重验 active/scope；删除对排序后的 node IDs 加锁，再在同一 transaction 清 asset/task link，避免并发重新挂回 deleted node。
+- 任何会绕过 process cache 的 document mutation 后，asset/task 详情必须以数据库为 authoritative source；不能从旧 cache 返回已清除的 `canvas_node_id`。
+- Project 仍有关联 asset/task 时，当前安全语义是 `409 Project has linked resources`。禁止在没有明确产品决策和 destructive authorization 时自动级联删除或抹掉资源归属。

@@ -5,6 +5,7 @@ class AssetListItem(BaseModel):
     id: str
     user_id: str
     project_id: str | None
+    origin_canvas_id: str | None
     canvas_node_id: str | None
     type: str
     url: str | None
@@ -29,6 +30,7 @@ class AssetCreateRequest(BaseModel):
     url: str | None = None
     content_text: str | None = None
     project_id: str | None = None
+    origin_canvas_id: str | None = None
 
 
 class AssetFromGenerationRequest(BaseModel):
@@ -39,6 +41,7 @@ class AssetFromGenerationRequest(BaseModel):
     source_task_id: str | None = None
     canvas_node_id: str | None = None
     project_id: str | None = None
+    origin_canvas_id: str | None = None
 
 
 class AssetHideRequest(BaseModel):

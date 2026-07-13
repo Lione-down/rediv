@@ -101,6 +101,26 @@ class ProjectCrudTestCase(unittest.TestCase):
         self.assertEqual(403, response.status_code)
         self.assertEqual("Forbidden", response.json()["detail"])
 
+    def test_delete_project_with_resource_returns_conflict(self) -> None:
+        project = store.create_project(self.user["id"], "Resource Project")
+        asset = store.create_asset(
+            self.user["id"],
+            "image",
+            "/uploads/protected.png",
+            None,
+            project_id=project["id"],
+        )
+
+        response = self.client.delete(
+            f"/projects/{project['id']}",
+            headers=self._auth_headers(self.user["id"]),
+        )
+
+        self.assertEqual(409, response.status_code)
+        self.assertEqual("Project has linked resources", response.json()["detail"])
+        self.assertIsNotNone(store.get_project(project["id"]))
+        self.assertEqual(asset["id"], store.get_asset(asset["id"])["id"])
+
     def test_project_persistence(self) -> None:
         project = store.create_project(self.user["id"], "Persisted Project")
 
@@ -124,6 +144,23 @@ class ProjectCrudTestCase(unittest.TestCase):
         self.assertEqual(created["id"], loaded["id"])
         self.assertEqual(created["id"], deleted["id"])
         self.assertIsNone(memory_store.get_project(created["id"]))
+
+    def test_inmemory_project_delete_rejects_linked_resources(self) -> None:
+        memory_store = InMemoryStore()
+        user = memory_store.create_user("Memory Resource User", "")
+        project = memory_store.create_project(user["id"], "Memory Resource Project")
+        memory_store.create_asset(
+            user["id"],
+            "image",
+            "/uploads/memory.png",
+            None,
+            project_id=project["id"],
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "linked resources"):
+            memory_store.delete_project(project["id"], user["id"])
+
+        self.assertIsNotNone(memory_store.get_project(project["id"]))
 
     def _register_user(self, openid: str):
         return self.client.post(

@@ -10,6 +10,7 @@ from sqlalchemy import delete, select
 
 from controllers.canvas_documents import _connection_to_dict, _datetime_to_iso, _node_to_dict
 from controllers.canvases import CanvasNotFoundError, _active_canvas, _owned_project
+from controllers.resource_links import clear_resource_node_links
 from models.base import get_session, utc_now
 from models.canvas_connection import CanvasConnection
 from models.canvas_node import CanvasNode
@@ -232,6 +233,7 @@ def _restore_graph(session, project_id: str, canvas_id: str, snapshot: dict, tim
         node.is_collapsed = fields["is_collapsed"]
         node.status = "active"
         node.updated_at = timestamp
+    clear_resource_node_links(session, set(current_nodes) - set(target_nodes))
     for node_id, node in current_nodes.items():
         if node_id not in target_nodes:
             node.status = "deleted"

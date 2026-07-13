@@ -13,6 +13,7 @@ from controllers.canvases import (
     _canvas_to_dict,
     _owned_project,
 )
+from controllers.resource_links import clear_resource_node_links
 from models.base import get_session, utc_now
 from models.canvas_connection import CanvasConnection
 from models.canvas_node import CanvasNode
@@ -208,6 +209,7 @@ def delete_node(project_id: str, canvas_id: str, node_id: str, user_id: str) -> 
             for child in children:
                 child.parent_node_id = None
                 child.updated_at = utc_now()
+        clear_resource_node_links(session, [node_id])
         node.status = "deleted"
         node.updated_at = utc_now()
         session.commit()
