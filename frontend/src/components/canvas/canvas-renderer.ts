@@ -132,6 +132,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
 
   function createNodeVisual(node: CanvasNode) {
     const state = getNodeVisualState(node)
+    const isGroup = node.type === 'group'
     const hasEmphasis = node.status === 'running' || node.status === 'success' || node.status === 'warning' || state.isSelected
     const group = new Group({ x: node.x, y: node.y })
     const card = new Rect({
@@ -139,10 +140,12 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       height: node.height,
       cornerRadius: 12,
       hit: 'rect',
-      fill: options.cssVar('--canvas-node-surface', 'rgba(255, 255, 255, 0.92)'),
+      fill: isGroup
+        ? options.cssVar('--v2-accent-soft', 'oklch(65% 0.19 292 / 0.14)')
+        : options.cssVar('--canvas-node-surface', 'rgba(255, 255, 255, 0.92)'),
       stroke: nodeStrokeColor(node),
       strokeWidth: hasEmphasis ? 2 : 1,
-      shadow: { x: 0, y: 18, blur: 42, color: nodeShadowColor(node) },
+      shadow: isGroup ? undefined : { x: 0, y: 18, blur: 42, color: nodeShadowColor(node) },
     })
     const input = new Ellipse({
       x: -8,
@@ -152,6 +155,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       fill: options.cssVar('--bg-panel', 'white'),
       stroke: options.cssVar('--border-strong', 'oklch(80% 0.014 245)'),
       strokeWidth: 1.5,
+      visible: !isGroup,
     })
     const output = new Ellipse({
       x: node.width - 8,
@@ -161,11 +165,12 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       fill: options.cssVar('--accent-select', 'oklch(58% 0.115 252)'),
       stroke: options.cssVar('--canvas-port-outline', 'rgba(255, 255, 255, 0.95)'),
       strokeWidth: 2,
+      visible: !isGroup,
     })
     const typeText = new Text({
       x: 16,
       y: 14,
-      text: node.type.toUpperCase(),
+      text: isGroup ? node.title : node.type.toUpperCase(),
       fill: options.cssVar('--text-muted', 'oklch(62% 0.014 245)'),
       fontSize: 11,
       fontWeight: '500',
@@ -174,7 +179,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       x: 16,
       y: 34,
       width: node.width - 32,
-      text: node.title,
+      text: isGroup ? '' : node.title,
       fill: options.cssVar('--text-primary', 'oklch(18% 0.014 245)'),
       fontSize: 15,
       fontWeight: '600',
@@ -183,7 +188,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       x: 16,
       y: 62,
       width: node.width - 32,
-      text: node.content ?? '',
+      text: isGroup ? '' : (node.content ?? ''),
       fill: options.cssVar('--text-secondary', 'oklch(46% 0.018 245)'),
       fontSize: 13,
       lineHeight: 22,
@@ -224,22 +229,35 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     visual.card.width = node.width
     visual.card.height = node.height
     visual.card.stroke = nodeStrokeColor(node)
+    visual.card.fill = node.type === 'group'
+      ? options.cssVar('--v2-accent-soft', 'oklch(65% 0.19 292 / 0.14)')
+      : options.cssVar('--canvas-node-surface', 'rgba(255, 255, 255, 0.92)')
     const hasEmphasis = node.status === 'running' || node.status === 'success' || node.status === 'warning' || nextState.isSelected
     visual.card.strokeWidth = hasEmphasis ? 2 : 1
-    visual.card.shadow = { x: 0, y: 18, blur: 42, color: nodeShadowColor(node) }
+    visual.card.shadow = node.type === 'group' ? undefined : { x: 0, y: 18, blur: 42, color: nodeShadowColor(node) }
+    visual.input.visible = node.type !== 'group'
+    visual.output.visible = node.type !== 'group'
     visual.input.y = node.height / 2 - 8
     visual.output.x = node.width - 8
     visual.output.y = node.height / 2 - 8
-    visual.typeText.text = node.type.toUpperCase()
+    visual.typeText.text = node.type === 'group' ? node.title : node.type.toUpperCase()
     visual.titleText.width = node.width - 32
-    visual.titleText.text = node.title
+    visual.titleText.text = node.type === 'group' ? '' : node.title
     visual.contentText.width = node.width - 32
-    visual.contentText.text = node.content ?? ''
+    visual.contentText.text = node.type === 'group' ? '' : (node.content ?? '')
     visual.state = nextState
   }
 
   function syncNodeOrder(nodes: CanvasNode[]) {
-    nodes.forEach((node, index) => {
+    const orderedNodes = nodes
+      .map((node, index) => ({ node, index }))
+      .sort((left, right) => {
+        const groupOrder = Number(left.node.type !== 'group') - Number(right.node.type !== 'group')
+        if (groupOrder) return groupOrder
+        return (left.node.zIndex ?? 0) - (right.node.zIndex ?? 0) || left.index - right.index
+      })
+      .map(({ node }) => node)
+    orderedNodes.forEach((node, index) => {
       const group = nodeVisuals.get(node.id)?.group
       if (group && worldGroup.children[index] !== group) worldGroup.addAt(group, index)
     })

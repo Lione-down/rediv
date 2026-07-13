@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { NDropdown } from 'naive-ui'
-import type { ComponentPublicInstance } from 'vue'
+import { Keyboard } from 'lucide-vue-next'
+import { nextTick, ref, type ComponentPublicInstance } from 'vue'
+import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
 import { useCanvasStage } from './composables/use-canvas-stage'
 
@@ -39,7 +41,19 @@ const {
   selectionToolbarStyle,
   deleteSelection,
   duplicateSelection,
+  canConnectSelection,
+  canDuplicateSelection,
+  canGroupSelection,
+  canUngroupSelection,
+  closeGraphPanel,
+  connectSelection,
+  groupSelection,
+  isGraphPanelOpen,
+  toggleGraphPanel,
+  ungroupSelection,
 } = useCanvasStage({ isReadOnly: () => props.readonly })
+
+const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
 
 function setStageRef(element: Element | ComponentPublicInstance | null) {
   stageRef.value = element instanceof HTMLElement ? element : null
@@ -52,6 +66,11 @@ function setCanvasSurfaceRef(element: Element | ComponentPublicInstance | null) 
 function setMinimapRef(element: Element | ComponentPublicInstance | null) {
   minimapRef.value = element instanceof HTMLElement ? element : null
 }
+
+function closeGraphAccessPanel() {
+  closeGraphPanel()
+  void nextTick(() => graphPanelTriggerRef.value?.focus({ preventScroll: true }))
+}
 </script>
 
 <template>
@@ -60,6 +79,8 @@ function setMinimapRef(element: Element | ComponentPublicInstance | null) {
     class="workspace-stage"
     aria-label="Revid 无限画布工作区"
     :aria-readonly="readonly"
+    aria-keyshortcuts="Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+Enter Meta+Enter Delete Backspace Escape ?"
+    tabindex="0"
   >
     <div
       v-if="stageNotice"
@@ -87,9 +108,7 @@ function setMinimapRef(element: Element | ComponentPublicInstance | null) {
           class="connection-hit"
           :class="{ selected: canvasStore.selectedConnectionId === connection.id }"
           :d="buildConnectionPath(nodeOutputAnchor(connection.from), nodeInputAnchor(connection.to))"
-          role="button"
-          tabindex="0"
-          :aria-label="`选择连线 ${connection.from} 到 ${connection.to}`"
+          aria-hidden="true"
           @pointerdown.stop="handleConnectionPointerDown(connection.id, $event)"
           @focus="canvasStore.selectConnection(connection.id)"
           @keydown.enter.prevent="canvasStore.selectConnection(connection.id)"
@@ -117,8 +136,15 @@ function setMinimapRef(element: Element | ComponentPublicInstance | null) {
       <CanvasSelectionToolbar
         v-if="selectionToolbarStyle && !readonly"
         :count="canvasStore.selectedNodeIds.length"
+        :can-connect="canConnectSelection"
+        :can-duplicate="canDuplicateSelection"
+        :can-group="canGroupSelection"
+        :can-ungroup="canUngroupSelection"
         :style="selectionToolbarStyle"
         @duplicate="duplicateSelection('toolbar')"
+        @group="groupSelection('toolbar')"
+        @ungroup="ungroupSelection('toolbar')"
+        @connect="connectSelection('toolbar')"
         @delete="deleteSelection('toolbar')"
       />
 
@@ -137,6 +163,23 @@ function setMinimapRef(element: Element | ComponentPublicInstance | null) {
         <div class="minimap-viewport" :style="minimapViewportStyle"></div>
       </div>
     </div>
+    <button
+      ref="graphPanelTriggerRef"
+      class="graph-access-trigger"
+      type="button"
+      aria-label="打开画布内容与快捷键"
+      title="画布内容与快捷键 (?)"
+      :aria-expanded="isGraphPanelOpen"
+      @click="toggleGraphPanel"
+    >
+      <Keyboard :size="17" aria-hidden="true" />
+    </button>
+    <CanvasGraphAccessPanel
+      v-if="isGraphPanelOpen"
+      :readonly="readonly"
+      @close="closeGraphAccessPanel"
+      @locate-node="centerNodeInViewport"
+    />
     <NDropdown
       trigger="manual"
       placement="bottom-start"

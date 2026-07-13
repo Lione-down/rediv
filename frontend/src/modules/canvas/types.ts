@@ -61,6 +61,10 @@ export interface CanvasNodeDto {
   position_y: number
   width: number
   height: number
+  z_index: number
+  parent_node_id: string | null
+  is_locked: boolean
+  is_collapsed: boolean
   status: string
   created_at: string
   updated_at: string
@@ -78,6 +82,10 @@ export interface CanvasNodeCreatePayload {
   position_y: number
   width: number
   height: number
+  z_index?: number
+  parent_node_id?: string | null
+  is_locked?: boolean
+  is_collapsed?: boolean
 }
 
 export type CanvasNodeUpdatePayload = Partial<CanvasNodeCreatePayload> & {

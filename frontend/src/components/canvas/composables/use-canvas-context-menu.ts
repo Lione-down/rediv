@@ -22,15 +22,21 @@ interface CanvasContextMenuOptions {
   toSurfacePoint: (clientX: number, clientY: number) => Point | null
 }
 
-type ContextMenuKey = 'create-text' | 'create-image' | 'duplicate-node' | 'delete-node'
+type ContextMenuKey = 'create-text' | 'create-image' | 'duplicate-node' | 'group-nodes' | 'ungroup-nodes' | 'connect-nodes' | 'delete-node'
 
 export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
   const canvasStore = useCanvasStore()
-  const { deleteSelection, duplicateSelection } = useCanvasCommandInteractions({ isReadOnly: options.isReadOnly })
+  const {
+    canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection,
+    connectSelection, deleteSelection, duplicateSelection, groupSelection, ungroupSelection,
+  } = useCanvasCommandInteractions({ isReadOnly: options.isReadOnly })
   const contextMenu = ref<ContextMenuState>({ show: false, x: 0, y: 0, nodeId: null, worldPoint: { x: 0, y: 0 } })
   const contextMenuOptions = computed<Array<DropdownOption | DropdownDividerOption>>(() => contextMenu.value.nodeId
     ? [
-        { label: canvasStore.selectedNodeIds.length > 1 ? `复制所选节点 (${canvasStore.selectedNodeIds.length})` : '复制节点', key: 'duplicate-node' },
+        ...(canDuplicateSelection() ? [{ label: canvasStore.selectedNodeIds.length > 1 ? `复制所选节点 (${canvasStore.selectedNodeIds.length})` : '复制节点', key: 'duplicate-node' }] : []),
+        ...(canGroupSelection() ? [{ label: '组合所选节点', key: 'group-nodes' }] : []),
+        ...(canUngroupSelection() ? [{ label: '取消组合', key: 'ungroup-nodes' }] : []),
+        ...(canConnectSelection() ? [{ label: '连接所选两个节点', key: 'connect-nodes' }] : []),
         { type: 'divider', key: 'node-actions-divider' },
         { label: canvasStore.selectedNodeIds.length > 1 ? `删除所选节点 (${canvasStore.selectedNodeIds.length})` : '删除节点', key: 'delete-node' },
       ]
@@ -96,6 +102,12 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
     if (!nodeId || !canvasStore.findNodeById(nodeId)) return
     if (action === 'duplicate-node') {
       duplicateSelection('context-menu')
+    } else if (action === 'group-nodes') {
+      groupSelection('context-menu')
+    } else if (action === 'ungroup-nodes') {
+      ungroupSelection('context-menu')
+    } else if (action === 'connect-nodes') {
+      connectSelection('context-menu')
     } else if (action === 'delete-node') {
       deleteSelection('context-menu')
     }

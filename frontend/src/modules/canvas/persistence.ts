@@ -84,5 +84,9 @@ export function toNodeCreatePayload(node: CanvasNodeDraft): CanvasNodeCreatePayl
     position_y: node.y,
     width: node.width,
     height: node.height,
+    z_index: node.zIndex,
+    parent_node_id: node.parentNodeId,
+    is_locked: node.isLocked,
+    is_collapsed: node.isCollapsed,
   }
 }

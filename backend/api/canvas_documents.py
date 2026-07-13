@@ -68,7 +68,13 @@ def create_node(
             position_y=payload.position_y,
             width=payload.width,
             height=payload.height,
+            z_index=payload.z_index,
+            parent_node_id=payload.parent_node_id,
+            is_locked=payload.is_locked,
+            is_collapsed=payload.is_collapsed,
         )
+    except ValueError as error:
+        raise _connection_error(error) from error
     except canvas_controller.CanvasDomainError as error:
         raise map_canvas_domain_error(error) from error
 
@@ -87,8 +93,10 @@ def update_node(
             canvas_id,
             node_id,
             user["id"],
-            **payload.model_dump(exclude_none=True),
+            **payload.model_dump(exclude_unset=True),
         )
+    except ValueError as error:
+        raise _connection_error(error) from error
     except canvas_controller.CanvasDomainError as error:
         raise map_canvas_domain_error(error) from error
 

@@ -2,11 +2,17 @@ import { toRaw } from 'vue'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import type { CanvasConnectionDraft, CanvasNodeDraft } from './persistence'
 import {
+  createConnectNodesCommand,
+  createGroupNodesCommand,
+  createUngroupNodesCommand,
   getInternalConnections,
   type CanvasCommandEnvelope,
+  type ConnectNodesCommand,
   type DeleteSelectionCommand,
   type DuplicateNodesCommand,
+  type GroupNodesCommand,
   type MoveNodesCommand,
+  type UngroupNodesCommand,
 } from './canvas-commands'
 
 interface CanvasCommandExecutorOptions {
@@ -16,6 +22,7 @@ interface CanvasCommandExecutorOptions {
   createConnection: (draft: CanvasConnectionDraft) => Promise<CanvasConnection>
   deleteNode: (nodeId: string) => Promise<void>
   deleteConnection: (connectionId: string) => Promise<void>
+  updateNodeParent: (nodeId: string, parentNodeId: string | null) => Promise<void>
   queueNodeMove: (nodeId: string, x: number, y: number) => void
   setSelection: (nodeIds: string[], primaryNodeId?: string) => void
   selectConnection: (connectionId: string) => void
@@ -76,14 +83,108 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
         throw error
       }
     }
-    for (const nodeId of command.nodeIds) await options.deleteNode(nodeId)
+    for (const nodeId of command.nodeIds) {
+      const group = options.getNodes().find((node) => node.id === nodeId && node.type === 'group')
+      const detachedIds: string[] = []
+      if (group) {
+        for (const child of options.getNodes().filter((node) => node.parentNodeId === group.id)) {
+          await options.updateNodeParent(child.id, null)
+          detachedIds.push(child.id)
+        }
+      }
+      try {
+        await options.deleteNode(nodeId)
+      } catch (error) {
+        for (const childId of detachedIds.reverse()) await options.updateNodeParent(childId, nodeId).catch(() => undefined)
+        throw error
+      }
+    }
+  }
+
+  async function groupNodes(command: GroupNodesCommand) {
+    const validated = createGroupNodesCommand(options.getNodes(), command.nodeIds, command.padding)
+    if (!validated) return
+    const selectedIds = new Set(validated.nodeIds)
+    const targets = options.getNodes().filter((node) => selectedIds.has(node.id))
+    const padding = validated.padding
+    const left = Math.min(...targets.map((node) => node.x))
+    const top = Math.min(...targets.map((node) => node.y))
+    const right = Math.max(...targets.map((node) => node.x + node.width))
+    const bottom = Math.max(...targets.map((node) => node.y + node.height))
+    const groupCount = options.getNodes().filter((node) => node.type === 'group').length
+    const group = await options.createNode({
+      type: 'group',
+      title: `组合 ${groupCount + 1}`,
+      x: left - padding,
+      y: top - padding,
+      width: right - left + padding * 2,
+      height: bottom - top + padding * 2,
+      zIndex: Math.min(...targets.map((node) => node.zIndex ?? 0)) - 1,
+      parentNodeId: null,
+      isLocked: false,
+      isCollapsed: false,
+      status: 'idle',
+      contentData: { title: `组合 ${groupCount + 1}` },
+    })
+    const attachedIds: string[] = []
+    try {
+      for (const node of targets) {
+        await options.updateNodeParent(node.id, group.id)
+        attachedIds.push(node.id)
+      }
+    } catch (error) {
+      for (const nodeId of attachedIds.reverse()) await options.updateNodeParent(nodeId, null).catch(() => undefined)
+      await options.deleteNode(group.id).catch(() => undefined)
+      throw error
+    }
+    options.setSelection([group.id], group.id)
+  }
+
+  async function ungroupNodes(command: UngroupNodesCommand) {
+    const validated = createUngroupNodesCommand(options.getNodes(), command.groupIds)
+    if (!validated) return
+    const groups = options.getNodes().filter((node) => validated.groupIds.includes(node.id) && node.type === 'group')
+    const releasedIds: string[] = []
+    for (const group of groups) {
+      const children = options.getNodes().filter((node) => node.parentNodeId === group.id)
+      const detachedIds: string[] = []
+      try {
+        for (const child of children) {
+          await options.updateNodeParent(child.id, null)
+          detachedIds.push(child.id)
+          releasedIds.push(child.id)
+        }
+        await options.deleteNode(group.id)
+      } catch (error) {
+        for (const nodeId of detachedIds.reverse()) await options.updateNodeParent(nodeId, group.id).catch(() => undefined)
+        throw error
+      }
+    }
+    if (releasedIds.length) options.setSelection(releasedIds, releasedIds.at(-1))
+  }
+
+  async function connectNodes(command: ConnectNodesCommand) {
+    const validated = createConnectNodesCommand(
+      options.getNodes(), options.getConnections(), command.sourceNodeId, command.targetNodeId,
+      command.sourcePort, command.targetPort,
+    )
+    if (!validated) return
+    await options.createConnection({
+      from: validated.sourceNodeId,
+      to: validated.targetNodeId,
+      sourcePort: validated.sourcePort,
+      targetPort: validated.targetPort,
+    })
   }
 
   async function executeCommand(envelope: CanvasCommandEnvelope) {
     const { command } = envelope
     if (command.type === 'move-nodes') return moveNodes(command)
     if (command.type === 'duplicate-nodes') return duplicateNodes(command)
-    return deleteSelection(command)
+    if (command.type === 'delete-selection') return deleteSelection(command)
+    if (command.type === 'group-nodes') return groupNodes(command)
+    if (command.type === 'ungroup-nodes') return ungroupNodes(command)
+    return connectNodes(command)
   }
 
   return { executeCommand }

@@ -172,6 +172,48 @@ class CanvasDocumentApiTestCase(unittest.TestCase):
         self.assertEqual(200, archived.status_code)
         self.assertEqual(404, hidden.status_code)
 
+    def test_group_fields_round_trip_and_parent_can_be_cleared(self) -> None:
+        group_response = self.client.post(
+            self._resource_path(self.first_canvas["id"], "nodes"),
+            json={
+                "node_type": "group",
+                "content": {"title": "镜头组合"},
+                "position_x": 40,
+                "position_y": 60,
+                "width": 640,
+                "height": 360,
+                "z_index": -1,
+                "is_collapsed": False,
+            },
+            headers=self.headers,
+        )
+        self.assertEqual(201, group_response.status_code)
+        group = group_response.json()
+        self.assertEqual(-1, group["z_index"])
+        self.assertIsNone(group["parent_node_id"])
+        self.assertFalse(group["is_locked"])
+        self.assertFalse(group["is_collapsed"])
+
+        child = self._create_node(self.first_canvas["id"], "group-child", 120)
+        attach = self.client.put(
+            f"{self._resource_path(self.first_canvas['id'], 'nodes')}/{child['id']}",
+            json={"parent_node_id": group["id"]},
+            headers=self.headers,
+        )
+        self.assertEqual(200, attach.status_code)
+        self.assertEqual(group["id"], attach.json()["parent_node_id"])
+        grouped_document = self._get_document(self.first_canvas["id"])
+        grouped_child = next(node for node in grouped_document["nodes"] if node["id"] == child["id"])
+        self.assertEqual(group["id"], grouped_child["parent_node_id"])
+
+        detach = self.client.put(
+            f"{self._resource_path(self.first_canvas['id'], 'nodes')}/{child['id']}",
+            json={"parent_node_id": None},
+            headers=self.headers,
+        )
+        self.assertEqual(200, detach.status_code)
+        self.assertIsNone(detach.json()["parent_node_id"])
+
     def _create_node(self, canvas_id: str, title: str, position_x: float) -> dict:
         response = self.client.post(
             self._resource_path(canvas_id, "nodes"),

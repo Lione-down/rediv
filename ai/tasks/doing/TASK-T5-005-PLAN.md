@@ -3,12 +3,13 @@
 - State: `DOING`
 - Completed unit: Unit A - persistent keyed Leafer world and incremental node reconciliation (`COMPLETE - PASS`)
 - Completed unit: Unit B - command contract, selection, and multi-node editing (`COMPLETE - PASS`)
-- Next unit: Unit C - grouping, connection, shortcuts, and accessibility list
+- Completed unit: Unit C - grouping, connection, shortcuts, and accessibility list (`COMPLETE - PASS`)
+- Next unit: Unit D - view and arrange commands
 - Updated: 2026-07-13
 
 ## Objective
 
-Deliver T5-005 as independently verified interaction units. Unit A established the renderer lifecycle; Unit B now converges selection, multi-node movement, duplicate, and delete on one typed local command boundary.
+Deliver T5-005 as independently verified interaction units. Units A-C now cover persistent rendering, deterministic command editing, flat grouping, validated connection, Canvas-focus shortcuts, and synchronized DOM graph access; Unit D completes view and arrange commands.
 
 ## Direction Lock
 
@@ -93,7 +94,41 @@ Deliver T5-005 as independently verified interaction units. Unit A established t
 
 ### Unit C - Grouping, connection, shortcuts, and accessibility list
 
-Add group/ungroup, validated connect, Canvas-focus shortcut dispatch, shortcut panel, and synchronized DOM node/connection access.
+### Scope
+
+1. Extend the existing Canvas node DTO and frontend mapping to preserve the already-migrated `z_index`, `parent_node_id`, `is_locked`, and `is_collapsed` fields without adding or changing database schema.
+2. Add typed `group-nodes`, `ungroup-nodes`, and `connect-nodes` commands to the same dispatcher used by pointer, keyboard, toolbar, and context-menu mutations.
+3. Implement flat grouping only: require at least two active, unlocked, ungrouped non-group nodes; create one group bounds node with 24 world-unit padding; persist child `parent_node_id`; select the new group after completion.
+4. Ungroup a selected group, or the common parent of selected children, by clearing child `parent_node_id` before deleting the group; select the released children after completion.
+5. Validate connection intent before optimistic mutation: both nodes must exist, source and target must differ, ports must be `out` to `in`, and the exact directed connection must not already exist. Route pointer connection completion and a two-node toolbar/keyboard action through the typed command.
+6. Make shortcuts active only while focus is within the Canvas stage, ignore editable controls, preserve the review-only guard, and expose `Ctrl+D`, `Ctrl+G`, `Ctrl+Shift+G`, `Ctrl+Enter`, Delete/Backspace, Escape, and `?` through an accessible shortcut panel.
+7. Add a synchronized DOM graph panel with keyboard-reachable node locate/select actions, connection review/select actions, and delete actions only when editing is allowed.
+8. Preserve the graphite-black violet V2 vocabulary, existing scoped SCSS/tokens, 40 px targets, visible focus, localized Chinese labels, reduced motion, and the below-768px review-only boundary.
+9. Add focused pure/backend/browser coverage, then run relevant Canvas regression, full Chromium regression, production build, real desktop/mobile review, fresh diff review, and hygiene gates.
+
+### Non-goals
+
+- Nested groups, group collapse, group drag semantics, lock/unlock UI, align/distribute, auto-arrange, command inversion, undo/redo, autosave batching, or revision history.
+- New database tables, columns, migrations, destructive database work, paid calls, secret access, global page redesign, or a second Canvas engine.
+- Final 200-node/300-connection performance and full milestone accessibility certification, which remain Unit E and T5-008 work.
+
+### Success Criteria
+
+- Pure command tests reject invalid grouping and connection payloads and produce deterministic command envelopes for valid selections.
+- Group and ungroup persist existing schema fields through the canonical Canvas API, restore coherent local state on failure, and leave no child pointing at a deleted group after a successful ungroup.
+- Pointer, keyboard, contextual toolbar, and DOM graph actions converge on the typed dispatcher where they mutate the graph.
+- Mutation shortcuts do nothing when focus is outside Canvas, when focus is in an editable control, or when the viewport is review-only.
+- The shortcut/graph panel is keyboard reachable, exposes synchronized node and connection labels, locates/selects graph entities, and hides destructive actions in review-only mode.
+- Focused tests, relevant/full Chromium, production build, real rendered viewport review, `git diff --check`, UTF-8, file-size, sensitive-path, secret-candidate, and database-artifact checks pass.
+
+### Outcome
+
+- Canonical Canvas node DTOs now preserve the existing commented group, z-order, lock, and collapse fields; null parent updates round-trip through guarded MySQL without a migration.
+- Typed flat group, ungroup, and connect commands validate stale/missing/locked/grouped targets, use 24 world-unit group bounds, recover coherent local state on request failure, and keep direct group deletion free of child-parent orphans.
+- Pointer connection completion, Canvas-focus keyboard shortcuts, contextual toolbar, context menu, and accessibility actions converge on the command dispatcher while editable controls, outside-Canvas focus, and mobile review mode remain protected.
+- One synchronized graph/shortcut panel exposes node locate/select, connection review/select, and edit-only deletion with Chinese labels, 40 px targets, visible focus, and the existing graphite-black violet vocabulary.
+- Focused frontend tests passed 9/9, focused guarded MySQL/node API tests passed 13/13, full backend passed 190 tests plus 5 subtests, full Chromium passed 27/27, and the final build passed with 4723 modules.
+- Real 1366x768 group/panel and 375x812 review-only panel screenshots were reviewed under `output/playwright/t5-005-unit-c/`.
 
 ### Unit D - View and arrange commands
 

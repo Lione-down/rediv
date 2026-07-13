@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { Copy, Trash2 } from 'lucide-vue-next'
+import { Copy, Group, Link2, Trash2, Ungroup } from 'lucide-vue-next'
 
 defineProps<{
   count: number
+  canConnect: boolean
+  canDuplicate: boolean
+  canGroup: boolean
+  canUngroup: boolean
 }>()
 
 defineEmits<{
   duplicate: []
+  group: []
+  ungroup: []
+  connect: []
   delete: []
 }>()
 </script>
@@ -14,7 +21,16 @@ defineEmits<{
 <template>
   <div class="selection-toolbar" role="toolbar" :aria-label="`${count} 个已选节点的操作`">
     <span class="selection-count">已选 {{ count }}</span>
-    <button type="button" aria-label="复制所选节点" title="复制所选节点 (Ctrl+D)" @click="$emit('duplicate')">
+    <button v-if="canGroup" type="button" aria-label="组合所选节点" title="组合所选节点 (Ctrl+G)" @click="$emit('group')">
+      <Group :size="16" aria-hidden="true" />
+    </button>
+    <button v-if="canUngroup" type="button" aria-label="取消组合" title="取消组合 (Ctrl+Shift+G)" @click="$emit('ungroup')">
+      <Ungroup :size="16" aria-hidden="true" />
+    </button>
+    <button v-if="canConnect" type="button" aria-label="连接所选两个节点" title="连接所选两个节点 (Ctrl+Enter)" @click="$emit('connect')">
+      <Link2 :size="16" aria-hidden="true" />
+    </button>
+    <button v-if="canDuplicate" type="button" aria-label="复制所选节点" title="复制所选节点 (Ctrl+D)" @click="$emit('duplicate')">
       <Copy :size="16" aria-hidden="true" />
     </button>
     <button class="is-danger" type="button" aria-label="删除所选节点" title="删除所选节点 (Delete)" @click="$emit('delete')">

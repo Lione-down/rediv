@@ -10,6 +10,10 @@ class CanvasNodeCreateRequest(BaseModel):
     position_y: float = Field(default=0.0)
     width: int = Field(default=300, ge=50)
     height: int = Field(default=200, ge=50)
+    z_index: int = Field(default=0)
+    parent_node_id: Optional[str] = Field(default=None, max_length=36)
+    is_locked: bool = Field(default=False)
+    is_collapsed: bool = Field(default=False)
 
 
 class CanvasNodeUpdateRequest(BaseModel):
@@ -19,6 +23,10 @@ class CanvasNodeUpdateRequest(BaseModel):
     position_y: Optional[float] = None
     width: Optional[int] = None
     height: Optional[int] = None
+    z_index: Optional[int] = None
+    parent_node_id: Optional[str] = Field(default=None, max_length=36)
+    is_locked: Optional[bool] = None
+    is_collapsed: Optional[bool] = None
     status: Optional[str] = None
 
 
@@ -32,6 +40,10 @@ class CanvasNodeResponse(BaseModel):
     position_y: float
     width: int
     height: int
+    z_index: int
+    parent_node_id: Optional[str]
+    is_locked: bool
+    is_collapsed: bool
     status: str
     created_at: str
     updated_at: str

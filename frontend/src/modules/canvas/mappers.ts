@@ -14,6 +14,7 @@ const nodeTypes = new Set<CanvasNodeType>([
   'result',
   'refine',
   'composite',
+  'group',
 ])
 
 const nodeStatusMap: Record<string, CanvasNodeStatus> = {
@@ -32,6 +33,7 @@ const nodeTypeLabels: Record<CanvasNodeType, string> = {
   result: '结果节点',
   refine: '优化节点',
   composite: '合成节点',
+  group: '组合',
 }
 
 function readString(content: CanvasNodeContentDto, key: string) {
@@ -57,6 +59,10 @@ export function mapCanvasNode(dto: CanvasNodeDto): CanvasNode {
     y: dto.position_y,
     width: dto.width,
     height: dto.height,
+    zIndex: dto.z_index ?? 0,
+    parentNodeId: dto.parent_node_id ?? null,
+    isLocked: dto.is_locked ?? false,
+    isCollapsed: dto.is_collapsed ?? false,
     status: nodeStatusMap[dto.status] ?? 'idle',
     content:
       readString(contentData, 'text') ??

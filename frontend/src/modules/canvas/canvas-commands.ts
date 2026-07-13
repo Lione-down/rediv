@@ -1,6 +1,6 @@
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 
-export type CanvasCommandSource = 'pointer' | 'keyboard' | 'toolbar' | 'context-menu'
+export type CanvasCommandSource = 'pointer' | 'keyboard' | 'toolbar' | 'context-menu' | 'accessibility'
 
 export interface CanvasNodePosition {
   nodeId: string
@@ -31,7 +31,32 @@ export interface DeleteSelectionCommand {
   connectionIds: string[]
 }
 
-export type CanvasCommand = MoveNodesCommand | DuplicateNodesCommand | DeleteSelectionCommand
+export interface GroupNodesCommand {
+  type: 'group-nodes'
+  nodeIds: string[]
+  padding: number
+}
+
+export interface UngroupNodesCommand {
+  type: 'ungroup-nodes'
+  groupIds: string[]
+}
+
+export interface ConnectNodesCommand {
+  type: 'connect-nodes'
+  sourceNodeId: string
+  targetNodeId: string
+  sourcePort: 'out'
+  targetPort: 'in'
+}
+
+export type CanvasCommand =
+  | MoveNodesCommand
+  | DuplicateNodesCommand
+  | DeleteSelectionCommand
+  | GroupNodesCommand
+  | UngroupNodesCommand
+  | ConnectNodesCommand
 
 export interface CanvasCommandEnvelope {
   source: CanvasCommandSource
@@ -86,4 +111,62 @@ export function getInternalConnections(
   return connections.filter(
     (connection) => selectedIds.has(connection.from) && selectedIds.has(connection.to),
   )
+}
+
+export function createGroupNodesCommand(
+  nodes: readonly CanvasNode[],
+  nodeIds: readonly string[],
+  padding = 24,
+): GroupNodesCommand | null {
+  const requestedIds = new Set(uniqueIds(nodeIds))
+  const targets = nodes.filter((node) => requestedIds.has(node.id))
+  if (
+    targets.length < 2 ||
+    targets.length !== requestedIds.size ||
+    targets.some((node) => node.type === 'group' || node.parentNodeId || node.isLocked)
+  ) return null
+  return {
+    type: 'group-nodes',
+    nodeIds: targets.map((node) => node.id),
+    padding: Math.max(0, padding),
+  }
+}
+
+export function createUngroupNodesCommand(
+  nodes: readonly CanvasNode[],
+  nodeIds: readonly string[],
+): UngroupNodesCommand | null {
+  const selectedIds = new Set(uniqueIds(nodeIds))
+  const groupIds = uniqueIds(nodes.flatMap((node) => {
+    if (!selectedIds.has(node.id)) return []
+    if (node.type === 'group') return [node.id]
+    return node.parentNodeId ? [node.parentNodeId] : []
+  })).filter((groupId) => nodes.some((node) => node.id === groupId && node.type === 'group'))
+  return groupIds.length ? { type: 'ungroup-nodes', groupIds } : null
+}
+
+export function createConnectNodesCommand(
+  nodes: readonly CanvasNode[],
+  connections: readonly CanvasConnection[],
+  sourceNodeId: string,
+  targetNodeId: string,
+  sourcePort: 'out' = 'out',
+  targetPort: 'in' = 'in',
+): ConnectNodesCommand | null {
+  if (!sourceNodeId || !targetNodeId || sourceNodeId === targetNodeId) return null
+  const source = nodes.find((node) => node.id === sourceNodeId)
+  const target = nodes.find((node) => node.id === targetNodeId)
+  if (
+    !source || !target || source.type === 'group' || target.type === 'group' ||
+    source.parentNodeId || target.parentNodeId || source.isLocked || target.isLocked
+  ) return null
+  const duplicate = connections.some((connection) => (
+    connection.from === sourceNodeId &&
+    connection.to === targetNodeId &&
+    (connection.sourcePort ?? 'out') === sourcePort &&
+    (connection.targetPort ?? 'in') === targetPort
+  ))
+  return duplicate ? null : {
+    type: 'connect-nodes', sourceNodeId, targetNodeId, sourcePort, targetPort,
+  }
 }

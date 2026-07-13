@@ -1,4 +1,4 @@
-export type CanvasNodeType = 'text' | 'image' | 'video' | 'model' | 'result' | 'refine' | 'composite'
+export type CanvasNodeType = 'text' | 'image' | 'video' | 'model' | 'result' | 'refine' | 'composite' | 'group'
 export type CanvasNodeStatus = 'idle' | 'selected' | 'running' | 'success' | 'warning'
 
 export interface CanvasNode {
@@ -9,6 +9,10 @@ export interface CanvasNode {
   y: number
   width: number
   height: number
+  zIndex?: number
+  parentNodeId?: string | null
+  isLocked?: boolean
+  isCollapsed?: boolean
   status?: CanvasNodeStatus
   content?: string
   contentData?: Record<string, unknown>

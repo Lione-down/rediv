@@ -344,6 +344,32 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     }
   }
 
+  async function updateNodeParent(nodeId: string, parentNodeId: string | null) {
+    const { projectId, canvasId } = requireDocumentIdentity()
+    const context = captureDocumentContext()
+    const effectiveNodeId = await resolveNodeId(nodeId)
+    const effectiveParentId = parentNodeId ? await resolveNodeId(parentNodeId) : null
+    if (!isCurrentDocument(context)) return
+    await flushPendingMoves(effectiveNodeId)
+    const snapshot = findNodeById(effectiveNodeId)
+    if (!snapshot) return
+    updateNode(effectiveNodeId, (node) => ({ ...node, parentNodeId: effectiveParentId }))
+    try {
+      const response = await updateCanvasNode(projectId, canvasId, effectiveNodeId, {
+        parent_node_id: effectiveParentId,
+      })
+      if (!isCurrentDocument(context)) return
+      const serverNode = mapCanvasNode(response.data)
+      updateNode(effectiveNodeId, () => serverNode)
+    } catch (error) {
+      if (isCurrentDocument(context)) {
+        updateNode(effectiveNodeId, () => snapshot)
+        reportSaveError(effectiveParentId ? '组合节点' : '取消组合', error)
+      }
+      throw error
+    }
+  }
+
   async function createConnection(draft: CanvasConnectionDraft): Promise<CanvasConnection> {
     const duplicate = connections.value.find(
       (connection) =>
@@ -446,6 +472,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     createConnection,
     deleteNode,
     deleteConnection,
+    updateNodeParent,
     queueNodeMove,
     setSelection,
     selectConnection,
@@ -458,6 +485,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     deleteNode,
     createConnection,
     deleteConnection,
+    updateNodeParent,
     queueNodeMove,
     flushPendingMoves,
     executeCommand: commandExecutor.executeCommand,

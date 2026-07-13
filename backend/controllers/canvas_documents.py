@@ -35,6 +35,10 @@ def _node_to_dict(node: CanvasNode) -> dict:
         "position_y": node.position_y,
         "width": node.width,
         "height": node.height,
+        "z_index": node.z_index,
+        "parent_node_id": node.parent_node_id,
+        "is_locked": node.is_locked,
+        "is_collapsed": node.is_collapsed,
         "status": node.status,
         "created_at": _datetime_to_iso(node.created_at),
         "updated_at": _datetime_to_iso(node.updated_at),
@@ -115,6 +119,11 @@ def create_node(project_id: str, canvas_id: str, user_id: str, **fields) -> dict
     with get_session() as session:
         _owned_project(session, project_id, user_id)
         _active_canvas(session, project_id, canvas_id, lock=True)
+        parent_node_id = fields.get("parent_node_id")
+        if parent_node_id is not None:
+            parent = _active_node(session, project_id, canvas_id, parent_node_id)
+            if parent.node_type != "group":
+                raise ValueError("Parent node must be a group")
         timestamp = utc_now()
         node = CanvasNode(
             id=str(uuid4()),
@@ -126,10 +135,10 @@ def create_node(project_id: str, canvas_id: str, user_id: str, **fields) -> dict
             position_y=fields["position_y"],
             width=fields["width"],
             height=fields["height"],
-            z_index=0,
-            parent_node_id=None,
-            is_locked=False,
-            is_collapsed=False,
+            z_index=fields.get("z_index", 0),
+            parent_node_id=fields.get("parent_node_id"),
+            is_locked=fields.get("is_locked", False),
+            is_collapsed=fields.get("is_collapsed", False),
             status="active",
             created_at=timestamp,
             updated_at=timestamp,
@@ -158,6 +167,13 @@ def update_node(project_id: str, canvas_id: str, node_id: str, user_id: str, **f
         _owned_project(session, project_id, user_id)
         _active_canvas(session, project_id, canvas_id, lock=True)
         node = _active_node(session, project_id, canvas_id, node_id)
+        parent_node_id = fields.get("parent_node_id")
+        if parent_node_id is not None:
+            if parent_node_id == node_id:
+                raise ValueError("A node cannot be its own parent")
+            parent = _active_node(session, project_id, canvas_id, parent_node_id)
+            if parent.node_type != "group":
+                raise ValueError("Parent node must be a group")
         for key, value in fields.items():
             setattr(node, key, deepcopy(value) if key == "content" else value)
         node.updated_at = utc_now()
@@ -181,6 +197,17 @@ def delete_node(project_id: str, canvas_id: str, node_id: str, user_id: str) -> 
         ).all()
         for connection in connections:
             session.delete(connection)
+        if node.node_type == "group":
+            children = session.scalars(
+                select(CanvasNode).where(
+                    CanvasNode.canvas_id == canvas_id,
+                    CanvasNode.parent_node_id == node_id,
+                    CanvasNode.status != "deleted",
+                )
+            ).all()
+            for child in children:
+                child.parent_node_id = None
+                child.updated_at = utc_now()
         node.status = "deleted"
         node.updated_at = utc_now()
         session.commit()

@@ -22,8 +22,9 @@ import {
   type ViewportState,
 } from '../canvas-geometry'
 import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
-import { isCanvasEditableTarget, useCanvasCommandInteractions } from './use-canvas-command-interactions'
+import { useCanvasCommandInteractions } from './use-canvas-command-interactions'
 import { useCanvasContextMenu } from './use-canvas-context-menu'
+import { useCanvasStageKeyboard } from './use-canvas-stage-keyboard'
 
 interface DragState {
   pointerId: number | null
@@ -42,7 +43,6 @@ type StatusVisualState = Extract<NonNullable<CanvasNode['status']>, 'running' | 
 interface CanvasStageOptions {
   isReadOnly?: () => boolean
 }
-
 export function useCanvasStage(options: CanvasStageOptions = {}) {
   const canvasStore = useCanvasStore()
   const stageRef = ref<HTMLElement | null>(null)
@@ -54,12 +54,12 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   const minimapSize = ref({ width: 160, height: 104 })
   const isSpacePressed = ref(false)
   const isPanning = ref(false)
+  const isGraphPanelOpen = ref(false)
   let renderer: CanvasRenderer | null = null
   let resizeObserver: ResizeObserver | null = null
   let dragState: DragState | null = null
   let panState: PanState | null = null
   let windowPointerListenersBound = false
-
   const statusIconMap: Record<StatusVisualState, typeof Loader2 | typeof CheckCircle2 | typeof AlertCircle> = {
     running: Loader2, success: CheckCircle2, warning: AlertCircle,
   }
@@ -124,10 +124,25 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     isReadOnly: () => options.isReadOnly?.() ?? false,
     toSurfacePoint,
   })
-  const { deleteSelection, duplicateSelection, handleCommandKeyDown } = useCanvasCommandInteractions({
+  const {
+    canConnectSelection: canConnectSelectionNow,
+    canDuplicateSelection: canDuplicateSelectionNow,
+    canGroupSelection: canGroupSelectionNow,
+    canUngroupSelection: canUngroupSelectionNow,
+    connectNodes,
+    connectSelection,
+    deleteSelection,
+    duplicateSelection,
+    groupSelection,
+    handleCommandKeyDown,
+    ungroupSelection,
+  } = useCanvasCommandInteractions({
     isReadOnly: () => options.isReadOnly?.() ?? false,
   })
-
+  const canConnectSelection = computed(() => canConnectSelectionNow())
+  const canDuplicateSelection = computed(() => canDuplicateSelectionNow())
+  const canGroupSelection = computed(() => canGroupSelectionNow())
+  const canUngroupSelection = computed(() => canUngroupSelectionNow())
   function cssVar(name: string, fallback: string) {
     if (!canvasSurfaceRef.value) return fallback
     return getComputedStyle(canvasSurfaceRef.value).getPropertyValue(name).trim() || fallback
@@ -143,7 +158,10 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   }
   function findNode(nodeId: string) { return canvasStore.nodes.find((node) => node.id === nodeId) ?? null }
   function findNodeAtWorldPoint(point: Point) {
-    return [...canvasStore.nodes].reverse().find((node) => (
+    const orderedNodes = [...canvasStore.nodes].sort((left, right) => (
+      Number(left.type !== 'group') - Number(right.type !== 'group')
+    ))
+    return orderedNodes.reverse().find((node) => (
       point.x >= node.x && point.x <= node.x + node.width &&
       point.y >= node.y && point.y <= node.y + node.height
     )) ?? null
@@ -180,8 +198,12 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       y: surfaceViewportSize.value.height / 2 - (node.y + node.height / 2) * viewport.zoom,
     })
   }
+  function focusCanvasStage() { stageRef.value?.focus({ preventScroll: true }) }
+  function closeGraphPanel() { isGraphPanelOpen.value = false }
+  function toggleGraphPanel() { isGraphPanelOpen.value = !isGraphPanelOpen.value }
   function handleMinimapPointerDown(event: PointerEvent) {
     if (event.button !== 0) return
+    focusCanvasStage()
     const rect = minimapRef.value?.getBoundingClientRect()
     if (!rect) return
     const worldPoint = minimapPointToWorld({ x: event.clientX - rect.left, y: event.clientY - rect.top }, minimapMetrics.value)
@@ -193,6 +215,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   }
   function handleConnectionPointerDown(connectionId: string, event: PointerEvent) {
     if (event.button !== 0 || canvasStore.mode !== 'select') return
+    focusCanvasStage()
     cancelActiveInteraction()
     closeContextMenu()
     canvasStore.selectConnection(connectionId)
@@ -231,6 +254,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     bindWindowPointerListeners()
   }
   function handleStagePointerDown(event: LeaferPointerEvent) {
+    focusCanvasStage()
     if (renderer?.isInteractiveTarget(event.target)) return
     if (shouldStartPan(event.origin)) return startPan(event.origin)
     const origin = event.origin
@@ -242,6 +266,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     bindWindowPointerListeners()
   }
   function handleNodePointerDown(nodeId: string, event: LeaferPointerEvent) {
+    focusCanvasStage()
     if (renderer?.isPortTarget(nodeId, event.target)) return
     if (event.origin && event.origin.button !== 0) return
     if (shouldStartPan(event.origin)) return startPan(event.origin)
@@ -252,6 +277,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (hasModifier) canvasStore.selectNode(nodeId, 'toggle')
     else if (!canvasStore.selectedNodeIds.includes(nodeId)) canvasStore.selectNode(nodeId)
     if (options.isReadOnly?.()) return
+    if (node.type === 'group' || node.parentNodeId) return
     if (!canvasStore.selectedNodeIds.includes(nodeId)) return
     const worldPoint = surfaceToWorld(point, getViewport())
     dragState = {
@@ -263,9 +289,11 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     bindWindowPointerListeners()
   }
   function handleOutputPointerDown(nodeId: string, event: LeaferPointerEvent) {
+    focusCanvasStage()
     if (shouldStartPan(event.origin, false)) return startPan(event.origin)
     canvasStore.selectNode(nodeId)
     if (options.isReadOnly?.()) return
+    if (findNode(nodeId)?.parentNodeId) return
     const anchor = nodeOutputAnchor(nodeId)
     dragState = null
     draftConnection.value = { fromNodeId: nodeId, pointerId: event.origin?.pointerId ?? null, currentX: anchor.x, currentY: anchor.y }
@@ -320,10 +348,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     const draft = draftConnection.value
     if (!draft) return
     const target = findConnectionTarget(point, draft.fromNodeId)
-    const exists = target && canvasStore.connections.some((connection) => connection.from === draft.fromNodeId && connection.to === target.id)
-    if (target && !exists) {
-      void canvasStore.createConnection({ from: draft.fromNodeId, to: target.id, sourcePort: 'out', targetPort: 'in' }).catch(() => undefined)
-    }
+    if (target) connectNodes('pointer', draft.fromNodeId, target.id)
     draftConnection.value = null
   }
   function handleWindowPointerUp(event: PointerEvent) {
@@ -384,23 +409,20 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     unbindWindowPointerListeners()
     return wasActive
   }
-  function handleWindowKeyDown(event: KeyboardEvent) {
-    if (event.key === ' ') isSpacePressed.value = true
-    if (isCanvasEditableTarget(event.target)) return
-    if (event.key === 'Escape') {
-      if (contextMenu.value.show) {
-        closeContextMenu()
-        return
-      }
-      if (!cancelActiveInteraction()) {
-        if (canvasStore.selectedConnectionId) canvasStore.selectConnection('')
-        else canvasStore.setSelection([])
-      }
-      return
-    }
-    handleCommandKeyDown(event)
-  }
-  function handleWindowKeyUp(event: KeyboardEvent) { if (event.key === ' ') isSpacePressed.value = false }
+  const { handleWindowKeyDown, handleWindowKeyUp } = useCanvasStageKeyboard({
+    stageRef,
+    isSpacePressed,
+    isGraphPanelOpen,
+    isContextMenuOpen: () => contextMenu.value.show,
+    selectedConnectionId: () => canvasStore.selectedConnectionId,
+    cancelActiveInteraction,
+    clearConnectionSelection: () => canvasStore.selectConnection(''),
+    clearNodeSelection: () => canvasStore.setSelection([]),
+    closeContextMenu,
+    closeGraphPanel,
+    toggleGraphPanel,
+    handleCommandKeyDown,
+  })
 
   onMounted(() => {
     const surface = canvasSurfaceRef.value
@@ -468,7 +490,8 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     minimapViewportStyle, nodeInputAnchor, nodeOutputAnchor, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
     viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu, selectionToolbarStyle,
-    deleteSelection, duplicateSelection,
+    canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection, closeGraphPanel, connectSelection,
+    deleteSelection, duplicateSelection, groupSelection, isGraphPanelOpen, toggleGraphPanel, ungroupSelection,
     handleContextMenuSelect, updateContextMenuShow,
   }
 }

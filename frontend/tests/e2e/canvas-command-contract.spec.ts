@@ -2,9 +2,12 @@ import { expect, test } from '@playwright/test'
 import { reactive } from 'vue'
 import { createCanvasCommandExecutor } from '../../src/modules/canvas/canvas-command-executor'
 import {
+  createConnectNodesCommand,
   createDeleteSelectionCommand,
   createDuplicateNodesCommand,
+  createGroupNodesCommand,
   createMoveNodesCommand,
+  createUngroupNodesCommand,
 } from '../../src/modules/canvas/canvas-commands'
 import { reduceCanvasSelection } from '../../src/modules/canvas/canvas-selection'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
@@ -57,6 +60,14 @@ test('command factories remove empty work and preserve deterministic target orde
     type: 'duplicate-nodes', nodeIds: ['node-b', 'node-a'], offset: { x: 32, y: 32 },
   })
   expect(createDeleteSelectionCommand([], [])).toBeNull()
+  expect(createGroupNodesCommand(nodes, ['node-a'])).toBeNull()
+  expect(createGroupNodesCommand(nodes, ['node-b', 'node-a'])).toEqual({
+    type: 'group-nodes', nodeIds: ['node-a', 'node-b'], padding: 24,
+  })
+  expect(createConnectNodesCommand(nodes, [], 'node-a', 'node-a')).toBeNull()
+  expect(createConnectNodesCommand(nodes, [], 'node-a', 'node-b')).toEqual({
+    type: 'connect-nodes', sourceNodeId: 'node-a', targetNodeId: 'node-b', sourcePort: 'out', targetPort: 'in',
+  })
 })
 
 test('duplicate command copies selected nodes and only their internal connections', async () => {
@@ -85,6 +96,7 @@ test('duplicate command copies selected nodes and only their internal connection
     },
     deleteNode: async () => undefined,
     deleteConnection: async () => undefined,
+    updateNodeParent: async () => undefined,
     queueNodeMove: () => undefined,
     setSelection: (nodeIds) => { selection = nodeIds },
     selectConnection: () => undefined,
@@ -117,6 +129,7 @@ test('move and delete envelopes execute each selected target through one dispatc
     createConnection: async () => { throw new Error('not used') },
     deleteNode: async (nodeId) => { deletedNodes.push(nodeId) },
     deleteConnection: async (connectionId) => { deletedConnections.push(connectionId) },
+    updateNodeParent: async () => undefined,
     queueNodeMove: (nodeId, x, y) => { queuedMoves.push([nodeId, x, y]) },
     setSelection: () => undefined,
     selectConnection: () => undefined,
@@ -140,4 +153,64 @@ test('move and delete envelopes execute each selected target through one dispatc
   expect(queuedMoves).toEqual([['node-a', 10, 20]])
   expect(deletedConnections).toEqual(['connection-a'])
   expect(deletedNodes).toEqual(['node-b', 'node-a'])
+})
+
+test('group, ungroup, and connect commands validate and execute deterministic graph changes', async () => {
+  const nodes: CanvasNode[] = [
+    { id: 'node-a', type: 'text', title: 'A', x: 100, y: 80, width: 240, height: 140 },
+    { id: 'node-b', type: 'image', title: 'B', x: 420, y: 180, width: 200, height: 160 },
+  ]
+  const connections: CanvasConnection[] = []
+  const parentUpdates: Array<[string, string | null]> = []
+  const deletedNodes: string[] = []
+  let selection: string[] = []
+  const executor = createCanvasCommandExecutor({
+    getNodes: () => nodes,
+    getConnections: () => connections,
+    createNode: async (draft) => {
+      const created = { id: 'group-1', ...draft }
+      nodes.push(created)
+      return created
+    },
+    createConnection: async (draft) => {
+      const created = { id: 'connection-ac', ...draft }
+      connections.push(created)
+      return created
+    },
+    updateNodeParent: async (nodeId, parentNodeId) => {
+      parentUpdates.push([nodeId, parentNodeId])
+      const target = nodes.find((node) => node.id === nodeId)
+      if (target) target.parentNodeId = parentNodeId
+    },
+    deleteNode: async (nodeId) => { deletedNodes.push(nodeId) },
+    deleteConnection: async () => undefined,
+    queueNodeMove: () => undefined,
+    setSelection: (nodeIds) => { selection = nodeIds },
+    selectConnection: () => undefined,
+  })
+
+  await executor.executeCommand({
+    source: 'toolbar',
+    command: createGroupNodesCommand(nodes, ['node-b', 'node-a'])!,
+  })
+  expect(nodes.at(-1)).toEqual(expect.objectContaining({
+    id: 'group-1', type: 'group', x: 76, y: 56, width: 568, height: 308,
+  }))
+  expect(parentUpdates).toEqual([['node-a', 'group-1'], ['node-b', 'group-1']])
+  expect(selection).toEqual(['group-1'])
+
+  await executor.executeCommand({
+    source: 'keyboard',
+    command: createUngroupNodesCommand(nodes, ['group-1'])!,
+  })
+  expect(parentUpdates.slice(-2)).toEqual([['node-a', null], ['node-b', null]])
+  expect(deletedNodes).toEqual(['group-1'])
+  expect(selection).toEqual(['node-a', 'node-b'])
+
+  await executor.executeCommand({
+    source: 'pointer',
+    command: createConnectNodesCommand(nodes, connections, 'node-a', 'node-b')!,
+  })
+  expect(connections).toEqual([expect.objectContaining({ from: 'node-a', to: 'node-b' })])
+  expect(createConnectNodesCommand(nodes, connections, 'node-a', 'node-b')).toBeNull()
 })

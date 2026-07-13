@@ -43,8 +43,8 @@ Replace the rebuild-on-change Canvas renderer with a persistent keyed Leafer sce
 - [x] Dragging any selected node moves the whole selection as one command, with no API request during pointermove.
 - [ ] Pointer, keyboard, toolbar, and context-menu mutations dispatch one typed command contract.
 - [ ] Duplicate, group, ungroup, connect, delete, align, distribute, lock, unlock, and stable auto-arrange validate their selection and graph constraints.
-- [ ] The shortcut contract is Canvas-focus scoped, ignores editable controls, and is documented in an accessible panel.
-- [ ] Leafer visuals have a synchronized keyboard-reachable DOM list for locate, selection, connection review, and allowed deletion.
+- [x] The shortcut contract is Canvas-focus scoped, ignores editable controls, and is documented in an accessible panel.
+- [x] Leafer visuals have a synchronized keyboard-reachable DOM list for locate, selection, connection review, and allowed deletion.
 - [ ] Zoom spans 10% to 800%; fit graph/selection and view toggles remain usable across the required viewport matrix.
 - [ ] Focused unit/browser tests, frontend build, relevant regression, fresh diff review, and hygiene gates pass.
 

@@ -36,7 +36,8 @@ function node(id: string, title: string, x: number) {
   return {
     id, project_id: 'project-command', canvas_id: 'canvas-command', node_type: 'text',
     content: { title, text: `${title} 内容` }, position_x: x, position_y: 260,
-    width: 240, height: 140, status: 'idle', created_at: NOW, updated_at: NOW,
+    width: 240, height: 140, z_index: 0, parent_node_id: null, is_locked: false,
+    is_collapsed: false, status: 'idle', created_at: NOW, updated_at: NOW,
   }
 }
 
@@ -100,6 +101,10 @@ async function installCommandApi(page: Page, state: CommandState) {
         position_y: body.position_y,
         width: body.width,
         height: body.height,
+        z_index: body.z_index ?? 0,
+        parent_node_id: body.parent_node_id ?? null,
+        is_locked: body.is_locked ?? false,
+        is_collapsed: body.is_collapsed ?? false,
       }
       state.nodes.push(created)
       return fulfillJson(route, created, 201)
@@ -108,8 +113,7 @@ async function installCommandApi(page: Page, state: CommandState) {
       const nodeId = decodeURIComponent(nodePath[1])
       const target = state.nodes.find((item) => item.id === nodeId)
       if (!target) return fulfillJson(route, { detail: 'Node not found' }, 404)
-      target.position_x = body.position_x
-      target.position_y = body.position_y
+      Object.assign(target, body)
       return fulfillJson(route, target)
     }
     if (nodePath?.[1] && method === 'DELETE') {
@@ -154,7 +158,7 @@ async function clickNode(page: Page, x: number, modifiers: Array<'Control' | 'Me
 }
 
 async function captureCommandEvidence(page: Page, name: string) {
-  const directory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-005-unit-b')
+  const directory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-005-unit-c')
   await mkdir(directory, { recursive: true })
   return resolve(directory, `${name}.png`)
 }
@@ -224,8 +228,53 @@ test('mobile review mode never exposes or dispatches selection mutation commands
   await expect(page.getByRole('toolbar', { name: /已选节点的操作/ })).toHaveCount(0)
   await page.keyboard.press('Control+d')
   await page.keyboard.press('Delete')
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /删除节点/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /删除连线/ })).toHaveCount(0)
   expect(state.requests.some((request) => ['POST', 'PUT', 'DELETE'].includes(request.method))).toBe(false)
-  const mobileEvidence = await captureCommandEvidence(page, 'mobile-review-command-boundary')
+  const mobileEvidence = await captureCommandEvidence(page, 'mobile-graph-access-panel')
   await page.screenshot({ path: mobileEvidence })
-  await testInfo.attach('mobile-review-command-boundary', { path: mobileEvidence, contentType: 'image/png' })
+  await testInfo.attach('mobile-graph-access-panel', { path: mobileEvidence, contentType: 'image/png' })
+})
+
+test('Canvas-focus shortcuts group, ungroup, connect, and expose synchronized DOM graph access', async ({ page }, testInfo) => {
+  const state = createState()
+  await openCommandCanvas(page, state)
+  await clickNode(page, 180)
+  await clickNode(page, 520, ['Control'])
+
+  await page.getByRole('link', { name: '返回项目首页' }).focus()
+  await page.keyboard.press('Control+g')
+  expect(state.requests.filter((request) => request.method === 'POST' && request.path.endsWith('/nodes'))).toHaveLength(0)
+
+  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
+  await page.keyboard.press('Control+g')
+  await expect.poll(() => state.nodes.filter((item) => item.node_type === 'group').length).toBe(1)
+  await expect.poll(() => state.nodes.filter((item) => item.parent_node_id).length).toBe(2)
+  await expect(page.getByRole('toolbar', { name: '1 个已选节点的操作' })).toBeVisible()
+  const groupEvidence = await captureCommandEvidence(page, 'desktop-group-selection')
+  await page.screenshot({ path: groupEvidence })
+  await testInfo.attach('desktop-group-selection', { path: groupEvidence, contentType: 'image/png' })
+
+  await page.keyboard.press('Control+Shift+g')
+  await expect.poll(() => state.nodes.filter((item) => item.node_type === 'group').length).toBe(0)
+  await expect.poll(() => state.nodes.filter((item) => item.parent_node_id).length).toBe(0)
+
+  await clickNode(page, 860)
+  await clickNode(page, 180, ['Control'])
+  await page.keyboard.press('Control+Enter')
+  await expect.poll(() => state.connections.some((item) => item.source_node_id === 'node-a' && item.target_node_id === 'node-c')).toBe(true)
+
+  await page.keyboard.press('?')
+  const dialog = page.getByRole('dialog', { name: '画布内容与快捷键' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText('Ctrl+G')).toBeVisible()
+  await expect(dialog.getByRole('button', { name: '选择并定位 镜头 A' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: '查看连线 镜头 A 到 镜头 C' })).toBeVisible()
+  const desktopEvidence = await captureCommandEvidence(page, 'desktop-graph-access-panel')
+  await page.screenshot({ path: desktopEvidence })
+  await testInfo.attach('desktop-graph-access-panel', { path: desktopEvidence, contentType: 'image/png' })
+  await dialog.getByRole('button', { name: '选择并定位 镜头 B' }).click()
+  await expect(page.getByRole('button', { name: '定位到 镜头 B' })).toHaveClass(/selected/)
 })
