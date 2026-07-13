@@ -64,15 +64,10 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   const statusIconMap: Record<StatusVisualState, typeof Loader2 | typeof CheckCircle2 | typeof AlertCircle> = {
     running: Loader2, success: CheckCircle2, warning: AlertCircle,
   }
-  const sceneSignature = computed(() => JSON.stringify({
-    selectedNodeIds: canvasStore.selectedNodeIds,
-    nodes: canvasStore.nodes.map(({ id, type, title, content, status, width, height }) => ({
-      id, type, title, content, status, width, height,
-    })),
-    connections: canvasStore.connections.map(({ id, from, to, active }) => ({ id, from, to, active })),
-  }))
+  const nodeAppearances = computed(() => canvasStore.nodes.map(({ id, type, title, content, status, width, height }) => ({
+    id, type, title, content, status, width, height,
+  })))
   const nodePositions = computed(() => canvasStore.nodes.map(({ id, x, y }) => ({ id, x, y })))
-  const viewportSignature = computed(() => JSON.stringify({ ...canvasStore.viewport, ...surfaceViewportSize.value }))
   const viewportCursor = computed(() => {
     if (isPanning.value) return 'grabbing'
     if (canvasStore.mode === 'hand' || isSpacePressed.value) return 'grab'
@@ -431,7 +426,8 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       onContextMenu: handleContextMenu, onStageDoubleClick: handleStageDoubleClick,
       onNodePointerDown: handleNodePointerDown, onOutputPointerDown: handleOutputPointerDown,
     })
-    renderer.render()
+    renderer.updateViewport()
+    renderer.syncNodes()
     surface.addEventListener('wheel', handleSurfaceWheel, { passive: false })
     window.addEventListener('keydown', handleWindowKeyDown)
     window.addEventListener('keyup', handleWindowKeyUp)
@@ -448,7 +444,8 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       resizeObserver.observe(minimapRef.value)
     }
   })
-  watch(sceneSignature, () => renderer?.render())
+  watch(nodeAppearances, () => renderer?.syncNodes(), { deep: true })
+  watch(() => [...canvasStore.selectedNodeIds], () => renderer?.syncNodes())
   watch(nodePositions, (positions, previousPositions = []) => {
     const previousById = new Map(previousPositions.map((position) => [position.id, position]))
     for (const position of positions) {
@@ -458,7 +455,10 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       }
     }
   })
-  watch(viewportSignature, () => renderer?.render())
+  watch(
+    () => [canvasStore.viewport.x, canvasStore.viewport.y, canvasStore.viewport.zoom],
+    () => renderer?.updateViewport(),
+  )
   onBeforeUnmount(() => {
     unbindWindowPointerListeners()
     canvasSurfaceRef.value?.removeEventListener('wheel', handleSurfaceWheel)

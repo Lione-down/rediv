@@ -29,7 +29,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 2 | T5-002 | P0 credential cleanup and complete MySQL-only runtime/test/tooling retirement | DONE - PASS | T5-001 |
 | 3 | T5-003 | Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route | DONE - PASS | T5-002 |
 | 4 | T5-004 | Single V2 token source, full-screen Canvas shell, canvas navigation, and viewport persistence | DONE - PASS | T5-003 |
-| 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | TODO | T5-004 |
+| 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | DOING | T5-004 |
 | 6 | T5-006 | Autosave queue, optimistic conflict handling, 100-step undo/redo, revisions, checkpoints, and restore | TODO | T5-005 |
 | 7 | T5-007 | Node registry, project-shared assets/templates, generation tasks/results, and mock provider flows | TODO | T5-006 |
 | 8 | T5-008 | Canvas first-acceptance E2E, 200/300 performance, browser, visual, accessibility, MySQL, and security closure | TODO | T5-007 |
@@ -54,6 +54,8 @@ Units A-D are complete. The expand-first migration, atomic default Canvas, datab
 These Tasks form the Canvas milestone. Shared V2 tokens may land in T5-004, but page-level visual redesign is prohibited until T5-008 passes.
 
 T5-004 is `DONE - PASS`. Units A-E delivered a Canvas-scoped token source, strict metadata store and routing, dedicated full-screen V2 shell, Canvas navigation, contextual generation compatibility, mobile review-only enforcement, one exact Canvas document boundary, explicit graph mutations, independent debounced viewport persistence, and browser-verified language, focus, contrast, target, reduced-motion, responsive, and regression closure. `REPORT-T5-004.md` is authoritative evidence.
+
+T5-005 is `DOING`. Unit A passed with one persistent Leafer world group, keyed node reconciliation, cached appearance updates, transform-only viewport changes, 18/18 Chromium tests, and a 4712-module build. Unit B owns the typed command and multi-selection editing boundary.
 
 ### T5-009 through T5-011
 

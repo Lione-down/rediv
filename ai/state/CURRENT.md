@@ -20,14 +20,15 @@ Last updated: 2026-07-13
 
 ## Active Delivery
 
-- Active implementation Task: none
-- Latest completed Task: `T5-004 - V2 Canvas shell, navigation, and viewport persistence`
-- State: `DONE - PASS`
-- Task: `ai/tasks/todo/TASK-T5-004.md`
-- Plan: `ai/tasks/doing/TASK-T5-004-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-004-PROGRESS.md`
-- Report: `ai/reports/REPORT-T5-004.md`
-- Next Task: `T5-005 - incremental renderer and command interactions` (`TODO`, Task documents not yet created)
+- Active implementation Task: `T5-005 - Incremental renderer and command interactions`
+- State: `DOING`
+- Completed unit: Unit A - persistent keyed Leafer world and incremental node reconciliation (`COMPLETE - PASS`)
+- Next unit: Unit B - command contract, selection, and multi-node editing
+- Task: `ai/tasks/todo/TASK-T5-005.md`
+- Plan: `ai/tasks/doing/TASK-T5-005-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-005-PROGRESS.md`
+- Latest completed Task: `T5-004 - V2 Canvas shell, navigation, and viewport persistence` (`DONE - PASS`)
+- Latest report: `ai/reports/REPORT-T5-004.md`
 
 ## Previous Completed Task
 
@@ -68,16 +69,18 @@ Last updated: 2026-07-13
 - Unit D passed 3 focused guarded MySQL tests, 39 Canvas backend regression tests, 189 full backend tests, 14 full Chromium tests, and a 4711-module production build.
 - Unit E corrected Chinese document language, 40px Canvas-switch geometry, reduced-motion stage animation, and the shared focus-ring alpha after real Chromium measured the prior ring at 2.52:1.
 - T5-004 closure passed 6 focused shell tests, 16 full Chromium tests, a 4711-module production build, and real screenshot review at 1440x900, 1366x768, 920x900, and 375x812.
+- T5-005 Unit A now keeps one persistent Leafer world group, reconciles keyed node visuals, caches appearance state, updates viewport by world transform only, and removes full-scene JSON invalidation.
+- Unit A passed 2/2 focused reconciliation tests, 8/8 focused Canvas browser tests, 18/18 full Chromium tests, a 4712-module build, forbidden rebuild-pattern scans, and real desktop/mobile screenshot review.
 - The migration has not been applied to a user/runtime database and requires normal backup and Human migration authorization.
 - Ignored local `.db` artifacts and the pre-existing `revid_test_db` remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Create and activate T5-005 Task/PLAN/PROGRESS, inspect the existing Leafer renderer and interaction boundary, and define its first dependency-ready unit before business-code edits.
+Inspect the selection and optimistic mutation boundaries, then refresh Unit B around one typed command contract with deterministic multi-selection, multi-move, duplicate, and delete behavior.
 
 ## Blockers And Release Conditions
 
-- No blocker prevents T5-005 repository planning and implementation.
+- No blocker prevents T5-005 Unit B planning and implementation.
 - Applying `f0a1b2c3d4e5` to user/runtime data requires reviewed backup discipline and Human migration authorization.
 - Credential rotation becomes Human-required only if the removed assignment was ever real or reused.
 - Local ignored `.db` deletion requires exact-path Human approval after MySQL backup/parity evidence.
@@ -85,7 +88,7 @@ Create and activate T5-005 Task/PLAN/PROGRESS, inspect the existing Leafer rende
 
 ## Worktree Protection
 
-- Unit E started from clean `main` at `04d4a5ab729aa6bde2812296272f17102ad77567`.
+- T5-005 Unit A started from clean `main` at `75e8aabf8cfe029a1de10dabcdfba8491801a578`.
 - Pre-existing staged, tracked-modified, untracked, unmerged, detached, and in-progress Git-operation state: none.
 - Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.
