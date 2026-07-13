@@ -125,6 +125,14 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
   function handleCommandKeyDown(event: KeyboardEvent) {
     if (event.repeat || isCanvasEditableTarget(event.target)) return false
     const isReadOnly = options.isReadOnly()
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault()
+      if (!isReadOnly) {
+        if (event.shiftKey) void canvasStore.redo().catch(() => undefined)
+        else void canvasStore.undo().catch(() => undefined)
+      }
+      return true
+    }
     if (event.altKey && event.shiftKey && event.key.toLowerCase() === 'f') {
       event.preventDefault()
       if (!isReadOnly) autoArrange('keyboard')

@@ -22,8 +22,8 @@ Last updated: 2026-07-13
 
 - Active implementation Task: `T5-006 - Autosave, conflicts, history, and recovery`
 - State: `DOING`
-- Completed units: Unit A - atomic backend document PATCH and Unit B - frontend autosave/recovery (`COMPLETE - PASS`)
-- Next unit: Unit C - Canvas-scoped 100-step undo/redo
+- Completed units: Units A-C - atomic document PATCH, frontend autosave/recovery, and Canvas-scoped 100-step undo/redo (`COMPLETE - PASS`)
+- Next unit: Unit D - durable revisions, checkpoints, restore, and complete recovery UI
 - Task: `ai/tasks/todo/TASK-T5-006.md`
 - Plan: `ai/tasks/doing/TASK-T5-006-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-006-PROGRESS.md`
@@ -80,17 +80,21 @@ Last updated: 2026-07-13
 - Unsent, in-flight, failed, and conflicted work is retained in versioned user/project/Canvas local recovery storage; clean navigation does not delete a recovery detected after reload.
 - Canvas switch and route exit await graph plus viewport flush, page hide preserves recovery synchronously, and a failed retry blocks silent navigation loss while retaining the local copy.
 - Unit B passed 8/8 focused autosave browser tests, 23/23 directly affected Canvas regression, 44/44 full Chromium tests, a 4,732-module production build, and 10/10 guarded fingerprint/MySQL document contract tests.
+- T5-006 Unit C is `COMPLETE - PASS`: each Canvas retains its latest 100 accepted typed commands as exact reversible graph deltas, normal switches preserve independent stacks, forced reload clears stale history, and auth change clears all local stacks.
+- Undo/redo restores exact generated IDs, node/connection ordering, parent links, endpoints, positions, and lock state through the existing atomic autosave/recovery boundary; redo clears only after new accepted work.
+- Canvas-focus `Ctrl+Z` / `Ctrl+Shift+Z` and Meta equivalents respect editable targets and mobile review-only mode and are exposed through accessibility metadata and shortcut help.
+- Unit C passed 4/4 focused history/isolation tests, 35/35 affected Canvas regression, 48/48 full Chromium tests, a 4,734-module production build, and fresh UTF-8/file-size/diff/security hygiene gates.
 - The existing Alembic head provides `canvases.graph_revision` and `canvas_revisions`; Unit A made no schema change or user/runtime database write.
 - The migration has not been applied to a user/runtime database and requires normal backup and Human migration authorization.
 - Ignored local `.db` artifacts and the pre-existing `revid_test_db` remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Refresh T5-006 PLAN/PROGRESS for Unit C, inspect command serialization/inversion and Canvas-switch reset boundaries, then add failing Canvas-isolated 100-step undo/redo tests before business-code edits.
+Refresh T5-006 PLAN/PROGRESS for Unit D, inspect the existing revision model/API and retention boundaries, then add failing revision-list/checkpoint/restore contract tests before business-code edits.
 
 ## Blockers And Release Conditions
 
-- No Unit A or Unit B blocker remains; no blocker prevents Unit C planning and implementation.
+- No Unit A-C blocker remains; no blocker prevents Unit D planning and implementation.
 - Applying `f0a1b2c3d4e5` to user/runtime data requires reviewed backup discipline and Human migration authorization.
 - Credential rotation becomes Human-required only if the removed assignment was ever real or reused.
 - Local ignored `.db` deletion requires exact-path Human approval after MySQL backup/parity evidence.
@@ -98,9 +102,9 @@ Refresh T5-006 PLAN/PROGRESS for Unit C, inspect command serialization/inversion
 
 ## Worktree Protection
 
-- T5-006 Unit B started from clean `main` at `11242827daca5fcf58f476489d3a5bf01f6d4c41`.
+- T5-006 Unit C started from clean `main` at `7c23eeba3c037dd954cf0cc0e3f8f12bb594a0b9`.
 - Pre-existing staged, tracked-modified, untracked, unmerged, detached, and in-progress Git-operation state: none.
-- The Unit B worktree contains only the 16 owned Task/state/frontend/test paths; no unrelated dirty remainder was identified before delivery staging.
+- The Unit C worktree contains only the owned Task/state/frontend/test paths; no unrelated dirty remainder was identified before delivery staging.
 - Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.
 

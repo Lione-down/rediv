@@ -27,9 +27,38 @@ interface CanvasRecord {
 
 interface ShellState {
   canvases: CanvasRecord[]
+  documents: Record<string, { nodes: Array<Record<string, unknown>>; connections: Array<Record<string, unknown>> }>
   orderRevision: number
   rejectNextReorder: boolean
   requests: Array<{ method: string; path: string; body?: unknown }>
+}
+
+function canvasDocument(canvasId: string) {
+  return {
+    nodes: [
+      {
+        id: `node-review-${canvasId}`, project_id: 'project-shell', canvas_id: canvasId, node_type: 'image',
+        content: { title: '主视觉', prompt: '夜景电影海报' }, position_x: 180, position_y: 140,
+        width: 240, height: 140, status: 'running', created_at: NOW, updated_at: NOW,
+      },
+      {
+        id: `node-result-${canvasId}`, project_id: 'project-shell', canvas_id: canvasId, node_type: 'result',
+        content: { title: '成片结果' }, position_x: 540, position_y: 140,
+        width: 240, height: 140, status: 'idle', created_at: NOW, updated_at: NOW,
+      },
+    ],
+    connections: [{
+      id: `connection-${canvasId}`, project_id: 'project-shell', canvas_id: canvasId,
+      source_node_id: `node-review-${canvasId}`, source_port: 'out',
+      target_node_id: `node-result-${canvasId}`, target_port: 'in',
+      status: 'active', metadata: {}, created_at: NOW, updated_at: NOW,
+    }],
+  }
+}
+
+function getCanvasDocument(state: ShellState, canvasId: string) {
+  state.documents[canvasId] ??= canvasDocument(canvasId)
+  return state.documents[canvasId]
 }
 
 const user = {
@@ -109,27 +138,41 @@ async function installShellApi(page: Page, state: ShellState) {
       const canvasId = decodeURIComponent(documentMatch[1])
       const activeCanvas = state.canvases.find((item) => item.id === canvasId)
       if (!activeCanvas) return fulfillJson(route, { detail: 'Canvas not found' }, 404)
+      const document = getCanvasDocument(state, canvasId)
       return fulfillJson(route, {
         canvas: activeCanvas,
-        nodes: [
-          {
-            id: `node-review-${canvasId}`, project_id: 'project-shell', canvas_id: canvasId, node_type: 'image',
-            content: { title: '主视觉', prompt: '夜景电影海报' }, position_x: 180, position_y: 140,
-            width: 240, height: 140, status: 'running', created_at: NOW, updated_at: NOW,
-          },
-          {
-            id: `node-result-${canvasId}`, project_id: 'project-shell', canvas_id: canvasId, node_type: 'result',
-            content: { title: '成片结果' }, position_x: 540, position_y: 140,
-            width: 240, height: 140, status: 'idle', created_at: NOW, updated_at: NOW,
-          },
-        ],
-        connections: [{
-          id: `connection-${canvasId}`, project_id: 'project-shell', canvas_id: canvasId,
-          source_node_id: `node-review-${canvasId}`, source_port: 'out',
-          target_node_id: `node-result-${canvasId}`, target_port: 'in',
-          status: 'active', metadata: {}, created_at: NOW, updated_at: NOW,
-        }],
+        nodes: document.nodes,
+        connections: document.connections,
         revision: activeCanvas.graph_revision,
+      })
+    }
+    if (method === 'PATCH' && documentMatch) {
+      const canvasId = decodeURIComponent(documentMatch[1])
+      const activeCanvas = state.canvases.find((item) => item.id === canvasId)
+      if (!activeCanvas) return fulfillJson(route, { detail: 'Canvas not found' }, 404)
+      const payload = body as Record<string, unknown>
+      const document = getCanvasDocument(state, canvasId)
+      const nodeUpserts = payload.node_upserts as Array<Record<string, unknown>>
+      const nodeDeletes = payload.node_deletes as string[]
+      const connectionUpserts = payload.connection_upserts as Array<Record<string, unknown>>
+      const connectionDeletes = payload.connection_deletes as string[]
+      const nodes = new Map(document.nodes.map((item) => [String(item.id), item]))
+      for (const id of nodeDeletes) nodes.delete(id)
+      for (const item of nodeUpserts) nodes.set(String(item.id), { ...item, project_id: 'project-shell', canvas_id: canvasId })
+      const connections = new Map(document.connections.map((item) => [String(item.id), item]))
+      for (const id of connectionDeletes) connections.delete(id)
+      for (const item of connectionUpserts) connections.set(String(item.id), { ...item, project_id: 'project-shell', canvas_id: canvasId })
+      document.nodes = [...nodes.values()]
+      document.connections = [...connections.values()]
+      activeCanvas.graph_revision += 1
+      return fulfillJson(route, {
+        revision: activeCanvas.graph_revision,
+        node_upserts: nodeUpserts,
+        node_deletes: nodeDeletes,
+        connection_upserts: connectionUpserts,
+        connection_deletes: connectionDeletes,
+        server_timestamp: NOW,
+        save_state: 'saved',
       })
     }
 
@@ -196,11 +239,48 @@ async function openShell(page: Page, state: ShellState, viewport = { width: 1440
 function createState(): ShellState {
   return {
     canvases: [canvas('canvas-first', '画布 1', 0), canvas('canvas-second', '分镜', 1)],
+    documents: {},
     orderRevision: 0,
     rejectNextReorder: false,
     requests: [],
   }
 }
+
+test('normal Canvas switches preserve independent undo stacks without cross-Canvas replay', async ({ page }) => {
+  const state = createState()
+  await openShell(page, state)
+  const workspace = page.getByRole('region', { name: 'Revid 无限画布工作区' })
+
+  await page.locator('.canvas-surface').click({ position: { x: 260, y: 200 } })
+  await page.keyboard.press('Control+d')
+  await expect.poll(() => getCanvasDocument(state, 'canvas-first').nodes.length).toBe(3)
+
+  await page.getByRole('button', { name: '画布 1' }).click()
+  await page.getByRole('option', { name: /分镜/ }).click()
+  await expect(page).toHaveURL(/\/canvases\/canvas-second$/)
+  await workspace.focus()
+  await page.keyboard.press('Control+z')
+  await page.waitForTimeout(650)
+  expect(getCanvasDocument(state, 'canvas-second').nodes).toHaveLength(2)
+  expect(getCanvasDocument(state, 'canvas-first').nodes).toHaveLength(3)
+
+  await page.locator('.canvas-surface').click({ position: { x: 260, y: 200 } })
+  await page.keyboard.press('Control+d')
+  await expect.poll(() => getCanvasDocument(state, 'canvas-second').nodes.length).toBe(3)
+
+  await page.getByRole('button', { name: '分镜' }).click()
+  await page.getByRole('option', { name: /画布 1/ }).click()
+  await workspace.focus()
+  await page.keyboard.press('Control+z')
+  await expect.poll(() => getCanvasDocument(state, 'canvas-first').nodes.length).toBe(2)
+  expect(getCanvasDocument(state, 'canvas-second').nodes).toHaveLength(3)
+
+  await page.getByRole('button', { name: '画布 1' }).click()
+  await page.getByRole('option', { name: /分镜/ }).click()
+  await workspace.focus()
+  await page.keyboard.press('Control+z')
+  await expect.poll(() => getCanvasDocument(state, 'canvas-second').nodes.length).toBe(2)
+})
 
 test('Canvas shell completes metadata navigation through server-confirmed items', async ({ page }) => {
   const state = createState()

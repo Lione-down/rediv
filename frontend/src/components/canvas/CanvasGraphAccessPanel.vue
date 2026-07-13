@@ -17,6 +17,8 @@ const canvasStore = useCanvasStore()
 const dialogRef = ref<HTMLElement | null>(null)
 const { deleteSelection } = useCanvasCommandInteractions({ isReadOnly: () => props.readonly })
 const shortcuts = [
+  ['Ctrl+Z', '撤销上一步画布编辑'],
+  ['Ctrl+Shift+Z', '重做上一步画布编辑'],
   ['Ctrl+D', '复制所选节点'],
   ['Ctrl+G', '组合所选节点'],
   ['Ctrl+Shift+G', '取消组合'],

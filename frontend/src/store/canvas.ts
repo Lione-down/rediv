@@ -9,7 +9,7 @@ import {
 import { mapCanvasConnection, mapCanvasNode } from '../modules/canvas/mappers'
 import { createCanvasMutationActions } from '../modules/canvas/mutations'
 import { createCanvasAutosave } from '../modules/canvas/canvas-autosave'
-import type { CanvasCommandEnvelope } from '../modules/canvas/canvas-commands'
+import { createCanvasHistoryActions } from '../modules/canvas/canvas-history-actions'
 import {
   isSameCanvasSelection,
   reduceCanvasSelection,
@@ -200,7 +200,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     setSelection,
     selectConnection,
   })
-
+  const canvasHistory = createCanvasHistoryActions(canvasMutations, nodes, connections)
   function resetViewportPersistence(next: PersistedViewport = DEFAULT_VIEWPORT) {
     if (viewportTimer) clearTimeout(viewportTimer)
     viewportTimer = null
@@ -216,6 +216,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     bumpDataRevision()
     loadRequest = null
     canvasAutosave.reset()
+    canvasHistory.deactivate()
     canvasMutations.resetMutationState()
     activeProjectId.value = projectId
     activeCanvasId.value = canvasId
@@ -294,6 +295,7 @@ export const useCanvasStore = defineStore('canvas', () => {
         adoptDocumentViewport(response.data.canvas)
         canvasMutations.initializeConfirmedPositions()
         canvasAutosave.initialize(response.data.revision)
+        canvasHistory.activate(normalizedProjectId, normalizedCanvasId, force)
         hasLoaded.value = true
         setSelection(selectedNodeIds.value, selectedNodeId.value)
       } catch (error) {
@@ -419,10 +421,6 @@ export const useCanvasStore = defineStore('canvas', () => {
     canvasAutosave.preserveRecovery()
   }
 
-  function dispatchCommand(envelope: CanvasCommandEnvelope) {
-    return canvasMutations.executeCommand(envelope)
-  }
-
   async function reloadActiveDocument(force = true) {
     if (activeCanvasId.value) return loadCanvas(activeProjectId.value, activeCanvasId.value, force)
     return loadProject(activeProjectId.value, force)
@@ -434,6 +432,7 @@ export const useCanvasStore = defineStore('canvas', () => {
       if (token === previousToken) return
       const projectId = activeProjectId.value
       const canvasId = activeCanvasId.value
+      canvasHistory.clearAll()
       clearDocumentState()
       if (token && projectId && canvasId) void loadCanvas(projectId, canvasId).catch(() => undefined)
       else if (token && projectId) void loadProject(projectId).catch(() => undefined)
@@ -472,6 +471,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     conflictRevision,
     hasLocalRecovery,
     canRetryAutosave,
+    canUndo: canvasHistory.canUndo, canRedo: canvasHistory.canRedo,
     isViewportSaving,
     loadCanvas,
     loadProject,
@@ -494,6 +494,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     deleteConnection: canvasMutations.deleteConnection,
     queueNodeMove: canvasMutations.queueNodeMove,
     flushPendingMoves: canvasMutations.flushPendingMoves,
-    dispatchCommand,
+    dispatchCommand: canvasHistory.execute,
+    undo: canvasHistory.undo, redo: canvasHistory.redo,
   }
 })

@@ -41,7 +41,7 @@ Make Canvas editing durable and recoverable through one idempotent autosave boun
 - [x] Retrying the same mutation ID and fingerprint returns the original committed result; reusing the ID with a different fingerprint returns HTTP 409.
 - [x] Autosave enters `Saving` immediately, reaches `Saved` within one second under normal local conditions, and preserves rejected or unsent work on error/conflict.
 - [x] Canvas switch, route exit, and page hide use deterministic flush/retry/preserve-local-copy behavior.
-- [ ] Undo/redo is isolated by Canvas and retains at least 100 applied commands.
+- [x] Undo/redo is isolated by Canvas and retains at least 100 applied commands.
 - [ ] Durable history retains the latest 50 edit revisions plus required checkpoints; restore creates a new head and never rewrites prior history.
 - [x] Viewport persistence stays separate and does not advance graph revision.
 - [ ] Focused unit/MySQL/browser tests, backend regression, frontend build, restart evidence, fresh diff review, and hygiene gates pass.

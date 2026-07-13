@@ -297,6 +297,40 @@ test('keyboard duplicate and toolbar delete share one selected-subgraph command 
   expect(state.connections.map((item) => item.id)).toEqual(['connection-ab', 'connection-bc'])
 })
 
+test('Canvas-focus undo and redo restore one exact command through atomic document patches', async ({ page }) => {
+  const state = createState()
+  await openCommandCanvas(page, state)
+  await clickNode(page, 180)
+  await clickNode(page, 520, ['Control'])
+
+  await page.keyboard.press('Control+d')
+  await expect.poll(() => state.nodes.length).toBe(5)
+  await expect.poll(() => state.connections.length).toBe(3)
+  const copiedNodeIds = state.nodes.slice(3).map((item) => item.id)
+  const copiedConnectionId = state.connections.at(-1)?.id
+
+  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
+  await page.keyboard.press('Control+z')
+  await expect.poll(() => state.nodes.map((item) => item.id)).toEqual(['node-a', 'node-b', 'node-c'])
+  await expect.poll(() => state.connections.map((item) => item.id)).toEqual(['connection-ab', 'connection-bc'])
+
+  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
+  await page.keyboard.press('Control+Shift+z')
+  await expect.poll(() => state.nodes.slice(3).map((item) => item.id)).toEqual(copiedNodeIds)
+  await expect.poll(() => state.connections.at(-1)?.id).toBe(copiedConnectionId)
+
+  const patchCount = state.requests.filter((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/document')
+  )).length
+  await page.getByRole('link', { name: '返回项目首页' }).focus()
+  await page.keyboard.press('Control+z')
+  await page.waitForTimeout(650)
+  expect(state.requests.filter((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/document')
+  ))).toHaveLength(patchCount)
+  expect(state.nodes.slice(3).map((item) => item.id)).toEqual(copiedNodeIds)
+})
+
 test('mobile review mode never exposes or dispatches selection mutation commands', async ({ page }, testInfo) => {
   const state = createState()
   await openCommandCanvas(page, state, 375)
@@ -422,6 +456,8 @@ test('Canvas-focus shortcuts group, ungroup, connect, and expose synchronized DO
   await page.keyboard.press('?')
   const dialog = page.getByRole('dialog', { name: '画布内容与快捷键' })
   await expect(dialog).toBeVisible()
+  await expect(dialog.getByText('Ctrl+Z', { exact: true })).toBeVisible()
+  await expect(dialog.getByText('Ctrl+Shift+Z', { exact: true })).toBeVisible()
   await expect(dialog.getByText('Ctrl+G')).toBeVisible()
   await expect(dialog.getByRole('button', { name: '选择并定位 镜头 A' })).toBeVisible()
   await expect(dialog.getByRole('button', { name: '查看连线 镜头 A 到 镜头 C' })).toBeVisible()

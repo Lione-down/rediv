@@ -122,6 +122,14 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     // Move commands share the atomic graph autosave queue.
   }
 
+  function applyGraph(nextNodes: CanvasNode[], nextConnections: CanvasConnection[]) {
+    mutateGraph(() => {
+      nodes.value = nextNodes
+      connections.value = nextConnections
+      setSelection(selectedNodeIds.value, selectedNodeId.value)
+    })
+  }
+
   const commandExecutor = createCanvasCommandExecutor({
     getNodes: () => nodes.value,
     getConnections: () => connections.value,
@@ -147,6 +155,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     updateNodeLocked,
     queueNodeMove,
     flushPendingMoves,
+    applyGraph,
     executeCommand: commandExecutor.executeCommand,
   }
 }

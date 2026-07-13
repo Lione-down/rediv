@@ -100,7 +100,7 @@ function closeGraphAccessPanel() {
     class="workspace-stage"
     aria-label="Revid 无限画布工作区"
     :aria-description="readonly ? '只读审阅模式' : '可编辑画布'"
-    aria-keyshortcuts="Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+L Meta+L Control+0 Meta+0 Control++ Meta++ Control+- Meta+- Alt+Shift+F Delete Backspace Escape ?"
+    aria-keyshortcuts="Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+L Meta+L Control+0 Meta+0 Control++ Meta++ Control+- Meta+- Alt+Shift+F Delete Backspace Escape ?"
     tabindex="0"
   >
     <div
