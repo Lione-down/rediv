@@ -4,7 +4,14 @@ import type {
   CanvasNodeStatus,
   CanvasNodeType,
 } from '../../types/canvas'
-import type { CanvasConnectionDto, CanvasNodeContentDto, CanvasNodeDto } from './types'
+import type {
+  CanvasConnectionDto,
+  CanvasDocumentConnectionUpsert,
+  CanvasDocumentNodeUpsert,
+  CanvasNodeContentDto,
+  CanvasNodeDto,
+  CanvasRecoveryDocument,
+} from './types'
 
 const nodeTypes = new Set<CanvasNodeType>([
   'text',
@@ -47,7 +54,7 @@ function mapNodeType(nodeType: string): CanvasNodeType {
     : 'text'
 }
 
-export function mapCanvasNode(dto: CanvasNodeDto): CanvasNode {
+export function mapCanvasNode(dto: CanvasNodeDto | CanvasDocumentNodeUpsert): CanvasNode {
   const type = mapNodeType(dto.node_type)
   const contentData = { ...dto.content }
 
@@ -63,7 +70,7 @@ export function mapCanvasNode(dto: CanvasNodeDto): CanvasNode {
     parentNodeId: dto.parent_node_id ?? null,
     isLocked: dto.is_locked ?? false,
     isCollapsed: dto.is_collapsed ?? false,
-    status: nodeStatusMap[dto.status] ?? 'idle',
+    status: nodeStatusMap['status' in dto ? dto.status : 'idle'] ?? 'idle',
     content:
       readString(contentData, 'text') ??
       readString(contentData, 'prompt') ??
@@ -72,15 +79,25 @@ export function mapCanvasNode(dto: CanvasNodeDto): CanvasNode {
   }
 }
 
-export function mapCanvasConnection(dto: CanvasConnectionDto): CanvasConnection {
+export function mapCanvasConnection(
+  dto: CanvasConnectionDto | CanvasDocumentConnectionUpsert,
+): CanvasConnection {
+  const status = 'status' in dto ? dto.status : 'active'
   return {
     id: dto.id,
     from: dto.source_node_id,
     to: dto.target_node_id,
     sourcePort: dto.source_port,
     targetPort: dto.target_port,
-    status: dto.status,
+    status,
     metadata: { ...dto.metadata },
-    active: dto.status === 'active',
+    active: status === 'active',
+  }
+}
+
+export function mapCanvasRecoveryGraph(document: CanvasRecoveryDocument) {
+  return {
+    nodes: document.node_upserts.map(mapCanvasNode),
+    connections: document.connection_upserts.map(mapCanvasConnection),
   }
 }

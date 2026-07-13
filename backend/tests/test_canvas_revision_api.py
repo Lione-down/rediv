@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from uuid import uuid4
 
 from fastapi import FastAPI
@@ -128,14 +129,50 @@ class CanvasRevisionApiTestCase(unittest.TestCase):
             self.assertIsNotNone(restore_head.checkpoint_snapshot)
 
         self.client.close()
-        configure_store(DatabaseStore())
-        self.client = self._create_client()
-        restarted = self.client.get(
-            self._resource_path(self.first_canvas["id"], "document"), headers=self.headers,
-        )
-        self.assertEqual(200, restarted.status_code)
-        self.assertEqual(62, restarted.json()["revision"])
-        self.assertEqual(12.0, restarted.json()["nodes"][0]["position_x"])
+        restart = self.mysql_database.restart_runtime()
+        self.assertTrue(restart["match"])
+        from database import close_db
+        from main import app as production_app
+        from settings.config import settings
+
+        close_db()
+        try:
+            with patch.object(settings, "jwt_secret", "canvas-restart-test-secret"):
+                restarted_headers = self._auth_headers(self.user["id"])
+                with TestClient(production_app) as restarted_client:
+                    restarted = restarted_client.get(
+                        self._resource_path(self.first_canvas["id"], "document"),
+                        headers=restarted_headers,
+                    )
+                    restarted_history = restarted_client.get(
+                        self._revisions_path(self.first_canvas["id"]),
+                        headers=restarted_headers,
+                    )
+                    post_restart_restore = restarted_client.post(
+                        f"{self._revisions_path(self.first_canvas['id'])}/61/restore",
+                        headers=restarted_headers,
+                    )
+                    restored_again = restarted_client.get(
+                        self._resource_path(self.first_canvas["id"], "document"),
+                        headers=restarted_headers,
+                    )
+
+                    self.assertEqual(200, restarted.status_code)
+                    self.assertEqual(62, restarted.json()["revision"])
+                    self.assertEqual(12.0, restarted.json()["nodes"][0]["position_x"])
+                    self.assertEqual(200, restarted_history.status_code)
+                    self.assertEqual(62, restarted_history.json()["current_revision"])
+                    self.assertIn(61, [item["revision"] for item in restarted_history.json()["items"]])
+                    self.assertEqual(200, post_restart_restore.status_code)
+                    self.assertEqual(63, post_restart_restore.json()["revision"])
+                    self.assertEqual(61, post_restart_restore.json()["restored_from_revision"])
+                    self.assertEqual(63, restored_again.json()["revision"])
+                    self.assertEqual(61.0, restored_again.json()["nodes"][0]["position_x"])
+        finally:
+            restart = self.mysql_database.restart_runtime()
+            self.assertTrue(restart["match"])
+            configure_store(DatabaseStore())
+            self.client = self._create_client()
 
     def test_restore_rejects_foreign_pruned_and_archived_targets_without_advancing_head(self) -> None:
         first_node_id = self._create_legacy_node(self.first_canvas["id"], "first")

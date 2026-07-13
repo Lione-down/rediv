@@ -10,6 +10,7 @@ const RECOVERY_KEY = `revid:canvas-recovery:v1:user-revisions:${PROJECT_ID}:${CA
 
 interface RevisionState {
   conflict: boolean
+  documentPatchRequests: number
   documentGets: number
   failDocumentReload: boolean
   restoreRequests: number[]
@@ -38,6 +39,14 @@ function node(state: RevisionState) {
     position_x: 120, position_y: 120, width: 240, height: 140, z_index: 0,
     parent_node_id: null, is_locked: false, is_collapsed: false, status: 'idle',
     created_at: NOW, updated_at: NOW,
+  }
+}
+
+function recoveryNode(title: string) {
+  return {
+    id: 'node-revision', node_type: 'text', content: { title, text: title },
+    position_x: 120, position_y: 120, width: 240, height: 140, z_index: 0,
+    parent_node_id: null, is_locked: false, is_collapsed: false,
   }
 }
 
@@ -114,6 +123,7 @@ async function installApi(page: Page, state: RevisionState) {
       })
     }
     if (method === 'PATCH' && path.endsWith('/document')) {
+      state.documentPatchRequests += 1
       if (state.conflict) {
         state.revision = 12
         state.nodeTitle = 'Server revision 12'
@@ -128,18 +138,18 @@ async function installApi(page: Page, state: RevisionState) {
   })
 }
 
-async function openCanvas(page: Page, state: RevisionState, width = 1366) {
+async function openCanvas(page: Page, state: RevisionState, width = 1366, expectSaved = true) {
   await page.setViewportSize({ width, height: width < 768 ? 812 : 768 })
   await installApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'revision-token'))
   await page.goto(`/app/projects/${PROJECT_ID}/canvases/${CANVAS_ID}`)
   await expect(page.locator('.canvas-surface')).toBeVisible()
-  await expect(page.locator('.sync-status')).toContainText(`r${state.revision}`)
+  if (expectSaved) await expect(page.locator('.sync-status')).toContainText(`r${state.revision}`)
 }
 
 test('revision panel lists checkpoints and restores a retained edit to a new head', async ({ page }) => {
   const state: RevisionState = {
-    conflict: false, documentGets: 0, failDocumentReload: false,
+    conflict: false, documentPatchRequests: 0, documentGets: 0, failDocumentReload: false,
     restoreRequests: [], revision: 8, nodeTitle: 'Current revision 8',
   }
   await openCanvas(page, state)
@@ -166,7 +176,7 @@ test('revision panel lists checkpoints and restores a retained edit to a new hea
 
 test('conflict recovery offers explicit reload-latest and preserve-local-copy choices', async ({ page }) => {
   const state: RevisionState = {
-    conflict: true, documentGets: 0, failDocumentReload: false,
+    conflict: true, documentPatchRequests: 0, documentGets: 0, failDocumentReload: false,
     restoreRequests: [], revision: 8, nodeTitle: 'Current revision 8',
   }
   await openCanvas(page, state)
@@ -184,22 +194,59 @@ test('conflict recovery offers explicit reload-latest and preserve-local-copy ch
   await expect(panel).toContainText('本地副本已保留')
 })
 
+test('a local recovery retry that becomes a conflict keeps focus in the dialog', async ({ page }) => {
+  const state: RevisionState = {
+    conflict: true, documentPatchRequests: 0, documentGets: 0, failDocumentReload: false,
+    restoreRequests: [], revision: 8, nodeTitle: 'Current revision 8',
+  }
+  const baseDocument = { node_upserts: [recoveryNode(state.nodeTitle)], connection_upserts: [] }
+  const batchDocument = { node_upserts: [recoveryNode('Local recovery')], connection_upserts: [] }
+  await page.addInitScript(({ key, snapshot }) => {
+    localStorage.setItem(key, JSON.stringify(snapshot))
+  }, { key: RECOVERY_KEY, snapshot: {
+    version: 1, projectId: PROJECT_ID, canvasId: CANVAS_ID, baseRevision: 8,
+    clientMutationId: 'recovery-conflict-mutation', baseDocument, batchDocument,
+    document: batchDocument, payload: { base_revision: 8,
+      client_mutation_id: 'recovery-conflict-mutation', node_upserts: batchDocument.node_upserts,
+      node_deletes: [], connection_upserts: [], connection_deletes: [] },
+  } })
+  await openCanvas(page, state, 1366, false)
+  await page.locator('.sync-status').click()
+  const panel = page.getByRole('dialog', { name: '修订历史与恢复' })
+  await panel.getByRole('button', { name: '恢复本地副本并重试' }).click()
+
+  await expect(panel).toContainText('服务器当前为 r12')
+  await expect(panel).toBeFocused()
+  expect(state.documentPatchRequests).toBe(1)
+})
+
 test('mobile review can inspect history but cannot restore revisions', async ({ page }) => {
   const state: RevisionState = {
-    conflict: false, documentGets: 0, failDocumentReload: false,
+    conflict: false, documentPatchRequests: 0, documentGets: 0, failDocumentReload: false,
     restoreRequests: [], revision: 8, nodeTitle: 'Review revision',
   }
-  await openCanvas(page, state, 375)
+  await page.addInitScript(({ key, projectId, canvasId }) => {
+    const localNode = { id: 'node-revision', node_type: 'text', content: { title: 'Local review copy' },
+      position_x: 120, position_y: 120, width: 240, height: 140, z_index: 0,
+      parent_node_id: null, is_locked: false, is_collapsed: false }
+    localStorage.setItem(key, JSON.stringify({ version: 1, projectId, canvasId, baseRevision: 8,
+      clientMutationId: null, batchDocument: null,
+      document: { node_upserts: [localNode], connection_upserts: [] }, payload: null }))
+  }, { key: RECOVERY_KEY, projectId: PROJECT_ID, canvasId: CANVAS_ID })
+  await openCanvas(page, state, 375, false)
   await page.getByRole('button', { name: '打开修订历史' }).click()
   const panel = page.getByRole('dialog', { name: '修订历史与恢复' })
   await expect(panel).toBeVisible()
+  await expect(panel.getByRole('button', { name: '恢复本地副本并重试' })).toHaveCount(0)
+  await expect(panel.getByRole('button', { name: '丢弃本地恢复副本' })).toHaveCount(0)
   await expect(panel.getByRole('button', { name: '恢复修订 r7' })).toHaveCount(0)
   await expect(panel).toContainText('审阅模式不会修改画布历史')
+  expect(state.documentPatchRequests).toBe(0)
 })
 
 test('reload failure keeps the local recovery copy and never claims success', async ({ page }) => {
   const state: RevisionState = {
-    conflict: true, documentGets: 0, failDocumentReload: true,
+    conflict: true, documentPatchRequests: 0, documentGets: 0, failDocumentReload: true,
     restoreRequests: [], revision: 8, nodeTitle: 'Current revision 8',
   }
   await openCanvas(page, state)
@@ -214,7 +261,7 @@ test('reload failure keeps the local recovery copy and never claims success', as
 
 test('committed restore reports a local refresh failure without claiming no change', async ({ page }) => {
   const state: RevisionState = {
-    conflict: false, documentGets: 0, failDocumentReload: true,
+    conflict: false, documentPatchRequests: 0, documentGets: 0, failDocumentReload: true,
     restoreRequests: [], revision: 8, nodeTitle: 'Current revision 8',
   }
   await openCanvas(page, state)

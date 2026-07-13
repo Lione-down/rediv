@@ -143,6 +143,8 @@ class CanvasDocumentApiTestCase(unittest.TestCase):
         self.assertEqual(before["revision"], response.json()["graph_revision"])
 
         self.client.close()
+        restart = self.mysql_database.restart_runtime()
+        self.assertTrue(restart["match"])
         configure_store(DatabaseStore())
         self.client = self._create_client()
         restarted = self._get_document(self.second_canvas["id"])
@@ -258,6 +260,8 @@ class CanvasDocumentApiTestCase(unittest.TestCase):
         self.assertEqual({first_node_id, second_node_id}, {item["id"] for item in document["nodes"]})
 
         self.client.close()
+        restart = self.mysql_database.restart_runtime()
+        self.assertTrue(restart["match"])
         configure_store(DatabaseStore())
         self.client = self._create_client()
         retried = self.client.patch(

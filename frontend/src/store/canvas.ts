@@ -173,6 +173,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     },
     getNodes: () => nodes.value,
     getConnections: () => connections.value,
+    onRecovery: (nextNodes, nextConnections) => { nodes.value = nextNodes; connections.value = nextConnections },
     onRevision: (revision) => {
       graphRevision.value = revision
     },
@@ -479,7 +480,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     updateViewport,
     persistPendingViewport,
     flushPendingPersistence,
-    retryAutosave, preserveLocalRecovery, discardLocalRecovery: canvasAutosave.discardRecovery,
+    retryAutosave, restoreLocalRecovery: canvasAutosave.restoreRecovery, preserveLocalRecovery, discardLocalRecovery: canvasAutosave.discardRecovery,
     selectNode,
     selectConnection,
     setSelection,

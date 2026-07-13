@@ -1,69 +1,60 @@
 # TASK-T5-006 Plan
 
-- State: `DOING`
-- Completed units: Units A-C (`COMPLETE - PASS`)
-- Completed unit: Unit D - durable revisions, checkpoints, restore, and complete recovery UI (`COMPLETE - PASS`)
-- Next unit: Unit E - offline/conflict/restart/browser/regression closure and REPORT
+- State: `DONE - PASS`
+- Completed units: Units A-E (`COMPLETE - PASS`)
+- Active unit: none
 - Updated: 2026-07-13
 
 ## Objective
 
-Deliver a Canvas-scoped durable recovery boundary that lists retained edit revisions, writes reconstructable checkpoints, prunes history without breaking restore, restores any retained edit as a new head, and exposes explicit history/conflict recovery actions in the existing V2 Canvas shell.
+Close T5-006 with fresh evidence that Canvas edits survive offline and server failures, explicit conflict recovery, browser refresh, and a real MySQL-backed backend restart without silent overwrite or local-work loss. Then run the complete regression and hygiene gates, review the final diff against every Task acceptance criterion, write the REPORT, and advance project state only when all evidence passes.
 
-## Unit D Scope
+## Unit E Scope
 
-1. Add authenticated exact-Canvas revision list and restore endpoints under the canonical Canvas document API.
-2. Store a full graph checkpoint on revision 1, every tenth edit revision, and every restore revision. Revision 1 anchors graphs that existed before canonical autosave began.
-3. Retain the latest 50 edit revisions plus the shortest reconstruction chain beginning at the newest checkpoint at or before the retained window, pruning only after that chain is complete.
-4. Reconstruct a target revision from its nearest retained checkpoint and ordered normalized operations, then replace the current graph atomically under the locked Canvas head.
-5. Restore by creating a new checkpointed head revision; never renumber or update an existing revision record.
-6. Return strict revision summary/list and restore response contracts without exposing graph payloads in the history list.
-7. Add a Canvas-scoped frontend revision store and API client. A successful restore reloads the canonical document, clears stale local undo/redo through the existing forced-load boundary, and refreshes revision history.
-8. Add one accessible dark-purple history/recovery panel with retained revisions, checkpoint identity, explicit restore confirmation, and conflict actions for reload-latest and preserve-local-copy.
+1. Add focused Chromium coverage for browser offline/server failure, recovery persistence across reload, visible `Error`, stable mutation retry, and eventual successful save.
+2. Re-run explicit HTTP 409 recovery coverage for reload-latest and preserve-local-copy, including failure paths that must retain the local copy.
+3. Add or strengthen guarded real-MySQL evidence that a committed Canvas graph, viewport, idempotency result, and restorable revision survive application/backend restart boundaries.
+4. Verify Canvas switch, route exit, page hide, and browser refresh preserve or flush pending work deterministically.
+5. Run focused persistence suites first, followed by full backend regression, full Chromium regression, production build, and applicable accessibility checks.
+6. Perform a fresh requirement-by-requirement diff review plus UTF-8, file-size, tracked/staged secret-path, database-artifact, and `git diff --check` gates.
+7. Write `REPORT-T5-006.md`, mark every satisfied Task criterion, and update CURRENT/ROADMAP/PLAN/PROGRESS consistently.
 
-## Unit D Non-goals
+## Unit E Non-goals
 
-- durable cross-session undo/redo;
-- schema or migration changes; the existing `canvas_revisions` table is sufficient;
-- legacy granular-route revision synthesis or removal;
-- offline/restart/full viewport closure owned by Unit E;
-- node registry, project assets, templates, or generation persistence owned by T5-007;
-- user/runtime migration execution, paid calls, secret access, local `.db` changes, or destructive user-data operations.
+- node registry, project-shared assets/templates, and generation flows owned by T5-007;
+- final local-MySQL 200-node/300-connection performance certification owned by T5-008;
+- global V2 page redesign owned by T5-009 and T5-010;
+- paid provider calls, real secret access, user/runtime migration execution, local `.db` handling, or destructive user-data operations.
 
 ## Dependencies And Risks
 
-- Unit A provides normalized atomic operations, the locked Canvas head, request fingerprints, and durable revision rows.
-- Unit B provides local recovery storage and forced canonical reload behavior; Unit C clears stale local history on forced reload.
-- A retained edit is restorable only if a checkpoint and every following operation through that edit exist. Retention therefore keeps the nearest checkpoint plus the at-most-nine bridge revisions before the latest-50 window.
-- Current graphs may contain revision-zero rows created through compatibility routes. A full revision-1 checkpoint prevents those rows from disappearing during later reconstruction.
-- Restore must order parent clearing, node revival/deactivation, and connection replacement to satisfy existing composite MySQL foreign keys without weakening constraints.
+- Units A-D provide the atomic document API, autosave queue, local recovery, Canvas-scoped history, durable revisions, and recovery UI.
+- Browser network emulation proves client offline behavior but is mock-browser evidence; it must not be presented as real MySQL or real-service evidence.
+- Restart evidence must use a guarded `revid_test_*` MySQL schema and reconstruct application/database state rather than reuse an in-memory store.
+- Retried work must preserve the original mutation ID and fingerprint so a response-loss retry cannot duplicate writes.
+- Reload-latest may discard in-memory edits only after the server document loads successfully; failure must retain the local recovery copy.
+- Full regression may expose unrelated historical failures. Any required check that cannot run must record its exact fingerprint, impact, and release condition.
 
 ## TDD And Verification Plan
 
-1. Add focused guarded MySQL/API tests for authenticated listing, periodic checkpoints, exact retention, reconstruction, exact-Canvas isolation, and restore-to-new-head. Run RED before backend business-code edits.
-2. Add focused Chromium tests for revision loading, restore confirmation/new head reload, conflict reload-latest, preserve-local-copy, mobile review-only behavior, and accessible panel state. Run RED before frontend business-code edits.
-3. Implement the smallest backend revision controller, schemas, routes, checkpoint capture, retention, and atomic restore needed for GREEN.
-4. Implement the frontend revision domain store, panel, and recovery actions using existing API, Pinia, V2 tokens, and forced document reload boundaries.
-5. Run focused backend and browser suites first; then affected Canvas backend/browser regression and the production frontend build.
-6. Perform fresh acceptance/diff review, `git diff --check`, strict UTF-8 and 500-line gates, tracked/staged path and secret hygiene, precise staging, scoped commit, and `origin` push.
+1. Add focused browser tests for offline-before-save, reload with a stored recovery snapshot, online retry, stable mutation ID, and saved-state/recovery cleanup. Run RED before changing autosave behavior if a product gap appears.
+2. Add focused guarded MySQL restart tests for graph, viewport, mutation idempotency, revision listing, and restore after database-engine/application reconstruction. Run RED before backend business-code edits if a persistence gap appears.
+3. Make only the smallest implementation changes required by failing acceptance evidence.
+4. Run focused browser autosave/revision suites and focused MySQL document/revision suites.
+5. Run full backend and Chromium regressions, production build, browser viewport/accessibility checks, and restart evidence.
+6. Review the complete T5-006 diff and all acceptance criteria; run hygiene/security gates and stage only owned paths.
+7. Create the final REPORT, update durable state, commit with `feat(canvas): complete durable recovery workflow`, and push `main` only after all gates pass.
 
-## Unit D Success Criteria
+## Unit E Success Criteria
 
-- revision list is authenticated, ownership-checked, exact-Canvas scoped, newest-first, and excludes graph payloads;
-- every retained latest-50 edit can be reconstructed from a retained checkpoint, including a graph that existed before revision 1;
-- checkpoints exist at revision 1, every tenth edit, and each restore head;
-- normal retention leaves the latest 50 edit revisions plus only the nearest checkpoint-to-window bridge required to reconstruct them;
-- restore atomically recreates exact node/connection IDs, ordering, parent links, endpoints, positions, lock state, and content, then advances the Canvas head by one;
-- the target and prior revisions remain immutable; the new restore revision is a full checkpoint;
-- the UI exposes revision history and specific conflict recovery choices without enabling graph mutation below 768 px;
-- focused MySQL/API and Chromium tests, affected regression, production build, fresh diff review, and hygiene gates pass.
-
-All Unit D success criteria are satisfied. Final evidence is recorded in `TASK-T5-006-PROGRESS.md`.
-
-## Next Unit
-
-- Unit E: offline/conflict/restart/browser/regression closure and REPORT.
+- offline or server failure keeps the exact unsaved document in Canvas-scoped local recovery and exposes `Error` without claiming `Saved`;
+- restoring connectivity and retrying uses the same mutation ID, commits once, reaches `Saved`, and clears only the matching recovery snapshot;
+- conflict handling never overwrites automatically and both reload-latest and preserve-local-copy paths remain explicit and truthful;
+- graph document, viewport, mutation idempotency, revision history, and restore behavior survive a guarded real-MySQL application restart boundary;
+- switch, exit, page hide, and reload behavior is deterministic and does not lose pending work;
+- focused and full backend/browser tests, production build, accessibility checks, fresh diff review, and hygiene/security gates pass;
+- `REPORT-T5-006.md`, Task, PLAN, PROGRESS, CURRENT, and ROADMAP agree that T5-006 is `DONE - PASS`.
 
 ## Exact Next Action
 
-Refresh PLAN/PROGRESS for Unit E, then add the remaining offline/restart/real-MySQL recovery closure evidence before final full regression, REPORT, and Task acceptance.
+Create and activate T5-007 Task/PLAN/PROGRESS before changing node-registry, project-asset/template, generation-task/result, or provider-flow code.

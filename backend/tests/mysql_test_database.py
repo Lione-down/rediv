@@ -93,6 +93,21 @@ class MySQLTestDatabase:
         self._upgrade_to_revision("head")
         init_engine()
 
+    def restart_runtime(self) -> dict:
+        if not self._is_started:
+            raise RuntimeError("MySQL test database is not started")
+        from database import check_alembic_revision
+        from models.base import dispose_engine, init_engine
+
+        dispose_engine()
+        try:
+            engine = init_engine()
+            assert_selected_database(engine, self.schema_name)
+            return check_alembic_revision()
+        except Exception:
+            dispose_engine()
+            raise
+
     def _load_urls(self) -> None:
         raw_admin_url = os.environ.get("REVID_TEST_MYSQL_ADMIN_URL", "").strip()
         if not raw_admin_url:

@@ -282,3 +282,10 @@ Evidence:
 - Canvas node、edge、viewport、edit revision 和 checkpoint 归 Canvas；asset、generation task、generated history 和 project setting 归 Project，API、schema 和 store 不得混淆这两个边界。
 - 删除源码中的 hard-coded credential assignment 只完成 source cleanup，不等于 credential rotation；真实或复用 credential 必须由 Human Owner 在外部系统单独轮换。
 - Canvas pan/zoom 应只变换持久 world group；不得在 viewport 变化时 clear 并全量重建 node/edge，pointer 高频事件应通过 requestAnimationFrame 合并。
+
+## 2026-07-13 Canvas durable recovery 与 restart 证据
+
+- local recovery 必须分别保存原 mutation 的 exact base/post-state、原 payload 和最新 desired graph。响应丢失后先用原 ID/原 fingerprint 取回幂等结果，再用新 mutation 保存期间新增的编辑；不能把最新 desired 直接当成原批次已确认状态。
+- 恢复 parser 必须在写入 live graph 前校验 identity、revision、范围、operation set、父子和 endpoint 关系。无效副本 fail closed、保留原始 localStorage；旧 version-1 payload 快照缺少 batch state 时，可从当前服务器 graph 与原 payload 确定性重建 post-state。
+- recovery/conflict UI 的条件渲染会移除当前按钮；成功、丢弃和失败转 conflict 后都要在 `nextTick` 后把焦点放回 dialog，关闭时实际 opener 失效或 disabled 才回退固定 trigger。
+- backend restart 测试不能只换 store 对象。必须 dispose/recreate engine 与 session factory，重新执行 database identity 和 Alembic gate，并覆盖 production FastAPI lifespan；任一 gate 失败都要再次 dispose 后 re-raise。

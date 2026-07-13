@@ -1,10 +1,11 @@
 # TASK-T5-006 - Autosave, conflicts, history, and recovery
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Phase: Product V2 / Phase 5
 - Dependency: T5-005 `DONE - PASS`
 - Owner: Codex Project Lead Engineer
 - Started: 2026-07-13
+- Completed: 2026-07-13
 
 ## Objective
 
@@ -44,7 +45,7 @@ Make Canvas editing durable and recoverable through one idempotent autosave boun
 - [x] Undo/redo is isolated by Canvas and retains at least 100 applied commands.
 - [x] Durable history retains the latest 50 edit revisions plus required checkpoints; restore creates a new head and never rewrites prior history.
 - [x] Viewport persistence stays separate and does not advance graph revision.
-- [ ] Focused unit/MySQL/browser tests, backend regression, frontend build, restart evidence, fresh diff review, and hygiene gates pass.
+- [x] Focused unit/MySQL/browser tests, backend regression, frontend build, restart evidence, fresh diff review, and hygiene gates pass.
 
 ## Linked Decisions And Specifications
 

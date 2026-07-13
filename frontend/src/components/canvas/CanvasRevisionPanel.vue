@@ -58,9 +58,33 @@ async function reloadLatest(discardLocal: boolean) {
   }
 }
 
-function discardDetectedRecovery() {
+async function discardDetectedRecovery() {
   canvasStore.discardLocalRecovery()
   recoveryNotice.value = '本地恢复副本已丢弃，当前服务器版本保持不变。'
+  await nextTick()
+  panelRef.value?.focus({ preventScroll: true })
+}
+
+async function restoreDetectedRecovery() {
+  recoveryNotice.value = ''
+  recoveryError.value = ''
+  if (props.readonly) {
+    recoveryError.value = '审阅模式不能恢复或保存本地画布副本。'
+    await nextTick()
+    panelRef.value?.focus({ preventScroll: true })
+    return
+  }
+  try {
+    await canvasStore.restoreLocalRecovery()
+    await loadHistory()
+    recoveryNotice.value = '本地副本已恢复并保存。'
+    await nextTick()
+    panelRef.value?.focus({ preventScroll: true })
+  } catch (cause) {
+    recoveryError.value = getCanvasErrorMessage(cause, '本地副本已保留，恢复保存失败，请重试。')
+    await nextTick()
+    panelRef.value?.focus({ preventScroll: true })
+  }
 }
 
 watch(() => [props.projectId, props.canvasId], () => {
@@ -119,7 +143,8 @@ onMounted(() => {
           <p>当前画布显示服务器版本。本地副本会继续保留，除非你明确丢弃。</p>
         </div>
       </div>
-      <div class="recovery-actions">
+      <div v-if="!readonly" class="recovery-actions">
+        <button type="button" @click="restoreDetectedRecovery">恢复本地副本并重试</button>
         <button type="button" @click="discardDetectedRecovery">丢弃本地恢复副本</button>
       </div>
     </section>

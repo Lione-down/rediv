@@ -1,12 +1,15 @@
 import { isAxiosError } from 'axios'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import { patchCanvasDocument } from './api'
+import { mapCanvasRecoveryGraph } from './mappers'
 import { getCanvasErrorMessage } from './persistence'
+import { parseCanvasRecoverySnapshot } from './canvas-recovery'
 import type {
   CanvasDocumentConnectionUpsert,
   CanvasDocumentNodeUpsert,
   CanvasDocumentPatchPayload,
   CanvasGraphSaveState,
+  CanvasRecoveryDocument,
 } from './types'
 
 export const AUTOSAVE_DEBOUNCE_MS = 500
@@ -18,12 +21,10 @@ interface CanvasIdentity {
   canvasId: string
 }
 
-interface PersistedGraph {
-  node_upserts: CanvasDocumentNodeUpsert[]
-  connection_upserts: CanvasDocumentConnectionUpsert[]
-}
+type PersistedGraph = CanvasRecoveryDocument
 
 interface AutosaveBatch {
+  baseDocument: PersistedGraph
   payload: CanvasDocumentPatchPayload
   document: PersistedGraph
 }
@@ -40,6 +41,7 @@ interface CanvasAutosaveOptions {
   getIdentity: () => CanvasIdentity | null
   getNodes: () => readonly CanvasNode[]
   getConnections: () => readonly CanvasConnection[]
+  onRecovery: (nodes: CanvasNode[], connections: CanvasConnection[]) => void
   onRevision: (revision: number) => void
   onStatus: (status: AutosaveStatus) => void
 }
@@ -126,6 +128,21 @@ function diffGraph(base: PersistedGraph, current: PersistedGraph) {
   }
 }
 
+function applyGraphPatch(base: PersistedGraph, payload: CanvasDocumentPatchPayload): PersistedGraph {
+  const nodes = new Map(base.node_upserts.map((item) => [item.id, item]))
+  const connections = new Map(base.connection_upserts.map((item) => [item.id, item]))
+  for (const id of payload.connection_deletes) connections.delete(id)
+  for (const id of payload.node_deletes) nodes.delete(id)
+  for (const item of payload.node_upserts) nodes.set(item.id, item)
+  for (const item of payload.connection_upserts) connections.set(item.id, item)
+  return {
+    node_upserts: [...nodes.values()].sort((left, right) => left.id.localeCompare(right.id)),
+    connection_upserts: [...connections.values()].sort(
+      (left, right) => left.id.localeCompare(right.id),
+    ),
+  }
+}
+
 function hasMutations(diff: ReturnType<typeof diffGraph>) {
   return Boolean(
     diff.node_upserts.length || diff.node_deletes.length ||
@@ -142,6 +159,7 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
   let confirmed: PersistedGraph = { node_upserts: [], connection_upserts: [] }
   let timer: ReturnType<typeof setTimeout> | null = null
   let inFlight: Promise<void> | null = null
+  let activeBatch: AutosaveBatch | null = null
   let retryBatch: AutosaveBatch | null = null
   let hasLoadedRecovery = false
   let status: AutosaveStatus = {
@@ -165,7 +183,7 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
     }
   }
 
-  function writeRecovery(batch = retryBatch) {
+  function writeRecovery(batch = retryBatch ?? activeBatch) {
     const identity = options.getIdentity()
     if (!identity) return
     if (hasLoadedRecovery && !batch) return
@@ -176,7 +194,10 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
         canvasId: identity.canvasId,
         baseRevision: revision,
         clientMutationId: batch?.payload.client_mutation_id ?? null,
+        baseDocument: batch?.baseDocument ?? null,
+        batchDocument: batch?.document ?? null,
         document: currentGraph(),
+        payload: batch?.payload ?? null,
         savedAt: new Date().toISOString(),
       }))
       emit({ hasRecovery: true })
@@ -213,6 +234,7 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
   function initialize(nextRevision: number) {
     if (timer) clearTimeout(timer)
     timer = null
+    activeBatch = null
     retryBatch = null
     revision = nextRevision
     confirmed = currentGraph()
@@ -232,6 +254,7 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
     if (timer) clearTimeout(timer)
     timer = null
     retryBatch = null
+    activeBatch = null
     inFlight = null
     hasLoadedRecovery = false
     revision = 0
@@ -246,6 +269,7 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
     const mutations = diffGraph(confirmed, document)
     if (!hasMutations(mutations)) return null
     return {
+      baseDocument: confirmed,
       document,
       payload: {
         base_revision: revision,
@@ -311,12 +335,14 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
       emit({ state: 'saved', message: '', conflictRevision: null, canRetry: false })
       return
     }
+    activeBatch = batch
     const request = submit(batch)
     inFlight = request
     try {
       await request
     } finally {
       if (inFlight === request) inFlight = null
+      if (activeBatch === batch) activeBatch = null
     }
     if (createBatch()) return flush()
     clearRecovery()
@@ -336,6 +362,68 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
     return flush()
   }
 
+  function failRecovery(cause: unknown): never {
+    const error = cause instanceof Error ? cause : new Error('本地恢复副本无效。')
+    emit({ state: 'error', message: error.message, hasRecovery: true, canRetry: false })
+    throw error
+  }
+
+  async function restoreRecovery() {
+    const identity = options.getIdentity()
+    if (!identity) throw new Error('Canvas recovery identity is unavailable')
+    const raw = readRecovery(identity)
+    if (!raw) throw new Error('未找到此画布的本地恢复副本。')
+    let snapshot
+    try {
+      snapshot = parseCanvasRecoverySnapshot(raw, identity)
+    } catch (error) {
+      failRecovery(error)
+    }
+    const desiredDocument = snapshot.desiredDocument
+    const batchDocument = snapshot.batchDocument ?? (
+      snapshot.payload ? applyGraphPatch(confirmed, snapshot.payload) : null
+    )
+    const mutations = diffGraph(confirmed, desiredDocument)
+    const batchMutations = batchDocument
+      ? diffGraph(confirmed, batchDocument)
+      : null
+    if (
+      snapshot.payload && revision === snapshot.baseRevision && (
+        !batchMutations ||
+        !sameEntity(snapshot.payload.node_upserts, batchMutations.node_upserts) ||
+        !sameEntity(snapshot.payload.node_deletes, batchMutations.node_deletes) ||
+        !sameEntity(snapshot.payload.connection_upserts, batchMutations.connection_upserts) ||
+        !sameEntity(snapshot.payload.connection_deletes, batchMutations.connection_deletes)
+      )
+    ) failRecovery(new Error('本地恢复副本的保存请求与画布内容不一致。'))
+    const recovered = mapCanvasRecoveryGraph(desiredDocument)
+    options.onRecovery(recovered.nodes, recovered.connections)
+    const payload = snapshot.payload ?? (hasMutations(mutations) ? {
+      base_revision: snapshot.baseRevision,
+      client_mutation_id: snapshot.clientMutationId ?? entityId(),
+      ...mutations,
+    } : null)
+    if (!payload) {
+      clearRecovery()
+      emit({ state: 'saved', message: '', conflictRevision: null, canRetry: false })
+      return
+    }
+    retryBatch = {
+      baseDocument: snapshot.baseDocument ?? confirmed,
+      payload,
+      document: batchDocument ?? desiredDocument,
+    }
+    hasLoadedRecovery = false
+    emit({
+      state: 'error',
+      message: '本地副本已恢复，正在重试保存。',
+      conflictRevision: null,
+      hasRecovery: true,
+      canRetry: true,
+    })
+    return flush()
+  }
+
   return {
     discardRecovery,
     flush,
@@ -343,6 +431,7 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
     preserveRecovery: writeRecovery,
     queue,
     reset,
+    restoreRecovery,
     retry,
   }
 }

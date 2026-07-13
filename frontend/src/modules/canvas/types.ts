@@ -149,6 +149,11 @@ export interface CanvasDocumentConnectionUpsert {
   metadata: Record<string, unknown>
 }
 
+export interface CanvasRecoveryDocument {
+  node_upserts: CanvasDocumentNodeUpsert[]
+  connection_upserts: CanvasDocumentConnectionUpsert[]
+}
+
 export interface CanvasDocumentPatchPayload {
   base_revision: number
   client_mutation_id: string

@@ -39,6 +39,7 @@ const generationError = ref('')
 const generationSuccess = ref('')
 const isRevisionPanelOpen = ref(false)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
+let revisionPanelOpener: HTMLElement | null = null
 let reviewMediaQuery: MediaQueryList | null = null
 
 const projectId = computed(() => normalizeRouteIdentifier(route.params.projectId))
@@ -75,6 +76,11 @@ const syncTone = computed(() => {
   ) return 'saving'
   return 'saved'
 })
+const hasDetectedRecovery = computed(() => (
+  canvasDocumentStore.hasLocalRecovery &&
+  canvasDocumentStore.saveState === 'error' &&
+  !canvasDocumentStore.canRetryAutosave
+))
 const syncIcon = computed(() => {
   if (syncTone.value === 'error' || syncTone.value === 'conflict') return CircleHelp
   if (syncTone.value === 'saving') return LoaderCircle
@@ -150,20 +156,37 @@ async function retryCanvasList() {
   if (resolved) await navigateToCanvas(resolved.id)
 }
 
-async function retryCanvasState() {
+async function retryCanvasState(event?: MouseEvent) {
+  if (hasDetectedRecovery.value) {
+    openRevisionPanel(event)
+    return
+  }
   const operations: Promise<unknown>[] = [canvasListStore.loadCanvases(projectId.value, true)]
   if (canvasDocumentStore.saveState === 'error') operations.push(canvasDocumentStore.retryAutosave())
   else operations.push(canvasDocumentStore.reloadActiveDocument())
   await Promise.allSettled(operations)
 }
 
-function openRevisionPanel() {
+function openRevisionPanel(event?: Event) {
+  const opener = event?.currentTarget
+  if (!isRevisionPanelOpen.value) {
+    revisionPanelOpener = opener instanceof HTMLElement ? opener : null
+  }
   isRevisionPanelOpen.value = true
+}
+
+function canRestoreFocus(element: HTMLElement | null) {
+  if (!element?.isConnected || element.getAttribute('aria-disabled') === 'true') return false
+  return !(element instanceof HTMLButtonElement && element.disabled)
 }
 
 function closeRevisionPanel() {
   isRevisionPanelOpen.value = false
-  void nextTick(() => revisionTriggerRef.value?.focus({ preventScroll: true }))
+  const focusTarget = canRestoreFocus(revisionPanelOpener)
+    ? revisionPanelOpener
+    : revisionTriggerRef.value
+  revisionPanelOpener = null
+  void nextTick(() => focusTarget?.focus({ preventScroll: true }))
 }
 
 function extractGenerationError(error: unknown) {
@@ -246,11 +269,7 @@ watch([projectId, canvasId], ([nextProjectId, nextCanvasId]) => {
 }, { immediate: true })
 
 watch(() => canvasDocumentStore.saveState, (state) => {
-  if (state === 'conflict') isRevisionPanelOpen.value = true
-})
-
-watch(() => canvasDocumentStore.hasLocalRecovery, (hasRecovery) => {
-  if (hasRecovery) isRevisionPanelOpen.value = true
+  if (state === 'conflict') openRevisionPanel()
 })
 
 onMounted(() => {
@@ -308,8 +327,8 @@ onBeforeUnmount(() => {
             type="button"
             class="sync-status"
             :class="`is-${syncTone}`"
-            :disabled="!canvasListStore.mutationError && !canvasDocumentStore.canRetryAutosave"
-            :aria-label="canvasListStore.mutationError || canvasDocumentStore.canRetryAutosave ? `${syncLabel}，重试同步` : syncLabel"
+            :disabled="!canvasListStore.mutationError && !canvasDocumentStore.canRetryAutosave && !hasDetectedRecovery"
+            :aria-label="hasDetectedRecovery ? `${syncLabel}，打开恢复选项` : (canvasListStore.mutationError || canvasDocumentStore.canRetryAutosave ? `${syncLabel}，重试同步` : syncLabel)"
             @click="retryCanvasState"
           >
             <component :is="syncIcon" :size="16" aria-hidden="true" />
