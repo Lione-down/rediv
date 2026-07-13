@@ -3,6 +3,12 @@ import { expect, test, type Page, type Route } from '@playwright/test'
 const API_ORIGIN = 'http://localhost:8000'
 const APP_ORIGIN = 'http://127.0.0.1:9099'
 const NOW = '2026-07-13T10:00:00Z'
+const visualViewports = [
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'compact-desktop', width: 1366, height: 768 },
+  { name: 'narrow-workspace', width: 920, height: 900 },
+  { name: 'mobile-review', width: 375, height: 812 },
+] as const
 
 interface CanvasRecord {
   id: string
@@ -105,12 +111,24 @@ async function installShellApi(page: Page, state: ShellState) {
       if (!activeCanvas) return fulfillJson(route, { detail: 'Canvas not found' }, 404)
       return fulfillJson(route, {
         canvas: activeCanvas,
-        nodes: [{
-          id: `node-review-${canvasId}`, project_id: 'project-shell', canvas_id: canvasId, node_type: 'image',
-          content: { title: '主视觉', prompt: '夜景电影海报' }, position_x: 180, position_y: 140,
-          width: 240, height: 140, status: 'idle', created_at: NOW, updated_at: NOW,
+        nodes: [
+          {
+            id: `node-review-${canvasId}`, project_id: 'project-shell', canvas_id: canvasId, node_type: 'image',
+            content: { title: '主视觉', prompt: '夜景电影海报' }, position_x: 180, position_y: 140,
+            width: 240, height: 140, status: 'running', created_at: NOW, updated_at: NOW,
+          },
+          {
+            id: `node-result-${canvasId}`, project_id: 'project-shell', canvas_id: canvasId, node_type: 'result',
+            content: { title: '成片结果' }, position_x: 540, position_y: 140,
+            width: 240, height: 140, status: 'idle', created_at: NOW, updated_at: NOW,
+          },
+        ],
+        connections: [{
+          id: `connection-${canvasId}`, project_id: 'project-shell', canvas_id: canvasId,
+          source_node_id: `node-review-${canvasId}`, source_port: 'out',
+          target_node_id: `node-result-${canvasId}`, target_port: 'in',
+          status: 'active', metadata: {}, created_at: NOW, updated_at: NOW,
         }],
-        connections: [],
         revision: activeCanvas.graph_revision,
       })
     }
@@ -269,4 +287,105 @@ test('mobile shell is rendered read-only and keeps accessible route controls', a
   await expect(page.locator('.skip-link')).toBeVisible()
   await expect(page.locator('.canvas-workspace')).toHaveCSS('--v2-press-scale', '1')
   expect(state.requests.some((request) => ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method))).toBe(false)
+})
+
+test('Canvas accessibility closure preserves language, focus, contrast, and reduced motion', async ({ page }) => {
+  const state = createState()
+  await openShell(page, state)
+
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
+  await page.keyboard.press('Tab')
+  await expect(page.locator('.skip-link')).toBeFocused()
+  await expect(page.locator('.skip-link')).toBeVisible()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#canvas-main')).toBeFocused()
+
+  const switcher = page.getByRole('button', { name: '画布 1' })
+  await switcher.focus()
+  const contrast = await page.evaluate(() => {
+    type Rgba = [number, number, number, number]
+
+    function parseColor(value: string): Rgba {
+      const canvas = document.createElement('canvas')
+      canvas.width = 1
+      canvas.height = 1
+      const context = canvas.getContext('2d', { willReadFrequently: true })
+      if (!context) throw new Error('Canvas color parser is unavailable')
+      context.clearRect(0, 0, 1, 1)
+      context.fillStyle = value
+      context.fillRect(0, 0, 1, 1)
+      const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data
+      return [red, green, blue, alpha / 255]
+    }
+
+    function composite(foreground: Rgba, background: Rgba): Rgba {
+      const alpha = foreground[3] + background[3] * (1 - foreground[3])
+      if (alpha === 0) return [0, 0, 0, 0]
+      return [
+        (foreground[0] * foreground[3] + background[0] * background[3] * (1 - foreground[3])) / alpha,
+        (foreground[1] * foreground[3] + background[1] * background[3] * (1 - foreground[3])) / alpha,
+        (foreground[2] * foreground[3] + background[2] * background[3] * (1 - foreground[3])) / alpha,
+        alpha,
+      ]
+    }
+
+    function luminance(color: Rgba) {
+      const linear = color.slice(0, 3).map((channel) => {
+        const normalized = channel / 255
+        return normalized <= 0.04045
+          ? normalized / 12.92
+          : ((normalized + 0.055) / 1.055) ** 2.4
+      })
+      return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+    }
+
+    function ratio(foregroundValue: string, backgroundValue: string) {
+      const background = parseColor(backgroundValue)
+      const foreground = composite(parseColor(foregroundValue), background)
+      const lighter = Math.max(luminance(foreground), luminance(background))
+      const darker = Math.min(luminance(foreground), luminance(background))
+      return (lighter + 0.05) / (darker + 0.05)
+    }
+
+    const identity = document.querySelector<HTMLElement>('.identity-cluster')
+    const project = document.querySelector<HTMLElement>('.project-name b')
+    const switcher = document.querySelector<HTMLElement>('.canvas-switcher')
+    if (!identity || !project || !switcher) throw new Error('Canvas identity controls are unavailable')
+    const background = getComputedStyle(identity).backgroundColor
+    return {
+      secondaryText: ratio(getComputedStyle(project).color, background),
+      primaryText: ratio(getComputedStyle(switcher).color, background),
+      focusRing: ratio(getComputedStyle(switcher).outlineColor, background),
+    }
+  })
+  expect(contrast.secondaryText).toBeGreaterThanOrEqual(4.5)
+  expect(contrast.primaryText).toBeGreaterThanOrEqual(4.5)
+  expect(contrast.focusRing).toBeGreaterThanOrEqual(3)
+
+  const shell = page.locator('.canvas-workspace')
+  await expect(shell).toHaveCSS('--v2-press-scale', '1')
+  await expect(shell).toHaveCSS('--v2-duration-fast', '0s')
+  await expect(page.locator('.node-status-overlay.is-running')).toHaveCSS('animation-name', 'none')
+  await expect(page.locator('.node-status-overlay.is-running .status-icon')).toHaveCSS('animation-name', 'none')
+  await expect(page.locator('.connection-line.active')).toHaveCSS('animation-name', 'none')
+  await expect(page.getByText('浏览审阅模式', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: '项目与画布导航' })).toContainText('短片工作室')
+})
+
+test('Canvas route controls retain 40px targets across the required viewport matrix', async ({ page }) => {
+  const state = createState()
+  await openShell(page, state)
+
+  for (const viewport of visualViewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height })
+    const controls = page.locator('.route-chrome a:visible, .route-chrome button:visible')
+    const count = await controls.count()
+    expect(count, `${viewport.name} should expose route controls`).toBeGreaterThan(0)
+    for (let index = 0; index < count; index += 1) {
+      const control = controls.nth(index)
+      const box = await control.boundingBox()
+      expect(box?.width, `${viewport.name} control ${index} width`).toBeGreaterThanOrEqual(40)
+      expect(box?.height, `${viewport.name} control ${index} height`).toBeGreaterThanOrEqual(40)
+    }
+  }
 })

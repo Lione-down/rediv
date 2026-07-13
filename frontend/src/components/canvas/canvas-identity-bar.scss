@@ -93,7 +93,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: var(--v2-space-2);
-  min-height: 30px;
+  min-height: var(--v2-control-min-size);
   padding: 0;
   text-align: left;
 }

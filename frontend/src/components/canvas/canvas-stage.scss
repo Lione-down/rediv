@@ -223,3 +223,11 @@ path.draft {
 @media (max-width: 480px) {
   .canvas-surface { min-height: calc(100dvh - 300px); }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .node-status-overlay.is-running,
+  .node-status-overlay.is-running .status-icon,
+  .connection-line.active {
+    animation: none;
+  }
+}

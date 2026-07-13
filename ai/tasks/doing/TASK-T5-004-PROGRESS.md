@@ -1,10 +1,10 @@
 # TASK-T5-004 Progress
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Completed unit: Unit B - Canvas metadata client/store and canonical route resolution (`COMPLETE - PASS`)
 - Completed unit: Unit C - full-screen Canvas shell and navigation interactions (`COMPLETE - PASS`)
 - Completed unit: Unit D - Canvas-scoped graph loading and viewport persistence (`COMPLETE - PASS`)
-- Next unit: Unit E - focused closure evidence and Task reconciliation
+- Completed unit: Unit E - focused closure evidence and Task reconciliation (`COMPLETE - PASS`)
 - Completed unit: Unit A - single-source V2 Canvas token foundation (`COMPLETE - PASS`)
 - Updated: 2026-07-13
 
@@ -64,14 +64,26 @@
 - Added focused Playwright coverage proving no canonical legacy graph reads, exact document and mutation paths, one viewport write for an interaction burst, flush ordering before Canvas switch, per-Canvas zoom restoration, refresh restoration, and explicit node deletion.
 - Fresh review moved the new CRUD implementation out of the pre-existing oversized legacy store and into the 256-line Canvas document controller; every new or materially expanded business/test file remains below 500 lines.
 - Unit D focused, relevant, full backend, full Chromium, final production build, diff, UTF-8, sensitive-path, secret-candidate, and database-artifact checks passed.
+- Started Unit E from clean `main` baseline `04d4a5ab729aa6bde2812296272f17102ad77567`; no staged, tracked-modified, untracked, unmerged, detached, or in-progress Git-operation state was present.
+- Re-read AGENTS, automation memory, CURRENT, ROADMAP, T5-004 Task/PLAN/PROGRESS, ADR-004/005/direct-delivery, the full V2 PRD, Canvas acceptance, Canvas architecture, and V2 design system before Unit E writes.
+- The same-automation view capability did not return within the bounded wait and was terminated before repository writes; no concurrent instance was established, and the clean authoritative Git baseline was reconfirmed.
+- Loaded the design and Playwright execution guidance for real rendered accessibility and responsive verification; the optional design update script and referenced durable-context file were absent in this Windows installation, with no project mutation or acceptance impact.
+- Inspected the existing Canvas shell, identity navigation, stage styles, token source, Playwright configuration, and focused shell tests. Bounded Unit E to three evidenced closure gaps: document language remains `en`, hard-coded Canvas dash/pulse/spin ignores reduced motion, and the Canvas switcher overrides its 40px target with a later 30px minimum.
+- Corrected the root document language to `zh-CN`, restored the Canvas switcher's shared 40px control minimum, and disabled the stage's dash, pulse, and spin keyframes when reduced motion is requested.
+- Added real Chromium evidence for first-focus skip navigation, focus transfer to Canvas main content, Chinese document language and labels, browser-computed text/focus contrast, reduced-motion substitutions, and route-control geometry at 1440x900, 1366x768, 920x900, and 375x812.
+- The first focused closure run exposed focus-ring contrast of 2.52:1 on the actual identity surface. Increased only the shared violet focus token alpha from 0.48 to 0.64 and synchronized the locked V2 design system; the browser-computed 3:1 gate then passed.
+- Inspected deterministic workspace screenshots at all four required viewports. The graph-first graphite-black/violet hierarchy, project/Canvas/save/back context, compact controls, Chinese labels, and mobile review-only boundary remained coherent without light cards, permanent inspector, or critical clipping.
+- Unit E focused 6/6, full Chromium 16/16, final production build, fresh Task/diff review, file-size, UTF-8, forbidden-pattern, and `git diff --check` gates passed.
+- Wrote `ai/reports/REPORT-T5-004.md` and reconciled Task, PLAN, PROGRESS, CURRENT, and ROADMAP to `DONE - PASS`.
 
 ## Remaining
 
-- Unit E: browser/accessibility closure, REPORT, and final T5-004 reconciliation.
+- No T5-004 implementation or verification work remains.
+- T5-005 Task/PLAN/PROGRESS creation and activation are the next delivery run, not part of this completed unit.
 
 ## Exact Next Action
 
-Run Unit E's final browser/accessibility/reduced-motion closure, fresh Task acceptance review, REPORT creation, and T5-004 state reconciliation.
+Create and activate T5-005 Task/PLAN/PROGRESS, then inspect the existing renderer boundary before implementing its first bounded unit.
 
 ## Files Changed
 
@@ -123,6 +135,14 @@ Run Unit E's final browser/accessibility/reduced-motion closure, fresh Task acce
 - `frontend/tests/e2e/canvas-document-persistence.spec.ts` - exact request, isolation, debounce, switch, refresh, and mutation evidence.
 - `frontend/tests/e2e/authenticated-workflow.spec.ts` - document mock contract and canonical request assertion.
 - `frontend/tests/e2e/canvas-shell-navigation.spec.ts` - document-scoped shell mock contract.
+- `frontend/index.html` - canonical Chinese document language.
+- `frontend/src/assets/styles/v2-canvas-tokens.scss` - browser-verified focus-ring contrast correction.
+- `frontend/src/components/canvas/canvas-identity-bar.scss` - retained 40px Canvas-switch target.
+- `frontend/src/components/canvas/canvas-stage.scss` - reduced-motion suppression for stage dash, pulse, and spin.
+- `frontend/tests/e2e/canvas-shell-navigation.spec.ts` - language, focus, contrast, reduced-motion, and four-viewport target closure.
+- `ui/REVID-V2-DESIGN-SYSTEM.md` - synchronized focus-ring token value.
+- `ai/reports/REPORT-T5-004.md` - authoritative completion evidence.
+- `ai/state/CURRENT.md`, `ai/state/ROADMAP.md`, Task, PLAN, and PROGRESS - final T5-004 reconciliation.
 
 ## Commands And Results
 
@@ -160,6 +180,20 @@ Run Unit E's final browser/accessibility/reduced-motion closure, fresh Task acce
 - Unit D Python compile, fresh diff, file-size, and `git diff --check` review - PASS; new/expanded business and test files remain below 500 lines.
 - Initial Unit D exact-stage gate - BLOCKED SAFELY; the proposed list mistakenly included unchanged `backend/schemas/canvas.py`, so the gate exited before staging any file.
 - Corrected Unit D exact staging and hygiene - PASS; exact 24 owned paths, zero unstaged/untracked remainder, strict UTF-8, sensitive paths, secret candidates, staged/tracked database artifacts, `.env`/`.env.*`/`*.db` ignore probes, and staged diff checks all passed with zero findings.
+- Unit E required source-document and clean Git baseline reads - PASS; clean `main` HEAD `04d4a5ab729aa6bde2812296272f17102ad77567`.
+- Unit E same-automation view - unavailable after bounded timeout; terminated before repository writes with no concurrent instance established.
+- Unit E design/Playwright skill preflight - PASS with `npx` available; optional design update and durable-context helper files were unavailable in the installed skill package.
+- Unit E source and focused-test inspection - PASS; three bounded accessibility gaps identified before business-code edits.
+- Initial Unit E production build - PASS; `vue-tsc` and Vite completed with 4711 modules.
+- Initial focused shell closure - FAIL SAFELY at 5/6; browser-computed focus ring was 2.52:1 against the actual surface, below the 3:1 gate.
+- Focus-token correction build - PASS; `vue-tsc` and Vite completed with 4711 modules.
+- Second focused shell closure - FAIL TEST-ONLY at 5/6; Chromium normalized zero duration from `0ms` to equivalent `0s`.
+- Final focused `canvas-shell-navigation.spec.ts` - PASS; 6/6 tests.
+- Full `frontend: npm run test:e2e -- --project=chromium` - PASS; 16/16 tests across generation, routing, metadata, exact graph persistence, accessibility, reduced motion, and the four required viewports.
+- Four-viewpoint real screenshot review - PASS; deterministic Canvas screenshots inspected at 1440x900, 1366x768, 920x900, and 375x812.
+- Unit E fresh diff, file-size, UTF-8, forbidden-pattern, and `git diff --check` review - PASS; all changed business/test files remain below 500 lines.
+- Initial Unit E staged-hygiene wrapper - INVALID CHECK; a PowerShell path interpolation parser error made that wrapper result unusable, with no staged-content change.
+- Corrected Unit E exact staging and hygiene - PASS; exact 12 owned paths, strict UTF-8, sensitive paths, secret candidates, staged/tracked database artifacts, `.env`/`.env.*`/`*.db` ignore probes, staged diff, and dirty-remainder checks all passed with zero findings.
 
 ## Blockers And Release Conditions
 
@@ -167,6 +201,6 @@ Run Unit E's final browser/accessibility/reduced-motion closure, fresh Task acce
 - No Unit B implementation or verification blocker remains.
 - No Unit C implementation or verification blocker remains.
 - No Unit D implementation or verification blocker remains.
-- No blocker prevents Unit E repository verification and Task closure work.
+- No T5-004 blocker remains.
 - Applying the existing multi-canvas migration to user/runtime data still requires backup discipline and Human authorization; Units A-B do not access a database.
 - Ignored `.env`, local `.db`, and the pre-existing `revid_test_db` remain untouched.

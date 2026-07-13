@@ -1,10 +1,10 @@
 # TASK-T5-004 Plan
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Completed unit: Unit B - Canvas metadata client/store and canonical route resolution (`COMPLETE - PASS`)
 - Completed unit: Unit C - full-screen Canvas shell and navigation interactions (`COMPLETE - PASS`)
 - Completed unit: Unit D - Canvas-scoped graph loading and viewport persistence (`COMPLETE - PASS`)
-- Next unit: Unit E - focused closure evidence and Task reconciliation
+- Completed unit: Unit E - focused closure evidence and Task reconciliation (`COMPLETE - PASS`)
 - Completed unit: Unit A - single-source V2 Canvas token foundation (`COMPLETE - PASS`)
 - Updated: 2026-07-13
 
@@ -147,9 +147,36 @@ Deliver the explicit multi-canvas frontend in independently mergeable units whil
 - Guarded MySQL evidence passed Canvas isolation, authorization, negative coordinates, exact mutation lifecycle, viewport normalization, unchanged graph revision, and restart persistence.
 - Full backend passed 189 tests, full Chromium passed 14 tests across the required viewport matrix, and the final `vue-tsc` plus Vite build passed with 4711 modules.
 
-## Later Units
+## Unit E - Accessibility, browser closure, and Task reconciliation
 
-- Unit E: focused and regression browser evidence, accessibility/reduced-motion checks, documentation, REPORT, and closure reconciliation.
+### Scope
+
+1. Correct the canonical document language to `zh-CN` so the rendered Chinese Canvas is announced with the right language context.
+2. Close the two evidenced Canvas accessibility gaps without redesign: retain a 40x40 Canvas-switch target and suppress hard-coded dash, pulse, and spin animation under `prefers-reduced-motion: reduce`.
+3. Add focused browser evidence for first-focus skip navigation, visible focus, route-control target geometry, Chinese labels and document language, reduced-motion behavior, and computed text/focus contrast.
+4. Run the four required viewport checks, full Chromium regression, production build, and fresh acceptance/diff/hygiene review.
+5. Write `REPORT-T5-004.md` and reconcile Task, PLAN, PROGRESS, CURRENT, and ROADMAP only when every T5-004 acceptance criterion passes.
+
+### Non-goals
+
+- renderer command model, Canvas accessibility node-list expansion, grouping, shortcuts, arrange, or performance work owned by T5-005/T5-008;
+- graph revision batching, autosave conflict recovery, history, checkpoints, or restore owned by T5-006;
+- global page redesign, migration execution, paid calls, secret access, or destructive database/filesystem work.
+
+### Success criteria
+
+- Chromium reports `zh-CN`, the skip link is first and moves focus to Canvas main content, and focus styling remains visible.
+- Every tested route-chrome control retains at least 40x40 px at desktop, compact, narrow, and mobile widths.
+- Reduced motion removes Canvas dash, pulse, spin, transition-duration, and press-scale motion without removing status meaning.
+- Browser-computed text and focus-ring contrast meet the Task thresholds on their actual Canvas surfaces.
+- Focused browser checks, full Chromium regression, production build, fresh diff review, `git diff --check`, exact staging, UTF-8, sensitive-path, secret-candidate, and database-artifact gates pass.
+
+### Outcome
+
+- Corrected the root language to `zh-CN`, restored the Canvas switch target to 40px, and removed stage dash, pulse, and spin animation under reduced motion.
+- Browser-computed focus contrast exposed a 2.52:1 token gap; increasing only the shared focus-ring alpha to 0.64 brought the rendered ring above the 3:1 gate while preserving the approved violet direction.
+- The focused Canvas shell suite passed 6 tests, the full Chromium suite passed 16 tests, the production build passed with 4711 modules, and all four required workspace screenshots passed visual review.
+- REPORT and durable Task state agree on `DONE - PASS`; T5-005 remains unstarted.
 
 ## Unit A Outcome
 

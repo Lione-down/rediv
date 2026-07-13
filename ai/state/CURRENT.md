@@ -20,16 +20,16 @@ Last updated: 2026-07-13
 
 ## Active Delivery
 
-- Active implementation Task: `T5-004 - V2 Canvas shell, navigation, and viewport persistence`
-- State: `DOING`
-- Latest completed unit: Unit D - Canvas-scoped graph loading and viewport persistence (`COMPLETE - PASS`)
-- Next unit: Unit E - focused closure evidence and Task reconciliation
+- Active implementation Task: none
+- Latest completed Task: `T5-004 - V2 Canvas shell, navigation, and viewport persistence`
+- State: `DONE - PASS`
 - Task: `ai/tasks/todo/TASK-T5-004.md`
 - Plan: `ai/tasks/doing/TASK-T5-004-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-004-PROGRESS.md`
-- Dependency: T5-003 `DONE - PASS`
+- Report: `ai/reports/REPORT-T5-004.md`
+- Next Task: `T5-005 - incremental renderer and command interactions` (`TODO`, Task documents not yet created)
 
-## Latest Completed Task
+## Previous Completed Task
 
 - Task: `T5-003 - Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route`
 - State: `DONE - PASS`
@@ -66,16 +66,18 @@ Last updated: 2026-07-13
 - Canonical graph reads now use one authenticated project/Canvas document boundary, and node/connection mutations use explicit Canvas-scoped paths with active ownership and entity isolation checks.
 - Viewports restore independently per Canvas and persist through finite normalization, exact deduplication, a 500 ms debounce, and route-exit flushing without advancing graph revision.
 - Unit D passed 3 focused guarded MySQL tests, 39 Canvas backend regression tests, 189 full backend tests, 14 full Chromium tests, and a 4711-module production build.
+- Unit E corrected Chinese document language, 40px Canvas-switch geometry, reduced-motion stage animation, and the shared focus-ring alpha after real Chromium measured the prior ring at 2.52:1.
+- T5-004 closure passed 6 focused shell tests, 16 full Chromium tests, a 4711-module production build, and real screenshot review at 1440x900, 1366x768, 920x900, and 375x812.
 - The migration has not been applied to a user/runtime database and requires normal backup and Human migration authorization.
 - Ignored local `.db` artifacts and the pre-existing `revid_test_db` remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Run Unit E's final browser/accessibility/reduced-motion closure, write REPORT only after all remaining acceptance evidence passes, and reconcile T5-004 state.
+Create and activate T5-005 Task/PLAN/PROGRESS, inspect the existing Leafer renderer and interaction boundary, and define its first dependency-ready unit before business-code edits.
 
 ## Blockers And Release Conditions
 
-- No blocker prevents T5-004 Unit E repository verification and closure work.
+- No blocker prevents T5-005 repository planning and implementation.
 - Applying `f0a1b2c3d4e5` to user/runtime data requires reviewed backup discipline and Human migration authorization.
 - Credential rotation becomes Human-required only if the removed assignment was ever real or reused.
 - Local ignored `.db` deletion requires exact-path Human approval after MySQL backup/parity evidence.
@@ -83,7 +85,7 @@ Run Unit E's final browser/accessibility/reduced-motion closure, write REPORT on
 
 ## Worktree Protection
 
-- Unit D started from clean `main` at `807e76ff3ef38c7325b89b596edc6a2d025e5a05`.
+- Unit E started from clean `main` at `04d4a5ab729aa6bde2812296272f17102ad77567`.
 - Pre-existing staged, tracked-modified, untracked, unmerged, detached, and in-progress Git-operation state: none.
 - Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.

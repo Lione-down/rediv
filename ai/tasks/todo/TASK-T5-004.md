@@ -1,6 +1,6 @@
 # TASK-T5-004 - V2 Canvas shell, navigation, and viewport persistence
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Phase: Product V2 / Phase 5
 - Dependency: T5-003 `DONE - PASS`
 - Owner: Codex Project Lead Engineer
@@ -45,8 +45,13 @@ Move the frontend from the Phase 4 project-scoped workspace into the explicit mu
 - [x] Graph reads and mutations use an explicit Canvas ID and never leak data across canvases.
 - [x] Pan/zoom restores independently per Canvas after switch, refresh, and backend restart, with bounded/debounced persistence.
 - [x] Desktop and compact editing remain usable, while widths below 768 px expose browse/review only and no graph mutation controls.
-- [ ] Keyboard focus, skip-to-content, 40x40 targets, reduced motion, Chinese labels, and required contrast survive browser verification.
-- [ ] Focused tests, frontend build, relevant browser checks, fresh diff review, and hygiene gates pass.
+- [x] Keyboard focus, skip-to-content, 40x40 targets, reduced motion, Chinese labels, and required contrast survive browser verification.
+- [x] Focused tests, frontend build, relevant browser checks, fresh diff review, and hygiene gates pass.
+
+## Completion Evidence
+
+- Report: `ai/reports/REPORT-T5-004.md`
+- Result: `DONE - PASS` on 2026-07-13.
 
 ## Linked Decisions And Specifications
 

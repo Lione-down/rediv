@@ -57,7 +57,7 @@ All source tokens use OKLCH. Hex values may be generated only for third-party co
 | `--v2-accent-hover` | `oklch(70% 0.18 292)` | Pointer hover |
 | `--v2-accent-pressed` | `oklch(59% 0.20 292)` | Pressed and active |
 | `--v2-accent-soft` | `oklch(65% 0.19 292 / 0.14)` | Selected row and focus background |
-| `--v2-focus-ring` | `oklch(72% 0.17 292 / 0.48)` | Visible keyboard focus |
+| `--v2-focus-ring` | `oklch(72% 0.17 292 / 0.64)` | Visible keyboard focus |
 
 ### 2.4 Semantic States
 
@@ -301,7 +301,7 @@ radius-md: 12px
 
 Example implementation prompts:
 
-1. Create the Canvas identity cluster on `oklch(14.5% 0.026 292)`, 12 px radius, 8 px internal gap, 13 px weight 550 text, project name in `oklch(94% 0.012 292)`, canvas name in `oklch(74% 0.024 292)`, 1 px `oklch(94% 0.015 292 / 0.06)` border, and a 2 px `oklch(72% 0.17 292 / 0.48)` focus ring.
+1. Create the Canvas identity cluster on `oklch(14.5% 0.026 292)`, 12 px radius, 8 px internal gap, 13 px weight 550 text, project name in `oklch(94% 0.012 292)`, canvas name in `oklch(74% 0.024 292)`, 1 px `oklch(94% 0.015 292 / 0.06)` border, and a 2 px `oklch(72% 0.17 292 / 0.64)` focus ring.
 2. Create a bottom tool dock with a 40 px minimum target, 8 px button radius, 12 px group gap, active item background `oklch(65% 0.19 292 / 0.14)`, active icon `oklch(65% 0.19 292)`, 120 ms transform and opacity transitions, and press scale 0.96.
 3. Create an asset node at 320x240 px using `oklch(17.5% 0.030 292)`, 12 px radius, 1 px standard border, media preview first, 14 px weight 600 title, 12 px metadata, violet selection edge, and no white card or cyan port.
 4. Create a conflict panel at 360 px width using `oklch(21% 0.035 292)`, 12 px radius, 16 px padding, danger icon `oklch(66% 0.19 24)`, 14 px primary title, 13 px body at 1.7 line height, and two 40 px actions for reload latest and preserve local copy.
