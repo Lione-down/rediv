@@ -36,6 +36,9 @@ const canvasStore = useCanvasStore()
 useCanvasPersistenceLifecycle()
 
 const projectId = computed(() => {
+  const routeProjectParam = route.params.projectId
+  const paramValue = Array.isArray(routeProjectParam) ? routeProjectParam[0] : routeProjectParam
+  if (typeof paramValue === 'string' && paramValue.trim()) return paramValue.trim()
   const routeProjectId = route.query.project_id
   const value = Array.isArray(routeProjectId) ? routeProjectId[0] : routeProjectId
   return typeof value === 'string' ? value.trim() : ''

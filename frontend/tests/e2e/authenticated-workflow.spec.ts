@@ -8,6 +8,8 @@ const NOW = '2026-07-12T08:00:00Z'
 
 interface MockState {
   projects: Array<Record<string, unknown>>
+  canvases: Array<Record<string, unknown>>
+  canvasOrderRevision: number
   assets: Array<Record<string, unknown>>
   templates: Array<Record<string, unknown>>
   imageQuota: number
@@ -28,6 +30,23 @@ const user = {
   created_at: NOW,
   updated_at: NOW,
   last_login_at: NOW,
+}
+
+function canvasMetadata(id: string, name: string, sortOrder: number) {
+  return {
+    id,
+    project_id: 'project-e2e',
+    name,
+    sort_order: sortOrder,
+    status: 'active',
+    viewport_x: 0,
+    viewport_y: 0,
+    viewport_zoom: 1,
+    graph_revision: 0,
+    created_at: NOW,
+    updated_at: NOW,
+    deleted_at: null,
+  }
 }
 
 const canvasNodes = [
@@ -146,7 +165,16 @@ async function installMockApi(page: Page, state: MockState) {
         created_at: NOW,
       }
       state.projects.unshift(project)
+      state.canvases = [canvasMetadata('canvas-first', '画布 1', 0)]
       await fulfillJson(route, project, 201)
+      return
+    }
+
+    if (request.method() === 'GET' && pathname === '/api/projects/project-e2e/canvases') {
+      await fulfillJson(route, {
+        items: state.canvases,
+        order_revision: state.canvasOrderRevision,
+      })
       return
     }
 
@@ -235,6 +263,8 @@ function createVisualState(): MockState {
         created_at: NOW,
       },
     ],
+    canvases: [canvasMetadata('canvas-first', '画布 1', 0)],
+    canvasOrderRevision: 0,
     assets: [
       {
         id: 'asset-prompt',
@@ -272,6 +302,8 @@ function createVisualState(): MockState {
 test('authenticated project and Canvas generation workflow survives reload', async ({ page }) => {
   const state: MockState = {
     projects: [],
+    canvases: [],
+    canvasOrderRevision: 0,
     assets: [],
     templates: [],
     imageQuota: 3,
@@ -295,7 +327,7 @@ test('authenticated project and Canvas generation workflow survives reload', asy
   await expect(page.getByRole('heading', { name: 'E2E 夏日短片' })).toBeVisible()
 
   await page.getByRole('button', { name: '进入项目 E2E 夏日短片' }).click()
-  await expect(page).toHaveURL(/\/app\/workspace\?project_id=project-e2e$/)
+  await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
   await expect(page.getByRole('button', { name: '定位到 生成封面' })).toBeVisible()
   await expect(page.locator('.connection-line')).toHaveCount(1)
 
@@ -321,10 +353,11 @@ test('authenticated project and Canvas generation workflow survives reload', asy
   ])
 
   await page.reload()
-  await expect(page).toHaveURL(/\/app\/workspace\?project_id=project-e2e$/)
+  await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
   await expect(page.getByRole('button', { name: '定位到 生成封面' })).toBeVisible()
   await expect(page.locator('.connection-line')).toHaveCount(1)
   expect(state.authenticatedRequests).toContain('GET /me')
+  expect(state.authenticatedRequests).toContain('GET /api/projects/project-e2e/canvases')
   expect(state.authenticatedRequests).toContain('GET /projects/project-e2e/nodes')
   expect(state.authenticatedRequests).toContain('POST /api/image-generate')
 })
@@ -349,7 +382,7 @@ for (const viewport of visualViewports) {
     await captureVisualEvidence(page, testInfo, `${viewport.name}-home`)
 
     await page.getByRole('button', { name: '进入项目 E2E 夏日短片' }).click()
-    await expect(page).toHaveURL(/\/app\/workspace\?project_id=project-e2e$/)
+    await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
     await expect(page.getByRole('region', { name: 'Revid 无限画布工作区' })).toBeVisible()
     await expect(page.locator('footer[aria-label="Prompt 输入区"]')).toBeVisible()
     const toolRailBox = await page.getByRole('navigation', { name: '画布工具' }).boundingBox()
@@ -372,3 +405,27 @@ for (const viewport of visualViewports) {
     await captureVisualEvidence(page, testInfo, `${viewport.name}-space`)
   })
 }
+
+test('legacy and invalid canonical routes resolve only through the active Canvas list', async ({ page }) => {
+  const state = createVisualState()
+  state.canvases = [
+    canvasMetadata('canvas-first', '画布 1', 0),
+    canvasMetadata('canvas-second', '分镜', 1),
+  ]
+  await installMockApi(page, state)
+  await page.addInitScript(() => {
+    window.localStorage.setItem('revid_token', 'mock-session-token')
+    window.localStorage.setItem(
+      'revid:last-canvas:user-e2e:project-e2e',
+      'canvas-second',
+    )
+  })
+
+  await page.goto('/app/workspace?project_id=project-e2e')
+  await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
+  await expect(page.getByRole('button', { name: '定位到 生成封面' })).toBeVisible()
+
+  await page.goto('/app/projects/project-e2e/canvases/foreign-canvas')
+  await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
+  expect(state.authenticatedRequests).toContain('GET /api/projects/project-e2e/canvases')
+})

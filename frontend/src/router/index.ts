@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useCanvasListStore } from '../modules/canvas/canvas-list-store'
+import { canvasRouteLocation, normalizeRouteIdentifier } from '../modules/canvas/metadata'
 import { useAuthStore } from '../store/auth'
 
 export const DEFAULT_AUTH_REDIRECT = '/app/workspace'
@@ -47,6 +49,32 @@ export function resolveAuthRedirect(value: unknown, fallback = DEFAULT_AUTH_REDI
   }
 }
 
+async function resolveLegacyWorkspace(to: { query: Record<string, unknown> }) {
+  const projectId = normalizeRouteIdentifier(to.query.project_id)
+  if (!projectId) return { name: 'home', replace: true }
+
+  try {
+    const canvas = await useCanvasListStore().resolveCanvas(projectId, undefined, false)
+    return canvas ? canvasRouteLocation(projectId, canvas.id) : { name: 'home', replace: true }
+  } catch {
+    return { name: 'home', replace: true }
+  }
+}
+
+async function validateCanonicalWorkspace(to: { params: Record<string, unknown> }) {
+  const projectId = normalizeRouteIdentifier(to.params.projectId)
+  const canvasId = normalizeRouteIdentifier(to.params.canvasId)
+  if (!projectId || !canvasId) return { name: 'home', replace: true }
+
+  try {
+    const canvas = await useCanvasListStore().resolveCanvas(projectId, canvasId)
+    if (!canvas) return { name: 'home', replace: true }
+    return canvas.id === canvasId ? true : canvasRouteLocation(projectId, canvas.id)
+  } catch {
+    return { name: 'home', replace: true }
+  }
+}
+
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -70,6 +98,14 @@ export const router = createRouter({
       name: 'workspace',
       component: () => import('../views/app/Workspace.vue'),
       meta: { requiresAuth: true },
+      beforeEnter: resolveLegacyWorkspace,
+    },
+    {
+      path: '/app/projects/:projectId/canvases/:canvasId',
+      name: 'canvas-workspace',
+      component: () => import('../views/app/Workspace.vue'),
+      meta: { requiresAuth: true },
+      beforeEnter: validateCanonicalWorkspace,
     },
     {
       path: '/app/space',

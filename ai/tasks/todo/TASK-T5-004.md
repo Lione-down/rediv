@@ -39,7 +39,7 @@ Move the frontend from the Phase 4 project-scoped workspace into the explicit mu
 ## Acceptance Criteria
 
 - [x] V2 Canvas semantic tokens have one value source and drive Canvas CSS plus Canvas-local Naive UI overrides without changing unrelated pages.
-- [ ] The canonical route contains valid project and Canvas IDs; the legacy workspace resolves the first active Canvas without flattening multi-canvas data.
+- [x] The canonical route contains valid project and Canvas IDs; the legacy workspace resolves the first active Canvas without flattening multi-canvas data.
 - [ ] Canvas navigation supports create, rename, reorder, switch, archive, and duplicate with optimistic order-revision handling.
 - [ ] The Canvas is full-screen with floating route chrome, no permanent empty inspector, and clear project, Canvas, back, save, and recovery context.
 - [ ] Graph reads and mutations use an explicit Canvas ID and never leak data across canvases.

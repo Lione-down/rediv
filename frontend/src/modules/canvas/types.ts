@@ -1,3 +1,54 @@
+export type CanvasStatus = 'active' | 'archived'
+
+export interface CanvasMetadataDto {
+  id: string
+  project_id: string
+  name: string
+  sort_order: number
+  status: CanvasStatus
+  viewport_x: number
+  viewport_y: number
+  viewport_zoom: number
+  graph_revision: number
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export interface CanvasListResponse {
+  items: CanvasMetadataDto[]
+  order_revision: number
+}
+
+export interface CanvasMutationResponse {
+  item: CanvasMetadataDto
+  order_revision: number
+}
+
+export interface CanvasCreatePayload {
+  name: string
+  base_order_revision: number
+}
+
+export interface CanvasRenamePayload {
+  name: string
+}
+
+export interface CanvasArchivePayload {
+  status: 'archived'
+  base_order_revision: number
+}
+
+export interface CanvasReorderPayload {
+  base_order_revision: number
+  ordered_canvas_ids: string[]
+}
+
+export interface CanvasDuplicatePayload {
+  base_order_revision: number
+  name?: string
+}
+
 export type CanvasNodeContentDto = Record<string, unknown>
 
 export interface CanvasNodeDto {

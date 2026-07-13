@@ -1,8 +1,9 @@
 # TASK-T5-004 Plan
 
 - State: `DOING`
+- Completed unit: Unit B - Canvas metadata client/store and canonical route resolution (`COMPLETE - PASS`)
+- Next unit: Unit C - full-screen Canvas shell and navigation interactions
 - Completed unit: Unit A - single-source V2 Canvas token foundation (`COMPLETE - PASS`)
-- Next unit: Unit B - Canvas metadata client/store and canonical route resolution
 - Updated: 2026-07-13
 
 ## Objective
@@ -39,9 +40,43 @@ Deliver the explicit multi-canvas frontend in independently mergeable units whil
 - Existing frontend build output remains successful and no rendered route is changed by this unit.
 - Fresh diff review, `git diff --check`, exact staging, UTF-8, sensitive-path, secret-candidate, and tracked database-artifact gates pass.
 
+### Outcome
+
+- Frontend metadata types and API paths mirror the strict backend list, item, create, rename, reorder, archive, and duplicate contracts.
+- The project-scoped list store serializes mutations, adopts only server-returned items and order revisions, reloads after stale-order conflicts, and rejects responses from stale auth/project generations.
+- Legacy project entry resolves the first ordered active Canvas, canonical routes validate project ownership and active membership, and invalid Canvas IDs redirect without entering graph loading under that ID.
+- Browser-local last-opened identity is keyed by authenticated user and project and accepted only against the loaded active list.
+- Focused metadata tests, canonical/legacy browser routes, full existing browser regression, production build, diff review, and hygiene gates passed.
+
+## Unit B - Canvas metadata client, store, and route resolution
+
+### Scope
+
+1. Mirror the strict backend Canvas list, item, mutation, reorder, archive, and duplication contracts in the frontend metadata API without changing backend behavior.
+2. Add one project-scoped Canvas list store that serializes metadata mutations, keeps the server-returned `order_revision`, and refreshes from the server after a stale-revision conflict instead of predicting a successful order.
+3. Add the canonical `/app/projects/:projectId/canvases/:canvasId` route while temporarily rendering the existing Workspace until the Unit C shell lands.
+4. Resolve `/app/workspace?project_id=...` through the backend's ordered active list to its first Canvas, and validate canonical project/Canvas membership before the Workspace can load project-scoped compatibility graph data.
+5. Keep last-opened Canvas preference browser-local and keyed by authenticated user plus project; accept it only when it belongs to the loaded active list.
+6. Extend mock browser coverage for valid canonical entry, legacy first-active resolution, stale/foreign Canvas fallback, mutation revision handling, and authentication on Canvas metadata requests.
+
+### Non-goals
+
+- V2 shell, navigation controls, dialogs, visual provider, or page-level redesign;
+- explicit Canvas graph/document APIs, viewport writes, save flushing, or renderer changes;
+- backend schema/API changes, MySQL access, migration execution, or real-service calls;
+- replacing the existing Workspace compatibility graph load before Unit D.
+
+### Success criteria
+
+- Every metadata request uses encoded project/Canvas path segments and matches the backend response/payload field names.
+- Metadata mutations are serialized; UI state adopts only server-returned items/revisions, and HTTP 409 stores the reported revision then reloads the active list before surfacing the error.
+- A legacy route with a valid project reaches the first active Canvas canonical URL; a canonical foreign, archived, or missing Canvas ID never reaches graph loading under that ID.
+- The canonical Workspace receives its project ID from route params while legacy project-scoped graph compatibility remains usable.
+- Focused Playwright route/store-contract coverage and the frontend production build pass.
+- Fresh diff review, `git diff --check`, exact staging, UTF-8, sensitive-path, secret-candidate, and tracked database-artifact gates pass.
+
 ## Later Units
 
-- Unit B: Canvas metadata API/store, optimistic order revision, canonical route, and legacy first-active resolution.
 - Unit C: route-local V2 provider, full-screen shell, identity/navigation chrome, responsive review boundary, and browser visual evidence.
 - Unit D: explicit Canvas graph scope and normalized debounced viewport persistence.
 - Unit E: focused and regression browser evidence, accessibility/reduced-motion checks, documentation, REPORT, and closure reconciliation.
@@ -55,8 +90,8 @@ Deliver the explicit multi-canvas frontend in independently mergeable units whil
 
 ## Verification Order
 
-1. Inspect the exact changed SCSS and TypeScript token contracts.
+1. Run focused Playwright tests for canonical and legacy route resolution plus metadata mutation/revision behavior.
 2. Run `npm run build` from `frontend`.
-3. Run focused static scans for duplicated literals and forbidden V2 visual patterns in the new files.
+3. Inspect the exact TypeScript API/store/router diff against backend schemas and route fail-closed rules.
 4. Run fresh diff review and `git diff --check`.
 5. Precisely stage owned paths, run staged UTF-8/sensitive-path/secret/database-artifact checks, commit, and push.

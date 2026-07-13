@@ -22,8 +22,8 @@ Last updated: 2026-07-13
 
 - Active implementation Task: `T5-004 - V2 Canvas shell, navigation, and viewport persistence`
 - State: `DOING`
-- Latest completed unit: Unit A - single-source V2 Canvas token foundation (`COMPLETE - PASS`)
-- Next unit: Unit B - Canvas metadata client/store and canonical route resolution
+- Latest completed unit: Unit B - Canvas metadata client/store and canonical route resolution (`COMPLETE - PASS`)
+- Next unit: Unit C - full-screen Canvas shell and navigation interactions
 - Task: `ai/tasks/todo/TASK-T5-004.md`
 - Plan: `ai/tasks/doing/TASK-T5-004-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-004-PROGRESS.md`
@@ -58,17 +58,18 @@ Last updated: 2026-07-13
 - Reorder requires an exact active-ID permutation and persists dense order; archive rejects the last active Canvas.
 - Duplication copies viewport and graph content into new IDs, remaps group parents and endpoints, retains project-shared asset references, and rolls back completely on conflict or commit failure.
 - T5-003 closure passed 44 focused guarded MySQL/API/compatibility tests and 186 full backend tests plus 5 subtests; Alembic has one head.
-- The explicit frontend route and viewport persistence UI remain intentionally unimplemented for T5-004.
+- The canonical frontend Canvas route, strict metadata client/store, server-revision handling, validated user/project preference, and legacy first-active redirect passed Unit B browser/build evidence.
+- The canonical route still renders the Phase 4 Workspace through the compatibility graph path; the V2 shell/navigation and explicit Canvas graph/viewport persistence remain intentionally deferred to Units C-D.
 - The migration has not been applied to a user/runtime database and requires normal backup and Human migration authorization.
 - Ignored local `.db` artifacts and the pre-existing `revid_test_db` remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Inspect the exact backend Canvas response contracts and add the Unit B frontend metadata API/store plus canonical and legacy route-resolution tests before connecting the shell.
+Build Unit C's route-local V2 provider and full-screen Canvas identity/navigation shell on the verified metadata store, without changing graph persistence yet.
 
 ## Blockers And Release Conditions
 
-- No blocker prevents T5-004 Unit B repository implementation.
+- No blocker prevents T5-004 Unit C repository implementation.
 - Applying `f0a1b2c3d4e5` to user/runtime data requires reviewed backup discipline and Human migration authorization.
 - Credential rotation becomes Human-required only if the removed assignment was ever real or reused.
 - Local ignored `.db` deletion requires exact-path Human approval after MySQL backup/parity evidence.
@@ -76,7 +77,7 @@ Inspect the exact backend Canvas response contracts and add the Unit B frontend 
 
 ## Worktree Protection
 
-- Unit D started from clean `main` at `1631bfb443915222576ee6edd4294ec98a4f0f4e`.
+- Unit B started from clean `main` at `5c5e163c6f4f2f8f329a2e15859860e0d06a4e07`.
 - Pre-existing staged, tracked-modified, untracked, unmerged, detached, and in-progress Git-operation state: none.
 - Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.
