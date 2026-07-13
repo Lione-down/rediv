@@ -50,6 +50,7 @@ function connection(id: string, from: string, to: string) {
 }
 
 function createState(): CommandState {
+  canvas.graph_revision = 0
   return {
     nodes: [node('node-a', '镜头 A', 180), node('node-b', '镜头 B', 520), node('node-c', '镜头 C', 860)],
     connections: [connection('connection-ab', 'node-a', 'node-b'), connection('connection-bc', 'node-b', 'node-c')],
@@ -89,7 +90,12 @@ async function installCommandApi(page: Page, state: CommandState) {
       return fulfillJson(route, { items: [canvas], order_revision: 0 })
     }
     if (method === 'GET' && path.endsWith('/document')) {
-      return fulfillJson(route, { canvas, nodes: state.nodes, connections: state.connections, revision: 0 })
+      return fulfillJson(route, {
+        canvas,
+        nodes: state.nodes,
+        connections: state.connections,
+        revision: canvas.graph_revision,
+      })
     }
     if (method === 'PATCH' && path.endsWith('/viewport') && body) {
       return fulfillJson(route, {
@@ -97,6 +103,48 @@ async function installCommandApi(page: Page, state: CommandState) {
         viewport_x: Number(body.x),
         viewport_y: Number(body.y),
         viewport_zoom: Number(body.zoom),
+      })
+    }
+    if (method === 'PATCH' && path.endsWith('/document') && body) {
+      const nodeUpserts = body.node_upserts as Array<Record<string, unknown>>
+      const nodeDeletes = body.node_deletes as string[]
+      const connectionUpserts = body.connection_upserts as Array<Record<string, unknown>>
+      const connectionDeletes = body.connection_deletes as string[]
+      const nodesById = new Map(state.nodes.map((item) => [String(item.id), item]))
+      for (const nodeId of nodeDeletes) nodesById.delete(nodeId)
+      for (const item of nodeUpserts) {
+        nodesById.set(String(item.id), {
+          ...item,
+          project_id: 'project-command',
+          canvas_id: 'canvas-command',
+          status: 'idle',
+          created_at: NOW,
+          updated_at: NOW,
+        })
+      }
+      state.nodes = [...nodesById.values()]
+      const connectionsById = new Map(state.connections.map((item) => [String(item.id), item]))
+      for (const connectionId of connectionDeletes) connectionsById.delete(connectionId)
+      for (const item of connectionUpserts) {
+        connectionsById.set(String(item.id), {
+          ...item,
+          project_id: 'project-command',
+          canvas_id: 'canvas-command',
+          status: 'active',
+          created_at: NOW,
+          updated_at: NOW,
+        })
+      }
+      state.connections = [...connectionsById.values()]
+      canvas.graph_revision += 1
+      return fulfillJson(route, {
+        revision: canvas.graph_revision,
+        node_upserts: nodeUpserts.map((item) => nodesById.get(String(item.id))),
+        node_deletes: nodeDeletes,
+        connection_upserts: connectionUpserts.map((item) => connectionsById.get(String(item.id))),
+        connection_deletes: connectionDeletes,
+        server_timestamp: NOW,
+        save_state: 'saved',
       })
     }
 
@@ -200,8 +248,13 @@ test('modifier selection stays deterministic and dragging one selected node move
   expect(state.requests.filter((request) => request.method === 'PUT')).toHaveLength(0)
   await page.mouse.up()
 
-  await expect.poll(() => state.requests.filter((request) => request.method === 'PUT').length).toBe(2)
-  const moves = state.requests.filter((request) => request.method === 'PUT').map((request) => request.body)
+  await expect.poll(() => state.requests.filter((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/document')
+  )).length).toBe(1)
+  const movePatch = state.requests.find((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/document')
+  ))
+  const moves = movePatch?.body?.node_upserts as Array<Record<string, unknown>>
   expect(moves).toEqual(expect.arrayContaining([
     expect.objectContaining({ position_x: 96, position_y: 312 }),
     expect.objectContaining({ position_x: 436, position_y: 312 }),
@@ -221,16 +274,25 @@ test('keyboard duplicate and toolbar delete share one selected-subgraph command 
   await page.keyboard.press('Control+d')
   await expect.poll(() => state.nodes.length).toBe(5)
   await expect.poll(() => state.connections.length).toBe(3)
+  const copiedNodes = state.nodes.filter((item) => !['node-a', 'node-b', 'node-c'].includes(String(item.id)))
+  const copiedNodeA = copiedNodes.find((item) => (
+    String((item.content as Record<string, unknown>).title).includes('A')
+  ))
+  const copiedNodeB = copiedNodes.find((item) => (
+    String((item.content as Record<string, unknown>).title).includes('B')
+  ))
   expect(state.connections.at(-1)).toEqual(expect.objectContaining({
-    source_node_id: 'node-copy-1',
-    target_node_id: 'node-copy-2',
+    source_node_id: copiedNodeA?.id,
+    target_node_id: copiedNodeB?.id,
   }))
   await expect(page.getByRole('button', { name: '定位到 镜头 A 副本' })).toHaveClass(/selected/)
   await expect(page.getByRole('button', { name: '定位到 镜头 B 副本' })).toHaveClass(/selected/)
 
   await page.getByRole('button', { name: '删除所选节点' }).click()
   await expect.poll(() => state.nodes.length).toBe(3)
-  await expect.poll(() => state.requests.filter((request) => request.method === 'DELETE').length).toBe(2)
+  await expect.poll(() => state.requests.filter((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/document')
+  )).length).toBe(2)
   expect(state.nodes.map((item) => item.id)).toEqual(['node-a', 'node-b', 'node-c'])
   expect(state.connections.map((item) => item.id)).toEqual(['connection-ab', 'connection-bc'])
 })
@@ -308,10 +370,15 @@ test('typed align and lock commands persist once and locked nodes reject mutatio
 
   await toolbar.getByRole('button', { name: '锁定所选节点' }).click()
   await expect.poll(() => state.nodes.every((item) => item.is_locked === true)).toBe(true)
-  const deleteCount = state.requests.filter((request) => request.method === 'DELETE').length
+  const patchCount = state.requests.filter((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/document')
+  )).length
   await page.keyboard.press('Delete')
+  await page.waitForTimeout(650)
   expect(state.nodes).toHaveLength(3)
-  expect(state.requests.filter((request) => request.method === 'DELETE')).toHaveLength(deleteCount)
+  expect(state.requests.filter((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/document')
+  ))).toHaveLength(patchCount)
 
   await toolbar.getByRole('button', { name: '解锁所选节点' }).click()
   await expect.poll(() => state.nodes.every((item) => item.is_locked === false)).toBe(true)
@@ -330,7 +397,9 @@ test('Canvas-focus shortcuts group, ungroup, connect, and expose synchronized DO
 
   await page.getByRole('link', { name: '返回项目首页' }).focus()
   await page.keyboard.press('Control+g')
-  expect(state.requests.filter((request) => request.method === 'POST' && request.path.endsWith('/nodes'))).toHaveLength(0)
+  expect(state.requests.filter((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/document')
+  ))).toHaveLength(0)
 
   await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
   await page.keyboard.press('Control+g')

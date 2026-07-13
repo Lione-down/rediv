@@ -128,8 +128,12 @@
   animation: status-spin 900ms linear infinite;
 }
 
-.sync-status.is-error {
+.sync-status.is-error,
+.sync-status.is-conflict {
   color: var(--v2-danger);
+}
+
+.sync-status.is-error {
   cursor: pointer;
 }
 

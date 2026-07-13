@@ -47,19 +47,31 @@ const projectName = computed(() => (
 ))
 const accountName = computed(() => authStore.user?.nickname || authStore.user?.username || '个人空间')
 const syncLabel = computed(() => {
-  if (canvasDocumentStore.saveError) return '画布文档需要恢复'
+  if (canvasDocumentStore.saveState === 'conflict') {
+    return `保存冲突 · server r${canvasDocumentStore.conflictRevision ?? canvasDocumentStore.graphRevision}`
+  }
+  if (canvasDocumentStore.saveState === 'error') {
+    return canvasDocumentStore.canRetryAutosave
+      ? '画布未保存，点击重试'
+      : canvasDocumentStore.saveError || '检测到本地恢复副本'
+  }
+  if (canvasDocumentStore.saveState === 'saving') return '正在保存画布'
   if (canvasDocumentStore.isViewportSaving) return '正在保存视口'
   if (canvasListStore.isMutating) return '正在保存画布'
   if (canvasListStore.mutationError) return '画布需要恢复'
   return `画布已同步 · r${canvasDocumentStore.graphRevision}`
 })
 const syncTone = computed(() => {
-  if (canvasListStore.mutationError || canvasDocumentStore.saveError) return 'error'
-  if (canvasListStore.isMutating || canvasDocumentStore.isViewportSaving) return 'saving'
+  if (canvasDocumentStore.saveState === 'conflict') return 'conflict'
+  if (canvasListStore.mutationError || canvasDocumentStore.saveState === 'error') return 'error'
+  if (
+    canvasListStore.isMutating || canvasDocumentStore.isViewportSaving ||
+    canvasDocumentStore.saveState === 'saving'
+  ) return 'saving'
   return 'saved'
 })
 const syncIcon = computed(() => {
-  if (syncTone.value === 'error') return CircleHelp
+  if (syncTone.value === 'error' || syncTone.value === 'conflict') return CircleHelp
   if (syncTone.value === 'saving') return LoaderCircle
   return CircleCheck
 })
@@ -135,7 +147,7 @@ async function retryCanvasList() {
 
 async function retryCanvasState() {
   const operations: Promise<unknown>[] = [canvasListStore.loadCanvases(projectId.value, true)]
-  if (canvasDocumentStore.saveError) operations.push(canvasDocumentStore.flushPendingPersistence())
+  if (canvasDocumentStore.saveState === 'error') operations.push(canvasDocumentStore.retryAutosave())
   else operations.push(canvasDocumentStore.reloadActiveDocument())
   await Promise.allSettled(operations)
 }
@@ -263,8 +275,8 @@ onBeforeUnmount(() => {
             type="button"
             class="sync-status"
             :class="`is-${syncTone}`"
-            :disabled="!canvasListStore.mutationError && !canvasDocumentStore.saveError"
-            :aria-label="canvasListStore.mutationError || canvasDocumentStore.saveError ? `${syncLabel}，重试同步` : syncLabel"
+            :disabled="!canvasListStore.mutationError && !canvasDocumentStore.canRetryAutosave"
+            :aria-label="canvasListStore.mutationError || canvasDocumentStore.canRetryAutosave ? `${syncLabel}，重试同步` : syncLabel"
             @click="retryCanvasState"
           >
             <component :is="syncIcon" :size="16" aria-hidden="true" />

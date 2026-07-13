@@ -18,6 +18,7 @@ export function useCanvasPersistenceLifecycle() {
   })
 
   function handlePageHide() {
+    canvasStore.preserveLocalRecovery()
     void flushPersistence().catch(() => undefined)
   }
 
@@ -27,6 +28,7 @@ export function useCanvasPersistenceLifecycle() {
 
   onBeforeUnmount(() => {
     window.removeEventListener('pagehide', handlePageHide)
+    canvasStore.preserveLocalRecovery()
     void flushPersistence().catch(() => undefined)
   })
 }

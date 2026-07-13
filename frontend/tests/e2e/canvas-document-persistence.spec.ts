@@ -73,6 +73,10 @@ function node(canvasId: string, id: string, title: string, x: number) {
     position_y: 120,
     width: 240,
     height: 140,
+    z_index: 0,
+    parent_node_id: null,
+    is_locked: false,
+    is_collapsed: false,
     status: 'idle',
     created_at: NOW,
     updated_at: NOW,
@@ -152,6 +156,33 @@ async function installDocumentApi(page: Page, state: DocumentState) {
         activeCanvas.updated_at = NOW
         return fulfillJson(route, activeCanvas)
       }
+      if (method === 'PATCH' && resource === 'document' && body) {
+        const nodeUpserts = body.node_upserts as Array<Record<string, unknown>>
+        const nodeDeletes = body.node_deletes as string[]
+        const nodesById = new Map((state.nodes[canvasId] ?? []).map((item) => [String(item.id), item]))
+        for (const nodeId of nodeDeletes) nodesById.delete(nodeId)
+        for (const item of nodeUpserts) {
+          nodesById.set(String(item.id), {
+            ...item,
+            project_id: 'project-document',
+            canvas_id: canvasId,
+            status: 'idle',
+            created_at: NOW,
+            updated_at: NOW,
+          })
+        }
+        state.nodes[canvasId] = [...nodesById.values()]
+        activeCanvas.graph_revision += 1
+        return fulfillJson(route, {
+          revision: activeCanvas.graph_revision,
+          node_upserts: nodeUpserts.map((item) => nodesById.get(String(item.id))),
+          node_deletes: nodeDeletes,
+          connection_upserts: [],
+          connection_deletes: body.connection_deletes,
+          server_timestamp: NOW,
+          save_state: 'saved',
+        })
+      }
       if (method === 'POST' && resource === 'nodes' && body) {
         const created = {
           ...node(canvasId, `node-created-${canvasId}`, '文本节点 2', Number(body.position_x)),
@@ -196,16 +227,20 @@ test('canonical graph load and node mutation use exact Canvas-scoped paths', asy
 
   await page.locator('.canvas-surface').dblclick({ position: { x: 900, y: 520 } })
   await expect.poll(() => state.nodes['canvas-first'].length).toBe(2)
-  const createRequest = state.requests.find((request) => request.method === 'POST' && request.path.endsWith('/nodes'))
-  expect(createRequest?.path).toBe('/api/projects/project-document/canvases/canvas-first/nodes')
-  expect(Number(createRequest?.body?.position_x)).toBeLessThan(900)
+  const createRequest = state.requests.find((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/canvas-first/document')
+  ))
+  const createdNode = (createRequest?.body?.node_upserts as Array<Record<string, unknown>>)[0]
+  expect(createRequest?.path).toBe('/api/projects/project-document/canvases/canvas-first/document')
+  expect(Number(createdNode.position_x)).toBeLessThan(900)
 
   await page.keyboard.press('Delete')
   await expect.poll(() => state.nodes['canvas-first'].length).toBe(1)
-  expect(state.requests).toContainEqual(expect.objectContaining({
-    method: 'DELETE',
-    path: '/api/projects/project-document/canvases/canvas-first/nodes/node-created-canvas-first',
-  }))
+  const documentPatches = state.requests.filter((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/canvas-first/document')
+  ))
+  expect(documentPatches).toHaveLength(2)
+  expect(documentPatches[1].body?.node_deletes).toEqual([createdNode.id])
 })
 
 test('viewport writes are debounced, flushed before switch, and restored per Canvas', async ({ page }) => {

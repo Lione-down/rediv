@@ -39,8 +39,8 @@ Make Canvas editing durable and recoverable through one idempotent autosave boun
 - [x] Each mutation batch uses `base_revision` and `client_mutation_id`; one MySQL transaction applies the graph change, writes its revision, and advances the head.
 - [x] A stale base returns HTTP 409 with the current revision and no partial write.
 - [x] Retrying the same mutation ID and fingerprint returns the original committed result; reusing the ID with a different fingerprint returns HTTP 409.
-- [ ] Autosave enters `Saving` immediately, reaches `Saved` within one second under normal local conditions, and preserves rejected or unsent work on error/conflict.
-- [ ] Canvas switch, route exit, and page hide use deterministic flush/retry/preserve-local-copy behavior.
+- [x] Autosave enters `Saving` immediately, reaches `Saved` within one second under normal local conditions, and preserves rejected or unsent work on error/conflict.
+- [x] Canvas switch, route exit, and page hide use deterministic flush/retry/preserve-local-copy behavior.
 - [ ] Undo/redo is isolated by Canvas and retains at least 100 applied commands.
 - [ ] Durable history retains the latest 50 edit revisions plus required checkpoints; restore creates a new head and never rewrites prior history.
 - [x] Viewport persistence stays separate and does not advance graph revision.

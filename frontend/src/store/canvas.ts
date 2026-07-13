@@ -8,6 +8,7 @@ import {
 } from '../modules/canvas/api'
 import { mapCanvasConnection, mapCanvasNode } from '../modules/canvas/mappers'
 import { createCanvasMutationActions } from '../modules/canvas/mutations'
+import { createCanvasAutosave } from '../modules/canvas/canvas-autosave'
 import type { CanvasCommandEnvelope } from '../modules/canvas/canvas-commands'
 import {
   isSameCanvasSelection,
@@ -21,7 +22,7 @@ import {
   VIEWPORT_DEBOUNCE_MS,
   type PersistedViewport,
 } from '../modules/canvas/persistence'
-import type { CanvasMetadataDto } from '../modules/canvas/types'
+import type { CanvasGraphSaveState, CanvasMetadataDto } from '../modules/canvas/types'
 import type { CanvasConnection, CanvasNode } from '../types/canvas'
 import { useAuthStore } from './auth'
 
@@ -42,9 +43,7 @@ interface DocumentContext {
   projectId: string
   canvasId: string
 }
-
 const DEFAULT_VIEWPORT: PersistedViewport = { zoom: 1, x: 0, y: 0 }
-
 export const useCanvasStore = defineStore('canvas', () => {
   const authStore = useAuthStore()
   const activeProjectId = ref('')
@@ -63,6 +62,10 @@ export const useCanvasStore = defineStore('canvas', () => {
   const loadError = ref('')
   const saveError = ref('')
   const saveErrorRevision = ref(0)
+  const saveState = ref<CanvasGraphSaveState>('saved')
+  const conflictRevision = ref<number | null>(null)
+  const hasLocalRecovery = ref(false)
+  const canRetryAutosave = ref(false)
   const isViewportSaving = ref(false)
 
   let generation = 0
@@ -72,7 +75,6 @@ export const useCanvasStore = defineStore('canvas', () => {
   let viewportInFlight: Promise<void> | null = null
   let confirmedViewport: PersistedViewport = { ...DEFAULT_VIEWPORT }
   let desiredViewport: PersistedViewport = { ...DEFAULT_VIEWPORT }
-
   const selectedNode = computed(() => nodes.value.find((node) => node.id === selectedNodeId.value) || null)
   const selectedNodes = computed(() => {
     const selectedIds = new Set(selectedNodeIds.value)
@@ -101,6 +103,7 @@ export const useCanvasStore = defineStore('canvas', () => {
 
   function reportSaveError(action: string, error: unknown) {
     saveError.value = getCanvasErrorMessage(error, `${action}失败，已恢复画布状态，请重试。`)
+    saveState.value = 'error'
     saveErrorRevision.value += 1
   }
 
@@ -156,24 +159,42 @@ export const useCanvasStore = defineStore('canvas', () => {
       content,
       contentData: { ...node.contentData, text: content },
     }))
+    canvasAutosave.queue()
   }
 
   function findNodeById(nodeId: string) {
     return nodes.value.find((node) => node.id === nodeId) ?? null
   }
-
+  const canvasAutosave = createCanvasAutosave({
+    getIdentity: () => {
+      const userId = authStore.user?.id ?? ''
+      if (!userId || !activeProjectId.value || !activeCanvasId.value) return null
+      return { userId, projectId: activeProjectId.value, canvasId: activeCanvasId.value }
+    },
+    getNodes: () => nodes.value,
+    getConnections: () => connections.value,
+    onRevision: (revision) => {
+      graphRevision.value = revision
+    },
+    onStatus: (status) => {
+      const previousError = saveError.value
+      saveState.value = status.state
+      saveError.value = status.message
+      conflictRevision.value = status.conflictRevision
+      hasLocalRecovery.value = status.hasRecovery
+      canRetryAutosave.value = status.canRetry
+      if (status.message && status.message !== previousError) saveErrorRevision.value += 1
+    },
+  })
   const canvasMutations = createCanvasMutationActions({
     activeProjectId,
     activeCanvasId,
     selectedNodeId,
     selectedNodeIds,
-    selectionRevision,
     nodes,
     connections,
     bumpDataRevision,
-    captureDocumentContext,
-    isCurrentDocument,
-    reportSaveError,
+    queueAutosave: canvasAutosave.queue,
     updateNode,
     findNodeById,
     setSelection,
@@ -194,6 +215,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     generation += 1
     bumpDataRevision()
     loadRequest = null
+    canvasAutosave.reset()
     canvasMutations.resetMutationState()
     activeProjectId.value = projectId
     activeCanvasId.value = canvasId
@@ -208,6 +230,10 @@ export const useCanvasStore = defineStore('canvas', () => {
     isLoading.value = false
     loadError.value = ''
     saveError.value = ''
+    saveState.value = 'saved'
+    conflictRevision.value = null
+    hasLocalRecovery.value = false
+    canRetryAutosave.value = false
     resetViewportPersistence()
   }
 
@@ -267,6 +293,7 @@ export const useCanvasStore = defineStore('canvas', () => {
         graphRevision.value = response.data.revision
         adoptDocumentViewport(response.data.canvas)
         canvasMutations.initializeConfirmedPositions()
+        canvasAutosave.initialize(response.data.revision)
         hasLoaded.value = true
         setSelection(selectedNodeIds.value, selectedNodeId.value)
       } catch (error) {
@@ -345,7 +372,7 @@ export const useCanvasStore = defineStore('canvas', () => {
           y: response.data.viewport_y,
           zoom: response.data.viewport_zoom,
         })
-        saveError.value = ''
+        if (saveState.value === 'saved') saveError.value = ''
       } catch (error) {
         if (isCurrentDocument(context)) reportSaveError('保存视口', error)
         throw error
@@ -372,11 +399,24 @@ export const useCanvasStore = defineStore('canvas', () => {
 
   async function flushPendingPersistence() {
     const results = await Promise.allSettled([
-      canvasMutations.flushPendingMoves(),
+      canvasAutosave.flush(),
       persistPendingViewport(),
     ])
     const failed = results.find((result): result is PromiseRejectedResult => result.status === 'rejected')
     if (failed) throw failed.reason
+  }
+
+  async function retryAutosave() {
+    const results = await Promise.allSettled([
+      canvasAutosave.retry(),
+      persistPendingViewport(),
+    ])
+    const failed = results.find((result): result is PromiseRejectedResult => result.status === 'rejected')
+    if (failed) throw failed.reason
+  }
+
+  function preserveLocalRecovery() {
+    canvasAutosave.preserveRecovery()
   }
 
   function dispatchCommand(envelope: CanvasCommandEnvelope) {
@@ -428,6 +468,10 @@ export const useCanvasStore = defineStore('canvas', () => {
     loadError,
     saveError,
     saveErrorRevision,
+    saveState,
+    conflictRevision,
+    hasLocalRecovery,
+    canRetryAutosave,
     isViewportSaving,
     loadCanvas,
     loadProject,
@@ -435,6 +479,8 @@ export const useCanvasStore = defineStore('canvas', () => {
     updateViewport,
     persistPendingViewport,
     flushPendingPersistence,
+    retryAutosave,
+    preserveLocalRecovery,
     selectNode,
     selectConnection,
     setSelection,

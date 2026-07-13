@@ -126,6 +126,50 @@ export interface CanvasDocumentResponse {
   revision: number
 }
 
+export interface CanvasDocumentNodeUpsert {
+  id: string
+  node_type: string
+  content: CanvasNodeContentDto
+  position_x: number
+  position_y: number
+  width: number
+  height: number
+  z_index: number
+  parent_node_id: string | null
+  is_locked: boolean
+  is_collapsed: boolean
+}
+
+export interface CanvasDocumentConnectionUpsert {
+  id: string
+  source_node_id: string
+  source_port: string
+  target_node_id: string
+  target_port: string
+  metadata: Record<string, unknown>
+}
+
+export interface CanvasDocumentPatchPayload {
+  base_revision: number
+  client_mutation_id: string
+  node_upserts: CanvasDocumentNodeUpsert[]
+  node_deletes: string[]
+  connection_upserts: CanvasDocumentConnectionUpsert[]
+  connection_deletes: string[]
+}
+
+export interface CanvasDocumentPatchResponse {
+  revision: number
+  node_upserts: CanvasNodeDto[]
+  node_deletes: string[]
+  connection_upserts: CanvasConnectionDto[]
+  connection_deletes: string[]
+  server_timestamp: string
+  save_state: 'saved'
+}
+
+export type CanvasGraphSaveState = 'saving' | 'saved' | 'error' | 'conflict'
+
 export interface CanvasViewportPayload {
   x: number
   y: number

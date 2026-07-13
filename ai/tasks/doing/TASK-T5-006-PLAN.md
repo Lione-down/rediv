@@ -2,66 +2,70 @@
 
 - State: `DOING`
 - Completed unit: Unit A - atomic backend document PATCH and revision contract (`COMPLETE - PASS`)
-- Next unit: Unit B - frontend autosave queue, recovery, and flush boundaries
+- Completed unit: Unit B - frontend autosave queue, recovery, and flush boundaries (`COMPLETE - PASS`)
+- Next unit: Unit C - Canvas-scoped 100-step undo/redo
 - Updated: 2026-07-13
 
 ## Objective
 
-Unit A delivered the first dependency-ready persistence boundary: a strict Canvas document mutation API that is atomic, revision-aware, idempotent, and backed by the existing MySQL `canvas_revisions` foundation.
+Unit B delivered one dependency-ready frontend persistence boundary that converts Canvas graph edits into debounced, idempotent document PATCH batches, exposes accurate save state, preserves unsaved work locally on error or conflict, and deterministically flushes before Canvas or route departure.
 
-## Unit A Scope
+## Unit B Scope
 
-1. Add strict Pydantic request/response contracts for node upserts, connection upserts, deletes, mutation identity, committed revision, normalized changed entities, timestamp, and save state.
-2. Compute the architecture-defined SHA-256 fingerprint over canonical UTF-8 JSON containing `base_revision` and the four mutation arrays, excluding `client_mutation_id`.
-3. Lock the authenticated active Canvas, then resolve an existing mutation ID before validating `base_revision`.
-4. Return the original committed result for an identical retry; reject mutation-ID reuse with a different fingerprint and stale bases with structured HTTP 409 details.
-5. Validate exact Canvas ownership, node/group parents, endpoint existence, self-loops, duplicate edges, and delete/upsert overlap before committing.
-6. Apply all node and connection changes, create one `CanvasRevision`, advance `graph_revision` once, and return normalized committed entities in one transaction.
-7. Add guarded real-MySQL API tests for success, mixed create/update/delete, rollback, conflict, idempotent retry, fingerprint mismatch, ownership, and restart persistence.
+1. Add strict frontend types and an API client for the Unit A `PATCH /document` contract.
+2. Add a Canvas-scoped autosave controller with one serialized in-flight batch, a maximum 500 ms batching window, one stable `client_mutation_id` per submitted batch, and revision advancement only from committed responses.
+3. Reduce graph save state to `saving`, `saved`, `error`, or `conflict`; enter `saving` synchronously when graph state changes and never claim `saved` while unsent or rejected work remains.
+4. Replace canonical Canvas graph writes through granular node/connection routes with optimistic local graph mutations followed by atomic document batches. Keep the backend compatibility routes unchanged for legacy clients.
+5. Persist a versioned, user/project/Canvas-scoped recovery snapshot in local storage while graph work is unsent, in flight, rejected, or conflicted; remove it only after the matching document is committed.
+6. Stop automatic overwrite on HTTP 409, retain the current revision detail, and expose explicit retry and preserve-local-copy boundaries for later recovery UI expansion.
+7. Flush graph autosave and the separate viewport queue before Canvas switch and route exit. On page hide, synchronously preserve the recovery snapshot before attempting the async flush.
+8. Show the exact graph save state in the existing top-right route status using the locked V2 tokens, icons, 40 px target, and text semantics without adding a second status surface.
 
-## Unit A Non-goals
+## Unit B Non-goals
 
-- frontend autosave queue or save-state UI;
-- local recovery storage, route/page-hide flush, or conflict-choice UI;
-- undo/redo history;
-- revision listing, pruning, checkpoint generation, or restore;
-- changing or removing the existing granular Canvas node/connection routes;
-- applying migrations to a user/runtime database.
+- Canvas-scoped 100-step undo/redo, owned by Unit C;
+- durable revision listing, retention, checkpoints, restore, and the complete conflict-choice panel, owned by Unit D;
+- removing backend granular compatibility routes;
+- generation/task persistence owned by T5-007;
+- final 200-node/300-connection, offline, restart, multi-viewport, and milestone closure owned by later units;
+- schema changes, user/runtime migration execution, paid calls, secret access, or destructive data/filesystem operations.
 
 ## Dependencies And Existing Foundation
 
-- T5-005 typed commands are complete and provide the future frontend mutation source.
-- `canvases.graph_revision` and `canvas_revisions` already exist at Alembic head `f0a1b2c3d4e5`; Unit A requires no schema change.
-- `GET /document` and separate viewport persistence already enforce authentication, active Canvas scope, and revision-neutral viewport writes.
-- Existing guarded `revid_test_*` fixtures provide authorized MySQL integration evidence.
+- Unit A provides atomic document PATCH, structured `stale_graph_revision` and `mutation_id_reused` conflicts, exact idempotent retry, normalized committed entities, and durable revisions.
+- T5-005 provides the typed command boundary used by pointer, keyboard, toolbar, context-menu, and accessibility interactions.
+- The current Pinia Canvas store owns graph/revision state, while viewport persistence already has an independent 500 ms debounce and route/page lifecycle hook.
+- Existing V2 identity status styling already distinguishes saving, saved, and error states and can be extended without a new component system.
 
-## Verification Plan
+## TDD And Verification Plan
 
-1. Run the focused canonical-fingerprint unit tests.
-2. Run the focused guarded `test_canvas_document_api.py` MySQL suite.
-3. Run the relevant Canvas backend regression suites.
-4. Restart the test application/store and verify committed graph/revision/idempotency persistence.
-5. Run a fresh diff review, file-size check, strict UTF-8 check, suspicious-pattern scan, and `git diff --check`.
-6. Update PROGRESS and CURRENT with exact evidence; precisely stage only owned Unit A paths, run staged secret/diff hygiene, commit, and push `main` when all Unit A gates pass.
+1. Add focused Playwright tests for one debounced document batch, synchronous `Saving`, committed `Saved` within one second, and revision advancement.
+2. Run the focused test and record the expected RED failure caused by missing document PATCH behavior.
+3. Add focused tests for HTTP 409 conflict retention, non-409 error retention plus stable-ID retry, local recovery storage, and flush-before-switch ordering. Run each new behavior RED before implementation.
+4. Implement the smallest queue, reducer, API, store integration, lifecycle, and status UI needed to make the focused tests GREEN.
+5. Run the focused persistence/browser specs, then full Chromium regression and the frontend production build.
+6. Verify desktop and 375 px rendered status states, keyboard/label semantics, and no mobile mutation control regression.
+7. Run strict UTF-8, business-file size, suspicious-pattern, `git diff --check`, fresh diff review, staged secret/path/database hygiene, precise commit, and `origin` push.
 
-## Unit A Success Criteria
+## Unit B Success Criteria
 
-- one valid mixed batch commits atomically and advances the head exactly once;
-- exact retries are stable across a reconstructed application/store and do not duplicate graph rows or revisions;
-- stale bases and fingerprint mismatches return structured 409 responses with the current revision and zero partial writes;
-- invalid parents/endpoints/duplicates and overlapping operations leave the graph and revision unchanged;
-- viewport writes remain revision-neutral and legacy granular routes remain operational;
-- focused and relevant regression evidence passes with no secret, database-scope, or unrelated-worktree violations.
+- a local graph edit enters `Saving` immediately and one compatible 500 ms batch reaches `Saved` within one second under the mock local API;
+- a batch carries the loaded `base_revision`, one stable mutation ID, and the normalized graph operations, then advances the local revision only from the committed response;
+- edits made during an in-flight request remain queued for a later serialized batch and are not overwritten by the earlier response;
+- server/network failure keeps the same rejected batch recoverable in memory and local storage, reports `Error`, and succeeds through explicit retry without generating a different mutation ID;
+- HTTP 409 reports `Conflict` plus the current server revision, stops automatic overwrite, and retains local recovery data;
+- Canvas switch and route exit wait for a successful flush, while failed flush blocks silent navigation loss; page hide preserves recovery synchronously;
+- viewport persistence remains a separate revision-neutral request;
+- focused browser tests, full Chromium regression, production build, fresh diff review, and hygiene gates pass.
 
-All Unit A success criteria are satisfied. Final evidence is recorded in `TASK-T5-006-PROGRESS.md`.
+All Unit B success criteria are satisfied. Final evidence is recorded in `TASK-T5-006-PROGRESS.md`.
 
 ## Later Units
 
-- Unit B: autosave queue, save-state reducer, retry/local recovery, and deterministic flush.
 - Unit C: Canvas-scoped 100-step undo/redo.
-- Unit D: revision list, retention/checkpoints, restore, and recovery UI.
+- Unit D: revision list, retention/checkpoints, restore, and complete recovery UI.
 - Unit E: offline/conflict/restart/browser/regression closure and REPORT.
 
 ## Exact Next Action
 
-Refresh this PLAN and PROGRESS for Unit B, then inspect the existing Canvas command executor, mutation adapter, route lifecycle, identity bar, and browser tests before changing frontend business code.
+Refresh this PLAN and PROGRESS for Unit C, then inspect command inversion boundaries and add failing Canvas-isolated 100-step undo/redo tests before business-code edits.

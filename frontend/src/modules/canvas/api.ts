@@ -7,6 +7,8 @@ import type {
   CanvasCreatePayload,
   CanvasDuplicatePayload,
   CanvasDocumentResponse,
+  CanvasDocumentPatchPayload,
+  CanvasDocumentPatchResponse,
   CanvasListResponse,
   CanvasMetadataDto,
   CanvasMutationResponse,
@@ -73,6 +75,17 @@ export function fetchLegacyCanvasNodes(projectId: string) {
 
 export function fetchCanvasDocument(projectId: string, canvasId: string) {
   return request.get<CanvasDocumentResponse>(canvasResourcePath(projectId, canvasId, 'document'))
+}
+
+export function patchCanvasDocument(
+  projectId: string,
+  canvasId: string,
+  payload: CanvasDocumentPatchPayload,
+) {
+  return request.patch<CanvasDocumentPatchResponse>(
+    canvasResourcePath(projectId, canvasId, 'document'),
+    payload,
+  )
 }
 
 export function updateCanvasViewport(projectId: string, canvasId: string, payload: CanvasViewportPayload) {
