@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
 import { surfaceToWorld, type Point, type ViewportState } from '../canvas-geometry'
+import { useCanvasCommandInteractions } from './use-canvas-command-interactions'
 
 interface NativeMenuEvent extends MouseEvent { pointerId?: number }
 interface LeaferMenuEvent { origin?: NativeMenuEvent }
@@ -25,12 +26,13 @@ type ContextMenuKey = 'create-text' | 'create-image' | 'duplicate-node' | 'delet
 
 export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
   const canvasStore = useCanvasStore()
+  const { deleteSelection, duplicateSelection } = useCanvasCommandInteractions({ isReadOnly: options.isReadOnly })
   const contextMenu = ref<ContextMenuState>({ show: false, x: 0, y: 0, nodeId: null, worldPoint: { x: 0, y: 0 } })
   const contextMenuOptions = computed<Array<DropdownOption | DropdownDividerOption>>(() => contextMenu.value.nodeId
     ? [
-        { label: '复制节点', key: 'duplicate-node' },
+        { label: canvasStore.selectedNodeIds.length > 1 ? `复制所选节点 (${canvasStore.selectedNodeIds.length})` : '复制节点', key: 'duplicate-node' },
         { type: 'divider', key: 'node-actions-divider' },
-        { label: '删除节点', key: 'delete-node' },
+        { label: canvasStore.selectedNodeIds.length > 1 ? `删除所选节点 (${canvasStore.selectedNodeIds.length})` : '删除节点', key: 'delete-node' },
       ]
     : [
         { label: '新建文本节点', key: 'create-text' },
@@ -58,8 +60,7 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
       canvasStore.selectNode(createdNode.id)
     } catch { /* Store reports the owned failure. */ }
   }
-  function handleContextMenu(event: LeaferMenuEvent) {
-    const origin = event.origin
+  function openContextMenu(origin?: NativeMenuEvent) {
     const surfacePoint = origin ? options.toSurfacePoint(origin.clientX, origin.clientY) : null
     if (!origin || !surfacePoint || !canvasStore.activeProjectId || !canvasStore.hasLoaded) return
     origin.preventDefault()
@@ -70,6 +71,7 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
     if (resolvedNodeId && !canvasStore.selectedNodeIds.includes(resolvedNodeId)) canvasStore.selectNode(resolvedNodeId)
     contextMenu.value = { show: true, x: origin.clientX, y: origin.clientY, nodeId: resolvedNodeId, worldPoint }
   }
+  function handleContextMenu(event: LeaferMenuEvent) { openContextMenu(event.origin) }
   function handleStageDoubleClick(event: LeaferMenuEvent) {
     const origin = event.origin
     const surfacePoint = origin ? options.toSurfacePoint(origin.clientX, origin.clientY) : null
@@ -91,16 +93,11 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
       void createAndSelectNode(getNodeDraft(action === 'create-text' ? 'text' : 'image', worldPoint))
       return
     }
-    const node = nodeId ? canvasStore.findNodeById(nodeId) : null
-    if (!node) return
+    if (!nodeId || !canvasStore.findNodeById(nodeId)) return
     if (action === 'duplicate-node') {
-      void createAndSelectNode({
-        type: node.type, title: `${node.title} 副本`, x: node.x + 32, y: node.y + 32,
-        width: node.width, height: node.height, status: 'idle', content: node.content,
-        contentData: node.contentData ? { ...node.contentData } : undefined,
-      })
+      duplicateSelection('context-menu')
     } else if (action === 'delete-node') {
-      void canvasStore.deleteNode(node.id).catch(() => undefined)
+      deleteSelection('context-menu')
     }
   }
 

@@ -8,6 +8,12 @@ import {
 } from '../modules/canvas/api'
 import { mapCanvasConnection, mapCanvasNode } from '../modules/canvas/mappers'
 import { createCanvasMutationActions } from '../modules/canvas/mutations'
+import type { CanvasCommandEnvelope } from '../modules/canvas/canvas-commands'
+import {
+  isSameCanvasSelection,
+  reduceCanvasSelection,
+  type CanvasSelectionAction,
+} from '../modules/canvas/canvas-selection'
 import {
   getCanvasErrorMessage,
   isSamePersistedViewport,
@@ -98,53 +104,35 @@ export const useCanvasStore = defineStore('canvas', () => {
     saveErrorRevision.value += 1
   }
 
-  function setSelection(nodeIds: string[], primaryNodeId = '') {
-    const availableIds = new Set(nodes.value.map((node) => node.id))
-    const nextIds = [...new Set(nodeIds)].filter((nodeId) => availableIds.has(nodeId))
-    const nextPrimaryId = nextIds.includes(primaryNodeId)
-      ? primaryNodeId
-      : (nextIds[nextIds.length - 1] ?? '')
-    if (
-      selectedNodeId.value === nextPrimaryId &&
-      selectedNodeIds.value.length === nextIds.length &&
-      selectedNodeIds.value.every((nodeId, index) => nodeId === nextIds[index]) &&
-      !selectedConnectionId.value
-    ) return
-    selectedNodeIds.value = nextIds
-    selectedNodeId.value = nextPrimaryId
-    selectedConnectionId.value = ''
+  function applySelectionAction(action: CanvasSelectionAction) {
+    const current = {
+      nodeIds: selectedNodeIds.value,
+      primaryNodeId: selectedNodeId.value,
+      connectionId: selectedConnectionId.value,
+    }
+    const next = reduceCanvasSelection({
+      nodeIds: nodes.value.map((node) => node.id),
+      connectionIds: connections.value.map((connection) => connection.id),
+    }, current, action)
+    if (isSameCanvasSelection(current, next)) return
+    selectedNodeIds.value = next.nodeIds
+    selectedNodeId.value = next.primaryNodeId
+    selectedConnectionId.value = next.connectionId
     selectionRevision.value += 1
+  }
+
+  function setSelection(nodeIds: string[], primaryNodeId = '') {
+    applySelectionAction({ type: 'set-nodes', nodeIds, primaryNodeId })
   }
 
   function selectNode(nodeId: string, selectionMode: CanvasSelectionMode = 'replace') {
-    if (!nodes.value.some((node) => node.id === nodeId)) {
-      if (selectionMode === 'replace') setSelection([])
-      return
-    }
-    if (selectionMode === 'add') {
-      setSelection([...selectedNodeIds.value, nodeId], nodeId)
-      return
-    }
-    if (selectionMode === 'toggle') {
-      const isSelected = selectedNodeIds.value.includes(nodeId)
-      setSelection(
-        isSelected ? selectedNodeIds.value.filter((selectedId) => selectedId !== nodeId) : [...selectedNodeIds.value, nodeId],
-        isSelected ? '' : nodeId,
-      )
-      return
-    }
-    setSelection([nodeId], nodeId)
+    if (selectionMode === 'add') return applySelectionAction({ type: 'add-node', nodeId })
+    if (selectionMode === 'toggle') return applySelectionAction({ type: 'toggle-node', nodeId })
+    applySelectionAction({ type: 'set-nodes', nodeIds: [nodeId], primaryNodeId: nodeId })
   }
 
   function selectConnection(connectionId: string) {
-    const nextConnectionId = connections.value.some((connection) => connection.id === connectionId)
-      ? connectionId
-      : ''
-    if (selectedConnectionId.value === nextConnectionId && selectedNodeIds.value.length === 0) return
-    selectedNodeId.value = ''
-    selectedNodeIds.value = []
-    selectedConnectionId.value = nextConnectionId
-    selectionRevision.value += 1
+    applySelectionAction({ type: 'select-connection', connectionId })
   }
 
   function setMode(nextMode: CanvasMode) {
@@ -188,6 +176,8 @@ export const useCanvasStore = defineStore('canvas', () => {
     reportSaveError,
     updateNode,
     findNodeById,
+    setSelection,
+    selectConnection,
   })
 
   function resetViewportPersistence(next: PersistedViewport = DEFAULT_VIEWPORT) {
@@ -389,6 +379,10 @@ export const useCanvasStore = defineStore('canvas', () => {
     if (failed) throw failed.reason
   }
 
+  function dispatchCommand(envelope: CanvasCommandEnvelope) {
+    return canvasMutations.executeCommand(envelope)
+  }
+
   async function reloadActiveDocument(force = true) {
     if (activeCanvasId.value) return loadCanvas(activeProjectId.value, activeCanvasId.value, force)
     return loadProject(activeProjectId.value, force)
@@ -411,7 +405,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     () => connections.value.map((connection) => connection.id),
     (connectionIds) => {
       if (selectedConnectionId.value && !connectionIds.includes(selectedConnectionId.value)) {
-        selectedConnectionId.value = ''
+        selectConnection('')
       }
     },
   )
@@ -454,5 +448,6 @@ export const useCanvasStore = defineStore('canvas', () => {
     deleteConnection: canvasMutations.deleteConnection,
     queueNodeMove: canvasMutations.queueNodeMove,
     flushPendingMoves: canvasMutations.flushPendingMoves,
+    dispatchCommand,
   }
 })

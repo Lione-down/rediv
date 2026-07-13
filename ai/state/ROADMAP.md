@@ -55,7 +55,7 @@ These Tasks form the Canvas milestone. Shared V2 tokens may land in T5-004, but 
 
 T5-004 is `DONE - PASS`. Units A-E delivered a Canvas-scoped token source, strict metadata store and routing, dedicated full-screen V2 shell, Canvas navigation, contextual generation compatibility, mobile review-only enforcement, one exact Canvas document boundary, explicit graph mutations, independent debounced viewport persistence, and browser-verified language, focus, contrast, target, reduced-motion, responsive, and regression closure. `REPORT-T5-004.md` is authoritative evidence.
 
-T5-005 is `DOING`. Unit A passed with one persistent Leafer world group, keyed node reconciliation, cached appearance updates, transform-only viewport changes, 18/18 Chromium tests, and a 4712-module build. Unit B owns the typed command and multi-selection editing boundary.
+T5-005 is `DOING`. Units A-B passed with one persistent keyed Leafer world, transform-only viewport changes, deterministic multi-selection, one typed multi-move/duplicate/delete command boundary, 25/25 Chromium tests, and a 4719-module build. Unit C owns grouping, validated connection, Canvas-focus shortcuts, and DOM accessibility access.
 
 ### T5-009 through T5-011
 

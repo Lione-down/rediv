@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { NDropdown } from 'naive-ui'
 import type { ComponentPublicInstance } from 'vue'
+import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
 import { useCanvasStage } from './composables/use-canvas-stage'
 
 const props = withDefaults(defineProps<{ readonly?: boolean }>(), {
@@ -35,6 +36,9 @@ const {
   marqueeStyle,
   viewportCursor,
   retryProjectLoad,
+  selectionToolbarStyle,
+  deleteSelection,
+  duplicateSelection,
 } = useCanvasStage({ isReadOnly: () => props.readonly })
 
 function setStageRef(element: Element | ComponentPublicInstance | null) {
@@ -109,6 +113,14 @@ function setMinimapRef(element: Element | ComponentPublicInstance | null) {
       </div>
 
       <div v-if="marqueeStyle" class="selection-marquee" :style="marqueeStyle" aria-hidden="true"></div>
+
+      <CanvasSelectionToolbar
+        v-if="selectionToolbarStyle && !readonly"
+        :count="canvasStore.selectedNodeIds.length"
+        :style="selectionToolbarStyle"
+        @duplicate="duplicateSelection('toolbar')"
+        @delete="deleteSelection('toolbar')"
+      />
 
       <div :ref="setMinimapRef" class="minimap" aria-label="小地图" @pointerdown.stop="handleMinimapPointerDown">
         <button

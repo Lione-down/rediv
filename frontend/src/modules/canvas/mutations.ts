@@ -1,4 +1,5 @@
 import type { Ref } from 'vue'
+import { createCanvasCommandExecutor } from './canvas-command-executor'
 import {
   createCanvasConnection,
   createCanvasNode,
@@ -36,6 +37,8 @@ interface CanvasMutationOptions {
   reportSaveError: (action: string, error: unknown) => void
   updateNode: (nodeId: string, updater: (node: CanvasNode) => CanvasNode) => void
   findNodeById: (nodeId: string) => CanvasNode | null
+  setSelection: (nodeIds: string[], primaryNodeId?: string) => void
+  selectConnection: (connectionId: string) => void
 }
 
 export function createCanvasMutationActions(options: CanvasMutationOptions) {
@@ -53,6 +56,8 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     reportSaveError,
     updateNode,
     findNodeById,
+    setSelection,
+    selectConnection,
   } = options
   const nodeOwners = new Map<string, symbol>()
   const connectionOwners = new Map<string, symbol>()
@@ -306,17 +311,14 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
       .filter(({ connection }) => connection.from === effectiveNodeId || connection.to === effectiveNodeId)
     const selectionSnapshot = [...selectedNodeIds.value]
     const primarySelectionSnapshot = selectedNodeId.value
-    const capturedSelectionRevision = selectionRevision.value
     const owner = Symbol(effectiveNodeId)
     nodeOwners.set(effectiveNodeId, owner)
     nodes.value = nodes.value.filter((node) => node.id !== effectiveNodeId)
     connections.value = connections.value.filter(
       (connection) => connection.from !== effectiveNodeId && connection.to !== effectiveNodeId,
     )
-    selectedNodeIds.value = selectedNodeIds.value.filter((nodeId) => nodeId !== effectiveNodeId)
-    if (selectedNodeId.value === effectiveNodeId) {
-      selectedNodeId.value = selectedNodeIds.value[selectedNodeIds.value.length - 1] ?? ''
-    }
+    setSelection(selectionSnapshot, primarySelectionSnapshot)
+    const deletionSelectionRevision = selectionRevision.value
     bumpDataRevision()
 
     try {
@@ -331,9 +333,8 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
         for (const { connection, index } of connectionSnapshots) {
           connections.value.splice(Math.min(index, connections.value.length), 0, connection)
         }
-        if (selectionRevision.value === capturedSelectionRevision) {
-          selectedNodeIds.value = selectionSnapshot
-          selectedNodeId.value = primarySelectionSnapshot
+        if (selectionRevision.value === deletionSelectionRevision) {
+          setSelection(selectionSnapshot, primarySelectionSnapshot)
         }
         nodeOwners.delete(effectiveNodeId)
         bumpDataRevision()
@@ -438,6 +439,18 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     }
   }
 
+  const commandExecutor = createCanvasCommandExecutor({
+    getNodes: () => nodes.value,
+    getConnections: () => connections.value,
+    createNode,
+    createConnection,
+    deleteNode,
+    deleteConnection,
+    queueNodeMove,
+    setSelection,
+    selectConnection,
+  })
+
   return {
     resetMutationState,
     initializeConfirmedPositions,
@@ -447,5 +460,6 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     deleteConnection,
     queueNodeMove,
     flushPendingMoves,
+    executeCommand: commandExecutor.executeCommand,
   }
 }

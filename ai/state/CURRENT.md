@@ -23,7 +23,8 @@ Last updated: 2026-07-13
 - Active implementation Task: `T5-005 - Incremental renderer and command interactions`
 - State: `DOING`
 - Completed unit: Unit A - persistent keyed Leafer world and incremental node reconciliation (`COMPLETE - PASS`)
-- Next unit: Unit B - command contract, selection, and multi-node editing
+- Completed unit: Unit B - command contract, selection, and multi-node editing (`COMPLETE - PASS`)
+- Next unit: Unit C - grouping, connection, shortcuts, and accessibility list
 - Task: `ai/tasks/todo/TASK-T5-005.md`
 - Plan: `ai/tasks/doing/TASK-T5-005-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-005-PROGRESS.md`
@@ -71,16 +72,19 @@ Last updated: 2026-07-13
 - T5-004 closure passed 6 focused shell tests, 16 full Chromium tests, a 4711-module production build, and real screenshot review at 1440x900, 1366x768, 920x900, and 375x812.
 - T5-005 Unit A now keeps one persistent Leafer world group, reconciles keyed node visuals, caches appearance state, updates viewport by world transform only, and removes full-scene JSON invalidation.
 - Unit A passed 2/2 focused reconciliation tests, 8/8 focused Canvas browser tests, 18/18 full Chromium tests, a 4712-module build, forbidden rebuild-pattern scans, and real desktop/mobile screenshot review.
+- T5-005 Unit B now routes pointer, keyboard, toolbar, and context-menu multi-move, duplicate, and delete intent through one typed command dispatcher.
+- Selection normalization follows graph order, filters stale IDs, preserves one primary node, and makes node and connection selection exclusive; multi-drag previews locally and sends no request during pointermove.
+- Unit B passed 7/7 focused command/interaction tests, 25/25 full Chromium tests, a 4719-module production build, and real desktop/mobile screenshot review.
 - The migration has not been applied to a user/runtime database and requires normal backup and Human migration authorization.
 - Ignored local `.db` artifacts and the pre-existing `revid_test_db` remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Inspect the selection and optimistic mutation boundaries, then refresh Unit B around one typed command contract with deterministic multi-selection, multi-move, duplicate, and delete behavior.
+Inspect grouping, connection validation, current focus ownership, and DOM accessibility entry points, then refresh Unit C scope before business-code edits.
 
 ## Blockers And Release Conditions
 
-- No blocker prevents T5-005 Unit B planning and implementation.
+- No blocker prevents T5-005 Unit C planning and implementation.
 - Applying `f0a1b2c3d4e5` to user/runtime data requires reviewed backup discipline and Human migration authorization.
 - Credential rotation becomes Human-required only if the removed assignment was ever real or reused.
 - Local ignored `.db` deletion requires exact-path Human approval after MySQL backup/parity evidence.
@@ -88,7 +92,7 @@ Inspect the selection and optimistic mutation boundaries, then refresh Unit B ar
 
 ## Worktree Protection
 
-- T5-005 Unit A started from clean `main` at `75e8aabf8cfe029a1de10dabcdfba8491801a578`.
+- T5-005 Unit B started from clean `main` at `1e863e3e781c2d67e48f4208c4eedbe178aebffc`.
 - Pre-existing staged, tracked-modified, untracked, unmerged, detached, and in-progress Git-operation state: none.
 - Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.
