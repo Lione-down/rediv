@@ -20,14 +20,14 @@ Last updated: 2026-07-13
 
 ## Active Delivery
 
-- Active implementation Task: none; repository is between completed T5-005 and planned T5-006
-- State: `READY FOR NEXT TASK`
-- Latest completed Task: `T5-005 - Incremental renderer and command interactions` (`DONE - PASS`)
-- Task: `ai/tasks/todo/TASK-T5-005.md`
-- Plan: `ai/tasks/doing/TASK-T5-005-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-005-PROGRESS.md`
-- Report: `ai/reports/REPORT-T5-005.md`
-- Next Task: `T5-006 - Autosave queue, optimistic conflict handling, 100-step undo/redo, revisions, checkpoints, and restore`
+- Active implementation Task: `T5-006 - Autosave, conflicts, history, and recovery`
+- State: `DOING`
+- Completed unit: Unit A - atomic backend document PATCH and revision contract (`COMPLETE - PASS`)
+- Next unit: Unit B - frontend autosave queue, recovery, and flush boundaries
+- Task: `ai/tasks/todo/TASK-T5-006.md`
+- Plan: `ai/tasks/doing/TASK-T5-006-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-006-PROGRESS.md`
+- Previous report: `ai/reports/REPORT-T5-005.md`
 
 ## Previous Completed Task
 
@@ -72,16 +72,21 @@ Last updated: 2026-07-13
 - Unit E adds requestAnimationFrame pointer coalescing, world-space SVG edges under one transform, memoized stable subtrees, 15 FPS minimap sampling, official axe analysis, and exact 200-node/300-connection mock-browser evidence.
 - Final performance recorded a 330 ms stable render, 60.03 FPS average, 16.8 ms frame p95, 4.2 ms pointer p95, no observed interaction long task, and 11.93 minimap updates/s on Chromium 149 SwiftShader with hardware acceleration disabled.
 - T5-005 closure passed Unit E 3/3, full Chromium 36/36, guarded backend 190/190, a 4731-module build, four required viewport screenshots, fresh diff review, and hygiene gates; `REPORT-T5-005.md` is authoritative.
+- T5-006 Unit A is `COMPLETE - PASS`: `PATCH /document` now validates and commits one exact-Canvas graph batch, durable revision, and head advance in a serialized MySQL transaction.
+- Unit A resolves matching mutation IDs before base validation with locking/current reads, returns exact retry results after application/store reconstruction, rejects fingerprint reuse and stale bases with structured 409 details, and preserves zero partial writes on invalid batches.
+- RFC 8785 canonical JSON fingerprinting, normalized implicit edge/group-child changes, ownership/scope validation, and restart persistence passed focused guarded MySQL evidence.
+- Unit A passed 10/10 focused tests, 44/44 Canvas backend regression, 196/196 full backend regression, compile/static/UTF-8/file-size/diff hygiene, and fresh concurrency review.
+- The existing Alembic head provides `canvases.graph_revision` and `canvas_revisions`; Unit A made no schema change or user/runtime database write.
 - The migration has not been applied to a user/runtime database and requires normal backup and Human migration authorization.
 - Ignored local `.db` artifacts and the pre-existing `revid_test_db` remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Create and activate T5-006 Task/PLAN/PROGRESS before implementing autosave batching, idempotency, conflict handling, 100-step undo/redo, revisions, checkpoints, and restore.
+Refresh T5-006 PLAN/PROGRESS for Unit B, inspect the frontend persistence/command/lifecycle boundaries, then add failing autosave queue, save-state, recovery, and flush tests before business-code edits.
 
 ## Blockers And Release Conditions
 
-- No blocker prevents T5-006 planning and implementation.
+- No Unit A blocker remains; no blocker prevents Unit B planning and implementation.
 - Applying `f0a1b2c3d4e5` to user/runtime data requires reviewed backup discipline and Human migration authorization.
 - Credential rotation becomes Human-required only if the removed assignment was ever real or reused.
 - Local ignored `.db` deletion requires exact-path Human approval after MySQL backup/parity evidence.
@@ -89,8 +94,9 @@ Create and activate T5-006 Task/PLAN/PROGRESS before implementing autosave batch
 
 ## Worktree Protection
 
-- T5-005 Unit E started from clean `main` at `5a0372765d17e0447b68b2fa57e922ae6ceccaf1`.
+- T5-006 Unit A started from clean `main` at `03a1f9c59df89ceaaec48e33c059ae32d0e7dba4`.
 - Pre-existing staged, tracked-modified, untracked, unmerged, detached, and in-progress Git-operation state: none.
+- The Unit A worktree contains only the 11 owned Task/state/backend/test paths; no unrelated dirty remainder was identified before delivery staging.
 - Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.
 

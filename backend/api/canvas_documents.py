@@ -2,11 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from api.canvases import map_canvas_domain_error
 from controllers import canvas_documents as document_controller
+from controllers import canvas_document_mutations as mutation_controller
 from controllers import canvases as canvas_controller
 from core.security import current_user
 from schemas.canvas import CanvasResponse
 from schemas.canvas_connection import CanvasConnectionCreateRequest, CanvasConnectionResponse
-from schemas.canvas_document import CanvasDocumentResponse, CanvasViewportUpdateRequest
+from schemas.canvas_document import (
+    CanvasDocumentPatchRequest,
+    CanvasDocumentPatchResponse,
+    CanvasDocumentResponse,
+    CanvasViewportUpdateRequest,
+)
 from schemas.canvas_node import CanvasNodeCreateRequest, CanvasNodeResponse, CanvasNodeUpdateRequest
 
 
@@ -26,6 +32,34 @@ def _connection_error(error: ValueError) -> HTTPException:
 def get_document(project_id: str, canvas_id: str, user=Depends(current_user)):
     try:
         return document_controller.get_document(project_id, canvas_id, user["id"])
+    except canvas_controller.CanvasDomainError as error:
+        raise map_canvas_domain_error(error) from error
+
+
+@router.patch("/document", response_model=CanvasDocumentPatchResponse)
+def patch_document(
+    project_id: str,
+    canvas_id: str,
+    payload: CanvasDocumentPatchRequest,
+    user=Depends(current_user),
+):
+    try:
+        return mutation_controller.patch_document(
+            project_id,
+            canvas_id,
+            user["id"],
+            payload.model_dump(mode="json"),
+        )
+    except mutation_controller.CanvasDocumentConflictError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": error.code, "current_revision": error.current_revision},
+        ) from error
+    except mutation_controller.CanvasDocumentValidationError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(error),
+        ) from error
     except canvas_controller.CanvasDomainError as error:
         raise map_canvas_domain_error(error) from error
 

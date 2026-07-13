@@ -13,6 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token
+from models.base import get_session
+from models.canvas_revision import CanvasRevision
 from tests.mysql_test_database import MySQLTestDatabase
 
 
@@ -214,6 +216,210 @@ class CanvasDocumentApiTestCase(unittest.TestCase):
         self.assertEqual(200, detach.status_code)
         self.assertIsNone(detach.json()["parent_node_id"])
 
+    def test_document_patch_is_atomic_idempotent_and_survives_restart(self) -> None:
+        first_node_id = str(uuid4())
+        second_node_id = str(uuid4())
+        connection_id = str(uuid4())
+        mutation_id = str(uuid4())
+        payload = {
+            "base_revision": 0,
+            "client_mutation_id": mutation_id,
+            "node_upserts": [
+                self._node_upsert(first_node_id, "left", -120.5),
+                self._node_upsert(second_node_id, "right", 240),
+            ],
+            "node_deletes": [],
+            "connection_upserts": [
+                {
+                    "id": connection_id,
+                    "source_node_id": first_node_id,
+                    "source_port": "out",
+                    "target_node_id": second_node_id,
+                    "target_port": "in",
+                    "metadata": {"label": "flow"},
+                }
+            ],
+            "connection_deletes": [],
+        }
+
+        committed = self.client.patch(
+            self._resource_path(self.first_canvas["id"], "document"),
+            json=payload,
+            headers=self.headers,
+        )
+        self.assertEqual(200, committed.status_code)
+        result = committed.json()
+        self.assertEqual(1, result["revision"])
+        self.assertEqual("saved", result["save_state"])
+        self.assertEqual({first_node_id, second_node_id}, {item["id"] for item in result["node_upserts"]})
+        self.assertEqual([connection_id], [item["id"] for item in result["connection_upserts"]])
+        document = self._get_document(self.first_canvas["id"])
+        self.assertEqual(1, document["revision"])
+        self.assertEqual({first_node_id, second_node_id}, {item["id"] for item in document["nodes"]})
+
+        self.client.close()
+        configure_store(DatabaseStore())
+        self.client = self._create_client()
+        retried = self.client.patch(
+            self._resource_path(self.first_canvas["id"], "document"),
+            json=payload,
+            headers=self.headers,
+        )
+        self.assertEqual(200, retried.status_code)
+        self.assertEqual(result, retried.json())
+        with get_session() as session:
+            revisions = session.query(CanvasRevision).filter_by(canvas_id=self.first_canvas["id"]).all()
+            self.assertEqual(1, len(revisions))
+
+        reused = {**payload, "node_deletes": [second_node_id]}
+        reused["node_upserts"] = [payload["node_upserts"][0]]
+        mismatch = self.client.patch(
+            self._resource_path(self.first_canvas["id"], "document"),
+            json=reused,
+            headers=self.headers,
+        )
+        self.assertEqual(409, mismatch.status_code)
+        self.assertEqual("mutation_id_reused", mismatch.json()["detail"]["code"])
+        self.assertEqual(1, mismatch.json()["detail"]["current_revision"])
+
+        stale = self.client.patch(
+            self._resource_path(self.first_canvas["id"], "document"),
+            json={**payload, "client_mutation_id": str(uuid4())},
+            headers=self.headers,
+        )
+        self.assertEqual(409, stale.status_code)
+        self.assertEqual("stale_graph_revision", stale.json()["detail"]["code"])
+        self.assertEqual(1, self._get_document(self.first_canvas["id"])["revision"])
+
+    def test_document_patch_normalizes_deletes_and_rolls_back_invalid_batch(self) -> None:
+        first_node_id = str(uuid4())
+        second_node_id = str(uuid4())
+        connection_id = str(uuid4())
+        create_payload = {
+            "base_revision": 0,
+            "client_mutation_id": str(uuid4()),
+            "node_upserts": [
+                self._node_upsert(first_node_id, "left", -20),
+                self._node_upsert(second_node_id, "right", 220),
+            ],
+            "node_deletes": [],
+            "connection_upserts": [{
+                "id": connection_id,
+                "source_node_id": first_node_id,
+                "source_port": "out",
+                "target_node_id": second_node_id,
+                "target_port": "in",
+                "metadata": {},
+            }],
+            "connection_deletes": [],
+        }
+        created = self.client.patch(
+            self._resource_path(self.first_canvas["id"], "document"),
+            json=create_payload,
+            headers=self.headers,
+        )
+        self.assertEqual(200, created.status_code)
+
+        update_payload = {
+            "base_revision": 1,
+            "client_mutation_id": str(uuid4()),
+            "node_upserts": [self._node_upsert(first_node_id, "left-updated", -333.25)],
+            "node_deletes": [second_node_id],
+            "connection_upserts": [],
+            "connection_deletes": [],
+        }
+        updated = self.client.patch(
+            self._resource_path(self.first_canvas["id"], "document"),
+            json=update_payload,
+            headers=self.headers,
+        )
+        self.assertEqual(200, updated.status_code)
+        self.assertEqual(2, updated.json()["revision"])
+        self.assertEqual([second_node_id], updated.json()["node_deletes"])
+        self.assertEqual([connection_id], updated.json()["connection_deletes"])
+
+        foreign_node = self._create_node(self.second_canvas["id"], "foreign", 0)
+        invalid_payload = {
+            "base_revision": 2,
+            "client_mutation_id": str(uuid4()),
+            "node_upserts": [self._node_upsert(str(uuid4()), "should-rollback", 10)],
+            "node_deletes": [],
+            "connection_upserts": [{
+                "id": str(uuid4()),
+                "source_node_id": first_node_id,
+                "source_port": "out",
+                "target_node_id": foreign_node["id"],
+                "target_port": "in",
+                "metadata": {},
+            }],
+            "connection_deletes": [],
+        }
+        invalid = self.client.patch(
+            self._resource_path(self.first_canvas["id"], "document"),
+            json=invalid_payload,
+            headers=self.headers,
+        )
+        self.assertEqual(422, invalid.status_code)
+        self.assertEqual("connection_endpoint_missing", invalid.json()["detail"])
+        document = self._get_document(self.first_canvas["id"])
+        self.assertEqual(2, document["revision"])
+        self.assertEqual([first_node_id], [item["id"] for item in document["nodes"]])
+
+    def test_document_patch_requires_ownership_and_rejects_overlapping_operations(self) -> None:
+        node_id = str(uuid4())
+        path = self._resource_path(self.first_canvas["id"], "document")
+        payload = {
+            "base_revision": 0,
+            "client_mutation_id": str(uuid4()),
+            "node_upserts": [self._node_upsert(node_id, "overlap", 0)],
+            "node_deletes": [node_id],
+            "connection_upserts": [],
+            "connection_deletes": [],
+        }
+        valid_payload = {**payload, "node_deletes": []}
+        forbidden = self.client.patch(
+            path,
+            json=valid_payload,
+            headers=self._auth_headers(self.other_user["id"]),
+        )
+        overlap = self.client.patch(path, json=payload, headers=self.headers)
+
+        self.assertEqual(403, forbidden.status_code)
+        self.assertEqual(422, overlap.status_code)
+        self.assertEqual(0, self._get_document(self.first_canvas["id"])["revision"])
+
+    def test_document_patch_clears_children_when_deleting_a_group(self) -> None:
+        group = self.client.post(
+            self._resource_path(self.first_canvas["id"], "nodes"),
+            json={**self._node_upsert(str(uuid4()), "group", 0), "node_type": "group"},
+            headers=self.headers,
+        ).json()
+        child = self._create_node(self.first_canvas["id"], "child", 100)
+        attached = self.client.put(
+            f"{self._resource_path(self.first_canvas['id'], 'nodes')}/{child['id']}",
+            json={"parent_node_id": group["id"]},
+            headers=self.headers,
+        )
+        self.assertEqual(200, attached.status_code)
+
+        deleted = self.client.patch(
+            self._resource_path(self.first_canvas["id"], "document"),
+            json={
+                "base_revision": 0,
+                "client_mutation_id": str(uuid4()),
+                "node_upserts": [],
+                "node_deletes": [group["id"]],
+                "connection_upserts": [],
+                "connection_deletes": [],
+            },
+            headers=self.headers,
+        )
+        self.assertEqual(200, deleted.status_code)
+        normalized_child = next(item for item in deleted.json()["node_upserts"] if item["id"] == child["id"])
+        self.assertIsNone(normalized_child["parent_node_id"])
+        document = self._get_document(self.first_canvas["id"])
+        self.assertEqual([child["id"]], [item["id"] for item in document["nodes"]])
+
     def _create_node(self, canvas_id: str, title: str, position_x: float) -> dict:
         response = self.client.post(
             self._resource_path(canvas_id, "nodes"),
@@ -230,6 +436,22 @@ class CanvasDocumentApiTestCase(unittest.TestCase):
         self.assertEqual(201, response.status_code)
         self.assertEqual(canvas_id, response.json()["canvas_id"])
         return response.json()
+
+    @staticmethod
+    def _node_upsert(node_id: str, title: str, position_x: float) -> dict:
+        return {
+            "id": node_id,
+            "node_type": "text",
+            "content": {"title": title, "text": title},
+            "position_x": position_x,
+            "position_y": -24,
+            "width": 300,
+            "height": 200,
+            "z_index": 0,
+            "parent_node_id": None,
+            "is_locked": False,
+            "is_collapsed": False,
+        }
 
     def _get_document(self, canvas_id: str) -> dict:
         response = self.client.get(self._resource_path(canvas_id, "document"), headers=self.headers)
