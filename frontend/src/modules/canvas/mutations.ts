@@ -16,21 +16,23 @@ import {
 import type { CanvasConnectionDraft, CanvasNodeDraft, PendingMove } from './persistence'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 
-interface ProjectContext {
+interface DocumentContext {
   generation: number
   projectId: string
+  canvasId: string
 }
 
 interface CanvasMutationOptions {
   activeProjectId: Ref<string>
+  activeCanvasId: Ref<string>
   selectedNodeId: Ref<string>
   selectedNodeIds: Ref<string[]>
   selectionRevision: Ref<number>
   nodes: Ref<CanvasNode[]>
   connections: Ref<CanvasConnection[]>
   bumpDataRevision: () => void
-  captureProjectContext: () => ProjectContext
-  isCurrentProject: (context: ProjectContext) => boolean
+  captureDocumentContext: () => DocumentContext
+  isCurrentDocument: (context: DocumentContext) => boolean
   reportSaveError: (action: string, error: unknown) => void
   updateNode: (nodeId: string, updater: (node: CanvasNode) => CanvasNode) => void
   findNodeById: (nodeId: string) => CanvasNode | null
@@ -39,14 +41,15 @@ interface CanvasMutationOptions {
 export function createCanvasMutationActions(options: CanvasMutationOptions) {
   const {
     activeProjectId,
+    activeCanvasId,
     selectedNodeId,
     selectedNodeIds,
     selectionRevision,
     nodes,
     connections,
     bumpDataRevision,
-    captureProjectContext,
-    isCurrentProject,
+    captureDocumentContext,
+    isCurrentDocument,
     reportSaveError,
     updateNode,
     findNodeById,
@@ -85,9 +88,10 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     }
   }
 
-  function requireProjectId() {
+  function requireDocumentIdentity() {
     if (!activeProjectId.value) throw new Error('请先选择项目。')
-    return activeProjectId.value
+    if (!activeCanvasId.value) throw new Error('请先选择画布。')
+    return { projectId: activeProjectId.value, canvasId: activeCanvasId.value }
   }
 
   function rekeyNode(tempId: string, serverNode: CanvasNode) {
@@ -132,8 +136,8 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
   }
 
   async function createNode(draft: CanvasNodeDraft): Promise<CanvasNode> {
-    const projectId = requireProjectId()
-    const context = captureProjectContext()
+    const { projectId, canvasId } = requireDocumentIdentity()
+    const context = captureDocumentContext()
     const tempId = createTemporaryId('node')
     const owner = Symbol(tempId)
     const optimisticNode: CanvasNode = { id: tempId, ...draft }
@@ -152,16 +156,16 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
 
     const request = (async () => {
       try {
-        const response = await createCanvasNode(projectId, toNodeCreatePayload(draft))
+        const response = await createCanvasNode(projectId, canvasId, toNodeCreatePayload(draft))
         const serverNode = mapCanvasNode(response.data)
-        if (isCurrentProject(context) && nodeOwners.get(tempId) === owner) {
+        if (isCurrentDocument(context) && nodeOwners.get(tempId) === owner) {
           rekeyNode(tempId, serverNode)
           nodeOwners.delete(tempId)
           bumpDataRevision()
         }
         return serverNode.id
       } catch (error) {
-        if (isCurrentProject(context) && nodeOwners.get(tempId) === owner) {
+        if (isCurrentDocument(context) && nodeOwners.get(tempId) === owner) {
           nodes.value = nodes.value.filter((node) => node.id !== tempId)
           connections.value = connections.value.filter(
             (connection) => connection.from !== tempId && connection.to !== tempId,
@@ -210,24 +214,24 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     const requestedVersion = move.version
     const position = { ...move.desired }
     move.requestedVersion = requestedVersion
-    const context = captureProjectContext()
-    const projectId = requireProjectId()
+    const context = captureDocumentContext()
+    const { projectId, canvasId } = requireDocumentIdentity()
     const previousRequest = move.inFlight
     const request = (previousRequest?.catch(() => undefined) ?? Promise.resolve()).then(async () => {
       let persistedNodeId = nodeId
       try {
-        if (!isCurrentProject(context)) return
+        if (!isCurrentDocument(context)) return
         persistedNodeId = await resolveNodeId(nodeId)
-        if (!isCurrentProject(context)) return
-        const response = await updateCanvasNode(projectId, persistedNodeId, {
+        if (!isCurrentDocument(context)) return
+        const response = await updateCanvasNode(projectId, canvasId, persistedNodeId, {
           position_x: position.x,
           position_y: position.y,
         })
-        if (!isCurrentProject(context) || pendingMoves.get(persistedNodeId) !== move) return
+        if (!isCurrentDocument(context) || pendingMoves.get(persistedNodeId) !== move) return
         move.confirmed = { x: response.data.position_x, y: response.data.position_y }
       } catch (error) {
         const activeMove = pendingMoves.get(persistedNodeId)
-        if (isCurrentProject(context) && activeMove === move && move.version === requestedVersion) {
+        if (isCurrentDocument(context) && activeMove === move && move.version === requestedVersion) {
           updateNode(persistedNodeId, (node) => ({ ...node, ...move.confirmed }))
           move.desired = { ...move.confirmed }
           reportSaveError('移动节点', error)
@@ -275,8 +279,8 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
   }
 
   async function deleteNode(nodeId: string) {
-    const projectId = requireProjectId()
-    const context = captureProjectContext()
+    const { projectId, canvasId } = requireDocumentIdentity()
+    const context = captureDocumentContext()
     let effectiveNodeId = nodeId
     const nodeCreateRequest = nodeCreateRequests.get(nodeId)
     if (nodeCreateRequest) {
@@ -286,14 +290,14 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
         return
       }
     }
-    if (!isCurrentProject(context)) return
+    if (!isCurrentDocument(context)) return
 
     let nodeIndex = nodes.value.findIndex((node) => node.id === effectiveNodeId)
     if (nodeIndex < 0) return
 
     await flushPendingMoves(effectiveNodeId).catch(() => undefined)
     await settleRelatedConnectionCreates(effectiveNodeId)
-    if (!isCurrentProject(context)) return
+    if (!isCurrentDocument(context)) return
     nodeIndex = nodes.value.findIndex((node) => node.id === effectiveNodeId)
     if (nodeIndex < 0) return
     const nodeSnapshot = nodes.value[nodeIndex]
@@ -316,13 +320,13 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     bumpDataRevision()
 
     try {
-      await deleteCanvasNode(projectId, effectiveNodeId)
-      if (isCurrentProject(context) && nodeOwners.get(effectiveNodeId) === owner) {
+      await deleteCanvasNode(projectId, canvasId, effectiveNodeId)
+      if (isCurrentDocument(context) && nodeOwners.get(effectiveNodeId) === owner) {
         nodeOwners.delete(effectiveNodeId)
         pendingMoves.delete(effectiveNodeId)
       }
     } catch (error) {
-      if (isCurrentProject(context) && nodeOwners.get(effectiveNodeId) === owner) {
+      if (isCurrentDocument(context) && nodeOwners.get(effectiveNodeId) === owner) {
         nodes.value.splice(Math.min(nodeIndex, nodes.value.length), 0, nodeSnapshot)
         for (const { connection, index } of connectionSnapshots) {
           connections.value.splice(Math.min(index, connections.value.length), 0, connection)
@@ -349,8 +353,8 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     )
     if (duplicate) return duplicate
 
-    const projectId = requireProjectId()
-    const context = captureProjectContext()
+    const { projectId, canvasId } = requireDocumentIdentity()
+    const context = captureDocumentContext()
     const tempId = createTemporaryId('connection')
     const owner = Symbol(tempId)
     const optimisticConnection: CanvasConnection = { id: tempId, ...draft }
@@ -364,7 +368,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
           resolveNodeId(draft.from),
           resolveNodeId(draft.to),
         ])
-        const response = await createCanvasConnection(projectId, {
+        const response = await createCanvasConnection(projectId, canvasId, {
           source_node_id: sourceNodeId,
           source_port: draft.sourcePort ?? 'out',
           target_node_id: targetNodeId,
@@ -372,7 +376,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
           metadata: { ...draft.metadata },
         })
         const serverConnection = mapCanvasConnection(response.data)
-        if (isCurrentProject(context) && connectionOwners.get(tempId) === owner) {
+        if (isCurrentDocument(context) && connectionOwners.get(tempId) === owner) {
           connections.value = connections.value.map((connection) =>
             connection.id === tempId ? serverConnection : connection,
           )
@@ -381,7 +385,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
         }
         return serverConnection.id
       } catch (error) {
-        if (isCurrentProject(context) && connectionOwners.get(tempId) === owner) {
+        if (isCurrentDocument(context) && connectionOwners.get(tempId) === owner) {
           connections.value = connections.value.filter((connection) => connection.id !== tempId)
           connectionOwners.delete(tempId)
           bumpDataRevision()
@@ -399,8 +403,8 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
   }
 
   async function deleteConnection(connectionId: string) {
-    const projectId = requireProjectId()
-    const context = captureProjectContext()
+    const { projectId, canvasId } = requireDocumentIdentity()
+    const context = captureDocumentContext()
     const index = connections.value.findIndex((connection) => connection.id === connectionId)
     if (index < 0) return
 
@@ -415,13 +419,13 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     try {
       persistedConnectionId = await (connectionCreateRequests.get(connectionId) ?? connectionId)
       wasCreated = true
-      await deleteCanvasConnection(projectId, persistedConnectionId)
-      if (isCurrentProject(context) && connectionOwners.get(connectionId) === owner) {
+      await deleteCanvasConnection(projectId, canvasId, persistedConnectionId)
+      if (isCurrentDocument(context) && connectionOwners.get(connectionId) === owner) {
         connectionOwners.delete(connectionId)
       }
     } catch (error) {
       if (!wasCreated) return
-      if (isCurrentProject(context) && connectionOwners.get(connectionId) === owner) {
+      if (isCurrentDocument(context) && connectionOwners.get(connectionId) === owner) {
         connections.value.splice(Math.min(index, connections.value.length), 0, {
           ...snapshot,
           id: persistedConnectionId,

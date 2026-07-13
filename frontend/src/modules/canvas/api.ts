@@ -6,6 +6,7 @@ import type {
   CanvasConnectionListResponse,
   CanvasCreatePayload,
   CanvasDuplicatePayload,
+  CanvasDocumentResponse,
   CanvasListResponse,
   CanvasMetadataDto,
   CanvasMutationResponse,
@@ -15,6 +16,7 @@ import type {
   CanvasNodeUpdatePayload,
   CanvasRenamePayload,
   CanvasReorderPayload,
+  CanvasViewportPayload,
 } from './types'
 
 function canvasCollectionPath(projectId: string) {
@@ -23,6 +25,14 @@ function canvasCollectionPath(projectId: string) {
 
 function canvasItemPath(projectId: string, canvasId: string) {
   return `${canvasCollectionPath(projectId)}/${encodeURIComponent(canvasId)}`
+}
+
+function canvasResourcePath(
+  projectId: string,
+  canvasId: string,
+  resource: 'document' | 'viewport' | 'nodes' | 'connections',
+) {
+  return `${canvasItemPath(projectId, canvasId)}/${resource}`
 }
 
 export function fetchCanvases(projectId: string) {
@@ -57,32 +67,41 @@ function projectPath(projectId: string, resource: 'nodes' | 'connections') {
   return `/projects/${encodeURIComponent(projectId)}/${resource}`
 }
 
-export function fetchCanvasNodes(projectId: string) {
+export function fetchLegacyCanvasNodes(projectId: string) {
   return request.get<CanvasNodeListResponse>(projectPath(projectId, 'nodes'))
 }
 
-export function createCanvasNode(projectId: string, payload: CanvasNodeCreatePayload) {
-  return request.post<CanvasNodeDto>(projectPath(projectId, 'nodes'), payload)
+export function fetchCanvasDocument(projectId: string, canvasId: string) {
+  return request.get<CanvasDocumentResponse>(canvasResourcePath(projectId, canvasId, 'document'))
+}
+
+export function updateCanvasViewport(projectId: string, canvasId: string, payload: CanvasViewportPayload) {
+  return request.patch<CanvasMetadataDto>(canvasResourcePath(projectId, canvasId, 'viewport'), payload)
+}
+
+export function createCanvasNode(projectId: string, canvasId: string, payload: CanvasNodeCreatePayload) {
+  return request.post<CanvasNodeDto>(canvasResourcePath(projectId, canvasId, 'nodes'), payload)
 }
 
 export function updateCanvasNode(
   projectId: string,
+  canvasId: string,
   nodeId: string,
   payload: CanvasNodeUpdatePayload,
 ) {
   return request.put<CanvasNodeDto>(
-    `${projectPath(projectId, 'nodes')}/${encodeURIComponent(nodeId)}`,
+    `${canvasResourcePath(projectId, canvasId, 'nodes')}/${encodeURIComponent(nodeId)}`,
     payload,
   )
 }
 
-export function deleteCanvasNode(projectId: string, nodeId: string) {
+export function deleteCanvasNode(projectId: string, canvasId: string, nodeId: string) {
   return request.delete(
-    `${projectPath(projectId, 'nodes')}/${encodeURIComponent(nodeId)}`,
+    `${canvasResourcePath(projectId, canvasId, 'nodes')}/${encodeURIComponent(nodeId)}`,
   )
 }
 
-export function fetchCanvasConnections(projectId: string) {
+export function fetchLegacyCanvasConnections(projectId: string) {
   return request.get<CanvasConnectionListResponse>(
     projectPath(projectId, 'connections'),
   )
@@ -90,16 +109,17 @@ export function fetchCanvasConnections(projectId: string) {
 
 export function createCanvasConnection(
   projectId: string,
+  canvasId: string,
   payload: CanvasConnectionCreatePayload,
 ) {
   return request.post<CanvasConnectionDto>(
-    projectPath(projectId, 'connections'),
+    canvasResourcePath(projectId, canvasId, 'connections'),
     payload,
   )
 }
 
-export function deleteCanvasConnection(projectId: string, connectionId: string) {
+export function deleteCanvasConnection(projectId: string, canvasId: string, connectionId: string) {
   return request.delete(
-    `${projectPath(projectId, 'connections')}/${encodeURIComponent(connectionId)}`,
+    `${canvasResourcePath(projectId, canvasId, 'connections')}/${encodeURIComponent(connectionId)}`,
   )
 }

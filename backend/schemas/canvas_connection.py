@@ -23,6 +23,7 @@ class CanvasConnectionUpdateRequest(BaseModel):
 class CanvasConnectionResponse(BaseModel):
     id: str
     project_id: str
+    canvas_id: str
     source_node_id: str
     source_port: str
     target_node_id: str

@@ -53,6 +53,7 @@ const canvasNodes = [
   {
     id: 'node-image',
     project_id: 'project-e2e',
+    canvas_id: 'canvas-first',
     node_type: 'image',
     content: { title: '生成封面', prompt: '夏日海边电影海报' },
     position_x: 180,
@@ -61,10 +62,12 @@ const canvasNodes = [
     height: 140,
     status: 'idle',
     created_at: NOW,
+    updated_at: NOW,
   },
   {
     id: 'node-result',
     project_id: 'project-e2e',
+    canvas_id: 'canvas-first',
     node_type: 'result',
     content: { title: '成片结果', description: '等待生成结果' },
     position_x: 560,
@@ -73,6 +76,7 @@ const canvasNodes = [
     height: 140,
     status: 'idle',
     created_at: NOW,
+    updated_at: NOW,
   },
 ]
 
@@ -80,6 +84,7 @@ const canvasConnections = [
   {
     id: 'connection-e2e',
     project_id: 'project-e2e',
+    canvas_id: 'canvas-first',
     source_node_id: 'node-image',
     source_port: 'out',
     target_node_id: 'node-result',
@@ -101,7 +106,7 @@ const visualViewports = [
 function corsHeaders() {
   return {
     'access-control-allow-headers': 'Authorization, Content-Type',
-    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'access-control-allow-methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
     'access-control-allow-origin': APP_ORIGIN,
     'content-type': 'application/json',
   }
@@ -194,13 +199,14 @@ async function installMockApi(page: Page, state: MockState) {
       return
     }
 
-    if (request.method() === 'GET' && pathname === '/projects/project-e2e/nodes') {
-      await fulfillJson(route, { items: canvasNodes, total: canvasNodes.length })
-      return
-    }
-
-    if (request.method() === 'GET' && pathname === '/projects/project-e2e/connections') {
-      await fulfillJson(route, { items: canvasConnections, total: canvasConnections.length })
+    if (request.method() === 'GET' && pathname === '/api/projects/project-e2e/canvases/canvas-first/document') {
+      const activeCanvas = state.canvases.find((canvas) => canvas.id === 'canvas-first')
+      await fulfillJson(route, {
+        canvas: activeCanvas,
+        nodes: canvasNodes,
+        connections: canvasConnections,
+        revision: activeCanvas?.graph_revision ?? 0,
+      })
       return
     }
 
@@ -355,7 +361,7 @@ test('authenticated project and Canvas generation workflow survives reload', asy
   await expect(page.locator('.connection-line')).toHaveCount(1)
   expect(state.authenticatedRequests).toContain('GET /me')
   expect(state.authenticatedRequests).toContain('GET /api/projects/project-e2e/canvases')
-  expect(state.authenticatedRequests).toContain('GET /projects/project-e2e/nodes')
+  expect(state.authenticatedRequests).toContain('GET /api/projects/project-e2e/canvases/canvas-first/document')
   expect(state.authenticatedRequests).toContain('POST /api/image-generate')
 })
 

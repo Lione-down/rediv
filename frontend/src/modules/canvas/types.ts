@@ -54,6 +54,7 @@ export type CanvasNodeContentDto = Record<string, unknown>
 export interface CanvasNodeDto {
   id: string
   project_id: string
+  canvas_id: string
   node_type: string
   content: CanvasNodeContentDto
   position_x: number
@@ -62,6 +63,7 @@ export interface CanvasNodeDto {
   height: number
   status: string
   created_at: string
+  updated_at: string
 }
 
 export interface CanvasNodeListResponse {
@@ -85,6 +87,7 @@ export type CanvasNodeUpdatePayload = Partial<CanvasNodeCreatePayload> & {
 export interface CanvasConnectionDto {
   id: string
   project_id: string
+  canvas_id: string
   source_node_id: string
   source_port: string
   target_node_id: string
@@ -106,4 +109,17 @@ export interface CanvasConnectionCreatePayload {
   target_node_id: string
   target_port: string
   metadata: Record<string, unknown>
+}
+
+export interface CanvasDocumentResponse {
+  canvas: CanvasMetadataDto
+  nodes: CanvasNodeDto[]
+  connections: CanvasConnectionDto[]
+  revision: number
+}
+
+export interface CanvasViewportPayload {
+  x: number
+  y: number
+  zoom: number
 }

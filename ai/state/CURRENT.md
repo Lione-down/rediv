@@ -22,8 +22,8 @@ Last updated: 2026-07-13
 
 - Active implementation Task: `T5-004 - V2 Canvas shell, navigation, and viewport persistence`
 - State: `DOING`
-- Latest completed unit: Unit C - full-screen Canvas shell and navigation interactions (`COMPLETE - PASS`)
-- Next unit: Unit D - Canvas-scoped graph loading and viewport persistence
+- Latest completed unit: Unit D - Canvas-scoped graph loading and viewport persistence (`COMPLETE - PASS`)
+- Next unit: Unit E - focused closure evidence and Task reconciliation
 - Task: `ai/tasks/todo/TASK-T5-004.md`
 - Plan: `ai/tasks/doing/TASK-T5-004-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-004-PROGRESS.md`
@@ -63,17 +63,19 @@ Last updated: 2026-07-13
 - Create, rename, reorder, switch, duplicate, and archive use the serialized server-revision store; stale order reload, last-active protection, and server-confirmed route navigation passed focused browser evidence.
 - Widths below 768 px render a real review-only boundary that blocks graph and metadata mutations while retaining selection, pan, zoom, minimap, and Canvas switching.
 - Unit C passed 4 focused shell tests, 12 full Chromium tests, the four required viewports, real screenshot review, and a 4711-module production build.
-- Graph requests still intentionally use the first-Canvas compatibility path; explicit Canvas graph/document and viewport persistence remain deferred to Unit D.
+- Canonical graph reads now use one authenticated project/Canvas document boundary, and node/connection mutations use explicit Canvas-scoped paths with active ownership and entity isolation checks.
+- Viewports restore independently per Canvas and persist through finite normalization, exact deduplication, a 500 ms debounce, and route-exit flushing without advancing graph revision.
+- Unit D passed 3 focused guarded MySQL tests, 39 Canvas backend regression tests, 189 full backend tests, 14 full Chromium tests, and a 4711-module production build.
 - The migration has not been applied to a user/runtime database and requires normal backup and Human migration authorization.
 - Ignored local `.db` artifacts and the pre-existing `revid_test_db` remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Build Unit D's explicit Canvas graph document boundary and normalized debounced viewport persistence without changing the verified Unit C shell/navigation contract.
+Run Unit E's final browser/accessibility/reduced-motion closure, write REPORT only after all remaining acceptance evidence passes, and reconcile T5-004 state.
 
 ## Blockers And Release Conditions
 
-- No blocker prevents T5-004 Unit D repository implementation.
+- No blocker prevents T5-004 Unit E repository verification and closure work.
 - Applying `f0a1b2c3d4e5` to user/runtime data requires reviewed backup discipline and Human migration authorization.
 - Credential rotation becomes Human-required only if the removed assignment was ever real or reused.
 - Local ignored `.db` deletion requires exact-path Human approval after MySQL backup/parity evidence.
@@ -81,7 +83,7 @@ Build Unit D's explicit Canvas graph document boundary and normalized debounced 
 
 ## Worktree Protection
 
-- Unit C started from clean `main` at `bccd11bf3d1d3fb831aa72668caeab7157d347e5`.
+- Unit D started from clean `main` at `807e76ff3ef38c7325b89b596edc6a2d025e5a05`.
 - Pre-existing staged, tracked-modified, untracked, unmerged, detached, and in-progress Git-operation state: none.
 - Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.

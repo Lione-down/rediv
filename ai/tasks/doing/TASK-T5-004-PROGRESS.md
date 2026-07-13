@@ -3,7 +3,8 @@
 - State: `DOING`
 - Completed unit: Unit B - Canvas metadata client/store and canonical route resolution (`COMPLETE - PASS`)
 - Completed unit: Unit C - full-screen Canvas shell and navigation interactions (`COMPLETE - PASS`)
-- Next unit: Unit D - Canvas-scoped graph loading and viewport persistence
+- Completed unit: Unit D - Canvas-scoped graph loading and viewport persistence (`COMPLETE - PASS`)
+- Next unit: Unit E - focused closure evidence and Task reconciliation
 - Completed unit: Unit A - single-source V2 Canvas token foundation (`COMPLETE - PASS`)
 - Updated: 2026-07-13
 
@@ -48,15 +49,29 @@
 - Added focused browser coverage for all Canvas metadata interactions, stale-revision reload and retry, last-active protection, skip link, 40x40 targets, reduced motion, and mobile mutation absence.
 - Production build and all 12 Chromium tests pass across 1440x900, 1366x768, 920x900, and 375x812; desktop/tablet/mobile screenshots were visually inspected against the locked graphite-black violet direction.
 - Fresh diff, forbidden-pattern, file-size, and `git diff --check` review passed; all Unit C business and test files remain below 500 lines.
+- Started Unit D from clean `main` baseline `807e76ff3ef38c7325b89b596edc6a2d025e5a05`; no staged, tracked-modified, untracked, unmerged, detached, or in-progress Git-operation state was present.
+- Re-read AGENTS, automation memory, CURRENT, ROADMAP, T5-004 Task/PLAN/PROGRESS, ADR-004/005/direct-delivery, the full V2 PRD, Canvas acceptance, Canvas architecture, and design system before Unit D business-code edits.
+- The Codex same-automation thread query was available but did not return within 60 seconds and was terminated before repository writes; the clean Git baseline and authoritative repository state were then reconfirmed.
+- Inspected the canonical route and shell, project-only graph store and mutation rollback flow, viewport transforms and persistence lifecycle, legacy and Canvas metadata APIs, MySQL Canvas/node/connection models, strict schemas, router registration, guarded database tests, and Playwright mock surface.
+- Locked Unit D to one Canvas document read boundary, explicit Canvas-scoped immediate graph mutations, and normalized deduplicated debounced viewport persistence. T5-005 renderer/commands and T5-006 revision/autosave semantics remain deferred.
+- Added authenticated `GET document`, `PATCH viewport`, and exact Canvas-scoped node/connection mutation routes with one domain controller, strict finite viewport validation, active-Canvas locking for mutations, and fail-closed project/Canvas/entity ownership checks.
+- Extended graph response DTOs with explicit `canvas_id` identity and node `updated_at`; negative node coordinates are no longer clamped by either the explicit API schema or canonical client payload mapper.
+- Migrated canonical graph loading from two first-Canvas compatibility reads to one project/Canvas document response containing Canvas metadata, nodes, connections, and revision; stale auth, route, and data-generation responses are discarded.
+- Migrated optimistic node and connection mutations plus debounced node moves to encoded Canvas-scoped paths while preserving rollback, temporary-ID reconciliation, and selection behavior.
+- Added finite viewport normalization to two coordinate decimals and four zoom decimals, 10%-800% zoom bounds, exact-value deduplication, a 500 ms debounce, serialized in-flight reconciliation, visible save/recovery state, and deterministic flush with pending node moves before navigation.
+- Moved last-opened preference updates after successful route navigation so a failed persistence flush cannot advance the browser cursor.
+- Added guarded MySQL API tests for exact Canvas isolation, authorization, archived access, negative coordinates, create/update/delete lifecycle, cross-Canvas rejection, viewport normalization, unchanged graph revision, and persistence after store restart.
+- Added focused Playwright coverage proving no canonical legacy graph reads, exact document and mutation paths, one viewport write for an interaction burst, flush ordering before Canvas switch, per-Canvas zoom restoration, refresh restoration, and explicit node deletion.
+- Fresh review moved the new CRUD implementation out of the pre-existing oversized legacy store and into the 256-line Canvas document controller; every new or materially expanded business/test file remains below 500 lines.
+- Unit D focused, relevant, full backend, full Chromium, final production build, diff, UTF-8, sensitive-path, secret-candidate, and database-artifact checks passed.
 
 ## Remaining
 
-- Unit D: explicit Canvas graph loading/mutations plus normalized, deduplicated, debounced Canvas viewport persistence.
 - Unit E: browser/accessibility closure, REPORT, and final T5-004 reconciliation.
 
 ## Exact Next Action
 
-Implement Unit D's explicit Canvas graph document boundary and normalized debounced viewport persistence without changing the verified Unit C shell contract.
+Run Unit E's final browser/accessibility/reduced-motion closure, fresh Task acceptance review, REPORT creation, and T5-004 state reconciliation.
 
 ## Files Changed
 
@@ -89,6 +104,25 @@ Implement Unit D's explicit Canvas graph document boundary and normalized deboun
 - `frontend/src/modules/canvas/canvas-list-store.ts` - precise never-returning mutation error type.
 - `frontend/src/router/index.ts` - dedicated canonical Canvas view.
 - `frontend/tests/e2e/canvas-shell-navigation.spec.ts` - Unit C metadata, stale-revision, last-active, responsive, keyboard, and accessibility evidence.
+- `backend/api/canvas_documents.py` - authenticated Canvas document, viewport, and exact graph mutation routes.
+- `backend/controllers/canvas_documents.py` - single-session document reads, active-Canvas viewport persistence, and exact graph mutation transactions.
+- `backend/schemas/canvas_document.py` - document response and strict normalized finite viewport contract.
+- `backend/api/canvases.py` - shared Canvas domain-error mapping for metadata and document routes.
+- `backend/api/router.py` - Canvas document router registration.
+- `backend/schemas/canvas_node.py` - explicit Canvas identity, update timestamp, and negative-coordinate support.
+- `backend/schemas/canvas_connection.py` - explicit Canvas identity in connection responses.
+- `backend/tests/test_canvas_document_api.py` - guarded MySQL isolation, mutation, authorization, viewport, and restart evidence.
+- `frontend/src/modules/canvas/api.ts` - encoded document, viewport, and exact Canvas graph request paths.
+- `frontend/src/modules/canvas/types.ts` - document, viewport, and explicit graph identity DTOs.
+- `frontend/src/modules/canvas/persistence.ts` - viewport normalization/deduplication constants and negative-coordinate payload preservation.
+- `frontend/src/modules/canvas/mutations.ts` - project/Canvas-scoped optimistic mutation contexts and requests.
+- `frontend/src/store/canvas.ts` - exact document identity, single-response loading, stale guards, and viewport persistence state machine.
+- `frontend/src/components/canvas/composables/use-canvas-persistence-lifecycle.ts` - combined graph/viewport flush lifecycle.
+- `frontend/src/components/canvas/composables/use-canvas-stage.ts` - persisted viewport updates and exact document retry.
+- `frontend/src/views/app/CanvasWorkspace.vue` - exact document loading, graph revision/save state, retry, and post-navigation preference handling.
+- `frontend/tests/e2e/canvas-document-persistence.spec.ts` - exact request, isolation, debounce, switch, refresh, and mutation evidence.
+- `frontend/tests/e2e/authenticated-workflow.spec.ts` - document mock contract and canonical request assertion.
+- `frontend/tests/e2e/canvas-shell-navigation.spec.ts` - document-scoped shell mock contract.
 
 ## Commands And Results
 
@@ -117,12 +151,22 @@ Implement Unit D's explicit Canvas graph document boundary and normalized deboun
 - Unit C fresh diff/file-size/forbidden-pattern review and `git diff --check` - PASS; zero files over 500 lines and zero prohibited visual patterns in the new shell files.
 - Initial staged `.gitignore` batch-stdin probe - FAIL; PowerShell supplied carriage-return-affected probe input, while direct rule inspection showed the required `.env`, `.env.*`, and database patterns.
 - Corrected per-path staged hygiene - PASS; exact 12 owned paths, strict UTF-8, sensitive paths, secret candidates, staged/tracked database artifacts, ignore probes, and unstaged tracked remainder all passed with zero findings.
+- Unit D focused `tests.test_canvas_document_api` - PASS; 3 guarded MySQL tests cover document/mutation isolation, authorization, viewport normalization, graph-revision stability, and restart persistence.
+- Unit D Canvas backend regression - PASS; 39 guarded MySQL/API tests across document, metadata, duplication, foundation, node, and connection suites.
+- Unit D full backend `unittest discover` - PASS; 189 tests in 153.616 seconds.
+- Unit D focused browser run - PASS; 2 document/viewport tests, and the combined shell regression run passed 6 tests.
+- Unit D full Chromium regression - PASS; 14 tests across generation, routing, metadata, shell, exact graph mutation, viewport persistence, and 1440x900, 1366x768, 920x900, and 375x812.
+- Unit D final `frontend: npm run build` - PASS; `vue-tsc` and Vite completed with 4711 modules transformed.
+- Unit D Python compile, fresh diff, file-size, and `git diff --check` review - PASS; new/expanded business and test files remain below 500 lines.
+- Initial Unit D exact-stage gate - BLOCKED SAFELY; the proposed list mistakenly included unchanged `backend/schemas/canvas.py`, so the gate exited before staging any file.
+- Corrected Unit D exact staging and hygiene - PASS; exact 24 owned paths, zero unstaged/untracked remainder, strict UTF-8, sensitive paths, secret candidates, staged/tracked database artifacts, `.env`/`.env.*`/`*.db` ignore probes, and staged diff checks all passed with zero findings.
 
 ## Blockers And Release Conditions
 
 - No Unit A implementation or verification blocker remains.
 - No Unit B implementation or verification blocker remains.
 - No Unit C implementation or verification blocker remains.
-- No blocker prevents Unit D repository implementation.
+- No Unit D implementation or verification blocker remains.
+- No blocker prevents Unit E repository verification and Task closure work.
 - Applying the existing multi-canvas migration to user/runtime data still requires backup discipline and Human authorization; Units A-B do not access a database.
 - Ignored `.env`, local `.db`, and the pre-existing `revid_test_db` remain untouched.

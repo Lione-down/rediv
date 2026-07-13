@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 class CanvasNodeCreateRequest(BaseModel):
     node_type: str = Field(..., min_length=1, max_length=50)
     content: dict = Field(default_factory=dict)
-    position_x: float = Field(default=0.0, ge=0.0)
-    position_y: float = Field(default=0.0, ge=0.0)
+    position_x: float = Field(default=0.0)
+    position_y: float = Field(default=0.0)
     width: int = Field(default=300, ge=50)
     height: int = Field(default=200, ge=50)
 
@@ -25,6 +25,7 @@ class CanvasNodeUpdateRequest(BaseModel):
 class CanvasNodeResponse(BaseModel):
     id: str
     project_id: str
+    canvas_id: str
     node_type: str
     content: dict
     position_x: float
@@ -33,6 +34,7 @@ class CanvasNodeResponse(BaseModel):
     height: int
     status: str
     created_at: str
+    updated_at: str
 
 
 class CanvasNodeListResponse(BaseModel):

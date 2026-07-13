@@ -5,6 +5,7 @@ from api import (
     assets,
     auth,
     canvas_connections,
+    canvas_documents,
     canvas_nodes,
     canvases,
     generation_tasks,
@@ -25,6 +26,7 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(assets.router)
     app.include_router(projects.router)
     app.include_router(canvases.router)
+    app.include_router(canvas_documents.router)
     app.include_router(canvas_nodes.router)
     app.include_router(canvas_connections.router)
     app.include_router(generation_tasks.router)

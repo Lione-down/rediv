@@ -42,8 +42,8 @@ Move the frontend from the Phase 4 project-scoped workspace into the explicit mu
 - [x] The canonical route contains valid project and Canvas IDs; the legacy workspace resolves the first active Canvas without flattening multi-canvas data.
 - [x] Canvas navigation supports create, rename, reorder, switch, archive, and duplicate with optimistic order-revision handling.
 - [x] The Canvas is full-screen with floating route chrome, no permanent empty inspector, and clear project, Canvas, back, save, and recovery context.
-- [ ] Graph reads and mutations use an explicit Canvas ID and never leak data across canvases.
-- [ ] Pan/zoom restores independently per Canvas after switch, refresh, and backend restart, with bounded/debounced persistence.
+- [x] Graph reads and mutations use an explicit Canvas ID and never leak data across canvases.
+- [x] Pan/zoom restores independently per Canvas after switch, refresh, and backend restart, with bounded/debounced persistence.
 - [x] Desktop and compact editing remain usable, while widths below 768 px expose browse/review only and no graph mutation controls.
 - [ ] Keyboard focus, skip-to-content, 40x40 targets, reduced motion, Chinese labels, and required contrast survive browser verification.
 - [ ] Focused tests, frontend build, relevant browser checks, fresh diff review, and hygiene gates pass.

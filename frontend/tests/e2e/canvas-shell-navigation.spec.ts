@@ -98,18 +98,21 @@ async function installShellApi(page: Page, state: ShellState) {
     if (method === 'GET' && path === '/api/projects/project-shell/canvases') {
       return fulfillJson(route, { items: state.canvases, order_revision: state.orderRevision })
     }
-    if (method === 'GET' && path === '/projects/project-shell/nodes') {
+    const documentMatch = path.match(/^\/api\/projects\/project-shell\/canvases\/([^/]+)\/document$/)
+    if (method === 'GET' && documentMatch) {
+      const canvasId = decodeURIComponent(documentMatch[1])
+      const activeCanvas = state.canvases.find((item) => item.id === canvasId)
+      if (!activeCanvas) return fulfillJson(route, { detail: 'Canvas not found' }, 404)
       return fulfillJson(route, {
-        items: [{
-          id: 'node-review', project_id: 'project-shell', node_type: 'image',
+        canvas: activeCanvas,
+        nodes: [{
+          id: `node-review-${canvasId}`, project_id: 'project-shell', canvas_id: canvasId, node_type: 'image',
           content: { title: '主视觉', prompt: '夜景电影海报' }, position_x: 180, position_y: 140,
-          width: 240, height: 140, status: 'idle', created_at: NOW,
+          width: 240, height: 140, status: 'idle', created_at: NOW, updated_at: NOW,
         }],
-        total: 1,
+        connections: [],
+        revision: activeCanvas.graph_revision,
       })
-    }
-    if (method === 'GET' && path === '/projects/project-shell/connections') {
-      return fulfillJson(route, { items: [], total: 0 })
     }
 
     if (method === 'POST' && path === '/api/projects/project-shell/canvases') {

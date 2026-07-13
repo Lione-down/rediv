@@ -3,7 +3,8 @@
 - State: `DOING`
 - Completed unit: Unit B - Canvas metadata client/store and canonical route resolution (`COMPLETE - PASS`)
 - Completed unit: Unit C - full-screen Canvas shell and navigation interactions (`COMPLETE - PASS`)
-- Next unit: Unit D - Canvas-scoped graph loading and viewport persistence
+- Completed unit: Unit D - Canvas-scoped graph loading and viewport persistence (`COMPLETE - PASS`)
+- Next unit: Unit E - focused closure evidence and Task reconciliation
 - Completed unit: Unit A - single-source V2 Canvas token foundation (`COMPLETE - PASS`)
 - Updated: 2026-07-13
 
@@ -111,9 +112,43 @@ Deliver the explicit multi-canvas frontend in independently mergeable units whil
 - Mobile uses a reactive rendered `readonly` boundary that blocks node drag, connect, create, delete, context-menu, and keyboard mutation paths while retaining selection, pan, zoom, and Canvas switch review.
 - The focused shell suite passed 4 tests; the full Chromium suite passed 12 tests across 1440x900, 1366x768, 920x900, and 375x812; the production build passed with 4711 modules.
 
+## Unit D - Canvas-scoped graph loading and viewport persistence
+
+### Scope
+
+1. Add authenticated Canvas document and viewport endpoints under the canonical project/Canvas path. A document read returns active Canvas metadata, nodes, connections, and the current graph revision from one Canvas-scoped read boundary.
+2. Add explicit Canvas-scoped node and connection mutation paths for the existing immediate-edit workflow. Every read and mutation validates user ownership plus the exact active `project_id` and `canvas_id`; legacy project-scoped routes remain only as first-Canvas compatibility paths.
+3. Move the canonical frontend store context from project-only identity to exact project/Canvas identity, load one document response, and reject stale responses after route, auth, or document generation changes.
+4. Send canonical node create/update/delete and connection create/delete requests through the exact Canvas-scoped paths while preserving the current optimistic rollback and pending-move behavior.
+5. Restore the server viewport for each Canvas and persist normalized finite `x`, `y`, and `zoom` through a separate deduplicated debounce. Flush pending node movement and viewport work before Canvas switch, route exit, and unmount.
+6. Keep the verified Unit C shell, mobile review boundary, renderer behavior, generation compatibility, and non-Canvas routes unchanged except for the document identity and save-state data they consume.
+7. Add guarded MySQL API evidence for isolation, authorization, document consistency, mutation scope, viewport normalization, deduplication semantics, and restart persistence; add focused Playwright evidence for exact request paths, switch isolation, refresh restoration, and bounded viewport writes.
+
+### Non-goals
+
+- graph revision mutation batches, `client_mutation_id`, conflict recovery, command history, checkpoints, or autosave queue behavior owned by T5-006;
+- incremental renderer, command model, grouping, shortcut expansion, arrange, or performance work owned by T5-005;
+- migration execution against user/runtime data, paid provider calls, secret access, local database cleanup, or removal of the legacy compatibility APIs;
+- Unit C shell redesign or global V2 page rollout.
+
+### Success criteria
+
+- Canonical graph load uses one authenticated `GET /api/projects/{project_id}/canvases/{canvas_id}/document`; canonical graph mutations contain both encoded identifiers and cannot read or mutate another Canvas.
+- The document response is internally Canvas-consistent and includes Canvas metadata, nodes, connections, and revision; unauthorized, foreign, archived, and cross-Canvas entity access fail closed.
+- Viewport values restore independently per Canvas, are finite and normalized, persist through a separate debounced endpoint without advancing graph revision, and flush before navigation.
+- Switching and refresh never display a stale prior-Canvas graph or accept a stale in-flight response.
+- Focused backend and browser tests, frontend production build, relevant regression, fresh diff review, `git diff --check`, exact staging, UTF-8, sensitive-path, secret-candidate, and tracked database-artifact gates pass.
+
+### Outcome
+
+- Added one authenticated Canvas document boundary plus explicit Canvas-scoped node and connection mutation routes; every operation checks user, project, active Canvas, and exact entity scope.
+- Canonical frontend loading now keys state and stale-response guards by project plus Canvas, adopts one document response, and sends graph mutations only through encoded Canvas-scoped paths.
+- Viewport state is finite, normalized, deduplicated, debounced separately, and flushed together with pending node movement before route updates, route exit, page hide, and unmount without advancing graph revision.
+- Guarded MySQL evidence passed Canvas isolation, authorization, negative coordinates, exact mutation lifecycle, viewport normalization, unchanged graph revision, and restart persistence.
+- Full backend passed 189 tests, full Chromium passed 14 tests across the required viewport matrix, and the final `vue-tsc` plus Vite build passed with 4711 modules.
+
 ## Later Units
 
-- Unit D: explicit Canvas graph scope and normalized debounced viewport persistence.
 - Unit E: focused and regression browser evidence, accessibility/reduced-motion checks, documentation, REPORT, and closure reconciliation.
 
 ## Unit A Outcome
@@ -125,8 +160,8 @@ Deliver the explicit multi-canvas frontend in independently mergeable units whil
 
 ## Verification Order
 
-1. Run Unit D focused document/viewport tests before broader browser regression.
-2. Run `npm run build` from `frontend`.
-3. Inspect explicit Canvas IDs across graph API, stores, route switching, and viewport deduplication.
-4. Run the full relevant Chromium suite, fresh diff review, and `git diff --check`.
+1. Run Unit E focused keyboard, focus, reduced-motion, contrast, responsive, and recovery checks before broader regression.
+2. Run `npm run build` from `frontend` and the relevant backend regression if closure changes shared contracts.
+3. Reconcile every remaining T5-004 acceptance criterion against browser, source, and runtime evidence.
+4. Run the full relevant Chromium suite, fresh Task/diff review, and `git diff --check`.
 5. Precisely stage owned paths, run staged UTF-8/sensitive-path/secret/database-artifact checks, commit, and push.

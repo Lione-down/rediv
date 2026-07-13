@@ -127,11 +127,11 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   function getViewport(): ViewportState { return normalizeViewport(canvasStore.viewport) }
   function updateViewport(next: Partial<ViewportState>) {
     const current = getViewport()
-    canvasStore.viewport = {
+    canvasStore.updateViewport({
       zoom: clampZoom(next.zoom ?? current.zoom),
       x: next.x ?? current.x,
       y: next.y ?? current.y,
-    }
+    })
   }
   function findNode(nodeId: string) { return canvasStore.nodes.find((node) => node.id === nodeId) ?? null }
   function findNodeAtWorldPoint(point: Point) {
@@ -191,7 +191,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   }
   function retryProjectLoad() {
     if (!canvasStore.activeProjectId) return
-    void canvasStore.loadProject(canvasStore.activeProjectId, true).catch(() => undefined)
+    void canvasStore.reloadActiveDocument().catch(() => undefined)
   }
   function toSurfacePoint(clientX: number, clientY: number) {
     const rect = stageRef.value?.getBoundingClientRect()

@@ -53,7 +53,7 @@ Units A-D are complete. The expand-first migration, atomic default Canvas, datab
 
 These Tasks form the Canvas milestone. Shared V2 tokens may land in T5-004, but page-level visual redesign is prohibited until T5-008 passes.
 
-T5-004 is active. Units A-C passed with a Canvas-scoped token source, strict metadata store and routing, dedicated full-screen V2 shell, Canvas navigation, contextual generation compatibility, and mobile review-only enforcement. Explicit Canvas graph/viewport persistence and final closure follow in Units D-E.
+T5-004 is active. Units A-D passed with a Canvas-scoped token source, strict metadata store and routing, dedicated full-screen V2 shell, Canvas navigation, contextual generation compatibility, mobile review-only enforcement, one exact Canvas document boundary, explicit graph mutations, and independent debounced viewport persistence. Final browser/accessibility closure follows in Unit E.
 
 ### T5-009 through T5-011
 

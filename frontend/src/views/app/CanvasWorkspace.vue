@@ -26,7 +26,7 @@ const authStore = useAuthStore()
 const assetStore = useAssetStore()
 const projectStore = useProjectStore()
 const canvasListStore = useCanvasListStore()
-const legacyCanvasStore = useCanvasStore()
+const canvasDocumentStore = useCanvasStore()
 
 useCanvasPersistenceLifecycle()
 
@@ -41,19 +41,21 @@ const canvasId = computed(() => normalizeRouteIdentifier(route.params.canvasId))
 const activeCanvas = computed(() => (
   canvasListStore.items.find((canvas) => canvas.id === canvasId.value) ?? null
 ))
-const selectedNode = computed(() => legacyCanvasStore.selectedNode)
+const selectedNode = computed(() => canvasDocumentStore.selectedNode)
 const projectName = computed(() => (
   projectStore.items.find((project) => project.id === projectId.value)?.name ?? 'Revid 项目'
 ))
 const accountName = computed(() => authStore.user?.nickname || authStore.user?.username || '个人空间')
 const syncLabel = computed(() => {
+  if (canvasDocumentStore.saveError) return '画布文档需要恢复'
+  if (canvasDocumentStore.isViewportSaving) return '正在保存视口'
   if (canvasListStore.isMutating) return '正在保存画布'
   if (canvasListStore.mutationError) return '画布需要恢复'
-  return `画布已同步 · r${canvasListStore.orderRevision}`
+  return `画布已同步 · r${canvasDocumentStore.graphRevision}`
 })
 const syncTone = computed(() => {
-  if (canvasListStore.mutationError) return 'error'
-  if (canvasListStore.isMutating) return 'saving'
+  if (canvasListStore.mutationError || canvasDocumentStore.saveError) return 'error'
+  if (canvasListStore.isMutating || canvasDocumentStore.isViewportSaving) return 'saving'
   return 'saved'
 })
 const syncIcon = computed(() => {
@@ -76,21 +78,24 @@ function updateReviewBoundary(event?: MediaQueryListEvent) {
   isReviewOnly.value = event?.matches ?? reviewMediaQuery?.matches ?? false
 }
 
-async function loadWorkspaceContext(nextProjectId: string) {
-  if (!nextProjectId) return
+async function loadWorkspaceContext(nextProjectId: string, nextCanvasId: string) {
+  if (!nextProjectId || !nextCanvasId) return
   await Promise.allSettled([
     canvasListStore.loadCanvases(nextProjectId),
     projectStore.loadProjects(),
-    legacyCanvasStore.loadProject(nextProjectId),
+    canvasDocumentStore.loadCanvas(nextProjectId, nextCanvasId),
   ])
 }
 
 async function navigateToCanvas(nextCanvasId: string) {
   const nextCanvas = canvasListStore.items.find((canvas) => canvas.id === nextCanvasId)
   if (!projectId.value || !nextCanvas) return
-  canvasListStore.rememberCanvas(projectId.value, nextCanvas.id)
-  if (nextCanvas.id === canvasId.value) return
+  if (nextCanvas.id === canvasId.value) {
+    canvasListStore.rememberCanvas(projectId.value, nextCanvas.id)
+    return
+  }
   await router.push(canvasRouteLocation(projectId.value, nextCanvas.id))
+  canvasListStore.rememberCanvas(projectId.value, nextCanvas.id)
 }
 
 async function createCanvas(name: string) {
@@ -128,6 +133,13 @@ async function retryCanvasList() {
   if (resolved) await navigateToCanvas(resolved.id)
 }
 
+async function retryCanvasState() {
+  const operations: Promise<unknown>[] = [canvasListStore.loadCanvases(projectId.value, true)]
+  if (canvasDocumentStore.saveError) operations.push(canvasDocumentStore.flushPendingPersistence())
+  else operations.push(canvasDocumentStore.reloadActiveDocument())
+  await Promise.allSettled(operations)
+}
+
 function extractGenerationError(error: unknown) {
   if (isAxiosError<{ detail?: string }>(error)) {
     return error.response?.data?.detail || error.message || '生成失败，请稍后重试。'
@@ -159,19 +171,19 @@ async function generateFromSelectedNode() {
   if (!node || isReviewOnly.value || isGenerating.value) return
   if (!quotaType) {
     generationError.value = '当前节点类型暂不支持生成。'
-    legacyCanvasStore.setNodeStatus(node.id, 'warning')
+    canvasDocumentStore.setNodeStatus(node.id, 'warning')
     return
   }
   if (isQuotaInsufficient.value) {
     generationError.value = `${quotaType} quota 不足，当前生成已阻止。`
-    legacyCanvasStore.setNodeStatus(node.id, 'warning')
+    canvasDocumentStore.setNodeStatus(node.id, 'warning')
     return
   }
 
   isGenerating.value = true
   generationError.value = ''
   generationSuccess.value = ''
-  legacyCanvasStore.setNodeStatus(node.id, 'running')
+  canvasDocumentStore.setNodeStatus(node.id, 'running')
   try {
     const asset = await requestGeneration(node)
     prependAsset(asset)
@@ -179,9 +191,9 @@ async function generateFromSelectedNode() {
       ...authStore.quotas,
       [quotaType]: Math.max(0, authStore.quotas[quotaType] - 1),
     }
-    legacyCanvasStore.setNodeStatus(node.id, 'success')
+    canvasDocumentStore.setNodeStatus(node.id, 'success')
     if (asset?.url) {
-      legacyCanvasStore.setNodeContent(
+      canvasDocumentStore.setNodeContent(
         node.id,
         node.type === 'video'
           ? '视频任务已完成，可在 Assets 面板查看。'
@@ -193,14 +205,14 @@ async function generateFromSelectedNode() {
       : '图片生成完成，结果已写入资产区。'
   } catch (error) {
     generationError.value = extractGenerationError(error)
-    legacyCanvasStore.setNodeStatus(node.id, 'warning')
+    canvasDocumentStore.setNodeStatus(node.id, 'warning')
   } finally {
     isGenerating.value = false
   }
 }
 
-watch(projectId, (nextProjectId) => {
-  void loadWorkspaceContext(nextProjectId)
+watch([projectId, canvasId], ([nextProjectId, nextCanvasId]) => {
+  void loadWorkspaceContext(nextProjectId, nextCanvasId)
 }, { immediate: true })
 
 watch([projectId, canvasId], ([nextProjectId, nextCanvasId]) => {
@@ -251,9 +263,9 @@ onBeforeUnmount(() => {
             type="button"
             class="sync-status"
             :class="`is-${syncTone}`"
-            :disabled="!canvasListStore.mutationError"
-            :aria-label="canvasListStore.mutationError ? `${syncLabel}，重新加载画布列表` : syncLabel"
-            @click="retryCanvasList"
+            :disabled="!canvasListStore.mutationError && !canvasDocumentStore.saveError"
+            :aria-label="canvasListStore.mutationError || canvasDocumentStore.saveError ? `${syncLabel}，重试同步` : syncLabel"
+            @click="retryCanvasState"
           >
             <component :is="syncIcon" :size="16" aria-hidden="true" />
             <span>{{ syncLabel }}</span>
@@ -269,7 +281,7 @@ onBeforeUnmount(() => {
         <p class="canvas-context">
           <span>{{ activeCanvas?.name || '画布' }}</span>
           <span aria-hidden="true">/</span>
-          <span>Graph compatibility</span>
+          <span>Canvas document · r{{ canvasDocumentStore.graphRevision }}</span>
         </p>
       </main>
 
