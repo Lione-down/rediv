@@ -18,6 +18,8 @@ import type {
   CanvasNodeUpdatePayload,
   CanvasRenamePayload,
   CanvasReorderPayload,
+  CanvasRevisionListResponse,
+  CanvasRevisionRestoreResponse,
   CanvasViewportPayload,
 } from './types'
 
@@ -32,7 +34,7 @@ function canvasItemPath(projectId: string, canvasId: string) {
 function canvasResourcePath(
   projectId: string,
   canvasId: string,
-  resource: 'document' | 'viewport' | 'nodes' | 'connections',
+  resource: 'document' | 'viewport' | 'nodes' | 'connections' | 'revisions',
 ) {
   return `${canvasItemPath(projectId, canvasId)}/${resource}`
 }
@@ -85,6 +87,18 @@ export function patchCanvasDocument(
   return request.patch<CanvasDocumentPatchResponse>(
     canvasResourcePath(projectId, canvasId, 'document'),
     payload,
+  )
+}
+
+export function fetchCanvasRevisions(projectId: string, canvasId: string) {
+  return request.get<CanvasRevisionListResponse>(
+    canvasResourcePath(projectId, canvasId, 'revisions'),
+  )
+}
+
+export function restoreCanvasRevision(projectId: string, canvasId: string, revision: number) {
+  return request.post<CanvasRevisionRestoreResponse>(
+    `${canvasResourcePath(projectId, canvasId, 'revisions')}/${revision}/restore`,
   )
 }
 

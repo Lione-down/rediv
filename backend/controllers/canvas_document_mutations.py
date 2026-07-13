@@ -6,6 +6,7 @@ from uuid import uuid4
 from sqlalchemy import select
 
 from controllers.canvas_documents import _connection_to_dict, _datetime_to_iso, _node_to_dict
+from controllers.canvas_revisions import capture_graph_snapshot, prune_revisions, should_checkpoint
 from controllers.canvases import CanvasDomainError, _active_canvas, _owned_project
 from core.canvas_document_fingerprint import mutation_fingerprint
 from models.base import get_session, utc_now
@@ -277,20 +278,28 @@ def patch_document(project_id: str, canvas_id: str, user_id: str, payload: dict)
             ],
             "connection_deletes": sorted(all_connection_deletes),
         }
+        next_revision = canvas.graph_revision + 1
+        checkpoint_snapshot = (
+            capture_graph_snapshot(session, project_id, canvas_id)
+            if should_checkpoint(session, canvas_id, next_revision)
+            else None
+        )
         revision = CanvasRevision(
             id=str(uuid4()),
             canvas_id=canvas_id,
-            revision_no=canvas.graph_revision + 1,
+            revision_no=next_revision,
             base_revision=payload["base_revision"],
             client_mutation_id=payload["client_mutation_id"],
             request_fingerprint=fingerprint,
             operations=deepcopy(operations),
-            checkpoint_snapshot=None,
+            checkpoint_snapshot=checkpoint_snapshot,
             created_by_user_id=user_id,
             created_at=timestamp,
         )
         canvas.graph_revision = revision.revision_no
         canvas.updated_at = timestamp
         session.add(revision)
+        session.flush()
+        prune_revisions(session, canvas_id, next_revision)
         session.commit()
         return _response_from_revision(revision)

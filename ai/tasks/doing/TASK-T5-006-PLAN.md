@@ -1,68 +1,69 @@
 # TASK-T5-006 Plan
 
 - State: `DOING`
-- Completed unit: Unit A - atomic backend document PATCH and revision contract (`COMPLETE - PASS`)
-- Completed unit: Unit B - frontend autosave queue, recovery, and flush boundaries (`COMPLETE - PASS`)
-- Completed unit: Unit C - Canvas-scoped 100-step undo/redo (`COMPLETE - PASS`)
-- Next unit: Unit D - durable revisions, checkpoints, restore, and complete recovery UI
+- Completed units: Units A-C (`COMPLETE - PASS`)
+- Completed unit: Unit D - durable revisions, checkpoints, restore, and complete recovery UI (`COMPLETE - PASS`)
+- Next unit: Unit E - offline/conflict/restart/browser/regression closure and REPORT
 - Updated: 2026-07-13
 
 ## Objective
 
-Unit C delivered one dependency-ready local history boundary around the existing typed Canvas commands so every accepted edit can be undone and redone without bypassing atomic autosave or leaking history across canvases.
+Deliver a Canvas-scoped durable recovery boundary that lists retained edit revisions, writes reconstructable checkpoints, prunes history without breaking restore, restores any retained edit as a new head, and exposes explicit history/conflict recovery actions in the existing V2 Canvas shell.
 
-## Unit C Scope
+## Unit D Scope
 
-1. Add a Canvas-keyed command-history owner that retains the latest 100 applied command deltas plus its redo stack in memory.
-2. Wrap the existing serialized typed command execution boundary so successful graph changes create exactly one history entry; rejected and no-op commands create none.
-3. Record deterministic before/after entity deltas with exact node and connection IDs. Recover pointer-drag `from` positions because the renderer updates reactive positions before dispatch on pointerup.
-4. Apply undo and redo as one local graph patch through the existing atomic autosave queue, preserving server revision and recovery behavior.
-5. Clear redo after a new forward command, cap undo at 100 entries, and prevent undo/redo re-entry while a history transition is in flight.
-6. Isolate history by user/project/Canvas identity. Preserve a Canvas stack across a normal flushed switch and clear the affected stack when a forced server reload replaces its document.
-7. Add Canvas-focused `Ctrl+Z` and `Ctrl+Shift+Z` / `Cmd` equivalents while preserving editable-target, mobile review-only, repeat-key, and focus-scope guards.
-8. Expose exact `canUndo` and `canRedo` state through the existing Canvas store without adding a new visual system or unrelated controls.
+1. Add authenticated exact-Canvas revision list and restore endpoints under the canonical Canvas document API.
+2. Store a full graph checkpoint on revision 1, every tenth edit revision, and every restore revision. Revision 1 anchors graphs that existed before canonical autosave began.
+3. Retain the latest 50 edit revisions plus the shortest reconstruction chain beginning at the newest checkpoint at or before the retained window, pruning only after that chain is complete.
+4. Reconstruct a target revision from its nearest retained checkpoint and ordered normalized operations, then replace the current graph atomically under the locked Canvas head.
+5. Restore by creating a new checkpointed head revision; never renumber or update an existing revision record.
+6. Return strict revision summary/list and restore response contracts without exposing graph payloads in the history list.
+7. Add a Canvas-scoped frontend revision store and API client. A successful restore reloads the canonical document, clears stale local undo/redo through the existing forced-load boundary, and refreshes revision history.
+8. Add one accessible dark-purple history/recovery panel with retained revisions, checkpoint identity, explicit restore confirmation, and conflict actions for reload-latest and preserve-local-copy.
 
-## Unit C Non-goals
+## Unit D Non-goals
 
-- durable revision listing, retention, checkpoints, restore, and the complete conflict-choice panel, owned by Unit D;
-- durable or cross-session undo/redo history;
-- backend, schema, document PATCH contract, or granular compatibility-route changes;
-- generation/task persistence owned by T5-007;
-- final 200-node/300-connection, offline, restart, multi-viewport, and milestone closure owned by later units;
-- schema changes, user/runtime migration execution, paid calls, secret access, or destructive data/filesystem operations.
+- durable cross-session undo/redo;
+- schema or migration changes; the existing `canvas_revisions` table is sufficient;
+- legacy granular-route revision synthesis or removal;
+- offline/restart/full viewport closure owned by Unit E;
+- node registry, project assets, templates, or generation persistence owned by T5-007;
+- user/runtime migration execution, paid calls, secret access, local `.db` changes, or destructive user-data operations.
 
-## Dependencies And Existing Foundation
+## Dependencies And Risks
 
-- Unit B provides the atomic autosave/recovery queue and deterministic flush-before-switch behavior used by every history transition.
-- T5-005 provides the typed command boundary used by pointer, keyboard, toolbar, context-menu, and accessibility interactions.
-- Commands with generated IDs or compound graph effects require execution-time deltas rather than factory-only inverse commands.
-- The current Pinia Canvas store owns graph identity and lifecycle; history remains local and Canvas-scoped as required by ADR-005.
+- Unit A provides normalized atomic operations, the locked Canvas head, request fingerprints, and durable revision rows.
+- Unit B provides local recovery storage and forced canonical reload behavior; Unit C clears stale local history on forced reload.
+- A retained edit is restorable only if a checkpoint and every following operation through that edit exist. Retention therefore keeps the nearest checkpoint plus the at-most-nine bridge revisions before the latest-50 window.
+- Current graphs may contain revision-zero rows created through compatibility routes. A full revision-1 checkpoint prevents those rows from disappearing during later reconstruction.
+- Restore must order parent clearing, node revival/deactivation, and connection replacement to satisfy existing composite MySQL foreign keys without weakening constraints.
 
 ## TDD And Verification Plan
 
-1. Add focused pure Playwright/TypeScript tests for command delta inversion, no-op exclusion, redo invalidation, and the exact 100-entry cap.
-2. Add focused browser tests for Canvas-focus shortcuts, atomic autosave of undo/redo, normal switch isolation, and forced reload clearing. Run the new tests RED before implementation.
-3. Implement the smallest history controller, graph-patch mutation, Pinia integration, and shortcut handling needed to make focused tests GREEN.
-4. Run the focused history and directly affected command/autosave/navigation suites, then full Chromium regression and the frontend production build.
-5. Verify desktop keyboard focus and 375 px review-only guards; do not add mobile mutation affordances.
-6. Run strict UTF-8, business-file size, suspicious-pattern, `git diff --check`, fresh diff review, staged secret/path/database hygiene, precise commit, and `origin` push.
+1. Add focused guarded MySQL/API tests for authenticated listing, periodic checkpoints, exact retention, reconstruction, exact-Canvas isolation, and restore-to-new-head. Run RED before backend business-code edits.
+2. Add focused Chromium tests for revision loading, restore confirmation/new head reload, conflict reload-latest, preserve-local-copy, mobile review-only behavior, and accessible panel state. Run RED before frontend business-code edits.
+3. Implement the smallest backend revision controller, schemas, routes, checkpoint capture, retention, and atomic restore needed for GREEN.
+4. Implement the frontend revision domain store, panel, and recovery actions using existing API, Pinia, V2 tokens, and forced document reload boundaries.
+5. Run focused backend and browser suites first; then affected Canvas backend/browser regression and the production frontend build.
+6. Perform fresh acceptance/diff review, `git diff --check`, strict UTF-8 and 500-line gates, tracked/staged path and secret hygiene, precise staging, scoped commit, and `origin` push.
 
-## Unit C Success Criteria
+## Unit D Success Criteria
 
-- every accepted typed command produces at most one reversible history entry and one debounced atomic document batch per undo or redo transition;
-- undo restores the exact prior nodes, connections, parents, positions, lock state, and entity IDs; redo restores the exact post-command graph;
-- a new forward command clears redo, and the undo stack retains exactly the latest 100 applied commands;
-- normal Canvas switching restores each Canvas's independent local stack, while a forced document reload clears stale history for that Canvas;
-- shortcuts work only when the Canvas owns focus and editing is allowed, and never mutate from editable controls or mobile review-only mode;
-- focused history/browser tests, affected regression, full Chromium regression, production build, fresh diff review, and hygiene gates pass.
+- revision list is authenticated, ownership-checked, exact-Canvas scoped, newest-first, and excludes graph payloads;
+- every retained latest-50 edit can be reconstructed from a retained checkpoint, including a graph that existed before revision 1;
+- checkpoints exist at revision 1, every tenth edit, and each restore head;
+- normal retention leaves the latest 50 edit revisions plus only the nearest checkpoint-to-window bridge required to reconstruct them;
+- restore atomically recreates exact node/connection IDs, ordering, parent links, endpoints, positions, lock state, and content, then advances the Canvas head by one;
+- the target and prior revisions remain immutable; the new restore revision is a full checkpoint;
+- the UI exposes revision history and specific conflict recovery choices without enabling graph mutation below 768 px;
+- focused MySQL/API and Chromium tests, affected regression, production build, fresh diff review, and hygiene gates pass.
 
-All Unit C success criteria are satisfied. Final evidence is recorded in `TASK-T5-006-PROGRESS.md`.
+All Unit D success criteria are satisfied. Final evidence is recorded in `TASK-T5-006-PROGRESS.md`.
 
-## Later Units
+## Next Unit
 
-- Unit D: revision list, retention/checkpoints, restore, and complete recovery UI.
 - Unit E: offline/conflict/restart/browser/regression closure and REPORT.
 
 ## Exact Next Action
 
-Refresh PLAN/PROGRESS for Unit D, inspect the existing revision model/API and retention boundaries, then add failing revision-list/checkpoint/restore contract tests before business-code edits.
+Refresh PLAN/PROGRESS for Unit E, then add the remaining offline/restart/real-MySQL recovery closure evidence before final full regression, REPORT, and Task acceptance.

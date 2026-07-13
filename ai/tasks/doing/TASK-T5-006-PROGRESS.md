@@ -1,11 +1,12 @@
 # TASK-T5-006 Progress
 
 - Task state: `DOING`
-- Completed unit: Unit C - Canvas-scoped 100-step undo/redo (`COMPLETE - PASS`)
-- Next unit: Unit D - durable revisions, checkpoints, restore, and complete recovery UI
+- Completed unit: Unit D - durable revisions, checkpoints, restore, and complete recovery UI (`COMPLETE - PASS`)
+- Next unit: Unit E - offline/conflict/restart/browser/regression closure and REPORT
 - Updated: 2026-07-13
 - Unit B baseline HEAD: `11242827daca5fcf58f476489d3a5bf01f6d4c41`
 - Unit C baseline HEAD: `7c23eeba3c037dd954cf0cc0e3f8f12bb594a0b9`
+- Unit D baseline HEAD: `c1e01f08c43fc9545badf9d3cf23e3aaef6f8f2b`
 
 ## Completed Work
 
@@ -31,15 +32,29 @@
 - Fresh regression review found that `structuredClone(toRaw(...))` could reject a deep reactive graph snapshot and silently block the next command. Replaced it with the graph contract's JSON structural clone and made snapshot capture fail-open for forward command execution; align-to-lock and group-to-ungroup regressions then passed.
 - Kept `frontend/src/store/canvas.ts` at exactly 500 lines by extracting Pinia-specific history wiring into the Canvas module instead of expanding the store beyond the project limit.
 - No backend, schema, dependency, user/runtime database, paid call, secret, `.env`, local `.db`, or destructive operation occurred in Unit C.
+- Started Unit D from clean `main` at `c1e01f08c43fc9545badf9d3cf23e3aaef6f8f2b`, synchronized with `origin/main`; no staged, tracked-modified, untracked, unmerged, detached, or in-progress Git-operation state was present.
+- Re-read the complete required state chain, linked ADRs, V2 PRD, Canvas acceptance, Canvas architecture, and design system; inspected the existing revision model, atomic mutation controller, canonical document API, autosave/recovery boundary, Canvas store, and current shell surfaces.
+- Refreshed PLAN/PROGRESS before business-code edits with the Unit D contract: revision list, revision-1/periodic/restore checkpoints, reconstructable latest-50 retention, atomic restore-to-new-head, and one accessible history/recovery panel.
+- Corrected the retention design before business-code edits: a checkpoint alone is insufficient when the latest-50 window starts between checkpoints, so the retained prefix must include the checkpoint and its at-most-nine operation bridge through the window start.
+- Same-automation thread discovery was available but returned no result within 50 seconds and was terminated before repository writes; Git/worktree evidence showed no overlapping local mutation.
+- Added authenticated exact-Canvas `GET /revisions` and `POST /revisions/{revision_no}/restore` contracts. Revision lists are newest-first, exclude graph payloads, and expose checkpoint/restore identity only for reconstructable retained history.
+- Added full graph checkpoints on revision 1, every tenth revision, every restore head, and the first post-upgrade edit when earlier revision rows lack a checkpoint.
+- Added retention that keeps the latest 50 edits plus the shortest checkpoint-to-window reconstruction bridge. The r61 boundary retained r10-r61, proving that the r10 checkpoint plus r11 bridge survives while older history is pruned.
+- Added ordered reconstruction from the nearest checkpoint through normalized operations and atomic restore under the locked Canvas head. Restore preserves exact node/connection IDs, group parents, endpoints, content, positions, lock state, ordering metadata, and creates a new checkpointed head without mutating the target revision.
+- Added a separate Pinia revision domain store and strict frontend API/types. Restore flushes pending graph/viewport persistence first, temporarily makes graph mutation surfaces readonly, forces the canonical document reload, clears stale local undo/redo through the existing lifecycle, and refreshes history.
+- Added one accessible V2 history/recovery panel with retained revision/checkpoint identity, explicit restore confirmation, reload-latest, preserve-local-copy, detected-recovery discard, mobile review-only history, dialog focus transfer, and trigger focus return.
+- Fresh review corrected four non-obvious boundaries: checkpoint-only retention needed its operation bridge; MySQL JSON `null` could not be detected reliably with SQL `IS NOT NULL`; restore checkpoints needed the actual post-restore timestamped document; and restore had to flush/lock the frontend mutation surface before posting.
+- Staged fresh review corrected truthful recovery sequencing: reload-latest now retains the local copy until the server document loads, reports reload failure without a false success, and distinguishes an uncommitted restore failure from a committed new head whose local refresh failed.
+- The `design` and `playwright` skills guided final screenshot QA. Real mocked Chromium screenshots at 1366x768 and 375x812 confirmed the existing graphite-black/violet surface hierarchy, no overflow, desktop restore affordances, mobile review-only removal, 40px controls, and panel focus behavior.
+- No schema, migration, dependency, user/runtime database, paid call, secret, `.env`, local `.db`, or destructive user-data operation occurred in Unit D.
 
 ## Remaining Work
 
-- Deliver Unit D revision retention/checkpoints/restore and complete recovery UI.
 - Deliver Unit E offline/conflict/restart/browser/regression closure and REPORT.
 
 ## Exact Next Action
 
-Refresh T5-006 PLAN/PROGRESS for Unit D, inspect the existing revision model/API and retention boundaries, then add failing revision-list/checkpoint/restore contract tests before business-code edits.
+Refresh PLAN/PROGRESS for Unit E, then add the remaining offline/restart/real-MySQL recovery closure evidence before final full regression, REPORT, and Task acceptance.
 
 ## Files Changed
 
@@ -58,9 +73,45 @@ Refresh T5-006 PLAN/PROGRESS for Unit D, inspect the existing revision model/API
 - `frontend/tests/e2e/canvas-command-history.spec.ts` - history inversion, redo invalidation, exact 100-entry cap, isolation, and reload reset contracts.
 - `frontend/tests/e2e/canvas-command-interactions.spec.ts` - exact command undo/redo through atomic document PATCH plus shortcut help assertions.
 - `frontend/tests/e2e/canvas-shell-navigation.spec.ts` - independent history preservation across real Canvas route switches.
+- `ai/tasks/doing/TASK-T5-006-PLAN.md` - refreshed the active Unit D implementation and verification contract.
+- `ai/tasks/doing/TASK-T5-006-PROGRESS.md` - recorded the Unit D baseline, source inspection, bounded scope, and exact next action.
+- `ai/tasks/todo/TASK-T5-006.md` - marks durable retained history and restore acceptance complete.
+- `ai/state/CURRENT.md` - advances active delivery from Unit D to Unit E.
+- `ai/state/ROADMAP.md` - records Unit D completion under T5-006.
+- `backend/controllers/canvas_revisions.py` - checkpoint capture, reconstructable retention, revision listing, graph reconstruction, and atomic restore-to-new-head.
+- `backend/controllers/canvas_document_mutations.py` - scheduled/first-available checkpoint creation and post-commit retention integration.
+- `backend/api/canvas_documents.py` - authenticated revision list and restore routes.
+- `backend/schemas/canvas_document.py` - strict revision summary/list/restore response contracts.
+- `backend/tests/test_canvas_revision_api.py` - exact-Canvas ownership, checkpoint cadence, retention bridge, complex graph restore, immutability, restart, and failure contracts.
+- `frontend/src/modules/canvas/types.ts` - strict revision DTO contracts.
+- `frontend/src/modules/canvas/api.ts` - canonical revision list and restore clients.
+- `frontend/src/modules/canvas/canvas-revision-store.ts` - Canvas-scoped history loading, flush-before-restore, forced reload, and result state.
+- `frontend/src/modules/canvas/canvas-autosave.ts` - explicit local recovery discard transition.
+- `frontend/src/store/canvas.ts` - exposes the scoped recovery discard action without exceeding 500 lines.
+- `frontend/src/components/canvas/CanvasRevisionPanel.vue` - accessible retained-history, restore confirmation, and recovery-choice panel.
+- `frontend/src/views/app/CanvasWorkspace.vue` - history trigger, recovery auto-open, restore mutation guard, and focus lifecycle.
+- `frontend/src/views/app/canvas-workspace.scss` - existing route-control styling extended to the history trigger.
+- `frontend/tests/e2e/canvas-revisions.spec.ts` - history, restore, conflict/local recovery, mobile review, focus, and axe contracts.
 
 ## Commands And Results
 
+- Initial Unit D backend focused contract - EXPECTED RED; revision endpoints were absent, producing two history/list failures while the pre-existing 404 behavior made one negative case pass.
+- Initial Unit D frontend focused contract - EXPECTED RED; 3/3 cases failed because history/recovery trigger, dialog, and actions were absent.
+- Final guarded MySQL revision suite - PASS; 4/4 covers ownership/isolation, revision-1/periodic checkpoints, r61 retention bridge, target immutability, exact group/child/connection restore, restart persistence, pruned/archived rejection, and new head creation.
+- Affected Canvas backend regression and compile - PASS; 45/45 document/fingerprint/metadata/duplication/node/connection/revision tests plus compileall.
+- Full guarded backend regression - PASS; 200 tests and 5 subtests in 173.33 seconds.
+- Focused autosave/history browser regression - PASS; 11/11 after adding conflict and recovery UI.
+- Final Unit D history plus shell/accessibility regression - PASS; 10/10, including panel-scoped axe with no serious/critical violation, dialog focus transfer/return, mobile review, and required viewport controls.
+- Final truthful recovery focused suite - PASS; 5/5 covers normal restore, conflict preservation, mobile review, failed reload copy retention, and committed-restore/local-refresh failure reporting.
+- Frontend production build - PASS; TypeScript and Vite built 4,738 modules.
+- First full Chromium run under parallel backend load - 50/51; only the existing performance case measured 33.30 ms frame p95 against 33 ms, while all Unit D and other cases passed.
+- Isolated performance rerun without parallel load - PASS; the 200-node/300-connection case passed unchanged.
+- Final serial full Chromium regression - PASS; 51/51 in 97.7 seconds.
+- Playwright CLI real-render QA - PASS; desktop and 375px screenshots retained under ignored `output/playwright/`; history hierarchy, localized copy, responsive geometry, review-only actions, and focus model were inspected.
+- Fresh diff review, strict UTF-8, maximum 499-line business-file, and `git diff --check` - PASS before delivery staging.
+- Unit D required state/ADR/specification reads and Git baseline - PASS; clean synchronized `main`, HEAD `c1e01f08c43fc9545badf9d3cf23e3aaef6f8f2b`.
+- Unit D revision/recovery source inspection - PASS; the existing table already supports operations and checkpoints, while list/restore/retention and the complete recovery UI are absent.
+- Unit D same-automation instance query - UNAVAILABLE; `list_threads` returned no result within 50 seconds and was terminated before writes, while Git/worktree state remained clean.
 - Unit C same-automation instance query - UNAVAILABLE; two Codex app list/view attempts returned no result and were terminated before repository writes.
 - Unit C required source-document reads and Git baseline commands - PASS; clean `main`, HEAD `7c23eeba3c037dd954cf0cc0e3f8f12bb594a0b9`.
 - Unit C command/lifecycle inspection - PASS; typed command execution, pointerup move semantics, atomic autosave, and Canvas load/reset boundaries support a scoped history wrapper without backend or schema changes.
@@ -89,7 +140,7 @@ Refresh T5-006 PLAN/PROGRESS for Unit D, inspect the existing revision model/API
 
 ## Blockers And Release Conditions
 
-- No Unit C implementation or verification blocker remains.
-- No blocker prevents Unit D planning and implementation.
+- No Unit D implementation or verification blocker remains.
+- No blocker prevents Unit E planning and closure work.
 - Applying `f0a1b2c3d4e5` to user/runtime data remains Human-authorized migration work and is outside Unit C.
 - Ignored `.env`, local `.db`, and the pre-existing `revid_test_db` remain unopened and untouched.

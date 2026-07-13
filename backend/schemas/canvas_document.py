@@ -87,6 +87,25 @@ class CanvasDocumentResponse(BaseModel):
     revision: int
 
 
+class CanvasRevisionSummary(BaseModel):
+    revision: int = Field(..., ge=1, le=MAX_SAFE_JSON_INTEGER)
+    base_revision: int = Field(..., ge=0, le=MAX_SAFE_JSON_INTEGER)
+    is_checkpoint: bool
+    restored_from_revision: int | None = Field(default=None, ge=1, le=MAX_SAFE_JSON_INTEGER)
+    created_at: str
+
+
+class CanvasRevisionListResponse(BaseModel):
+    items: list[CanvasRevisionSummary]
+    current_revision: int = Field(..., ge=0, le=MAX_SAFE_JSON_INTEGER)
+
+
+class CanvasRevisionRestoreResponse(BaseModel):
+    revision: int = Field(..., ge=1, le=MAX_SAFE_JSON_INTEGER)
+    restored_from_revision: int = Field(..., ge=1, le=MAX_SAFE_JSON_INTEGER)
+    server_timestamp: str
+
+
 class CanvasViewportUpdateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 

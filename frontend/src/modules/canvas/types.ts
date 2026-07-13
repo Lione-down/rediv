@@ -170,6 +170,25 @@ export interface CanvasDocumentPatchResponse {
 
 export type CanvasGraphSaveState = 'saving' | 'saved' | 'error' | 'conflict'
 
+export interface CanvasRevisionSummary {
+  revision: number
+  base_revision: number
+  is_checkpoint: boolean
+  restored_from_revision: number | null
+  created_at: string
+}
+
+export interface CanvasRevisionListResponse {
+  items: CanvasRevisionSummary[]
+  current_revision: number
+}
+
+export interface CanvasRevisionRestoreResponse {
+  revision: number
+  restored_from_revision: number
+  server_timestamp: string
+}
+
 export interface CanvasViewportPayload {
   x: number
   y: number

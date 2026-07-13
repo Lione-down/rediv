@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from api.canvases import map_canvas_domain_error
 from controllers import canvas_documents as document_controller
 from controllers import canvas_document_mutations as mutation_controller
+from controllers import canvas_revisions as revision_controller
 from controllers import canvases as canvas_controller
 from core.security import current_user
 from schemas.canvas import CanvasResponse
@@ -11,6 +12,8 @@ from schemas.canvas_document import (
     CanvasDocumentPatchRequest,
     CanvasDocumentPatchResponse,
     CanvasDocumentResponse,
+    CanvasRevisionListResponse,
+    CanvasRevisionRestoreResponse,
     CanvasViewportUpdateRequest,
 )
 from schemas.canvas_node import CanvasNodeCreateRequest, CanvasNodeResponse, CanvasNodeUpdateRequest
@@ -60,6 +63,32 @@ def patch_document(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(error),
         ) from error
+    except canvas_controller.CanvasDomainError as error:
+        raise map_canvas_domain_error(error) from error
+
+
+@router.get("/revisions", response_model=CanvasRevisionListResponse)
+def list_revisions(project_id: str, canvas_id: str, user=Depends(current_user)):
+    try:
+        return revision_controller.list_revisions(project_id, canvas_id, user["id"])
+    except canvas_controller.CanvasDomainError as error:
+        raise map_canvas_domain_error(error) from error
+
+
+@router.post(
+    "/revisions/{revision_no}/restore",
+    response_model=CanvasRevisionRestoreResponse,
+)
+def restore_revision(
+    project_id: str,
+    canvas_id: str,
+    revision_no: int,
+    user=Depends(current_user),
+):
+    try:
+        return revision_controller.restore_revision(
+            project_id, canvas_id, revision_no, user["id"],
+        )
     except canvas_controller.CanvasDomainError as error:
         raise map_canvas_domain_error(error) from error
 

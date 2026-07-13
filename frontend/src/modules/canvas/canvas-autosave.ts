@@ -202,6 +202,14 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
     emit({ hasRecovery: false })
   }
 
+  function discardRecovery() {
+    retryBatch = null
+    clearRecovery()
+    emit({
+      state: 'saved', message: '', conflictRevision: null, hasRecovery: false, canRetry: false,
+    })
+  }
+
   function initialize(nextRevision: number) {
     if (timer) clearTimeout(timer)
     timer = null
@@ -328,5 +336,13 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
     return flush()
   }
 
-  return { flush, initialize, preserveRecovery: writeRecovery, queue, reset, retry }
+  return {
+    discardRecovery,
+    flush,
+    initialize,
+    preserveRecovery: writeRecovery,
+    queue,
+    reset,
+    retry,
+  }
 }

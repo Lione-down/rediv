@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { isAxiosError } from 'axios'
-import { AlertTriangle, CircleCheck, CircleHelp, LoaderCircle, Play, UserRound, WandSparkles } from 'lucide-vue-next'
+import { AlertTriangle, CircleCheck, CircleHelp, History, LoaderCircle, Play, UserRound, WandSparkles } from 'lucide-vue-next'
 import { darkTheme, NConfigProvider } from 'naive-ui'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { request } from '../../api/request'
 import { v2CanvasNaiveTheme } from '../../assets/styles/v2-canvas-naive-theme'
 import CanvasIdentityBar from '../../components/canvas/CanvasIdentityBar.vue'
+import CanvasRevisionPanel from '../../components/canvas/CanvasRevisionPanel.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
+import { useCanvasRevisionStore } from '../../modules/canvas/canvas-revision-store'
 import { canvasRouteLocation, normalizeRouteIdentifier } from '../../modules/canvas/metadata'
 import { useProjectStore } from '../../modules/project/store'
 import { useAuthStore } from '../../store/auth'
@@ -27,6 +29,7 @@ const assetStore = useAssetStore()
 const projectStore = useProjectStore()
 const canvasListStore = useCanvasListStore()
 const canvasDocumentStore = useCanvasStore()
+const canvasRevisionStore = useCanvasRevisionStore()
 
 useCanvasPersistenceLifecycle()
 
@@ -34,6 +37,8 @@ const isReviewOnly = ref(false)
 const isGenerating = ref(false)
 const generationError = ref('')
 const generationSuccess = ref('')
+const isRevisionPanelOpen = ref(false)
+const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
 let reviewMediaQuery: MediaQueryList | null = null
 
 const projectId = computed(() => normalizeRouteIdentifier(route.params.projectId))
@@ -152,6 +157,15 @@ async function retryCanvasState() {
   await Promise.allSettled(operations)
 }
 
+function openRevisionPanel() {
+  isRevisionPanelOpen.value = true
+}
+
+function closeRevisionPanel() {
+  isRevisionPanelOpen.value = false
+  void nextTick(() => revisionTriggerRef.value?.focus({ preventScroll: true }))
+}
+
 function extractGenerationError(error: unknown) {
   if (isAxiosError<{ detail?: string }>(error)) {
     return error.response?.data?.detail || error.message || '生成失败，请稍后重试。'
@@ -231,6 +245,14 @@ watch([projectId, canvasId], ([nextProjectId, nextCanvasId]) => {
   if (nextProjectId && nextCanvasId) canvasListStore.rememberCanvas(nextProjectId, nextCanvasId)
 }, { immediate: true })
 
+watch(() => canvasDocumentStore.saveState, (state) => {
+  if (state === 'conflict') isRevisionPanelOpen.value = true
+})
+
+watch(() => canvasDocumentStore.hasLocalRecovery, (hasRecovery) => {
+  if (hasRecovery) isRevisionPanelOpen.value = true
+})
+
 onMounted(() => {
   reviewMediaQuery = window.matchMedia('(max-width: 767px)')
   updateReviewBoundary()
@@ -249,7 +271,7 @@ onBeforeUnmount(() => {
       <a class="skip-link" href="#canvas-main">跳到画布内容</a>
 
       <div class="canvas-layer" aria-hidden="false">
-        <CanvasStage :readonly="isReviewOnly" />
+        <CanvasStage :readonly="isReviewOnly || canvasRevisionStore.restoringRevision !== null" />
       </div>
 
       <header class="route-chrome" aria-label="Canvas route controls">
@@ -257,7 +279,7 @@ onBeforeUnmount(() => {
           :project-name="projectName"
           :active-canvas="activeCanvas"
           :canvases="canvasListStore.items"
-          :can-edit="!isReviewOnly"
+          :can-edit="!isReviewOnly && canvasRevisionStore.restoringRevision === null"
           :is-loading="canvasListStore.isLoading"
           :is-mutating="canvasListStore.isMutating"
           :mutation-error="canvasListStore.mutationError"
@@ -271,6 +293,17 @@ onBeforeUnmount(() => {
         />
 
         <div class="route-status">
+          <button
+            ref="revisionTriggerRef"
+            type="button"
+            class="revision-trigger"
+            aria-label="打开修订历史"
+            title="修订历史"
+            :aria-expanded="isRevisionPanelOpen"
+            @click="openRevisionPanel"
+          >
+            <History :size="17" aria-hidden="true" />
+          </button>
           <button
             type="button"
             class="sync-status"
@@ -288,6 +321,14 @@ onBeforeUnmount(() => {
           </RouterLink>
         </div>
       </header>
+
+      <CanvasRevisionPanel
+        v-if="isRevisionPanelOpen"
+        :project-id="projectId"
+        :canvas-id="canvasId"
+        :readonly="isReviewOnly"
+        @close="closeRevisionPanel"
+      />
 
       <main id="canvas-main" class="canvas-main" tabindex="-1" aria-label="Canvas 主内容">
         <p class="canvas-context">
