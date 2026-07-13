@@ -13,6 +13,7 @@ import { useCanvasPersistenceLifecycle } from '../../components/canvas/composabl
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
 import { useCanvasRevisionStore } from '../../modules/canvas/canvas-revision-store'
 import { canvasRouteLocation, normalizeRouteIdentifier } from '../../modules/canvas/metadata'
+import { getLegacyGenerationQuotaType } from '../../modules/canvas/node-registry'
 import { useProjectStore } from '../../modules/project/store'
 import { useAuthStore } from '../../store/auth'
 import { useAssetStore } from '../../store/assets'
@@ -86,12 +87,9 @@ const syncIcon = computed(() => {
   if (syncTone.value === 'saving') return LoaderCircle
   return CircleCheck
 })
-const selectedQuotaType = computed<'text' | 'image' | 'video' | null>(() => {
-  if (selectedNode.value?.type === 'text') return 'text'
-  if (selectedNode.value?.type === 'image' || selectedNode.value?.type === 'model') return 'image'
-  if (selectedNode.value?.type === 'video') return 'video'
-  return null
-})
+const selectedQuotaType = computed(() => (
+  selectedNode.value ? getLegacyGenerationQuotaType(selectedNode.value) : null
+))
 const isQuotaInsufficient = computed(() => {
   const quotaType = selectedQuotaType.value
   return quotaType ? authStore.quotas[quotaType] < 1 : false
@@ -370,7 +368,7 @@ onBeforeUnmount(() => {
           v-if="!isReviewOnly"
           type="button"
           class="generate-action"
-          :disabled="isGenerating || isQuotaInsufficient"
+          :disabled="isGenerating || isQuotaInsufficient || !selectedQuotaType"
           @click="generateFromSelectedNode"
         >
           <LoaderCircle v-if="isGenerating" :size="17" class="is-spinning" aria-hidden="true" />

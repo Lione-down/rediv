@@ -1,4 +1,9 @@
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
+import {
+  getDefaultConnectionPorts,
+  isNodeGroupContainer,
+  isNodeMutationSupported,
+} from './node-registry'
 
 export type CanvasCommandSource = 'pointer' | 'keyboard' | 'toolbar' | 'context-menu' | 'accessibility'
 
@@ -46,8 +51,8 @@ export interface ConnectNodesCommand {
   type: 'connect-nodes'
   sourceNodeId: string
   targetNodeId: string
-  sourcePort: 'out'
-  targetPort: 'in'
+  sourcePort: string
+  targetPort: string
 }
 
 export type CanvasAlignment = 'left' | 'center-x' | 'right' | 'top' | 'center-y' | 'bottom'
@@ -95,7 +100,7 @@ export function createMoveNodesCommand(
   const currentById = new Map(nodes.map((node) => [node.id, node]))
   const moves = origins.flatMap((origin) => {
     const current = currentById.get(origin.nodeId)
-    if (!current || (current.x === origin.x && current.y === origin.y)) return []
+    if (!current || !isArrangeEligibleNode(current) || (current.x === origin.x && current.y === origin.y)) return []
     return [{
       nodeId: origin.nodeId,
       from: { ...origin },
@@ -134,6 +139,35 @@ export function getInternalConnections(
   )
 }
 
+export function isConnectionMutationSupported(
+  nodes: readonly CanvasNode[],
+  connection: CanvasConnection,
+) {
+  const source = nodes.find((node) => node.id === connection.from)
+  const target = nodes.find((node) => node.id === connection.to)
+  return Boolean(
+    source && target && isNodeMutationSupported(source) && isNodeMutationSupported(target),
+  )
+}
+
+export function canDeleteCanvasNode(
+  nodes: readonly CanvasNode[],
+  connections: readonly CanvasConnection[],
+  nodeId: string,
+) {
+  const target = nodes.find((node) => node.id === nodeId)
+  if (!target || target.isLocked || !isNodeMutationSupported(target)) return false
+  if (target.parentNodeId) {
+    const parent = nodes.find((node) => node.id === target.parentNodeId)
+    if (!parent || parent.isLocked || !isNodeMutationSupported(parent)) return false
+  }
+  const children = nodes.filter((node) => node.parentNodeId === nodeId)
+  if (children.some((node) => node.isLocked || !isNodeMutationSupported(node))) return false
+  return connections
+    .filter((connection) => connection.from === nodeId || connection.to === nodeId)
+    .every((connection) => isConnectionMutationSupported(nodes, connection))
+}
+
 export function createGroupNodesCommand(
   nodes: readonly CanvasNode[],
   nodeIds: readonly string[],
@@ -144,7 +178,7 @@ export function createGroupNodesCommand(
   if (
     targets.length < 2 ||
     targets.length !== requestedIds.size ||
-    targets.some((node) => node.type === 'group' || node.parentNodeId || node.isLocked)
+    targets.some((node) => !isArrangeEligibleNode(node))
   ) return null
   return {
     type: 'group-nodes',
@@ -156,18 +190,29 @@ export function createGroupNodesCommand(
 export function createUngroupNodesCommand(
   nodes: readonly CanvasNode[],
   nodeIds: readonly string[],
+  connections: readonly CanvasConnection[] = [],
 ): UngroupNodesCommand | null {
   const selectedIds = new Set(uniqueIds(nodeIds))
   const selectedNodes = nodes.filter((node) => selectedIds.has(node.id))
-  if (selectedNodes.length !== selectedIds.size || selectedNodes.some((node) => node.isLocked)) return null
+  if (
+    selectedNodes.length !== selectedIds.size ||
+    selectedNodes.some((node) => node.isLocked || !isNodeMutationSupported(node))
+  ) return null
   const groupIds = uniqueIds(nodes.flatMap((node) => {
     if (!selectedIds.has(node.id)) return []
-    if (node.type === 'group') return [node.id]
+    if (isNodeGroupContainer(node)) return [node.id]
     return node.parentNodeId ? [node.parentNodeId] : []
   })).filter((groupId) => nodes.some((node) => (
-    node.id === groupId && node.type === 'group' && !node.isLocked
+    node.id === groupId && isNodeGroupContainer(node) && !node.isLocked
   )))
-  return groupIds.length ? { type: 'ungroup-nodes', groupIds } : null
+  if (!groupIds.length) return null
+  const affectedChildren = nodes.filter((node) => node.parentNodeId && groupIds.includes(node.parentNodeId))
+  if (affectedChildren.some((node) => node.isLocked || !isNodeMutationSupported(node))) return null
+  const affectedConnections = connections.filter((connection) => (
+    groupIds.includes(connection.from) || groupIds.includes(connection.to)
+  ))
+  if (affectedConnections.some((connection) => !isConnectionMutationSupported(nodes, connection))) return null
+  return { type: 'ungroup-nodes', groupIds }
 }
 
 export function createConnectNodesCommand(
@@ -175,8 +220,8 @@ export function createConnectNodesCommand(
   connections: readonly CanvasConnection[],
   sourceNodeId: string,
   targetNodeId: string,
-  sourcePort: 'out' = 'out',
-  targetPort: 'in' = 'in',
+  sourcePort?: string,
+  targetPort?: string,
 ): ConnectNodesCommand | null {
   if (!sourceNodeId || !targetNodeId || sourceNodeId === targetNodeId) return null
   const source = nodes.find((node) => node.id === sourceNodeId)
@@ -185,19 +230,21 @@ export function createConnectNodesCommand(
     !source || !target || source.type === 'group' || target.type === 'group' ||
     source.parentNodeId || target.parentNodeId || source.isLocked || target.isLocked
   ) return null
+  const resolvedPorts = getDefaultConnectionPorts(source, target, sourcePort, targetPort)
+  if (!resolvedPorts) return null
   const duplicate = connections.some((connection) => (
     connection.from === sourceNodeId &&
     connection.to === targetNodeId &&
-    (connection.sourcePort ?? 'out') === sourcePort &&
-    (connection.targetPort ?? 'in') === targetPort
+    (connection.sourcePort ?? 'out') === resolvedPorts.sourcePort &&
+    (connection.targetPort ?? 'in') === resolvedPorts.targetPort
   ))
   return duplicate ? null : {
-    type: 'connect-nodes', sourceNodeId, targetNodeId, sourcePort, targetPort,
+    type: 'connect-nodes', sourceNodeId, targetNodeId, ...resolvedPorts,
   }
 }
 
 export function isArrangeEligibleNode(node: CanvasNode) {
-  return node.type !== 'group' && !node.parentNodeId && !node.isLocked
+  return isNodeMutationSupported(node) && node.type !== 'group' && !node.parentNodeId && !node.isLocked
 }
 
 function getArrangeTargets(
@@ -346,7 +393,10 @@ export function createSetNodesLockedCommand(
 ): SetNodesLockedCommand | null {
   const requestedIds = new Set(uniqueIds(nodeIds))
   const targets = nodes.filter((node) => requestedIds.has(node.id))
-  if (!targets.length || targets.length !== requestedIds.size) return null
+  if (
+    !targets.length || targets.length !== requestedIds.size ||
+    targets.some((node) => !isNodeMutationSupported(node))
+  ) return null
   const changedIds = targets.filter((node) => Boolean(node.isLocked) !== locked).map((node) => node.id)
   return changedIds.length ? { type: 'set-nodes-locked', nodeIds: changedIds, locked } : null
 }

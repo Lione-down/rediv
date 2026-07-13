@@ -1,5 +1,7 @@
 import { useCanvasStore } from '../../../store/canvas'
+import { isNodeMutationSupported } from '../../../modules/canvas/node-registry'
 import {
+  canDeleteCanvasNode,
   createAlignNodesCommand,
   createAutoArrangeNodesCommand,
   createConnectNodesCommand,
@@ -9,6 +11,7 @@ import {
   createGroupNodesCommand,
   createSetNodesLockedCommand,
   createUngroupNodesCommand,
+  isConnectionMutationSupported,
   isArrangeEligibleNode,
   type CanvasAlignment,
   type CanvasCommandSource,
@@ -37,7 +40,11 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
 
   function deleteSelection(source: CanvasCommandSource) {
     if (options.isReadOnly()) return false
-    if (canvasStore.selectedNodes.some((node) => node.isLocked)) return false
+    if (canvasStore.selectedNodes.some((node) => node.isLocked || !isNodeMutationSupported(node))) return false
+    const selectedConnection = canvasStore.connections.find(
+      (connection) => connection.id === canvasStore.selectedConnectionId,
+    )
+    if (selectedConnection && !isConnectionMutationSupported(canvasStore.nodes, selectedConnection)) return false
     const command = createDeleteSelectionCommand(
       canvasStore.selectedNodeIds,
       canvasStore.selectedConnectionId ? [canvasStore.selectedConnectionId] : [],
@@ -48,10 +55,7 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
   }
 
   function canDeleteNode(nodeId: string) {
-    const node = canvasStore.findNodeById(nodeId)
-    return Boolean(node && !node.isLocked && (
-      node.type !== 'group' || !canvasStore.nodes.some((child) => child.parentNodeId === node.id && child.isLocked)
-    ))
+    return canDeleteCanvasNode(canvasStore.nodes, canvasStore.connections, nodeId)
   }
 
   function groupSelection(source: CanvasCommandSource) {
@@ -64,16 +68,24 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
 
   function ungroupSelection(source: CanvasCommandSource) {
     if (options.isReadOnly()) return false
-    const command = createUngroupNodesCommand(canvasStore.nodes, canvasStore.selectedNodeIds)
+    const command = createUngroupNodesCommand(
+      canvasStore.nodes, canvasStore.selectedNodeIds, canvasStore.connections,
+    )
     if (!command) return false
     void canvasStore.dispatchCommand({ source, command }).catch(() => undefined)
     return true
   }
 
-  function connectNodes(source: CanvasCommandSource, sourceNodeId: string, targetNodeId: string) {
+  function connectNodes(
+    source: CanvasCommandSource,
+    sourceNodeId: string,
+    targetNodeId: string,
+    sourcePort?: string,
+    targetPort?: string,
+  ) {
     if (options.isReadOnly()) return false
     const command = createConnectNodesCommand(
-      canvasStore.nodes, canvasStore.connections, sourceNodeId, targetNodeId,
+      canvasStore.nodes, canvasStore.connections, sourceNodeId, targetNodeId, sourcePort, targetPort,
     )
     if (!command) return false
     void canvasStore.dispatchCommand({ source, command }).catch(() => undefined)
@@ -114,7 +126,10 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
   }
 
   function toggleLockSelection(source: CanvasCommandSource) {
-    if (options.isReadOnly() || !canvasStore.selectedNodes.length) return false
+    if (
+      options.isReadOnly() || !canvasStore.selectedNodes.length ||
+      canvasStore.selectedNodes.some((node) => !isNodeMutationSupported(node))
+    ) return false
     const locked = !canvasStore.selectedNodes.some((node) => node.isLocked)
     const command = createSetNodesLockedCommand(canvasStore.nodes, canvasStore.selectedNodeIds, locked)
     if (!command) return false
@@ -173,12 +188,21 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
       canvasStore.selectedNodes.length > 0 &&
       canvasStore.selectedNodes.every(isArrangeEligibleNode)
     ),
-    canDeleteSelection: () => Boolean(canvasStore.selectedConnectionId) || (
+    canDeleteSelection: () => Boolean(
+      canvasStore.selectedConnectionId && canvasStore.connections.some((connection) => (
+        connection.id === canvasStore.selectedConnectionId &&
+        isConnectionMutationSupported(canvasStore.nodes, connection)
+      )),
+    ) || (
       canvasStore.selectedNodeIds.length > 0 && canvasStore.selectedNodeIds.every(canDeleteNode)
     ),
     canDistributeSelection: () => canvasStore.selectedNodes.length >= 3 && canvasStore.selectedNodes.every(isArrangeEligibleNode),
-    canToggleLockSelection: () => canvasStore.selectedNodes.length > 0,
-    canUngroupSelection: () => Boolean(createUngroupNodesCommand(canvasStore.nodes, canvasStore.selectedNodeIds)),
+    canToggleLockSelection: () => (
+      canvasStore.selectedNodes.length > 0 && canvasStore.selectedNodes.every(isNodeMutationSupported)
+    ),
+    canUngroupSelection: () => Boolean(createUngroupNodesCommand(
+      canvasStore.nodes, canvasStore.selectedNodeIds, canvasStore.connections,
+    )),
     hasLockedSelection: () => canvasStore.selectedNodes.some((node) => node.isLocked),
     alignSelection,
     autoArrange,

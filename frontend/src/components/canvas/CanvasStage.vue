@@ -4,6 +4,7 @@ import { Keyboard } from 'lucide-vue-next'
 import { nextTick, ref, type ComponentPublicInstance } from 'vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
+import CanvasToolDock from './CanvasToolDock.vue'
 import CanvasViewControls from './CanvasViewControls.vue'
 import { useCanvasStage } from './composables/use-canvas-stage'
 
@@ -51,10 +52,13 @@ const {
   canAutoArrange,
   canDistributeSelection,
   closeGraphPanel,
+  createNodeFromMenu,
   connectSelection,
   groupSelection,
   isGraphPanelOpen,
+  isNodeMenuOpen,
   toggleGraphPanel,
+  updateNodeMenuOpen,
   ungroupSelection,
   arrangeSelectionFromToolbar,
   autoArrange,
@@ -100,7 +104,7 @@ function closeGraphAccessPanel() {
     class="workspace-stage"
     aria-label="Revid 无限画布工作区"
     :aria-description="readonly ? '只读审阅模式' : '可编辑画布'"
-    aria-keyshortcuts="Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+L Meta+L Control+0 Meta+0 Control++ Meta++ Control+- Meta+- Alt+Shift+F Delete Backspace Escape ?"
+    aria-keyshortcuts="Tab Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+L Meta+L Control+0 Meta+0 Control++ Meta++ Control+- Meta+- Alt+Shift+F Delete Backspace Escape ?"
     tabindex="0"
   >
     <div
@@ -220,6 +224,12 @@ function closeGraphAccessPanel() {
       @toggle-minimap="toggleMinimap"
       @zoom-in="zoomIn"
       @zoom-out="zoomOut"
+    />
+    <CanvasToolDock
+      v-if="!readonly"
+      :open="isNodeMenuOpen"
+      @select="createNodeFromMenu"
+      @update:open="updateNodeMenuOpen"
     />
     <button
       ref="graphPanelTriggerRef"

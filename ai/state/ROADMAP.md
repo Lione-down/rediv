@@ -31,7 +31,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 4 | T5-004 | Single V2 token source, full-screen Canvas shell, canvas navigation, and viewport persistence | DONE - PASS | T5-003 |
 | 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | DONE - PASS | T5-004 |
 | 6 | T5-006 | Autosave queue, optimistic conflict handling, 100-step undo/redo, revisions, checkpoints, and restore | DONE - PASS | T5-005 |
-| 7 | T5-007 | Node registry, project-shared assets/templates, generation tasks/results, and mock provider flows | TODO | T5-006 |
+| 7 | T5-007 | Node registry, project-shared assets/templates, generation tasks/results, and mock provider flows | DOING | T5-006 |
 | 8 | T5-008 | Canvas first-acceptance E2E, 200/300 performance, browser, visual, accessibility, MySQL, and security closure | TODO | T5-007 |
 | 9 | T5-009 | Global V2 app-shell and shared-component dark-purple rollout without Canvas regression | TODO | T5-008 |
 | 10 | T5-010 | Login, Home, Space, Admin, error, empty, loading, and responsive V2 UX upgrade | TODO | T5-009 |
@@ -58,6 +58,8 @@ T5-004 is `DONE - PASS`. Units A-E delivered a Canvas-scoped token source, stric
 T5-005 is `DONE - PASS`. Units A-E deliver one persistent keyed Leafer world, requestAnimationFrame pointer coalescing, world-space SVG edges, 15 FPS minimap sampling, deterministic typed selection/edit/group/connect/arrange/lock commands, Canvas-focus shortcuts, synchronized DOM graph access, 10%-800% view controls, and focused accessibility/performance closure. Final evidence passed Unit E 3/3, full Chromium 36/36, guarded backend 190/190, a 4731-module build, and the four required viewports. The mock-browser 200/300 profile recorded 330 ms stable render, 60.03 FPS, 16.8 ms frame p95, 4.2 ms pointer p95, no observed interaction long task, and 11.93 minimap updates/s. `REPORT-T5-005.md` is authoritative; final local-MySQL 200/300 milestone certification remains T5-008 scope.
 
 T5-006 is `DONE - PASS`. Units A-E delivered one atomic idempotent document PATCH, serialized autosave and exact local recovery, Canvas-keyed 100-command undo/redo, reconstructable latest-50 history, periodic/restore checkpoints, non-destructive restore-to-new-head, explicit conflict recovery, and guarded restart evidence through the production FastAPI lifespan. Final closure passed 12 guarded MySQL document/revision tests, 16 focused Chromium tests, 200 full backend tests, 56 full Chromium tests, a 4,739-module build, accessibility coverage, independent review, and hygiene gates. `REPORT-T5-006.md` is authoritative.
+
+T5-007 is `DOING`. Unit A is `PASS`: new creation uses the six canonical node types, legacy types remain compatibility-only, unknown/future nodes round-trip losslessly as unsupported, registry facts drive creation/group/connect/render behavior, affected-graph mutations fail closed, and the keyboard ToolDock respects accessibility and responsive/mobile boundaries. Unit B, the additive MySQL resource contract, is active. Later units deliver project asset/template services, durable mock-provider generation transactions, and responsive Canvas resource/generation UI plus closure; templates remain versioned, quotas backend-authoritative, and automated provider evidence mock-only.
 
 ### T5-009 through T5-011
 

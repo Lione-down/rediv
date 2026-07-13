@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import type { CanvasConnection, CanvasNode } from '../../../types/canvas'
-import { buildConnectionPath, type ViewportState } from '../canvas-geometry'
+import { buildConnectionPath, nodePortWorldAnchor, type ViewportState } from '../canvas-geometry'
 
 interface CanvasConnectionPresentationOptions {
   getConnections: () => CanvasConnection[]
@@ -19,8 +19,8 @@ export function useCanvasConnectionPresentation(options: CanvasConnectionPresent
         active: connection.active,
         id: connection.id,
         path: buildConnectionPath(
-          { x: source.x + source.width, y: source.y + source.height / 2 },
-          { x: target.x, y: target.y + target.height / 2 },
+          nodePortWorldAnchor(source, 'output', connection.sourcePort),
+          nodePortWorldAnchor(target, 'input', connection.targetPort),
         ),
       }]
     })

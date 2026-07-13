@@ -2,6 +2,11 @@ import { toRaw } from 'vue'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import type { CanvasConnectionDraft, CanvasNodeDraft } from './persistence'
 import {
+  createRegistryNodeDraft,
+  isNodeGroupContainer,
+} from './node-registry'
+import {
+  canDeleteCanvasNode,
   createConnectNodesCommand,
   createSetNodesLockedCommand,
   createGroupNodesCommand,
@@ -9,6 +14,7 @@ import {
   isArrangeEligibleNode,
   type ArrangeNodesCommand,
   getInternalConnections,
+  isConnectionMutationSupported,
   type CanvasCommandEnvelope,
   type ConnectNodesCommand,
   type DeleteSelectionCommand,
@@ -49,9 +55,13 @@ function cloneNodeDraft(node: CanvasNode, offset: { x: number; y: number }): Can
 
 export function createCanvasCommandExecutor(options: CanvasCommandExecutorOptions) {
   function moveNodes(command: MoveNodesCommand) {
-    const availableIds = new Set(options.getNodes().filter(isArrangeEligibleNode).map((node) => node.id))
+    const nodesById = new Map(options.getNodes().map((node) => [node.id, node]))
+    if (command.moves.some((move) => {
+      const node = nodesById.get(move.nodeId)
+      return node && !isArrangeEligibleNode(node)
+    })) return
     for (const move of command.moves) {
-      if (availableIds.has(move.nodeId)) options.queueNodeMove(move.nodeId, move.to.x, move.to.y)
+      if (nodesById.has(move.nodeId)) options.queueNodeMove(move.nodeId, move.to.x, move.to.y)
     }
   }
 
@@ -77,7 +87,20 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
   }
 
   async function deleteSelection(command: DeleteSelectionCommand) {
+    const nodes = options.getNodes()
+    const connections = options.getConnections()
+    const connectionsById = new Map(connections.map((connection) => [connection.id, connection]))
+    const nodesById = new Map(nodes.map((node) => [node.id, node]))
+    if (command.connectionIds.some((connectionId) => {
+      const connection = connectionsById.get(connectionId)
+      return connection && !isConnectionMutationSupported(nodes, connection)
+    })) return
+    if (command.nodeIds.some((nodeId) => (
+      nodesById.has(nodeId) && !canDeleteCanvasNode(nodes, connections, nodeId)
+    ))) return
     for (const connectionId of command.connectionIds) {
+      const connection = options.getConnections().find((candidate) => candidate.id === connectionId)
+      if (!connection || !isConnectionMutationSupported(options.getNodes(), connection)) continue
       options.selectConnection('')
       try {
         await options.deleteConnection(connectionId)
@@ -89,15 +112,12 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
       }
     }
     for (const nodeId of command.nodeIds) {
-      if (options.getNodes().find((node) => node.id === nodeId)?.isLocked) continue
-      const group = options.getNodes().find((node) => node.id === nodeId && node.type === 'group')
-      if (group && options.getNodes().some((node) => node.parentNodeId === group.id && node.isLocked)) continue
+      if (!canDeleteCanvasNode(options.getNodes(), options.getConnections(), nodeId)) continue
+      const children = options.getNodes().filter((node) => node.parentNodeId === nodeId)
       const detachedIds: string[] = []
-      if (group) {
-        for (const child of options.getNodes().filter((node) => node.parentNodeId === group.id)) {
-          await options.updateNodeParent(child.id, null)
-          detachedIds.push(child.id)
-        }
+      for (const child of children) {
+        await options.updateNodeParent(child.id, null)
+        detachedIds.push(child.id)
       }
       try {
         await options.deleteNode(nodeId)
@@ -118,12 +138,11 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     const top = Math.min(...targets.map((node) => node.y))
     const right = Math.max(...targets.map((node) => node.x + node.width))
     const bottom = Math.max(...targets.map((node) => node.y + node.height))
-    const groupCount = options.getNodes().filter((node) => node.type === 'group').length
+    const groupCount = options.getNodes().filter(isNodeGroupContainer).length
+    const groupDraft = createRegistryNodeDraft('group', 'group', { x: left - padding, y: top - padding })
     const group = await options.createNode({
-      type: 'group',
+      ...groupDraft,
       title: `组合 ${groupCount + 1}`,
-      x: left - padding,
-      y: top - padding,
       width: right - left + padding * 2,
       height: bottom - top + padding * 2,
       zIndex: Math.min(...targets.map((node) => node.zIndex ?? 0)) - 1,
@@ -131,7 +150,6 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
       isLocked: false,
       isCollapsed: false,
       status: 'idle',
-      contentData: { title: `组合 ${groupCount + 1}` },
     })
     const attachedIds: string[] = []
     try {
@@ -148,9 +166,11 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
   }
 
   async function ungroupNodes(command: UngroupNodesCommand) {
-    const validated = createUngroupNodesCommand(options.getNodes(), command.groupIds)
+    const validated = createUngroupNodesCommand(
+      options.getNodes(), command.groupIds, options.getConnections(),
+    )
     if (!validated) return
-    const groups = options.getNodes().filter((node) => validated.groupIds.includes(node.id) && node.type === 'group')
+    const groups = options.getNodes().filter((node) => validated.groupIds.includes(node.id) && isNodeGroupContainer(node))
     const releasedIds: string[] = []
     for (const group of groups) {
       const children = options.getNodes().filter((node) => node.parentNodeId === group.id)

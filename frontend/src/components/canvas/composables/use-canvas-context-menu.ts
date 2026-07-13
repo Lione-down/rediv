@@ -2,6 +2,11 @@ import type { DropdownDividerOption, DropdownOption } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
+import {
+  createRegistryNodeDraft,
+  getCreatableNodeDefinitions,
+  type CanonicalNodeType,
+} from '../../../modules/canvas/node-registry'
 import { surfaceToWorld, type Point, type ViewportState } from '../canvas-geometry'
 import { useCanvasCommandInteractions } from './use-canvas-command-interactions'
 
@@ -23,7 +28,7 @@ interface CanvasContextMenuOptions {
 }
 
 type ContextMenuKey =
-  | 'create-text' | 'create-image' | 'duplicate-node' | 'group-nodes' | 'ungroup-nodes'
+  | `create-node:${CanonicalNodeType}` | 'duplicate-node' | 'group-nodes' | 'ungroup-nodes'
   | 'connect-nodes' | 'delete-node' | 'align-left' | 'align-center-x' | 'align-right'
   | 'align-top' | 'align-center-y' | 'align-bottom' | 'distribute-horizontal'
   | 'distribute-vertical' | 'auto-arrange' | 'toggle-lock'
@@ -64,30 +69,27 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
         ] : []),
       ]
     : [
-        { label: '新建文本节点', key: 'create-text' },
-        { label: '新建图片节点', key: 'create-image' },
+        ...getCreatableNodeDefinitions().map((definition) => ({
+          label: `新建${definition.label}节点`,
+          key: `create-node:${definition.type}`,
+        })),
       ])
 
   function closeContextMenu() { contextMenu.value.show = false }
   function updateContextMenuShow(show: boolean) { contextMenu.value.show = show }
-  function getNodeDraft(type: 'text' | 'image', point: Point) {
-    const label = type === 'text' ? '文本节点' : '图片节点'
-    return {
-      type,
-      title: `${label} ${canvasStore.nodes.filter((node) => node.type === type).length + 1}`,
-      x: point.x,
-      y: point.y,
-      width: 240,
-      height: 140,
-      status: 'idle' as const,
-      content: type === 'text' ? '输入提示词或说明' : '添加图片提示词或素材',
-    }
-  }
   async function createAndSelectNode(draft: Omit<CanvasNode, 'id'>) {
     try {
       const createdNode = await canvasStore.createNode(draft)
       canvasStore.selectNode(createdNode.id)
-    } catch { /* Store reports the owned failure. */ }
+      return createdNode
+    } catch { return null /* Store reports the owned failure. */ }
+  }
+  async function createRegistryNodeAt(type: CanonicalNodeType, point: Point, subtype?: string) {
+    const definition = getCreatableNodeDefinitions().find((candidate) => candidate.type === type)
+    if (!definition) return null
+    const draft = createRegistryNodeDraft(type, subtype ?? definition.defaultSubtype, point)
+    const created = await createAndSelectNode(draft)
+    return created ?? null
   }
   function openContextMenu(origin?: NativeMenuEvent) {
     const surfacePoint = origin ? options.toSurfacePoint(origin.clientX, origin.clientY) : null
@@ -106,20 +108,23 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
     const surfacePoint = origin ? options.toSurfacePoint(origin.clientX, origin.clientY) : null
     if (
       options.isReadOnly() || !surfacePoint || !canvasStore.activeProjectId || !canvasStore.hasLoaded ||
-      canvasStore.mode === 'hand' || canvasStore.mode === 'generate'
+      canvasStore.mode === 'hand'
     ) return
     const worldPoint = surfaceToWorld(surfacePoint, options.getViewport())
     if (options.findNodeAtWorldPoint(worldPoint)) return
     closeContextMenu()
-    void createAndSelectNode(getNodeDraft(canvasStore.mode === 'image' ? 'image' : 'text', worldPoint))
+    const type = canvasStore.mode === 'image'
+      ? 'asset'
+      : canvasStore.mode === 'generate' ? 'generation' : 'script'
+    void createRegistryNodeAt(type, worldPoint)
   }
   function handleContextMenuSelect(key: string | number) {
     if (options.isReadOnly()) return closeContextMenu()
     const action = key as ContextMenuKey
     const { nodeId, worldPoint } = contextMenu.value
     closeContextMenu()
-    if (action === 'create-text' || action === 'create-image') {
-      void createAndSelectNode(getNodeDraft(action === 'create-text' ? 'text' : 'image', worldPoint))
+    if (action.startsWith('create-node:')) {
+      void createRegistryNodeAt(action.slice('create-node:'.length) as CanonicalNodeType, worldPoint)
       return
     }
     if (!nodeId || !canvasStore.findNodeById(nodeId)) return
@@ -145,7 +150,7 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
   }
 
   return {
-    closeContextMenu, contextMenu, contextMenuOptions, handleContextMenu,
+    closeContextMenu, contextMenu, contextMenuOptions, createRegistryNodeAt, handleContextMenu,
     handleContextMenuSelect, handleStageDoubleClick, updateContextMenuShow,
   }
 }

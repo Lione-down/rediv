@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { Link2, LocateFixed, LockKeyhole, Trash2, X } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { canDeleteCanvasNode, isConnectionMutationSupported } from '../../modules/canvas/canvas-commands'
 import { useCanvasStore } from '../../store/canvas'
+import type { CanvasNode } from '../../types/canvas'
+import { buildCanvasNodePresentation } from './canvas-node-presentation'
 import { useCanvasCommandInteractions } from './composables/use-canvas-command-interactions'
 
 const props = defineProps<{
@@ -22,6 +25,7 @@ const shortcuts = [
   ['Ctrl+D', '复制所选节点'],
   ['Ctrl+G', '组合所选节点'],
   ['Ctrl+Shift+G', '取消组合'],
+  ['Tab', '打开添加节点菜单'],
   ['Ctrl+Enter', '连接两个所选节点'],
   ['Ctrl+L', '连接两个所选节点'],
   ['Ctrl+0', '适配全部节点'],
@@ -35,6 +39,10 @@ const nodeTitles = computed(() => new Map(canvasStore.nodes.map((node) => [node.
 
 function connectionLabel(from: string, to: string) {
   return `${nodeTitles.value.get(from) ?? from} 到 ${nodeTitles.value.get(to) ?? to}`
+}
+
+function nodeTypeLabel(node: CanvasNode) {
+  return buildCanvasNodePresentation(node).typeLabel
 }
 
 function selectAndLocateNode(nodeId: string) {
@@ -54,6 +62,15 @@ function deleteNode(nodeId: string) {
 function deleteConnection(connectionId: string) {
   canvasStore.selectConnection(connectionId)
   deleteSelection('accessibility')
+}
+
+function canDeleteNode(nodeId: string) {
+  return canDeleteCanvasNode(canvasStore.nodes, canvasStore.connections, nodeId)
+}
+
+function canDeleteConnection(connectionId: string) {
+  const connection = canvasStore.connections.find((candidate) => candidate.id === connectionId)
+  return Boolean(connection && isConnectionMutationSupported(canvasStore.nodes, connection))
 }
 
 onMounted(() => {
@@ -105,11 +122,11 @@ onMounted(() => {
             <LocateFixed :size="15" aria-hidden="true" />
             <span>
               <strong>{{ node.title }}</strong>
-              <small><LockKeyhole v-if="node.isLocked" :size="12" aria-hidden="true" />{{ node.isLocked ? '已锁定 · ' : '' }}{{ node.type === 'group' ? '组合' : node.type }}</small>
+              <small><LockKeyhole v-if="node.isLocked" :size="12" aria-hidden="true" />{{ node.isLocked ? '已锁定 · ' : '' }}{{ nodeTypeLabel(node) }}</small>
             </span>
           </button>
           <button
-            v-if="!readonly && !node.isLocked"
+            v-if="!readonly && canDeleteNode(node.id)"
             class="danger-action"
             type="button"
             :aria-label="`删除节点 ${node.title}`"
@@ -137,7 +154,7 @@ onMounted(() => {
             <span><strong>{{ connectionLabel(connection.from, connection.to) }}</strong><small>输出 → 输入</small></span>
           </button>
           <button
-            v-if="!readonly"
+            v-if="!readonly && canDeleteConnection(connection.id)"
             class="danger-action"
             type="button"
             :aria-label="`删除连线 ${connectionLabel(connection.from, connection.to)}`"

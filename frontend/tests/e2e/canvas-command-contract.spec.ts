@@ -7,7 +7,9 @@ import {
   createDuplicateNodesCommand,
   createGroupNodesCommand,
   createMoveNodesCommand,
+  createSetNodesLockedCommand,
   createUngroupNodesCommand,
+  isArrangeEligibleNode,
 } from '../../src/modules/canvas/canvas-commands'
 import { reduceCanvasSelection } from '../../src/modules/canvas/canvas-selection'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
@@ -70,6 +72,184 @@ test('command factories remove empty work and preserve deterministic target orde
   })
 })
 
+test('connect command selects registry-compatible ports and rejects non-connectable nodes', () => {
+  const nodes: CanvasNode[] = [
+    { id: 'script', type: 'script', title: '脚本', x: 0, y: 0, width: 320, height: 200, contentData: { subtype: 'script', serialization_version: 1 } },
+    { id: 'asset', type: 'asset', title: '图片', x: 0, y: 0, width: 320, height: 240, contentData: { subtype: 'image', serialization_version: 1 } },
+    { id: 'generation', type: 'generation', title: '视频生成', x: 0, y: 0, width: 340, height: 220, contentData: { subtype: 'video', serialization_version: 1 } },
+    { id: 'note', type: 'note', title: '备注', x: 0, y: 0, width: 260, height: 180, contentData: { subtype: 'annotation', serialization_version: 1 } },
+    { id: 'future', type: 'future-storyboard', title: '未来类型', x: 0, y: 0, width: 280, height: 160 },
+  ]
+
+  expect(createConnectNodesCommand(nodes, [], 'script', 'generation')).toEqual(expect.objectContaining({
+    sourcePort: 'out', targetPort: 'prompt',
+  }))
+  expect(createConnectNodesCommand(nodes, [], 'asset', 'generation')).toEqual(expect.objectContaining({
+    sourcePort: 'out', targetPort: 'media',
+  }))
+  expect(createConnectNodesCommand(nodes, [], 'asset', 'generation', 'out', 'prompt')).toBeNull()
+  expect(createConnectNodesCommand(nodes, [], 'asset', 'generation', 'out', 'media')).toEqual(expect.objectContaining({
+    sourcePort: 'out', targetPort: 'media',
+  }))
+  expect(createConnectNodesCommand(nodes, [], 'script', 'generation', 'missing', 'prompt')).toBeNull()
+  expect(createConnectNodesCommand(nodes, [], 'note', 'generation')).toBeNull()
+  expect(createConnectNodesCommand(nodes, [], 'future', 'generation')).toBeNull()
+})
+
+test('future-version group nodes cannot enter supported ungroup mutations', () => {
+  const nodes: CanvasNode[] = [
+    {
+      id: 'future-group', type: 'group', title: '未来组合', x: 0, y: 0, width: 480, height: 320,
+      contentData: { subtype: 'group', serialization_version: 2, future_payload: true },
+    },
+    {
+      id: 'child', type: 'script', title: '脚本', x: 40, y: 40, width: 320, height: 200,
+      parentNodeId: 'future-group', contentData: { subtype: 'script', serialization_version: 1 },
+    },
+  ]
+
+  expect(createUngroupNodesCommand(nodes, ['future-group'])).toBeNull()
+  expect(createUngroupNodesCommand(nodes, ['child'])).toBeNull()
+})
+
+test('unsupported nodes reject every graph mutation and retain child references', async () => {
+  const nodes: CanvasNode[] = [
+    {
+      id: 'future-group', type: 'group', title: '未来组合', x: 0, y: 0, width: 480, height: 320,
+      contentData: { subtype: 'group', serialization_version: 2 },
+    },
+    {
+      id: 'child', type: 'script', title: '脚本', x: 40, y: 40, width: 320, height: 200,
+      parentNodeId: 'future-group', contentData: { subtype: 'script', serialization_version: 1 },
+    },
+  ]
+  const parentUpdates: Array<[string, string | null]> = []
+  const deletedNodes: string[] = []
+  const createdNodes: CanvasNode[] = []
+  const lockUpdates: Array<[string, boolean]> = []
+  const executor = createCanvasCommandExecutor({
+    getNodes: () => nodes,
+    getConnections: () => [],
+    createNode: async (draft) => {
+      const created = { id: `copy-${createdNodes.length + 1}`, ...draft }
+      createdNodes.push(created)
+      return created
+    },
+    createConnection: async () => { throw new Error('not used') },
+    deleteNode: async (nodeId) => { deletedNodes.push(nodeId) },
+    deleteConnection: async () => undefined,
+    updateNodeParent: async (nodeId, parentNodeId) => {
+      parentUpdates.push([nodeId, parentNodeId])
+      const node = nodes.find((candidate) => candidate.id === nodeId)
+      if (node) node.parentNodeId = parentNodeId ?? undefined
+    },
+    updateNodeLocked: async (nodeId, locked) => { lockUpdates.push([nodeId, locked]) },
+    queueNodeMove: () => undefined,
+    setSelection: () => undefined,
+    selectConnection: () => undefined,
+  })
+
+  expect(isArrangeEligibleNode(nodes[0])).toBe(false)
+  nodes[0].x = 24
+  expect(createMoveNodesCommand([{ nodeId: 'future-group', x: 0, y: 0 }], nodes)).toBeNull()
+  expect(createGroupNodesCommand([
+    nodes[0],
+    { id: 'peer', type: 'script', title: '同伴', x: 520, y: 0, width: 320, height: 200 },
+  ], ['future-group', 'peer'])).toBeNull()
+  expect(createSetNodesLockedCommand(nodes, ['future-group'], true)).toBeNull()
+
+  await executor.executeCommand({
+    source: 'keyboard',
+    command: createDuplicateNodesCommand(['future-group'])!,
+  })
+  await executor.executeCommand({
+    source: 'keyboard',
+    command: { type: 'delete-selection', nodeIds: ['future-group'], connectionIds: [] },
+  })
+  await executor.executeCommand({
+    source: 'keyboard',
+    command: { type: 'delete-selection', nodeIds: ['child'], connectionIds: [] },
+  })
+  await executor.executeCommand({
+    source: 'toolbar',
+    command: { type: 'set-nodes-locked', nodeIds: ['future-group'], locked: true },
+  })
+
+  expect(createdNodes).toEqual([])
+  expect(parentUpdates).toEqual([])
+  expect(deletedNodes).toEqual([])
+  expect(lockUpdates).toEqual([])
+  expect(nodes[1].parentNodeId).toBe('future-group')
+})
+
+test('commands reject secondary child and edge mutations that touch unsupported nodes', async () => {
+  const nodes: CanvasNode[] = [
+    {
+      id: 'group', type: 'group', title: '组合', x: 0, y: 0, width: 480, height: 320,
+      contentData: { subtype: 'group', serialization_version: 1 },
+    },
+    {
+      id: 'future-child', type: 'future-storyboard', title: '未来节点', x: 40, y: 40,
+      width: 320, height: 200, parentNodeId: 'group', contentData: { serialization_version: 7 },
+    },
+    {
+      id: 'script', type: 'script', title: '脚本', x: 560, y: 40, width: 320, height: 200,
+      contentData: { subtype: 'script', serialization_version: 1 },
+    },
+    {
+      id: 'safe-note', type: 'note', title: '笔记', x: 920, y: 40, width: 260, height: 180,
+      contentData: { subtype: 'annotation', serialization_version: 1 },
+    },
+  ]
+  const connections: CanvasConnection[] = [{
+    id: 'future-edge', from: 'script', to: 'future-child', sourcePort: 'out', targetPort: 'in',
+  }]
+  const parentUpdates: Array<[string, string | null]> = []
+  const deletedNodes: string[] = []
+  const deletedConnections: string[] = []
+  const queuedMoves: string[] = []
+  const executor = createCanvasCommandExecutor({
+    getNodes: () => nodes,
+    getConnections: () => connections,
+    createNode: async () => { throw new Error('not used') },
+    createConnection: async () => { throw new Error('not used') },
+    deleteNode: async (nodeId) => { deletedNodes.push(nodeId) },
+    deleteConnection: async (connectionId) => { deletedConnections.push(connectionId) },
+    updateNodeParent: async (nodeId, parentNodeId) => { parentUpdates.push([nodeId, parentNodeId]) },
+    updateNodeLocked: async () => undefined,
+    queueNodeMove: (nodeId) => { queuedMoves.push(nodeId) },
+    setSelection: () => undefined,
+    selectConnection: () => undefined,
+  })
+
+  expect(createUngroupNodesCommand(nodes, ['group'])).toBeNull()
+  await executor.executeCommand({
+    source: 'pointer',
+    command: {
+      type: 'move-nodes',
+      moves: [
+        { nodeId: 'safe-note', from: { nodeId: 'safe-note', x: 920, y: 40 }, to: { nodeId: 'safe-note', x: 940, y: 40 } },
+        { nodeId: 'future-child', from: { nodeId: 'future-child', x: 40, y: 40 }, to: { nodeId: 'future-child', x: 60, y: 40 } },
+      ],
+    },
+  })
+  await executor.executeCommand({
+    source: 'keyboard',
+    command: { type: 'delete-selection', nodeIds: ['safe-note', 'future-child'], connectionIds: [] },
+  })
+  await executor.executeCommand({
+    source: 'toolbar', command: { type: 'delete-selection', nodeIds: ['group'], connectionIds: [] },
+  })
+  await executor.executeCommand({
+    source: 'keyboard', command: { type: 'delete-selection', nodeIds: [], connectionIds: ['future-edge'] },
+  })
+
+  expect(parentUpdates).toEqual([])
+  expect(queuedMoves).toEqual([])
+  expect(deletedNodes).toEqual([])
+  expect(deletedConnections).toEqual([])
+})
+
 test('duplicate command copies selected nodes and only their internal connections', async () => {
   const nodes = reactive<CanvasNode[]>([
     { id: 'node-a', type: 'text', title: 'A', x: 10, y: 20, width: 240, height: 140, contentData: { nested: { value: 1 } } },
@@ -125,7 +305,7 @@ test('move and delete envelopes execute each selected target through one dispatc
       { id: 'node-a', type: 'text', title: 'A', x: 10, y: 20, width: 240, height: 140 },
       { id: 'node-b', type: 'text', title: 'B', x: 30, y: 40, width: 240, height: 140 },
     ],
-    getConnections: () => [],
+    getConnections: () => [{ id: 'connection-a', from: 'node-a', to: 'node-b' }],
     createNode: async () => { throw new Error('not used') },
     createConnection: async () => { throw new Error('not used') },
     deleteNode: async (nodeId) => { deletedNodes.push(nodeId) },
@@ -198,6 +378,7 @@ test('group, ungroup, and connect commands validate and execute deterministic gr
   })
   expect(nodes.at(-1)).toEqual(expect.objectContaining({
     id: 'group-1', type: 'group', x: 76, y: 56, width: 568, height: 308,
+    contentData: { subtype: 'group', serialization_version: 1 },
   }))
   expect(parentUpdates).toEqual([['node-a', 'group-1'], ['node-b', 'group-1']])
   expect(selection).toEqual(['group-1'])

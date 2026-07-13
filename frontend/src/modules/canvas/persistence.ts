@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios'
 import type { CanvasNodeCreatePayload } from './types'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
+import { serializeCanvasNodeContent } from './node-serialization'
 
 export type CanvasNodeDraft = Omit<CanvasNode, 'id'>
 export type CanvasConnectionDraft = Omit<CanvasConnection, 'id'>
@@ -75,11 +76,7 @@ export function isTemporaryId(id: string) {
 export function toNodeCreatePayload(node: CanvasNodeDraft): CanvasNodeCreatePayload {
   return {
     node_type: node.type,
-    content: {
-      ...node.contentData,
-      title: node.title,
-      ...(node.content ? { text: node.content } : {}),
-    },
+    content: serializeCanvasNodeContent(node),
     position_x: node.x,
     position_y: node.y,
     width: node.width,

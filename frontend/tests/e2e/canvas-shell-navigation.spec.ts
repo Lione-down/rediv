@@ -1,5 +1,4 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
-
 const API_ORIGIN = 'http://localhost:8000'
 const APP_ORIGIN = 'http://127.0.0.1:9099'
 const NOW = '2026-07-13T10:00:00Z'
@@ -9,7 +8,6 @@ const visualViewports = [
   { name: 'narrow-workspace', width: 920, height: 900 },
   { name: 'mobile-review', width: 375, height: 812 },
 ] as const
-
 interface CanvasRecord {
   id: string
   project_id: string
@@ -24,7 +22,6 @@ interface CanvasRecord {
   updated_at: string
   deleted_at: string | null
 }
-
 interface ShellState {
   canvases: CanvasRecord[]
   documents: Record<string, { nodes: Array<Record<string, unknown>>; connections: Array<Record<string, unknown>> }>
@@ -32,7 +29,6 @@ interface ShellState {
   rejectNextReorder: boolean
   requests: Array<{ method: string; path: string; body?: unknown }>
 }
-
 function canvasDocument(canvasId: string) {
   return {
     nodes: [
@@ -55,12 +51,10 @@ function canvasDocument(canvasId: string) {
     }],
   }
 }
-
 function getCanvasDocument(state: ShellState, canvasId: string) {
   state.documents[canvasId] ??= canvasDocument(canvasId)
   return state.documents[canvasId]
 }
-
 const user = {
   id: 'user-shell',
   username: 'creator',
@@ -74,7 +68,6 @@ const user = {
   updated_at: NOW,
   last_login_at: NOW,
 }
-
 function canvas(id: string, name: string, sortOrder: number): CanvasRecord {
   return {
     id,
@@ -246,6 +239,41 @@ function createState(): ShellState {
   }
 }
 
+test('Tab opens the canonical node menu and creates a registry-backed asset node', async ({ page }) => {
+  const state = createState()
+  await openShell(page, state)
+
+  const stage = page.getByRole('region', { name: 'Revid 无限画布工作区' })
+  const addNodeButton = page.getByRole('button', { name: '添加节点' })
+  await expect(addNodeButton).toHaveAttribute('title', '添加节点 (Tab)')
+  await expect(addNodeButton).toHaveAttribute('aria-haspopup', 'menu')
+  await stage.focus()
+  await page.keyboard.press('Tab')
+
+  const menu = page.getByRole('menu', { name: '添加节点' })
+  await expect(menu).toBeVisible()
+  await expect(menu.getByRole('menuitem')).toHaveCount(6)
+  await expect(menu.getByRole('menuitem', { name: '添加素材节点' })).toBeVisible()
+  await expect(menu.getByRole('menuitem', { name: /文本节点|图片节点/ })).toHaveCount(0)
+  await page.screenshot({ path: '../output/playwright/t5-007-unit-a-node-menu-1440x900.png' })
+
+  await menu.getByRole('menuitem', { name: '添加素材节点' }).click()
+  await expect.poll(() => state.requests.find((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/document') &&
+    ((request.body as Record<string, unknown>).node_upserts as Array<Record<string, unknown>>)
+      .some((item) => item.node_type === 'asset')
+  ))).toBeTruthy()
+  const created = getCanvasDocument(state, 'canvas-first').nodes.find((item) => item.node_type === 'asset')
+  expect(created).toEqual(expect.objectContaining({ width: 320, height: 240 }))
+  expect(created?.content).toEqual(expect.objectContaining({ subtype: 'image', serialization_version: 1 }))
+
+  await expect(menu).toHaveCount(0)
+  await expect(addNodeButton).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(menu).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '打开画布内容与快捷键' })).toBeFocused()
+})
+
 test('normal Canvas switches preserve independent undo stacks without cross-Canvas replay', async ({ page }) => {
   const state = createState()
   await openShell(page, state)
@@ -350,6 +378,7 @@ test('mobile shell is rendered read-only and keeps accessible route controls', a
   const stage = page.getByRole('region', { name: 'Revid 无限画布工作区' })
   await expect(stage).toHaveAttribute('aria-description', '只读审阅模式')
   await expect(page.getByText('浏览审阅模式', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '添加节点' })).toHaveCount(0)
   await page.getByRole('button', { name: '画布 1' }).click()
   await expect(page.getByRole('button', { name: '新建画布' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '归档当前画布' })).toHaveCount(0)

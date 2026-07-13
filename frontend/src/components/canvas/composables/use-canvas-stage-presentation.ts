@@ -20,8 +20,8 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     running: Loader2, success: CheckCircle2, warning: AlertCircle,
   }
   const nodeAppearances = computed(() => canvasStore.nodes.map(({
-    id, type, title, content, status, width, height, isLocked,
-  }) => ({ id, type, title, content, status, width, height, isLocked })))
+    id, type, title, content, contentData, status, width, height, isLocked,
+  }) => ({ id, type, title, content, contentData, status, width, height, isLocked })))
   const nodePositions = computed(() => canvasStore.nodes.map(({ id, x, y }) => ({ id, x, y })))
   const statusNodes = computed(() => canvasStore.nodes.filter(
     (node): node is CanvasNode & { status: StatusVisualState } =>

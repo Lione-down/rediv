@@ -281,9 +281,9 @@ test('compatible graph edits batch into one document PATCH and reach Saved withi
   const state = createState()
   await openCanvas(page, state)
 
-  await createTextNode(page, 780)
+  await createTextNode(page, 680)
   await page.waitForTimeout(80)
-  await createTextNode(page, 1_060)
+  await createTextNode(page, 1_080)
 
   const syncStatus = page.locator('.sync-status')
   await expect(syncStatus).toHaveClass(/is-saving/)

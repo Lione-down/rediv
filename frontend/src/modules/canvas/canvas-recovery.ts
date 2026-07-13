@@ -32,10 +32,6 @@ const PORT_LIMIT = 100
 const MUTATION_ID_LIMIT = 64
 const Z_INDEX_MIN = -2_147_483_648
 const Z_INDEX_MAX = 2_147_483_647
-const nodeTypes = new Set([
-  'text', 'image', 'video', 'model', 'result', 'refine', 'composite', 'group',
-])
-
 const nodeKeys = new Set([
   'id', 'node_type', 'content', 'position_x', 'position_y', 'width', 'height',
   'z_index', 'parent_node_id', 'is_locked', 'is_collapsed',
@@ -100,7 +96,6 @@ function isNodeUpsert(value: unknown): value is CanvasDocumentNodeUpsert {
     hasOnlyKeys(value, nodeKeys) &&
     isBoundedString(value.id, NODE_ID_LIMIT) &&
     isBoundedString(value.node_type, NODE_TYPE_LIMIT) &&
-    nodeTypes.has(value.node_type) &&
     isRecord(value.content) && isCanonicalJson(value.content) &&
     isFiniteBetween(value.position_x, -COORDINATE_LIMIT, COORDINATE_LIMIT) &&
     isFiniteBetween(value.position_y, -COORDINATE_LIMIT, COORDINATE_LIMIT) &&

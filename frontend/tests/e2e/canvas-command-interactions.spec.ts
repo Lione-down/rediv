@@ -423,6 +423,37 @@ test('typed align and lock commands persist once and locked nodes reject mutatio
   await testInfo.attach('desktop-arrange-lock', { path: evidence, contentType: 'image/png' })
 })
 
+test('graph access panel hides delete actions that cannot mutate the full affected graph', async ({ page }) => {
+  const state = createState()
+  state.nodes.push(
+    {
+      ...node('protected-group', '受保护组合', 1180),
+      node_type: 'group',
+      content: { title: '受保护组合', subtype: 'group', serialization_version: 1 },
+      width: 480,
+      height: 320,
+    },
+    {
+      ...node('future-child', '未来节点', 1260),
+      node_type: 'future-storyboard',
+      content: { title: '未来节点', serialization_version: 7, future_payload: true },
+      parent_node_id: 'protected-group',
+    },
+  )
+  state.connections.push(connection('connection-future-a', 'future-child', 'node-a'))
+
+  await openCommandCanvas(page, state)
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  const dialog = page.getByRole('dialog', { name: '画布内容与快捷键' })
+
+  await expect(dialog.getByRole('button', { name: '删除节点 镜头 B' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: '删除节点 镜头 A' })).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: '删除连线 镜头 A 到 镜头 B' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: '删除节点 受保护组合' })).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: '删除节点 未来节点' })).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: '删除连线 未来节点 到 镜头 A' })).toHaveCount(0)
+})
+
 test('Canvas-focus shortcuts group, ungroup, connect, and expose synchronized DOM graph access', async ({ page }, testInfo) => {
   const state = createState()
   await openCommandCanvas(page, state)

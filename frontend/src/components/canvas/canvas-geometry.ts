@@ -1,8 +1,13 @@
 import type { CanvasNode } from '../../types/canvas'
+import { resolveNodeDefinition, type NodePortDirection } from '../../modules/canvas/node-registry'
 
 export interface Point {
   x: number
   y: number
+}
+
+export interface CanvasNodePortAnchor extends Point {
+  portId: string
 }
 
 export interface ViewportState {
@@ -124,12 +129,44 @@ export function viewportWorldRect(viewport: ViewportState, size: ViewportSize): 
   }
 }
 
-export function nodeInputAnchor(node: CanvasNode, viewport: ViewportState) {
-  return worldToSurface({ x: node.x, y: node.y + node.height / 2 }, viewport)
+export function nodePortWorldAnchors(
+  node: CanvasNode,
+  direction: NodePortDirection,
+): CanvasNodePortAnchor[] {
+  const definition = resolveNodeDefinition(node.type, node.contentData)
+  if (definition.kind === 'unsupported') return []
+  const ports = definition.ports.filter((port) => port.direction === direction)
+  return ports.map((port, index) => ({
+    portId: port.id,
+    x: direction === 'input' ? node.x : node.x + node.width,
+    y: node.y + (node.height * (index + 1)) / (ports.length + 1),
+  }))
 }
 
-export function nodeOutputAnchor(node: CanvasNode, viewport: ViewportState) {
-  return worldToSurface({ x: node.x + node.width, y: node.y + node.height / 2 }, viewport)
+export function nodeInputPortAnchors(node: CanvasNode) {
+  return nodePortWorldAnchors(node, 'input')
+}
+
+export function nodePortWorldAnchor(
+  node: CanvasNode,
+  direction: NodePortDirection,
+  portId?: string,
+): Point {
+  const anchors = nodePortWorldAnchors(node, direction)
+  const exact = portId ? anchors.find((anchor) => anchor.portId === portId) : null
+  const selected = exact ?? anchors[0]
+  return selected ? { x: selected.x, y: selected.y } : {
+    x: direction === 'input' ? node.x : node.x + node.width,
+    y: node.y + node.height / 2,
+  }
+}
+
+export function nodeInputAnchor(node: CanvasNode, viewport: ViewportState, portId?: string) {
+  return worldToSurface(nodePortWorldAnchor(node, 'input', portId), viewport)
+}
+
+export function nodeOutputAnchor(node: CanvasNode, viewport: ViewportState, portId?: string) {
+  return worldToSurface(nodePortWorldAnchor(node, 'output', portId), viewport)
 }
 
 export function buildConnectionPath(from: Point, to: Point) {

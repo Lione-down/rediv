@@ -3,10 +3,10 @@ import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import { patchCanvasDocument } from './api'
 import { mapCanvasRecoveryGraph } from './mappers'
 import { getCanvasErrorMessage } from './persistence'
+import { toCanvasDocumentNodeUpsert } from './node-serialization'
 import { parseCanvasRecoverySnapshot } from './canvas-recovery'
 import type {
   CanvasDocumentConnectionUpsert,
-  CanvasDocumentNodeUpsert,
   CanvasDocumentPatchPayload,
   CanvasGraphSaveState,
   CanvasRecoveryDocument,
@@ -66,26 +66,6 @@ export function createCanvasEntityId() {
   return entityId()
 }
 
-function toNodeUpsert(node: CanvasNode): CanvasDocumentNodeUpsert {
-  return {
-    id: node.id,
-    node_type: node.type,
-    content: {
-      ...node.contentData,
-      title: node.title,
-      ...(node.content ? { text: node.content } : {}),
-    },
-    position_x: node.x,
-    position_y: node.y,
-    width: Math.round(node.width),
-    height: Math.round(node.height),
-    z_index: Math.round(node.zIndex ?? 0),
-    parent_node_id: node.parentNodeId ?? null,
-    is_locked: Boolean(node.isLocked),
-    is_collapsed: Boolean(node.isCollapsed),
-  }
-}
-
 function toConnectionUpsert(connection: CanvasConnection): CanvasDocumentConnectionUpsert {
   return {
     id: connection.id,
@@ -102,7 +82,7 @@ function captureGraph(
   connections: readonly CanvasConnection[],
 ): PersistedGraph {
   return {
-    node_upserts: nodes.map(toNodeUpsert).sort((left, right) => left.id.localeCompare(right.id)),
+    node_upserts: nodes.map(toCanvasDocumentNodeUpsert).sort((left, right) => left.id.localeCompare(right.id)),
     connection_upserts: connections
       .map(toConnectionUpsert)
       .sort((left, right) => left.id.localeCompare(right.id)),

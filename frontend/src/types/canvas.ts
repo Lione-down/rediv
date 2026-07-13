@@ -1,4 +1,7 @@
-export type CanvasNodeType = 'text' | 'image' | 'video' | 'model' | 'result' | 'refine' | 'composite' | 'group'
+export type CanvasKnownNodeType =
+  | 'script' | 'note' | 'asset' | 'generation' | 'result' | 'group'
+  | 'text' | 'image' | 'video' | 'model' | 'refine' | 'composite'
+export type CanvasNodeType = CanvasKnownNodeType | (string & Record<never, never>)
 export type CanvasNodeStatus = 'idle' | 'selected' | 'running' | 'success' | 'warning'
 
 export interface CanvasNode {
