@@ -61,8 +61,8 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     if (node.status === 'running') return 'oklch(70% 0.13 78 / 0.18)'
     if (node.status === 'success') return 'oklch(60% 0.12 150 / 0.18)'
     if (node.status === 'warning') return 'oklch(58% 0.17 27 / 0.18)'
-    if (options.getSelectedNodeIds().includes(node.id)) return 'rgba(75, 122, 255, 0.16)'
-    return 'rgba(44, 52, 68, 0.10)'
+    if (options.getSelectedNodeIds().includes(node.id)) return options.cssVar('--canvas-node-selected-shadow', 'rgba(75, 122, 255, 0.16)')
+    return options.cssVar('--canvas-node-shadow', 'rgba(44, 52, 68, 0.10)')
   }
 
   function resize() {
@@ -98,7 +98,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
         height: node.height,
         cornerRadius: 12,
         hit: 'rect',
-        fill: 'rgba(255, 255, 255, 0.92)',
+        fill: options.cssVar('--canvas-node-surface', 'rgba(255, 255, 255, 0.92)'),
         stroke: nodeStrokeColor(node),
         strokeWidth: node.status === 'running' || node.status === 'success' || node.status === 'warning' || options.getSelectedNodeIds().includes(node.id) ? 2 : 1,
         shadow: { x: 0, y: 18, blur: 42, color: nodeShadowColor(node) },
@@ -118,7 +118,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
         width: 16,
         height: 16,
         fill: options.cssVar('--accent-select', 'oklch(58% 0.115 252)'),
-        stroke: 'rgba(255, 255, 255, 0.95)',
+        stroke: options.cssVar('--canvas-port-outline', 'rgba(255, 255, 255, 0.95)'),
         strokeWidth: 2,
       })
       const typeText = new Text({

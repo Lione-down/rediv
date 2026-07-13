@@ -4,12 +4,7 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background:
-    linear-gradient(oklch(88% 0.006 92 / 0.45) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(88% 0.006 92 / 0.45) 1px, transparent 1px),
-    radial-gradient(circle at 42% 38%, oklch(92% 0.024 175 / 0.46), transparent 33%),
-    var(--bg-canvas);
-  background-size: var(--space-6) var(--space-6), var(--space-6) var(--space-6), auto, auto;
+  background: var(--bg-canvas);
 }
 
 .canvas-surface {
@@ -18,7 +13,10 @@
   min-width: 0;
   height: 100%;
   min-height: 760px;
-  background: var(--bg-canvas);
+  background:
+    radial-gradient(circle, var(--canvas-stage-grid-dot, var(--border-subtle)) 1px, transparent 1.2px),
+    var(--bg-canvas);
+  background-size: var(--v2-grid-size, var(--space-6)) var(--v2-grid-size, var(--space-6));
 }
 
 .canvas-surface.cursor-grab { cursor: grab; }
@@ -132,8 +130,8 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  background: oklch(100% 0.004 92 / 0.94);
-  box-shadow: 0 10px 24px oklch(20% 0.02 245 / 0.08);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-soft);
 }
 
 .node-status-overlay.is-running .node-status-badge { color: var(--warning); }
@@ -145,7 +143,7 @@
 .connection-line,
 .draft {
   fill: none;
-  stroke: oklch(37% 0.014 245 / 0.44);
+  stroke: var(--border-strong);
   stroke-width: 1.6;
 }
 
@@ -178,7 +176,7 @@ path.draft {
   overflow: hidden;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  background: oklch(100% 0.004 92 / 0.76);
+  background: var(--bg-panel);
   box-shadow: var(--shadow-soft);
 }
 
@@ -186,7 +184,7 @@ path.draft {
   position: absolute;
   border: 0;
   border-radius: 3px;
-  background: color-mix(in oklch, var(--accent-select) 72%, white 28%);
+  background: var(--accent-select);
   padding: 0;
   cursor: pointer;
 }
@@ -198,10 +196,10 @@ path.draft {
 
 .minimap-viewport {
   position: absolute;
-  border: 1.5px solid color-mix(in oklch, var(--accent-select) 78%, white 22%);
+  border: 1.5px solid var(--accent-select);
   border-radius: 6px;
   background: color-mix(in oklch, var(--accent-select) 10%, transparent);
-  box-shadow: inset 0 0 0 1px oklch(100% 0.01 92 / 0.48);
+  box-shadow: inset 0 0 0 1px var(--border-standard, var(--border-subtle));
   pointer-events: none;
 }
 

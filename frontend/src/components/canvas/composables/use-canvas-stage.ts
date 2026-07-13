@@ -40,7 +40,11 @@ interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLikeEvent
 interface StageNotice { kind: 'missing' | 'loading' | 'error' | 'empty'; title: string; detail: string; canRetry?: boolean }
 type StatusVisualState = Extract<NonNullable<CanvasNode['status']>, 'running' | 'success' | 'warning'>
 
-export function useCanvasStage() {
+interface CanvasStageOptions {
+  isReadOnly?: () => boolean
+}
+
+export function useCanvasStage(options: CanvasStageOptions = {}) {
   const canvasStore = useCanvasStore()
   const stageRef = ref<HTMLElement | null>(null)
   const canvasSurfaceRef = ref<HTMLElement | null>(null)
@@ -108,7 +112,13 @@ export function useCanvasStage() {
   const {
     closeContextMenu, contextMenu, contextMenuOptions, handleContextMenu,
     handleContextMenuSelect, handleStageDoubleClick, updateContextMenuShow,
-  } = useCanvasContextMenu({ cancelActiveInteraction, findNodeAtWorldPoint, getViewport, toSurfacePoint })
+  } = useCanvasContextMenu({
+    cancelActiveInteraction,
+    findNodeAtWorldPoint,
+    getViewport,
+    isReadOnly: () => options.isReadOnly?.() ?? false,
+    toSurfacePoint,
+  })
 
   function cssVar(name: string, fallback: string) {
     if (!canvasSurfaceRef.value) return fallback
@@ -229,8 +239,9 @@ export function useCanvasStage() {
     const node = findNode(nodeId)
     const point = event.origin ? toSurfacePoint(event.origin.clientX, event.origin.clientY) : null
     if (!node || !point) return
-    const worldPoint = surfaceToWorld(point, getViewport())
     canvasStore.selectNode(nodeId, event.origin?.ctrlKey || event.origin?.metaKey || event.origin?.shiftKey ? 'toggle' : 'replace')
+    if (options.isReadOnly?.()) return
+    const worldPoint = surfaceToWorld(point, getViewport())
     dragState = {
       nodeId,
       pointerId: event.origin?.pointerId ?? null,
@@ -244,8 +255,9 @@ export function useCanvasStage() {
   }
   function handleOutputPointerDown(nodeId: string, event: LeaferPointerEvent) {
     if (shouldStartPan(event.origin, false)) return startPan(event.origin)
-    const anchor = nodeOutputAnchor(nodeId)
     canvasStore.selectNode(nodeId)
+    if (options.isReadOnly?.()) return
+    const anchor = nodeOutputAnchor(nodeId)
     dragState = null
     draftConnection.value = { fromNodeId: nodeId, pointerId: event.origin?.pointerId ?? null, currentX: anchor.x, currentY: anchor.y }
     bindWindowPointerListeners()
@@ -395,6 +407,7 @@ export function useCanvasStage() {
       }
       return
     }
+    if (options.isReadOnly?.()) return
     if ((event.key === 'Delete' || event.key === 'Backspace') && canvasStore.selectedConnectionId && !event.repeat) {
       event.preventDefault()
       void deleteSelectedConnection()

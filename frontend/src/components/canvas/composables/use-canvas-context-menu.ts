@@ -17,6 +17,7 @@ interface CanvasContextMenuOptions {
   cancelActiveInteraction: () => boolean
   findNodeAtWorldPoint: (point: Point) => CanvasNode | null
   getViewport: () => ViewportState
+  isReadOnly: () => boolean
   toSurfacePoint: (clientX: number, clientY: number) => Point | null
 }
 
@@ -62,6 +63,7 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
     const surfacePoint = origin ? options.toSurfacePoint(origin.clientX, origin.clientY) : null
     if (!origin || !surfacePoint || !canvasStore.activeProjectId || !canvasStore.hasLoaded) return
     origin.preventDefault()
+    if (options.isReadOnly()) return
     options.cancelActiveInteraction()
     const worldPoint = surfaceToWorld(surfacePoint, options.getViewport())
     const resolvedNodeId = options.findNodeAtWorldPoint(worldPoint)?.id ?? null
@@ -72,7 +74,7 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
     const origin = event.origin
     const surfacePoint = origin ? options.toSurfacePoint(origin.clientX, origin.clientY) : null
     if (
-      !surfacePoint || !canvasStore.activeProjectId || !canvasStore.hasLoaded ||
+      options.isReadOnly() || !surfacePoint || !canvasStore.activeProjectId || !canvasStore.hasLoaded ||
       canvasStore.mode === 'hand' || canvasStore.mode === 'generate'
     ) return
     const worldPoint = surfaceToWorld(surfacePoint, options.getViewport())
@@ -81,6 +83,7 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
     void createAndSelectNode(getNodeDraft(canvasStore.mode === 'image' ? 'image' : 'text', worldPoint))
   }
   function handleContextMenuSelect(key: string | number) {
+    if (options.isReadOnly()) return closeContextMenu()
     const action = key as ContextMenuKey
     const { nodeId, worldPoint } = contextMenu.value
     closeContextMenu()

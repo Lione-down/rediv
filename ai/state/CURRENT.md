@@ -22,8 +22,8 @@ Last updated: 2026-07-13
 
 - Active implementation Task: `T5-004 - V2 Canvas shell, navigation, and viewport persistence`
 - State: `DOING`
-- Latest completed unit: Unit B - Canvas metadata client/store and canonical route resolution (`COMPLETE - PASS`)
-- Next unit: Unit C - full-screen Canvas shell and navigation interactions
+- Latest completed unit: Unit C - full-screen Canvas shell and navigation interactions (`COMPLETE - PASS`)
+- Next unit: Unit D - Canvas-scoped graph loading and viewport persistence
 - Task: `ai/tasks/todo/TASK-T5-004.md`
 - Plan: `ai/tasks/doing/TASK-T5-004-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-004-PROGRESS.md`
@@ -59,17 +59,21 @@ Last updated: 2026-07-13
 - Duplication copies viewport and graph content into new IDs, remaps group parents and endpoints, retains project-shared asset references, and rolls back completely on conflict or commit failure.
 - T5-003 closure passed 44 focused guarded MySQL/API/compatibility tests and 186 full backend tests plus 5 subtests; Alembic has one head.
 - The canonical frontend Canvas route, strict metadata client/store, server-revision handling, validated user/project preference, and legacy first-active redirect passed Unit B browser/build evidence.
-- The canonical route still renders the Phase 4 Workspace through the compatibility graph path; the V2 shell/navigation and explicit Canvas graph/viewport persistence remain intentionally deferred to Units C-D.
+- The canonical route now renders a dedicated full-screen V2 shell with route-local tokens, project/Canvas identity, metadata navigation, contextual generation, save/recovery context, and no permanent app bar or inspector.
+- Create, rename, reorder, switch, duplicate, and archive use the serialized server-revision store; stale order reload, last-active protection, and server-confirmed route navigation passed focused browser evidence.
+- Widths below 768 px render a real review-only boundary that blocks graph and metadata mutations while retaining selection, pan, zoom, minimap, and Canvas switching.
+- Unit C passed 4 focused shell tests, 12 full Chromium tests, the four required viewports, real screenshot review, and a 4711-module production build.
+- Graph requests still intentionally use the first-Canvas compatibility path; explicit Canvas graph/document and viewport persistence remain deferred to Unit D.
 - The migration has not been applied to a user/runtime database and requires normal backup and Human migration authorization.
 - Ignored local `.db` artifacts and the pre-existing `revid_test_db` remain untouched; credential rotation remains a separate Human gate only if the removed T5-002 assignment was real or reused.
 
 ## Exact Next Action
 
-Build Unit C's route-local V2 provider and full-screen Canvas identity/navigation shell on the verified metadata store, without changing graph persistence yet.
+Build Unit D's explicit Canvas graph document boundary and normalized debounced viewport persistence without changing the verified Unit C shell/navigation contract.
 
 ## Blockers And Release Conditions
 
-- No blocker prevents T5-004 Unit C repository implementation.
+- No blocker prevents T5-004 Unit D repository implementation.
 - Applying `f0a1b2c3d4e5` to user/runtime data requires reviewed backup discipline and Human migration authorization.
 - Credential rotation becomes Human-required only if the removed assignment was ever real or reused.
 - Local ignored `.db` deletion requires exact-path Human approval after MySQL backup/parity evidence.
@@ -77,7 +81,7 @@ Build Unit C's route-local V2 provider and full-screen Canvas identity/navigatio
 
 ## Worktree Protection
 
-- Unit B started from clean `main` at `5c5e163c6f4f2f8f329a2e15859860e0d06a4e07`.
+- Unit C started from clean `main` at `bccd11bf3d1d3fb831aa72668caeab7157d347e5`.
 - Pre-existing staged, tracked-modified, untracked, unmerged, detached, and in-progress Git-operation state: none.
 - Root `.playwright-cli/`, `output/runtime/`, and local runtime evidence are ignored and excluded from delivery staging.
 - Ignored `.env` and `.db` artifacts must not be opened, deleted, moved, or committed without explicit authorization.

@@ -3,6 +3,10 @@ import { NDropdown } from 'naive-ui'
 import type { ComponentPublicInstance } from 'vue'
 import { useCanvasStage } from './composables/use-canvas-stage'
 
+const props = withDefaults(defineProps<{ readonly?: boolean }>(), {
+  readonly: false,
+})
+
 const {
   buildConnectionPath,
   canvasStore,
@@ -31,7 +35,7 @@ const {
   marqueeStyle,
   viewportCursor,
   retryProjectLoad,
-} = useCanvasStage()
+} = useCanvasStage({ isReadOnly: () => props.readonly })
 
 function setStageRef(element: Element | ComponentPublicInstance | null) {
   stageRef.value = element instanceof HTMLElement ? element : null
@@ -47,7 +51,12 @@ function setMinimapRef(element: Element | ComponentPublicInstance | null) {
 </script>
 
 <template>
-  <section :ref="setStageRef" class="workspace-stage" aria-label="Revid 无限画布工作区">
+  <section
+    :ref="setStageRef"
+    class="workspace-stage"
+    aria-label="Revid 无限画布工作区"
+    :aria-readonly="readonly"
+  >
     <div
       v-if="stageNotice"
       class="canvas-state"

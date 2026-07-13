@@ -103,7 +103,7 @@ export const router = createRouter({
     {
       path: '/app/projects/:projectId/canvases/:canvasId',
       name: 'canvas-workspace',
-      component: () => import('../views/app/Workspace.vue'),
+      component: () => import('../views/app/CanvasWorkspace.vue'),
       meta: { requiresAuth: true },
       beforeEnter: validateCanonicalWorkspace,
     },

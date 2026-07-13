@@ -166,7 +166,7 @@ export const useCanvasListStore = defineStore('canvas-list', () => {
     nextProjectId: string,
     fallback: string,
     expectedGeneration: number,
-  ) {
+  ): Promise<never> {
     assertGeneration(expectedGeneration)
     if (isAxiosError(error) && error.response?.status === 409) {
       const conflictRevision = getCanvasConflictRevision(error.response.data)

@@ -93,8 +93,9 @@ const canvasConnections = [
 
 const visualViewports = [
   { name: 'desktop', width: 1440, height: 900 },
+  { name: 'compact-desktop', width: 1366, height: 768 },
   { name: 'tablet', width: 920, height: 900 },
-  { name: 'mobile', width: 375, height: 900 },
+  { name: 'mobile', width: 375, height: 812 },
 ] as const
 
 function corsHeaders() {
@@ -334,18 +335,14 @@ test('authenticated project and Canvas generation workflow survives reload', asy
   const canvas = page.locator('.canvas-surface')
   await expect(canvas).toBeVisible()
   await canvas.click({ position: { x: 220, y: 180 } })
-  await expect(page.getByText('继续处理「生成封面」节点的生成任务。')).toBeVisible()
+  await expect(page.getByText('继续处理“生成封面”节点的生成任务。')).toBeVisible()
 
   await page.getByRole('button', { name: '立即生成' }).click()
-  const desktopInspector = page.locator('aside.right-panel').first()
-  await expect(desktopInspector.getByText('generation')).toBeVisible()
-  await desktopInspector.getByRole('tab', { name: 'Properties' }).click()
-  await expect(desktopInspector.getByText('图片生成完成，结果已写入资产区。')).toBeVisible()
-  await expect(desktopInspector.getByText('图片 2')).toBeVisible()
+  const nodeContext = page.getByRole('region', { name: '节点上下文' })
+  await expect(nodeContext.getByText('图片生成完成，结果已写入资产区。')).toBeVisible()
 
   await page.getByRole('button', { name: '立即生成' }).click()
-  await expect(desktopInspector.getByText('mock provider unavailable')).toBeVisible()
-  await expect(desktopInspector.getByText('图片 2')).toBeVisible()
+  await expect(nodeContext.getByText('mock provider unavailable')).toBeVisible()
   expect(state.imageQuota).toBe(2)
   expect(state.generationBodies).toEqual([
     { prompt: '夏日海边电影海报' },
@@ -384,17 +381,17 @@ for (const viewport of visualViewports) {
     await page.getByRole('button', { name: '进入项目 E2E 夏日短片' }).click()
     await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
     await expect(page.getByRole('region', { name: 'Revid 无限画布工作区' })).toBeVisible()
-    await expect(page.locator('footer[aria-label="Prompt 输入区"]')).toBeVisible()
-    const toolRailBox = await page.getByRole('navigation', { name: '画布工具' }).boundingBox()
-    const projectHeadingBox = await page.getByRole('heading', { name: 'project-e2e' }).boundingBox()
-    expect(toolRailBox).not.toBeNull()
-    expect(projectHeadingBox).not.toBeNull()
-    expect(projectHeadingBox!.x).toBeGreaterThanOrEqual(toolRailBox!.x + toolRailBox!.width)
-    const desktopInspector = page.locator('aside.right-panel').first()
-    if (viewport.width > 920) {
-      await expect(desktopInspector).toBeVisible()
+    await expect(page.getByRole('region', { name: '项目与画布导航' })).toBeVisible()
+    await expect(page.getByText('E2E 夏日短片')).toBeVisible()
+    await expect(page.locator('footer[aria-label="Prompt 输入区"]')).toHaveCount(0)
+    await expect(page.locator('aside.right-panel')).toHaveCount(0)
+    const stage = page.getByRole('region', { name: 'Revid 无限画布工作区' })
+    if (viewport.width < 768) {
+      await expect(page.getByText('浏览审阅模式', { exact: true })).toBeVisible()
+      await expect(stage).toHaveAttribute('aria-readonly', 'true')
     } else {
-      await expect(desktopInspector).toBeHidden()
+      await expect(page.getByText('浏览审阅模式', { exact: true })).toHaveCount(0)
+      await expect(stage).toHaveAttribute('aria-readonly', 'false')
     }
     await captureVisualEvidence(page, testInfo, `${viewport.name}-workspace`)
 

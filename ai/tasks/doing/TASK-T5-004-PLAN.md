@@ -2,7 +2,8 @@
 
 - State: `DOING`
 - Completed unit: Unit B - Canvas metadata client/store and canonical route resolution (`COMPLETE - PASS`)
-- Next unit: Unit C - full-screen Canvas shell and navigation interactions
+- Completed unit: Unit C - full-screen Canvas shell and navigation interactions (`COMPLETE - PASS`)
+- Next unit: Unit D - Canvas-scoped graph loading and viewport persistence
 - Completed unit: Unit A - single-source V2 Canvas token foundation (`COMPLETE - PASS`)
 - Updated: 2026-07-13
 
@@ -75,9 +76,43 @@ Deliver the explicit multi-canvas frontend in independently mergeable units whil
 - Focused Playwright route/store-contract coverage and the frontend production build pass.
 - Fresh diff review, `git diff --check`, exact staging, UTF-8, sensitive-path, secret-candidate, and tracked database-artifact gates pass.
 
+## Unit C - Full-screen Canvas shell and navigation interactions
+
+### Scope
+
+1. Move only the canonical Canvas route to a dedicated `CanvasWorkspace.vue`; keep the legacy Phase 4 `Workspace.vue` as historical compatibility code and do not alter non-Canvas routes.
+2. Apply `.v2-canvas-theme`, `darkTheme`, and `v2CanvasNaiveTheme` through a route-local provider so the approved token source drives every Canvas-local Naive surface.
+3. Render a `100dvh` shell with skip-to-content, compact top-left project/Canvas identity, top-right save/recovery/account context, the existing graph stage as the dominant surface, and no permanent app bar, inspector, or prompt dock.
+4. Add project-scoped Canvas navigation for switch, create, inline rename, move earlier/later, duplicate, and archive. All mutations use the existing serialized metadata store and server-returned `order_revision`; route changes occur only after mutation success.
+5. Keep destructive archive review-first and disabled for the last active Canvas. Surface loading, mutation, and recovery errors with specific Chinese retry guidance.
+6. Enforce the below-768-px review boundary in rendered shell controls by removing Canvas metadata mutation actions while retaining back, identity, switch, status, pan, and inspect context.
+7. Add focused Playwright coverage for the full metadata interaction sequence, route switching, last-active protection, stale-revision recovery, skip link, 40px targets, reduced motion, and desktop/compact/mobile rendered boundaries.
+
+### Non-goals
+
+- explicit Canvas document endpoints, graph store scoping, save flushing, autosave state, or viewport persistence;
+- renderer, node command, generation workflow, asset panel, inspector, history, or view-control redesign;
+- backend, schema, migration, MySQL, paid-provider, secret, or local database changes;
+- global V2 app shell or Phase 4 page restyling.
+
+### Success criteria
+
+- The canonical route renders the dedicated full-screen V2 shell, while unrelated routes retain the Phase 4 theme and layout.
+- Create, rename, reorder, switch, duplicate, and archive requests match the existing metadata contracts and route only from server-confirmed active items.
+- The last active Canvas cannot expose an enabled archive action; HTTP 409 reloads the list and leaves a visible recovery message.
+- Desktop and compact widths expose editing navigation, while mobile renders a labelled review-only state with no metadata mutation controls.
+- Skip-to-content, visible focus, Chinese labels, at least 40x40 targets, and reduced-motion substitutions are present in the rendered browser.
+- Focused browser tests, the full frontend Chromium regression, production build, fresh diff review, `git diff --check`, exact staging, UTF-8, sensitive-path, secret-candidate, and tracked database-artifact gates pass.
+
+### Outcome
+
+- The canonical route now renders a dedicated `100dvh` V2 Canvas shell with route-local Naive theme overrides, compact Revid/project/Canvas identity, save/recovery context, no permanent app bar or inspector, and contextual generation only after selection.
+- Canvas create, rename, reorder, switch, duplicate, and archive adopt server-confirmed items and revisions; stale reorder reloads the list before exposing retry, and the last active Canvas has no enabled archive path.
+- Mobile uses a reactive rendered `readonly` boundary that blocks node drag, connect, create, delete, context-menu, and keyboard mutation paths while retaining selection, pan, zoom, and Canvas switch review.
+- The focused shell suite passed 4 tests; the full Chromium suite passed 12 tests across 1440x900, 1366x768, 920x900, and 375x812; the production build passed with 4711 modules.
+
 ## Later Units
 
-- Unit C: route-local V2 provider, full-screen shell, identity/navigation chrome, responsive review boundary, and browser visual evidence.
 - Unit D: explicit Canvas graph scope and normalized debounced viewport persistence.
 - Unit E: focused and regression browser evidence, accessibility/reduced-motion checks, documentation, REPORT, and closure reconciliation.
 
@@ -90,8 +125,8 @@ Deliver the explicit multi-canvas frontend in independently mergeable units whil
 
 ## Verification Order
 
-1. Run focused Playwright tests for canonical and legacy route resolution plus metadata mutation/revision behavior.
+1. Run Unit D focused document/viewport tests before broader browser regression.
 2. Run `npm run build` from `frontend`.
-3. Inspect the exact TypeScript API/store/router diff against backend schemas and route fail-closed rules.
-4. Run fresh diff review and `git diff --check`.
+3. Inspect explicit Canvas IDs across graph API, stores, route switching, and viewport deduplication.
+4. Run the full relevant Chromium suite, fresh diff review, and `git diff --check`.
 5. Precisely stage owned paths, run staged UTF-8/sensitive-path/secret/database-artifact checks, commit, and push.
