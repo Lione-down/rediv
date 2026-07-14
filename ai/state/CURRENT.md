@@ -15,17 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-015 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-016 (`DONE - PASS`)
 
 ## Active Delivery
 
-- Active implementation Task: `T5-015 - Refine Canvas toward LibTV media-first fidelity`
-- State: `DONE - PASS`
-- Task: `ai/tasks/todo/TASK-T5-015.md`
-- Plan: `ai/tasks/doing/TASK-T5-015-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-015-PROGRESS.md`
-- Most recently completed: `T5-015 - Refine Canvas toward LibTV media-first fidelity` (`DONE - PASS`)
-- Active unit: complete
+- Active implementation Task: none
+- State: `IDLE`
+- Most recently completed: `T5-016 - Validate and refine multi-scenario Canvas workflows` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-016.md`
 
 ## Current Verified Facts
 
@@ -47,14 +44,15 @@ Last updated: 2026-07-15
 - T5-013 is now `DONE - PASS`: canonical node-local editing, bounded outcome-safe generation polling, decoded image/playable video results, explicit unavailable media, and directional typed connection feedback passed full Chromium 140/140, backend generation 20 tests plus 3 subtests, a 4,775-module build, and guarded live 200/300 evidence. Final report: `ai/reports/REPORT-T5-013.md`.
 - T5-014 is now `DONE - PASS`: typed semantic geometry, intrinsic-ratio single-surface media, external media titles, detached contextual composer, passive Canvas edges, and restrained state styling passed focused 22/22, full Chromium 147/147, a 4,779-module build, four viewport inspections, and guarded live 200/300 evidence. Final report: `ai/reports/REPORT-T5-014.md`.
 - T5-015 is now `DONE - PASS`: intrinsic media-shaped outer geometry, compact text/generation silhouettes, decoded metadata adoption, latent ports, solid quiet edges, and lighter contextual tools passed focused 22/22, metadata/workflow 13/13, full Chromium 147/147, a 4,779-module build, six screenshot inspections, and guarded live 200/300 evidence. Final report: `ai/reports/REPORT-T5-015.md`.
+- T5-016 is now `DONE - PASS`: deterministic mixed image/video workflows, four-way convergence, six-way result branching, lifecycle/content extremes, overlay ownership, restrained state styling, and four viewport evidence passed focused 26/26, full Chromium 150/150, a 4,779-module build, and guarded live 200/300 evidence. Final report: `ai/reports/REPORT-T5-016.md`.
 
 ## Exact Next Action
 
-No T5-015 implementation remains. Preserve the completed report and retained evidence; create a new Task for additional workflow capabilities.
+Await the Human Owner's next bounded Canvas capability or evidence-backed refinement request.
 
 ## Blockers And Human Gates
 
-- No active T5-015 blocker.
+- No active blocker.
 - Applying Alembic revisions through `c9d0e1f2a3b4` to user/runtime data requires reviewed backup discipline and Human authorization.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.

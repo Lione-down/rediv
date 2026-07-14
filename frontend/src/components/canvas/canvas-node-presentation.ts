@@ -73,7 +73,8 @@ export function buildCanvasNodePresentation(node: CanvasNode): CanvasNodePresent
 export function canvasNodeVisualSize(node: CanvasNode) {
   const presentation = buildCanvasNodePresentation(node)
   if (presentation.visualKind === 'text') {
-    return { width: node.width, height: Math.min(node.height, 120) }
+    const contentHeight = presentation.content.trim().length > 80 ? 150 : 120
+    return { width: node.width, height: Math.min(node.height, contentHeight) }
   }
   if (presentation.visualKind === 'generation') {
     return { width: node.width, height: Math.min(node.height, 128) }

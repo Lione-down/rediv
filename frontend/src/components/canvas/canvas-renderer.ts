@@ -5,6 +5,7 @@ import { buildCanvasNodePresentation, canvasNodeVisualSize, isSupportedCanvasGro
 import { planKeyedReconciliation } from './canvas-renderer-reconciliation'
 
 const POINTER_DOWN = 'pointer.down'
+const compactNodeTitle = (title: string) => title.length > 28 ? `${title.slice(0, 27)}…` : title
 const POINTER_MENU = 'pointer.menu'
 const DOUBLE_CLICK = 'double_click'
 
@@ -219,10 +220,13 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       x: 16,
       y: 34,
       width: size.width - 32,
-      text: isGroup || isMedia ? '' : node.title,
+      text: isGroup || isMedia ? '' : compactNodeTitle(node.title),
       fill: options.cssVar('--text-primary', 'oklch(18% 0.014 245)'),
       fontSize: 15,
       fontWeight: '600',
+      height: 22,
+      textWrap: 'none',
+      textOverflow: 'ellipsis',
     })
     const contentText = new Text({
       x: 16,
@@ -235,6 +239,8 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       fontSize: 13,
       lineHeight: 22,
       textWrap: 'break',
+      height: Math.max(22, size.height - 70),
+      textOverflow: 'hide',
     })
 
     group.add([card, mediaImage, ...ports.map((port) => port.shape), typeText, titleText, contentText])
@@ -314,8 +320,9 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     visual.typeText.y = isMedia ? -22 : 14
     visual.typeText.text = `${node.isLocked ? '已锁定 · ' : ''}${isGroup || isMedia ? node.title : presentation.typeLabel}`
     visual.titleText.width = size.width - 32
-    visual.titleText.text = isGroup || isMedia ? '' : node.title
+    visual.titleText.text = isGroup || isMedia ? '' : compactNodeTitle(node.title)
     visual.contentText.width = size.width - 32
+    visual.contentText.height = Math.max(22, size.height - 70)
     visual.contentText.text = isGroup || imageMedia ? '' : nextState.content
     visual.contentText.fill = presentation.isUnsupported
       ? options.cssVar('--danger', 'oklch(66% 0.19 24)')

@@ -20,7 +20,7 @@ async function openResources(page: Page) {
 async function selectGenerationNode(page: Page) {
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 封面生成' }).click()
-  await page.getByRole('button', { name: '关闭画布内容与快捷键' }).click()
+  await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
 }
 
 async function expectNoSeriousAxeFindings(page: Page) {

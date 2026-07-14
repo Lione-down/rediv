@@ -40,6 +40,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 13 | T5-013 | Repair Canvas node editing, generation lifecycle, and connections | DONE - PASS | T5-012 |
 | 14 | T5-014 | LibTV-inspired Canvas visual parity for node geometry, media, editing, ports, and passive edges | DONE - PASS | T5-013 |
 | 15 | T5-015 | Reference-backed Canvas refinement for media-shaped nodes, quiet graph chrome, and contextual tools | DONE - PASS | T5-014 |
+| 16 | T5-016 | Multi-scenario Canvas and node validation across mixed media, graph topology, lifecycle, density, and viewports | DONE - PASS | T5-015 |
 
 ## Task Boundaries
 
@@ -76,6 +77,8 @@ T5-013 is `DONE - PASS`. Canonical node-local editing, outcome-safe durable gene
 T5-014 is `DONE - PASS`. Typed semantic node geometry, intrinsic-ratio native media with one visible result surface, detached contextual authoring, passive Canvas edges with Graph Access management, restrained status hierarchy, four-viewport screenshots, full Chromium 147/147, and guarded live 200/300 evidence are recorded in `REPORT-T5-014.md`.
 
 T5-015 is `DONE - PASS`. Media outer geometry follows intrinsic ratio, text and generation nodes are content-sized, decoded metadata repairs missing ratios, persisted edges and idle ports recede, and contextual tools are lighter and viewport-aware. Public LibTV screenshots and the MIT AIGCCanvasFlow source informed general hierarchy patterns only; Revid branding, engine, copy, tokens, and capabilities remain independent. `REPORT-T5-015.md` is authoritative evidence.
+
+T5-016 is `DONE - PASS`. It expands visual acceptance from one representative graph to a deterministic matrix covering mixed image/video media, four-way convergence, six-way branching, lifecycle and unavailable states, localized content extremes, dense topology, interaction states, and every supported viewport. Focused 26/26, full Chromium 150/150, build, mock-browser performance, and guarded live 200/300 evidence passed. `REPORT-T5-016.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

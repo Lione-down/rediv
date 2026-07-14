@@ -159,6 +159,12 @@ function closeGraphAccessPanel() {
   restoreGraphPanelTriggerFocus()
 }
 
+function selectAndLocateNode(nodeId: string) {
+  closeGraphPanel()
+  canvasStore.selectNode(nodeId)
+  centerNodeInViewport(nodeId)
+}
+
 function commitNodeContent(nodeId: string, content: string) {
   void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)
 }
@@ -346,7 +352,7 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
       v-if="isGraphPanelOpen"
       :readonly="readonly"
       @close="closeGraphAccessPanel"
-      @locate-node="centerNodeInViewport"
+      @locate-node="selectAndLocateNode"
     />
     <NDropdown
       trigger="manual"

@@ -153,10 +153,7 @@
 }
 
 .node-status-overlay.is-running {
-  box-shadow:
-    0 0 0 2px color-mix(in oklch, var(--warning) 92%, white 8%),
-    0 0 0 10px color-mix(in oklch, var(--warning) 12%, transparent);
-  animation: node-pulse 1.8s ease-in-out infinite;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--warning) 68%, transparent);
 }
 
 .node-status-overlay.is-success {
@@ -164,9 +161,7 @@
 }
 
 .node-status-overlay.is-warning {
-  box-shadow:
-    0 0 0 2px color-mix(in oklch, var(--danger) 90%, white 10%),
-    0 14px 30px color-mix(in oklch, var(--danger) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--danger) 64%, transparent);
 }
 
 .node-status-badge {

@@ -46,7 +46,6 @@ function nodeTypeLabel(node: CanvasNode) {
 }
 
 function selectAndLocateNode(nodeId: string) {
-  canvasStore.selectNode(nodeId)
   emit('locateNode', nodeId)
 }
 

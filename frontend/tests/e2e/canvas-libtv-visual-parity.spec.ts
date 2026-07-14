@@ -105,7 +105,7 @@ test('selected editable node opens a composer below the node content surface', a
   await openResourceWorkspace(page, state)
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
-  await page.getByRole('button', { name: '关闭画布内容与快捷键' }).click()
+  await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
   const editor = page.getByRole('textbox', { name: '编辑镜头脚本内容' })
   const composer = page.getByRole('region', { name: '节点内容编辑器' })
   await expect(editor).toBeVisible()
@@ -138,7 +138,6 @@ test('accepted viewport matrix retains desktop editing and mobile review-only hi
       await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
       await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
       const graphDialog = page.getByRole('dialog', { name: '画布内容与快捷键' })
-      await graphDialog.getByRole('button', { name: '关闭画布内容与快捷键' }).evaluate((button: HTMLButtonElement) => button.click())
       await expect(graphDialog).toHaveCount(0)
       await expect(page.getByRole('region', { name: '节点内容编辑器' })).toBeVisible()
     }

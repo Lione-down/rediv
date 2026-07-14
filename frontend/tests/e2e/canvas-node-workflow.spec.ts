@@ -45,7 +45,7 @@ test('selected editable node persists node-local content and native result media
 
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
-  await page.getByRole('button', { name: '关闭画布内容与快捷键' }).click()
+  await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
   const editor = page.getByRole('textbox', { name: '编辑镜头脚本内容' })
   await editor.fill('黄昏海岸，人物从画面右侧入场。')
   await editor.blur()
@@ -54,7 +54,7 @@ test('selected editable node persists node-local content and native result media
   await expect(page.getByRole('region', { name: '项目与画布导航' })).toBeVisible()
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
-  await page.getByRole('button', { name: '关闭画布内容与快捷键' }).click()
+  await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
   await expect(page.getByRole('textbox', { name: '编辑镜头脚本内容' })).toHaveValue('黄昏海岸，人物从画面右侧入场。')
 })
 
@@ -63,7 +63,7 @@ test('IME composition owns the editor until compositionend', async ({ page }) =>
   await openResourceWorkspace(page, state)
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
-  await page.getByRole('button', { name: '关闭画布内容与快捷键' }).click()
+  await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
   const editor = page.getByRole('textbox', { name: '编辑镜头脚本内容' })
   const baseline = documentPatches(state).length
   await editor.dispatchEvent('compositionstart')
