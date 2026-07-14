@@ -329,3 +329,5 @@ Evidence:
 - pointercancel、释放到 Canvas 外、Escape 和外部点击必须走无 mutation 的统一取消路径；只有兼容 direct drop 或用户明确选择 continuation 后才能进入 command/autosave history。
 - input port 的手势方向与持久化 edge 方向相反。draft 可以记录 gesture origin，但 direct drop、compatibility overlay、preview path 和 continuation command 最终都必须归一化成 output source -> input target；否则视觉可用但 generation context 与 graph persistence 会反向。
 - 细 SVG edge 的可选中性应由独立透明 hit path 提供，visible path 继续 `pointer-events: none`。pointer 点击带 `tabindex` 的 SVG path 时 Chromium 可能绘制整个 path bounding box 的 focus outline；pointer selection 后应 blur，keyboard selection 则保留明确的 accent focus stroke。
+- 在既有 edge 中插入节点必须同时验证 source output -> candidate input 与 candidate output -> target input。只验证单侧会把无法恢复原目标语义的节点暴露给用户。
+- 原 edge ID 应留给上游 segment，并通过一次 node upsert 加两次 connection upsert 原子提交；先删旧 edge 再分步创建会破坏 autosave、undo/redo 与外部引用连续性。已选 edge 的 midpoint action 会占据路径中心，自动化若需再次选择该 edge，应使用其 keyboard selection contract，避免把按钮的正常命中误判为连线失效。

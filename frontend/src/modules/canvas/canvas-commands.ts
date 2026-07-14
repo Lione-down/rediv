@@ -1,4 +1,5 @@
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
+import type { InsertNodeIntoConnectionCommand } from './edge-insertion'
 import {
   getDefaultConnectionPorts,
   isNodeGroupContainer,
@@ -100,6 +101,7 @@ export type CanvasCommand =
   | ArrangeNodesCommand
   | SetNodesLockedCommand
   | InsertGraphCommand
+  | InsertNodeIntoConnectionCommand
 
 export interface CanvasCommandEnvelope {
   source: CanvasCommandSource

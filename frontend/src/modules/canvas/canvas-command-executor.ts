@@ -1,6 +1,7 @@
 import { toRaw } from 'vue'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import type { CanvasConnectionDraft, CanvasNodeDraft } from './persistence'
+import { isEdgeInsertionCommandValid, type InsertNodeIntoConnectionCommand } from './edge-insertion'
 import {
   createRegistryNodeDraft,
   isNodeGroupContainer,
@@ -42,6 +43,9 @@ interface CanvasCommandExecutorOptions {
   setSelection: (nodeIds: string[], primaryNodeId?: string) => void
   selectConnection: (connectionId: string) => void
   insertGraph?: (nodes: CanvasNode[], connections: CanvasConnection[]) => Promise<void> | void
+  insertNodeIntoConnection?: (
+    node: CanvasNode, upstream: CanvasConnection, downstream: CanvasConnection,
+  ) => Promise<void> | void
 }
 
 function cloneNodeDraft(node: CanvasNode, offset: { x: number; y: number }): CanvasNodeDraft {
@@ -264,6 +268,13 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     options.setSelection(command.nodes.map((node) => node.id), command.nodes.at(-1)?.id)
   }
 
+  async function insertNodeIntoConnection(command: InsertNodeIntoConnectionCommand) {
+    if (!options.insertNodeIntoConnection) throw new Error('Canvas edge insertion is unavailable')
+    if (!isEdgeInsertionCommandValid(command, options.getNodes(), options.getConnections())) return
+    await options.insertNodeIntoConnection(command.node, command.upstream, command.downstream)
+    options.setSelection([command.node.id], command.node.id)
+  }
+
   async function executeCommand(envelope: CanvasCommandEnvelope) {
     const { command } = envelope
     if (command.type === 'move-nodes') return moveNodes(command)
@@ -275,7 +286,8 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'reconnect-connection') return reconnectConnection(command)
     if (command.type === 'arrange-nodes') return arrangeNodes(command)
     if (command.type === 'set-nodes-locked') return setNodesLocked(command)
-    return insertGraph(command)
+    if (command.type === 'insert-graph') return insertGraph(command)
+    return insertNodeIntoConnection(command)
   }
 
   return { executeCommand }

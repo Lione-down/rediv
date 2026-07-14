@@ -104,7 +104,9 @@ test('source endpoint reroute and cancelled empty release keep typed graph deter
   await dragHandle(page, '改接连线来源', source)
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections[0].source_node_id).toBe('generation-alt')
 
-  await page.getByRole('button', { name: '选择连线：备用生成 到 历史图片生成结果' }).click()
+  const reroutedConnection = page.getByRole('button', { name: '选择连线：备用生成 到 历史图片生成结果' })
+  await reroutedConnection.focus()
+  await reroutedConnection.press('Enter')
   await dragHandle(page, '改接连线目标', { x: 700, y: 700 })
   await page.waitForTimeout(350)
   expect(state.documents[FIRST_CANVAS_ID].connections[0]).toMatchObject({

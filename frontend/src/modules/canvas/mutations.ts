@@ -203,6 +203,25 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     })
   }
 
+  function insertNodeIntoConnection(
+    node: CanvasNode,
+    upstream: CanvasConnection,
+    downstream: CanvasConnection,
+  ) {
+    const original = connections.value.find((connection) => connection.id === upstream.id)
+    if (
+      !original || nodes.value.some((item) => item.id === node.id) ||
+      connections.value.some((connection) => connection.id === downstream.id)
+    ) throw new Error('插入节点与当前图实体冲突。')
+    mutateGraph(() => {
+      nodes.value = [...nodes.value, cloneGraphEntity(node)]
+      connections.value = connections.value.map((connection) => (
+        connection.id === upstream.id ? cloneGraphEntity(upstream) : connection
+      ))
+      connections.value = [...connections.value, cloneGraphEntity(downstream)]
+    })
+  }
+
   const commandExecutor = createCanvasCommandExecutor({
     getNodes: () => nodes.value,
     getConnections: () => connections.value,
@@ -217,6 +236,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     setSelection,
     selectConnection,
     insertGraph,
+    insertNodeIntoConnection,
   })
 
   return {
@@ -233,6 +253,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     flushPendingMoves,
     applyGraph,
     applyCommittedMutation,
+    insertNodeIntoConnection,
     executeCommand: commandExecutor.executeCommand,
   }
 }

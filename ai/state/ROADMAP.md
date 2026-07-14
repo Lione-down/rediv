@@ -45,6 +45,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 18 | T5-018 | Drag-edge continuation into compatible new typed nodes with atomic insertion | DONE - PASS | T5-017 |
 | 19 | T5-019 | Reverse typed port dragging and upstream continuation | DONE - PASS | T5-018 |
 | 20 | T5-020 | Direct edge selection and typed endpoint rerouting | DONE - PASS | T5-019 |
+| 21 | T5-021 | Atomic typed node insertion into an existing edge | DONE - PASS | T5-020 |
 
 ## Task Boundaries
 
@@ -91,6 +92,8 @@ T5-018 is `DONE - PASS`. Output-port dragging released on empty Canvas space now
 T5-019 is `DONE - PASS`. Input ports now initiate reverse typed dragging to compatible existing outputs or an upstream continuation chooser. Gesture direction is normalized into canonical source-to-target edge orientation, and upstream creation remains one atomic graph command. Focused 12/12, relevant Chromium 54/54, full Chromium 167/167, build, visual, and hygiene evidence passed. `REPORT-T5-019.md` is authoritative evidence.
 
 T5-020 is `DONE - PASS`. Persisted edges now expose a generous invisible hit path, direct selection, and contextual source/target handles. Typed endpoint reroute preserves the connection ID, metadata, status, one autosave upsert, and one undo/redo entry while visible edges remain pointer-passive. Relevant 57/57, full Chromium 173/173, post-label focused 28/28, build, visual, and hygiene evidence passed. `REPORT-T5-020.md` is authoritative evidence.
+
+T5-021 is `DONE - PASS`. A selected compatible edge now exposes one restrained midpoint insertion action. Two-sided canonical compatibility, same-ID upstream preservation, one downstream edge, one atomic PATCH/history entry, exact undo/redo, cancellation, readonly, viewport, and visual contracts passed focused 6/6, edge insertion plus reroute 11/11, full Chromium 179/179, build, and hygiene gates. `REPORT-T5-021.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

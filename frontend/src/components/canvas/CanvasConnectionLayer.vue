@@ -4,7 +4,13 @@ import { createReconnectConnectionCommand } from '../../modules/canvas/canvas-co
 import { useCanvasStore } from '../../store/canvas'
 import type { CanvasConnection } from '../../types/canvas'
 import { buildConnectionPath, normalizeViewport, surfaceToWorld, type Point } from './canvas-geometry'
+import { worldToSurface } from './canvas-geometry'
 import { findNearestConnectionTarget } from './canvas-connection-target'
+import {
+  createEdgeInsertionCommand,
+  resolveEdgeInsertionOptions,
+} from '../../modules/canvas/edge-insertion'
+import CanvasEdgeInsertionMenu from './CanvasEdgeInsertionMenu.vue'
 
 export interface CanvasConnectionPath {
   active?: boolean
@@ -31,11 +37,37 @@ interface RerouteDraft {
 const canvasStore = useCanvasStore()
 const layerRef = ref<SVGSVGElement | null>(null)
 const rerouteDraft = ref<RerouteDraft | null>(null)
+const isInsertionMenuOpen = ref(false)
 const viewport = computed(() => normalizeViewport(canvasStore.viewport))
 const selectedPath = computed(() => props.paths.find(
   (path) => path.id === canvasStore.selectedConnectionId,
 ) ?? null)
 const handleRadius = computed(() => 6 / viewport.value.zoom)
+const insertionContext = computed(() => {
+  const path = selectedPath.value
+  if (!path || props.readonly) return null
+  const source = canvasStore.findNodeById(path.connection.from)
+  const target = canvasStore.findNodeById(path.connection.to)
+  if (!source || !target) return null
+  const options = resolveEdgeInsertionOptions(source, target, path.connection)
+  if (!options.length) return null
+  const midpoint = { x: (path.source.x + path.target.x) / 2, y: (path.source.y + path.target.y) / 2 }
+  return { path, source, target, options, midpoint, surface: worldToSurface(midpoint, viewport.value) }
+})
+const insertionButtonStyle = computed(() => {
+  const context = insertionContext.value
+  return context ? { left: `${context.surface.x}px`, top: `${context.surface.y}px` } : null
+})
+const insertionMenuStyle = computed(() => {
+  const context = insertionContext.value
+  if (!context) return null
+  const width = layerRef.value?.clientWidth ?? 0
+  const height = layerRef.value?.clientHeight ?? 0
+  return {
+    left: `${Math.max(12, Math.min(context.surface.x + 16, width - 272))}px`,
+    top: `${Math.max(12, Math.min(context.surface.y + 16, height - 300))}px`,
+  }
+})
 const draftPath = computed(() => {
   const draft = rerouteDraft.value
   if (!draft) return ''
@@ -47,6 +79,7 @@ const draftPath = computed(() => {
 })
 
 function selectConnection(connectionId: string) {
+  isInsertionMenuOpen.value = false
   canvasStore.selectConnection(connectionId)
 }
 
@@ -139,6 +172,27 @@ function handleKeyDown(event: KeyboardEvent) {
   stopReroute()
 }
 
+function openInsertionMenu() {
+  if (insertionContext.value) isInsertionMenuOpen.value = true
+}
+
+function closeInsertionMenu() {
+  isInsertionMenuOpen.value = false
+}
+
+async function insertNode(optionKey: string) {
+  const context = insertionContext.value
+  const option = context?.options.find((item) => item.key === optionKey)
+  closeInsertionMenu()
+  if (!context || !option) return
+  await canvasStore.dispatchCommand({
+    source: 'pointer',
+    command: createEdgeInsertionCommand(
+      context.source, context.target, context.path.connection, option, context.midpoint,
+    ),
+  })
+}
+
 onBeforeUnmount(stopReroute)
 </script>
 
@@ -194,6 +248,22 @@ onBeforeUnmount(stopReroute)
       </template>
     </g>
   </svg>
+  <button
+    v-if="insertionContext && !isInsertionMenuOpen"
+    type="button"
+    class="edge-insertion-trigger"
+    :style="insertionButtonStyle"
+    aria-label="在连线中插入节点"
+    @click.stop="openInsertionMenu"
+  >+</button>
+  <CanvasEdgeInsertionMenu
+    v-if="isInsertionMenuOpen && insertionContext"
+    :options="insertionContext.options"
+    :edge-label="`${insertionContext.source.title} → ${insertionContext.target.title}`"
+    :style="insertionMenuStyle"
+    @cancel="closeInsertionMenu"
+    @select="insertNode"
+  />
 </template>
 
 <style scoped lang="scss">
@@ -205,5 +275,8 @@ onBeforeUnmount(stopReroute)
 .connection-arrow { fill: var(--border-strong); pointer-events: none; }
 .connection-handle { fill: var(--bg-panel); stroke: var(--accent-select); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: all; cursor: crosshair; }
 .connection-handle:focus-visible { outline: none; stroke: white; stroke-width: 3; }
+.edge-insertion-trigger { position: absolute; z-index: 6; display: grid; width: 24px; height: 24px; padding: 0; place-items: center; border: 1px solid var(--accent-select); border-radius: 50%; color: var(--v2-text-primary); background: var(--bg-panel); box-shadow: var(--shadow-soft); font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1; cursor: pointer; transform: translate(-50%, -50%); }
+.edge-insertion-trigger:focus-visible { outline: 2px solid var(--v2-focus-ring, var(--accent-select)); outline-offset: 2px; }
+@media (hover: hover) { .edge-insertion-trigger:hover { color: white; background: var(--accent-select); } }
 @media (prefers-reduced-motion: reduce) { .connection-line, .connection-handle { transition: none; } }
 </style>

@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-020 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-021 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-020 - Direct edge selection and typed endpoint rerouting` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-020.md`
+- Most recently completed: `T5-021 - Atomic typed node insertion into an existing edge` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-021.md`
 
 ## Current Verified Facts
 
@@ -49,10 +49,11 @@ Last updated: 2026-07-15
 - T5-018 is now `DONE - PASS`: output dragging can continue into a compatible new typed node through a release-point chooser, committed as one node-plus-edge command with deterministic cancellation and undo/redo. Focused 8/8, relevant Chromium 50/50, full Chromium 163/163, and a 4,786-module build passed. Final report: `ai/reports/REPORT-T5-018.md`.
 - T5-019 is now `DONE - PASS`: input ports support reverse typed dragging to existing outputs and empty-space upstream continuation, with canonical edge orientation and atomic node-plus-edge insertion. Focused 12/12, relevant Chromium 54/54, full Chromium 167/167, and a 4,786-module build passed. Final report: `ai/reports/REPORT-T5-019.md`.
 - T5-020 is now `DONE - PASS`: Canvas edges have forgiving transparent hit targets, direct selection, zoom-stable endpoint handles, and typed same-ID source/target rerouting. Relevant Chromium 57/57, full Chromium 173/173, post-label focused 28/28, and a 4,789-module build passed. Final report: `ai/reports/REPORT-T5-020.md`.
+- T5-021 is now `DONE - PASS`: selected compatible edges expose a restrained midpoint insertion action backed by two-sided canonical compatibility, same-ID upstream preservation, one atomic PATCH/history boundary, and exact undo/redo. Focused 6/6, insertion plus reroute 11/11, full Chromium 179/179, a 4,793-module build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-021.md`.
 
 ## Exact Next Action
 
-Await the next bounded Canvas refinement; atomic node insertion into an existing edge and richer dense-graph navigation are the strongest remaining gaps.
+Define the next bounded Canvas iteration Task from the remaining broad visual and multi-node scenario goal.
 
 ## Blockers And Human Gates
 
