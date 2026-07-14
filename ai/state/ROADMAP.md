@@ -41,6 +41,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 14 | T5-014 | LibTV-inspired Canvas visual parity for node geometry, media, editing, ports, and passive edges | DONE - PASS | T5-013 |
 | 15 | T5-015 | Reference-backed Canvas refinement for media-shaped nodes, quiet graph chrome, and contextual tools | DONE - PASS | T5-014 |
 | 16 | T5-016 | Multi-scenario Canvas and node validation across mixed media, graph topology, lifecycle, density, and viewports | DONE - PASS | T5-015 |
+| 17 | T5-017 | Connected scripts and media become visible, validated image/video generation context | DONE - PASS | T5-016 |
 
 ## Task Boundaries
 
@@ -79,6 +80,8 @@ T5-014 is `DONE - PASS`. Typed semantic node geometry, intrinsic-ratio native me
 T5-015 is `DONE - PASS`. Media outer geometry follows intrinsic ratio, text and generation nodes are content-sized, decoded metadata repairs missing ratios, persisted edges and idle ports recede, and contextual tools are lighter and viewport-aware. Public LibTV screenshots and the MIT AIGCCanvasFlow source informed general hierarchy patterns only; Revid branding, engine, copy, tokens, and capabilities remain independent. `REPORT-T5-015.md` is authoritative evidence.
 
 T5-016 is `DONE - PASS`. It expands visual acceptance from one representative graph to a deterministic matrix covering mixed image/video media, four-way convergence, six-way branching, lifecycle and unavailable states, localized content extremes, dense topology, interaction states, and every supported viewport. Focused 26/26, full Chromium 150/150, build, mock-browser performance, and guarded live 200/300 evidence passed. `REPORT-T5-016.md` is authoritative evidence.
+
+T5-017 is `DONE - PASS`. Typed upstream scripts and image/result connections now become the actual deterministic prompt and validated image-reference inputs used by image and video generation. The inspector exposes provenance and excluded inputs; one image maps to img2vid, multiple images to ordered keyframes. Focused frontend 24/24, guarded generation backend 29/29, full Chromium 155/155, build, viewport, and hygiene evidence passed. `REPORT-T5-017.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

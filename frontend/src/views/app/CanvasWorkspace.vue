@@ -92,6 +92,7 @@ const {
   isGenerating,
   selectedNode,
   selectedMediaType,
+  selectedGenerationContext,
   selectedQuota,
   latestTask,
   visibleError,
@@ -347,6 +348,7 @@ onBeforeUnmount(() => {
           :error="generationError"
           :is-generating="isGenerating"
           :latest-task="latestTask"
+          :generation-context="selectedGenerationContext"
           :media-type="selectedMediaType"
           mode="panel"
           :node="selectedNode"
@@ -403,6 +405,7 @@ onBeforeUnmount(() => {
               :error="generationError"
               :is-generating="isGenerating"
               :latest-task="latestTask"
+              :generation-context="selectedGenerationContext"
               :media-type="selectedMediaType"
               mode="drawer"
               :node="selectedNode"

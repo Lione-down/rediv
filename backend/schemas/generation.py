@@ -36,7 +36,12 @@ class ImageGenerateRequest(ScopedGenerationRequest):
 
 
 class VideoGenerateRequest(ScopedGenerationRequest):
-    pass
+    image_ids: list[ResourceId] | None = Field(default=None, max_length=8)
+
+    @field_validator("image_ids")
+    @classmethod
+    def deduplicate_image_ids(cls, value: list[str] | None) -> list[str] | None:
+        return list(dict.fromkeys(value)) if value is not None else None
 
 
 class TextGenerateRequest(BaseModel):

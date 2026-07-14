@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { AlertTriangle, CircleCheck, Info, LoaderCircle, Play, Sparkles, X } from 'lucide-vue-next'
+import { AlertTriangle, CircleCheck, Image, Info, Link2, LoaderCircle, Play, Sparkles, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
+import type { ResolvedGenerationContext } from '../../modules/canvas/generation-context'
 import type { ProjectGenerationTask } from '../../modules/canvas/project-resource-types'
 import type { CanvasNode } from '../../types/canvas'
 
 const props = withDefaults(defineProps<{
   error?: string
+  generationContext?: ResolvedGenerationContext | null
   isGenerating?: boolean
   latestTask?: ProjectGenerationTask | null
   mediaType?: 'image' | 'video' | null
@@ -16,6 +18,7 @@ const props = withDefaults(defineProps<{
   success?: string
 }>(), {
   error: '',
+  generationContext: null,
   isGenerating: false,
   latestTask: null,
   mediaType: null,
@@ -31,8 +34,22 @@ const emit = defineEmits<{
 }>()
 
 const prompt = ref(props.node.content?.trim() || '')
-const canGenerate = computed(() => Boolean(props.mediaType && prompt.value.trim() && props.quota > 0 && !props.isGenerating))
+const canGenerate = computed(() => Boolean(
+  props.mediaType && (prompt.value.trim() || props.generationContext?.prompt) &&
+  props.quota > 0 && !props.isGenerating,
+))
 const generationLabel = computed(() => props.mediaType === 'video' ? '视频' : '图片')
+const connectedInputCount = computed(() => (
+  (props.generationContext?.textSources.filter((source) => source.isIncluded).length ?? 0) +
+  (props.generationContext?.imageIds.length ?? 0)
+))
+const mediaStateLabel = {
+  included: '已作为参考图',
+  'missing-asset': '缺少资源，未使用',
+  'unsupported-media': '仅支持图片，未使用',
+  duplicate: '重复资源，已合并',
+  limit: '超出 8 张上限，未使用',
+} as const
 const statusLabel = computed(() => {
   if (props.isGenerating) return '生成中'
   if (props.success) return '已完成'
@@ -78,6 +95,19 @@ function requestGeneration() {
         <textarea :value="prompt" rows="6" maxlength="4000" aria-label="生成提示词" @input="updatePrompt"></textarea>
       </label>
       <div v-else class="review-prompt"><span>生成提示词</span><p>{{ prompt || '未填写提示词' }}</p></div>
+
+      <section v-if="generationContext && (generationContext.textSources.length || generationContext.mediaSources.length)" class="connected-context" aria-label="已连接生成上下文">
+        <div class="context-summary"><span><Link2 :size="14" aria-hidden="true" />已连接上下文</span><strong>{{ connectedInputCount }} 项已使用</strong></div>
+        <ul>
+          <li v-for="source in generationContext.textSources" :key="`text-${source.nodeId}`" :class="{ muted: !source.isIncluded }">
+            <Link2 :size="13" aria-hidden="true" /><span><strong>{{ source.title }}</strong><small>{{ source.isIncluded ? '已合并文本' : '空内容，未使用' }}</small></span>
+          </li>
+          <li v-for="source in generationContext.mediaSources" :key="`media-${source.nodeId}`" :class="{ muted: source.state !== 'included' }">
+            <Image :size="13" aria-hidden="true" /><span><strong>{{ source.title }}</strong><small>{{ mediaStateLabel[source.state] }}</small></span>
+          </li>
+        </ul>
+        <p>最终提示词 {{ generationContext.prompt.length }} / 4000 字符</p>
+      </section>
 
       <button
         v-if="!readonly"
@@ -129,6 +159,19 @@ button:disabled { opacity: .42; cursor: not-allowed; }
 .section-heading { align-items: center; justify-content: space-between; margin-bottom: 14px; color: var(--v2-text-secondary); font-size: 12px; }
 .prompt-field, .review-prompt { display: grid; gap: 7px; color: var(--v2-text-secondary); font-size: 11px; }
 textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-md); color: var(--v2-text-primary); background: var(--v2-canvas); font: inherit; line-height: 1.6; }
+.connected-context { margin-top: 12px; padding: 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
+.context-summary, .context-summary span, .connected-context li { display: flex; align-items: center; }
+.context-summary { justify-content: space-between; gap: 8px; color: var(--v2-text-secondary); font-size: 11px; }
+.context-summary span { gap: 6px; }
+.context-summary strong { color: var(--v2-text-primary); font-weight: 600; }
+.connected-context ul { display: grid; gap: 5px; margin: 9px 0 0; padding: 0; list-style: none; }
+.connected-context li { gap: 7px; min-width: 0; padding: 6px 7px; border-radius: 6px; color: var(--v2-accent); background: var(--v2-surface-2); }
+.connected-context li.muted { color: var(--v2-text-muted); }
+.connected-context li span { display: grid; min-width: 0; gap: 1px; }
+.connected-context li strong, .connected-context li small { overflow: hidden; white-space: nowrap; text-overflow: clip; }
+.connected-context li strong { color: var(--v2-text-primary); font-size: 11px; font-weight: 600; }
+.connected-context li small, .connected-context > p { color: var(--v2-text-muted); font-size: 10px; }
+.connected-context > p { margin: 8px 0 0; }
 .generate-button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; color: var(--v2-text-on-accent); background: var(--v2-accent); font-weight: 600; }
 .generation-status { min-height: 42px; align-items: center; gap: 7px; margin: 14px 0 0; padding: 8px 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); color: var(--v2-text-secondary); background: var(--v2-surface-1); font-size: 12px; }
 .generation-status small { margin-left: auto; color: var(--v2-text-muted); }

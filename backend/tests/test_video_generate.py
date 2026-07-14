@@ -110,6 +110,69 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("Create a dramatic cinematic shot", fake_provider.generate_calls[0]["prompt"])
         self.assertEqual(["video-1", "video-1"], fake_provider.poll_calls)
 
+    def test_video_generate_maps_one_and_multiple_owned_images_to_provider_modes(self) -> None:
+        source_a = store.create_asset(
+            self.user["id"], "image", "https://example.com/source-a.png", None,
+            project_id=self.project["id"], origin_canvas_id=self.canvas_id, source="upload",
+        )
+        source_b = store.create_asset(
+            self.user["id"], "image", "https://example.com/source-b.png", None,
+            project_id=self.project["id"], origin_canvas_id=self.canvas_id, source="upload",
+        )
+        single_provider = _FakeAgnesProvider()
+        with patch.object(backend_main, "_agnes", single_provider):
+            single_response = self.client.post(
+                "/api/video-generate",
+                json=self._payload("Animate one frame", image_ids=[source_a["id"]]),
+                headers=self._auth_headers(self.user["id"]),
+            )
+        self.assertEqual(200, single_response.status_code)
+        self.assertEqual(
+            {"image": "https://example.com/source-a.png", "mode": "img2vid"},
+            single_provider.generate_calls[0]["kwargs"],
+        )
+
+        multiple_provider = _FakeAgnesProvider()
+        with patch.object(backend_main, "_agnes", multiple_provider):
+            multiple_response = self.client.post(
+                "/api/video-generate",
+                json=self._payload("Connect keyframes", image_ids=[source_a["id"], source_b["id"]]),
+                headers=self._auth_headers(self.user["id"]),
+            )
+        self.assertEqual(200, multiple_response.status_code)
+        self.assertEqual(
+            {
+                "extra_images": ["https://example.com/source-a.png", "https://example.com/source-b.png"],
+                "mode": "keyframes",
+            },
+            multiple_provider.generate_calls[0]["kwargs"],
+        )
+
+    def test_video_generate_rejects_unbounded_and_cross_project_image_references(self) -> None:
+        provider = _FakeAgnesProvider()
+        unbounded_response = self.client.post(
+            "/api/video-generate",
+            json=self._payload("Too many references", image_ids=[f"image-{index}" for index in range(9)]),
+            headers=self._auth_headers(self.user["id"]),
+        )
+        self.assertEqual(422, unbounded_response.status_code)
+
+        other_project = store.create_project(self.user["id"], "Other Video Project")
+        foreign_asset = store.create_asset(
+            self.user["id"], "image", "https://example.com/foreign.png", None,
+            project_id=other_project["id"],
+            origin_canvas_id=store.get_first_canvas_id(other_project["id"]),
+            source="upload",
+        )
+        with patch.object(backend_main, "_agnes", provider):
+            foreign_response = self.client.post(
+                "/api/video-generate",
+                json=self._payload("Reject foreign reference", image_ids=[foreign_asset["id"]]),
+                headers=self._auth_headers(self.user["id"]),
+            )
+        self.assertEqual(403, foreign_response.status_code)
+        self.assertEqual([], provider.generate_calls)
+
     def test_video_generate_create_failure_does_not_deduct_quota(self) -> None:
         fake_provider = _FakeAgnesProvider(create_error=RuntimeError("provider failed"))
         original_quota = store.quotas[self.user["id"]]["video"]
@@ -213,13 +276,16 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(403, response.status_code)
         self.assertEqual("Insufficient video quota", response.json()["detail"])
 
-    def _payload(self, prompt: str) -> dict:
-        return {
+    def _payload(self, prompt: str, *, image_ids: list[str] | None = None) -> dict:
+        payload = {
             "project_id": self.project["id"],
             "origin_canvas_id": self.canvas_id,
             "canvas_node_id": self.node["id"],
             "prompt": prompt,
         }
+        if image_ids is not None:
+            payload["image_ids"] = image_ids
+        return payload
 
     def _register_user(self, openid: str):
         return self.client.post(

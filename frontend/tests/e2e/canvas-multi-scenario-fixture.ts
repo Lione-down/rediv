@@ -72,11 +72,11 @@ export function createMultiScenarioState(): ResourceMockState {
       }),
       scenarioNode('asset-landscape', {
         type: 'asset', title: '海岸环境参考', x: 420, y: 20,
-        content: { subtype: 'image', serialization_version: 1, url: 'https://media.revid.test/landscape-source.png', width: 320, height: 180 },
+        content: { subtype: 'image', serialization_version: 1, asset_id: 'asset-reference', url: 'https://media.revid.test/landscape-source.png', width: 320, height: 180 },
       }),
       scenarioNode('asset-portrait', {
         type: 'asset', title: '人物造型参考', x: 480, y: 270,
-        content: { subtype: 'image', serialization_version: 1, url: 'https://media.revid.test/portrait-source.png', width: 180, height: 320 },
+        content: { subtype: 'image', serialization_version: 1, asset_id: 'asset-character', url: 'https://media.revid.test/portrait-source.png', width: 180, height: 320 },
       }),
       scenarioNode('generation-compose', {
         type: 'generation', title: '合并四路上下文生成', x: 800, y: 175,
@@ -120,5 +120,11 @@ export function createMultiScenarioState(): ResourceMockState {
       scenarioEdge('edge-result-broken', 'generation-compose', 'result-broken', 'out', 'in'),
     ],
   }
+  state.assets.push({
+    ...state.assets[0],
+    id: 'asset-character',
+    url: 'https://media.revid.test/portrait-source.png',
+    content_text: '人物造型参考',
+  })
   return state
 }

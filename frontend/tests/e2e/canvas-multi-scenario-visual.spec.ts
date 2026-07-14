@@ -6,7 +6,7 @@ import { mapCanvasNode } from '../../src/modules/canvas/mappers'
 import { createMultiScenarioState } from './canvas-multi-scenario-fixture'
 import { FIRST_CANVAS_ID, openResourceWorkspace } from './canvas-resource-generation-fixture'
 
-const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-016-scenarios')
+const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-017-connected-context')
 
 function rectsOverlap(left: ReturnType<typeof canvasNodeWorldRect>, right: ReturnType<typeof canvasNodeWorldRect>) {
   return left.left < right.left + right.width && left.left + left.width > right.left &&
@@ -63,6 +63,48 @@ test('mixed image, video, lifecycle, and unavailable states render together', as
 
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'mixed-topology-1440x900.png'), fullPage: true })
+})
+
+test('connected scripts and images become visible generation request context', async ({ page }) => {
+  const state = createMultiScenarioState()
+  await openResourceWorkspace(page, state)
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  await page.getByRole('button', { name: '选择并定位 合并四路上下文生成' }).click()
+
+  const context = page.getByRole('region', { name: '已连接生成上下文' })
+  await expect(context).toContainText('4 项已使用')
+  await expect(context).toContainText('中文剧情约束')
+  await expect(context).toContainText('Cinematic direction with deliberately long English content')
+  await expect(context).toContainText('海岸环境参考')
+  await expect(context).toContainText('人物造型参考')
+  await mkdir(evidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(evidenceDirectory, 'connected-generation-context-1440x900.png'), fullPage: true })
+  await page.getByRole('button', { name: '开始图片生成' }).click()
+
+  await expect.poll(() => state.requests.filter((request) => request.path === '/api/image-generate').length).toBe(1)
+  const request = state.requests.find((candidate) => candidate.path === '/api/image-generate')
+  expect(request?.body?.image_ids).toEqual(['asset-reference', 'asset-character'])
+  expect(request?.body?.prompt).toBe([
+    '合并剧情、镜头、环境和人物参考。',
+    '【中文剧情约束】\n黄昏后的海岸，人物从画面左侧进入。保持低饱和电影质感，镜头运动平缓，人物服装与光线方向在所有结果中保持一致。',
+    '【Cinematic direction with deliberately long English content】\nA restrained cinematic sequence with consistent wardrobe, soft coastal haze, practical lighting, and a slow lateral camera move that preserves screen direction across every generated shot.',
+  ].join('\n\n'))
+})
+
+test('disconnecting one prompt updates connected context without reloading', async ({ page }) => {
+  await openResourceWorkspace(page, createMultiScenarioState())
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  await page.getByRole('button', { name: '选择并定位 合并四路上下文生成' }).click()
+  const context = page.getByRole('region', { name: '已连接生成上下文' })
+  await expect(context).toContainText('4 项已使用')
+
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  const graphDialog = page.getByRole('dialog', { name: '画布内容与快捷键' })
+  await graphDialog.getByRole('button', { name: '删除连线 中文剧情约束 到 合并四路上下文生成' }).click()
+  await graphDialog.getByRole('button', { name: '选择并定位 合并四路上下文生成' }).click()
+
+  await expect(context).toContainText('3 项已使用')
+  await expect(context).not.toContainText('中文剧情约束')
 })
 
 test('selection, editing, locked content, and supported viewports remain usable', async ({ page }) => {

@@ -2,6 +2,7 @@ import { isAxiosError } from 'axios'
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { request } from '../../../api/request'
 import { requestCanvasGeneration } from '../../../modules/canvas/generation-service'
+import { resolveGenerationContext } from '../../../modules/canvas/generation-context'
 import { getGenerationMediaType } from '../../../modules/canvas/node-registry'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import {
@@ -138,6 +139,11 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const selectedNode = computed(() => canvasStore.selectedNode)
   const selectedMediaType = computed(() => (
     selectedNode.value ? getGenerationMediaType(selectedNode.value) : null
+  ))
+  const selectedGenerationContext = computed(() => (
+    selectedNode.value && selectedMediaType.value
+      ? resolveGenerationContext(selectedNode.value, canvasStore.nodes, canvasStore.connections)
+      : null
   ))
   const selectedQuota = computed(() => (
     selectedMediaType.value ? authStore.quotas[selectedMediaType.value] : 0
@@ -338,6 +344,15 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     const sourceNode = selectedNode.value
     const mediaType = selectedMediaType.value
     if (!sourceNode || !mediaType || options.isReviewOnly.value || isGenerating.value) return
+    const generationContext = resolveGenerationContext(
+      { ...sourceNode, content: prompt },
+      canvasStore.nodes,
+      canvasStore.connections,
+    )
+    if (!generationContext.prompt) {
+      generationError.value = '请填写提示词或连接至少一个有内容的脚本节点。'
+      return
+    }
     const context: GenerationRequestContext = {
       authToken: authStore.token,
       projectId: options.projectId.value,
@@ -361,7 +376,8 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
         projectId: context.projectId,
         originCanvasId: context.canvasId,
         canvasNodeId: context.nodeId,
-        prompt,
+        prompt: generationContext.prompt,
+        imageIds: generationContext.imageIds,
       }, authStore, request)
       if (!response.asset) throw new Error('生成已完成，但响应缺少结果资产。')
       resourceStore.upsertAsset(response.asset)
@@ -447,6 +463,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     isGenerating,
     selectedNode,
     selectedMediaType,
+    selectedGenerationContext,
     selectedQuota,
     latestTask,
     visibleError,

@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-016 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-017 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-016 - Validate and refine multi-scenario Canvas workflows` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-016.md`
+- Most recently completed: `T5-017 - Make connected nodes real generation context` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-017.md`
 
 ## Current Verified Facts
 
@@ -45,14 +45,15 @@ Last updated: 2026-07-15
 - T5-014 is now `DONE - PASS`: typed semantic geometry, intrinsic-ratio single-surface media, external media titles, detached contextual composer, passive Canvas edges, and restrained state styling passed focused 22/22, full Chromium 147/147, a 4,779-module build, four viewport inspections, and guarded live 200/300 evidence. Final report: `ai/reports/REPORT-T5-014.md`.
 - T5-015 is now `DONE - PASS`: intrinsic media-shaped outer geometry, compact text/generation silhouettes, decoded metadata adoption, latent ports, solid quiet edges, and lighter contextual tools passed focused 22/22, metadata/workflow 13/13, full Chromium 147/147, a 4,779-module build, six screenshot inspections, and guarded live 200/300 evidence. Final report: `ai/reports/REPORT-T5-015.md`.
 - T5-016 is now `DONE - PASS`: deterministic mixed image/video workflows, four-way convergence, six-way result branching, lifecycle/content extremes, overlay ownership, restrained state styling, and four viewport evidence passed focused 26/26, full Chromium 150/150, a 4,779-module build, and guarded live 200/300 evidence. Final report: `ai/reports/REPORT-T5-016.md`.
+- T5-017 is now `DONE - PASS`: connected scripts and images become the actual bounded prompt and validated reference inputs for image/video generation, with visible provenance and dynamic disconnect behavior. Focused frontend 24/24, guarded generation backend 29/29, full Chromium 155/155, and a 4,779-module build passed. Final report: `ai/reports/REPORT-T5-017.md`.
 
 ## Exact Next Action
 
-Await the Human Owner's next bounded Canvas capability or evidence-backed refinement request.
+Await the next bounded Canvas interaction or evidence-backed refinement unit; drag-edge continuation is the strongest known capability gap.
 
 ## Blockers And Human Gates
 
-- No active blocker.
+- No active blocker. Full backend upload process tests have a separately documented Windows Python 3.13 / AnyIO worker import verifier failure; generation-focused guarded suites pass.
 - Applying Alembic revisions through `c9d0e1f2a3b4` to user/runtime data requires reviewed backup discipline and Human authorization.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.

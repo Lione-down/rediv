@@ -10,6 +10,7 @@ export interface CanvasGenerationContext {
   originCanvasId: string
   canvasNodeId?: string | null
   prompt: string
+  imageIds?: string[]
 }
 
 export interface CanvasGenerationResponse {
@@ -82,6 +83,7 @@ export async function requestCanvasGeneration(
       origin_canvas_id: context.originCanvasId,
       canvas_node_id: context.canvasNodeId ?? null,
       prompt: context.prompt,
+      ...(context.imageIds?.length ? { image_ids: context.imageIds } : {}),
     },
     { timeout: 0 },
   )

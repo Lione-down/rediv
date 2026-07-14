@@ -215,6 +215,28 @@ def start_image_generation_task(
     )
 
 
+def start_video_generation_task(
+    *,
+    user_id: str,
+    provider: str,
+    model: str,
+    project_id: str,
+    origin_canvas_id: str | None,
+    canvas_node_id: str | None,
+    image_ids: list[str] | None,
+) -> tuple[dict, list[str] | None]:
+    return _start_generation_task(
+        user_id=user_id,
+        media_type="video",
+        provider=provider,
+        model=model,
+        project_id=project_id,
+        origin_canvas_id=origin_canvas_id,
+        canvas_node_id=canvas_node_id,
+        image_ids=image_ids,
+    )
+
+
 def update_generation_task_state(task_id: str, **fields) -> dict:
     with get_session() as session:
         task = session.scalar(

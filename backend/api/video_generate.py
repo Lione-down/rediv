@@ -168,14 +168,14 @@ async def video_generate(
     provider: GenerationProvider = Depends(get_generation_provider),
 ):
     try:
-        task = generation_controller.start_generation_task(
+        task, input_images = generation_controller.start_video_generation_task(
             user_id=user["id"],
-            media_type="video",
             provider="agnes",
             model=MODEL_NAME,
             project_id=payload.project_id,
             origin_canvas_id=payload.origin_canvas_id,
             canvas_node_id=payload.canvas_node_id,
+            image_ids=payload.image_ids,
         )
     except generation_controller.GenerationTransactionError as error:
         raise map_generation_error(error) from error
@@ -183,9 +183,15 @@ async def video_generate(
     provider_request_id: str | None = None
 
     try:
+        generation_options = {}
+        if input_images and len(input_images) == 1:
+            generation_options = {"image": input_images[0], "mode": "img2vid"}
+        elif input_images:
+            generation_options = {"extra_images": input_images, "mode": "keyframes"}
         create_response = await provider.generate_video(
             model=MODEL_NAME,
             prompt=payload.prompt,
+            **generation_options,
         )
         video_id = _extract_video_id(create_response)
         provider_request_id = video_id
