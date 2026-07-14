@@ -100,10 +100,10 @@ function requestGeneration() {
         <div class="context-summary"><span><Link2 :size="14" aria-hidden="true" />已连接上下文</span><strong>{{ connectedInputCount }} 项已使用</strong></div>
         <ul>
           <li v-for="source in generationContext.textSources" :key="`text-${source.nodeId}`" :class="{ muted: !source.isIncluded }">
-            <Link2 :size="13" aria-hidden="true" /><span><strong>{{ source.title }}</strong><small>{{ source.isIncluded ? '已合并文本' : '空内容，未使用' }}</small></span>
+            <Link2 :size="13" aria-hidden="true" /><span><strong>提示词 {{ source.order }} · {{ source.title }}</strong><small>{{ source.isIncluded ? '已合并文本' : '空内容，未使用' }}</small></span>
           </li>
           <li v-for="source in generationContext.mediaSources" :key="`media-${source.nodeId}`" :class="{ muted: source.state !== 'included' }">
-            <Image :size="13" aria-hidden="true" /><span><strong>{{ source.title }}</strong><small>{{ mediaStateLabel[source.state] }}</small></span>
+            <Image :size="13" aria-hidden="true" /><span><strong>参考图 {{ source.requestOrder ?? source.order }} · {{ source.title }}</strong><small>{{ mediaStateLabel[source.state] }}</small></span>
           </li>
         </ul>
         <p>最终提示词 {{ generationContext.prompt.length }} / 4000 字符</p>

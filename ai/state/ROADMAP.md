@@ -46,6 +46,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 19 | T5-019 | Reverse typed port dragging and upstream continuation | DONE - PASS | T5-018 |
 | 20 | T5-020 | Direct edge selection and typed endpoint rerouting | DONE - PASS | T5-019 |
 | 21 | T5-021 | Atomic typed node insertion into an existing edge | DONE - PASS | T5-020 |
+| 22 | T5-022 | Generation input provenance spotlight and deterministic ordering | DONE - PASS | T5-021 |
 
 ## Task Boundaries
 
@@ -94,6 +95,8 @@ T5-019 is `DONE - PASS`. Input ports now initiate reverse typed dragging to comp
 T5-020 is `DONE - PASS`. Persisted edges now expose a generous invisible hit path, direct selection, and contextual source/target handles. Typed endpoint reroute preserves the connection ID, metadata, status, one autosave upsert, and one undo/redo entry while visible edges remain pointer-passive. Relevant 57/57, full Chromium 173/173, post-label focused 28/28, build, visual, and hygiene evidence passed. `REPORT-T5-020.md` is authoritative evidence.
 
 T5-021 is `DONE - PASS`. A selected compatible edge now exposes one restrained midpoint insertion action. Two-sided canonical compatibility, same-ID upstream preservation, one downstream edge, one atomic PATCH/history entry, exact undo/redo, cancellation, readonly, viewport, and visual contracts passed focused 6/6, edge insertion plus reroute 11/11, full Chromium 179/179, build, and hygiene gates. `REPORT-T5-021.md` is authoritative evidence.
+
+T5-022 is `DONE - PASS`. Selecting a generation node now exposes stable T/R input order, participating edge paths, source rings, and muted excluded references from the same resolver that builds provider payloads. Focused 6/6, related 39/39, full Chromium 182/182, build, desktop/mobile visual, and hygiene gates passed. `REPORT-T5-022.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

@@ -5,19 +5,32 @@ export const GENERATION_PROMPT_LIMIT = 4_000
 export const GENERATION_IMAGE_LIMIT = 8
 
 export interface ConnectedTextContext {
+  connectionId: string
   nodeId: string
   title: string
   content: string
   isIncluded: boolean
+  order: number
 }
 
 export type ConnectedMediaState = 'included' | 'missing-asset' | 'unsupported-media' | 'duplicate' | 'limit'
 
 export interface ConnectedMediaContext {
+  connectionId: string
   nodeId: string
   title: string
   assetId: string | null
+  order: number
+  requestOrder: number | null
   state: ConnectedMediaState
+}
+
+export interface GenerationInputProvenance {
+  connectionId: string
+  isIncluded: boolean
+  kind: 'text' | 'media'
+  nodeId: string
+  order: number
 }
 
 export interface ResolvedGenerationContext {
@@ -26,6 +39,7 @@ export interface ResolvedGenerationContext {
   textSources: ConnectedTextContext[]
   mediaSources: ConnectedMediaContext[]
   imageIds: string[]
+  provenance: GenerationInputProvenance[]
 }
 
 function activeIncomingConnections(nodeId: string, connections: readonly CanvasConnection[]) {
@@ -76,7 +90,14 @@ export function resolveGenerationContext(
     if (ports.targetPort === 'prompt' && !seenTextNodes.has(source.id)) {
       seenTextNodes.add(source.id)
       const content = source.content?.trim() ?? ''
-      textSources.push({ nodeId: source.id, title: source.title, content, isIncluded: Boolean(content) })
+      textSources.push({
+        connectionId: connection.id,
+        nodeId: source.id,
+        title: source.title,
+        content,
+        isIncluded: Boolean(content),
+        order: textSources.length + 1,
+      })
       continue
     }
     if (ports.targetPort !== 'media') continue
@@ -92,8 +113,33 @@ export function resolveGenerationContext(
       seenImageIds.add(assetId)
       imageIds.push(assetId)
     }
-    mediaSources.push({ nodeId: source.id, title: source.title, assetId, state })
+    mediaSources.push({
+      connectionId: connection.id,
+      nodeId: source.id,
+      title: source.title,
+      assetId,
+      order: mediaSources.length + 1,
+      requestOrder: state === 'included' ? imageIds.length : null,
+      state,
+    })
   }
+
+  const provenance: GenerationInputProvenance[] = [
+    ...textSources.map((source) => ({
+      connectionId: source.connectionId,
+      isIncluded: source.isIncluded,
+      kind: 'text' as const,
+      nodeId: source.nodeId,
+      order: source.order,
+    })),
+    ...mediaSources.map((source) => ({
+      connectionId: source.connectionId,
+      isIncluded: source.state === 'included',
+      kind: 'media' as const,
+      nodeId: source.nodeId,
+      order: source.requestOrder ?? source.order,
+    })),
+  ]
 
   return {
     prompt: boundedPrompt(localPrompt, textSources),
@@ -101,5 +147,6 @@ export function resolveGenerationContext(
     textSources,
     mediaSources,
     imageIds,
+    provenance,
   }
 }

@@ -17,6 +17,8 @@ import {
 } from './canvas-workflow-starters'
 import { normalizeViewport, surfaceToWorld } from './canvas-geometry'
 import { useCanvasStage } from './composables/use-canvas-stage'
+import { resolveGenerationContext } from '../../modules/canvas/generation-context'
+import { getGenerationMediaType } from '../../modules/canvas/node-registry'
 
 const props = withDefaults(defineProps<{ readonly?: boolean; resourcesOpen?: boolean }>(), {
   readonly: false,
@@ -108,6 +110,16 @@ const {
 const dismissedEmptyCanvasIds = ref<ReadonlySet<string>>(new Set())
 const isStartingWorkflow = ref(false)
 const canvasGridStyle = computed(() => getCanvasGridStyle(canvasStore.viewport))
+const generationProvenance = computed(() => {
+  if (canvasStore.selectedNodeIds.length !== 1) return []
+  const selectedNode = canvasStore.selectedNode
+  if (!selectedNode || !getGenerationMediaType(selectedNode)) return []
+  return resolveGenerationContext(selectedNode, canvasStore.nodes, canvasStore.connections).provenance
+})
+const provenanceSources = computed(() => generationProvenance.value.flatMap((entry) => {
+  const node = canvasStore.findNodeById(entry.nodeId)
+  return node ? [{ ...entry, node }] : []
+}))
 const isEmptyGuideVisible = computed(() => (
   canvasStore.hasLoaded && !canvasStore.isLoading && !canvasStore.loadError &&
   canvasStore.nodes.length === 0 &&
@@ -222,7 +234,12 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
       :class="[`cursor-${viewportCursor}`, { 'is-grid-hidden': !isGridEnabled }]"
       :style="canvasGridStyle"
     >
-      <CanvasConnectionLayer :paths="connectionPaths" :readonly="readonly" :visible="areEdgesVisible" />
+      <CanvasConnectionLayer
+        :paths="connectionPaths"
+        :provenance="generationProvenance"
+        :readonly="readonly"
+        :visible="areEdgesVisible"
+      />
       <svg v-if="temporaryConnectionPath" class="connection-layer draft-layer" aria-hidden="true">
         <path class="draft" :d="temporaryConnectionPath" />
       </svg>
@@ -244,6 +261,17 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         @commit-content="commitNodeContent"
         @media-metadata="adoptMediaAspectRatio"
       />
+
+      <div
+        v-for="source in provenanceSources"
+        :key="`generation-source-${source.connectionId}`"
+        class="generation-source-provenance"
+        :class="source.isIncluded ? 'is-included' : 'is-excluded'"
+        :style="surfaceNodeRectStyle(source.node)"
+        aria-hidden="true"
+      >
+        <span>{{ source.kind === 'text' ? 'T' : 'R' }}{{ source.isIncluded ? source.order : '×' }}</span>
+      </div>
 
       <div
         v-for="target in connectionTargetStates"

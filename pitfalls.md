@@ -331,3 +331,5 @@ Evidence:
 - 细 SVG edge 的可选中性应由独立透明 hit path 提供，visible path 继续 `pointer-events: none`。pointer 点击带 `tabindex` 的 SVG path 时 Chromium 可能绘制整个 path bounding box 的 focus outline；pointer selection 后应 blur，keyboard selection 则保留明确的 accent focus stroke。
 - 在既有 edge 中插入节点必须同时验证 source output -> candidate input 与 candidate output -> target input。只验证单侧会把无法恢复原目标语义的节点暴露给用户。
 - 原 edge ID 应留给上游 segment，并通过一次 node upsert 加两次 connection upsert 原子提交；先删旧 edge 再分步创建会破坏 autosave、undo/redo 与外部引用连续性。已选 edge 的 midpoint action 会占据路径中心，自动化若需再次选择该 edge，应使用其 keyboard selection contract，避免把按钮的正常命中误判为连线失效。
+- 多输入生成的 panel、graph spotlight 与 provider payload 不能各自计算顺序。应由一个 resolver 同时产出 connection identity、kind order、included request order 与 exclusion state，避免用户看到的 R2 实际成为 request R1。
+- provenance 是当前 intent，不是永久 graph chrome。只有单选 generation node 时显示，badge 保持固定 screen size，edge 不使用循环动画；duplicate、missing、unsupported、limit 必须可见但不能使用 active treatment，也不能进入 request order。

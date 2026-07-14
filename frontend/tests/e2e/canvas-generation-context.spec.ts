@@ -29,8 +29,17 @@ test('connected scripts and images resolve in graph order with visible provenanc
 
   expect(context.prompt).toBe('保持低饱和度\n\n【剧情】\n人物从画面左侧入场\n\n【摄影】\n逆光中景，海雾背景')
   expect(context.textSources.map((source) => source.nodeId)).toEqual(['script-a', 'script-b'])
+  expect(context.textSources.map((source) => [source.connectionId, source.order])).toEqual([
+    ['script-a-prompt', 1], ['script-b-prompt', 2],
+  ])
   expect(context.imageIds).toEqual(['asset-a', 'asset-b'])
+  expect(context.mediaSources.map((source) => [source.connectionId, source.order, source.requestOrder])).toEqual([
+    ['image-a-media', 1, 1], ['image-b-media', 2, 2],
+  ])
   expect(context.mediaSources.map((source) => source.state)).toEqual(['included', 'included'])
+  expect(context.provenance.map((source) => [source.kind, source.order, source.isIncluded])).toEqual([
+    ['text', 1, true], ['text', 2, true], ['media', 1, true], ['media', 2, true],
+  ])
 })
 
 test('invalid, inactive, duplicate, and overflow references cannot silently enter provider input', () => {
@@ -55,6 +64,8 @@ test('invalid, inactive, duplicate, and overflow references cannot silently ente
     ...Array.from({ length: GENERATION_IMAGE_LIMIT }, () => 'included'),
     'limit', 'missing-asset', 'unsupported-media', 'duplicate',
   ])
+  expect(context.mediaSources.slice(-4).map((source) => source.requestOrder)).toEqual([null, null, null, null])
+  expect(context.provenance.filter((source) => !source.isIncluded)).toHaveLength(4)
 })
 
 test('prompt composition prioritizes local text and clips without adding synthetic ellipsis', () => {
