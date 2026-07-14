@@ -1,6 +1,6 @@
 # Revid Current Project State
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 ## Delivery Mode
 
@@ -19,13 +19,13 @@ Last updated: 2026-07-14
 
 ## Active Delivery
 
-- Active implementation Task: `T5-011 - Full V2 regression and release closure`
+- Active implementation Task: `T5-012 - Restore Canvas workspace rendering with Naive UI theme compatibility`
 - State: `DONE - PASS`
-- Task: `ai/tasks/todo/TASK-T5-011.md`
-- Plan: `ai/tasks/doing/TASK-T5-011-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-011-PROGRESS.md`
-- Most recently completed: `T5-011 - Full V2 regression and release closure` (`DONE - PASS`)
-- Active unit: Unit C - durable release closure (complete)
+- Task: `ai/tasks/todo/TASK-T5-012.md`
+- Plan: `ai/tasks/doing/TASK-T5-012-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-012-PROGRESS.md`
+- Most recently completed: `T5-012 - Restore Canvas workspace rendering with Naive UI theme compatibility` (`DONE - PASS`)
+- Active unit: Unit C - verification and closure (complete)
 
 ## Current Verified Facts
 
@@ -43,6 +43,7 @@ Last updated: 2026-07-14
 - T5-009 is now `DONE - PASS`: V2 tokens are globally bridged; shared top bar, auth shell, and admin shell use the approved dark-purple roles; build and focused responsive shell verification passed.
 - T5-010 is now `DONE - PASS`: Login, Home, Space, Admin, error, empty, loading, and responsive page-level V2 UX migration passed build, route, visual, and source audit gates.
 - T5-011 is now `DONE - PASS`: backend (438), full Chromium (132), 4,767-module build, retained live MySQL evidence, security-signature, encoding, compile, diff, and file-size audits all passed; final report is `ai/reports/REPORT-T5-011.md`.
+- T5-012 is now `DONE - PASS`: Canvas blank-page root cause was the Naive UI color parser receiving CSS `var(...)` values; concrete parser-facing theme colors restore the live Canvas shell. Focused theme regression (1), Canvas shell regression (8), frontend build (4,767 modules), and live browser Console verification passed; final report is `ai/reports/REPORT-T5-012.md`.
 
 ## Exact Next Action
 

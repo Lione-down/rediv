@@ -1,6 +1,6 @@
 # Revid Product V2 / Phase 5 Direct Delivery Roadmap
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 ## Product Outcome
 
@@ -36,6 +36,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 9 | T5-009 | Global V2 app-shell and shared-component dark-purple rollout without Canvas regression | DONE - PASS | T5-008 |
 | 10 | T5-010 | Login, Home, Space, Admin, error, empty, loading, and responsive V2 UX upgrade | DONE - PASS | T5-009 |
 | 11 | T5-011 | Full V2 regression, real-runtime verification, security review, documentation, and release closure | DONE - PASS | T5-010 |
+| 12 | T5-012 | Restore Canvas workspace rendering with Naive UI theme compatibility | DONE - PASS | T5-011 |
 
 ## Task Boundaries
 
