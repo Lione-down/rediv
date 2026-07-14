@@ -251,10 +251,16 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
     const pathname = new URL(route.request().url()).pathname
     const isBroken = pathname.includes('broken')
     const isVideo = pathname.endsWith('.mp4')
+    const dimensions = pathname.includes('square')
+      ? { width: 240, height: 240, label: 'SQUARE 1:1' }
+      : pathname.includes('portrait')
+        ? { width: 180, height: 320, label: 'PORTRAIT 9:16' }
+        : { width: 320, height: 180, label: 'LANDSCAPE 16:9' }
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${dimensions.width}" height="${dimensions.height}" viewBox="0 0 ${dimensions.width} ${dimensions.height}"><rect width="100%" height="100%" rx="12" fill="#6242df"/><path d="M0 0h32v32H0zM${dimensions.width - 32} 0h32v32h-32zM0 ${dimensions.height - 32}h32v32H0zM${dimensions.width - 32} ${dimensions.height - 32}h32v32h-32z" fill="#d8ccff"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="sans-serif" font-size="16">${dimensions.label}</text></svg>`
     return route.fulfill({
     status: isBroken ? 404 : 200,
     headers: { 'content-type': isBroken ? 'image/png' : isVideo ? 'video/mp4' : 'image/svg+xml', 'access-control-allow-origin': '*' },
-    body: isBroken ? Buffer.from('not-an-image') : isVideo ? Buffer.from(GENERATED_VIDEO_BASE64, 'base64') : Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#6d4aff"/><stop offset="1" stop-color="#19112f"/></linearGradient></defs><rect width="320" height="180" rx="16" fill="url(#g)"/><circle cx="250" cy="54" r="28" fill="#d8ccff" opacity=".85"/><path d="M0 145 85 78l58 47 48-34 129 89H0z" fill="#08060f" opacity=".78"/><text x="20" y="32" fill="white" font-family="sans-serif" font-size="16">Revid generated result</text></svg>'),
+    body: isBroken ? Buffer.from('not-an-image') : isVideo ? Buffer.from(GENERATED_VIDEO_BASE64, 'base64') : Buffer.from(svg),
   })})
   await page.route(`${API_ORIGIN}/**`, async (route) => {
     const request = route.request()

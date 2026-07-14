@@ -14,3 +14,25 @@ onBeforeUnmount(flush)
 <template>
   <textarea v-model="draft" class="canvas-node-editor" :aria-label="label" @blur="flush" @compositionstart="isComposing = true" @compositionend="isComposing = false; schedule()" @input="schedule" @keydown.esc.stop.prevent="handleEscape" @keydown.stop />
 </template>
+
+<style scoped lang="scss">
+.canvas-node-editor {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  border: 0;
+  border-radius: var(--v2-radius-sm);
+  padding: 10px 12px;
+  color: var(--v2-text-primary);
+  background: var(--v2-surface-1);
+  font: inherit;
+  line-height: 1.7;
+  pointer-events: auto;
+}
+
+.canvas-node-editor:focus {
+  outline: 2px solid var(--v2-focus-ring);
+  outline-offset: 2px;
+}
+</style>

@@ -10,7 +10,7 @@ const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', '
 
 test('registry capability is the sole node-local editing gate', () => {
   const node: CanvasNode = { id: 'script', type: 'script', title: '脚本', x: 0, y: 0, width: 320, height: 200, content: '初稿', contentData: { subtype: 'script', serialization_version: 1 } }
-  expect(buildCanvasNodeInteraction(node, { isReadOnly: false, isSelected: true })).toMatchObject({ kind: 'editor', content: '初稿' })
+  expect(buildCanvasNodeInteraction(node, { isReadOnly: false, isSelected: true })).toMatchObject({ kind: 'composer', content: '初稿' })
   expect(buildCanvasNodeInteraction(node, { isReadOnly: true, isSelected: true })).toEqual({ kind: 'static' })
 })
 
@@ -77,7 +77,7 @@ test('IME composition owns the editor until compositionend', async ({ page }) =>
   await expect.poll(() => documentPatches(state).length).toBeGreaterThan(baseline)
 })
 
-test('broken result media is explicit and connections expose direction and selection', async ({ page }) => {
+test('broken result media is explicit and Canvas connections stay passive', async ({ page }) => {
   const state = createResourceMockState()
   const result = state.documents['canvas-first'].nodes.find((node) => node.id === 'result-existing')!
   ;(result.content as Record<string, unknown>).url = 'https://media.revid.test/broken.png'
@@ -89,8 +89,8 @@ test('broken result media is explicit and connections expose direction and selec
   await unavailable.screenshot({ path: resolve(evidenceDirectory, 'broken-media-state.png') })
   const line = page.locator('.connection-line').first()
   await expect(line).toHaveAttribute('marker-end', 'url(#canvas-edge-arrow)')
-  await page.locator('.connection-hit').first().dispatchEvent('pointerdown', { button: 0 })
-  await expect(page.locator('.connection-line.selected')).toHaveCount(1)
+  await expect(page.locator('.connection-hit')).toHaveCount(0)
+  await expect(page.locator('.connection-layer')).toHaveCSS('pointer-events', 'none')
 })
 
 test('video result exposes native controls and decoded metadata', async ({ page }) => {

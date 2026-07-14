@@ -118,7 +118,6 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
 
   function nodeStrokeColor(node: CanvasNode) {
     if (node.status === 'running') return options.cssVar('--warning', 'oklch(70% 0.13 78)')
-    if (node.status === 'success') return options.cssVar('--success', 'oklch(60% 0.12 150)')
     if (node.status === 'warning') return options.cssVar('--danger', 'oklch(58% 0.17 27)')
     if (options.getSelectedNodeIds().includes(node.id)) return options.cssVar('--accent-select', 'oklch(58% 0.115 252)')
     return options.cssVar('--border-subtle', 'oklch(88% 0.009 92)')
@@ -126,7 +125,6 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
 
   function nodeShadowColor(node: CanvasNode) {
     if (node.status === 'running') return 'oklch(70% 0.13 78 / 0.18)'
-    if (node.status === 'success') return 'oklch(60% 0.12 150 / 0.18)'
     if (node.status === 'warning') return 'oklch(58% 0.17 27 / 0.18)'
     if (options.getSelectedNodeIds().includes(node.id)) return options.cssVar('--canvas-node-selected-shadow', 'rgba(75, 122, 255, 0.16)')
     return options.cssVar('--canvas-node-shadow', 'rgba(44, 52, 68, 0.10)')
@@ -158,21 +156,24 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     const state = getNodeVisualState(node)
     const presentation = buildCanvasNodePresentation(node)
     const isGroup = isSupportedCanvasGroupNode(node)
-    const hasEmphasis = node.status === 'running' || node.status === 'success' || node.status === 'warning' || state.isSelected
+    const isMedia = presentation.visualKind === 'media' || presentation.visualKind === 'result'
+    const hasEmphasis = node.status === 'running' || node.status === 'warning' || state.isSelected
     const group = new Group({ x: node.x, y: node.y })
     const card = new Rect({
       width: node.width,
       height: node.height,
-      cornerRadius: 12,
+      cornerRadius: isMedia ? 8 : 12,
       hit: 'rect',
-      fill: isGroup
+      fill: isMedia
+        ? 'transparent'
+        : isGroup
         ? options.cssVar('--v2-accent-soft', 'oklch(65% 0.19 292 / 0.14)')
         : presentation.isUnsupported
           ? options.cssVar('--v2-surface-3', 'oklch(21% 0.035 292)')
         : options.cssVar('--canvas-node-surface', 'rgba(255, 255, 255, 0.92)'),
       stroke: nodeStrokeColor(node),
-      strokeWidth: hasEmphasis ? 2 : 1,
-      shadow: isGroup ? undefined : { x: 0, y: 18, blur: 42, color: nodeShadowColor(node) },
+      strokeWidth: state.isSelected ? 1.5 : 1,
+      shadow: isGroup || isMedia ? undefined : hasEmphasis ? { x: 0, y: 10, blur: 28, color: nodeShadowColor(node) } : undefined,
     })
     const ports = [...presentation.inputPorts, ...presentation.outputPorts].map((port) => {
       const siblings = port.direction === 'input' ? presentation.inputPorts : presentation.outputPorts
@@ -200,13 +201,13 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       cornerRadius: 8,
       stroke: options.cssVar('--border-subtle', 'rgba(255, 255, 255, 0.08)'),
       strokeWidth: 1,
-      visible: Boolean(imageMedia),
+      visible: false,
       ...(imageMedia ? { url: imageMedia.url } : {}),
     })
     const typeText = new Text({
       x: 16,
-      y: 14,
-      text: `${node.isLocked ? '已锁定 · ' : ''}${isGroup ? node.title : presentation.typeLabel}`,
+      y: isMedia ? -22 : 14,
+      text: `${node.isLocked ? '已锁定 · ' : ''}${isGroup || isMedia ? node.title : presentation.typeLabel}`,
       fill: options.cssVar('--text-muted', 'oklch(62% 0.014 245)'),
       fontSize: 11,
       fontWeight: '500',
@@ -215,7 +216,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       x: 16,
       y: 34,
       width: node.width - 32,
-      text: isGroup ? '' : node.title,
+      text: isGroup || isMedia ? '' : node.title,
       fill: options.cssVar('--text-primary', 'oklch(18% 0.014 245)'),
       fontSize: 15,
       fontWeight: '600',
@@ -282,9 +283,12 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       : presentation.isUnsupported
         ? options.cssVar('--v2-surface-3', 'oklch(21% 0.035 292)')
       : options.cssVar('--canvas-node-surface', 'rgba(255, 255, 255, 0.92)')
-    const hasEmphasis = node.status === 'running' || node.status === 'success' || node.status === 'warning' || nextState.isSelected
-    visual.card.strokeWidth = hasEmphasis ? 2 : 1
-    visual.card.shadow = isGroup ? undefined : { x: 0, y: 18, blur: 42, color: nodeShadowColor(node) }
+    const isMedia = presentation.visualKind === 'media' || presentation.visualKind === 'result'
+    const hasEmphasis = node.status === 'running' || node.status === 'warning' || nextState.isSelected
+    visual.card.cornerRadius = isMedia ? 8 : 12
+    if (isMedia) visual.card.fill = 'transparent'
+    visual.card.strokeWidth = nextState.isSelected ? 1.5 : 1
+    visual.card.shadow = isGroup || isMedia ? undefined : hasEmphasis ? { x: 0, y: 10, blur: 28, color: nodeShadowColor(node) } : undefined
     for (const port of visual.ports) {
       const siblings = visual.ports.filter((candidate) => candidate.direction === port.direction)
       const index = siblings.findIndex((candidate) => candidate.id === port.id)
@@ -293,13 +297,14 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       port.shape.y = (node.height * (index + 1)) / (siblings.length + 1) - 8
     }
     const imageMedia = presentation.media?.kind === 'image' ? presentation.media : null
-    visual.mediaImage.visible = Boolean(imageMedia)
+    visual.mediaImage.visible = false
     visual.mediaImage.width = Math.max(1, node.width - 24)
     visual.mediaImage.height = Math.max(1, node.height - 74)
     if (imageMedia) visual.mediaImage.url = imageMedia.url
-    visual.typeText.text = `${node.isLocked ? '已锁定 · ' : ''}${isGroup ? node.title : presentation.typeLabel}`
+    visual.typeText.y = isMedia ? -22 : 14
+    visual.typeText.text = `${node.isLocked ? '已锁定 · ' : ''}${isGroup || isMedia ? node.title : presentation.typeLabel}`
     visual.titleText.width = node.width - 32
-    visual.titleText.text = isGroup ? '' : node.title
+    visual.titleText.text = isGroup || isMedia ? '' : node.title
     visual.contentText.width = node.width - 32
     visual.contentText.text = isGroup || imageMedia ? '' : nextState.content
     visual.contentText.fill = presentation.isUnsupported

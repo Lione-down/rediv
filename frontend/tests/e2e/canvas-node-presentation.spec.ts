@@ -59,7 +59,12 @@ test('presentation uses real image previews and honest video placeholders', () =
   expect(buildCanvasNodePresentation(node({
     type: 'result',
     contentData: { subtype: 'image', serialization_version: 1, url: '/uploads/result.png' },
-  })).media).toEqual({ kind: 'image', url: '/uploads/result.png', label: '图片结果' })
+  })).media).toEqual({ kind: 'image', url: '/uploads/result.png', label: '图片结果', aspectRatio: null })
+
+  expect(buildCanvasNodePresentation(node({
+    type: 'result',
+    contentData: { subtype: 'image', serialization_version: 1, url: '/uploads/portrait.png', width: 900, height: 1600 },
+  })).media).toMatchObject({ aspectRatio: 9 / 16 })
 
   expect(buildCanvasNodePresentation(node({
     type: 'result',

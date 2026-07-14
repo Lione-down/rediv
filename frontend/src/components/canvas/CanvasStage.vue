@@ -40,7 +40,6 @@ const {
   closeContextMenu,
   contextMenu,
   contextMenuOptions,
-  handleConnectionPointerDown,
   handleContextMenuSelect,
   handleMinimapPointerDown,
   minimapNodeStyle,
@@ -215,28 +214,15 @@ function commitNodeContent(nodeId: string, content: string) {
           </marker>
         </defs>
         <g :transform="connectionWorldTransform">
-          <g v-memo="[connectionPaths, canvasStore.selectedConnectionId]">
+          <g v-memo="[connectionPaths]">
             <path
               v-for="connection in connectionPaths"
               :key="connection.id"
               class="connection-line"
-              :class="{ active: connection.active, selected: canvasStore.selectedConnectionId === connection.id }"
+              :class="{ active: connection.active }"
               :d="connection.path"
               marker-end="url(#canvas-edge-arrow)"
               vector-effect="non-scaling-stroke"
-            />
-            <path
-              v-for="connection in connectionPaths"
-              :key="`hit-${connection.id}`"
-              class="connection-hit"
-              :class="{ selected: canvasStore.selectedConnectionId === connection.id }"
-              :d="connection.path"
-              aria-hidden="true"
-              vector-effect="non-scaling-stroke"
-              @pointerdown.stop="handleConnectionPointerDown(connection.id, $event)"
-              @focus="canvasStore.selectConnection(connection.id)"
-              @keydown.enter.prevent="canvasStore.selectConnection(connection.id)"
-              @keydown.space.prevent="canvasStore.selectConnection(connection.id)"
             />
           </g>
         </g>

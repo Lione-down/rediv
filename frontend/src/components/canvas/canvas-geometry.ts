@@ -28,6 +28,15 @@ export interface WorldRect {
   height: number
 }
 
+export type CanvasNodeGeometryRole = 'content' | 'label' | 'selection' | 'composer'
+
+export function canvasNodeWorldRect(node: CanvasNode, role: CanvasNodeGeometryRole): WorldRect {
+  if (role === 'label') return { left: node.x, top: node.y - 24, width: node.width, height: 20 }
+  if (role === 'composer') return { left: node.x, top: node.y + node.height + 12, width: node.width, height: 104 }
+  if (role === 'selection') return { left: node.x - 1, top: node.y - 1, width: node.width + 2, height: node.height + 2 }
+  return { left: node.x, top: node.y, width: node.width, height: node.height }
+}
+
 export function rectFromPoints(start: Point, end: Point): WorldRect {
   return {
     left: Math.min(start.x, end.x),

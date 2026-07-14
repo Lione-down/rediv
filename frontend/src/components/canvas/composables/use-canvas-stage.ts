@@ -196,13 +196,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       y: surfaceViewportSize.value.height / 2 - worldPoint.y * viewport.zoom,
     })
   }
-  function handleConnectionPointerDown(connectionId: string, event: PointerEvent) {
-    if (event.button !== 0 || canvasStore.mode !== 'select') return
-    focusCanvasStage()
-    cancelActiveInteraction()
-    closeContextMenu()
-    canvasStore.selectConnection(connectionId)
-  }
   function retryProjectLoad() {
     if (!canvasStore.activeProjectId) return
     void canvasStore.reloadActiveDocument().catch(() => undefined)
@@ -483,7 +476,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     closeContextMenu()
   })
   return {
-    canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionTargetStates, connectionWorldTransform, handleConnectionPointerDown,
+    canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionTargetStates, connectionWorldTransform,
     handleMinimapPointerDown, minimapNodeStyle, minimapNodes, minimapRef,
     minimapViewportStyle, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,

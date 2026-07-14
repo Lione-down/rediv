@@ -2,7 +2,7 @@ import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-vue-next'
 import { computed } from 'vue'
 import type { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
-import { worldToSurface, type ViewportSize, type ViewportState } from '../canvas-geometry'
+import { canvasNodeWorldRect, worldToSurface, type CanvasNodeGeometryRole, type ViewportSize, type ViewportState } from '../canvas-geometry'
 
 type CanvasStore = ReturnType<typeof useCanvasStore>
 type StatusVisualState = Extract<NonNullable<CanvasNode['status']>, 'running' | 'success' | 'warning'>
@@ -52,10 +52,11 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     if (canvasStore.loadError) return { kind: 'error', title: '画布加载失败', detail: canvasStore.loadError, canRetry: true }
     return null
   })
-  function surfaceNodeRectStyle(node: CanvasNode) {
+  function surfaceNodeRectStyle(node: CanvasNode, role: CanvasNodeGeometryRole = 'content') {
     const viewport = options.getViewport()
-    const position = worldToSurface({ x: node.x, y: node.y }, viewport)
-    return { left: `${position.x}px`, top: `${position.y}px`, width: `${node.width * viewport.zoom}px`, height: `${node.height * viewport.zoom}px` }
+    const rect = canvasNodeWorldRect(node, role)
+    const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)
+    return { left: `${position.x}px`, top: `${position.y}px`, width: `${rect.width * viewport.zoom}px`, height: `${rect.height * viewport.zoom}px` }
   }
   function statusBadgeStyle() {
     const zoom = options.getViewport().zoom

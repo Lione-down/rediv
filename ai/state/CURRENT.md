@@ -15,16 +15,16 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-013 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-014 (`DONE - PASS`)
 
 ## Active Delivery
 
-- Active implementation Task: `T5-013 - Repair Canvas node editing, generation lifecycle, and connections`
+- Active implementation Task: `T5-014 - Deliver LibTV-inspired Canvas visual parity`
 - State: `DONE - PASS`
-- Task: `ai/tasks/todo/TASK-T5-013.md`
-- Plan: `ai/tasks/doing/TASK-T5-013-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-013-PROGRESS.md`
-- Most recently completed: `T5-013 - Repair Canvas node editing, generation lifecycle, and connections` (`DONE - PASS`)
+- Task: `ai/tasks/todo/TASK-T5-014.md`
+- Plan: `ai/tasks/doing/TASK-T5-014-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-014-PROGRESS.md`
+- Most recently completed: `T5-014 - Deliver LibTV-inspired Canvas visual parity` (`DONE - PASS`)
 - Active unit: complete
 
 ## Current Verified Facts
@@ -45,14 +45,15 @@ Last updated: 2026-07-15
 - T5-011 is now `DONE - PASS`: backend (438), full Chromium (132), 4,767-module build, retained live MySQL evidence, security-signature, encoding, compile, diff, and file-size audits all passed; final report is `ai/reports/REPORT-T5-011.md`.
 - T5-012 is now `DONE - PASS`: Canvas blank-page root cause was the Naive UI color parser receiving CSS `var(...)` values; concrete parser-facing theme colors restore the live Canvas shell. Focused theme regression (1), Canvas shell regression (8), frontend build (4,767 modules), and live browser Console verification passed; final report is `ai/reports/REPORT-T5-012.md`.
 - T5-013 is now `DONE - PASS`: canonical node-local editing, bounded outcome-safe generation polling, decoded image/playable video results, explicit unavailable media, and directional typed connection feedback passed full Chromium 140/140, backend generation 20 tests plus 3 subtests, a 4,775-module build, and guarded live 200/300 evidence. Final report: `ai/reports/REPORT-T5-013.md`.
+- T5-014 is now `DONE - PASS`: typed semantic geometry, intrinsic-ratio single-surface media, external media titles, detached contextual composer, passive Canvas edges, and restrained state styling passed focused 22/22, full Chromium 147/147, a 4,779-module build, four viewport inspections, and guarded live 200/300 evidence. Final report: `ai/reports/REPORT-T5-014.md`.
 
 ## Exact Next Action
 
-No T5-013 implementation remains. Preserve the completed report and retained evidence.
+No T5-014 implementation remains. Preserve the completed report and retained evidence.
 
 ## Blockers And Human Gates
 
-- No active T5-013 blocker.
+- No active T5-014 blocker.
 - Applying Alembic revisions through `c9d0e1f2a3b4` to user/runtime data requires reviewed backup discipline and Human authorization.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.
