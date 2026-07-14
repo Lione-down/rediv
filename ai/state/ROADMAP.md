@@ -39,6 +39,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 12 | T5-012 | Restore Canvas workspace rendering with Naive UI theme compatibility | DONE - PASS | T5-011 |
 | 13 | T5-013 | Repair Canvas node editing, generation lifecycle, and connections | DONE - PASS | T5-012 |
 | 14 | T5-014 | LibTV-inspired Canvas visual parity for node geometry, media, editing, ports, and passive edges | DONE - PASS | T5-013 |
+| 15 | T5-015 | Reference-backed Canvas refinement for media-shaped nodes, quiet graph chrome, and contextual tools | DONE - PASS | T5-014 |
 
 ## Task Boundaries
 
@@ -73,6 +74,8 @@ These Tasks apply the accepted visual system to the rest of the product, then cl
 T5-013 is `DONE - PASS`. Canonical node-local editing, outcome-safe durable generation reconciliation, visible native image/video results, explicit unavailable media, and directional typed connection feedback passed 140 Chromium tests, 20 backend generation tests plus 3 subtests, a 4,775-module build, and the guarded live 200-node/300-connection boundary. `REPORT-T5-013.md` is authoritative.
 
 T5-014 is `DONE - PASS`. Typed semantic node geometry, intrinsic-ratio native media with one visible result surface, detached contextual authoring, passive Canvas edges with Graph Access management, restrained status hierarchy, four-viewport screenshots, full Chromium 147/147, and guarded live 200/300 evidence are recorded in `REPORT-T5-014.md`.
+
+T5-015 is `DONE - PASS`. Media outer geometry follows intrinsic ratio, text and generation nodes are content-sized, decoded metadata repairs missing ratios, persisted edges and idle ports recede, and contextual tools are lighter and viewport-aware. Public LibTV screenshots and the MIT AIGCCanvasFlow source informed general hierarchy patterns only; Revid branding, engine, copy, tokens, and capabilities remain independent. `REPORT-T5-015.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

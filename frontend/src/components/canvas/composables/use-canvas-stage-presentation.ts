@@ -31,11 +31,12 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     if (options.isReadOnly() || !canvasStore.selectedNodes.length) return null
     const viewport = options.getViewport()
     const size = options.getViewportSize()
-    const left = Math.min(...canvasStore.selectedNodes.map((node) => worldToSurface({ x: node.x, y: node.y }, viewport).x))
-    const right = Math.max(...canvasStore.selectedNodes.map((node) => worldToSurface({ x: node.x + node.width, y: node.y }, viewport).x))
-    const top = Math.min(...canvasStore.selectedNodes.map((node) => worldToSurface({ x: node.x, y: node.y }, viewport).y))
-    const bottom = Math.max(...canvasStore.selectedNodes.map((node) => worldToSurface({ x: node.x, y: node.y + node.height }, viewport).y))
-    const halfWidth = 190
+    const rects = canvasStore.selectedNodes.map((node) => canvasNodeWorldRect(node, 'content'))
+    const left = Math.min(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top }, viewport).x))
+    const right = Math.max(...rects.map((rect) => worldToSurface({ x: rect.left + rect.width, y: rect.top }, viewport).x))
+    const top = Math.min(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top }, viewport).y))
+    const bottom = Math.max(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top + rect.height }, viewport).y))
+    const halfWidth = 156
     const x = Math.max(halfWidth + 12, Math.min((left + right) / 2, size.width - halfWidth - 12))
     const y = top >= 60 ? top - 56 : Math.min(bottom + 12, size.height - 52)
     const openAbove = y > size.height / 2

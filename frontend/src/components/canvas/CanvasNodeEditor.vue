@@ -23,11 +23,11 @@ onBeforeUnmount(flush)
   resize: none;
   border: 0;
   border-radius: var(--v2-radius-sm);
-  padding: 10px 12px;
+  padding: 8px 10px;
   color: var(--v2-text-primary);
   background: var(--v2-surface-1);
   font: inherit;
-  line-height: 1.7;
+  line-height: 1.55;
   pointer-events: auto;
 }
 

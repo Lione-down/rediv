@@ -107,13 +107,13 @@ function handleArrangeSelect(key: string | number) {
   display: flex;
   align-items: center;
   gap: 4px;
-  min-height: 44px;
-  padding: 2px 4px 2px 12px;
+  min-height: 38px;
+  padding: 1px 3px 1px 10px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   background: var(--bg-panel);
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 10px 28px oklch(3% 0.01 292 / 0.28);
   transform: translateX(-50%);
 }
 
@@ -152,8 +152,8 @@ function handleArrangeSelect(key: string | number) {
 
 button {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   place-items: center;
   border: 0;
   border-radius: var(--radius-md);

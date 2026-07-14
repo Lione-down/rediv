@@ -160,7 +160,7 @@
 }
 
 .node-status-overlay.is-success {
-  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--success) 44%, transparent);
+  box-shadow: none;
 }
 
 .node-status-overlay.is-warning {
@@ -198,9 +198,9 @@
 }
 
 .connection-line.active {
-  stroke: var(--accent-select);
-  stroke-dasharray: 8 10;
-  animation: dash 1.4s linear infinite;
+  stroke: var(--canvas-edge, var(--border-strong));
+  stroke-dasharray: none;
+  animation: none;
 }
 
 .connection-line.selected {

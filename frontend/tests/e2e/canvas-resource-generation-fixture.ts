@@ -124,7 +124,7 @@ export function createResourceMockState(): ResourceMockState {
       }, 580),
       node('result-existing', 'result', '历史图片生成结果', {
         subtype: 'image', serialization_version: 1, asset_id: 'asset-generated',
-        source_task_id: 'task-existing-success', url: 'https://media.revid.test/generated.png',
+        source_task_id: 'task-existing-success', url: 'https://media.revid.test/generated.png', width: 320, height: 180,
       }, 980),
     ],
     connections: [{

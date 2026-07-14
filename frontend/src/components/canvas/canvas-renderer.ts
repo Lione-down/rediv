@@ -1,7 +1,7 @@
 import { Ellipse, Group, Image as LeaferImage, Leafer, Rect, Text } from 'leafer-ui'
 import type { CanvasNode } from '../../types/canvas'
 import type { ViewportState } from './canvas-geometry'
-import { buildCanvasNodePresentation, isSupportedCanvasGroupNode } from './canvas-node-presentation'
+import { buildCanvasNodePresentation, canvasNodeVisualSize, isSupportedCanvasGroupNode } from './canvas-node-presentation'
 import { planKeyedReconciliation } from './canvas-renderer-reconciliation'
 
 const POINTER_DOWN = 'pointer.down'
@@ -76,6 +76,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
 
   function getNodeVisualState(node: CanvasNode): NodeVisualState {
     const presentation = buildCanvasNodePresentation(node)
+    const size = canvasNodeVisualSize(node)
     const mediaKey = presentation.media
       ? `${presentation.media.kind}:${presentation.media.kind === 'image' ? presentation.media.url : presentation.media.label}`
       : ''
@@ -83,7 +84,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       content: presentation.media?.kind === 'placeholder'
         ? presentation.media.label
         : presentation.content,
-      height: node.height,
+      height: size.height,
       isSelected: options.getSelectedNodeIds().includes(node.id),
       isLocked: Boolean(node.isLocked),
       status: node.status,
@@ -95,7 +96,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       portKey: [...presentation.inputPorts, ...presentation.outputPorts]
         .map((port) => `${port.direction}:${port.id}`)
         .join('|'),
-      width: node.width,
+      width: size.width,
     }
   }
 
@@ -157,11 +158,12 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     const presentation = buildCanvasNodePresentation(node)
     const isGroup = isSupportedCanvasGroupNode(node)
     const isMedia = presentation.visualKind === 'media' || presentation.visualKind === 'result'
+    const size = canvasNodeVisualSize(node)
     const hasEmphasis = node.status === 'running' || node.status === 'warning' || state.isSelected
     const group = new Group({ x: node.x, y: node.y })
     const card = new Rect({
-      width: node.width,
-      height: node.height,
+      width: size.width,
+      height: size.height,
       cornerRadius: isMedia ? 8 : 12,
       hit: 'rect',
       fill: isMedia
@@ -179,15 +181,16 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       const siblings = port.direction === 'input' ? presentation.inputPorts : presentation.outputPorts
       const index = siblings.findIndex((candidate) => candidate.id === port.id)
       const shape = new Ellipse({
-        x: port.direction === 'input' ? -8 : node.width - 8,
-        y: (node.height * (index + 1)) / (siblings.length + 1) - 8,
+        x: port.direction === 'input' ? -8 : size.width - 8,
+        y: (size.height * (index + 1)) / (siblings.length + 1) - 8,
         width: 16,
         height: 16,
         fill: port.direction === 'input'
-          ? options.cssVar('--bg-panel', 'white')
-          : options.cssVar('--accent-select', 'oklch(58% 0.115 252)'),
+          ? options.cssVar('--canvas-port-idle-fill', 'rgba(255, 255, 255, 0.24)')
+          : options.cssVar('--canvas-port-idle-fill', 'rgba(255, 255, 255, 0.24)'),
         stroke: options.cssVar('--canvas-port-outline', 'rgba(255, 255, 255, 0.95)'),
         strokeWidth: port.direction === 'input' ? 1.5 : 2,
+        opacity: state.isSelected ? 1 : 0.16,
         visible: !node.isLocked,
       })
       return { id: port.id, direction: port.direction, shape }
@@ -196,8 +199,8 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     const mediaImage = new LeaferImage({
       x: 12,
       y: 62,
-      width: Math.max(1, node.width - 24),
-      height: Math.max(1, node.height - 74),
+      width: Math.max(1, size.width),
+      height: Math.max(1, size.height),
       cornerRadius: 8,
       stroke: options.cssVar('--border-subtle', 'rgba(255, 255, 255, 0.08)'),
       strokeWidth: 1,
@@ -215,7 +218,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     const titleText = new Text({
       x: 16,
       y: 34,
-      width: node.width - 32,
+      width: size.width - 32,
       text: isGroup || isMedia ? '' : node.title,
       fill: options.cssVar('--text-primary', 'oklch(18% 0.014 245)'),
       fontSize: 15,
@@ -224,7 +227,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     const contentText = new Text({
       x: 16,
       y: 62,
-      width: node.width - 32,
+      width: size.width - 32,
       text: isGroup || imageMedia ? '' : state.content,
       fill: presentation.isUnsupported
         ? options.cssVar('--danger', 'oklch(66% 0.19 24)')
@@ -254,6 +257,11 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       POINTER_DOWN,
       (event) => options.onNodePointerDown(node.id, event),
     )
+    const setPortsHovered = (isHovered: boolean) => {
+      for (const port of ports) port.shape.opacity = state.isSelected || isHovered ? 1 : 0.16
+    }
+    ;(group as unknown as { on: (type: string, handler: () => void) => void }).on('pointer.enter', () => setPortsHovered(true))
+    ;(group as unknown as { on: (type: string, handler: () => void) => void }).on('pointer.leave', () => setPortsHovered(false))
     for (const port of ports.filter((candidate) => candidate.direction === 'output')) {
       ;(port.shape as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
         POINTER_DOWN,
@@ -274,9 +282,10 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     }
     const presentation = buildCanvasNodePresentation(node)
     const isGroup = isSupportedCanvasGroupNode(node)
+    const size = canvasNodeVisualSize(node)
 
-    visual.card.width = node.width
-    visual.card.height = node.height
+    visual.card.width = size.width
+    visual.card.height = size.height
     visual.card.stroke = nodeStrokeColor(node)
     visual.card.fill = isGroup
       ? options.cssVar('--v2-accent-soft', 'oklch(65% 0.19 292 / 0.14)')
@@ -293,19 +302,20 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       const siblings = visual.ports.filter((candidate) => candidate.direction === port.direction)
       const index = siblings.findIndex((candidate) => candidate.id === port.id)
       port.shape.visible = !node.isLocked
-      port.shape.x = port.direction === 'input' ? -8 : node.width - 8
-      port.shape.y = (node.height * (index + 1)) / (siblings.length + 1) - 8
+      port.shape.x = port.direction === 'input' ? -8 : size.width - 8
+      port.shape.y = (size.height * (index + 1)) / (siblings.length + 1) - 8
+      port.shape.opacity = nextState.isSelected ? 1 : 0.16
     }
     const imageMedia = presentation.media?.kind === 'image' ? presentation.media : null
     visual.mediaImage.visible = false
-    visual.mediaImage.width = Math.max(1, node.width - 24)
-    visual.mediaImage.height = Math.max(1, node.height - 74)
+    visual.mediaImage.width = Math.max(1, size.width)
+    visual.mediaImage.height = Math.max(1, size.height)
     if (imageMedia) visual.mediaImage.url = imageMedia.url
     visual.typeText.y = isMedia ? -22 : 14
     visual.typeText.text = `${node.isLocked ? '已锁定 · ' : ''}${isGroup || isMedia ? node.title : presentation.typeLabel}`
-    visual.titleText.width = node.width - 32
+    visual.titleText.width = size.width - 32
     visual.titleText.text = isGroup || isMedia ? '' : node.title
-    visual.contentText.width = node.width - 32
+    visual.contentText.width = size.width - 32
     visual.contentText.text = isGroup || imageMedia ? '' : nextState.content
     visual.contentText.fill = presentation.isUnsupported
       ? options.cssVar('--danger', 'oklch(66% 0.19 24)')

@@ -40,7 +40,7 @@ function videoLoaded(event: Event) { const video = event.currentTarget as HTMLVi
   height: auto;
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .canvas-node-media video { pointer-events: auto; }

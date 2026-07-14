@@ -1,5 +1,6 @@
 import type { CanvasNode } from '../../types/canvas'
 import { resolveNodeDefinition, type NodePortDirection } from '../../modules/canvas/node-registry'
+import { canvasNodeVisualSize } from './canvas-node-presentation'
 
 export interface Point {
   x: number
@@ -31,10 +32,11 @@ export interface WorldRect {
 export type CanvasNodeGeometryRole = 'content' | 'label' | 'selection' | 'composer'
 
 export function canvasNodeWorldRect(node: CanvasNode, role: CanvasNodeGeometryRole): WorldRect {
-  if (role === 'label') return { left: node.x, top: node.y - 24, width: node.width, height: 20 }
-  if (role === 'composer') return { left: node.x, top: node.y + node.height + 12, width: node.width, height: 104 }
-  if (role === 'selection') return { left: node.x - 1, top: node.y - 1, width: node.width + 2, height: node.height + 2 }
-  return { left: node.x, top: node.y, width: node.width, height: node.height }
+  const size = canvasNodeVisualSize(node)
+  if (role === 'label') return { left: node.x, top: node.y - 22, width: size.width, height: 18 }
+  if (role === 'composer') return { left: node.x, top: node.y + size.height + 8, width: size.width, height: 76 }
+  if (role === 'selection') return { left: node.x - 1, top: node.y - 1, width: size.width + 2, height: size.height + 2 }
+  return { left: node.x, top: node.y, width: size.width, height: size.height }
 }
 
 export function rectFromPoints(start: Point, end: Point): WorldRect {
@@ -47,11 +49,12 @@ export function rectFromPoints(start: Point, end: Point): WorldRect {
 }
 
 export function nodeIntersectsRect(node: CanvasNode, rect: WorldRect) {
+  const size = canvasNodeVisualSize(node)
   return (
     node.x <= rect.left + rect.width &&
-    node.x + node.width >= rect.left &&
+    node.x + size.width >= rect.left &&
     node.y <= rect.top + rect.height &&
-    node.y + node.height >= rect.top
+    node.y + size.height >= rect.top
   )
 }
 
@@ -83,8 +86,8 @@ export function getNodesBounds(nodes: readonly CanvasNode[]): WorldRect | null {
   if (!nodes.length) return null
   const left = Math.min(...nodes.map((node) => node.x))
   const top = Math.min(...nodes.map((node) => node.y))
-  const right = Math.max(...nodes.map((node) => node.x + node.width))
-  const bottom = Math.max(...nodes.map((node) => node.y + node.height))
+  const right = Math.max(...nodes.map((node) => node.x + canvasNodeVisualSize(node).width))
+  const bottom = Math.max(...nodes.map((node) => node.y + canvasNodeVisualSize(node).height))
   if (![left, top, right, bottom].every(Number.isFinite)) return null
   return { left, top, width: Math.max(right - left, 1), height: Math.max(bottom - top, 1) }
 }
@@ -145,10 +148,11 @@ export function nodePortWorldAnchors(
   const definition = resolveNodeDefinition(node.type, node.contentData)
   if (definition.kind === 'unsupported') return []
   const ports = definition.ports.filter((port) => port.direction === direction)
+  const size = canvasNodeVisualSize(node)
   return ports.map((port, index) => ({
     portId: port.id,
-    x: direction === 'input' ? node.x : node.x + node.width,
-    y: node.y + (node.height * (index + 1)) / (ports.length + 1),
+    x: direction === 'input' ? node.x : node.x + size.width,
+    y: node.y + (size.height * (index + 1)) / (ports.length + 1),
   }))
 }
 
@@ -190,8 +194,8 @@ export function calculateMinimapMetrics(
   const padding = 64
   const nodeMinX = nodes.reduce((minimum, node) => Math.min(minimum, node.x), 0)
   const nodeMinY = nodes.reduce((minimum, node) => Math.min(minimum, node.y), 0)
-  const nodeMaxX = nodes.reduce((maximum, node) => Math.max(maximum, node.x + node.width), 1280)
-  const nodeMaxY = nodes.reduce((maximum, node) => Math.max(maximum, node.y + node.height), 720)
+  const nodeMaxX = nodes.reduce((maximum, node) => Math.max(maximum, node.x + canvasNodeVisualSize(node).width), 1280)
+  const nodeMaxY = nodes.reduce((maximum, node) => Math.max(maximum, node.y + canvasNodeVisualSize(node).height), 720)
   const minX = Math.min(nodeMinX, viewport.left) - padding
   const minY = Math.min(nodeMinY, viewport.top) - padding
   const maxX = Math.max(nodeMaxX, viewport.left + viewport.width) + padding
@@ -219,11 +223,12 @@ export function minimapPointToWorld(point: Point, metrics: MinimapMetrics) {
 }
 
 export function minimapNodeStyle(node: CanvasNode, metrics: MinimapMetrics) {
+  const size = canvasNodeVisualSize(node)
   return {
     left: `${metrics.offsetX + (node.x - metrics.minX) * metrics.scale}px`,
     top: `${metrics.offsetY + (node.y - metrics.minY) * metrics.scale}px`,
-    width: `${Math.max(node.width * metrics.scale, 12)}px`,
-    height: `${Math.max(node.height * metrics.scale, 8)}px`,
+    width: `${Math.max(size.width * metrics.scale, 12)}px`,
+    height: `${Math.max(size.height * metrics.scale, 8)}px`,
   }
 }
 

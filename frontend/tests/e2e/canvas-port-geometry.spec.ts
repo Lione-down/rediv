@@ -1,9 +1,11 @@
 import { expect, test } from '@playwright/test'
 import { useCanvasConnectionPresentation } from '../../src/components/canvas/composables/use-canvas-connection-presentation'
 import {
+  buildConnectionPath,
   nodeInputPortAnchors,
   nodePortWorldAnchor,
 } from '../../src/components/canvas/canvas-geometry'
+import { canvasNodeVisualSize } from '../../src/components/canvas/canvas-node-presentation'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
 
 const script: CanvasNode = {
@@ -29,11 +31,13 @@ const generation: CanvasNode = {
 }
 
 test('registry ports expose distinct world anchors that match their rendered positions', () => {
+  const generationSize = canvasNodeVisualSize(generation)
   expect(nodeInputPortAnchors(generation)).toEqual([
-    { portId: 'prompt', x: 500, y: 100 + 220 / 3 },
-    { portId: 'media', x: 500, y: 100 + (220 * 2) / 3 },
+    { portId: 'prompt', x: 500, y: 100 + generationSize.height / 3 },
+    { portId: 'media', x: 500, y: 100 + (generationSize.height * 2) / 3 },
   ])
-  expect(nodePortWorldAnchor(script, 'output', 'out')).toEqual({ x: 340, y: 140 })
+  const scriptSize = canvasNodeVisualSize(script)
+  expect(nodePortWorldAnchor(script, 'output', 'out')).toEqual({ x: 20 + scriptSize.width, y: 40 + scriptSize.height / 2 })
 })
 
 test('persisted connections attach paths to the exact source and target registry ports', () => {
@@ -50,7 +54,7 @@ test('persisted connections attach paths to the exact source and target registry
     getViewport: () => ({ zoom: 1, x: 0, y: 0 }),
   })
 
-  expect(connectionPaths.value).toEqual([expect.objectContaining({
-    path: 'M 340 140 C 450 140, 390 173.33333333333331, 500 173.33333333333331',
-  })])
+  const from = nodePortWorldAnchor(script, 'output', 'out')
+  const to = nodePortWorldAnchor(generation, 'input', 'prompt')
+  expect(connectionPaths.value).toEqual([expect.objectContaining({ path: buildConnectionPath(from, to) })])
 })

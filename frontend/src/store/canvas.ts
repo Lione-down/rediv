@@ -161,6 +161,20 @@ export const useCanvasStore = defineStore('canvas', () => {
     canvasAutosave.queue()
   }
 
+  function setNodeMediaAspectRatio(nodeId: string, aspectRatio: number) {
+    if (!Number.isFinite(aspectRatio) || aspectRatio < 0.1 || aspectRatio > 10) return
+    const node = findNodeById(nodeId)
+    const current = node?.contentData?.aspect_ratio
+    if (!node || (typeof current === 'number' && Math.abs(current - aspectRatio) < 0.001)) return
+    const width = node.contentData?.width
+    const height = node.contentData?.height
+    const hasMatchingDimensions = typeof width === 'number' && typeof height === 'number' &&
+      width > 0 && height > 0 && Math.abs(width / height - aspectRatio) < 0.001
+    if (hasMatchingDimensions) return
+    updateNode(nodeId, (candidate) => ({ ...candidate,
+      contentData: { ...candidate.contentData, aspect_ratio: aspectRatio } }))
+    canvasAutosave.queue()
+  }
   function applyNodeGenerationState(
     nodeId: string,
     status: PersistedGenerationStatus,
@@ -459,6 +473,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     setMode,
     setNodeStatus,
     setNodeContent,
+    setNodeMediaAspectRatio,
     setNodeGenerationState,
     findNodeById,
     createNode: (...args: Parameters<typeof canvasMutations.createNode>) => canvasHistory.runSerialized(

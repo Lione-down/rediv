@@ -2,11 +2,11 @@ import { expect, test } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { canvasNodeWorldRect } from '../../src/components/canvas/canvas-geometry'
-import { buildCanvasNodePresentation } from '../../src/components/canvas/canvas-node-presentation'
+import { buildCanvasNodePresentation, canvasNodeVisualSize } from '../../src/components/canvas/canvas-node-presentation'
 import type { CanvasNode } from '../../src/types/canvas'
 import { createResourceMockState, openResourceWorkspace } from './canvas-resource-generation-fixture'
 
-const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-014-final')
+const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-015-final')
 
 test('text, generation, and result nodes expose semantic presentation geometry', () => {
   const base = { x: 120, y: 80, width: 320, height: 180, title: 'Node', contentData: { serialization_version: 1 } }
@@ -17,24 +17,42 @@ test('text, generation, and result nodes expose semantic presentation geometry',
   expect(buildCanvasNodePresentation(text).visualKind).toBe('text')
   expect(buildCanvasNodePresentation(generation).visualKind).toBe('generation')
   expect(buildCanvasNodePresentation(result)).toMatchObject({ visualKind: 'result', media: { aspectRatio: 16 / 9 } })
+  expect(canvasNodeVisualSize(text).height).toBeLessThanOrEqual(150)
+  expect(canvasNodeVisualSize(generation).height).toBeLessThanOrEqual(165)
+  expect(canvasNodeVisualSize(result)).toEqual({ width: 320, height: 180 })
   expect(canvasNodeWorldRect(text, 'label').top).toBeLessThan(text.y)
-  expect(canvasNodeWorldRect(text, 'composer').top).toBeGreaterThan(text.y + text.height)
+  expect(canvasNodeWorldRect(text, 'composer').top).toBeGreaterThan(text.y + canvasNodeVisualSize(text).height)
 })
 
 test('result media has one visible surface, keeps its ratio, and edges are passive', async ({ page }) => {
   const state = createResourceMockState()
+  const result = state.documents['canvas-first'].nodes.find((node) => node.id === 'result-existing')!
+  delete (result.content as Record<string, unknown>).width
+  delete (result.content as Record<string, unknown>).height
   await openResourceWorkspace(page, state)
   const image = page.getByRole('img', { name: '图片结果' })
   await expect(image).toBeVisible()
   const dimensions = await image.evaluate((element: HTMLImageElement) => {
     const rect = element.getBoundingClientRect()
-    return { naturalRatio: element.naturalWidth / element.naturalHeight, renderedRatio: rect.width / rect.height }
+    const surface = element.closest('.canvas-node-surface')!.getBoundingClientRect()
+    return {
+      naturalRatio: element.naturalWidth / element.naturalHeight,
+      renderedRatio: rect.width / rect.height,
+      surfaceRatio: surface.width / surface.height,
+    }
   })
   expect(dimensions.naturalRatio).toBeCloseTo(16 / 9, 5)
   expect(dimensions.renderedRatio).toBeCloseTo(16 / 9, 1)
+  expect(dimensions.surfaceRatio).toBeCloseTo(16 / 9, 1)
+  await expect.poll(() => {
+    const adopted = state.documents['canvas-first'].nodes.find((node) => node.id === 'result-existing')?.content.aspect_ratio
+    return typeof adopted === 'number' ? adopted : 0
+  }).toBeCloseTo(16 / 9, 2)
   await expect(page.getByRole('img', { name: '图片结果' })).toHaveCount(1)
   await expect(page.locator('.connection-hit')).toHaveCount(0)
   await expect(page.locator('.connection-layer')).toHaveCSS('pointer-events', 'none')
+  const activeEdge = page.locator('.connection-line.active').first()
+  await expect(activeEdge).toHaveCSS('stroke-dasharray', 'none')
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'canvas-media-and-passive-edges.png'), fullPage: true })
 })
@@ -56,8 +74,11 @@ test('16:9, 1:1, and 9:16 media remain recognizable without stretching', async (
       naturalWidth: element.naturalWidth,
       naturalHeight: element.naturalHeight,
       objectFit: getComputedStyle(element).objectFit,
+      surfaceRatio: element.closest('.canvas-node-surface')!.getBoundingClientRect().width /
+        element.closest('.canvas-node-surface')!.getBoundingClientRect().height,
     }))
-    expect(metrics).toEqual({ naturalWidth: item.width, naturalHeight: item.height, objectFit: 'contain' })
+    expect(metrics).toMatchObject({ naturalWidth: item.width, naturalHeight: item.height, objectFit: 'cover' })
+    expect(metrics.surfaceRatio).toBeCloseTo(item.width / item.height, 1)
     expect(Math.abs(metrics.naturalWidth / metrics.naturalHeight - item.width / item.height)).toBeLessThan(1 / Math.max(item.width, item.height))
     await expect(page.getByRole('img', { name: '图片结果' })).toHaveCount(1)
   }
@@ -93,7 +114,7 @@ test('selected editable node opens a composer below the node content surface', a
     const composerRect = element.getBoundingClientRect()
     return { top: composerRect.top, height: composerRect.height }
   })
-  expect(rects.height).toBeGreaterThan(80)
+  expect(rects.height).toBeGreaterThan(68)
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'selected-node-composer.png'), fullPage: true })
 })

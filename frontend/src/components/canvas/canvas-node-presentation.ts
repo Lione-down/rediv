@@ -69,3 +69,19 @@ export function buildCanvasNodePresentation(node: CanvasNode): CanvasNodePresent
     media,
   }
 }
+
+export function canvasNodeVisualSize(node: CanvasNode) {
+  const presentation = buildCanvasNodePresentation(node)
+  if (presentation.visualKind === 'text') {
+    return { width: node.width, height: Math.min(node.height, 120) }
+  }
+  if (presentation.visualKind === 'generation') {
+    return { width: node.width, height: Math.min(node.height, 128) }
+  }
+  const ratio = presentation.media?.kind !== 'placeholder' ? presentation.media?.aspectRatio : null
+  if (!ratio) return { width: node.width, height: node.height }
+  const longEdge = Math.max(node.width, Math.min(node.height, node.width))
+  return ratio >= 1
+    ? { width: longEdge, height: longEdge / ratio }
+    : { width: longEdge * ratio, height: longEdge }
+}

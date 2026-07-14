@@ -162,6 +162,10 @@ function closeGraphAccessPanel() {
 function commitNodeContent(nodeId: string, content: string) {
   void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)
 }
+
+function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
+  canvasStore.setNodeMediaAspectRatio(nodeId, aspectRatio)
+}
 </script>
 
 <template>
@@ -235,6 +239,7 @@ function commitNodeContent(nodeId: string, content: string) {
         :readonly="readonly"
         :surface-node-rect-style="surfaceNodeRectStyle"
         @commit-content="commitNodeContent"
+        @media-metadata="adoptMediaAspectRatio"
       />
 
       <div
