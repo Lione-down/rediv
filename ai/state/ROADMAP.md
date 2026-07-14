@@ -37,6 +37,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 10 | T5-010 | Login, Home, Space, Admin, error, empty, loading, and responsive V2 UX upgrade | DONE - PASS | T5-009 |
 | 11 | T5-011 | Full V2 regression, real-runtime verification, security review, documentation, and release closure | DONE - PASS | T5-010 |
 | 12 | T5-012 | Restore Canvas workspace rendering with Naive UI theme compatibility | DONE - PASS | T5-011 |
+| 13 | T5-013 | Repair Canvas node editing, generation lifecycle, and connections | DONE - PASS | T5-012 |
 
 ## Task Boundaries
 
@@ -67,6 +68,8 @@ T5-008 is `DONE - PASS`. The reproducible live boundary owned a unique guarded `
 ### T5-009 through T5-011
 
 These Tasks apply the accepted visual system to the rest of the product, then close V2 with full regression and durable evidence.
+
+T5-013 is `DONE - PASS`. Canonical node-local editing, outcome-safe durable generation reconciliation, visible native image/video results, explicit unavailable media, and directional typed connection feedback passed 140 Chromium tests, 20 backend generation tests plus 3 subtests, a 4,775-module build, and the guarded live 200-node/300-connection boundary. `REPORT-T5-013.md` is authoritative.
 
 ## Canvas First-Acceptance Gate
 

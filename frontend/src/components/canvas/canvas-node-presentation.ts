@@ -1,26 +1,22 @@
-import {
-  isNodeGroupContainer,
-  resolveNodeDefinition,
-  type NodePortDefinition,
-} from '../../modules/canvas/node-registry'
+import { isNodeGroupContainer, resolveNodeDefinition, type NodePortDefinition } from '../../modules/canvas/node-registry'
 import type { CanvasNode } from '../../types/canvas'
 
 export type CanvasNodeMediaPresentation =
   | { kind: 'image'; url: string; label: string }
+  | { kind: 'video'; url: string; poster?: string; label: string }
   | { kind: 'placeholder'; label: string }
 
 export interface CanvasNodePresentation {
   typeLabel: string
   content: string
+  canEditContent: boolean
   isUnsupported: boolean
   inputPorts: readonly NodePortDefinition[]
   outputPorts: readonly NodePortDefinition[]
   media: CanvasNodeMediaPresentation | null
 }
 
-export function isSupportedCanvasGroupNode(node: CanvasNode) {
-  return isNodeGroupContainer(node)
-}
+export function isSupportedCanvasGroupNode(node: CanvasNode) { return isNodeGroupContainer(node) }
 
 function readString(content: Record<string, unknown> | undefined, key: string) {
   const value = content?.[key]
@@ -35,6 +31,7 @@ function getMediaPresentation(node: CanvasNode): CanvasNodeMediaPresentation | n
   const previewUrl = readString(node.contentData, 'preview_url') ?? readString(node.contentData, 'thumbnail_url')
   const assetUrl = readString(node.contentData, 'url')
   if (subtype === 'image' && assetUrl) return { kind: 'image', url: assetUrl, label }
+  if (subtype === 'video' && assetUrl) return { kind: 'video', url: assetUrl, poster: previewUrl ?? undefined, label }
   if (previewUrl) return { kind: 'image', url: previewUrl, label }
   return { kind: 'placeholder', label: `${label}暂未提供预览` }
 }
@@ -42,18 +39,12 @@ function getMediaPresentation(node: CanvasNode): CanvasNodeMediaPresentation | n
 export function buildCanvasNodePresentation(node: CanvasNode): CanvasNodePresentation {
   const definition = resolveNodeDefinition(node.type, node.contentData)
   if (definition.kind === 'unsupported') {
-    return {
-      typeLabel: `不支持的节点 · ${node.type}`,
-      content: `节点类型 ${node.type} 暂不受支持，原始数据已保留。`,
-      isUnsupported: true,
-      inputPorts: [],
-      outputPorts: [],
-      media: null,
-    }
+    return { typeLabel: `不支持的节点 · ${node.type}`, content: `节点类型 ${node.type} 暂不受支持，原始数据已保留。`, canEditContent: false, isUnsupported: true, inputPorts: [], outputPorts: [], media: null }
   }
   return {
     typeLabel: definition.label,
-    content: node.content ?? '',
+    content: node.content ?? readString(node.contentData, 'text') ?? '',
+    canEditContent: definition.capabilities.canEditContent,
     isUnsupported: false,
     inputPorts: definition.ports.filter((port) => port.direction === 'input'),
     outputPorts: definition.ports.filter((port) => port.direction === 'output'),

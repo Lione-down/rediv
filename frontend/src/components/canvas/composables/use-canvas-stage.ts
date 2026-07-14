@@ -18,8 +18,7 @@ import {
   rectFromPoints,
   snapDeltaToGrid,
   surfaceToWorld, worldToSurface,
-  type Point,
-  type ViewportState,
+  type Point, type ViewportState,
 } from '../canvas-geometry'
 import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
 import { createPointerFrameQueue } from '../canvas-pointer-frame'
@@ -133,7 +132,9 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     getViewport,
     getViewportSize: () => surfaceViewportSize.value,
   })
-  const { connectionPaths, connectionWorldTransform } = useCanvasConnectionPresentation({ getConnections: () => canvasStore.connections, getNodes: () => canvasStore.nodes, getViewport })
+  const { connectionPaths, connectionTargetStates, connectionWorldTransform } = useCanvasConnectionPresentation({
+    getConnections: () => canvasStore.connections, getDraftConnection: () => draftConnection.value, getNodes: () => canvasStore.nodes, getViewport,
+  })
   const {
     applyZoomAtPoint, areEdgesVisible, fitGraph, fitSelection, handleViewKeyDown,
     isGridEnabled, isMinimapVisible, maybeAutoFitReadonly, setZoomPercent,
@@ -482,7 +483,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     closeContextMenu()
   })
   return {
-    canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionWorldTransform, handleConnectionPointerDown,
+    canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionTargetStates, connectionWorldTransform, handleConnectionPointerDown,
     handleMinimapPointerDown, minimapNodeStyle, minimapNodes, minimapRef,
     minimapViewportStyle, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,

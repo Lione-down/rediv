@@ -1,0 +1,12 @@
+.canvas-node-surface-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.canvas-node-surface { position: absolute; overflow: hidden; border-radius: 12px; pointer-events: none; }
+.canvas-node-surface.is-editor { padding: 48px 16px 18px; }
+.canvas-node-editor { width: 100%; height: 100%; resize: none; border: 1px solid var(--accent-select); border-radius: 8px; padding: 10px; color: var(--text-primary); background: color-mix(in oklch, var(--bg-panel) 94%, transparent); font: inherit; line-height: 1.5; pointer-events: auto; }
+.canvas-node-editor:focus { outline: 2px solid var(--v2-focus-ring, var(--accent-select)); outline-offset: 2px; }
+.canvas-node-surface.is-media { padding: 42px 12px 12px; }
+.canvas-node-media { position: relative; display: grid; width: 100%; height: 100%; place-items: center; overflow: hidden; border-radius: 8px; background: var(--bg-panel-subtle); pointer-events: none; }
+.canvas-node-media img, .canvas-node-media video { width: 100%; height: 100%; object-fit: contain; }
+.canvas-node-media video { pointer-events: auto; }
+.canvas-node-media__message { position: absolute; z-index: 1; padding: 8px 12px; border-radius: 6px; color: var(--text-secondary); background: color-mix(in oklch, var(--bg-panel) 90%, transparent); font-size: 12px; }
+.canvas-node-media__message.is-error { color: var(--danger); }
+@media (max-width: 720px) { .canvas-node-surface.is-editor { display: none; } }

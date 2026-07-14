@@ -1,5 +1,5 @@
 import { isAxiosError } from 'axios'
-import { computed, nextTick, ref, watch, type ComputedRef, type Ref } from 'vue'
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { request } from '../../../api/request'
 import { requestCanvasGeneration } from '../../../modules/canvas/generation-service'
 import { getGenerationMediaType } from '../../../modules/canvas/node-registry'
@@ -98,6 +98,42 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const generationSuccess = ref('')
   let resourceOpener: HTMLElement | null = null
   let reconciliationTransition = Promise.resolve<unknown>(undefined)
+  let pollingTimer: ReturnType<typeof setTimeout> | null = null
+  let pollingAttempt = 0
+  let pollingGeneration = 0
+
+  function stopResourcePolling() {
+    pollingGeneration += 1
+    pollingAttempt = 0
+    if (pollingTimer) clearTimeout(pollingTimer)
+    pollingTimer = null
+  }
+
+  function hasPendingGeneration() {
+    return latestTasksByNode(resourceStore.tasks).some((task) => (
+      task.status === 'queued' || task.status === 'running'
+    ))
+  }
+
+  function scheduleResourcePolling(force = false) {
+    if (pollingTimer || (!force && !hasPendingGeneration())) return
+    const projectId = options.projectId.value
+    const canvasId = options.canvasId.value
+    const authToken = authStore.token
+    if (!projectId || !canvasId || !authToken || resourceStore.projectId !== projectId) return
+    const generation = pollingGeneration
+    const delay = Math.min(1000 * (2 ** pollingAttempt), 8000)
+    pollingTimer = setTimeout(async () => {
+      pollingTimer = null
+      if (generation !== pollingGeneration || authStore.token !== authToken || options.projectId.value !== projectId || options.canvasId.value !== canvasId) return
+      pollingAttempt += 1
+      await resourceStore.refreshIfCurrent(projectId).catch(() => undefined)
+      await queueResourceReconciliation().catch(() => undefined)
+      if (generation !== pollingGeneration) return
+      if (hasPendingGeneration() && pollingAttempt < 10) scheduleResourcePolling(true)
+      else stopResourcePolling()
+    }, delay)
+  }
 
   const selectedNode = computed(() => canvasStore.selectedNode)
   const selectedMediaType = computed(() => (
@@ -340,11 +376,10 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
         await resourceStore.refreshIfCurrent(context.projectId).catch(() => undefined)
         const reconciled = await queueResourceReconciliation().catch(() => 0)
         if (isExactGenerationContext(context)) {
-          generationError.value = errorMessage(error)
-          if (!reconciled) {
-            await canvasStore.setNodeGenerationState(context.nodeId, 'failed')
-            await canvasStore.flushPendingPersistence().catch(() => undefined)
-          }
+          generationError.value = reconciled
+            ? errorMessage(error)
+            : '生成请求连接已中断，正在根据任务记录核对结果；请稍后刷新项目资源。'
+          if (!reconciled) scheduleResourcePolling(true)
         }
       }
     } finally {
@@ -364,6 +399,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   }
 
   watch(options.projectId, (projectId) => {
+    stopResourcePolling()
     if (projectId) void resourceStore.loadProject(projectId).catch(() => undefined)
   }, { immediate: true })
 
@@ -378,7 +414,11 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     () => resourceStore.assets.map((asset) => `${asset.id}:${asset.updated_at}`).join('|'),
   ], () => {
     void queueResourceReconciliation().catch(() => undefined)
+    if (hasPendingGeneration()) scheduleResourcePolling()
+    else if (pollingTimer) stopResourcePolling()
   }, { immediate: true, flush: 'post' })
+
+  watch([options.canvasId, () => authStore.token], stopResourcePolling, { flush: 'sync' })
 
   watch(() => selectedNode.value?.id, (nodeId) => {
     generationError.value = ''
@@ -393,6 +433,8 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   watch(options.isCompact, (isCompact) => {
     if (!isCompact) isContextDrawerOpen.value = false
   })
+
+  if (getCurrentInstance()) onBeforeUnmount(stopResourcePolling)
 
   return {
     resourceStore,

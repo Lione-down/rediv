@@ -99,6 +99,25 @@ test('generation service posts complete Canvas context and replaces quotas for e
   ])
 })
 
+test('generation requests opt out of the shared fifteen-second transport timeout', async () => {
+  let timeout: number | undefined
+  const transport = {
+    async post(_path: string, _payload: unknown, config?: { timeout?: number }) {
+      timeout = config?.timeout
+      return {
+        data: {
+          asset: scopedAsset('image', 'task-timeout'),
+          generation_task: scopedTask('image', 'task-timeout'),
+          quotas: { text: 1, image: 1, video: 1 },
+          quota_revision: 1,
+        },
+      }
+    },
+  }
+  await requestCanvasGeneration({ mediaType: 'image', projectId: 'project-service', originCanvasId: 'canvas-service', canvasNodeId: 'node-service', prompt: 'slow prompt' }, createQuotaStore({ text: 2, image: 2, video: 2 }), transport)
+  expect(timeout).toBe(0)
+})
+
 test('generation service leaves the current quotas untouched when the request fails', async () => {
   const transport = { post: async () => { throw new Error('provider unavailable') } }
   const currentQuotas: QuotaBalance = { text: 9, image: 8, video: 7 }

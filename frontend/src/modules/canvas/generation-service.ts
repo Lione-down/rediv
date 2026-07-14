@@ -29,7 +29,7 @@ interface GenerationQuotaStore {
 }
 
 interface GenerationTransport {
-  post<T>(path: string, payload: unknown): Promise<{ data: T }>
+  post<T>(path: string, payload: unknown, config?: { timeout?: number }): Promise<{ data: T }>
 }
 
 const GENERATION_ROUTES: Record<GenerationMediaType, string> = {
@@ -83,6 +83,7 @@ export async function requestCanvasGeneration(
       canvas_node_id: context.canvasNodeId ?? null,
       prompt: context.prompt,
     },
+    { timeout: 0 },
   )
   if (quotaStore.token !== authSessionToken) {
     throw new Error('Generation auth session changed')

@@ -4,6 +4,7 @@ import { Keyboard } from 'lucide-vue-next'
 import { computed, nextTick, ref, type ComponentPublicInstance } from 'vue'
 import CanvasEmptyGuide from './CanvasEmptyGuide.vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
+import CanvasNodeSurfaceLayer from './CanvasNodeSurfaceLayer.vue'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
 import CanvasToolDock from './CanvasToolDock.vue'
 import CanvasViewControls from './CanvasViewControls.vue'
@@ -34,6 +35,7 @@ const {
   canvasSurfaceRef,
   centerNodeInViewport,
   connectionPaths,
+  connectionTargetStates,
   connectionWorldTransform,
   closeContextMenu,
   contextMenu,
@@ -157,6 +159,10 @@ function closeGraphAccessPanel() {
   closeGraphPanel()
   restoreGraphPanelTriggerFocus()
 }
+
+function commitNodeContent(nodeId: string, content: string) {
+  void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)
+}
 </script>
 
 <template>
@@ -203,6 +209,11 @@ function closeGraphAccessPanel() {
       :style="canvasGridStyle"
     >
       <svg v-show="areEdgesVisible" class="connection-layer" role="group" aria-label="画布连线">
+        <defs>
+          <marker id="canvas-edge-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" class="connection-arrow" />
+          </marker>
+        </defs>
         <g :transform="connectionWorldTransform">
           <g v-memo="[connectionPaths, canvasStore.selectedConnectionId]">
             <path
@@ -211,6 +222,7 @@ function closeGraphAccessPanel() {
               class="connection-line"
               :class="{ active: connection.active, selected: canvasStore.selectedConnectionId === connection.id }"
               :d="connection.path"
+              marker-end="url(#canvas-edge-arrow)"
               vector-effect="non-scaling-stroke"
             />
             <path
@@ -231,6 +243,22 @@ function closeGraphAccessPanel() {
         <path v-if="temporaryConnectionPath" class="draft" :d="temporaryConnectionPath" />
       </svg>
 
+      <CanvasNodeSurfaceLayer
+        :nodes="canvasStore.nodes"
+        :selected-node-ids="canvasStore.selectedNodeIds"
+        :readonly="readonly"
+        :surface-node-rect-style="surfaceNodeRectStyle"
+        @commit-content="commitNodeContent"
+      />
+
+      <div
+        v-for="target in connectionTargetStates"
+        :key="`connection-target-${target.node.id}`"
+        class="connection-target-overlay"
+        :class="target.isCompatible ? 'is-compatible' : 'is-incompatible'"
+        :style="surfaceNodeRectStyle(target.node)"
+        aria-hidden="true"
+      />
       <div
         v-for="node in statusNodes"
         :key="`${node.id}-${node.status}`"

@@ -15,17 +15,17 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-011 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-013 (`DONE - PASS`)
 
 ## Active Delivery
 
-- Active implementation Task: `T5-012 - Restore Canvas workspace rendering with Naive UI theme compatibility`
+- Active implementation Task: `T5-013 - Repair Canvas node editing, generation lifecycle, and connections`
 - State: `DONE - PASS`
-- Task: `ai/tasks/todo/TASK-T5-012.md`
-- Plan: `ai/tasks/doing/TASK-T5-012-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-012-PROGRESS.md`
-- Most recently completed: `T5-012 - Restore Canvas workspace rendering with Naive UI theme compatibility` (`DONE - PASS`)
-- Active unit: Unit C - verification and closure (complete)
+- Task: `ai/tasks/todo/TASK-T5-013.md`
+- Plan: `ai/tasks/doing/TASK-T5-013-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-013-PROGRESS.md`
+- Most recently completed: `T5-013 - Repair Canvas node editing, generation lifecycle, and connections` (`DONE - PASS`)
+- Active unit: complete
 
 ## Current Verified Facts
 
@@ -44,14 +44,15 @@ Last updated: 2026-07-15
 - T5-010 is now `DONE - PASS`: Login, Home, Space, Admin, error, empty, loading, and responsive page-level V2 UX migration passed build, route, visual, and source audit gates.
 - T5-011 is now `DONE - PASS`: backend (438), full Chromium (132), 4,767-module build, retained live MySQL evidence, security-signature, encoding, compile, diff, and file-size audits all passed; final report is `ai/reports/REPORT-T5-011.md`.
 - T5-012 is now `DONE - PASS`: Canvas blank-page root cause was the Naive UI color parser receiving CSS `var(...)` values; concrete parser-facing theme colors restore the live Canvas shell. Focused theme regression (1), Canvas shell regression (8), frontend build (4,767 modules), and live browser Console verification passed; final report is `ai/reports/REPORT-T5-012.md`.
+- T5-013 is now `DONE - PASS`: canonical node-local editing, bounded outcome-safe generation polling, decoded image/playable video results, explicit unavailable media, and directional typed connection feedback passed full Chromium 140/140, backend generation 20 tests plus 3 subtests, a 4,775-module build, and guarded live 200/300 evidence. Final report: `ai/reports/REPORT-T5-013.md`.
 
 ## Exact Next Action
 
-No required implementation remains. Preserve the completed evidence and only revisit human-gated items with explicit authorization.
+No T5-013 implementation remains. Preserve the completed report and retained evidence.
 
 ## Blockers And Human Gates
 
-- No repository blocker remains for the completed Phase 5 scope.
+- No active T5-013 blocker.
 - Applying Alembic revisions through `c9d0e1f2a3b4` to user/runtime data requires reviewed backup discipline and Human authorization.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.
