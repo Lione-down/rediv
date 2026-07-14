@@ -312,3 +312,12 @@ Evidence:
 - Quota balance 与 revision 必须来自同一数据库 snapshot，并与 ledger 在同一 transaction 内更新。前端只接受 backend response，按 auth session 单调应用 revision；logout/login 必须重置 revision，不能用跨 session 的 module-level cache。
 - Provider content、HTTPS URL、request ID 与 input asset IDs 必须在 completion/debit 前做结构化、长度和 ownership 校验。任何 malformed result、cancel、timeout、provider failure 或 persistence failure都应 durable terminalize task，且不得创建 success asset 或消耗 quota。
 - 需要以时间排序的高频 MySQL ledger 不能依赖秒级 `DATETIME`；使用 `DATETIME(6)` 并保留稳定 secondary key，避免同秒 grant/debit 的展示顺序不确定。
+
+## 2026-07-14 Upload reservation、cancellation 与媒体验证边界
+
+- 不可信 request body 期间不能持有全局 advisory lock。应先用 user -> global 的固定锁序创建 provisional central marker，占用 per-user/global active slot；历史文件扫描只持有 user lock，完成后重取 global lock复核 free space 与 pending reservation。
+- byte quota 不能替代 inode、task、socket 和 FD 上界。上传必须同时限制 global/per-user active reservations、central sidecar scan entries 与 user filesystem entries；orphan `.part` 也必须计入 user quota，active stage 只补记 `reserved - staged`，避免漏计或双计。
+- async task cancellation 不会自动停止 threadpool I/O。open、write、seek、close、atomic commit 和 cleanup 都必须等待 late worker result 后再传播 cancellation；stage 与 marker cleanup 应分别 best-effort 并保留失败路径，不能因第一个 unlink 失败而跳过后者。
+- 文件扩展名、MIME 和浅层 container magic 不是媒体有效性。正例必须是独立工具可解码的真实 fixture；BMFF/WebM/Ogg/PNG 等 validator 要验证 codec/sample linkage，并同时设置 container element、pixel、decoded byte、process concurrency 和 aggregate sample budget。
+- streaming parser 仍需要 dependency floor 与独立 guard。`python-multipart` 下界必须覆盖当前安全修复，part header bytes/count、完整 terminal boundary 和 constructor error mapping 由应用自身测试锁定。
+- 固定命名的 disposable MySQL test schema 不能跨 pytest 进程并行运行；一个进程 teardown 会让另一个进程出现 `Unknown database` 或旧 schema 列错误。最终 evidence 应串行执行，或在 T5-008 harness 中为每个进程生成唯一 `revid_test_*` schema。

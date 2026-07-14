@@ -1,7 +1,7 @@
 # TASK-T5-007 Progress
 
-- Task state: `DOING`
-- Active unit: Unit E - Canvas resource and generation experience
+- Task state: `DONE - PASS`
+- Completed unit: Unit E - Canvas resource and generation experience (`COMPLETE - PASS`)
 - Updated: 2026-07-14
 - Unit D baseline: `af8196fc165eb5d2cacc16a8ede9fa57213e0942`
 
@@ -29,14 +29,26 @@
 - Added strict provider result validation for content, HTTPS URLs, and bounded request identifiers before completion. Malformed results, cancellation, timeout, provider failure, and persistence failure durably terminate the task without creating an asset or consuming quota.
 - Extracted the frontend Canvas generation service and replaced manual quota decrement with same-transaction backend quota snapshots. Pinia applies snapshots monotonically per auth session and resets revision state across logout/login.
 - Preserved mock-only provider evidence and did not access real secrets, call paid providers, apply user/runtime migrations, or touch the retained `revid_test_db` schema.
+- Locked the Unit E design direction to the approved graphite-black and violet Canvas system, using existing V2 tokens, Naive UI overrides, Lucide icons, 40px targets, focus-visible states, and reduced-motion behavior.
+- Defined six browser RED contracts for cross-Canvas project resources, registry-backed asset insertion, atomic template instantiate, canonical generation success/failure linkage, desktop/narrow keyboard behavior, and the 375px review-only boundary.
+- Added isolated Unit E Playwright fixture/spec files under 500 lines. The repository-standard Chromium runner collected all six tests and produced the expected RED result: `6 failed`, with five failures at the missing `打开项目资源` entry and one at the missing canonical `生成任务编辑器`; no syntax, web-server, auth, document, or mock-route failure occurred before those product assertions.
+- Implemented the Unit E project resource, template, contextual generation, persistent generation-result linkage, serialized Canvas action, responsive drawer, desktop resize, and mobile review-only experience. Final Chromium regression is `117 passed`; the production build completed with `4,761` transformed modules.
+- Resolved the Canvas revision reload regression found by the full browser run. Conflict recovery now bypasses the conflicting autosave flush while ordinary reload and retry still flush current work; focused resource-race plus revision coverage is `10 passed`.
+- Implemented the first secure upload boundary with bounded JSON/multipart bodies, strict metadata and form contracts, quota/free-floor checks, threadpool staging, structural media validation, malformed-body cleanup, and upload-focused tests. The current backend baseline is `312 passed, 28 subtests passed`; `compileall` passes and Alembic has the single head `c9d0e1f2a3b4`.
+- Closed every upload security finding with short-lived cross-process reservations, provisional active slots, per-user/global concurrency and scan budgets, same-volume named staging, idle/total deadlines, and cancellation-safe acquire/open/write/seek/close/commit/cleanup behavior.
+- Replaced synthetic positive media with independently decodable fixtures and strengthened PNG/JPEG/WebP, WebM VP8/VP9, AVC BMFF, Opus/Ogg, and classic/fragmented BMFF structure checks. Validation now has explicit pixel, decoded-byte, process-concurrency, element, and aggregate sample budgets.
+- Raised the multipart dependency floor to `python-multipart>=0.0.32,<1`, retained independent header byte/count limits, rejected truncated bodies, and normalized oversized-boundary parser errors to a controlled `400`.
+- Completed final full backend, upload, browser, build, migration/static, visual/accessibility, and independent review gates. Final review is `0 HIGH / 0 MEDIUM / 0 LOW`.
+- Wrote `ai/reports/REPORT-T5-007.md`, reconciled Task/PLAN/PROGRESS/CURRENT/ROADMAP, and recorded durable upload/cancellation/test-isolation pitfalls.
 
 ## Remaining Work
 
-- Unit E: Canvas resource/generation UI, responsive/mobile boundaries, full regression, review, REPORT, and Task closure.
+- None for T5-007.
+- T5-008 remains separate and must be activated with its own Task/PLAN/PROGRESS before business-code edits.
 
 ## Exact Next Action
 
-Write Unit E browser RED tests for cross-Canvas resources, asset/template insertion, contextual generation controls, task/result states, narrow drawers, keyboard focus, and the 375px review-only boundary; then implement the smallest responsive UI slice with existing Canvas tokens and command/autosave boundaries.
+Commit and push T5-007, then create and activate T5-008 for the final Canvas first-acceptance E2E, real-MySQL 200/300 persistence/performance, browser, accessibility, visual, and security matrix.
 
 ## Files Changed
 
@@ -50,6 +62,8 @@ Write Unit E browser RED tests for cross-Canvas resources, asset/template insert
 - Unit D transaction/runtime: generation transaction, reservation, record, quota, provider, and provider-result modules; scoped text/image/video APIs; generation task query updates; quota revision model/migration; atomic store quota grant/cache synchronization.
 - Unit D frontend: Canvas generation service, auth quota revision state/types, both workspace generation callers, and authenticated/service Playwright coverage.
 - Unit D tests: transaction success/failure/restart, duplicate completion, late failure, reservation expiry, lock ordering, grant/debit concurrency, provider malformed results, quota revision migration, and updated endpoint/E2E coverage.
+- Unit E frontend: Canvas asset/context panels, project resource store/API/types, serialized resource/template/generation actions, generation-result state, responsive workspace integration, and focused/full Chromium fixtures.
+- Unit E backend: bounded upload API, multipart parser, cross-process sidecar reservations, cancellation lifecycle, structural media validators, real fixtures, patched dependency/configuration, and focused security/resource tests.
 - State/docs: active Task, PLAN, PROGRESS, CURRENT, ROADMAP, and `pitfalls.md`.
 
 ## Commands And Results
@@ -70,10 +84,18 @@ Write Unit E browser RED tests for cross-Canvas resources, asset/template insert
 - Unit D browser/build evidence - PASS: generation service `5 passed`, authenticated workflow and four accepted viewports `6 passed`, and the Vue TypeScript/Vite production build completed with `4,748` transformed modules.
 - Unit D migration/static gates - PASS: `compileall`, Alembic single head `c9d0e1f2a3b4`, `git diff --check`, file-size review, and staged/tracked sensitive-path checks. No user/runtime migration ran.
 - Independent Unit D review - PASS, `0 HIGH / 0 MEDIUM / 0 LOW`; independent backend runs passed `53 + 3 subtests` and `34`, frontend Playwright passed `11`, and build/migration/diff gates passed.
+- Unit E planning - PASS: existing Canvas design, acceptance, architecture, registry, autosave, resource APIs, generation transaction contract, and browser conventions were audited. `npx` is available for the repository-standard Playwright runner; no production code changed during the audit.
+- Unit E browser RED - EXPECTED FAIL: `npx playwright test tests/e2e/canvas-resource-generation.spec.ts --project=chromium` collected 6 tests and failed only at missing resource/context UI capability. Failure artifacts are under ignored `output/playwright/test-results/`.
+- Unit E frontend focused/final evidence - PASS: resource, generation, graph, race, autosave, revision, responsive, and keyboard coverage passed; final full Chromium is `117 passed in 2.3m`, and production build passed with `4,761` transformed modules.
+- Unit E final backend regression - PASS: project `.venv` `pytest -q` reported `384 passed, 56 subtests passed` in 400.99 seconds.
+- Unit E final upload/security regression - PASS: `134 passed, 48 subtests passed`; parser/dependency post-fix focus passed `23`; `pip check` passed.
+- Unit E final static/migration gates - PASS: `compileall`, Alembic single head `c9d0e1f2a3b4`, strict UTF-8, 500-line maximum, and `git diff --check` apart from CRLF notices.
+- Unit E independent frontend review - PASS after remediation, `0 HIGH / 0 MEDIUM / 0 LOW`.
+- Unit E independent upload security review - PASS after remediation, `0 HIGH / 0 MEDIUM / 0 LOW`; independent pure matrix passed `65`, 13,000 randomized validator inputs and 500 randomized multipart inputs produced no unhandled exception.
 
 ## Blockers And Release Conditions
 
-- No repository blocker prevents Unit E.
+- No T5-007 blocker remains.
 - Applying `a6b7c8d9e0f1` to user/runtime data remains a Human Owner gate and did not occur.
 - Applying `b8c9d0e1f2a3` to user/runtime data remains part of the same Human Owner migration gate and did not occur.
 - Applying `c9d0e1f2a3b4` to user/runtime data remains part of the same Human Owner migration gate and did not occur.

@@ -1,15 +1,19 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import {
-  fetchCanvasDocument,
-  fetchLegacyCanvasConnections,
-  fetchLegacyCanvasNodes,
-  updateCanvasViewport,
-} from '../modules/canvas/api'
-import { mapCanvasConnection, mapCanvasNode } from '../modules/canvas/mappers'
+import { updateCanvasViewport } from '../modules/canvas/api'
 import { createCanvasMutationActions } from '../modules/canvas/mutations'
 import { createCanvasAutosave } from '../modules/canvas/canvas-autosave'
+import {
+  createCanvasDocumentLoader,
+  type CanvasDocumentLoadState,
+} from '../modules/canvas/canvas-document-loader'
 import { createCanvasHistoryActions } from '../modules/canvas/canvas-history-actions'
+import {
+  createCanvasSerializedActions,
+  type CanvasDocumentContext,
+} from '../modules/canvas/canvas-serialized-actions'
+import { applyGenerationNodeState } from '../modules/canvas/generation-node-state'
+import type { PersistedGenerationStatus } from '../modules/canvas/node-registry'
 import {
   isSameCanvasSelection,
   reduceCanvasSelection,
@@ -22,7 +26,10 @@ import {
   VIEWPORT_DEBOUNCE_MS,
   type PersistedViewport,
 } from '../modules/canvas/persistence'
-import type { CanvasGraphSaveState, CanvasMetadataDto } from '../modules/canvas/types'
+import type {
+  CanvasGraphSaveState,
+  CanvasMetadataDto,
+} from '../modules/canvas/types'
 import type { CanvasConnection, CanvasNode } from '../types/canvas'
 import { useAuthStore } from './auth'
 
@@ -30,19 +37,6 @@ type CanvasMode = 'select' | 'hand' | 'text' | 'image' | 'generate'
 type CanvasNodeStatus = CanvasNode['status']
 type CanvasSelectionMode = 'replace' | 'toggle' | 'add'
 
-interface DocumentLoadRequest {
-  generation: number
-  projectId: string
-  canvasId: string
-  revision: number
-  promise: Promise<void>
-}
-
-interface DocumentContext {
-  generation: number
-  projectId: string
-  canvasId: string
-}
 const DEFAULT_VIEWPORT: PersistedViewport = { zoom: 1, x: 0, y: 0 }
 export const useCanvasStore = defineStore('canvas', () => {
   const authStore = useAuthStore()
@@ -70,7 +64,7 @@ export const useCanvasStore = defineStore('canvas', () => {
 
   let generation = 0
   let dataRevision = 0
-  let loadRequest: DocumentLoadRequest | null = null
+  const documentLoadState: CanvasDocumentLoadState = { request: null }
   let viewportTimer: ReturnType<typeof setTimeout> | null = null
   let viewportInFlight: Promise<void> | null = null
   let confirmedViewport: PersistedViewport = { ...DEFAULT_VIEWPORT }
@@ -85,17 +79,19 @@ export const useCanvasStore = defineStore('canvas', () => {
     dataRevision += 1
   }
 
-  function captureDocumentContext(): DocumentContext {
+  function captureDocumentContext(): CanvasDocumentContext {
     return {
+      authToken: authStore.token,
       generation,
       projectId: activeProjectId.value,
       canvasId: activeCanvasId.value,
     }
   }
 
-  function isCurrentDocument(context: DocumentContext) {
+  function isCurrentDocument(context: CanvasDocumentContext) {
     return (
       context.generation === generation &&
+      context.authToken === authStore.token &&
       context.projectId === activeProjectId.value &&
       context.canvasId === activeCanvasId.value
     )
@@ -149,16 +145,32 @@ export const useCanvasStore = defineStore('canvas', () => {
     nodes.value = nodes.value.map((node, index) => (index === nodeIndex ? updater(node) : node))
   }
 
-  function setNodeStatus(nodeId: string, status: CanvasNodeStatus) {
+  function applyNodeStatus(nodeId: string, status: CanvasNodeStatus) {
+    if (!findNodeById(nodeId)) return
     updateNode(nodeId, (node) => ({ ...node, status: status ?? 'idle' }))
+    canvasAutosave.queue()
   }
 
-  function setNodeContent(nodeId: string, content: string) {
+  function applyNodeContent(nodeId: string, content: string) {
+    if (!findNodeById(nodeId)) return
     updateNode(nodeId, (node) => ({
       ...node,
       content,
       contentData: { ...node.contentData, text: content },
     }))
+    canvasAutosave.queue()
+  }
+
+  function applyNodeGenerationState(
+    nodeId: string,
+    status: PersistedGenerationStatus,
+    taskId = '',
+    isResultMaterialized = false,
+  ) {
+    if (!findNodeById(nodeId)) return
+    updateNode(nodeId, (node) => applyGenerationNodeState(
+      node, status, taskId, isResultMaterialized,
+    ))
     canvasAutosave.queue()
   }
 
@@ -201,7 +213,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     setSelection,
     selectConnection,
   })
-  const canvasHistory = createCanvasHistoryActions(canvasMutations, nodes, connections)
+  const canvasHistory = createCanvasHistoryActions(canvasMutations, nodes, connections, canvasAutosave.adoptCommittedRevision)
   function resetViewportPersistence(next: PersistedViewport = DEFAULT_VIEWPORT) {
     if (viewportTimer) clearTimeout(viewportTimer)
     viewportTimer = null
@@ -215,7 +227,7 @@ export const useCanvasStore = defineStore('canvas', () => {
   function clearDocumentState(projectId = '', canvasId = '') {
     generation += 1
     bumpDataRevision()
-    loadRequest = null
+    documentLoadState.request = null
     canvasAutosave.reset()
     canvasHistory.deactivate()
     canvasMutations.resetMutationState()
@@ -239,15 +251,6 @@ export const useCanvasStore = defineStore('canvas', () => {
     resetViewportPersistence()
   }
 
-  function isCurrentLoad(request: DocumentLoadRequest) {
-    return (
-      request.generation === generation &&
-      request.projectId === activeProjectId.value &&
-      request.canvasId === activeCanvasId.value &&
-      request.revision === dataRevision
-    )
-  }
-
   function adoptDocumentViewport(canvas: CanvasMetadataDto) {
     resetViewportPersistence({
       x: canvas.viewport_x,
@@ -256,102 +259,27 @@ export const useCanvasStore = defineStore('canvas', () => {
     })
   }
 
-  async function loadCanvas(projectId: string, canvasId: string, force = false): Promise<void> {
-    const normalizedProjectId = projectId.trim()
-    const normalizedCanvasId = canvasId.trim()
-    if (
-      normalizedProjectId !== activeProjectId.value ||
-      normalizedCanvasId !== activeCanvasId.value
-    ) {
-      clearDocumentState(normalizedProjectId, normalizedCanvasId)
-    }
-    if (!normalizedProjectId || !normalizedCanvasId) return
-    if (
-      loadRequest?.projectId === normalizedProjectId &&
-      loadRequest.canvasId === normalizedCanvasId &&
-      loadRequest.generation === generation &&
-      loadRequest.revision === dataRevision
-    ) return loadRequest.promise
-    if (!force && hasLoaded.value) return
-
-    isLoading.value = true
-    loadError.value = ''
-    const request: DocumentLoadRequest = {
-      generation,
-      projectId: normalizedProjectId,
-      canvasId: normalizedCanvasId,
-      revision: dataRevision,
-      promise: Promise.resolve(),
-    }
-    request.promise = (async () => {
-      try {
-        const response = await fetchCanvasDocument(normalizedProjectId, normalizedCanvasId)
-        if (!isCurrentLoad(request)) return
-        if (response.data.canvas.id !== normalizedCanvasId || response.data.canvas.project_id !== normalizedProjectId) {
-          throw new Error('Canvas document identity mismatch')
-        }
-        nodes.value = response.data.nodes.map(mapCanvasNode)
-        connections.value = response.data.connections.map(mapCanvasConnection)
-        graphRevision.value = response.data.revision
-        adoptDocumentViewport(response.data.canvas)
-        canvasMutations.initializeConfirmedPositions()
-        canvasAutosave.initialize(response.data.revision)
-        canvasHistory.activate(normalizedProjectId, normalizedCanvasId, force)
-        hasLoaded.value = true
-        setSelection(selectedNodeIds.value, selectedNodeId.value)
-      } catch (error) {
-        if (!isCurrentLoad(request)) return
-        loadError.value = getCanvasErrorMessage(error, '画布文档加载失败，请稍后重试。')
-        throw error
-      } finally {
-        if (loadRequest === request) loadRequest = null
-        if (request.generation === generation && request.projectId === activeProjectId.value && request.canvasId === activeCanvasId.value) {
-          isLoading.value = false
-        }
-      }
-    })()
-    loadRequest = request
-    return request.promise
-  }
-
-  async function loadProject(projectId: string, force = false): Promise<void> {
-    const normalizedProjectId = projectId.trim()
-    if (normalizedProjectId !== activeProjectId.value || activeCanvasId.value) {
-      clearDocumentState(normalizedProjectId)
-    }
-    if (!normalizedProjectId || (!force && hasLoaded.value)) return
-    isLoading.value = true
-    loadError.value = ''
-    const request: DocumentLoadRequest = {
-      generation,
-      projectId: normalizedProjectId,
-      canvasId: '',
-      revision: dataRevision,
-      promise: Promise.resolve(),
-    }
-    request.promise = (async () => {
-      try {
-        const [nodeResponse, connectionResponse] = await Promise.all([
-          fetchLegacyCanvasNodes(normalizedProjectId),
-          fetchLegacyCanvasConnections(normalizedProjectId),
-        ])
-        if (!isCurrentLoad(request)) return
-        nodes.value = nodeResponse.data.items.map(mapCanvasNode)
-        connections.value = connectionResponse.data.items.map(mapCanvasConnection)
-        canvasMutations.initializeConfirmedPositions()
-        hasLoaded.value = true
-      } catch (error) {
-        if (!isCurrentLoad(request)) return
-        loadError.value = getCanvasErrorMessage(error, '画布加载失败，请稍后重试。')
-        throw error
-      } finally {
-        if (loadRequest === request) loadRequest = null
-        if (isCurrentLoad(request)) isLoading.value = false
-      }
-    })()
-    loadRequest = request
-    return request.promise
-  }
+  const documentLoader = createCanvasDocumentLoader({
+    activeProjectId,
+    activeCanvasId,
+    graphRevision,
+    nodes,
+    connections,
+    hasLoaded,
+    isLoading,
+    loadError,
+    loadState: documentLoadState,
+    getGeneration: () => generation,
+    getDataRevision: () => dataRevision,
+    clearDocumentState,
+    adoptDocumentViewport,
+    initializeConfirmedPositions: canvasMutations.initializeConfirmedPositions,
+    initializeAutosave: canvasAutosave.initialize,
+    activateHistory: canvasHistory.activate,
+    setSelection,
+    getSelectedNodeIds: () => selectedNodeIds.value,
+    getSelectedNodeId: () => selectedNodeId.value,
+  })
 
   async function persistPendingViewport(): Promise<void> {
     if (viewportTimer) clearTimeout(viewportTimer)
@@ -400,7 +328,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     viewportTimer = setTimeout(() => void persistPendingViewport().catch(() => undefined), VIEWPORT_DEBOUNCE_MS)
   }
 
-  async function flushPendingPersistence() {
+  async function flushPendingPersistenceDirect() {
     const results = await Promise.allSettled([
       canvasAutosave.flush(),
       persistPendingViewport(),
@@ -409,7 +337,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     if (failed) throw failed.reason
   }
 
-  async function retryAutosave() {
+  async function retryAutosaveDirect() {
     const results = await Promise.allSettled([
       canvasAutosave.retry(),
       persistPendingViewport(),
@@ -418,13 +346,56 @@ export const useCanvasStore = defineStore('canvas', () => {
     if (failed) throw failed.reason
   }
 
+  const serializedActions = createCanvasSerializedActions({
+    runSerialized: canvasHistory.runSerialized,
+    hasLoaded: () => hasLoaded.value,
+    getGraphRevision: () => graphRevision.value,
+    captureDocumentContext,
+    isCurrentDocument,
+    flushPendingPersistence: flushPendingPersistenceDirect,
+    retryAutosave: retryAutosaveDirect,
+    applyNodeStatus,
+    applyNodeContent,
+    applyNodeGenerationState,
+  })
+  const {
+    flushPendingPersistence,
+    retryAutosave,
+    runScopedCanvasAction,
+    commitScopedCanvasMutation,
+    reconcileGeneration,
+    setNodeStatus,
+    setNodeContent,
+    setNodeGenerationState,
+  } = serializedActions
+
+  function loadCanvas(projectId: string, canvasId: string, force = false) {
+    return serializedActions.runDocumentLoad(
+      () => documentLoader.loadCanvasDirect(projectId, canvasId, force),
+    )
+  }
+
+  function loadProject(projectId: string, force = false) {
+    return serializedActions.runDocumentLoad(
+      () => documentLoader.loadProjectDirect(projectId, force),
+    )
+  }
+
   function preserveLocalRecovery() {
     canvasAutosave.preserveRecovery()
   }
 
-  async function reloadActiveDocument(force = true) {
-    if (activeCanvasId.value) return loadCanvas(activeProjectId.value, activeCanvasId.value, force)
-    return loadProject(activeProjectId.value, force)
+  async function reloadActiveDocument(options: {
+    force?: boolean
+    flushCurrent?: boolean
+  } = {}) {
+    const { force = true, flushCurrent = true } = options
+    return serializedActions.runDocumentLoad(
+      () => activeCanvasId.value
+        ? documentLoader.loadCanvasDirect(activeProjectId.value, activeCanvasId.value, force)
+        : documentLoader.loadProjectDirect(activeProjectId.value, force),
+      flushCurrent,
+    )
   }
 
   watch(
@@ -480,6 +451,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     updateViewport,
     persistPendingViewport,
     flushPendingPersistence,
+    runScopedCanvasAction,
     retryAutosave, restoreLocalRecovery: canvasAutosave.restoreRecovery, preserveLocalRecovery, discardLocalRecovery: canvasAutosave.discardRecovery,
     selectNode,
     selectConnection,
@@ -487,14 +459,27 @@ export const useCanvasStore = defineStore('canvas', () => {
     setMode,
     setNodeStatus,
     setNodeContent,
+    setNodeGenerationState,
     findNodeById,
-    createNode: canvasMutations.createNode,
-    deleteNode: canvasMutations.deleteNode,
-    createConnection: canvasMutations.createConnection,
-    deleteConnection: canvasMutations.deleteConnection,
-    queueNodeMove: canvasMutations.queueNodeMove,
-    flushPendingMoves: canvasMutations.flushPendingMoves,
-    dispatchCommand: canvasHistory.execute,
+    createNode: (...args: Parameters<typeof canvasMutations.createNode>) => canvasHistory.runSerialized(
+      () => canvasMutations.createNode(...args),
+    ),
+    deleteNode: (...args: Parameters<typeof canvasMutations.deleteNode>) => canvasHistory.runSerialized(
+      () => canvasMutations.deleteNode(...args),
+    ),
+    createConnection: (...args: Parameters<typeof canvasMutations.createConnection>) => canvasHistory.runSerialized(
+      () => canvasMutations.createConnection(...args),
+    ),
+    deleteConnection: (...args: Parameters<typeof canvasMutations.deleteConnection>) => canvasHistory.runSerialized(
+      () => canvasMutations.deleteConnection(...args),
+    ),
+    queueNodeMove: (...args: Parameters<typeof canvasMutations.queueNodeMove>) => canvasHistory.runSerialized(
+      () => canvasMutations.queueNodeMove(...args),
+    ),
+    flushPendingMoves: () => canvasHistory.runSerialized(canvasMutations.flushPendingMoves),
+    dispatchCommand: canvasHistory.execute, adoptCommittedMutation: canvasHistory.adoptCommittedMutation,
+    commitScopedCanvasMutation,
+    reconcileGeneration,
     undo: canvasHistory.undo, redo: canvasHistory.redo,
   }
 })

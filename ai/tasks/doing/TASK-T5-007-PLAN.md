@@ -1,8 +1,8 @@
 # TASK-T5-007 Plan
 
-- State: `DOING`
-- Completed units: Unit A - node registry and compatibility boundary; Unit B - additive MySQL resource contract; Unit C - project assets and templates; Unit D - generation transactions and frontend service
-- Active unit: Unit E - Canvas resource and generation experience
+- State: `DONE - PASS`
+- Completed units: Units A-E (`COMPLETE - PASS`)
+- Active unit: none
 - Updated: 2026-07-14
 
 ## Objective
@@ -49,6 +49,25 @@ Land T5-007 as five independently verified units. Every behavior change follows 
 4. Run focused browser/accessibility/visual checks at 1440x900, 1366x768, 920x900, and 375x812.
 5. Run full backend and Chromium regressions, production build, guarded restart evidence, independent review, security/hygiene gates, REPORT, and durable state closure.
 
+### Unit E Upload Security Closure
+
+1. Keep the cross-process MySQL upload lock only around short capacity-reservation transitions. Never hold it while awaiting an untrusted request body, and bound both idle receive time and total upload duration.
+2. Stream the sole multipart file into a named staging file below the configured upload root, account for its reserved capacity across processes, and finish with a same-volume atomic rename. Do not use system-temp spooling or a second full-size copy.
+3. Route parser file writes, rollover-equivalent work, validation, cleanup, and finalization through threadpool-backed disk operations; malformed, oversized, timed-out, or abandoned uploads must release reservation state and leave no partial file.
+4. Require a patched `python-multipart` version, replace synthetic positive media samples with independently decodable tiny fixtures, and reject the former forged container fixtures through stronger codec/sample linkage checks.
+5. Add RED/GREEN evidence for slow-body lock liveness, reservation quota/floor accounting, timeout and cleanup, event-loop-safe writes, dependency bounds, real-media acceptance, and forged-media rejection before repeating the full backend regression and independent security review.
+
+### Unit E Browser RED Matrix
+
+1. Project-scoped assets, templates, generated assets, and generation history remain visible after a normal Canvas switch; inserting an asset creates one registry-backed node only in the active Canvas without copying project ownership.
+2. Template insertion calls the authenticated target-Canvas instantiate endpoint once with the current revision and one bounded client mutation ID, then reloads the server-confirmed document instead of replaying client-side node patches.
+3. A canonical generation node exposes a contextual prompt editor, persists prompt changes, sends complete project/Canvas/node context, and creates one linked result node from a mock success response.
+4. A mock provider failure shows the durable failed task and exact reason, performs no automatic retry, creates no result or asset, and leaves the authoritative quota snapshot unchanged.
+5. Desktop resources use a 280-420px resizable complementary panel. At 920px, resources and contextual details use keyboard-complete drawers with focus return, visible focus, 40px targets, and no serious or critical axe findings.
+6. The four accepted viewports preserve editable desktop/narrow behavior. At 375px, project resources remain browsable while upload, insertion, template-use, generation, delete, and Canvas mutation actions are absent and mutation shortcuts remain inert.
+
+Mock browser evidence must use project-filtered asset/task endpoints, versioned template graphs, complete durable generation task records, and local fulfilled media bytes. It must not call a real provider or present mock evidence as paid-service evidence.
+
 ## TDD And Verification Contract
 
 - Write the smallest behavior test first and record the expected RED fingerprint before production code.
@@ -59,4 +78,14 @@ Land T5-007 as five independently verified units. Every behavior change follows 
 
 ## Exact Next Action
 
-Add failing browser tests for cross-Canvas project resources, asset/template insertion, generation success/failure/result states, narrow drawers, keyboard focus, and the 375px review-only boundary before implementing the Unit E UI.
+Commit and push the verified T5-007 closure, then create and activate T5-008 Task/PLAN/PROGRESS for the final Canvas first-acceptance matrix.
+
+## Closure Evidence
+
+- Full backend: `384 passed, 56 subtests passed` on disposable guarded MySQL schemas.
+- Final upload/security matrix: `134 passed, 48 subtests passed`.
+- Full Chromium: `117 passed`; focused resource-race/revision regression: `10 passed`.
+- Production build: `4,761` modules transformed.
+- Alembic: single head `c9d0e1f2a3b4`; no user/runtime migration ran.
+- Independent frontend and final upload/security reviews: `0 HIGH / 0 MEDIUM / 0 LOW`.
+- Compile, UTF-8, 500-line, dependency, diff, and sensitive-file hygiene gates passed.

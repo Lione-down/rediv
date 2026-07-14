@@ -255,7 +255,7 @@ path.draft {
 @media (max-width: 720px) {
   .canvas-surface { min-height: calc(100dvh - 280px); }
   .minimap { right: 12px; bottom: max(104px, calc(env(safe-area-inset-bottom) + 88px)); width: 104px; height: 68px; }
-  .graph-access-trigger { bottom: max(104px, calc(env(safe-area-inset-bottom) + 88px)); left: 207px; transform: none; }
+  .graph-access-trigger { bottom: max(152px, calc(env(safe-area-inset-bottom) + 136px)); left: 12px; transform: none; }
 }
 
 @media (max-width: 480px) {

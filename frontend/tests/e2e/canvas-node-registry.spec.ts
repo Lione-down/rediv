@@ -2,11 +2,14 @@ import { expect, test } from '@playwright/test'
 import {
   CANONICAL_NODE_TYPES,
   createRegistryNodeDraft,
+  getGenerationMediaType,
   getLegacyGenerationQuotaType,
   getCreatableNodeDefinitions,
   getDefaultConnectionPorts,
   resolveNodeDefinition,
 } from '../../src/modules/canvas/node-registry'
+import { mapCanvasNode } from '../../src/modules/canvas/mappers'
+import { toCanvasDocumentNodeUpsert } from '../../src/modules/canvas/node-serialization'
 
 test('registry exposes complete metadata for the six canonical creation types', () => {
   expect(CANONICAL_NODE_TYPES).toEqual([
@@ -30,6 +33,28 @@ test('registry exposes complete metadata for the six canonical creation types', 
     }))
     expect(definition.serializationVersion).toBe(1)
   }
+})
+
+test('generation task state round-trips through canonical content and restores UI status', () => {
+  const persisted = toCanvasDocumentNodeUpsert({
+    id: 'generation-state', type: 'generation', title: '封面生成', x: 80, y: 120,
+    width: 340, height: 220, status: 'success', content: '海边封面',
+    contentData: {
+      subtype: 'image', serialization_version: 1,
+      generation_status: 'succeeded', generation_task_id: 'task-state',
+    },
+  })
+
+  expect(persisted.content).toEqual(expect.objectContaining({
+    generation_status: 'succeeded',
+    generation_task_id: 'task-state',
+  }))
+  const restored = mapCanvasNode(persisted)
+  expect(restored.status).toBe('success')
+  expect(restored.contentData).toEqual(expect.objectContaining({
+    generation_status: 'succeeded',
+    generation_task_id: 'task-state',
+  }))
 })
 
 test('legacy types resolve through compatibility definitions but stay out of creation menus', () => {
@@ -86,6 +111,18 @@ test('legacy generation compatibility is capability-gated by the registry', () =
   expect(getLegacyGenerationQuotaType({ type: 'model' })).toBe('image')
   expect(getLegacyGenerationQuotaType({ type: 'video' })).toBe('video')
   expect(getLegacyGenerationQuotaType({ type: 'text' })).toBeNull()
+})
+
+test('canonical generation subtypes resolve to their media quota', () => {
+  expect(getGenerationMediaType({
+    type: 'generation', contentData: { subtype: 'image', serialization_version: 1 },
+  })).toBe('image')
+  expect(getGenerationMediaType({
+    type: 'generation', contentData: { subtype: 'video', serialization_version: 1 },
+  })).toBe('video')
+  expect(getGenerationMediaType({
+    type: 'generation', contentData: { subtype: 'audio', serialization_version: 1 },
+  })).toBeNull()
 })
 
 test('registry creates subtype-aware drafts and owns compatible default ports', () => {

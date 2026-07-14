@@ -58,7 +58,7 @@ export const useCanvasRevisionStore = defineStore('canvas-revisions', () => {
       await canvasStore.flushPendingPersistence()
       const response = await restoreCanvasRevision(projectId, canvasId, revision)
       committedRevision = response.data.revision
-      await canvasStore.reloadActiveDocument(true)
+      await canvasStore.reloadActiveDocument({ force: true })
       await load(projectId, canvasId)
       notice.value = `已从 r${revision} 创建新 head r${response.data.revision}`
     } catch (cause) {

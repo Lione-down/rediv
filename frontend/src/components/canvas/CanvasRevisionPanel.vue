@@ -45,7 +45,7 @@ async function reloadLatest(discardLocal: boolean) {
   recoveryError.value = ''
   canvasStore.preserveLocalRecovery()
   try {
-    await canvasStore.reloadActiveDocument(true)
+    await canvasStore.reloadActiveDocument({ force: true, flushCurrent: false })
     if (discardLocal) canvasStore.discardLocalRecovery()
     await loadHistory()
     recoveryNotice.value = discardLocal

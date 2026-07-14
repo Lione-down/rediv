@@ -337,6 +337,26 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
     timer = setTimeout(() => void flush().catch(() => undefined), AUTOSAVE_DEBOUNCE_MS)
   }
 
+  function adoptCommittedRevision(nextRevision: number, applyCommittedGraph: () => void) {
+    if (!Number.isSafeInteger(nextRevision) || nextRevision < revision) {
+      throw new Error('服务器画布 revision 无效。')
+    }
+    if (
+      inFlight || activeBatch || retryBatch || hasLoadedRecovery ||
+      status.state !== 'saved' || hasMutations(diffGraph(confirmed, currentGraph()))
+    ) throw new Error('采用服务器画布变更前必须先完成本地保存。')
+    if (timer) clearTimeout(timer)
+    timer = null
+    applyCommittedGraph()
+    confirmed = currentGraph()
+    revision = nextRevision
+    options.onRevision(revision)
+    clearRecovery()
+    emit({
+      state: 'saved', message: '', conflictRevision: null, hasRecovery: false, canRetry: false,
+    })
+  }
+
   async function retry() {
     if (status.state === 'conflict') throw new Error(status.message)
     return flush()
@@ -406,6 +426,7 @@ export function createCanvasAutosave(options: CanvasAutosaveOptions) {
 
   return {
     discardRecovery,
+    adoptCommittedRevision,
     flush,
     initialize,
     preserveRecovery: writeRecovery,

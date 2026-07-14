@@ -74,6 +74,12 @@ export interface SetNodesLockedCommand {
   locked: boolean
 }
 
+export interface InsertGraphCommand {
+  type: 'insert-graph'
+  nodes: CanvasNode[]
+  connections: CanvasConnection[]
+}
+
 export type CanvasCommand =
   | MoveNodesCommand
   | DuplicateNodesCommand
@@ -83,6 +89,7 @@ export type CanvasCommand =
   | ConnectNodesCommand
   | ArrangeNodesCommand
   | SetNodesLockedCommand
+  | InsertGraphCommand
 
 export interface CanvasCommandEnvelope {
   source: CanvasCommandSource

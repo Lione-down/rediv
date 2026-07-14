@@ -20,6 +20,7 @@ import {
   type DeleteSelectionCommand,
   type DuplicateNodesCommand,
   type GroupNodesCommand,
+  type InsertGraphCommand,
   type MoveNodesCommand,
   type SetNodesLockedCommand,
   type UngroupNodesCommand,
@@ -37,9 +38,16 @@ interface CanvasCommandExecutorOptions {
   queueNodeMove: (nodeId: string, x: number, y: number) => void
   setSelection: (nodeIds: string[], primaryNodeId?: string) => void
   selectConnection: (connectionId: string) => void
+  insertGraph?: (nodes: CanvasNode[], connections: CanvasConnection[]) => Promise<void> | void
 }
 
 function cloneNodeDraft(node: CanvasNode, offset: { x: number; y: number }): CanvasNodeDraft {
+  const contentData = node.contentData ? structuredClone(toRaw(node.contentData)) : undefined
+  if (node.type === 'generation' && contentData) {
+    Reflect.deleteProperty(contentData, 'generation_status')
+    Reflect.deleteProperty(contentData, 'generation_task_id')
+    Reflect.deleteProperty(contentData, 'result_materialized_task_id')
+  }
   return {
     type: node.type,
     title: `${node.title} 副本`,
@@ -49,7 +57,7 @@ function cloneNodeDraft(node: CanvasNode, offset: { x: number; y: number }): Can
     height: node.height,
     status: 'idle',
     content: node.content,
-    contentData: node.contentData ? structuredClone(toRaw(node.contentData)) : undefined,
+    contentData,
   }
 }
 
@@ -227,6 +235,12 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     }
   }
 
+  async function insertGraph(command: InsertGraphCommand) {
+    if (!options.insertGraph) throw new Error('Canvas graph insertion is unavailable')
+    await options.insertGraph(command.nodes, command.connections)
+    options.setSelection(command.nodes.map((node) => node.id), command.nodes.at(-1)?.id)
+  }
+
   async function executeCommand(envelope: CanvasCommandEnvelope) {
     const { command } = envelope
     if (command.type === 'move-nodes') return moveNodes(command)
@@ -236,7 +250,8 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'ungroup-nodes') return ungroupNodes(command)
     if (command.type === 'connect-nodes') return connectNodes(command)
     if (command.type === 'arrange-nodes') return arrangeNodes(command)
-    return setNodesLocked(command)
+    if (command.type === 'set-nodes-locked') return setNodesLocked(command)
+    return insertGraph(command)
   }
 
   return { executeCommand }

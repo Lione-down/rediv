@@ -14,6 +14,7 @@ from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token, hash_password
 from settings.config import settings
+from tests.media_fixtures import VALID_PNG_BYTES
 from tests.mysql_test_database import MySQLTestDatabase
 
 
@@ -173,10 +174,11 @@ class AssetFlowTestCase(unittest.TestCase):
 
     def test_upload_multipart_file(self) -> None:
         project = store.create_project(self.user["id"], "File Project")
+        content = VALID_PNG_BYTES
         response = self.client.post(
             "/assets/upload",
             data={"type": "image", "content_text": "cover", "project_id": project["id"]},
-            files={"file": ("poster.png", b"fake-image-bytes", "image/png")},
+            files={"file": ("cover.png", content, "image/png")},
             headers=self._auth_headers(self.user["id"]),
         )
 
@@ -185,7 +187,7 @@ class AssetFlowTestCase(unittest.TestCase):
         self.assertTrue(payload["url"].startswith(f"/uploads/{self.user['id']}/"))
         saved_file = Path(settings.storage_local_root) / payload["url"].lstrip("/")
         self.assertTrue(saved_file.exists())
-        self.assertEqual(b"fake-image-bytes", saved_file.read_bytes())
+        self.assertEqual(content, saved_file.read_bytes())
 
     def test_from_generation(self) -> None:
         project = store.create_project(self.user["id"], "Generation Project")
@@ -303,6 +305,10 @@ class AssetFlowTestCase(unittest.TestCase):
     def _admin_headers(self) -> dict[str, str]:
         token = create_token({"sub": self.admin_id, "role": "admin"})
         return {"Authorization": f"Bearer {token}"}
+
+    def _stored_upload_files(self) -> list[Path]:
+        upload_root = Path(settings.storage_local_root) / "uploads"
+        return [path for path in upload_root.rglob("*") if path.is_file()] if upload_root.exists() else []
 
 
 if __name__ == "__main__":

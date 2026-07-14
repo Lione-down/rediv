@@ -252,7 +252,14 @@ test('commands reject secondary child and edge mutations that touch unsupported 
 
 test('duplicate command copies selected nodes and only their internal connections', async () => {
   const nodes = reactive<CanvasNode[]>([
-    { id: 'node-a', type: 'text', title: 'A', x: 10, y: 20, width: 240, height: 140, contentData: { nested: { value: 1 } } },
+    {
+      id: 'node-a', type: 'generation', title: 'A', x: 10, y: 20, width: 240, height: 140,
+      contentData: {
+        subtype: 'image', serialization_version: 1, nested: { value: 1 },
+        generation_status: 'succeeded', generation_task_id: 'task-old',
+        result_materialized_task_id: 'task-old',
+      },
+    },
     { id: 'node-b', type: 'image', title: 'B', x: 310, y: 20, width: 240, height: 140 },
     { id: 'node-c', type: 'result', title: 'C', x: 610, y: 20, width: 240, height: 140 },
   ])
@@ -294,6 +301,9 @@ test('duplicate command copies selected nodes and only their internal connection
   ])
   expect(createdConnections).toEqual([expect.objectContaining({ from: 'copy-3', to: 'copy-4' })])
   expect(selection).toEqual(['copy-3', 'copy-4'])
+  expect(nodes[3].contentData).toEqual({
+    subtype: 'image', serialization_version: 1, nested: { value: 1 },
+  })
 })
 
 test('move and delete envelopes execute each selected target through one dispatcher', async () => {

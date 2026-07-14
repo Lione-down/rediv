@@ -8,9 +8,14 @@ import CanvasToolDock from './CanvasToolDock.vue'
 import CanvasViewControls from './CanvasViewControls.vue'
 import { useCanvasStage } from './composables/use-canvas-stage'
 
-const props = withDefaults(defineProps<{ readonly?: boolean }>(), {
+const props = withDefaults(defineProps<{ readonly?: boolean; resourcesOpen?: boolean }>(), {
   readonly: false,
+  resourcesOpen: false,
 })
+
+const emit = defineEmits<{
+  openResources: [opener: HTMLElement]
+}>()
 
 const {
   canvasStore,
@@ -214,11 +219,13 @@ function closeGraphAccessPanel() {
       :is-grid-enabled="isGridEnabled"
       :is-minimap-visible="isMinimapVisible"
       :readonly="readonly"
+      :resources-open="resourcesOpen"
       :zoom-percent="zoomPercent"
       @auto-arrange="autoArrange('toolbar')"
       @fit-graph="fitGraph"
       @fit-selection="fitSelection"
       @set-zoom="setZoomPercent"
+      @toggle-resources="emit('openResources', $event)"
       @toggle-edges="toggleEdges"
       @toggle-grid="toggleGrid"
       @toggle-minimap="toggleMinimap"

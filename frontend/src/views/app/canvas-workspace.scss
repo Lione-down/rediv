@@ -60,6 +60,17 @@
 .canvas-layer {
   position: absolute;
   inset: 0;
+  transition:
+    left var(--v2-duration-enter) var(--v2-ease-enter),
+    right var(--v2-duration-enter) var(--v2-ease-enter);
+}
+
+.has-resource-panel .canvas-layer {
+  left: calc(var(--resource-panel-width, 320px) + var(--v2-space-8));
+}
+
+.has-context-panel .canvas-layer {
+  right: 392px;
 }
 
 .canvas-layer :deep(.workspace-stage),
@@ -189,6 +200,29 @@
   color: var(--v2-text-secondary);
 }
 
+.resource-panel-shell,
+.context-panel-shell {
+  position: absolute;
+  z-index: 18;
+  top: 80px;
+  bottom: 76px;
+}
+
+.resource-panel-shell {
+  left: var(--v2-space-4);
+  width: var(--resource-panel-width, 320px);
+}
+
+.context-panel-shell {
+  right: var(--v2-space-4);
+  width: 360px;
+}
+
+.drawer-theme {
+  width: 100%;
+  height: 100%;
+}
+
 .review-boundary {
   position: absolute;
   right: var(--v2-space-4);
@@ -208,123 +242,9 @@
   pointer-events: none;
 }
 
-.node-context {
-  position: absolute;
-  right: 50%;
-  bottom: max(var(--v2-space-4), env(safe-area-inset-bottom));
-  z-index: 20;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--v2-space-2) var(--v2-space-4);
-  width: min(560px, calc(100vw - 360px));
-  min-height: 64px;
-  padding: var(--v2-space-2) var(--v2-space-2) var(--v2-space-2) var(--v2-space-4);
-  border: 1px solid var(--v2-border-standard);
-  border-radius: var(--v2-radius-md);
-  color: var(--v2-text-primary);
-  background: var(--v2-surface-2);
-  box-shadow: var(--v2-shadow-prominent);
-  transform: translateX(50%);
-}
-
-.node-context-copy {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: var(--v2-space-3);
-}
-
-.node-context-copy > svg {
-  flex: none;
-  color: var(--v2-accent-hover);
-}
-
-.node-context-copy strong,
-.node-context-copy span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.node-context-copy strong {
-  font-size: var(--v2-font-size-body);
-  font-weight: var(--v2-font-weight-semibold);
-}
-
-.node-context-copy span {
-  margin-top: 2px;
-  color: var(--v2-text-muted);
-  font-size: var(--v2-font-size-caption);
-}
-
-.generate-action {
-  display: inline-flex;
-  min-height: var(--v2-control-min-size);
-  align-items: center;
-  justify-content: center;
-  gap: var(--v2-space-2);
-  padding: 0 var(--v2-space-4);
-  border: 0;
-  border-radius: var(--v2-radius-sm);
-  color: var(--v2-text-on-accent);
-  background: var(--v2-accent);
-  font: inherit;
-  font-size: var(--v2-font-size-control);
-  font-weight: var(--v2-font-weight-medium);
-  cursor: pointer;
-  touch-action: manipulation;
-  transition:
-    transform var(--v2-duration-fast) var(--v2-ease-standard),
-    opacity var(--v2-duration-fast) var(--v2-ease-standard);
-}
-
-.generate-action:active {
-  transform: scale(var(--v2-press-scale));
-}
-
-.generate-action:focus-visible {
-  outline: 2px solid var(--v2-focus-ring);
-  outline-offset: 2px;
-}
-
-.generate-action:disabled {
-  color: var(--v2-text-disabled);
-  background: var(--v2-surface-disabled);
-  cursor: not-allowed;
-}
-
-.node-feedback {
-  display: flex;
-  grid-column: 1 / -1;
-  align-items: center;
-  gap: var(--v2-space-2);
-  margin: 0;
-  padding-top: var(--v2-space-2);
-  border-top: 1px solid var(--v2-border-subtle);
-  font-size: var(--v2-font-size-caption);
-}
-
-.node-feedback.is-error {
-  color: var(--v2-danger);
-}
-
-.node-feedback.is-success {
-  color: var(--v2-success);
-}
-
-.is-spinning {
-  animation: status-spin 900ms linear infinite;
-}
-
 .review-boundary strong {
   color: var(--v2-text-primary);
   font-size: var(--v2-font-size-body);
-}
-
-@keyframes status-spin {
-  to { transform: rotate(360deg); }
 }
 
 @media (hover: hover) {
@@ -353,9 +273,6 @@
     padding: 0;
   }
 
-  .node-context {
-    width: min(520px, calc(100vw - 32px));
-  }
 }
 
 @media (max-width: 767px) {
@@ -372,24 +289,10 @@
     display: none;
   }
 
-  .node-context {
-    right: var(--v2-space-4);
-    bottom: 104px;
-    left: var(--v2-space-4);
-    display: block;
-    width: auto;
-    min-height: 0;
-    padding: var(--v2-space-3) var(--v2-space-4);
-    transform: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sync-status.is-saving svg {
-    animation: none;
-  }
-
-  .is-spinning {
     animation: none;
   }
 }

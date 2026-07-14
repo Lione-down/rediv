@@ -1,10 +1,11 @@
 # TASK-T5-007 - Node registry, project resources, and generation integration
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Phase: Product V2 / Phase 5
 - Dependency: T5-006 `DONE - PASS`
 - Owner: Codex Project Lead Engineer
 - Started: 2026-07-13
+- Completed: 2026-07-14
 
 ## Objective
 
@@ -50,18 +51,18 @@ Deliver the first-acceptance node registry and connect Canvas to project-shared 
 ## Acceptance Criteria
 
 - [x] Registry defines type, subtype, ports, default size, icon, capabilities, and serialization version in one place for all six canonical node types.
-- [ ] Tool dock, `Tab`, double-click/context menu, asset insertion, renderer, access tree, and serialization resolve node behavior through the registry.
+- [x] Tool dock, `Tab`, double-click/context menu, asset insertion, renderer, access tree, and serialization resolve node behavior through the registry.
 - [x] Legacy graphs remain usable; unknown future node types render a safe labeled unsupported state and round-trip without graph corruption.
 - [x] Image/video results use real media previews when available or explicit labeled placeholders; audio is supported only as an asset subtype.
-- [ ] Project assets, templates, generation tasks, and generated assets are available from every Canvas without copying ownership.
+- [x] Project assets, templates, generation tasks, and generated assets are available from every Canvas without copying ownership.
 - [x] Template graphs preserve nodes, connections, relative placement, parent relationships, and version metadata while remapping IDs into the target Canvas atomically.
 - [x] MySQL comments, indexes, checks, and composite foreign keys enforce project/Canvas attribution and clear node links without erasing retained origin history.
 - [x] Provider success persists one task, one generated project asset, and a linked result; provider or asset persistence failure records a specific task failure, creates no success asset/result, and consumes no quota.
 - [x] Generation success/failure and project resource visibility survive backend restart.
 - [x] Generation responses include authoritative quotas and the frontend never invents quota changes.
 - [x] Automated provider evidence uses mocks only; no paid provider call runs.
-- [ ] Desktop and narrow layouts expose contextual resource/generation controls; 375px remains browse/review-only with no edit, delete, upload, template-use, or generation action.
-- [ ] Focused tests, guarded MySQL migration/API/restart evidence, full backend regression, full Chromium regression, production build, accessibility checks, fresh diff review, and hygiene gates pass.
+- [x] Desktop and narrow layouts expose contextual resource/generation controls; 375px remains browse/review-only with no edit, delete, upload, template-use, or generation action.
+- [x] Focused tests, guarded MySQL migration/API/restart evidence, full backend regression, full Chromium regression, production build, accessibility checks, fresh diff review, and hygiene gates pass.
 
 ## Linked Decisions And Specifications
 

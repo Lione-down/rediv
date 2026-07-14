@@ -1,11 +1,13 @@
-export type AssetType = 'prompt' | 'image' | 'video'
+export type AssetType = 'prompt' | 'image' | 'video' | 'audio'
+export type ProjectAssetUploadType = Exclude<AssetType, 'prompt'>
 
 export interface Asset {
   id: string
   user_id: string
   project_id: string | null
+  origin_canvas_id: string | null
   canvas_node_id: string | null
-  type: string
+  type: AssetType
   url: string | null
   content_text: string | null
   source: string
@@ -19,6 +21,7 @@ export interface Asset {
 export interface AssetListParams {
   asset_type?: string
   project_id?: string
+  origin_canvas_id?: string
   page?: number
   page_size?: number
 }
@@ -38,4 +41,5 @@ export interface AssetListResponse {
 export type AssetCreatePayload = Pick<Asset, 'url' | 'content_text'> & {
   type: AssetType
   project_id?: string | null
+  origin_canvas_id?: string | null
 }

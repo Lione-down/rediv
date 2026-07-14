@@ -1,6 +1,9 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+
+
+ASSET_CONTENT_TEXT_MAX_LENGTH = 64 * 1024
 
 
 class AssetListItem(BaseModel):
@@ -28,11 +31,13 @@ class AssetListResponse(BaseModel):
 
 
 class AssetCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     type: Literal["prompt", "image", "video", "audio"]
-    url: str | None = None
-    content_text: str | None = None
-    project_id: str | None = None
-    origin_canvas_id: str | None = None
+    url: str | None = Field(default=None, max_length=2048)
+    content_text: str | None = Field(default=None, max_length=ASSET_CONTENT_TEXT_MAX_LENGTH)
+    project_id: str | None = Field(default=None, max_length=36)
+    origin_canvas_id: str | None = Field(default=None, max_length=36)
 
 
 class AssetFromGenerationRequest(BaseModel):

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  GitBranch, Grid3X3, Map, Minus, Plus, Scan, ScanSearch, SlidersHorizontal, Workflow,
+  GitBranch, Grid3X3, Library, Map, Minus, Plus, Scan, ScanSearch, SlidersHorizontal, Workflow,
 } from 'lucide-vue-next'
 
 defineProps<{
@@ -10,6 +10,7 @@ defineProps<{
   isGridEnabled: boolean
   isMinimapVisible: boolean
   readonly: boolean
+  resourcesOpen: boolean
   zoomPercent: number
 }>()
 
@@ -18,6 +19,7 @@ const emit = defineEmits<{
   fitGraph: []
   fitSelection: []
   setZoom: [percent: number]
+  toggleResources: [opener: HTMLElement]
   toggleEdges: []
   toggleGrid: []
   toggleMinimap: []
@@ -36,10 +38,22 @@ function handleZoomKeyDown(event: KeyboardEvent) {
   commitZoom(event)
   ;(event.target as HTMLInputElement).blur()
 }
+
+function toggleResources(event: MouseEvent) {
+  if (event.currentTarget instanceof HTMLElement) emit('toggleResources', event.currentTarget)
+}
 </script>
 
 <template>
   <div class="view-controls" role="toolbar" aria-label="画布视图控制">
+    <button
+      type="button"
+      aria-label="打开项目资源"
+      title="项目资源"
+      :aria-expanded="resourcesOpen"
+      @click="toggleResources"
+    ><Library :size="17" aria-hidden="true" /></button>
+
     <details class="view-menu">
       <summary aria-label="打开视图选项" title="视图选项">
         <SlidersHorizontal :size="17" aria-hidden="true" />

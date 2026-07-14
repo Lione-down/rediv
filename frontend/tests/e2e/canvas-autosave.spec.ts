@@ -274,24 +274,25 @@ async function openCanvas(page: Page, state: AutosaveState, expectSaved = true) 
 }
 
 async function createTextNode(page: Page, x: number) {
-  await page.locator('.canvas-surface').dblclick({ position: { x, y: 520 } })
+  const canvasSurface = page.locator('.canvas-surface')
+  const bounds = await canvasSurface.boundingBox()
+  if (!bounds) throw new Error('Canvas surface is not available for node creation')
+  const maxX = Math.max(40, bounds.width - 80)
+  const y = Math.min(x > maxX ? 280 : 520, Math.max(40, bounds.height - 80))
+  await canvasSurface.dblclick({ position: { x: Math.min(x, maxX), y } })
 }
-
 test('compatible graph edits batch into one document PATCH and reach Saved within one second', async ({ page }) => {
   const state = createState()
   await openCanvas(page, state)
-
   await createTextNode(page, 680)
   await page.waitForTimeout(80)
   await createTextNode(page, 1_080)
-
   const syncStatus = page.locator('.sync-status')
   await expect(syncStatus).toHaveClass(/is-saving/)
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), RECOVERY_KEY)).not.toBeNull()
   await expect(syncStatus).toHaveClass(/is-saved/, { timeout: 1_000 })
   await expect(syncStatus).toContainText('r8')
   await expect(page.getByRole('dialog', { name: '修订历史与恢复' })).toBeHidden()
-
   expect(state.patchAttempts).toHaveLength(1)
   expect(state.patchAttempts[0].base_revision).toBe(7)
   expect(state.patchAttempts[0].client_mutation_id).toBeTruthy()

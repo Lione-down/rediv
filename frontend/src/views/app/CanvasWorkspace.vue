@@ -1,33 +1,28 @@
 <script setup lang="ts">
-import { isAxiosError } from 'axios'
-import { AlertTriangle, CircleCheck, CircleHelp, History, LoaderCircle, Play, UserRound, WandSparkles } from 'lucide-vue-next'
-import { darkTheme, NConfigProvider } from 'naive-ui'
+import { CircleCheck, CircleHelp, History, LoaderCircle, UserRound } from 'lucide-vue-next'
+import { darkTheme, NConfigProvider, NDrawer, NDrawerContent } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { request } from '../../api/request'
 import { v2CanvasNaiveTheme } from '../../assets/styles/v2-canvas-naive-theme'
+import CanvasAssetPanel from '../../components/canvas/CanvasAssetPanel.vue'
+import CanvasContextPanel from '../../components/canvas/CanvasContextPanel.vue'
 import CanvasIdentityBar from '../../components/canvas/CanvasIdentityBar.vue'
 import CanvasRevisionPanel from '../../components/canvas/CanvasRevisionPanel.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
+import { useCanvasResourceExperience } from '../../components/canvas/composables/use-canvas-resource-experience'
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
 import { useCanvasRevisionStore } from '../../modules/canvas/canvas-revision-store'
-import { requestCanvasGeneration } from '../../modules/canvas/generation-service'
 import { canvasRouteLocation, normalizeRouteIdentifier } from '../../modules/canvas/metadata'
-import { getLegacyGenerationQuotaType } from '../../modules/canvas/node-registry'
 import { useProjectStore } from '../../modules/project/store'
 import { useAuthStore } from '../../store/auth'
-import { useAssetStore } from '../../store/assets'
 import { useCanvasStore } from '../../store/canvas'
-import type { Asset } from '../../types/asset'
-import type { CanvasNode } from '../../types/canvas'
 
 type MoveDirection = -1 | 1
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const assetStore = useAssetStore()
 const projectStore = useProjectStore()
 const canvasListStore = useCanvasListStore()
 const canvasDocumentStore = useCanvasStore()
@@ -36,20 +31,18 @@ const canvasRevisionStore = useCanvasRevisionStore()
 useCanvasPersistenceLifecycle()
 
 const isReviewOnly = ref(false)
-const isGenerating = ref(false)
-const generationError = ref('')
-const generationSuccess = ref('')
+const isCompact = ref(false)
 const isRevisionPanelOpen = ref(false)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
 let revisionPanelOpener: HTMLElement | null = null
 let reviewMediaQuery: MediaQueryList | null = null
+let compactMediaQuery: MediaQueryList | null = null
 
 const projectId = computed(() => normalizeRouteIdentifier(route.params.projectId))
 const canvasId = computed(() => normalizeRouteIdentifier(route.params.canvasId))
 const activeCanvas = computed(() => (
   canvasListStore.items.find((canvas) => canvas.id === canvasId.value) ?? null
 ))
-const selectedNode = computed(() => canvasDocumentStore.selectedNode)
 const projectName = computed(() => (
   projectStore.items.find((project) => project.id === projectId.value)?.name ?? 'Revid 项目'
 ))
@@ -88,16 +81,38 @@ const syncIcon = computed(() => {
   if (syncTone.value === 'saving') return LoaderCircle
   return CircleCheck
 })
-const selectedQuotaType = computed(() => (
-  selectedNode.value ? getLegacyGenerationQuotaType(selectedNode.value) : null
-))
-const isQuotaInsufficient = computed(() => {
-  const quotaType = selectedQuotaType.value
-  return quotaType ? authStore.quotas[quotaType] < 1 : false
-})
+const {
+  resourceStore,
+  activeTab,
+  panelWidth,
+  isResourceOpen,
+  isContextDrawerOpen,
+  isDesktopContextOpen,
+  isUploading,
+  isGenerating,
+  selectedNode,
+  selectedMediaType,
+  selectedQuota,
+  latestTask,
+  visibleError,
+  generationError,
+  generationSuccess,
+  openResources,
+  closeResources,
+  restoreResourceFocus,
+  closeContext,
+  setPanelWidth,
+  insertAsset,
+  uploadAsset,
+  captureTemplate,
+  instantiateTemplate,
+  generate,
+  updatePrompt,
+} = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
 
-function updateReviewBoundary(event?: MediaQueryListEvent) {
-  isReviewOnly.value = event?.matches ?? reviewMediaQuery?.matches ?? false
+function updateResponsiveBoundaries() {
+  isReviewOnly.value = reviewMediaQuery?.matches ?? false
+  isCompact.value = compactMediaQuery?.matches ?? false
 }
 
 async function loadWorkspaceContext(nextProjectId: string, nextCanvasId: string) {
@@ -188,76 +203,16 @@ function closeRevisionPanel() {
   void nextTick(() => focusTarget?.focus({ preventScroll: true }))
 }
 
-function extractGenerationError(error: unknown) {
-  if (isAxiosError<{ detail?: string }>(error)) {
-    return error.response?.data?.detail || error.message || '生成失败，请稍后重试。'
-  }
-  return error instanceof Error ? error.message : '生成失败，请稍后重试。'
+function retryProjectResources() {
+  void resourceStore.refresh().catch(() => undefined)
 }
 
-function prependAsset(asset?: Asset) {
-  if (!asset?.id) return
-  assetStore.items = [asset, ...assetStore.items.filter((item) => item.id !== asset.id)]
+function updateResourceDrawer(show: boolean) {
+  if (!show) closeResources(false)
 }
 
-async function requestGeneration(node: CanvasNode) {
-  const prompt = node.content?.trim() || node.title.trim()
-  if (node.type === 'text') {
-    throw new Error('当前兼容图层尚未接入 Canvas-scoped 文本生成，请选择图片或视频节点。')
-  }
-  if (node.type !== 'image' && node.type !== 'model' && node.type !== 'video') {
-    throw new Error('当前节点类型暂不支持生成。')
-  }
-  const response = await requestCanvasGeneration({
-    mediaType: node.type === 'video' ? 'video' : 'image',
-    projectId: projectId.value,
-    originCanvasId: canvasId.value,
-    canvasNodeId: node.id,
-    prompt,
-  }, authStore, request)
-  return response.asset
-}
-
-async function generateFromSelectedNode() {
-  const node = selectedNode.value
-  const quotaType = selectedQuotaType.value
-  if (!node || isReviewOnly.value || isGenerating.value) return
-  if (!quotaType) {
-    generationError.value = '当前节点类型暂不支持生成。'
-    canvasDocumentStore.setNodeStatus(node.id, 'warning')
-    return
-  }
-  if (isQuotaInsufficient.value) {
-    generationError.value = `${quotaType} quota 不足，当前生成已阻止。`
-    canvasDocumentStore.setNodeStatus(node.id, 'warning')
-    return
-  }
-
-  isGenerating.value = true
-  generationError.value = ''
-  generationSuccess.value = ''
-  canvasDocumentStore.setNodeStatus(node.id, 'running')
-  try {
-    const asset = await requestGeneration(node)
-    prependAsset(asset)
-    canvasDocumentStore.setNodeStatus(node.id, 'success')
-    if (asset?.url) {
-      canvasDocumentStore.setNodeContent(
-        node.id,
-        node.type === 'video'
-          ? '视频任务已完成，可在 Assets 面板查看。'
-          : '关键帧已生成，可在 Assets 面板查看。',
-      )
-    }
-    generationSuccess.value = node.type === 'video'
-      ? '视频生成完成，结果已写入资产区。'
-      : '图片生成完成，结果已写入资产区。'
-  } catch (error) {
-    generationError.value = extractGenerationError(error)
-    canvasDocumentStore.setNodeStatus(node.id, 'warning')
-  } finally {
-    isGenerating.value = false
-  }
+function updateContextDrawer(show: boolean) {
+  if (!show) closeContext()
 }
 
 watch([projectId, canvasId], ([nextProjectId, nextCanvasId]) => {
@@ -274,23 +229,39 @@ watch(() => canvasDocumentStore.saveState, (state) => {
 
 onMounted(() => {
   reviewMediaQuery = window.matchMedia('(max-width: 767px)')
-  updateReviewBoundary()
-  reviewMediaQuery.addEventListener('change', updateReviewBoundary)
+  compactMediaQuery = window.matchMedia('(max-width: 1023px)')
+  updateResponsiveBoundaries()
+  reviewMediaQuery.addEventListener('change', updateResponsiveBoundaries)
+  compactMediaQuery.addEventListener('change', updateResponsiveBoundaries)
 })
 
 onBeforeUnmount(() => {
-  reviewMediaQuery?.removeEventListener('change', updateReviewBoundary)
+  reviewMediaQuery?.removeEventListener('change', updateResponsiveBoundaries)
+  compactMediaQuery?.removeEventListener('change', updateResponsiveBoundaries)
   reviewMediaQuery = null
+  compactMediaQuery = null
 })
 </script>
 
 <template>
   <NConfigProvider :theme="darkTheme" :theme-overrides="v2CanvasNaiveTheme">
-    <div class="v2-canvas-theme canvas-workspace" :class="{ 'is-review-only': isReviewOnly }">
+    <div
+      class="v2-canvas-theme canvas-workspace"
+      :class="{
+        'is-review-only': isReviewOnly,
+        'has-resource-panel': isResourceOpen && !isCompact,
+        'has-context-panel': isDesktopContextOpen,
+      }"
+      :style="{ '--resource-panel-width': `${panelWidth}px` }"
+    >
       <a class="skip-link" href="#canvas-main">跳到画布内容</a>
 
       <div class="canvas-layer" aria-hidden="false">
-        <CanvasStage :readonly="isReviewOnly || canvasRevisionStore.restoringRevision !== null" />
+        <CanvasStage
+          :readonly="isReviewOnly || canvasRevisionStore.restoringRevision !== null"
+          :resources-open="isResourceOpen"
+          @open-resources="openResources"
+        />
       </div>
 
       <header class="route-chrome" aria-label="Canvas route controls">
@@ -349,6 +320,103 @@ onBeforeUnmount(() => {
         @close="closeRevisionPanel"
       />
 
+      <div v-if="isResourceOpen && !isCompact" class="resource-panel-shell">
+        <CanvasAssetPanel
+          v-model:active-tab="activeTab"
+          :assets="resourceStore.assets"
+          :error="visibleError"
+          :is-loading="resourceStore.isLoading"
+          :is-uploading="isUploading"
+          mode="panel"
+          :panel-width="panelWidth"
+          :readonly="isReviewOnly"
+          :tasks="resourceStore.tasks"
+          :templates="resourceStore.templates"
+          @capture-template="captureTemplate"
+          @close="closeResources"
+          @insert-asset="insertAsset"
+          @instantiate-template="instantiateTemplate"
+          @resize="setPanelWidth"
+          @retry="retryProjectResources"
+          @upload="uploadAsset"
+        />
+      </div>
+
+      <div v-if="selectedNode && isDesktopContextOpen" class="context-panel-shell">
+        <CanvasContextPanel
+          :error="generationError"
+          :is-generating="isGenerating"
+          :latest-task="latestTask"
+          :media-type="selectedMediaType"
+          mode="panel"
+          :node="selectedNode"
+          :quota="selectedQuota"
+          :readonly="isReviewOnly"
+          :success="generationSuccess"
+          @close="closeContext"
+          @generate="generate"
+          @update-prompt="updatePrompt"
+        />
+      </div>
+
+      <NDrawer
+        :show="isResourceOpen && isCompact"
+        placement="left"
+        :width="isReviewOnly ? '100%' : 420"
+        @after-leave="restoreResourceFocus"
+        @update:show="updateResourceDrawer"
+      >
+        <NDrawerContent body-content-style="height: 100%; padding: 0;">
+          <div class="v2-canvas-theme drawer-theme">
+            <CanvasAssetPanel
+              v-model:active-tab="activeTab"
+              :assets="resourceStore.assets"
+              autofocus
+              :error="visibleError"
+              :is-loading="resourceStore.isLoading"
+              :is-uploading="isUploading"
+              mode="drawer"
+              :readonly="isReviewOnly"
+              :tasks="resourceStore.tasks"
+              :templates="resourceStore.templates"
+              @capture-template="captureTemplate"
+              @close="closeResources"
+              @insert-asset="insertAsset"
+              @instantiate-template="instantiateTemplate"
+              @retry="retryProjectResources"
+              @upload="uploadAsset"
+            />
+          </div>
+        </NDrawerContent>
+      </NDrawer>
+
+      <NDrawer
+        :show="isContextDrawerOpen && isCompact && Boolean(selectedNode)"
+        placement="right"
+        :width="isReviewOnly ? '100%' : 360"
+        @update:show="updateContextDrawer"
+      >
+        <NDrawerContent body-content-style="height: 100%; padding: 0;">
+          <div class="v2-canvas-theme drawer-theme">
+            <CanvasContextPanel
+              v-if="selectedNode"
+              :error="generationError"
+              :is-generating="isGenerating"
+              :latest-task="latestTask"
+              :media-type="selectedMediaType"
+              mode="drawer"
+              :node="selectedNode"
+              :quota="selectedQuota"
+              :readonly="isReviewOnly"
+              :success="generationSuccess"
+              @close="closeContext"
+              @generate="generate"
+              @update-prompt="updatePrompt"
+            />
+          </div>
+        </NDrawerContent>
+      </NDrawer>
+
       <main id="canvas-main" class="canvas-main" tabindex="-1" aria-label="Canvas 主内容">
         <p class="canvas-context">
           <span>{{ activeCanvas?.name || '画布' }}</span>
@@ -356,36 +424,6 @@ onBeforeUnmount(() => {
           <span>Canvas document · r{{ canvasDocumentStore.graphRevision }}</span>
         </p>
       </main>
-
-      <section v-if="selectedNode" class="node-context" aria-label="节点上下文">
-        <div class="node-context-copy">
-          <WandSparkles :size="18" aria-hidden="true" />
-          <div>
-            <strong>{{ selectedNode.title }}</strong>
-            <span v-if="isReviewOnly">审阅节点内容与连接状态。</span>
-            <span v-else>继续处理“{{ selectedNode.title }}”节点的生成任务。</span>
-          </div>
-        </div>
-        <button
-          v-if="!isReviewOnly"
-          type="button"
-          class="generate-action"
-          :disabled="isGenerating || isQuotaInsufficient || !selectedQuotaType"
-          @click="generateFromSelectedNode"
-        >
-          <LoaderCircle v-if="isGenerating" :size="17" class="is-spinning" aria-hidden="true" />
-          <Play v-else :size="17" aria-hidden="true" />
-          {{ isGenerating ? '生成中' : '立即生成' }}
-        </button>
-        <p v-if="generationError" class="node-feedback is-error" role="alert">
-          <AlertTriangle :size="15" aria-hidden="true" />
-          {{ generationError }}
-        </p>
-        <p v-else-if="generationSuccess" class="node-feedback is-success" role="status">
-          <CircleCheck :size="15" aria-hidden="true" />
-          {{ generationSuccess }}
-        </p>
-      </section>
 
       <div v-if="isReviewOnly" class="review-boundary" role="status">
         <strong>浏览审阅模式</strong>

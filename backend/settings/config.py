@@ -44,6 +44,16 @@ class Settings(BaseSettings):
     # === Storage ===
     storage_backend: str = "local"  # local | s3
     storage_local_root: str = "./storage"
+    asset_upload_max_bytes: int = Field(default=100 * 1024 * 1024, gt=0, le=1024 * 1024 * 1024)
+    asset_upload_user_quota_bytes: int = Field(default=5 * 1024**3, gt=0, le=1024**4)
+    asset_upload_min_free_bytes: int = Field(default=512 * 1024**2, ge=0, le=1024**4)
+    asset_upload_max_active_reservations: int = Field(default=64, gt=0, le=10_000)
+    asset_upload_max_active_reservations_per_user: int = Field(default=2, gt=0, le=1_000)
+    asset_upload_reservation_scan_limit: int = Field(default=256, gt=0, le=100_000)
+    asset_upload_user_file_count_limit: int = Field(default=10_000, gt=0, le=1_000_000)
+    asset_upload_validation_concurrency: int = Field(default=4, gt=0, le=32)
+    asset_upload_idle_timeout_seconds: float = Field(default=30, gt=0, le=3600)
+    asset_upload_total_timeout_seconds: float = Field(default=600, gt=0, le=3600)
     storage_s3_bucket: str = ""
     storage_s3_endpoint: str = ""
     storage_s3_region: str = "us-east-1"

@@ -185,32 +185,67 @@ export function createCanvasCommandHistory(options: CanvasCommandHistoryOptions)
     notify()
   }
 
-  function execute(envelope: CanvasCommandEnvelope) {
-    return schedule(async () => {
-      const scope = activeScope
-      let before: GraphSnapshot | null = null
-      if (scope) {
-        try {
-          before = captureCommandStart(envelope, options.getNodes(), options.getConnections())
-        } catch {
-          // A history snapshot must never block the typed command itself.
-        }
+  async function executeNow(envelope: CanvasCommandEnvelope) {
+    const scope = activeScope
+    let before: GraphSnapshot | null = null
+    if (scope) {
+      try {
+        before = captureCommandStart(envelope, options.getNodes(), options.getConnections())
+      } catch {
+        // A history snapshot must never block the typed command itself.
       }
-      await options.executeCommand(envelope)
-      if (!scope || scope !== activeScope || !before) return
-      const entry = createEntry(
-        envelope,
-        before,
-        captureGraph(options.getNodes(), options.getConnections()),
-      )
-      if (!entry) return
-      const stack = activeStack()
-      if (!stack) return
-      stack.undo.push(entry)
-      if (stack.undo.length > limit) stack.undo.splice(0, stack.undo.length - limit)
-      stack.redo = []
-      notify()
-    })
+    }
+    await options.executeCommand(envelope)
+    if (!scope || scope !== activeScope || !before) return
+    const entry = createEntry(
+      envelope,
+      before,
+      captureGraph(options.getNodes(), options.getConnections()),
+    )
+    if (!entry) return
+    const stack = activeStack()
+    if (!stack) return
+    stack.undo.push(entry)
+    if (stack.undo.length > limit) stack.undo.splice(0, stack.undo.length - limit)
+    stack.redo = []
+    notify()
+  }
+
+  function execute(envelope: CanvasCommandEnvelope) {
+    return schedule(() => executeNow(envelope))
+  }
+
+  async function adoptNow(
+    envelope: CanvasCommandEnvelope,
+    applyCommittedGraph: () => Promise<void> | void,
+  ) {
+    const scope = activeScope
+    const before = scope ? captureGraph(options.getNodes(), options.getConnections()) : null
+    await applyCommittedGraph()
+    if (!scope || scope !== activeScope || !before) return
+    const entry = createEntry(
+      envelope,
+      before,
+      captureGraph(options.getNodes(), options.getConnections()),
+    )
+    if (!entry) return
+    const stack = activeStack()
+    if (!stack) return
+    stack.undo.push(entry)
+    if (stack.undo.length > limit) stack.undo.splice(0, stack.undo.length - limit)
+    stack.redo = []
+    notify()
+  }
+
+  function adopt(envelope: CanvasCommandEnvelope, applyCommittedGraph: () => Promise<void> | void) {
+    return schedule(() => adoptNow(envelope, applyCommittedGraph))
+  }
+
+  function runSerialized<T>(operation: (actions: {
+    adopt: typeof adoptNow
+    execute: typeof executeNow
+  }) => Promise<T> | T) {
+    return schedule(() => operation({ adopt: adoptNow, execute: executeNow }))
   }
 
   function applyEntry(entry: HistoryEntry, direction: 'undo' | 'redo') {
@@ -259,5 +294,5 @@ export function createCanvasCommandHistory(options: CanvasCommandHistoryOptions)
     })
   }
 
-  return { activate, deactivate, clearAll, execute, undo, redo, getState }
+  return { activate, deactivate, clearAll, execute, adopt, runSerialized, undo, redo, getState }
 }

@@ -1,4 +1,4 @@
-import type { CanvasNode } from '../../types/canvas'
+import type { CanvasNode, CanvasNodeStatus } from '../../types/canvas'
 
 export const CANONICAL_NODE_TYPES = [
   'script',
@@ -13,6 +13,7 @@ export type CanonicalNodeType = typeof CANONICAL_NODE_TYPES[number]
 export type NodeDefinitionKind = 'canonical' | 'compatibility'
 export type NodePortDirection = 'input' | 'output'
 export type NodePortDataType = 'any' | 'text' | 'media' | 'result'
+export type PersistedGenerationStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'timed_out'
 
 export interface NodeSubtypeDefinition {
   id: string
@@ -279,6 +280,36 @@ export function getLegacyGenerationQuotaType(
   if (node.type === 'image' || node.type === 'model') return 'image'
   if (node.type === 'video') return 'video'
   return null
+}
+
+export function getGenerationMediaType(
+  node: Pick<CanvasNode, 'type' | 'contentData'>,
+): 'image' | 'video' | null {
+  const definition = resolveNodeDefinition(node.type, node.contentData)
+  if (definition.kind === 'unsupported' || !definition.capabilities.canGenerate) return null
+  if (node.type === 'generation') {
+    const subtype = node.contentData?.subtype
+    return subtype === 'image' || subtype === 'video' ? subtype : null
+  }
+  return getLegacyGenerationQuotaType(node)
+}
+
+export function getPersistedGenerationStatus(
+  content: Record<string, unknown>,
+): PersistedGenerationStatus | null {
+  const value = content.generation_status
+  return value === 'queued' || value === 'running' || value === 'succeeded' ||
+    value === 'failed' || value === 'timed_out'
+    ? value
+    : null
+}
+
+export function generationStatusToNodeStatus(
+  status: PersistedGenerationStatus,
+): CanvasNodeStatus {
+  if (status === 'succeeded') return 'success'
+  if (status === 'failed' || status === 'timed_out') return 'warning'
+  return 'running'
 }
 
 function portsAreCompatible(output: NodePortDefinition, input: NodePortDefinition) {

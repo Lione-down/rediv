@@ -18,15 +18,41 @@ function createQuotaStore(quotas: QuotaBalance, quotaRevision = -1) {
   }
 }
 
+function scopedTask(mediaType: 'text' | 'image' | 'video', id: string) {
+  return {
+    id, user_id: 'user-service', project_id: 'project-service',
+    origin_canvas_id: 'canvas-service', canvas_node_id: 'node-service', media_type: mediaType,
+    provider: 'mock', model: `mock-${mediaType}-v1`, provider_request_id: `request-${id}`,
+    status: 'succeeded' as const, duration_ms: 12, result_asset_id: `asset-${id}`,
+    error_code: null, error_message: null, created_at: '2026-07-14T08:00:00Z',
+    updated_at: '2026-07-14T08:00:00Z',
+  }
+}
+
+function scopedAsset(mediaType: 'text' | 'image' | 'video', id: string) {
+  return {
+    id: `asset-${id}`, user_id: 'user-service', project_id: 'project-service',
+    origin_canvas_id: 'canvas-service', canvas_node_id: 'node-service',
+    type: mediaType === 'text' ? 'prompt' : mediaType,
+    url: mediaType === 'text' ? null : `https://media.revid.test/${id}`,
+    content_text: mediaType === 'text' ? 'generated text' : null,
+    source: 'generation', source_model: `mock-${mediaType}-v1`, source_task_id: id,
+    status: 'active', created_at: '2026-07-14T08:00:00Z', updated_at: '2026-07-14T08:00:00Z',
+  }
+}
+
 test('generation service posts complete Canvas context and replaces quotas for every media route', async () => {
   const calls: Array<{ path: string; payload: unknown }> = []
   const authoritativeQuotas: QuotaBalance = { text: 3, image: 3, video: 1 }
   const transport = {
     async post(path: string, payload: unknown) {
       calls.push({ path, payload })
+      const mediaType = path.includes('text') ? 'text' : path.includes('video') ? 'video' : 'image'
+      const taskId = `task-${calls.length}`
       return {
         data: {
-          asset: { id: `asset-${calls.length}` },
+          asset: scopedAsset(mediaType, taskId),
+          generation_task: scopedTask(mediaType, taskId),
           quotas: authoritativeQuotas,
           quota_revision: calls.length,
         },
@@ -44,7 +70,7 @@ test('generation service posts complete Canvas context and replaces quotas for e
       prompt: `${mediaType} prompt`,
     }, quotaStore, transport)
 
-    expect(response.asset?.id).toBe(`asset-${calls.length}`)
+    expect(response.asset?.id).toBe(`asset-task-${calls.length}`)
     expect(quotaStore.quotas).toBe(authoritativeQuotas)
   }
 
@@ -100,15 +126,28 @@ test('generation service ignores an older authoritative quota response that arri
       requestCount += 1
       if (requestCount === 1) {
         await olderResponse
-        return { data: { quotas: { text: 5, image: 1, video: 1 }, quota_revision: 10 } }
+        return {
+          data: {
+            asset: scopedAsset('image', 'task-older'),
+            generation_task: scopedTask('image', 'task-older'),
+            quotas: { text: 5, image: 1, video: 1 }, quota_revision: 10,
+          },
+        }
       }
-      return { data: { quotas: { text: 5, image: 0, video: 1 }, quota_revision: 11 } }
+      return {
+        data: {
+          asset: scopedAsset('image', 'task-newer'),
+          generation_task: scopedTask('image', 'task-newer'),
+          quotas: { text: 5, image: 0, video: 1 }, quota_revision: 11,
+        },
+      }
     },
   }
   const context = {
     mediaType: 'image' as const,
     projectId: 'project-service',
     originCanvasId: 'canvas-service',
+    canvasNodeId: 'node-service',
     prompt: 'concurrent prompt',
   }
 
@@ -118,6 +157,121 @@ test('generation service ignores an older authoritative quota response that arri
   await olderRequest
 
   expect(quotaStore.quotas).toEqual({ text: 5, image: 0, video: 1 })
+})
+
+test('generation response from an old auth session cannot update the next user quota', async () => {
+  let releaseResponse!: () => void
+  const gate = new Promise<void>((resolvePromise) => {
+    releaseResponse = resolvePromise
+  })
+  const quotaStore = {
+    ...createQuotaStore({ text: 5, image: 4, video: 2 }, 7),
+    token: 'session-a',
+  }
+  const transport = {
+    async post() {
+      await gate
+      return {
+        data: {
+          asset: scopedAsset('image', 'task-old-session'),
+          generation_task: scopedTask('image', 'task-old-session'),
+          quotas: { text: 5, image: 3, video: 2 },
+          quota_revision: 8,
+        },
+      }
+    },
+  }
+  const generation = requestCanvasGeneration({
+    mediaType: 'image', projectId: 'project-service', originCanvasId: 'canvas-service',
+    canvasNodeId: 'node-service', prompt: 'old session',
+  }, quotaStore, transport)
+
+  quotaStore.token = 'session-b'
+  quotaStore.quotas = { text: 2, image: 1, video: 0 }
+  quotaStore.quotaRevision = 2
+  releaseResponse()
+  await expect(generation).rejects.toThrow('Generation auth session changed')
+
+  expect(quotaStore.quotas).toEqual({ text: 2, image: 1, video: 0 })
+  expect(quotaStore.quotaRevision).toBe(2)
+})
+
+test('generation service rejects a foreign project asset before quota or Canvas adoption', async () => {
+  const currentQuotas: QuotaBalance = { text: 5, image: 4, video: 2 }
+  const quotaStore = createQuotaStore(currentQuotas, 7)
+  const transport = {
+    async post() {
+      return {
+        data: {
+          asset: {
+            id: 'asset-foreign', user_id: 'user-service', project_id: 'project-foreign',
+            origin_canvas_id: 'canvas-service', canvas_node_id: 'node-service', type: 'image',
+            url: 'https://media.revid.test/foreign.png', content_text: null,
+            source: 'generation', source_model: 'mock-image-v1', source_task_id: 'task-service',
+            status: 'active', created_at: '2026-07-14T08:00:00Z', updated_at: '2026-07-14T08:00:00Z',
+          },
+          generation_task: {
+            id: 'task-service', user_id: 'user-service', project_id: 'project-service',
+            origin_canvas_id: 'canvas-service', canvas_node_id: 'node-service', media_type: 'image',
+            provider: 'mock', model: 'mock-image-v1', provider_request_id: 'request-service',
+            status: 'succeeded', duration_ms: 12, result_asset_id: 'asset-foreign',
+            error_code: null, error_message: null, created_at: '2026-07-14T08:00:00Z',
+            updated_at: '2026-07-14T08:00:00Z',
+          },
+          quotas: { text: 5, image: 3, video: 2 },
+          quota_revision: 8,
+        },
+      }
+    },
+  }
+
+  await expect(requestCanvasGeneration({
+    mediaType: 'image',
+    projectId: 'project-service',
+    originCanvasId: 'canvas-service',
+    canvasNodeId: 'node-service',
+    prompt: 'foreign response',
+  }, quotaStore, transport)).rejects.toThrow('Generation response scope mismatch')
+
+  expect(quotaStore.quotas).toBe(currentQuotas)
+  expect(quotaStore.quotaRevision).toBe(7)
+})
+
+test('generation service rejects malformed success linkage before applying quotas', async () => {
+  const task = scopedTask('image', 'task-malformed')
+  const asset = scopedAsset('image', 'task-malformed')
+  const malformedResponses = [
+    { generation_task: { ...task, status: 'failed' }, asset },
+    { generation_task: task, asset: { ...asset, source: 'upload' } },
+    { generation_task: task, asset: { ...asset, user_id: 'user-foreign' } },
+  ]
+
+  for (const malformed of malformedResponses) {
+    const currentQuotas: QuotaBalance = { text: 5, image: 4, video: 2 }
+    const quotaStore = createQuotaStore(currentQuotas, 7)
+    const transport = {
+      async post() {
+        return {
+          data: {
+            ...malformed,
+            quotas: { text: 5, image: 3, video: 2 },
+            quota_revision: 8,
+          },
+        }
+      },
+    }
+
+    await expect(requestCanvasGeneration({
+      mediaType: 'image',
+      projectId: 'project-service',
+      originCanvasId: 'canvas-service',
+      canvasNodeId: 'node-service',
+      prompt: 'malformed response',
+    }, quotaStore, transport)).rejects.toThrow('Generation response scope mismatch')
+
+    expect(quotaStore.quotas).toBe(currentQuotas)
+    expect(quotaStore.quotaRevision).toBe(7)
+  }
 })
 
 test('auth session reset allows a lower revision from the next user', async () => {
@@ -146,13 +300,17 @@ test('auth session reset allows a lower revision from the next user', async () =
 
 test('both workspace views delegate provider requests and quota updates to the Canvas service', async () => {
   const sourceRoot = resolve(process.cwd(), 'src')
-  const [canvasWorkspace, legacyWorkspace] = await Promise.all([
+  const [canvasWorkspace, resourceExperience, legacyWorkspace] = await Promise.all([
     readFile(resolve(sourceRoot, 'views/app/CanvasWorkspace.vue'), 'utf8'),
+    readFile(resolve(sourceRoot, 'components/canvas/composables/use-canvas-resource-experience.ts'), 'utf8'),
     readFile(resolve(sourceRoot, 'views/app/Workspace.vue'), 'utf8'),
   ])
 
-  for (const source of [canvasWorkspace, legacyWorkspace]) {
-    expect(source).toContain("from '../../modules/canvas/generation-service'")
+  expect(canvasWorkspace).toContain("from '../../components/canvas/composables/use-canvas-resource-experience'")
+  for (const source of [resourceExperience, legacyWorkspace]) {
+    expect(source).toMatch(/from ['"](?:\.\.\/)+modules\/canvas\/generation-service['"]/)
+  }
+  for (const source of [canvasWorkspace, resourceExperience, legacyWorkspace]) {
     expect(source).not.toMatch(/request\.post\(['"]\/api\/(?:text|image|video)-generate/)
     expect(source).not.toMatch(/authStore\.quotas\s*=\s*\{[\s\S]*?authStore\.quotas\[[^\]]+\]\s*-\s*1/)
   }

@@ -11,7 +11,11 @@ import type {
   CanvasNodeDto,
   CanvasRecoveryDocument,
 } from './types'
-import { resolveNodeDefinition } from './node-registry'
+import {
+  generationStatusToNodeStatus,
+  getPersistedGenerationStatus,
+  resolveNodeDefinition,
+} from './node-registry'
 
 const nodeStatusMap: Record<string, CanvasNodeStatus> = {
   idle: 'idle',
@@ -29,6 +33,9 @@ function readString(content: CanvasNodeContentDto, key: string) {
 export function mapCanvasNode(dto: CanvasNodeDto | CanvasDocumentNodeUpsert): CanvasNode {
   const contentData = { ...dto.content }
   const definition = resolveNodeDefinition(dto.node_type, contentData)
+  const persistedGenerationStatus = definition.capabilities.canGenerate
+    ? getPersistedGenerationStatus(contentData)
+    : null
 
   return {
     id: dto.id,
@@ -42,7 +49,9 @@ export function mapCanvasNode(dto: CanvasNodeDto | CanvasDocumentNodeUpsert): Ca
     parentNodeId: dto.parent_node_id ?? null,
     isLocked: dto.is_locked ?? false,
     isCollapsed: dto.is_collapsed ?? false,
-    status: nodeStatusMap['status' in dto ? dto.status : 'idle'] ?? 'idle',
+    status: persistedGenerationStatus
+      ? generationStatusToNodeStatus(persistedGenerationStatus)
+      : nodeStatusMap['status' in dto ? dto.status : 'idle'] ?? 'idle',
     content:
       readString(contentData, 'text') ??
       readString(contentData, 'prompt') ??
