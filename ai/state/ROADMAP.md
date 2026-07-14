@@ -44,6 +44,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 17 | T5-017 | Connected scripts and media become visible, validated image/video generation context | DONE - PASS | T5-016 |
 | 18 | T5-018 | Drag-edge continuation into compatible new typed nodes with atomic insertion | DONE - PASS | T5-017 |
 | 19 | T5-019 | Reverse typed port dragging and upstream continuation | DONE - PASS | T5-018 |
+| 20 | T5-020 | Direct edge selection and typed endpoint rerouting | DONE - PASS | T5-019 |
 
 ## Task Boundaries
 
@@ -88,6 +89,8 @@ T5-017 is `DONE - PASS`. Typed upstream scripts and image/result connections now
 T5-018 is `DONE - PASS`. Output-port dragging released on empty Canvas space now opens a registry-filtered typed continuation chooser. Selection creates one compatible node and one edge through a single `insert-graph` command, while click, Escape, outside click, pointer cancel, direct port drop, autosave, and undo/redo remain deterministic. Focused 8/8, relevant Chromium 50/50, full Chromium 163/163, build, visual, and hygiene evidence passed. `REPORT-T5-018.md` is authoritative evidence.
 
 T5-019 is `DONE - PASS`. Input ports now initiate reverse typed dragging to compatible existing outputs or an upstream continuation chooser. Gesture direction is normalized into canonical source-to-target edge orientation, and upstream creation remains one atomic graph command. Focused 12/12, relevant Chromium 54/54, full Chromium 167/167, build, visual, and hygiene evidence passed. `REPORT-T5-019.md` is authoritative evidence.
+
+T5-020 is `DONE - PASS`. Persisted edges now expose a generous invisible hit path, direct selection, and contextual source/target handles. Typed endpoint reroute preserves the connection ID, metadata, status, one autosave upsert, and one undo/redo entry while visible edges remain pointer-passive. Relevant 57/57, full Chromium 173/173, post-label focused 28/28, build, visual, and hygiene evidence passed. `REPORT-T5-020.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

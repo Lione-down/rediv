@@ -128,7 +128,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     getViewport,
     getViewportSize: () => surfaceViewportSize.value,
   })
-  const { connectionPaths, connectionTargetStates, connectionWorldTransform } = useCanvasConnectionPresentation({
+  const { connectionPaths, connectionTargetStates } = useCanvasConnectionPresentation({
     getConnections: () => canvasStore.connections, getDraftConnection: () => draftConnection.value, getNodes: () => canvasStore.nodes, getViewport,
   })
   const {
@@ -481,7 +481,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     closeContextMenu()
   })
   return {
-    canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionTargetStates, connectionWorldTransform,
+    canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionTargetStates,
     closeConnectionContinuation, connectionContinuation, continuationStyle, selectConnectionContinuation,
     handleMinimapPointerDown, minimapNodeStyle, minimapNodes, minimapRef,
     minimapViewportStyle, stageRef, statusBadgeStyle,

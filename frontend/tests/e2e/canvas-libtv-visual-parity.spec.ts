@@ -24,7 +24,7 @@ test('text, generation, and result nodes expose semantic presentation geometry',
   expect(canvasNodeWorldRect(text, 'composer').top).toBeGreaterThan(text.y + canvasNodeVisualSize(text).height)
 })
 
-test('result media has one visible surface, keeps its ratio, and edges are passive', async ({ page }) => {
+test('result media has one visible surface, keeps its ratio, and visible edges stay passive', async ({ page }) => {
   const state = createResourceMockState()
   const result = state.documents['canvas-first'].nodes.find((node) => node.id === 'result-existing')!
   delete (result.content as Record<string, unknown>).width
@@ -49,9 +49,10 @@ test('result media has one visible surface, keeps its ratio, and edges are passi
     return typeof adopted === 'number' ? adopted : 0
   }).toBeCloseTo(16 / 9, 2)
   await expect(page.getByRole('img', { name: '图片结果' })).toHaveCount(1)
-  await expect(page.locator('.connection-hit')).toHaveCount(0)
+  await expect(page.locator('.connection-hit')).toHaveCSS('pointer-events', 'stroke')
   await expect(page.locator('.connection-layer')).toHaveCSS('pointer-events', 'none')
   const activeEdge = page.locator('.connection-line.active').first()
+  await expect(activeEdge).toHaveCSS('pointer-events', 'none')
   await expect(activeEdge).toHaveCSS('stroke-dasharray', 'none')
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'canvas-media-and-passive-edges.png'), fullPage: true })

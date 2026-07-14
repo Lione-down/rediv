@@ -77,7 +77,7 @@ test('IME composition owns the editor until compositionend', async ({ page }) =>
   await expect.poll(() => documentPatches(state).length).toBeGreaterThan(baseline)
 })
 
-test('broken result media is explicit and Canvas connections stay passive', async ({ page }) => {
+test('broken result media is explicit and visible Canvas edges stay passive', async ({ page }) => {
   const state = createResourceMockState()
   const result = state.documents['canvas-first'].nodes.find((node) => node.id === 'result-existing')!
   ;(result.content as Record<string, unknown>).url = 'https://media.revid.test/broken.png'
@@ -89,8 +89,9 @@ test('broken result media is explicit and Canvas connections stay passive', asyn
   await unavailable.screenshot({ path: resolve(evidenceDirectory, 'broken-media-state.png') })
   const line = page.locator('.connection-line').first()
   await expect(line).toHaveAttribute('marker-end', 'url(#canvas-edge-arrow)')
-  await expect(page.locator('.connection-hit')).toHaveCount(0)
+  await expect(page.locator('.connection-hit')).toHaveCSS('pointer-events', 'stroke')
   await expect(page.locator('.connection-layer')).toHaveCSS('pointer-events', 'none')
+  await expect(line).toHaveCSS('pointer-events', 'none')
 })
 
 test('video result exposes native controls and decoded metadata', async ({ page }) => {

@@ -8,6 +8,7 @@ import {
 import {
   canDeleteCanvasNode,
   createConnectNodesCommand,
+  createReconnectConnectionCommand,
   createSetNodesLockedCommand,
   createGroupNodesCommand,
   createUngroupNodesCommand,
@@ -22,6 +23,7 @@ import {
   type GroupNodesCommand,
   type InsertGraphCommand,
   type MoveNodesCommand,
+  type ReconnectConnectionCommand,
   type SetNodesLockedCommand,
   type UngroupNodesCommand,
 } from './canvas-commands'
@@ -33,6 +35,7 @@ interface CanvasCommandExecutorOptions {
   createConnection: (draft: CanvasConnectionDraft) => Promise<CanvasConnection>
   deleteNode: (nodeId: string) => Promise<void>
   deleteConnection: (connectionId: string) => Promise<void>
+  updateConnection: (connectionId: string, draft: CanvasConnectionDraft) => Promise<void>
   updateNodeParent: (nodeId: string, parentNodeId: string | null) => Promise<void>
   updateNodeLocked: (nodeId: string, locked: boolean) => Promise<void>
   queueNodeMove: (nodeId: string, x: number, y: number) => void
@@ -212,6 +215,26 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     })
   }
 
+  async function reconnectConnection(command: ReconnectConnectionCommand) {
+    const validated = createReconnectConnectionCommand(
+      options.getNodes(), options.getConnections(), command.connectionId,
+      command.sourceNodeId, command.targetNodeId, command.sourcePort, command.targetPort,
+    )
+    if (!validated) return
+    const current = options.getConnections().find((connection) => connection.id === validated.connectionId)
+    if (!current) return
+    await options.updateConnection(validated.connectionId, {
+      from: validated.sourceNodeId,
+      to: validated.targetNodeId,
+      sourcePort: validated.sourcePort,
+      targetPort: validated.targetPort,
+      metadata: current.metadata,
+      status: current.status,
+      active: current.active,
+    })
+    options.selectConnection(validated.connectionId)
+  }
+
   function arrangeNodes(command: ArrangeNodesCommand) {
     const eligibleIds = new Set(options.getNodes().filter(isArrangeEligibleNode).map((node) => node.id))
     if (!command.moves.length || command.moves.some((move) => !eligibleIds.has(move.nodeId))) return
@@ -249,6 +272,7 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'group-nodes') return groupNodes(command)
     if (command.type === 'ungroup-nodes') return ungroupNodes(command)
     if (command.type === 'connect-nodes') return connectNodes(command)
+    if (command.type === 'reconnect-connection') return reconnectConnection(command)
     if (command.type === 'arrange-nodes') return arrangeNodes(command)
     if (command.type === 'set-nodes-locked') return setNodesLocked(command)
     return insertGraph(command)

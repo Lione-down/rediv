@@ -4,6 +4,7 @@ import { Keyboard } from 'lucide-vue-next'
 import { computed, nextTick, ref, type ComponentPublicInstance } from 'vue'
 import CanvasEmptyGuide from './CanvasEmptyGuide.vue'
 import CanvasConnectionContinuation from './CanvasConnectionContinuation.vue'
+import CanvasConnectionLayer from './CanvasConnectionLayer.vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasNodeSurfaceLayer from './CanvasNodeSurfaceLayer.vue'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
@@ -37,7 +38,6 @@ const {
   centerNodeInViewport,
   connectionPaths,
   connectionTargetStates,
-  connectionWorldTransform,
   closeConnectionContinuation,
   connectionContinuation,
   continuationStyle,
@@ -222,26 +222,9 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
       :class="[`cursor-${viewportCursor}`, { 'is-grid-hidden': !isGridEnabled }]"
       :style="canvasGridStyle"
     >
-      <svg v-show="areEdgesVisible" class="connection-layer" role="group" aria-label="画布连线">
-        <defs>
-          <marker id="canvas-edge-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-            <path d="M 0 0 L 10 5 L 0 10 z" class="connection-arrow" />
-          </marker>
-        </defs>
-        <g :transform="connectionWorldTransform">
-          <g v-memo="[connectionPaths]">
-            <path
-              v-for="connection in connectionPaths"
-              :key="connection.id"
-              class="connection-line"
-              :class="{ active: connection.active }"
-              :d="connection.path"
-              marker-end="url(#canvas-edge-arrow)"
-              vector-effect="non-scaling-stroke"
-            />
-          </g>
-        </g>
-        <path v-if="temporaryConnectionPath" class="draft" :d="temporaryConnectionPath" />
+      <CanvasConnectionLayer :paths="connectionPaths" :readonly="readonly" :visible="areEdgesVisible" />
+      <svg v-if="temporaryConnectionPath" class="connection-layer draft-layer" aria-hidden="true">
+        <path class="draft" :d="temporaryConnectionPath" />
       </svg>
       <CanvasConnectionContinuation
         v-if="connectionContinuation"

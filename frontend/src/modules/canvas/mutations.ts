@@ -119,6 +119,15 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     })
   }
 
+  async function updateConnection(connectionId: string, draft: CanvasConnectionDraft) {
+    if (!connections.value.some((connection) => connection.id === connectionId)) return
+    mutateGraph(() => {
+      connections.value = connections.value.map((connection) => connection.id === connectionId
+        ? { id: connectionId, ...cloneGraphEntity(draft) }
+        : connection)
+    })
+  }
+
   function queueNodeMove(nodeId: string, x: number, y: number) {
     if (!findNodeById(nodeId)) return
     mutateGraph(() => updateNode(nodeId, (node) => ({ ...node, x, y })))
@@ -201,6 +210,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     createConnection,
     deleteNode,
     deleteConnection,
+    updateConnection,
     updateNodeParent,
     updateNodeLocked,
     queueNodeMove,
@@ -216,6 +226,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     deleteNode,
     createConnection,
     deleteConnection,
+    updateConnection,
     updateNodeParent,
     updateNodeLocked,
     queueNodeMove,

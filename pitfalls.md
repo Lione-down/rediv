@@ -328,3 +328,4 @@ Evidence:
 - Canvas port 同时承担点击选中与拖拽连线时，不能在 pointerdown 立即触发 selection side effect。应使用小幅移动阈值区分 click 与 drag，click 在 pointerup 选中，真实 drag 保持舞台几何和 inspector 状态稳定。
 - pointercancel、释放到 Canvas 外、Escape 和外部点击必须走无 mutation 的统一取消路径；只有兼容 direct drop 或用户明确选择 continuation 后才能进入 command/autosave history。
 - input port 的手势方向与持久化 edge 方向相反。draft 可以记录 gesture origin，但 direct drop、compatibility overlay、preview path 和 continuation command 最终都必须归一化成 output source -> input target；否则视觉可用但 generation context 与 graph persistence 会反向。
+- 细 SVG edge 的可选中性应由独立透明 hit path 提供，visible path 继续 `pointer-events: none`。pointer 点击带 `tabindex` 的 SVG path 时 Chromium 可能绘制整个 path bounding box 的 focus outline；pointer selection 后应 blur，keyboard selection 则保留明确的 accent focus stroke。

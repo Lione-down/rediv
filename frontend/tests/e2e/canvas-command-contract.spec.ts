@@ -3,6 +3,7 @@ import { reactive } from 'vue'
 import { createCanvasCommandExecutor } from '../../src/modules/canvas/canvas-command-executor'
 import {
   createConnectNodesCommand,
+  createReconnectConnectionCommand,
   createDeleteSelectionCommand,
   createDuplicateNodesCommand,
   createGroupNodesCommand,
@@ -17,6 +18,15 @@ import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
 const domain = {
   nodeIds: ['node-a', 'node-b', 'node-c'],
   connectionIds: ['connection-a'],
+}
+
+function canonicalNode(id: string, type: 'script' | 'generation', subtype: string): CanvasNode {
+  return { id, type, title: id, x: 0, y: 0, width: 320, height: 200,
+    contentData: { subtype, serialization_version: 1 } }
+}
+
+function typedConnection(id: string, from: string, to: string): CanvasConnection {
+  return { id, from, to, sourcePort: 'out', targetPort: 'prompt', active: true }
 }
 
 test('selection reducer follows graph order and keeps one deterministic primary target', () => {
@@ -94,6 +104,32 @@ test('connect command selects registry-compatible ports and rejects non-connecta
   expect(createConnectNodesCommand(nodes, [], 'script', 'generation', 'missing', 'prompt')).toBeNull()
   expect(createConnectNodesCommand(nodes, [], 'note', 'generation')).toBeNull()
   expect(createConnectNodesCommand(nodes, [], 'future', 'generation')).toBeNull()
+})
+
+test('reconnect command preserves identity and rejects duplicate or unchanged endpoints', () => {
+  const nodes = [
+    canonicalNode('script-a', 'script', 'script'),
+    canonicalNode('script-b', 'script', 'prompt'),
+    canonicalNode('generation-a', 'generation', 'image'),
+    canonicalNode('generation-b', 'generation', 'video'),
+  ]
+  const connections = [
+    typedConnection('edge-a', 'script-a', 'generation-a'),
+    typedConnection('edge-b', 'script-b', 'generation-b'),
+  ]
+
+  expect(createReconnectConnectionCommand(
+    nodes, connections, 'edge-a', 'script-b', 'generation-a', 'out', 'prompt',
+  )).toEqual({
+    type: 'reconnect-connection', connectionId: 'edge-a', sourceNodeId: 'script-b',
+    targetNodeId: 'generation-a', sourcePort: 'out', targetPort: 'prompt',
+  })
+  expect(createReconnectConnectionCommand(
+    nodes, connections, 'edge-a', 'script-a', 'generation-a', 'out', 'prompt',
+  )).toBeNull()
+  expect(createReconnectConnectionCommand(
+    nodes, connections, 'edge-a', 'script-b', 'generation-b', 'out', 'prompt',
+  )).toBeNull()
 })
 
 test('future-version group nodes cannot enter supported ungroup mutations', () => {

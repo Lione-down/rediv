@@ -55,6 +55,15 @@ export interface ConnectNodesCommand {
   targetPort: string
 }
 
+export interface ReconnectConnectionCommand {
+  type: 'reconnect-connection'
+  connectionId: string
+  sourceNodeId: string
+  targetNodeId: string
+  sourcePort: string
+  targetPort: string
+}
+
 export type CanvasAlignment = 'left' | 'center-x' | 'right' | 'top' | 'center-y' | 'bottom'
 export type CanvasDistribution = 'horizontal' | 'vertical'
 export type CanvasArrangeOperation =
@@ -87,6 +96,7 @@ export type CanvasCommand =
   | GroupNodesCommand
   | UngroupNodesCommand
   | ConnectNodesCommand
+  | ReconnectConnectionCommand
   | ArrangeNodesCommand
   | SetNodesLockedCommand
   | InsertGraphCommand
@@ -247,6 +257,33 @@ export function createConnectNodesCommand(
   ))
   return duplicate ? null : {
     type: 'connect-nodes', sourceNodeId, targetNodeId, ...resolvedPorts,
+  }
+}
+
+export function createReconnectConnectionCommand(
+  nodes: readonly CanvasNode[],
+  connections: readonly CanvasConnection[],
+  connectionId: string,
+  sourceNodeId: string,
+  targetNodeId: string,
+  sourcePort: string,
+  targetPort: string,
+): ReconnectConnectionCommand | null {
+  const current = connections.find((connection) => connection.id === connectionId)
+  if (!current || !isConnectionMutationSupported(nodes, current)) return null
+  const withoutCurrent = connections.filter((connection) => connection.id !== connectionId)
+  const connect = createConnectNodesCommand(
+    nodes, withoutCurrent, sourceNodeId, targetNodeId, sourcePort, targetPort,
+  )
+  if (!connect) return null
+  if (
+    current.from === connect.sourceNodeId && current.to === connect.targetNodeId &&
+    current.sourcePort === connect.sourcePort && current.targetPort === connect.targetPort
+  ) return null
+  return {
+    type: 'reconnect-connection', connectionId,
+    sourceNodeId: connect.sourceNodeId, targetNodeId: connect.targetNodeId,
+    sourcePort: connect.sourcePort, targetPort: connect.targetPort,
   }
 }
 

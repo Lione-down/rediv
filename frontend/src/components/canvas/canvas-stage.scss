@@ -185,27 +185,13 @@
 .status-icon { flex: none; }
 .node-status-overlay.is-running .status-icon { animation: status-spin 1s linear infinite; }
 
-.connection-line,
 .draft {
   fill: none;
   stroke: var(--border-strong);
   stroke-width: 1.6;
 }
 
-.connection-line.active {
-  stroke: var(--canvas-edge, var(--border-strong));
-  stroke-dasharray: none;
-  animation: none;
-}
-
-.connection-line.selected {
-  stroke: var(--accent-select);
-  stroke-width: 3;
-  stroke-dasharray: none;
-  animation: none;
-}
-
-.connection-arrow { fill: var(--border-strong); pointer-events: none; }
+.draft-layer { z-index: 2; }
 
 .connection-target-overlay {
   position: absolute;

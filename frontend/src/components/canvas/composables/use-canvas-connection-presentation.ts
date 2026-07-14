@@ -33,17 +33,16 @@ export function useCanvasConnectionPresentation(options: CanvasConnectionPresent
       if (!source || !target) return []
       return [{
         active: connection.active,
+        connection,
         id: connection.id,
+        source: nodePortWorldAnchor(source, 'output', connection.sourcePort),
+        target: nodePortWorldAnchor(target, 'input', connection.targetPort),
         path: buildConnectionPath(
           nodePortWorldAnchor(source, 'output', connection.sourcePort),
           nodePortWorldAnchor(target, 'input', connection.targetPort),
         ),
       }]
     })
-  })
-  const connectionWorldTransform = computed(() => {
-    const viewport = options.getViewport()
-    return `translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`
   })
   const connectionTargetStates = computed(() => {
     const draft = options.getDraftConnection?.()
@@ -59,5 +58,5 @@ export function useCanvasConnectionPresentation(options: CanvasConnectionPresent
     }])
   })
 
-  return { connectionPaths, connectionTargetStates, connectionWorldTransform }
+  return { connectionPaths, connectionTargetStates }
 }
