@@ -321,3 +321,9 @@ Evidence:
 - 文件扩展名、MIME 和浅层 container magic 不是媒体有效性。正例必须是独立工具可解码的真实 fixture；BMFF/WebM/Ogg/PNG 等 validator 要验证 codec/sample linkage，并同时设置 container element、pixel、decoded byte、process concurrency 和 aggregate sample budget。
 - streaming parser 仍需要 dependency floor 与独立 guard。`python-multipart` 下界必须覆盖当前安全修复，part header bytes/count、完整 terminal boundary 和 constructor error mapping 由应用自身测试锁定。
 - 固定命名的 disposable MySQL test schema 不能跨 pytest 进程并行运行；一个进程 teardown 会让另一个进程出现 `Unknown database` 或旧 schema 列错误。最终 evidence 应串行执行，或在 T5-008 harness 中为每个进程生成唯一 `revid_test_*` schema。
+
+## 2026-07-15 Playwright preview 与 Canvas pointer 验证
+
+- 本项目 Playwright 使用 `vite preview`，它只读取最近一次成功生成的 `frontend/dist`。修改源码后必须先完成成功 build，再把 browser 结果视为当前证据；build 失败后的 browser 运行可能仍在验证旧 bundle。
+- Canvas port 同时承担点击选中与拖拽连线时，不能在 pointerdown 立即触发 selection side effect。应使用小幅移动阈值区分 click 与 drag，click 在 pointerup 选中，真实 drag 保持舞台几何和 inspector 状态稳定。
+- pointercancel、释放到 Canvas 外、Escape 和外部点击必须走无 mutation 的统一取消路径；只有兼容 direct drop 或用户明确选择 continuation 后才能进入 command/autosave history。

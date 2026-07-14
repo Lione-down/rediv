@@ -3,6 +3,7 @@ import { NDropdown } from 'naive-ui'
 import { Keyboard } from 'lucide-vue-next'
 import { computed, nextTick, ref, type ComponentPublicInstance } from 'vue'
 import CanvasEmptyGuide from './CanvasEmptyGuide.vue'
+import CanvasConnectionContinuation from './CanvasConnectionContinuation.vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasNodeSurfaceLayer from './CanvasNodeSurfaceLayer.vue'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
@@ -37,6 +38,9 @@ const {
   connectionPaths,
   connectionTargetStates,
   connectionWorldTransform,
+  closeConnectionContinuation,
+  connectionContinuation,
+  continuationStyle,
   closeContextMenu,
   contextMenu,
   contextMenuOptions,
@@ -54,6 +58,7 @@ const {
   stageNotice,
   surfaceNodeRectStyle,
   temporaryConnectionPath,
+  selectConnectionContinuation,
   updateContextMenuShow,
   marqueeStyle,
   viewportCursor,
@@ -238,6 +243,14 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         </g>
         <path v-if="temporaryConnectionPath" class="draft" :d="temporaryConnectionPath" />
       </svg>
+      <CanvasConnectionContinuation
+        v-if="connectionContinuation"
+        :options="connectionContinuation.options"
+        :source-title="canvasStore.findNodeById(connectionContinuation.sourceNodeId)?.title ?? '当前节点'"
+        :style="continuationStyle"
+        @cancel="closeConnectionContinuation"
+        @select="selectConnectionContinuation"
+      />
 
       <CanvasNodeSurfaceLayer
         :nodes="canvasStore.nodes"

@@ -1,6 +1,5 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useCanvasStore } from '../../../store/canvas'
-import type { CanvasNode } from '../../../types/canvas'
 import {
   createMoveNodesCommand,
   isArrangeEligibleNode,
@@ -12,17 +11,18 @@ import {
   buildConnectionPath,
   clampZoom,
   minimapPointToWorld,
-  nodeInputPortAnchors,
   nodeOutputAnchor as getNodeOutputAnchor,
   normalizeViewport, nodeIntersectsRect,
   rectFromPoints,
   snapDeltaToGrid,
-  surfaceToWorld, worldToSurface,
+  surfaceToWorld,
   type Point, type ViewportState,
 } from '../canvas-geometry'
 import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
+import { findNearestConnectionTarget } from '../canvas-connection-target'
 import { createPointerFrameQueue } from '../canvas-pointer-frame'
 import { useCanvasCommandInteractions } from './use-canvas-command-interactions'
+import { useCanvasConnectionContinuation } from './use-canvas-connection-continuation'
 import { useCanvasConnectionPresentation } from './use-canvas-connection-presentation'
 import { useCanvasContextMenu } from './use-canvas-context-menu'
 import { useCanvasMinimapPresentation } from './use-canvas-minimap-presentation'
@@ -32,7 +32,7 @@ import { useCanvasStagePresentation } from './use-canvas-stage-presentation'
 import { useCanvasViewControls } from './use-canvas-view-controls'
 interface DragState { pointerId: number | null; startWorldPoint: Point; origins: CanvasNodePosition[]; moved: boolean }
 interface PanState { pointerId: number | null; startClientX: number; startClientY: number; originX: number; originY: number }
-interface DraftConnectionState { fromNodeId: string; sourcePort: string; pointerId: number | null; currentX: number; currentY: number }
+interface DraftConnectionState { fromNodeId: string; sourcePort: string; pointerId: number | null; currentX: number; currentY: number; startX: number; startY: number; moved: boolean }
 interface MarqueeState { pointerId: number | null; start: Point; current: Point; additive: boolean }
 interface NativePointerLikeEvent extends MouseEvent { pointerId?: number }
 interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLikeEvent }
@@ -113,6 +113,10 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   const canDistributeSelection = computed(() => canDistributeSelectionNow())
   const canAutoArrange = computed(() => canAutoArrangeNow())
   const hasLockedSelection = computed(() => hasLockedSelectionNow())
+  const {
+    closeConnectionContinuation, connectionContinuation, continuationStyle,
+    openConnectionContinuation, selectConnectionContinuation,
+  } = useCanvasConnectionContinuation({ getViewportSize: () => surfaceViewportSize.value })
   function cssVar(name: string, fallback: string) {
     if (!canvasSurfaceRef.value) return fallback
     return getComputedStyle(canvasSurfaceRef.value).getPropertyValue(name).trim() || fallback
@@ -202,7 +206,8 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   }
   function toSurfacePoint(clientX: number, clientY: number) {
     const rect = stageRef.value?.getBoundingClientRect()
-    return rect ? { x: clientX - rect.left, y: clientY - rect.top } : null
+    if (!rect || clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null
+    return { x: clientX - rect.left, y: clientY - rect.top }
   }
   function shouldStartPan(origin?: NativePointerLikeEvent, allowSpaceDrag = true) {
     return Boolean(origin && (origin.button === 1 || canvasStore.mode === 'hand' || (allowSpaceDrag && isSpacePressed.value && origin.button === 0)))
@@ -211,14 +216,14 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (windowPointerListenersBound) return
     window.addEventListener('pointermove', handleWindowPointerMove)
     window.addEventListener('pointerup', handleWindowPointerUp)
-    window.addEventListener('pointercancel', handleWindowPointerUp)
+    window.addEventListener('pointercancel', handleWindowPointerCancel)
     windowPointerListenersBound = true
   }
   function unbindWindowPointerListeners() {
     if (!windowPointerListenersBound) return
     window.removeEventListener('pointermove', handleWindowPointerMove)
     window.removeEventListener('pointerup', handleWindowPointerUp)
-    window.removeEventListener('pointercancel', handleWindowPointerUp)
+    window.removeEventListener('pointercancel', handleWindowPointerCancel)
     windowPointerListenersBound = false
   }
   function startPan(origin?: NativePointerLikeEvent) {
@@ -231,6 +236,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   }
   function handleStagePointerDown(event: LeaferPointerEvent) {
     focusCanvasStage()
+    closeConnectionContinuation()
     if (renderer?.isInteractiveTarget(event.target)) return
     if (shouldStartPan(event.origin)) return startPan(event.origin)
     const origin = event.origin
@@ -266,14 +272,15 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   }
   function handleOutputPointerDown(nodeId: string, sourcePort: string, event: LeaferPointerEvent) {
     focusCanvasStage()
+    closeConnectionContinuation()
     if (shouldStartPan(event.origin, false)) return startPan(event.origin)
-    canvasStore.selectNode(nodeId)
     if (options.isReadOnly?.()) return
     const sourceNode = findNode(nodeId)
     if (!sourceNode || !isArrangeEligibleNode(sourceNode)) return
     const anchor = nodeOutputAnchor(nodeId, sourcePort)
     dragState = null
-    draftConnection.value = { fromNodeId: nodeId, sourcePort, pointerId: event.origin?.pointerId ?? null, currentX: anchor.x, currentY: anchor.y }
+    draftConnection.value = { fromNodeId: nodeId, sourcePort, pointerId: event.origin?.pointerId ?? null,
+      currentX: anchor.x, currentY: anchor.y, startX: anchor.x, startY: anchor.y, moved: false }
     bindWindowPointerListeners()
   }
   function processWindowPointerMove(event: PointerEvent) {
@@ -313,34 +320,32 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     }
     if (!draft || (draft.pointerId !== null && event.pointerId !== draft.pointerId)) return
     const point = toSurfacePoint(event.clientX, event.clientY)
-    if (point) draftConnection.value = { ...draft, currentX: point.x, currentY: point.y }
+    if (point) draftConnection.value = { ...draft, currentX: point.x, currentY: point.y,
+      moved: draft.moved || Math.hypot(point.x - draft.startX, point.y - draft.startY) >= 4 }
   }
   function handleWindowPointerMove(event: PointerEvent) {
     pointerMoveQueue.schedule(event)
   }
   const pointerMoveQueue = createPointerFrameQueue(processWindowPointerMove)
-  function findConnectionTarget(point: Point, sourceNodeId: string) {
-    let match: { node: CanvasNode; targetPort: string } | null = null
-    let matchedDistance = Number.POSITIVE_INFINITY
-    for (const node of canvasStore.nodes) {
-      if (node.id === sourceNodeId) continue
-      for (const anchor of nodeInputPortAnchors(node)) {
-        const surfaceAnchor = worldToSurface(anchor, getViewport())
-        const distance = Math.hypot(surfaceAnchor.x - point.x, surfaceAnchor.y - point.y)
-        if (distance <= 24 && distance < matchedDistance) {
-          match = { node, targetPort: anchor.portId }
-          matchedDistance = distance
-        }
-      }
-    }
-    return match
-  }
   function finalizeDraftConnection(point: Point) {
     const draft = draftConnection.value
     if (!draft) return
-    const target = findConnectionTarget(point, draft.fromNodeId)
+    if (!draft.moved) {
+      canvasStore.selectNode(draft.fromNodeId)
+      draftConnection.value = null
+      return
+    }
+    const target = findNearestConnectionTarget(point, draft.fromNodeId, canvasStore.nodes, getViewport())
     if (target) connectNodes('pointer', draft.fromNodeId, target.node.id, draft.sourcePort, target.targetPort)
+    else openConnectionContinuation(
+      draft.fromNodeId, draft.sourcePort, point, surfaceToWorld(point, getViewport()),
+    )
     draftConnection.value = null
+  }
+  function handleWindowPointerCancel(event: PointerEvent) {
+    const ownsInteraction = [panState?.pointerId, dragState?.pointerId, draftConnection.value?.pointerId, marquee.value?.pointerId]
+      .some((pointerId) => pointerId === null || pointerId === event.pointerId)
+    if (ownsInteraction) cancelActiveInteraction()
   }
   function handleWindowPointerUp(event: PointerEvent) {
     pointerMoveQueue.flush()
@@ -376,7 +381,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (point) applyZoomAtPoint(getViewport().zoom * Math.exp(-event.deltaY * 0.0015), point)
   }
   function cancelActiveInteraction() {
-    const wasActive = Boolean(dragState || panState || draftConnection.value || marquee.value)
+    const wasActive = Boolean(dragState || panState || draftConnection.value || marquee.value || connectionContinuation.value)
     if (dragState) {
       for (const origin of dragState.origins) {
         const node = findNode(origin.nodeId)
@@ -390,6 +395,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     panState = null
     draftConnection.value = null
     marquee.value = null
+    closeConnectionContinuation()
     isPanning.value = false
     pointerMoveQueue.clear()
     unbindWindowPointerListeners()
@@ -477,6 +483,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   })
   return {
     canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionTargetStates, connectionWorldTransform,
+    closeConnectionContinuation, connectionContinuation, continuationStyle, selectConnectionContinuation,
     handleMinimapPointerDown, minimapNodeStyle, minimapNodes, minimapRef,
     minimapViewportStyle, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
