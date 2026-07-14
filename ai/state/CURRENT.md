@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-018 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-019 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-018 - Continue connections into new typed nodes` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-018.md`
+- Most recently completed: `T5-019 - Reverse typed port dragging and upstream continuation` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-019.md`
 
 ## Current Verified Facts
 
@@ -47,10 +47,11 @@ Last updated: 2026-07-15
 - T5-016 is now `DONE - PASS`: deterministic mixed image/video workflows, four-way convergence, six-way result branching, lifecycle/content extremes, overlay ownership, restrained state styling, and four viewport evidence passed focused 26/26, full Chromium 150/150, a 4,779-module build, and guarded live 200/300 evidence. Final report: `ai/reports/REPORT-T5-016.md`.
 - T5-017 is now `DONE - PASS`: connected scripts and images become the actual bounded prompt and validated reference inputs for image/video generation, with visible provenance and dynamic disconnect behavior. Focused frontend 24/24, guarded generation backend 29/29, full Chromium 155/155, and a 4,779-module build passed. Final report: `ai/reports/REPORT-T5-017.md`.
 - T5-018 is now `DONE - PASS`: output dragging can continue into a compatible new typed node through a release-point chooser, committed as one node-plus-edge command with deterministic cancellation and undo/redo. Focused 8/8, relevant Chromium 50/50, full Chromium 163/163, and a 4,786-module build passed. Final report: `ai/reports/REPORT-T5-018.md`.
+- T5-019 is now `DONE - PASS`: input ports support reverse typed dragging to existing outputs and empty-space upstream continuation, with canonical edge orientation and atomic node-plus-edge insertion. Focused 12/12, relevant Chromium 54/54, full Chromium 167/167, and a 4,786-module build passed. Final report: `ai/reports/REPORT-T5-019.md`.
 
 ## Exact Next Action
 
-Await the next bounded Canvas interaction or evidence-backed refinement unit; reverse input dragging and edge insertion/rerouting are the strongest remaining graph interaction gaps.
+Await the next bounded Canvas refinement; edge insertion/rerouting and denser graph editing are the strongest remaining interaction gaps.
 
 ## Blockers And Human Gates
 

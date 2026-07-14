@@ -13,6 +13,7 @@ import {
 } from './canvas-resource-generation-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-018-connection-continuation')
+const upstreamEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-019-reverse-port-drag')
 
 function mappedNode(state: ResourceMockState, nodeId: string) {
   const dto = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === nodeId)
@@ -41,6 +42,22 @@ async function beginOutputDrag(page: Page, state: ResourceMockState, target: { x
   await page.mouse.move(source.x, source.y)
   await page.mouse.down()
   await page.mouse.move(destination.x, destination.y, { steps: 8 })
+}
+
+async function dragFromInput(
+  page: Page,
+  state: ResourceMockState,
+  portId: 'prompt' | 'media',
+  target: { x: number; y: number },
+) {
+  const origin = await surfacePoint(page, nodeInputAnchor(
+    mappedNode(state, 'generation-cover'), { x: 0, y: 0, zoom: 1 }, portId,
+  ))
+  const destination = await surfacePoint(page, target)
+  await page.mouse.move(origin.x, origin.y)
+  await page.mouse.down()
+  await page.mouse.move(destination.x, destination.y, { steps: 8 })
+  await page.mouse.up()
 }
 
 test('empty release offers typed continuation and commits one undoable graph insertion', async ({ page }) => {
@@ -127,4 +144,43 @@ test('chooser stays inside compact workspace and retains a quiet reduced-motion 
   expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual((surface?.y ?? 0) + (surface?.height ?? 0))
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'continuation-920x900.png'), fullPage: true })
+})
+
+test('input drag connects backward to an existing compatible output in canonical orientation', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state)
+  const source = nodeOutputAnchor(mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out')
+  await dragFromInput(page, state, 'prompt', source)
+
+  await expect(page.getByRole('dialog', { name: '继续连接' })).toHaveCount(0)
+  await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(2)
+  expect(state.documents[FIRST_CANVAS_ID].connections.at(-1)).toMatchObject({
+    source_node_id: 'script-source', target_node_id: 'generation-cover',
+    source_port: 'out', target_port: 'prompt',
+  })
+})
+
+test('empty input release creates one compatible upstream node and edge atomically', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state)
+  await dragFromInput(page, state, 'prompt', { x: 360, y: 650 })
+
+  const chooser = page.getByRole('dialog', { name: '继续连接' })
+  await expect(chooser).toContainText('创建上游')
+  await expect(chooser.getByRole('menuitem')).toHaveCount(2)
+  await expect(chooser.getByRole('menuitem', { name: /提示词/ })).toBeVisible()
+  expect(documentPatches(state)).toHaveLength(0)
+  await mkdir(upstreamEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(upstreamEvidenceDirectory, 'upstream-continuation-1440x900.png'), fullPage: true })
+
+  await chooser.getByRole('menuitem', { name: /提示词/ }).click()
+  await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.length).toBe(4)
+  await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(2)
+  await expect.poll(() => documentPatches(state).length).toBe(1)
+  expect(documentPatches(state)[0].body).toMatchObject({
+    node_upserts: [expect.objectContaining({ node_type: 'script' })],
+    connection_upserts: [expect.objectContaining({
+      target_node_id: 'generation-cover', source_port: 'out', target_port: 'prompt',
+    })],
+  })
 })

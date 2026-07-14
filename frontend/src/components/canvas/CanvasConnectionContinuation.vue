@@ -6,7 +6,8 @@ import { resolveCanvasNodeIcon } from './canvas-node-icons'
 
 const props = defineProps<{
   options: ConnectionContinuationOption[]
-  sourceTitle: string
+  originTitle: string
+  direction: 'downstream' | 'upstream'
 }>()
 const emit = defineEmits<{
   cancel: []
@@ -52,10 +53,10 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', handleOutsidePoi
 <template>
   <section ref="menuRef" class="continuation-menu" role="dialog" aria-label="继续连接" @keydown="handleKeyDown" @pointerdown.stop>
     <header>
-      <span><CornerDownRight :size="14" aria-hidden="true" />继续连接</span>
+      <span><CornerDownRight :size="14" aria-hidden="true" />{{ direction === 'upstream' ? '创建上游' : '继续连接' }}</span>
       <button type="button" aria-label="取消继续连接" @click="emit('cancel')"><X :size="14" aria-hidden="true" /></button>
     </header>
-    <p>从「{{ sourceTitle }}」创建兼容节点</p>
+    <p>{{ direction === 'upstream' ? `为「${originTitle}」创建兼容上游` : `从「${originTitle}」创建兼容节点` }}</p>
     <div role="menu" aria-label="兼容节点">
       <button
         v-for="option in options"
@@ -67,7 +68,7 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', handleOutsidePoi
       >
         <component :is="resolveCanvasNodeIcon(option.icon)" :size="16" aria-hidden="true" />
         <span>{{ option.label }}</span>
-        <small>{{ option.targetPort === 'prompt' ? '文本' : option.targetPort === 'media' ? '参考' : '结果' }}</small>
+        <small>{{ option.targetPort === 'prompt' || option.sourcePort === 'out' && option.type === 'script' ? '文本' : option.targetPort === 'media' ? '参考' : option.sourcePort === 'out' && option.type === 'asset' ? '素材' : '结果' }}</small>
       </button>
     </div>
     <footer>↑↓ 选择 · Enter 创建 · Esc 取消</footer>

@@ -8,14 +8,10 @@ import {
   type CanvasNodePosition,
 } from '../../../modules/canvas/canvas-commands'
 import {
-  buildConnectionPath,
-  clampZoom,
-  minimapPointToWorld,
-  nodeOutputAnchor as getNodeOutputAnchor,
+  buildConnectionPath, clampZoom, minimapPointToWorld,
+  nodeInputAnchor as getNodeInputAnchor, nodeOutputAnchor as getNodeOutputAnchor,
   normalizeViewport, nodeIntersectsRect,
-  rectFromPoints,
-  snapDeltaToGrid,
-  surfaceToWorld,
+  rectFromPoints, snapDeltaToGrid, surfaceToWorld,
   type Point, type ViewportState,
 } from '../canvas-geometry'
 import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
@@ -32,7 +28,7 @@ import { useCanvasStagePresentation } from './use-canvas-stage-presentation'
 import { useCanvasViewControls } from './use-canvas-view-controls'
 interface DragState { pointerId: number | null; startWorldPoint: Point; origins: CanvasNodePosition[]; moved: boolean }
 interface PanState { pointerId: number | null; startClientX: number; startClientY: number; originX: number; originY: number }
-interface DraftConnectionState { fromNodeId: string; sourcePort: string; pointerId: number | null; currentX: number; currentY: number; startX: number; startY: number; moved: boolean }
+interface DraftConnectionState { originNodeId: string; originPort: string; direction: 'input' | 'output'; pointerId: number | null; currentX: number; currentY: number; startX: number; startY: number; moved: boolean }
 interface MarqueeState { pointerId: number | null; start: Point; current: Point; additive: boolean }
 interface NativePointerLikeEvent extends MouseEvent { pointerId?: number }
 interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLikeEvent }
@@ -60,7 +56,11 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   })
   const temporaryConnectionPath = computed(() => {
     const draft = draftConnection.value
-    return draft ? buildConnectionPath(nodeOutputAnchor(draft.fromNodeId, draft.sourcePort), { x: draft.currentX, y: draft.currentY }) : ''
+    if (!draft) return ''
+    const pointer = { x: draft.currentX, y: draft.currentY }
+    return draft.direction === 'output'
+      ? buildConnectionPath(nodePortAnchor(draft.originNodeId, draft.originPort, 'output'), pointer)
+      : buildConnectionPath(pointer, nodePortAnchor(draft.originNodeId, draft.originPort, 'input'))
   })
   const marqueeStyle = computed(() => {
     if (!marquee.value) return null
@@ -82,8 +82,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     closeContextMenu, createRegistryNodeAt, getViewport, getViewportSize: () => surfaceViewportSize.value,
   })
   const {
-    alignSelection,
-    autoArrange,
+    alignSelection, autoArrange,
     canAlignSelection: canAlignSelectionNow,
     canAutoArrange: canAutoArrangeNow,
     canConnectSelection: canConnectSelectionNow,
@@ -92,17 +91,10 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     canDuplicateSelection: canDuplicateSelectionNow,
     canGroupSelection: canGroupSelectionNow,
     canUngroupSelection: canUngroupSelectionNow,
-    commandFeedback,
-    connectNodes,
-    connectSelection,
-    deleteSelection,
-    duplicateSelection,
-    distributeSelection,
-    groupSelection,
-    handleCommandKeyDown,
+    commandFeedback, connectNodes, connectSelection, deleteSelection, duplicateSelection,
+    distributeSelection, groupSelection, handleCommandKeyDown,
     hasLockedSelection: hasLockedSelectionNow,
-    toggleLockSelection,
-    ungroupSelection,
+    toggleLockSelection, ungroupSelection,
   } = useCanvasCommandInteractions({ isReadOnly: () => options.isReadOnly?.() ?? false })
   const canConnectSelection = computed(() => canConnectSelectionNow())
   const canDeleteSelection = computed(() => canDeleteSelectionNow())
@@ -169,9 +161,10 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       point.y >= node.y && point.y <= node.y + node.height
     )) ?? null
   }
-  function nodeOutputAnchor(nodeId: string, portId?: string) {
+  function nodePortAnchor(nodeId: string, portId: string, direction: 'input' | 'output') {
     const node = findNode(nodeId)
-    return node ? getNodeOutputAnchor(node, getViewport(), portId) : { x: 0, y: 0 }
+    if (!node) return { x: 0, y: 0 }
+    return direction === 'input' ? getNodeInputAnchor(node, getViewport(), portId) : getNodeOutputAnchor(node, getViewport(), portId)
   }
   function centerNodeInViewport(nodeId: string) {
     const node = findNode(nodeId)
@@ -270,16 +263,16 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     }
     bindWindowPointerListeners()
   }
-  function handleOutputPointerDown(nodeId: string, sourcePort: string, event: LeaferPointerEvent) {
+  function handlePortPointerDown(nodeId: string, portId: string, direction: 'input' | 'output', event: LeaferPointerEvent) {
     focusCanvasStage()
     closeConnectionContinuation()
     if (shouldStartPan(event.origin, false)) return startPan(event.origin)
     if (options.isReadOnly?.()) return
-    const sourceNode = findNode(nodeId)
-    if (!sourceNode || !isArrangeEligibleNode(sourceNode)) return
-    const anchor = nodeOutputAnchor(nodeId, sourcePort)
+    const originNode = findNode(nodeId)
+    if (!originNode || !isArrangeEligibleNode(originNode)) return
+    const anchor = nodePortAnchor(nodeId, portId, direction)
     dragState = null
-    draftConnection.value = { fromNodeId: nodeId, sourcePort, pointerId: event.origin?.pointerId ?? null,
+    draftConnection.value = { originNodeId: nodeId, originPort: portId, direction, pointerId: event.origin?.pointerId ?? null,
       currentX: anchor.x, currentY: anchor.y, startX: anchor.x, startY: anchor.y, moved: false }
     bindWindowPointerListeners()
   }
@@ -331,14 +324,20 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     const draft = draftConnection.value
     if (!draft) return
     if (!draft.moved) {
-      canvasStore.selectNode(draft.fromNodeId)
+      canvasStore.selectNode(draft.originNodeId)
       draftConnection.value = null
       return
     }
-    const target = findNearestConnectionTarget(point, draft.fromNodeId, canvasStore.nodes, getViewport())
-    if (target) connectNodes('pointer', draft.fromNodeId, target.node.id, draft.sourcePort, target.targetPort)
+    const target = findNearestConnectionTarget(
+      point, draft.originNodeId, canvasStore.nodes, getViewport(), draft.direction === 'output' ? 'input' : 'output',
+    )
+    if (target) {
+      if (draft.direction === 'output') connectNodes('pointer', draft.originNodeId, target.node.id, draft.originPort, target.portId)
+      else connectNodes('pointer', target.node.id, draft.originNodeId, target.portId, draft.originPort)
+    }
     else openConnectionContinuation(
-      draft.fromNodeId, draft.sourcePort, point, surfaceToWorld(point, getViewport()),
+      draft.originNodeId, draft.originPort, draft.direction === 'output' ? 'downstream' : 'upstream',
+      point, surfaceToWorld(point, getViewport()),
     )
     draftConnection.value = null
   }
@@ -429,7 +428,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       surface, getNodes: () => canvasStore.nodes, getSelectedNodeIds: () => canvasStore.selectedNodeIds,
       getViewport, cssVar, onStagePointerDown: handleStagePointerDown,
       onContextMenu: handleContextMenu, onStageDoubleClick: handleStageDoubleClick,
-      onNodePointerDown: handleNodePointerDown, onOutputPointerDown: handleOutputPointerDown,
+      onNodePointerDown: handleNodePointerDown, onPortPointerDown: handlePortPointerDown,
     })
     renderer.updateViewport()
     renderer.syncNodes()

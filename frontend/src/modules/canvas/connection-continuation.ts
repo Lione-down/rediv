@@ -18,20 +18,25 @@ export interface ConnectionContinuationOption {
   targetPort: string
 }
 
+export type ConnectionContinuationDirection = 'downstream' | 'upstream'
+
 export function resolveConnectionContinuationOptions(
-  source: CanvasNode,
-  sourcePort: string,
+  origin: CanvasNode,
+  originPort: string,
+  direction: ConnectionContinuationDirection = 'downstream',
 ): ConnectionContinuationOption[] {
   return getCreatableNodeDefinitions().flatMap((definition) => (
     definition.subtypes.flatMap((subtype) => {
       const type = definition.type as CanonicalNodeType
-      const target = createRegistryNodeDraft(type, subtype.id, { x: 0, y: 0 })
+      const candidate = createRegistryNodeDraft(type, subtype.id, { x: 0, y: 0 })
       const ports = definition.ports
-        .filter((port) => port.direction === 'input')
-        .map((port) => getDefaultConnectionPorts(source, target, sourcePort, port.id))
+        .filter((port) => port.direction === (direction === 'downstream' ? 'input' : 'output'))
+        .map((port) => direction === 'downstream'
+          ? getDefaultConnectionPorts(origin, candidate, originPort, port.id)
+          : getDefaultConnectionPorts(candidate, origin, port.id, originPort))
         .find(Boolean)
       return ports ? [{
-        key: `${definition.type}:${subtype.id}:${ports.targetPort}`,
+        key: `${definition.type}:${subtype.id}:${direction === 'downstream' ? ports.targetPort : ports.sourcePort}`,
         type,
         subtype: subtype.id,
         label: subtype.label,
@@ -44,15 +49,17 @@ export function resolveConnectionContinuationOptions(
 }
 
 export function createConnectionContinuationCommand(
-  source: CanvasNode,
+  origin: CanvasNode,
   option: ConnectionContinuationOption,
   point: { x: number; y: number },
+  direction: ConnectionContinuationDirection = 'downstream',
   createId: () => string = createCanvasEntityId,
 ): InsertGraphCommand {
   const nodeId = createId()
   const connectionId = createId()
   const draft = createRegistryNodeDraft(option.type, option.subtype, {
-    x: point.x + 48,
+    x: direction === 'downstream' ? point.x + 48 : point.x - 48 - getCreatableNodeDefinitions()
+      .find((definition) => definition.type === option.type)!.defaultSize.width,
     y: point.y - 0.5 * getCreatableNodeDefinitions()
       .find((definition) => definition.type === option.type)!.defaultSize.height,
   })
@@ -62,8 +69,8 @@ export function createConnectionContinuationCommand(
     nodes: [node],
     connections: [{
       id: connectionId,
-      from: source.id,
-      to: nodeId,
+      from: direction === 'downstream' ? origin.id : nodeId,
+      to: direction === 'downstream' ? nodeId : origin.id,
       sourcePort: option.sourcePort,
       targetPort: option.targetPort,
       status: 'active',

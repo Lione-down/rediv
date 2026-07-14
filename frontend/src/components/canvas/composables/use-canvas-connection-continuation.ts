@@ -2,14 +2,16 @@ import { computed, ref } from 'vue'
 import {
   createConnectionContinuationCommand,
   resolveConnectionContinuationOptions,
+  type ConnectionContinuationDirection,
   type ConnectionContinuationOption,
 } from '../../../modules/canvas/connection-continuation'
 import { useCanvasStore } from '../../../store/canvas'
 import type { Point } from '../canvas-geometry'
 
-interface ContinuationState {
-  sourceNodeId: string
-  sourcePort: string
+export interface ContinuationState {
+  originNodeId: string
+  originPort: string
+  direction: ConnectionContinuationDirection
   surfacePoint: Point
   worldPoint: Point
   options: ConnectionContinuationOption[]
@@ -40,18 +42,20 @@ export function useCanvasConnectionContinuation(options: ConnectionContinuationO
   }
 
   function openConnectionContinuation(
-    sourceNodeId: string,
-    sourcePort: string,
+    originNodeId: string,
+    originPort: string,
+    direction: ConnectionContinuationDirection,
     surfacePoint: Point,
     worldPoint: Point,
   ) {
-    const source = canvasStore.findNodeById(sourceNodeId)
-    if (!source) return false
-    const compatibleOptions = resolveConnectionContinuationOptions(source, sourcePort)
+    const origin = canvasStore.findNodeById(originNodeId)
+    if (!origin) return false
+    const compatibleOptions = resolveConnectionContinuationOptions(origin, originPort, direction)
     if (!compatibleOptions.length) return false
     connectionContinuation.value = {
-      sourceNodeId,
-      sourcePort,
+      originNodeId,
+      originPort,
+      direction,
       surfacePoint,
       worldPoint,
       options: compatibleOptions,
@@ -61,13 +65,13 @@ export function useCanvasConnectionContinuation(options: ConnectionContinuationO
 
   async function selectConnectionContinuation(key: string) {
     const state = connectionContinuation.value
-    const source = state ? canvasStore.findNodeById(state.sourceNodeId) : null
+    const origin = state ? canvasStore.findNodeById(state.originNodeId) : null
     const selected = state?.options.find((option) => option.key === key)
     closeConnectionContinuation()
-    if (!state || !source || !selected) return
+    if (!state || !origin || !selected) return
     await canvasStore.dispatchCommand({
       source: 'pointer',
-      command: createConnectionContinuationCommand(source, selected, state.worldPoint),
+      command: createConnectionContinuationCommand(origin, selected, state.worldPoint, state.direction),
     })
   }
 

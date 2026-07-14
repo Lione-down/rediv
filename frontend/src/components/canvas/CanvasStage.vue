@@ -246,7 +246,8 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
       <CanvasConnectionContinuation
         v-if="connectionContinuation"
         :options="connectionContinuation.options"
-        :source-title="canvasStore.findNodeById(connectionContinuation.sourceNodeId)?.title ?? '当前节点'"
+        :origin-title="canvasStore.findNodeById(connectionContinuation.originNodeId)?.title ?? '当前节点'"
+        :direction="connectionContinuation.direction"
         :style="continuationStyle"
         @cancel="closeConnectionContinuation"
         @select="selectConnectionContinuation"

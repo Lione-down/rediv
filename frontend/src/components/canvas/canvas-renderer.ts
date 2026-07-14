@@ -50,7 +50,7 @@ interface CanvasRendererOptions {
   onContextMenu: (event: PointerEventPayload) => void
   onStageDoubleClick: (event: PointerEventPayload) => void
   onNodePointerDown: (nodeId: string, event: PointerEventPayload) => void
-  onOutputPointerDown: (nodeId: string, portId: string, event: PointerEventPayload) => void
+  onPortPointerDown: (nodeId: string, portId: string, direction: 'input' | 'output', event: PointerEventPayload) => void
 }
 
 export interface CanvasRenderer {
@@ -268,10 +268,10 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     }
     ;(group as unknown as { on: (type: string, handler: () => void) => void }).on('pointer.enter', () => setPortsHovered(true))
     ;(group as unknown as { on: (type: string, handler: () => void) => void }).on('pointer.leave', () => setPortsHovered(false))
-    for (const port of ports.filter((candidate) => candidate.direction === 'output')) {
+    for (const port of ports) {
       ;(port.shape as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
         POINTER_DOWN,
-        (event) => options.onOutputPointerDown(node.id, port.id, event),
+        (event) => options.onPortPointerDown(node.id, port.id, port.direction, event),
       )
     }
     return visual

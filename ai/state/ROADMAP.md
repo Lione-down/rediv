@@ -43,6 +43,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 16 | T5-016 | Multi-scenario Canvas and node validation across mixed media, graph topology, lifecycle, density, and viewports | DONE - PASS | T5-015 |
 | 17 | T5-017 | Connected scripts and media become visible, validated image/video generation context | DONE - PASS | T5-016 |
 | 18 | T5-018 | Drag-edge continuation into compatible new typed nodes with atomic insertion | DONE - PASS | T5-017 |
+| 19 | T5-019 | Reverse typed port dragging and upstream continuation | DONE - PASS | T5-018 |
 
 ## Task Boundaries
 
@@ -85,6 +86,8 @@ T5-016 is `DONE - PASS`. It expands visual acceptance from one representative gr
 T5-017 is `DONE - PASS`. Typed upstream scripts and image/result connections now become the actual deterministic prompt and validated image-reference inputs used by image and video generation. The inspector exposes provenance and excluded inputs; one image maps to img2vid, multiple images to ordered keyframes. Focused frontend 24/24, guarded generation backend 29/29, full Chromium 155/155, build, viewport, and hygiene evidence passed. `REPORT-T5-017.md` is authoritative evidence.
 
 T5-018 is `DONE - PASS`. Output-port dragging released on empty Canvas space now opens a registry-filtered typed continuation chooser. Selection creates one compatible node and one edge through a single `insert-graph` command, while click, Escape, outside click, pointer cancel, direct port drop, autosave, and undo/redo remain deterministic. Focused 8/8, relevant Chromium 50/50, full Chromium 163/163, build, visual, and hygiene evidence passed. `REPORT-T5-018.md` is authoritative evidence.
+
+T5-019 is `DONE - PASS`. Input ports now initiate reverse typed dragging to compatible existing outputs or an upstream continuation chooser. Gesture direction is normalized into canonical source-to-target edge orientation, and upstream creation remains one atomic graph command. Focused 12/12, relevant Chromium 54/54, full Chromium 167/167, build, visual, and hygiene evidence passed. `REPORT-T5-019.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

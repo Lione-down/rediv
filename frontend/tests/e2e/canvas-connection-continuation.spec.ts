@@ -43,7 +43,7 @@ test('continuation builds one deterministic node-plus-edge graph command', () =>
   const source = node('script', 'script', 'script')
   const option = resolveConnectionContinuationOptions(source, 'out')[0]
   const ids = ['node-created', 'edge-created']
-  const command = createConnectionContinuationCommand(source, option, { x: 600, y: 320 }, () => ids.shift()!)
+  const command = createConnectionContinuationCommand(source, option, { x: 600, y: 320 }, 'downstream', () => ids.shift()!)
 
   expect(command).toEqual({
     type: 'insert-graph',
@@ -53,6 +53,39 @@ test('continuation builds one deterministic node-plus-edge graph command', () =>
     })],
     connections: [{
       id: 'edge-created', from: 'script', to: 'node-created', sourcePort: 'out',
+      targetPort: 'prompt', status: 'active', active: true,
+    }],
+  })
+})
+
+test('input continuation offers only compatible upstream outputs', () => {
+  const prompt = resolveConnectionContinuationOptions(node('generation', 'generation', 'image'), 'prompt', 'upstream')
+  const media = resolveConnectionContinuationOptions(node('generation', 'generation', 'video'), 'media', 'upstream')
+
+  expect(prompt.map((option) => option.key)).toEqual(['script:script:out', 'script:prompt:out'])
+  expect(media.map((option) => option.key)).toEqual([
+    'asset:image:out', 'asset:video:out', 'asset:audio:out',
+    'generation:image:out', 'generation:video:out',
+    'result:image:out', 'result:video:out', 'result:text:out',
+  ])
+})
+
+test('upstream continuation builds a correctly oriented atomic graph command', () => {
+  const target = node('generation', 'generation', 'image')
+  const option = resolveConnectionContinuationOptions(target, 'prompt', 'upstream')[1]
+  const ids = ['node-upstream', 'edge-upstream']
+  const command = createConnectionContinuationCommand(
+    target, option, { x: 600, y: 320 }, 'upstream', () => ids.shift()!,
+  )
+
+  expect(command).toEqual({
+    type: 'insert-graph',
+    nodes: [expect.objectContaining({
+      id: 'node-upstream', type: 'script', x: 232, y: 220,
+      contentData: { subtype: 'prompt', serialization_version: 1 },
+    })],
+    connections: [{
+      id: 'edge-upstream', from: 'node-upstream', to: 'generation', sourcePort: 'out',
       targetPort: 'prompt', status: 'active', active: true,
     }],
   })

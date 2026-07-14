@@ -1,11 +1,11 @@
 import { computed } from 'vue'
 import type { CanvasConnection, CanvasNode } from '../../../types/canvas'
-import { getDefaultConnectionPorts, resolveNodeDefinition } from '../../../modules/canvas/node-registry'
+import { getDefaultConnectionPorts, resolveNodeDefinition, type NodePortDirection } from '../../../modules/canvas/node-registry'
 import { buildConnectionPath, nodePortWorldAnchor, type ViewportState } from '../canvas-geometry'
 
 interface CanvasConnectionPresentationOptions {
   getConnections: () => CanvasConnection[]
-  getDraftConnection?: () => { fromNodeId: string; sourcePort: string } | null
+  getDraftConnection?: () => { originNodeId: string; originPort: string; direction: NodePortDirection } | null
   getNodes: () => CanvasNode[]
   getViewport: () => ViewportState
 }
@@ -15,6 +15,13 @@ export function isConnectionTargetCompatible(source: CanvasNode, target: CanvasN
   return definition.kind !== 'unsupported' && definition.ports
     .filter((port) => port.direction === 'input')
     .some((port) => Boolean(getDefaultConnectionPorts(source, target, sourcePort, port.id)))
+}
+
+export function isReverseConnectionTargetCompatible(target: CanvasNode, source: CanvasNode, targetPort: string) {
+  const definition = resolveNodeDefinition(source.type, source.contentData)
+  return definition.kind !== 'unsupported' && definition.ports
+    .filter((port) => port.direction === 'output')
+    .some((port) => Boolean(getDefaultConnectionPorts(source, target, port.id, targetPort)))
 }
 
 export function useCanvasConnectionPresentation(options: CanvasConnectionPresentationOptions) {
@@ -42,11 +49,13 @@ export function useCanvasConnectionPresentation(options: CanvasConnectionPresent
     const draft = options.getDraftConnection?.()
     if (!draft) return []
     const nodes = options.getNodes()
-    const source = nodes.find((node) => node.id === draft.fromNodeId)
-    if (!source) return []
-    return nodes.flatMap((node) => node.id === source.id ? [] : [{
+    const origin = nodes.find((node) => node.id === draft.originNodeId)
+    if (!origin) return []
+    return nodes.flatMap((node) => node.id === origin.id ? [] : [{
       node,
-      isCompatible: isConnectionTargetCompatible(source, node, draft.sourcePort),
+      isCompatible: draft.direction === 'output'
+        ? isConnectionTargetCompatible(origin, node, draft.originPort)
+        : isReverseConnectionTargetCompatible(origin, node, draft.originPort),
     }])
   })
 
