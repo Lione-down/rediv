@@ -12,6 +12,34 @@
   outline-offset: -2px;
 }
 
+.canvas-command-feedback {
+  position: absolute;
+  z-index: 18;
+  top: max(72px, calc(env(safe-area-inset-top) + 16px));
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  min-height: 40px;
+  max-width: min(520px, calc(100% - 32px));
+  margin: 0;
+  padding: 8px 16px;
+  border: 1px solid var(--v2-border-standard, var(--border-subtle));
+  border-radius: var(--v2-radius-pill, 999px);
+  color: var(--v2-text-primary, var(--text-primary));
+  background: var(--v2-surface-3, var(--bg-panel));
+  box-shadow: var(--shadow-floating, var(--shadow-soft));
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.4;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+  transition: none;
+  animation: none;
+}
+
 .graph-access-trigger {
   position: absolute;
   z-index: 6;
@@ -48,9 +76,10 @@
   height: 100%;
   min-height: 760px;
   background:
-    radial-gradient(circle, var(--canvas-stage-grid-dot, var(--border-subtle)) 1px, transparent 1.2px),
+    radial-gradient(circle, var(--v2-grid-dot, var(--border-subtle)) 1px, transparent 1.2px),
     var(--bg-canvas);
-  background-size: var(--v2-grid-size, var(--space-6)) var(--v2-grid-size, var(--space-6));
+  background-position: var(--canvas-grid-position-x) var(--canvas-grid-position-y);
+  background-size: var(--canvas-grid-size) var(--canvas-grid-size);
 }
 
 .canvas-surface.cursor-grab { cursor: grab; }

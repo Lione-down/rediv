@@ -124,6 +124,31 @@ class TestAlembicRevisionGate(unittest.TestCase):
         ):
             check_alembic_revision()
 
+    def test_check_rejects_unreachable_database(self) -> None:
+        import models.base as base_module
+        from database import check_alembic_revision
+
+        engine = MagicMock()
+        engine.dialect.name = "mysql"
+        engine.connect.side_effect = OSError("connection refused")
+        base_module._engine = engine
+
+        with self.assertRaisesRegex(RuntimeError, "Database schema check failed"):
+            check_alembic_revision()
+
+    def test_check_rejects_missing_alembic_table(self) -> None:
+        import models.base as base_module
+        from database import check_alembic_revision
+
+        engine = MagicMock()
+        engine.dialect.name = "mysql"
+        connection = engine.connect.return_value.__enter__.return_value
+        connection.execute.side_effect = RuntimeError("alembic_version is missing")
+        base_module._engine = engine
+
+        with self.assertRaisesRegex(RuntimeError, "Database schema check failed"):
+            check_alembic_revision()
+
 
 class TestRuntimeLifespan(unittest.IsolatedAsyncioTestCase):
     async def test_lifespan_rejects_missing_jwt_secret_before_database_startup(self) -> None:

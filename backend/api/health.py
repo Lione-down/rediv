@@ -1,5 +1,7 @@
 from fastapi import APIRouter
 
+from settings.config import settings
+
 
 router = APIRouter(tags=["health"])
 
@@ -22,6 +24,7 @@ def health_check():
         if dialect_name != "mysql":
             return {
                 "status": "wrong_dialect",
+                "instance_id": settings.acceptance_instance_id or None,
                 "database": {
                     "dialect": dialect_name,
                     "connected": False,
@@ -68,6 +71,7 @@ def health_check():
 
     return {
         "status": status,
+        "instance_id": settings.acceptance_instance_id or None,
         "database": {
             "dialect": dialect_name or "none",
             "connected": connection_ok,

@@ -88,7 +88,7 @@ const activeLabel = computed(() => navItems.find((item) => item.match(route.path
       <section class="sidebar-note" aria-label="当前上下文">
         <span class="note-label">当前模块</span>
         <strong>{{ activeLabel }}</strong>
-        <p>本轮以浅色工作台风格承接 Admin 信息密度，避免回退到普通后台列表页。</p>
+        <p>本轮以深色工作台承接 Admin 信息密度，保持状态优先而不回退到普通后台列表页。</p>
       </section>
     </aside>
 
@@ -103,9 +103,7 @@ const activeLabel = computed(() => navItems.find((item) => item.match(route.path
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   min-height: 100dvh;
-  background:
-    radial-gradient(circle at top left, oklch(98% 0.014 98), transparent 24%),
-    linear-gradient(180deg, oklch(97% 0.005 92), var(--bg-app) 28%);
+  background: var(--v2-app);
 }
 
 .admin-sidebar {
@@ -114,8 +112,7 @@ const activeLabel = computed(() => navItems.find((item) => item.match(route.path
   gap: 20px;
   padding: 24px 18px;
   border-right: 1px solid var(--border-subtle);
-  background: oklch(100% 0.004 92 / 0.86);
-  backdrop-filter: blur(8px);
+  background: var(--v2-surface-1);
 }
 
 .sidebar-head {
@@ -137,8 +134,8 @@ const activeLabel = computed(() => navItems.find((item) => item.match(route.path
 }
 
 .eyebrow {
-  color: var(--accent-generate-hover);
-  background: oklch(96% 0.022 175);
+  color: var(--v2-accent-hover);
+  background: var(--v2-accent-soft);
 }
 
 .sidebar-head h1,
@@ -169,7 +166,7 @@ const activeLabel = computed(() => navItems.find((item) => item.match(route.path
 .sidebar-note {
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
-  background: var(--bg-panel);
+  background: var(--v2-surface-2);
   transition:
     color 120ms ease,
     background-color 120ms ease,
@@ -200,9 +197,9 @@ const activeLabel = computed(() => navItems.find((item) => item.match(route.path
 
 .nav-link.active {
   color: var(--text-primary);
-  border-color: oklch(83% 0.04 252);
-  background: oklch(96% 0.02 252);
-  box-shadow: 0 16px 32px oklch(38% 0.03 252 / 0.08);
+  border-color: var(--v2-accent);
+  background: var(--v2-surface-1);
+  box-shadow: 0 16px 32px color-mix(in oklab, var(--v2-accent) 10%, transparent);
 }
 
 .nav-icon {
@@ -216,7 +213,7 @@ const activeLabel = computed(() => navItems.find((item) => item.match(route.path
 
 .nav-link.active .nav-icon {
   color: var(--accent-select);
-  background: oklch(94% 0.03 252);
+  background: var(--v2-accent-soft);
 }
 
 .nav-copy {
@@ -284,6 +281,84 @@ const activeLabel = computed(() => navItems.find((item) => item.match(route.path
   .nav-link,
   .sidebar-note {
     transition: none;
+  }
+}
+
+/* Page-level V2 bridge for the existing admin data views. */
+:deep(.admin-page) {
+  color: var(--v2-text-primary);
+}
+
+:deep(.admin-page .page-head),
+:deep(.admin-page .page-hero),
+:deep(.admin-page .hero-copy),
+:deep(.admin-page .hero-panel),
+:deep(.admin-page .card-shell),
+:deep(.admin-page .table-card),
+:deep(.admin-page .summary-card),
+:deep(.admin-page .stats-card),
+:deep(.admin-page .signal-card),
+:deep(.admin-page .tip-card),
+:deep(.admin-page .invite-card),
+:deep(.admin-page .dispatch-card) {
+  border-color: var(--v2-border-subtle) !important;
+  background: var(--v2-surface-1) !important;
+  box-shadow: none !important;
+}
+
+:deep(.admin-page .metric-card),
+:deep(.admin-page .summary-card),
+:deep(.admin-page .stats-card),
+:deep(.admin-page .invite-card),
+:deep(.admin-page .dispatch-card) {
+  border-radius: var(--v2-radius-md);
+}
+
+:deep(.admin-page .eyebrow),
+:deep(.admin-page .panel-label),
+:deep(.admin-page .meta-chip),
+:deep(.admin-page .status-pill),
+:deep(.admin-page .ghost-action) {
+  border-color: var(--v2-border-standard);
+  color: var(--v2-accent-hover);
+  background: var(--v2-accent-soft);
+}
+
+:deep(.admin-page .metric-icon),
+:deep(.admin-page .signal-icon),
+:deep(.admin-page .summary-icon),
+:deep(.admin-page .stats-icon),
+:deep(.admin-page .tip-icon),
+:deep(.admin-page .ticket-icon),
+:deep(.admin-page .action-icon),
+:deep(.admin-page .note-icon) {
+  color: var(--v2-accent);
+  background: var(--v2-accent-soft);
+}
+
+:deep(.admin-page .action-row),
+:deep(.admin-page .table-wrap),
+:deep(.admin-page tr),
+:deep(.admin-page .stock-note) {
+  border-color: var(--v2-border-subtle);
+  background: var(--v2-surface-2);
+}
+
+:deep(.admin-page .action-row:hover),
+:deep(.admin-page .ghost-action:hover) {
+  border-color: var(--v2-border-strong);
+  background: var(--v2-surface-3);
+}
+
+:deep(.admin-page .status-pill[data-status*='失败']),
+:deep(.admin-page .status-pill[data-status*='禁用']) {
+  color: var(--v2-danger);
+}
+
+@media (max-width: 760px) {
+  :deep(.admin-page .page-head),
+  :deep(.admin-page .page-hero) {
+    padding: var(--space-4);
   }
 }
 </style>

@@ -32,10 +32,10 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | DONE - PASS | T5-004 |
 | 6 | T5-006 | Autosave queue, optimistic conflict handling, 100-step undo/redo, revisions, checkpoints, and restore | DONE - PASS | T5-005 |
 | 7 | T5-007 | Node registry, project-shared assets/templates, generation tasks/results, and mock provider flows | DONE - PASS | T5-006 |
-| 8 | T5-008 | Canvas first-acceptance E2E, 200/300 performance, browser, visual, accessibility, MySQL, and security closure | TODO | T5-007 |
-| 9 | T5-009 | Global V2 app-shell and shared-component dark-purple rollout without Canvas regression | TODO | T5-008 |
-| 10 | T5-010 | Login, Home, Space, Admin, error, empty, loading, and responsive V2 UX upgrade | TODO | T5-009 |
-| 11 | T5-011 | Full V2 regression, real-runtime verification, security review, documentation, and release closure | TODO | T5-010 |
+| 8 | T5-008 | Canvas first-acceptance E2E, 200/300 performance, browser, visual, accessibility, MySQL, and security closure | DONE - PASS | T5-007 |
+| 9 | T5-009 | Global V2 app-shell and shared-component dark-purple rollout without Canvas regression | DONE - PASS | T5-008 |
+| 10 | T5-010 | Login, Home, Space, Admin, error, empty, loading, and responsive V2 UX upgrade | DONE - PASS | T5-009 |
+| 11 | T5-011 | Full V2 regression, real-runtime verification, security review, documentation, and release closure | DONE - PASS | T5-010 |
 
 ## Task Boundaries
 
@@ -60,6 +60,8 @@ T5-005 is `DONE - PASS`. Units A-E deliver one persistent keyed Leafer world, re
 T5-006 is `DONE - PASS`. Units A-E delivered one atomic idempotent document PATCH, serialized autosave and exact local recovery, Canvas-keyed 100-command undo/redo, reconstructable latest-50 history, periodic/restore checkpoints, non-destructive restore-to-new-head, explicit conflict recovery, and guarded restart evidence through the production FastAPI lifespan. Final closure passed 12 guarded MySQL document/revision tests, 16 focused Chromium tests, 200 full backend tests, 56 full Chromium tests, a 4,739-module build, accessibility coverage, independent review, and hygiene gates. `REPORT-T5-006.md` is authoritative.
 
 T5-007 is `DONE - PASS`. Units A-E delivered registry-driven canonical/legacy/unknown node behavior, guarded resource-origin and versioned-template schema through Alembic head `c9d0e1f2a3b4`, project-shared assets and generation history, atomic template instantiation, idempotent no-charge-on-failure generation transactions, backend-authoritative quota snapshots, responsive resource/generation controls, and the 375px review-only boundary. Upload closure adds bounded cross-process reservations, same-volume streaming staging, idle/total deadlines, cancellation-safe disk lifecycle, real decodable media validation, CPU/sample/decoded-size budgets, and patched multipart dependency bounds. Final evidence passed 384 backend tests plus 56 subtests, 117 Chromium tests, a 4,761-module build, four-viewport visual/accessibility checks, and independent review at 0 HIGH / 0 MEDIUM / 0 LOW. `REPORT-T5-007.md` is authoritative; automated provider evidence remains mock-only.
+
+T5-008 is `DONE - PASS`. The reproducible live boundary owned a unique guarded `revid_test_*` schema, production FastAPI/Vite processes, exact backend health and preview identity, redacted retained evidence, and cleanup. The final live run proved 200 nodes/300 connections, restart checksum, idempotency/409, 30-second performance, four viewport screenshots, mobile review-only behavior, security rejection, full backend (438) and full Chromium (131) regression. `REPORT-T5-008.md` is authoritative.
 
 ### T5-009 through T5-011
 

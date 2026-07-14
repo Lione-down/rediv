@@ -108,8 +108,8 @@ const typeCards = [
 .table-card {
   border: 1px solid var(--border-subtle);
   border-radius: 24px;
-  background: oklch(100% 0.004 92 / 0.9);
-  box-shadow: 0 20px 44px oklch(24% 0.016 245 / 0.06);
+  background: var(--v2-surface-1);
+  box-shadow: none;
 }
 
 .page-head,
@@ -132,7 +132,7 @@ const typeCards = [
 
 .eyebrow {
   color: var(--accent-generate-hover);
-  background: oklch(96% 0.022 175);
+  background: var(--v2-accent-soft);
 }
 
 .page-head h2,
@@ -186,7 +186,7 @@ td {
   place-items: center;
   border-radius: 12px;
   color: var(--accent-select);
-  background: oklch(95% 0.024 252);
+  background: var(--v2-accent-soft);
   flex-shrink: 0;
 }
 

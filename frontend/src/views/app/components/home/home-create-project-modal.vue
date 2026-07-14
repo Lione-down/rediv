@@ -122,12 +122,10 @@ function handleShowUpdate(show: boolean) {
 .create-dialog {
   width: min(460px, calc(100vw - 24px));
   padding: var(--space-6);
-  border: 1px solid oklch(100% 0.004 92 / 0.1);
+  border: 1px solid var(--v2-border-standard);
   border-radius: 22px;
-  color: oklch(94% 0.008 92);
-  background:
-    radial-gradient(circle at top right, oklch(62% 0.105 175 / 0.15), transparent 32%),
-    oklch(19% 0.014 245);
+  color: var(--v2-text-primary);
+  background: var(--v2-surface-3);
   box-shadow: var(--shadow-strong);
 }
 
@@ -139,7 +137,7 @@ function handleShowUpdate(show: boolean) {
 }
 
 .dialog-kicker {
-  color: oklch(82% 0.035 175);
+  color: var(--v2-accent-hover);
   font-size: var(--font-size-hint);
   font-weight: 650;
   letter-spacing: 0.08em;
@@ -153,7 +151,7 @@ function handleShowUpdate(show: boolean) {
 
 .dialog-copy {
   margin-top: var(--space-2);
-  color: oklch(84% 0.012 245 / 0.76);
+  color: var(--v2-text-secondary);
   line-height: 1.7;
 }
 
@@ -168,7 +166,7 @@ label {
 }
 
 .field-error {
-  color: oklch(78% 0.08 27);
+  color: var(--v2-danger);
   font-size: var(--font-size-hint);
 }
 
@@ -182,10 +180,10 @@ label {
 .dialog-action {
   min-height: 42px;
   padding: 0 var(--space-4);
-  border: 1px solid oklch(100% 0.004 92 / 0.12);
+  border: 1px solid var(--v2-border-standard);
   border-radius: var(--radius-lg);
-  color: oklch(92% 0.008 92);
-  background: oklch(100% 0.004 92 / 0.07);
+  color: var(--v2-text-primary);
+  background: var(--v2-surface-2);
   transition:
     background-color 120ms ease,
     transform 120ms ease;
@@ -198,7 +196,7 @@ label {
 }
 
 .dialog-action:focus-visible {
-  outline-color: oklch(86% 0.035 175);
+  outline-color: var(--v2-focus-ring);
 }
 
 .dialog-action:disabled {
@@ -212,11 +210,11 @@ label {
 
 @media (hover: hover) {
   .dialog-action:hover {
-    background: oklch(100% 0.004 92 / 0.12);
+    background: var(--v2-surface-prominent);
   }
 
   .dialog-action.is-primary:hover {
-    background: oklch(68% 0.085 175);
+    background: var(--v2-accent-hover);
   }
 }
 

@@ -210,7 +210,7 @@ function formatProjectDate(value: string) {
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-lg);
   color: var(--danger);
-  background: oklch(97% 0.018 27);
+  background: color-mix(in oklab, var(--v2-danger) 10%, var(--v2-surface-1));
 }
 
 .section-alert span {
@@ -253,7 +253,7 @@ function formatProjectDate(value: string) {
   padding: var(--space-4);
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
-  background: oklch(98% 0.005 92);
+  background: var(--v2-surface-2);
 }
 
 .project-icon,
@@ -261,7 +261,7 @@ function formatProjectDate(value: string) {
   display: grid;
   place-items: center;
   color: var(--accent-generate-hover);
-  background: oklch(94% 0.025 175);
+  background: var(--v2-accent-soft);
 }
 
 .project-icon {
@@ -305,7 +305,7 @@ function formatProjectDate(value: string) {
   padding: var(--space-8);
   border: 1px dashed var(--border-strong);
   border-radius: 18px;
-  background: oklch(98% 0.005 92);
+  background: var(--v2-surface-2);
 }
 
 .empty-state__icon {
@@ -344,7 +344,7 @@ function formatProjectDate(value: string) {
 
 @media (hover: hover) {
   .create-action:hover {
-    background: oklch(68% 0.085 175);
+    background: var(--v2-accent-hover);
   }
 
   .icon-action:hover,

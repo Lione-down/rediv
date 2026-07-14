@@ -280,7 +280,7 @@ onMounted(() => {
       <n-button
         class="primary-action"
         type="primary"
-        text-color="#f0eef6"
+        text-color="var(--v2-text-on-accent)"
         size="large"
         block
         attr-type="submit"
@@ -388,7 +388,7 @@ onMounted(() => {
 .primary-action:focus-visible,
 .provider-action:focus-visible,
 .settings-retry-action:focus-visible {
-  outline: 3px solid #a997ec;
+  outline: 3px solid var(--v2-focus-ring);
   outline-offset: 3px;
 }
 
@@ -444,12 +444,12 @@ onMounted(() => {
   min-height: 40px;
   align-items: center;
   margin: -8px 0;
-  color: #b8a8ee;
+  color: var(--v2-accent-hover);
   font-weight: 600;
 }
 
 .inline-link:focus-visible {
-  outline: 3px solid #a997ec;
+  outline: 3px solid var(--v2-focus-ring);
   outline-offset: 3px;
   border-radius: var(--radius-xs);
 }
@@ -468,7 +468,7 @@ onMounted(() => {
 
 @media (hover: hover) {
   .inline-link:hover {
-    color: #c7bcf2;
+    color: var(--v2-accent-hover);
   }
 }
 

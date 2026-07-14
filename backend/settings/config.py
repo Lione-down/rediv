@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     app_name: str = "Revid API"
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173", "http://localhost:9099"])
     jwt_secret: str = Field(default="", repr=False)
+    acceptance_instance_id: str = ""
 
     # === Database ===
     db_host: str = ""

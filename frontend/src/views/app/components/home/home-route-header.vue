@@ -79,8 +79,8 @@ const emit = defineEmits<{
   gap: var(--space-4);
   padding: 10px 20px;
   border-bottom: 1px solid var(--border-subtle);
-  background: oklch(98% 0.006 92 / 0.94);
-  box-shadow: 0 8px 24px oklch(20% 0.02 245 / 0.05);
+  background: var(--v2-surface-1);
+  box-shadow: none;
 }
 
 .brand,
@@ -103,8 +103,8 @@ const emit = defineEmits<{
   flex: 0 0 auto;
   place-items: center;
   border-radius: 10px;
-  color: white;
-  background: linear-gradient(135deg, var(--text-primary), oklch(36% 0.03 245));
+  color: var(--v2-text-on-accent);
+  background: var(--v2-accent);
   font-weight: 700;
 }
 
@@ -186,7 +186,7 @@ const emit = defineEmits<{
   }
 
   .header-action.is-primary:hover {
-    background: oklch(68% 0.085 175);
+    background: var(--v2-accent-hover);
   }
 }
 

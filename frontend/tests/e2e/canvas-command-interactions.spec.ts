@@ -401,7 +401,6 @@ test('typed align and lock commands persist once and locked nodes reject mutatio
   await toolbar.getByRole('button', { name: '排列所选节点' }).click()
   await page.getByText('左对齐', { exact: true }).click()
   await expect.poll(() => state.nodes.every((item) => item.position_x === 180)).toBe(true)
-
   await toolbar.getByRole('button', { name: '锁定所选节点' }).click()
   await expect.poll(() => state.nodes.every((item) => item.is_locked === true)).toBe(true)
   const patchCount = state.requests.filter((request) => (
@@ -416,6 +415,7 @@ test('typed align and lock commands persist once and locked nodes reject mutatio
 
   await toolbar.getByRole('button', { name: '解锁所选节点' }).click()
   await expect.poll(() => state.nodes.every((item) => item.is_locked === false)).toBe(true)
+  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
   await page.keyboard.press('Alt+Shift+f')
   await expect.poll(() => new Set(state.nodes.map((item) => item.position_x)).size).toBe(3)
   const evidence = await captureUnitDEvidence(page, 'desktop-arrange-lock')

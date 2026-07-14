@@ -10,6 +10,7 @@ html {
   color: var(--text-primary);
   background: var(--bg-app);
   font-family: var(--font-family);
+  color-scheme: dark;
   text-rendering: optimizeLegibility;
 }
 
@@ -39,12 +40,10 @@ a {
 
 .app-shell {
   min-height: 100dvh;
-  background:
-    radial-gradient(circle at 18% 0%, oklch(92% 0.03 175 / 0.42), transparent 28%),
-    linear-gradient(180deg, var(--bg-app), oklch(92% 0.012 92));
+  background: var(--bg-app);
 }
 
 .focus-ring:focus-visible {
-  outline: 3px solid oklch(58% 0.115 252 / 0.35);
+  outline: 2px solid var(--v2-focus-ring);
   outline-offset: 3px;
 }

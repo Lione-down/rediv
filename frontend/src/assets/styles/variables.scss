@@ -1,34 +1,34 @@
 :root {
   /* App shell background */
-  --bg-app: oklch(96% 0.008 92);
+  --bg-app: var(--v2-app);
   /* Canvas workspace background */
-  --bg-canvas: oklch(98% 0.006 92);
+  --bg-canvas: var(--v2-canvas);
   /* Primary panel surface */
-  --bg-panel: oklch(100% 0.004 92);
+  --bg-panel: var(--v2-surface-2);
   /* Secondary panel and input surface */
-  --bg-panel-subtle: oklch(94% 0.007 92);
+  --bg-panel-subtle: var(--v2-surface-1);
   /* Primary text color */
-  --text-primary: oklch(18% 0.014 245);
+  --text-primary: var(--v2-text-primary);
   /* Secondary text color */
-  --text-secondary: oklch(46% 0.018 245);
+  --text-secondary: var(--v2-text-secondary);
   /* Muted helper text color */
-  --text-muted: oklch(62% 0.014 245);
+  --text-muted: var(--v2-text-muted);
   /* Light panel divider and border */
-  --border-subtle: oklch(88% 0.009 92);
+  --border-subtle: var(--v2-border-subtle);
   /* Stronger control and selected border */
-  --border-strong: oklch(76% 0.014 92);
+  --border-strong: var(--v2-border-strong);
   /* Primary generate action color */
-  --accent-generate: oklch(62% 0.105 175);
+  --accent-generate: var(--v2-accent);
   /* Hover state for generate action */
-  --accent-generate-hover: oklch(55% 0.12 175);
+  --accent-generate-hover: var(--v2-accent-hover);
   /* Selection and focus accent */
-  --accent-select: oklch(58% 0.115 252);
+  --accent-select: var(--v2-accent);
   /* Warning state color */
-  --warning: oklch(70% 0.13 78);
+  --warning: var(--v2-warning);
   /* Danger state color */
-  --danger: oklch(58% 0.17 27);
+  --danger: var(--v2-danger);
   /* Success state color */
-  --success: oklch(60% 0.12 150);
+  --success: var(--v2-success);
 
   /* Tight icon and micro spacing */
   --space-1: 4px;
@@ -55,7 +55,7 @@
   --radius-pill: 999px;
 
   /* Global UI font stack */
-  --font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
+  --font-family: var(--v2-font-family);
   /* Page heading size */
   --font-size-page-heading: 24px;
   /* Page heading weight */

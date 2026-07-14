@@ -37,7 +37,7 @@ interface DraftConnectionState { fromNodeId: string; sourcePort: string; pointer
 interface MarqueeState { pointerId: number | null; start: Point; current: Point; additive: boolean }
 interface NativePointerLikeEvent extends MouseEvent { pointerId?: number }
 interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLikeEvent }
-interface CanvasStageOptions { isReadOnly?: () => boolean }
+interface CanvasStageOptions { isReadOnly?: () => boolean; onGraphPanelClosed?: () => void }
 export function useCanvasStage(options: CanvasStageOptions = {}) {
   const canvasStore = useCanvasStore()
   const stageRef = ref<HTMLElement | null>(null)
@@ -93,6 +93,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     canDuplicateSelection: canDuplicateSelectionNow,
     canGroupSelection: canGroupSelectionNow,
     canUngroupSelection: canUngroupSelectionNow,
+    commandFeedback,
     connectNodes,
     connectSelection,
     deleteSelection,
@@ -103,9 +104,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     hasLockedSelection: hasLockedSelectionNow,
     toggleLockSelection,
     ungroupSelection,
-  } = useCanvasCommandInteractions({
-    isReadOnly: () => options.isReadOnly?.() ?? false,
-  })
+  } = useCanvasCommandInteractions({ isReadOnly: () => options.isReadOnly?.() ?? false })
   const canConnectSelection = computed(() => canConnectSelectionNow())
   const canDeleteSelection = computed(() => canDeleteSelectionNow())
   const canDuplicateSelection = computed(() => canDuplicateSelectionNow())
@@ -414,7 +413,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     clearConnectionSelection: () => canvasStore.selectConnection(''),
     clearNodeSelection: () => canvasStore.setSelection([]),
     closeContextMenu,
-    closeGraphPanel,
+    closeGraphPanel, onGraphPanelClosed: () => options.onGraphPanelClosed?.(),
     closeNodeMenu,
     openNodeMenu,
     toggleGraphPanel,
@@ -488,7 +487,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     minimapViewportStyle, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
     viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu, selectionToolbarStyle,
-    canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection, closeGraphPanel, connectSelection,
+    canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection, closeGraphPanel, commandFeedback, connectSelection,
     canAlignSelection, canAutoArrange, canDeleteSelection, canDistributeSelection, hasLockedSelection,
     createNodeFromMenu, deleteSelection, duplicateSelection, groupSelection, isGraphPanelOpen, isNodeMenuOpen,
     toggleGraphPanel, ungroupSelection, updateNodeMenuOpen,

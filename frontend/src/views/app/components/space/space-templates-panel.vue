@@ -311,11 +311,7 @@ const emit = defineEmits<{
 .template-skeleton {
   min-height: 190px;
   border-radius: 20px;
-  background:
-    linear-gradient(100deg, transparent 20%, rgba(240, 238, 246, 0.04) 50%, transparent 80%),
-    rgba(240, 238, 246, 0.025);
-  background-size: 200% 100%;
-  animation: skeleton 1.4s ease-in-out infinite;
+  background: var(--v2-surface-2);
 }
 
 .empty-state {

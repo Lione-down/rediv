@@ -286,11 +286,7 @@ const isAllEmpty = computed(() => availableQuotaTypes.value === 0)
 .quota-skeletons span {
   height: 84px;
   border-radius: 16px;
-  background:
-    linear-gradient(100deg, transparent 20%, rgba(240, 238, 246, 0.04) 50%, transparent 80%),
-    rgba(240, 238, 246, 0.025);
-  background-size: 200% 100%;
-  animation: skeleton 1.4s ease-in-out infinite;
+  background: var(--v2-surface-2);
 }
 
 .is-spinning {

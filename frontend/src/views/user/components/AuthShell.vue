@@ -73,16 +73,16 @@ withDefaults(defineProps<{
 
 <style scoped lang="scss">
 .auth-shell {
-  --auth-canvas: #0e0e12;
-  --auth-app: #13131a;
-  --auth-panel: #1a1a24;
-  --auth-raised: #22222e;
-  --auth-text: #f0eef6;
-  --auth-text-secondary: rgba(240, 238, 246, 0.72);
-  --auth-text-muted: rgba(240, 238, 246, 0.56);
-  --auth-border: rgba(240, 238, 246, 0.1);
-  --auth-border-strong: rgba(240, 238, 246, 0.2);
-  --auth-primary: #6347c2;
+  --auth-canvas: var(--v2-canvas);
+  --auth-app: var(--v2-app);
+  --auth-panel: var(--v2-surface-2);
+  --auth-raised: var(--v2-surface-3);
+  --auth-text: var(--v2-text-primary);
+  --auth-text-secondary: var(--v2-text-secondary);
+  --auth-text-muted: var(--v2-text-muted);
+  --auth-border: var(--v2-border-subtle);
+  --auth-border-strong: var(--v2-border-strong);
+  --auth-primary: var(--v2-accent);
 
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -112,7 +112,7 @@ withDefaults(defineProps<{
 }
 
 .skip-link:focus-visible {
-  outline: 3px solid #a997ec;
+  outline: 2px solid var(--v2-focus-ring);
   outline-offset: 3px;
   transform: translateY(0);
 }
@@ -145,7 +145,7 @@ withDefaults(defineProps<{
 }
 
 .brand-link:focus-visible {
-  outline: 3px solid #a997ec;
+  outline: 2px solid var(--v2-focus-ring);
   outline-offset: 4px;
 }
 
@@ -204,14 +204,14 @@ withDefaults(defineProps<{
 }
 
 .auth-layout:focus-visible .auth-panel {
-  box-shadow: 0 0 0 3px #a997ec;
+  box-shadow: 0 0 0 3px var(--v2-focus-ring);
 }
 
 .auth-shell :deep(.n-input) {
-  --n-border: 1px solid rgba(240, 238, 246, 0.36) !important;
-  --n-border-hover: 1px solid #7b61d6 !important;
-  --n-border-focus: 1px solid #a997ec !important;
-  --n-box-shadow-focus: 0 0 0 3px #a997ec !important;
+  --n-border: 1px solid var(--v2-border-standard) !important;
+  --n-border-hover: 1px solid var(--v2-accent-hover) !important;
+  --n-border-focus: 1px solid var(--v2-accent) !important;
+  --n-box-shadow-focus: 0 0 0 3px var(--v2-focus-ring) !important;
 }
 
 .auth-story {
@@ -231,7 +231,7 @@ withDefaults(defineProps<{
   align-items: center;
   gap: var(--space-2);
   margin: 0 0 var(--space-4);
-  color: #a997ec;
+  color: var(--v2-accent-hover);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.4;
@@ -268,7 +268,7 @@ withDefaults(defineProps<{
 
 .panel-heading > p {
   margin: 0 0 var(--space-2);
-  color: #a997ec;
+  color: var(--v2-accent-hover);
   font-size: 13px;
   font-weight: 600;
 }

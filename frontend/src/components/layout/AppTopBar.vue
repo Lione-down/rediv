@@ -41,12 +41,11 @@ const authStore = useAuthStore()
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 52px;
+  min-height: 56px;
   padding: 0 20px;
   border-bottom: 1px solid var(--border-subtle);
   /* Keep translucent panel chrome; no exact alpha token in design-direction. */
-  background: oklch(100% 0.004 92 / 0.82);
-  backdrop-filter: blur(14px);
+  background: var(--v2-surface-1);
 }
 
 .brand,
@@ -63,13 +62,12 @@ const authStore = useAuthStore()
 
 .brand-mark {
   display: grid;
-  width: var(--space-8);
-  height: var(--space-8);
+  width: var(--v2-control-min-size);
+  height: var(--v2-control-min-size);
   place-items: center;
-  border-radius: 10px;
-  color: white;
-  /* Keep the brand mark gradient; no matching design token is defined. */
-  background: linear-gradient(135deg, var(--text-primary), oklch(36% 0.03 245));
+  border-radius: var(--v2-radius-sm);
+  color: var(--v2-text-on-accent);
+  background: var(--v2-accent);
   font-weight: 700;
 }
 
@@ -94,14 +92,15 @@ const authStore = useAuthStore()
 }
 
 .nav-link {
-  min-height: 38px;
+  min-height: var(--v2-control-min-size);
   gap: 7px;
   padding: 0 var(--space-3);
-  border-radius: var(--radius-lg);
-  color: var(--text-secondary);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-body);
-  line-height: var(--line-height-body);
+  border: 1px solid var(--v2-border-standard);
+  border-radius: var(--v2-radius-sm);
+  color: var(--v2-text-secondary);
+  font-size: var(--v2-font-size-body);
+  font-weight: var(--v2-font-weight-medium);
+  line-height: var(--v2-line-height-body);
   transition:
     color 120ms ease,
     background-color 120ms ease,
@@ -115,8 +114,9 @@ const authStore = useAuthStore()
 
 .nav-link:hover,
 .nav-link.router-link-active {
-  color: var(--text-primary);
-  background: var(--bg-panel-subtle);
+  color: var(--v2-text-primary);
+  border-color: var(--v2-accent);
+  background: var(--v2-accent-soft);
 }
 
 @media (max-width: 720px) {

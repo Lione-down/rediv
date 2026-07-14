@@ -27,6 +27,7 @@ $v2-canvas-review-breakpoint: 767px;
   --v2-border-subtle: oklch(94% 0.015 292 / 0.06);
   --v2-border-standard: oklch(94% 0.015 292 / 0.1);
   --v2-border-strong: oklch(94% 0.015 292 / 0.18);
+  --v2-grid-dot: oklch(72% 0.035 292 / 0.14);
 
   --v2-success: oklch(72% 0.13 155);
   --v2-warning: oklch(78% 0.14 82);
@@ -77,11 +78,13 @@ $v2-canvas-review-breakpoint: 767px;
   --v2-shadow-prominent: 0 24px 64px oklch(3% 0.01 292 / 0.52);
 }
 
+:root,
 .v2-canvas-theme {
   @include v2-canvas-tokens;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :root,
   .v2-canvas-theme {
     --v2-duration-fast: 0ms;
     --v2-duration-enter: 0ms;

@@ -1,0 +1,81 @@
+/* Page-level V2 bridge for legacy Home child components. */
+html body .home-page .route-header {
+  border-color: var(--v2-border-subtle);
+  background: var(--v2-surface-1);
+  box-shadow: none;
+}
+
+html body .home-page .brand__mark {
+  color: var(--v2-text-on-accent);
+  background: var(--v2-accent);
+}
+
+html body .home-page .header-action,
+html body .home-page .icon-action,
+html body .home-page .open-action {
+  border-color: var(--v2-border-standard);
+  color: var(--v2-text-primary);
+  background: var(--v2-surface-2);
+}
+
+html body .home-page .header-action.is-primary,
+html body .home-page .create-action {
+  color: var(--v2-text-on-accent);
+  background: var(--v2-accent);
+  box-shadow: none;
+}
+
+html body .home-page .projects-panel,
+html body .home-page .quota-panel,
+html body .home-page .assets-panel,
+html body .home-page .guest-entry,
+html body .home-page .create-dialog {
+  border: 1px solid var(--v2-border-subtle);
+  background: var(--v2-surface-1);
+  box-shadow: none;
+}
+
+html body .home-page .project-row,
+html body .home-page .empty-state,
+html body .home-page .asset-row,
+html body .home-page .asset-skeleton,
+html body .home-page .quota-row {
+  border-color: var(--v2-border-standard);
+  background: var(--v2-surface-2);
+}
+
+html body .home-page .project-icon,
+html body .home-page .empty-state__icon,
+html body .home-page .asset-icon,
+html body .home-page .quota-icon {
+  color: var(--v2-accent);
+  background: var(--v2-accent-soft);
+}
+
+html body .home-page .section-alert,
+html body .home-page .session-alert,
+html body .home-page .form-alert,
+html body .home-page .settings-alert {
+  border: 1px solid color-mix(in oklab, var(--v2-danger) 28%, transparent);
+  background: color-mix(in oklab, var(--v2-danger) 10%, var(--v2-surface-1));
+}
+
+html body .home-page .dialog-action.is-primary,
+html body .home-page .guest-action.is-primary {
+  color: var(--v2-text-on-accent);
+  background: var(--v2-accent);
+}
+
+html body .home-page .dialog-action.is-secondary,
+html body .home-page .guest-action.is-secondary {
+  border-color: var(--v2-border-standard);
+  color: var(--v2-text-primary);
+  background: var(--v2-surface-2);
+}
+
+@media (hover: hover) {
+  html body .home-page .route-header .header-action:hover,
+  html body .home-page .create-action:hover {
+    background: var(--v2-accent-hover);
+  }
+}

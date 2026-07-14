@@ -195,7 +195,7 @@ function formatAssetDate(value: string) {
   padding: var(--space-3);
   border-radius: var(--radius-lg);
   color: var(--danger);
-  background: oklch(97% 0.018 27);
+  background: color-mix(in oklab, var(--v2-danger) 10%, var(--v2-surface-1));
   font-size: var(--font-size-hint);
 }
 
@@ -234,7 +234,7 @@ function formatAssetDate(value: string) {
   gap: var(--space-3);
   padding: var(--space-3);
   border-radius: 16px;
-  background: oklch(98% 0.005 92);
+  background: var(--v2-surface-2);
 }
 
 .asset-icon {
@@ -245,7 +245,7 @@ function formatAssetDate(value: string) {
   place-items: center;
   border-radius: 13px;
   color: var(--accent-select);
-  background: oklch(94% 0.022 252);
+  background: var(--v2-accent-soft);
 }
 
 .asset-copy {

@@ -63,10 +63,8 @@ const isAllEmpty = computed(() => quotaItems.every((item) => props.quotas[item.k
   min-width: 0;
   padding: 20px;
   border-radius: 22px;
-  color: oklch(94% 0.008 92);
-  background:
-    radial-gradient(circle at top right, oklch(62% 0.105 175 / 0.16), transparent 32%),
-    linear-gradient(180deg, oklch(23% 0.018 245), oklch(17% 0.012 245));
+  color: var(--v2-text-primary);
+  background: var(--v2-surface-1);
   box-shadow: var(--shadow-strong);
 }
 
@@ -84,7 +82,7 @@ const isAllEmpty = computed(() => quotaItems.every((item) => props.quotas[item.k
 }
 
 .section-heading p {
-  color: oklch(82% 0.035 175);
+  color: var(--v2-accent-hover);
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.08em;
@@ -99,8 +97,8 @@ const isAllEmpty = computed(() => quotaItems.every((item) => props.quotas[item.k
 .section-heading > span {
   padding: 6px 9px;
   border-radius: var(--radius-pill);
-  color: oklch(88% 0.02 175);
-  background: oklch(100% 0.004 92 / 0.08);
+  color: var(--v2-text-secondary);
+  background: var(--v2-surface-2);
   font-size: var(--font-size-hint);
 }
 
@@ -118,16 +116,16 @@ const isAllEmpty = computed(() => quotaItems.every((item) => props.quotas[item.k
   min-height: 48px;
   padding: 0 var(--space-3);
   border-radius: 14px;
-  background: oklch(100% 0.004 92 / 0.07);
+  background: var(--v2-surface-2);
 }
 
 .quota-row > svg {
-  color: oklch(82% 0.035 175);
+  color: var(--v2-accent);
 }
 
 .quota-row span,
 .quota-row small {
-  color: oklch(84% 0.012 245 / 0.78);
+  color: var(--v2-text-secondary);
 }
 
 .quota-row strong {
@@ -143,12 +141,12 @@ const isAllEmpty = computed(() => quotaItems.every((item) => props.quotas[item.k
 
 .quota-row.is-empty strong,
 .quota-row.is-empty small {
-  color: oklch(75% 0.02 78);
+  color: var(--v2-warning);
 }
 
 .quota-notice {
   margin-top: var(--space-3);
-  color: oklch(82% 0.02 78);
+  color: var(--v2-warning);
   font-size: var(--font-size-hint);
   line-height: 1.6;
 }
@@ -157,7 +155,7 @@ const isAllEmpty = computed(() => quotaItems.every((item) => props.quotas[item.k
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  color: oklch(78% 0.08 27);
+  color: var(--v2-danger);
 }
 
 @media (max-width: 420px) {

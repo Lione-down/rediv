@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { NDropdown } from 'naive-ui'
 import { Keyboard } from 'lucide-vue-next'
-import { nextTick, ref, type ComponentPublicInstance } from 'vue'
+import { computed, nextTick, ref, type ComponentPublicInstance } from 'vue'
+import CanvasEmptyGuide from './CanvasEmptyGuide.vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
 import CanvasToolDock from './CanvasToolDock.vue'
 import CanvasViewControls from './CanvasViewControls.vue'
+import { getCanvasGridStyle } from './canvas-grid-presentation'
+import {
+  createWorkflowStarterCommand,
+  type WorkflowStarterId,
+} from './canvas-workflow-starters'
+import { normalizeViewport, surfaceToWorld } from './canvas-geometry'
 import { useCanvasStage } from './composables/use-canvas-stage'
 
 const props = withDefaults(defineProps<{ readonly?: boolean; resourcesOpen?: boolean }>(), {
@@ -16,6 +23,11 @@ const props = withDefaults(defineProps<{ readonly?: boolean; resourcesOpen?: boo
 const emit = defineEmits<{
   openResources: [opener: HTMLElement]
 }>()
+const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
+
+function restoreGraphPanelTriggerFocus() {
+  void nextTick(() => graphPanelTriggerRef.value?.focus({ preventScroll: true }))
+}
 
 const {
   canvasStore,
@@ -56,6 +68,7 @@ const {
   canAlignSelection,
   canAutoArrange,
   canDistributeSelection,
+  commandFeedback,
   closeGraphPanel,
   createNodeFromMenu,
   connectSelection,
@@ -81,9 +94,52 @@ const {
   zoomIn,
   zoomOut,
   zoomPercent,
-} = useCanvasStage({ isReadOnly: () => props.readonly })
+} = useCanvasStage({
+  isReadOnly: () => props.readonly,
+  onGraphPanelClosed: restoreGraphPanelTriggerFocus,
+})
 
-const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
+const dismissedEmptyCanvasIds = ref<ReadonlySet<string>>(new Set())
+const isStartingWorkflow = ref(false)
+const canvasGridStyle = computed(() => getCanvasGridStyle(canvasStore.viewport))
+const isEmptyGuideVisible = computed(() => (
+  canvasStore.hasLoaded && !canvasStore.isLoading && !canvasStore.loadError &&
+  canvasStore.nodes.length === 0 &&
+  !dismissedEmptyCanvasIds.value.has(canvasStore.activeCanvasId)
+))
+
+function workflowAnchor() {
+  const surface = canvasSurfaceRef.value
+  if (!surface) return { x: 0, y: 0 }
+  return surfaceToWorld(
+    { x: surface.clientWidth / 2, y: surface.clientHeight / 2 },
+    normalizeViewport(canvasStore.viewport),
+  )
+}
+
+async function startWorkflow(starterId: WorkflowStarterId) {
+  if (props.readonly || isStartingWorkflow.value || canvasStore.nodes.length) return
+  isStartingWorkflow.value = true
+  try {
+    await canvasStore.dispatchCommand({
+      source: 'toolbar',
+      command: createWorkflowStarterCommand(starterId, workflowAnchor()),
+    })
+    await nextTick()
+    stageRef.value?.focus({ preventScroll: true })
+  } catch {
+    // The Canvas store owns the visible persistence failure state.
+  } finally {
+    isStartingWorkflow.value = false
+  }
+}
+
+function keepCanvasBlank() {
+  const canvasId = canvasStore.activeCanvasId
+  if (!canvasId || props.readonly) return
+  dismissedEmptyCanvasIds.value = new Set([...dismissedEmptyCanvasIds.value, canvasId])
+  void nextTick(() => stageRef.value?.focus({ preventScroll: true }))
+}
 
 function setStageRef(element: Element | ComponentPublicInstance | null) {
   stageRef.value = element instanceof HTMLElement ? element : null
@@ -99,7 +155,7 @@ function setMinimapRef(element: Element | ComponentPublicInstance | null) {
 
 function closeGraphAccessPanel() {
   closeGraphPanel()
-  void nextTick(() => graphPanelTriggerRef.value?.focus({ preventScroll: true }))
+  restoreGraphPanelTriggerFocus()
 }
 </script>
 
@@ -112,6 +168,16 @@ function closeGraphAccessPanel() {
     aria-keyshortcuts="Tab Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+L Meta+L Control+0 Meta+0 Control++ Meta++ Control+- Meta+- Alt+Shift+F Delete Backspace Escape ?"
     tabindex="0"
   >
+    <p
+      v-if="commandFeedback"
+      :key="commandFeedback.id"
+      class="canvas-command-feedback"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {{ commandFeedback.message }}
+    </p>
     <div
       v-if="stageNotice"
       class="canvas-state"
@@ -123,10 +189,18 @@ function closeGraphAccessPanel() {
       <span>{{ stageNotice.detail }}</span>
       <button v-if="stageNotice.canRetry" type="button" @click="retryProjectLoad">重新加载</button>
     </div>
+    <CanvasEmptyGuide
+      v-if="isEmptyGuideVisible"
+      :busy="isStartingWorkflow"
+      :readonly="readonly"
+      @dismiss="keepCanvasBlank"
+      @start="startWorkflow"
+    />
     <div
       :ref="setCanvasSurfaceRef"
       class="canvas-surface"
       :class="[`cursor-${viewportCursor}`, { 'is-grid-hidden': !isGridEnabled }]"
+      :style="canvasGridStyle"
     >
       <svg v-show="areEdgesVisible" class="connection-layer" role="group" aria-label="画布连线">
         <g :transform="connectionWorldTransform">

@@ -11,7 +11,7 @@ import HomeProjectsPanel from './components/home/home-projects-panel.vue'
 import HomeQuotaSummary from './components/home/home-quota-summary.vue'
 import HomeRecentAssets from './components/home/home-recent-assets.vue'
 import HomeRouteHeader from './components/home/home-route-header.vue'
-
+import './home-page-v2.scss'
 const router = useRouter()
 const authStore = useAuthStore()
 const projectStore = useProjectStore()
@@ -303,12 +303,12 @@ onMounted(async () => {
   padding: var(--space-3) var(--space-4);
   border-radius: 16px;
   color: var(--accent-generate-hover);
-  background: oklch(94% 0.025 175);
+  background: color-mix(in oklab, var(--v2-success) 14%, var(--v2-surface-1));
 }
 
 .intro-status.is-frozen {
   color: var(--danger);
-  background: oklch(96% 0.02 27);
+  background: color-mix(in oklab, var(--v2-danger) 12%, var(--v2-surface-1));
 }
 
 .intro-status span {
@@ -345,7 +345,7 @@ onMounted(async () => {
   place-items: center;
   border-radius: 18px;
   color: var(--accent-generate-hover);
-  background: oklch(94% 0.025 175);
+  background: var(--v2-accent-soft);
   box-shadow: var(--shadow-soft);
 }
 
@@ -404,7 +404,7 @@ onMounted(async () => {
   padding: var(--space-3);
   border-radius: var(--radius-lg);
   color: var(--danger);
-  background: oklch(97% 0.018 27);
+  background: color-mix(in oklab, var(--v2-danger) 10%, var(--v2-surface-1));
 }
 
 .session-alert span {
@@ -418,7 +418,7 @@ onMounted(async () => {
 
 @media (hover: hover) {
   .guest-action.is-primary:hover {
-    background: oklch(68% 0.085 175);
+    background: var(--v2-accent-hover);
   }
 
   .guest-action.is-secondary:hover {
@@ -496,4 +496,5 @@ onMounted(async () => {
     transform: none;
   }
 }
+
 </style>

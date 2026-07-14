@@ -63,10 +63,12 @@ class TestHealthEndpoint(unittest.TestCase):
         with (
             patch("models.base._engine", engine),
             patch("database.get_alembic_head_revision", return_value="revision-a"),
+            patch("api.health.settings.acceptance_instance_id", "run-instance-123"),
         ):
             result = health_check()
 
         self.assertEqual("ok", result["status"])
+        self.assertEqual("run-instance-123", result["instance_id"])
         self.assertTrue(result["database"]["connected"])
         self.assertTrue(result["database"]["ready"])
         self.assertTrue(result["database"]["alembic_match"])

@@ -112,18 +112,16 @@ watch(
   overflow: hidden;
   padding: var(--space-4);
   border-radius: 16px;
-  color: #f0eef6;
-  background: #17171f;
-  outline: 1px solid rgba(240, 238, 246, 0.08);
+  color: var(--v2-text-primary);
+  background: var(--v2-surface-2);
+  outline: 1px solid var(--v2-border-subtle);
   outline-offset: -1px;
 }
 
 .asset-preview::before {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 78% 18%, rgba(99, 71, 194, 0.25), transparent 36%),
-    linear-gradient(160deg, rgba(240, 238, 246, 0.025), transparent 58%);
+  background: var(--v2-surface-2);
   content: '';
 }
 
@@ -134,12 +132,12 @@ watch(
   width: 100%;
   height: 100%;
   object-fit: cover;
-  outline: 1px solid rgba(240, 238, 246, 0.1);
+  outline: 1px solid var(--v2-border-standard);
   outline-offset: -1px;
 }
 
 video.preview-media {
-  background: #111118;
+  background: var(--v2-canvas);
 }
 
 .asset-preview.is-compact .preview-media {
@@ -147,15 +145,11 @@ video.preview-media {
 }
 
 .asset-preview.is-image::before {
-  background:
-    radial-gradient(circle at 72% 22%, rgba(76, 175, 125, 0.2), transparent 34%),
-    linear-gradient(160deg, rgba(240, 238, 246, 0.03), transparent 58%);
+  background: color-mix(in oklab, var(--v2-success) 10%, var(--v2-surface-2));
 }
 
 .asset-preview.is-video::before {
-  background:
-    radial-gradient(circle at 72% 22%, rgba(212, 160, 60, 0.18), transparent 34%),
-    linear-gradient(160deg, rgba(240, 238, 246, 0.03), transparent 58%);
+  background: color-mix(in oklab, var(--v2-warning) 10%, var(--v2-surface-2));
 }
 
 .asset-preview.is-compact {

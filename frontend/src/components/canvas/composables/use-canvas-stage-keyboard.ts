@@ -14,6 +14,7 @@ interface CanvasStageKeyboardOptions {
   clearNodeSelection: () => void
   closeContextMenu: () => void
   closeGraphPanel: () => void
+  onGraphPanelClosed: () => void
   closeNodeMenu: () => void
   openNodeMenu: () => void
   toggleGraphPanel: () => void
@@ -30,16 +31,41 @@ export function useCanvasStageKeyboard(options: CanvasStageKeyboardOptions) {
     return target === options.stageRef.value
   }
 
+  function isInteractiveTarget(target: EventTarget | null) {
+    return isCanvasEditableTarget(target) || Boolean(
+      target instanceof Element && target.closest(
+        'button, a, [role="button"], [role="option"], [role="menuitem"]',
+      ),
+    )
+  }
+
+  function isCanvasPanShortcutTarget(target: EventTarget | null) {
+    if (isInteractiveTarget(target)) return false
+    return target === options.stageRef.value || Boolean(
+      target instanceof Element && target.closest('.canvas-surface'),
+    )
+  }
+
+  function closeGraphPanelAndRestoreFocus() {
+    options.closeGraphPanel()
+    options.onGraphPanelClosed()
+  }
+
   function handleWindowKeyDown(event: KeyboardEvent) {
     if (!isCanvasFocusOwned(event.target)) return
-    if (event.key === ' ') {
-      options.isSpacePressed.value = true
-      if (!isCanvasEditableTarget(event.target)) event.preventDefault()
+    const dialogTarget = event.target instanceof Element && Boolean(event.target.closest('[role="dialog"]'))
+    if (dialogTarget) {
+      if (event.key === 'Escape' && options.isGraphPanelOpen.value) closeGraphPanelAndRestoreFocus()
+      return
     }
-    if (isCanvasEditableTarget(event.target)) return
+    if (event.key === ' ' && isCanvasPanShortcutTarget(event.target)) {
+      options.isSpacePressed.value = true
+      event.preventDefault()
+    }
+    if (isInteractiveTarget(event.target)) return
     if (event.key === 'Escape') {
       if (options.isNodeMenuOpen.value) return options.closeNodeMenu()
-      if (options.isGraphPanelOpen.value) return options.closeGraphPanel()
+      if (options.isGraphPanelOpen.value) return closeGraphPanelAndRestoreFocus()
       if (options.isContextMenuOpen()) return options.closeContextMenu()
       if (!options.cancelActiveInteraction()) {
         if (options.selectedConnectionId()) options.clearConnectionSelection()

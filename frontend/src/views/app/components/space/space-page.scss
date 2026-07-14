@@ -1,26 +1,26 @@
 .space-page {
-  --bg-app: #0e0e12;
-  --bg-panel: #1a1a24;
-  --bg-panel-subtle: #22222e;
-  --text-primary: #f0eef6;
-  --text-secondary: rgba(240, 238, 246, 0.72);
-  --text-muted: rgba(240, 238, 246, 0.56);
-  --border-subtle: rgba(240, 238, 246, 0.1);
-  --border-strong: rgba(240, 238, 246, 0.2);
+  --bg-app: var(--v2-app);
+  --bg-panel: var(--v2-surface-1);
+  --bg-panel-subtle: var(--v2-surface-2);
+  --text-primary: var(--v2-text-primary);
+  --text-secondary: var(--v2-text-secondary);
+  --text-muted: var(--v2-text-muted);
+  --border-subtle: var(--v2-border-subtle);
+  --border-strong: var(--v2-border-strong);
 
   min-height: 100dvh;
   color: var(--text-primary);
-  background: #0e0e12;
+  background: var(--v2-app);
 }
 
 :global(.space-page .focus-ring:focus-visible) {
-  outline: 3px solid rgba(99, 71, 194, 0.38);
+  outline: 3px solid var(--v2-focus-ring);
   outline-offset: 3px;
 }
 
 :deep(.top-bar) {
-  border-color: rgba(240, 238, 246, 0.08);
-  background: #13131a;
+  border-color: var(--v2-border-subtle);
+  background: var(--v2-surface-1);
   backdrop-filter: none;
 }
 
@@ -33,16 +33,16 @@
 .workspace-surface {
   min-width: 0;
   padding: 20px;
-  border: 1px solid rgba(240, 238, 246, 0.06);
+  border: 1px solid var(--v2-border-subtle);
   border-radius: 24px;
-  background: rgba(240, 238, 246, 0.022);
+  background: var(--v2-surface-1);
 }
 
 .workspace-switcher {
   display: flex;
   gap: var(--space-1);
   overflow-x: auto;
-  border-bottom: 1px solid rgba(240, 238, 246, 0.08);
+  border-bottom: 1px solid var(--v2-border-subtle);
   scrollbar-width: none;
 }
 
@@ -51,7 +51,7 @@
   min-height: 42px;
   padding-inline: var(--space-4);
   border: 0;
-  color: rgba(240, 238, 246, 0.62);
+  color: var(--v2-text-muted);
   background: transparent;
   font-size: 15px;
   font-weight: 600;
@@ -69,11 +69,11 @@
 }
 
 .workspace-switcher button.is-active {
-  color: #f0eef6;
+  color: var(--v2-text-primary);
 }
 
 .workspace-switcher button.is-active::after {
-  background: #7b61d6;
+  background: var(--v2-accent);
 }
 
 .workspace-view {
@@ -109,6 +109,6 @@
 
 @media (hover: hover) {
   .workspace-switcher button:hover {
-    color: #f0eef6;
+    color: var(--v2-text-primary);
   }
 }

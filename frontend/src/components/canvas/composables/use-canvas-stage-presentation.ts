@@ -50,7 +50,6 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     if (!canvasStore.activeProjectId) return { kind: 'missing', title: '未选择项目', detail: '请从项目列表进入工作流后加载画布。' }
     if (canvasStore.isLoading && !canvasStore.hasLoaded) return { kind: 'loading', title: '正在加载画布', detail: '正在同步项目节点与连线…' }
     if (canvasStore.loadError) return { kind: 'error', title: '画布加载失败', detail: canvasStore.loadError, canRetry: true }
-    if (canvasStore.hasLoaded && canvasStore.nodes.length === 0) return { kind: 'empty', title: '画布为空', detail: '当前项目还没有节点。' }
     return null
   })
   function surfaceNodeRectStyle(node: CanvasNode) {

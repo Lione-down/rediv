@@ -127,8 +127,8 @@ const quickSignals = computed(() => [
 .card-shell {
   border: 1px solid var(--border-subtle);
   border-radius: 24px;
-  background: oklch(100% 0.004 92 / 0.9);
-  box-shadow: 0 20px 44px oklch(24% 0.016 245 / 0.06);
+  background: var(--v2-surface-1);
+  box-shadow: none;
 }
 
 .page-hero {
@@ -145,10 +145,8 @@ const quickSignals = computed(() => [
 }
 
 .hero-copy {
-  background:
-    radial-gradient(circle at top right, oklch(95% 0.026 175 / 0.65), transparent 24%),
-    linear-gradient(180deg, oklch(99% 0.006 92), oklch(97% 0.008 92));
-  border: 1px solid oklch(90% 0.01 92);
+  background: var(--v2-surface-1);
+  border: 1px solid var(--v2-border-subtle);
 }
 
 .hero-panel {
@@ -171,7 +169,7 @@ const quickSignals = computed(() => [
 
 .eyebrow {
   color: var(--accent-generate-hover);
-  background: oklch(96% 0.022 175);
+  background: var(--v2-accent-soft);
 }
 
 .panel-label {
@@ -255,17 +253,17 @@ const quickSignals = computed(() => [
 
 .metric-card[data-tone='green'] .metric-icon {
   color: var(--accent-generate-hover);
-  background: oklch(95% 0.024 175);
+  background: color-mix(in oklab, var(--v2-success) 14%, var(--v2-surface-1));
 }
 
 .metric-card[data-tone='blue'] .metric-icon {
   color: var(--accent-select);
-  background: oklch(95% 0.024 252);
+  background: var(--v2-accent-soft);
 }
 
 .metric-card[data-tone='amber'] .metric-icon {
-  color: oklch(58% 0.12 78);
-  background: oklch(95% 0.024 78);
+  color: var(--v2-warning);
+  background: color-mix(in oklab, var(--v2-warning) 14%, var(--v2-surface-1));
 }
 
 .metric-card[data-tone='neutral'] .metric-icon,

@@ -1,5 +1,6 @@
+import { ref } from 'vue'
 import { useCanvasStore } from '../../../store/canvas'
-import { isNodeMutationSupported } from '../../../modules/canvas/node-registry'
+import { getDefaultConnectionPorts, isNodeMutationSupported } from '../../../modules/canvas/node-registry'
 import {
   canDeleteCanvasNode,
   createAlignNodesCommand,
@@ -23,11 +24,19 @@ interface CanvasCommandInteractionOptions {
 }
 
 export function isCanvasEditableTarget(target: EventTarget | null) {
-  return target instanceof Element && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
+  return target instanceof Element && Boolean(target.closest(
+    'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]',
+  ))
 }
 
 export function useCanvasCommandInteractions(options: CanvasCommandInteractionOptions) {
   const canvasStore = useCanvasStore()
+  const commandFeedback = ref<{ id: number; message: string } | null>(null)
+  let commandFeedbackId = 0
+
+  function announceCommandFeedback(message: string) {
+    commandFeedback.value = { id: ++commandFeedbackId, message }
+  }
 
   function duplicateSelection(source: CanvasCommandSource) {
     if (options.isReadOnly()) return false
@@ -93,8 +102,35 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
   }
 
   function connectSelection(source: CanvasCommandSource) {
-    if (canvasStore.selectedNodes.length !== 2) return false
-    return connectNodes(source, canvasStore.selectedNodes[0].id, canvasStore.selectedNodes[1].id)
+    if (canvasStore.selectedNodes.length !== 2) {
+      announceCommandFeedback('请选择两个可连接的节点后重试。')
+      return false
+    }
+    const [sourceNode, targetNode] = canvasStore.selectedNodes
+    if (
+      sourceNode.type === 'group' || targetNode.type === 'group' ||
+      sourceNode.parentNodeId || targetNode.parentNodeId || sourceNode.isLocked || targetNode.isLocked ||
+      !isNodeMutationSupported(sourceNode) || !isNodeMutationSupported(targetNode)
+    ) {
+      announceCommandFeedback('请选择两个可连接的节点后重试。')
+      return false
+    }
+    const ports = getDefaultConnectionPorts(sourceNode, targetNode)
+    if (!ports) {
+      announceCommandFeedback('所选节点的端口不兼容，请选择端口兼容的节点。')
+      return false
+    }
+    const isDuplicate = canvasStore.connections.some((connection) => (
+      connection.from === sourceNode.id && connection.to === targetNode.id &&
+      (connection.sourcePort ?? 'out') === ports.sourcePort &&
+      (connection.targetPort ?? 'in') === ports.targetPort
+    ))
+    if (isDuplicate) {
+      announceCommandFeedback('这两个节点已经连接，请选择其他节点。')
+      return false
+    }
+    commandFeedback.value = null
+    return connectNodes(source, sourceNode.id, targetNode.id, ports.sourcePort, ports.targetPort)
   }
 
   function alignSelection(source: CanvasCommandSource, alignment: CanvasAlignment) {
@@ -203,6 +239,7 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
     canUngroupSelection: () => Boolean(createUngroupNodesCommand(
       canvasStore.nodes, canvasStore.selectedNodeIds, canvasStore.connections,
     )),
+    commandFeedback,
     hasLockedSelection: () => canvasStore.selectedNodes.some((node) => node.isLocked),
     alignSelection,
     autoArrange,
