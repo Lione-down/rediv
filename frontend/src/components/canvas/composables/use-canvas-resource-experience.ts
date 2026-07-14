@@ -3,6 +3,7 @@ import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref, watch, ty
 import { request } from '../../../api/request'
 import { requestCanvasGeneration } from '../../../modules/canvas/generation-service'
 import { resolveGenerationContext } from '../../../modules/canvas/generation-context'
+import { resolveResultLineage } from '../../../modules/canvas/generation-lineage'
 import { getGenerationMediaType } from '../../../modules/canvas/node-registry'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import {
@@ -143,6 +144,11 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const selectedGenerationContext = computed(() => (
     selectedNode.value && selectedMediaType.value
       ? resolveGenerationContext(selectedNode.value, canvasStore.nodes, canvasStore.connections)
+      : null
+  ))
+  const selectedResultLineage = computed(() => (
+    selectedNode.value
+      ? resolveResultLineage(selectedNode.value, canvasStore.nodes, canvasStore.connections)
       : null
   ))
   const selectedQuota = computed(() => (
@@ -464,6 +470,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     selectedNode,
     selectedMediaType,
     selectedGenerationContext,
+    selectedResultLineage,
     selectedQuota,
     latestTask,
     visibleError,

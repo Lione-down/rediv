@@ -93,6 +93,7 @@ const {
   selectedNode,
   selectedMediaType,
   selectedGenerationContext,
+  selectedResultLineage,
   selectedQuota,
   latestTask,
   visibleError,
@@ -350,6 +351,7 @@ onBeforeUnmount(() => {
           :latest-task="latestTask"
           :generation-context="selectedGenerationContext"
           :media-type="selectedMediaType"
+          :result-lineage="selectedResultLineage"
           mode="panel"
           :node="selectedNode"
           :quota="selectedQuota"
@@ -407,6 +409,7 @@ onBeforeUnmount(() => {
               :latest-task="latestTask"
               :generation-context="selectedGenerationContext"
               :media-type="selectedMediaType"
+              :result-lineage="selectedResultLineage"
               mode="drawer"
               :node="selectedNode"
               :quota="selectedQuota"

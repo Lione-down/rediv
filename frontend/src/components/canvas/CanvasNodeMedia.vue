@@ -4,7 +4,9 @@ import type { CanvasNodeMediaPresentation } from './canvas-node-presentation'
 const props = defineProps<{ media: CanvasNodeMediaPresentation }>()
 const emit = defineEmits<{ metadata: [aspectRatio: number] }>()
 const state = ref<'loading' | 'ready' | 'error'>('loading')
-watch(() => props.media, () => { state.value = 'loading' })
+watch(() => props.media.kind === 'placeholder' ? props.media.kind : `${props.media.kind}:${props.media.url}`, () => {
+  state.value = 'loading'
+})
 function imageLoaded(event: Event) { const image = event.currentTarget as HTMLImageElement; state.value = image.naturalWidth > 0 && image.naturalHeight > 0 ? 'ready' : 'error'; if (state.value === 'ready') emit('metadata', image.naturalWidth / image.naturalHeight) }
 function videoLoaded(event: Event) { const video = event.currentTarget as HTMLVideoElement; state.value = video.videoWidth > 0 && video.videoHeight > 0 ? 'ready' : 'error'; if (state.value === 'ready') emit('metadata', video.videoWidth / video.videoHeight) }
 </script>

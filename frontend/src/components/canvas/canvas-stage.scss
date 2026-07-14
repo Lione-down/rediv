@@ -179,6 +179,42 @@
   background: var(--v2-surface-3);
 }
 
+.result-lineage-node {
+  position: absolute;
+  z-index: 3;
+  border-radius: var(--v2-radius-md);
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent-select) 38%, transparent);
+}
+
+.result-lineage-node span {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: grid;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  color: var(--v2-text-secondary);
+  background: var(--v2-surface-3);
+  box-shadow: 0 0 0 3px var(--bg-canvas);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.result-lineage-node.is-selected-variant {
+  box-shadow: inset 0 0 0 2px var(--accent-select);
+}
+
+.result-lineage-node.is-selected-variant span {
+  color: var(--v2-text-on-accent);
+  background: var(--accent-select);
+}
+
 .selection-marquee {
   position: absolute;
   z-index: 3;

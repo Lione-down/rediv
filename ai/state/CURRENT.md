@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-022 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-023 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-022 - Generation input provenance spotlight and deterministic ordering` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-022.md`
+- Most recently completed: `T5-023 - Result lineage and sibling variant inspection` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-023.md`
 
 ## Current Verified Facts
 
@@ -51,10 +51,11 @@ Last updated: 2026-07-15
 - T5-020 is now `DONE - PASS`: Canvas edges have forgiving transparent hit targets, direct selection, zoom-stable endpoint handles, and typed same-ID source/target rerouting. Relevant Chromium 57/57, full Chromium 173/173, post-label focused 28/28, and a 4,789-module build passed. Final report: `ai/reports/REPORT-T5-020.md`.
 - T5-021 is now `DONE - PASS`: selected compatible edges expose a restrained midpoint insertion action backed by two-sided canonical compatibility, same-ID upstream preservation, one atomic PATCH/history boundary, and exact undo/redo. Focused 6/6, insertion plus reroute 11/11, full Chromium 179/179, a 4,793-module build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-021.md`.
 - T5-022 is now `DONE - PASS`: selected generation nodes expose deterministic T/R input markers, participating paths, source rings, and muted excluded media from the same resolver that builds provider requests. Focused 6/6, related 39/39, full Chromium 182/182, a 4,793-module build, desktop/mobile visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-022.md`.
+- T5-023 is now `DONE - PASS`: selected canonical results trace their typed origin generation, ordered inputs, sibling V variants, and persisted task/model identity. Image decode, playable video, unavailable and broken media states remain stable across selection. Focused 10/10, related 48/48, full Chromium 186/186, a 4,794-module build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-023.md`.
 
 ## Exact Next Action
 
-Define the next bounded Canvas iteration Task from remaining multi-node generation and generated-media validation gaps.
+Define the next bounded Canvas iteration Task from remaining multi-node editing, media comparison, and generated-output validation gaps.
 
 ## Blockers And Human Gates
 

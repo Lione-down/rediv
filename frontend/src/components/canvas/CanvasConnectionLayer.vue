@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { createReconnectConnectionCommand } from '../../modules/canvas/canvas-commands'
 import { useCanvasStore } from '../../store/canvas'
 import type { CanvasConnection } from '../../types/canvas'
-import type { GenerationInputProvenance } from '../../modules/canvas/generation-context'
+import type { CanvasGenerationProvenance } from '../../modules/canvas/generation-lineage'
 import { buildConnectionPath, normalizeViewport, surfaceToWorld, type Point } from './canvas-geometry'
 import { worldToSurface } from './canvas-geometry'
 import { findNearestConnectionTarget } from './canvas-connection-target'
@@ -24,7 +24,7 @@ export interface CanvasConnectionPath {
 
 const props = defineProps<{
   paths: CanvasConnectionPath[]
-  provenance?: GenerationInputProvenance[]
+  provenance?: CanvasGenerationProvenance[]
   readonly: boolean
   visible: boolean
 }>()
@@ -92,10 +92,16 @@ function connectionLabel(connection: CanvasConnection) {
   const source = canvasStore.findNodeById(connection.from)?.title ?? '来源节点'
   const target = canvasStore.findNodeById(connection.to)?.title ?? '目标节点'
   const provenance = provenanceByConnectionId.value.get(connection.id)
+  const kindLabel = provenance?.kind === 'text' ? '提示词' : provenance?.kind === 'media' ? '参考图' : '结果变体'
   const provenanceLabel = provenance
-    ? `，${provenance.kind === 'text' ? '提示词' : '参考图'} ${provenance.order}，${provenance.isIncluded ? '已参与生成' : '未参与生成'}`
+    ? `，${kindLabel} ${provenance.order}，${provenance.isIncluded ? '已参与生成' : '未参与生成'}`
     : ''
   return `选择连线：${source} 到 ${target}${provenanceLabel}`
+}
+
+function isSelectedResultProvenance(connectionId: string) {
+  const provenance = provenanceByConnectionId.value.get(connectionId)
+  return provenance?.kind === 'result' && provenance.isSelected
 }
 
 function selectConnectionFromPointer(connectionId: string, event: PointerEvent) {
@@ -231,6 +237,8 @@ onBeforeUnmount(stopReroute)
             selected: canvasStore.selectedConnectionId === path.id,
             provenance: provenanceByConnectionId.has(path.id),
             'provenance-excluded': provenanceByConnectionId.get(path.id)?.isIncluded === false,
+            'provenance-result': provenanceByConnectionId.get(path.id)?.kind === 'result',
+            'provenance-selected-result': isSelectedResultProvenance(path.id),
           }"
           :d="path.path"
           marker-end="url(#canvas-edge-arrow)"
@@ -286,6 +294,8 @@ onBeforeUnmount(stopReroute)
 .connection-line.selected, .draft { stroke: var(--accent-select); stroke-width: 2.4; }
 .connection-line.provenance { stroke: var(--accent-select); stroke-width: 2.2; }
 .connection-line.provenance-excluded { stroke: var(--v2-text-muted); stroke-width: 1.6; stroke-dasharray: 3 5; }
+.connection-line.provenance-result { stroke: color-mix(in oklch, var(--accent-select) 58%, var(--border-strong)); stroke-width: 1.8; }
+.connection-line.provenance-selected-result { stroke: var(--accent-select); stroke-width: 2.6; }
 .connection-hit { fill: none; stroke: transparent; stroke-width: 16; outline: none; pointer-events: stroke; cursor: pointer; }
 .connection-hit:focus-visible { stroke: color-mix(in oklch, var(--accent-select) 18%, transparent); outline: none; }
 .connection-arrow { fill: var(--border-strong); pointer-events: none; }

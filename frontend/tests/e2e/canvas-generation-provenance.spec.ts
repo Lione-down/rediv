@@ -40,7 +40,11 @@ test('selected multi-input generation shows ordered source and edge provenance',
   await page.screenshot({ path: resolve(evidenceDirectory, 'ordered-four-inputs-1440x900.png'), fullPage: true })
 
   await selectNode(page, '宽银幕主镜头')
+  await expect(markers).toHaveCount(4)
+  await expect(page.locator('.result-lineage-node')).toHaveCount(8)
+  await selectNode(page, '中文剧情约束')
   await expect(markers).toHaveCount(0)
+  await expect(page.locator('.result-lineage-node')).toHaveCount(0)
   await expect(page.locator('.connection-line.provenance')).toHaveCount(0)
 })
 

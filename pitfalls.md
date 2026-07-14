@@ -333,3 +333,5 @@ Evidence:
 - 原 edge ID 应留给上游 segment，并通过一次 node upsert 加两次 connection upsert 原子提交；先删旧 edge 再分步创建会破坏 autosave、undo/redo 与外部引用连续性。已选 edge 的 midpoint action 会占据路径中心，自动化若需再次选择该 edge，应使用其 keyboard selection contract，避免把按钮的正常命中误判为连线失效。
 - 多输入生成的 panel、graph spotlight 与 provider payload 不能各自计算顺序。应由一个 resolver 同时产出 connection identity、kind order、included request order 与 exclusion state，避免用户看到的 R2 实际成为 request R1。
 - provenance 是当前 intent，不是永久 graph chrome。只有单选 generation node 时显示，badge 保持固定 screen size，edge 不使用循环动画；duplicate、missing、unsupported、limit 必须可见但不能使用 active treatment，也不能进入 request order。
+- result lineage 不能按位置、标题或最近 task 猜测。只接受唯一 active typed canonical generation -> result edge；variant 顺序来自 persisted connection order，result 自身的 `source_task_id`/`source_model` 保持 authoritative，ambiguous 或 task mismatch 时宁可不显示谱系。
+- Media presentation object 会随 selection 重算，但 URL 并未变化。若 watch 整个 object 并重置 loading，缓存资源不会再次触发 load/error，broken media 会卡在 loading；应只监听实际 media identity（kind + URL），让 ready/error 跨 selection 保持稳定。

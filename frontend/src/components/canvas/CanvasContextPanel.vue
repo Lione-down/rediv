@@ -2,6 +2,7 @@
 import { AlertTriangle, CircleCheck, Image, Info, Link2, LoaderCircle, Play, Sparkles, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import type { ResolvedGenerationContext } from '../../modules/canvas/generation-context'
+import type { ResolvedResultLineage } from '../../modules/canvas/generation-lineage'
 import type { ProjectGenerationTask } from '../../modules/canvas/project-resource-types'
 import type { CanvasNode } from '../../types/canvas'
 
@@ -15,6 +16,7 @@ const props = withDefaults(defineProps<{
   node: CanvasNode
   quota?: number
   readonly?: boolean
+  resultLineage?: ResolvedResultLineage | null
   success?: string
 }>(), {
   error: '',
@@ -24,6 +26,7 @@ const props = withDefaults(defineProps<{
   mediaType: null,
   quota: 0,
   readonly: false,
+  resultLineage: null,
   success: '',
 })
 
@@ -135,6 +138,15 @@ function requestGeneration() {
 
     <section v-else class="node-review" aria-label="节点内容">
       <dl><div><dt>节点类型</dt><dd>{{ node.type }}</dd></div><div><dt>状态</dt><dd>{{ node.status || 'idle' }}</dd></div><div><dt>位置</dt><dd>{{ Math.round(node.x) }}, {{ Math.round(node.y) }}</dd></div></dl>
+      <section v-if="resultLineage" class="result-lineage-detail" aria-label="生成结果谱系">
+        <div class="section-heading"><span>生成谱系</span><strong>V{{ resultLineage.selectedVariantOrder }} / {{ resultLineage.variants.length }}</strong></div>
+        <dl>
+          <div><dt>来源节点</dt><dd>{{ resultLineage.generationTitle }}</dd></div>
+          <div v-if="resultLineage.taskId"><dt>任务</dt><dd>{{ resultLineage.taskId }}</dd></div>
+          <div v-if="resultLineage.model"><dt>模型</dt><dd>{{ resultLineage.model }}</dd></div>
+          <div><dt>输入</dt><dd>{{ resultLineage.inputProvenance.filter((item) => item.isIncluded).length }} 项</dd></div>
+        </dl>
+      </section>
       <div class="review-prompt"><span>内容</span><p>{{ node.content || '此节点没有文本内容。' }}</p></div>
     </section>
   </aside>
@@ -179,6 +191,10 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .feedback.is-error { color: var(--v2-danger); background: color-mix(in oklch, var(--v2-danger) 10%, transparent); }
 .feedback.is-success { color: var(--v2-success); background: color-mix(in oklch, var(--v2-success) 10%, transparent); }
 .review-prompt p { margin: 0; padding: 11px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); color: var(--v2-text-primary); background: var(--v2-surface-1); font-size: 12px; line-height: 1.65; white-space: pre-wrap; }
+.result-lineage-detail { margin-bottom: 16px; }
+.result-lineage-detail .section-heading { margin-bottom: 8px; }
+.result-lineage-detail .section-heading strong { color: var(--v2-accent); font-variant-numeric: tabular-nums; }
+.result-lineage-detail dd { max-width: 220px; overflow: hidden; text-overflow: clip; white-space: nowrap; }
 dl { display: grid; gap: 1px; margin: 0 0 16px; overflow: hidden; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-border-subtle); }
 dl > div { justify-content: space-between; gap: 12px; padding: 9px 10px; background: var(--v2-surface-1); }
 dt, dd { margin: 0; font-size: 12px; }

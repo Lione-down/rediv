@@ -19,6 +19,7 @@ import { normalizeViewport, surfaceToWorld } from './canvas-geometry'
 import { useCanvasStage } from './composables/use-canvas-stage'
 import { resolveGenerationContext } from '../../modules/canvas/generation-context'
 import { getGenerationMediaType } from '../../modules/canvas/node-registry'
+import { resolveResultLineage, resultLineageProvenance } from '../../modules/canvas/generation-lineage'
 
 const props = withDefaults(defineProps<{ readonly?: boolean; resourcesOpen?: boolean }>(), {
   readonly: false,
@@ -110,16 +111,37 @@ const {
 const dismissedEmptyCanvasIds = ref<ReadonlySet<string>>(new Set())
 const isStartingWorkflow = ref(false)
 const canvasGridStyle = computed(() => getCanvasGridStyle(canvasStore.viewport))
+const selectedResultLineage = computed(() => {
+  if (canvasStore.selectedNodeIds.length !== 1 || !canvasStore.selectedNode) return null
+  return resolveResultLineage(canvasStore.selectedNode, canvasStore.nodes, canvasStore.connections)
+})
 const generationProvenance = computed(() => {
   if (canvasStore.selectedNodeIds.length !== 1) return []
   const selectedNode = canvasStore.selectedNode
-  if (!selectedNode || !getGenerationMediaType(selectedNode)) return []
-  return resolveGenerationContext(selectedNode, canvasStore.nodes, canvasStore.connections).provenance
+  if (!selectedNode) return []
+  if (getGenerationMediaType(selectedNode)) {
+    return resolveGenerationContext(selectedNode, canvasStore.nodes, canvasStore.connections).provenance
+  }
+  return selectedResultLineage.value ? resultLineageProvenance(selectedResultLineage.value) : []
 })
-const provenanceSources = computed(() => generationProvenance.value.flatMap((entry) => {
+const provenanceSources = computed(() => generationProvenance.value.filter(
+  (entry) => entry.kind !== 'result',
+).flatMap((entry) => {
   const node = canvasStore.findNodeById(entry.nodeId)
   return node ? [{ ...entry, node }] : []
 }))
+const lineageNodes = computed(() => {
+  const lineage = selectedResultLineage.value
+  if (!lineage) return []
+  const generationNode = canvasStore.findNodeById(lineage.generationNodeId)
+  return [
+    ...(generationNode ? [{ key: `generation-${generationNode.id}`, label: 'G', node: generationNode, selected: false }] : []),
+    ...lineage.variants.flatMap((variant) => {
+      const node = canvasStore.findNodeById(variant.nodeId)
+      return node ? [{ key: `variant-${variant.connectionId}`, label: `V${variant.order}`, node, selected: variant.isSelected }] : []
+    }),
+  ]
+})
 const isEmptyGuideVisible = computed(() => (
   canvasStore.hasLoaded && !canvasStore.isLoading && !canvasStore.loadError &&
   canvasStore.nodes.length === 0 &&
@@ -271,6 +293,17 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         aria-hidden="true"
       >
         <span>{{ source.kind === 'text' ? 'T' : 'R' }}{{ source.isIncluded ? source.order : '×' }}</span>
+      </div>
+
+      <div
+        v-for="item in lineageNodes"
+        :key="item.key"
+        class="result-lineage-node"
+        :class="{ 'is-selected-variant': item.selected }"
+        :style="surfaceNodeRectStyle(item.node)"
+        aria-hidden="true"
+      >
+        <span>{{ item.label }}</span>
       </div>
 
       <div
