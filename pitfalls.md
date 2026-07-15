@@ -480,3 +480,9 @@ Evidence:
 - A large minimum screen-space scale helps badge text at ordinary zoom but overwhelms nodes in a full-workflow overview. Lifecycle chrome must follow node zoom below 100%, where color and icon carry the signal.
 - Keep the high-zoom cap separately. Removing the low floor does not justify allowing badges to grow to 800%.
 - Absolutely positioned pill labels can wrap before transform when their parent overlay is narrow. Use a single-line contract and verify the final badge-to-node ratio across portrait, video, success, running, and failure states.
+
+## 2026-07-15 Zoom-consistent media fallback content
+
+- Replaced content such as images can fit a scaled frame without scaling DOM typography, but placeholder/loading/error text cannot. Publish exact surface zoom locally and scale font, padding, and radius together.
+- Scaling only the fallback message still leaves a browser-native broken-image icon or alt fragment if the failed replaced element stays visible. Hide it after the explicit accessible product alert takes ownership.
+- Tests that count semantic images must exclude failed hidden sources. Count successfully rendered images separately and assert the failed source is hidden behind the alert.

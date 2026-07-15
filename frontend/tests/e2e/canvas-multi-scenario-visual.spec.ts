@@ -33,7 +33,8 @@ test('mixed image, video, lifecycle, and unavailable states render together', as
   await page.keyboard.press('Control+0')
 
   await expect(page.getByRole('img', { name: '图片素材' })).toHaveCount(2)
-  await expect(page.getByRole('img', { name: '图片结果' })).toHaveCount(4)
+  await expect(page.getByRole('img', { name: '图片结果' })).toHaveCount(3)
+  await expect(page.locator('img[src*="broken-result.png"]')).toBeHidden()
   const video = page.locator('video[aria-label="视频结果"]')
   await expect(video).toBeVisible()
   await expect(page.getByText('图片结果暂未提供预览')).toBeVisible()

@@ -100,7 +100,13 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
         transformOrigin: 'top left',
       }
     }
-    return { left: `${position.x}px`, top: `${position.y}px`, width: `${rect.width * viewport.zoom}px`, height: `${rect.height * viewport.zoom}px` }
+    return {
+      left: `${position.x}px`,
+      top: `${position.y}px`,
+      width: `${rect.width * viewport.zoom}px`,
+      height: `${rect.height * viewport.zoom}px`,
+      '--canvas-surface-zoom': `${viewport.zoom}`,
+    }
   }
   function statusBadgeStyle() {
     const zoom = options.getViewport().zoom

@@ -16,8 +16,8 @@ function videoLoaded(event: Event) { const video = event.currentTarget as HTMLVi
     <template v-else>
       <span v-if="state === 'loading'" class="canvas-node-media__message" role="status">媒体加载中…</span>
       <span v-if="state === 'error'" class="canvas-node-media__message is-error" role="alert">媒体不可用，可稍后重试</span>
-      <img v-if="media.kind === 'image'" :src="media.url" :alt="media.label" @load="imageLoaded" @error="state = 'error'" />
-      <video v-else :src="media.url" :poster="media.poster" :aria-label="media.label" controls preload="metadata" @loadedmetadata="videoLoaded" @error="state = 'error'" />
+      <img v-if="media.kind === 'image'" v-show="state !== 'error'" :src="media.url" :alt="media.label" @load="imageLoaded" @error="state = 'error'" />
+      <video v-else v-show="state !== 'error'" :src="media.url" :poster="media.poster" :aria-label="media.label" controls preload="metadata" @loadedmetadata="videoLoaded" @error="state = 'error'" />
     </template>
   </div>
 </template>
@@ -46,6 +46,6 @@ function videoLoaded(event: Event) { const video = event.currentTarget as HTMLVi
 }
 
 .canvas-node-media video { pointer-events: auto; }
-.canvas-node-media__message { position: absolute; z-index: 1; padding: 8px 12px; border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: var(--v2-surface-2); font-size: 12px; }
+.canvas-node-media__message { position: absolute; z-index: 1; padding: calc(8px * var(--canvas-surface-zoom, 1)) calc(12px * var(--canvas-surface-zoom, 1)); border-radius: calc(var(--v2-radius-sm) * var(--canvas-surface-zoom, 1)); color: var(--v2-text-secondary); background: var(--v2-surface-2); font-size: calc(12px * var(--canvas-surface-zoom, 1)); }
 .canvas-node-media__message.is-error { color: var(--v2-danger); }
 </style>
