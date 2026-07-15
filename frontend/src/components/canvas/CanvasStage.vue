@@ -28,7 +28,7 @@ import {
 import { useCanvasStage } from './composables/use-canvas-stage'
 import { resolveGenerationContext } from '../../modules/canvas/generation-context'
 import { getGenerationMediaType } from '../../modules/canvas/node-registry'
-import { resolveResultLineage, resultLineageProvenance } from '../../modules/canvas/generation-lineage'
+import { resolveGenerationResultVariants, resolveResultLineage, resultLineageProvenance } from '../../modules/canvas/generation-lineage'
 import { resolveSelectionGenerationIntent } from '../../modules/canvas/selection-generation'
 import { resolveCanvasNodeContinuationTrigger } from './canvas-node-continuation-trigger'
 
@@ -151,11 +151,16 @@ const provenanceSources = computed(() => generationProvenance.value.filter(
 }))
 const lineageNodes = computed(() => {
   const lineage = selectedResultLineage.value
-  if (!lineage) return []
-  const generationNode = canvasStore.findNodeById(lineage.generationNodeId)
+  const selectedGeneration = canvasStore.selectedNodeIds.length === 1 && canvasStore.selectedNode
+    ? canvasStore.selectedNode
+    : null
+  const variants = lineage?.variants ?? (selectedGeneration
+    ? resolveGenerationResultVariants(selectedGeneration, canvasStore.nodes, canvasStore.connections)
+    : [])
+  const generationNode = lineage ? canvasStore.findNodeById(lineage.generationNodeId) : null
   return [
     ...(generationNode ? [{ key: `generation-${generationNode.id}`, label: 'G', node: generationNode, selected: false }] : []),
-    ...lineage.variants.flatMap((variant) => {
+    ...variants.flatMap((variant) => {
       const node = canvasStore.findNodeById(variant.nodeId)
       return node ? [{ key: `variant-${variant.connectionId}`, label: `V${variant.order}`, node, selected: variant.isSelected }] : []
     }),

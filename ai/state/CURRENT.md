@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-037 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-038 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-037 - Multi-selection input role preview` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-037.md`
+- Most recently completed: `T5-038 - Generation output variant map` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-038.md`
 
 ## Current Verified Facts
 
@@ -66,6 +66,7 @@ Last updated: 2026-07-15
 - T5-035 is now `DONE - PASS`: selected compatible nodes expose a quiet typed continuation trigger backed by the canonical resolver and existing chooser. Explicit continuation is collision-aware, atomic, keyboard accessible, selected, and panel-safely revealed; compact drawers hand off without mask obstruction. Build, focused 5/5, related 29/29, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-035.md`.
 - T5-036 is now `DONE - PASS`: registry-owned authoring intent limits the selected-node continuation action to script and asset sources while preserving typed drag compatibility and dedicated result branching. Build, focused 8/8, related 32/32, desktop/compact visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-036.md`.
 - T5-037 is now `DONE - PASS`: eligible multi-selection sources expose exact `T1..Tn` and `R1..Rn` roles projected from the authoritative preview command before composition, then hand off to persisted generation provenance. Build, focused 10/10, related 23/23, desktop/compact visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-037.md`.
+- T5-038 is now `DONE - PASS`: selecting a canonical generation maps every active typed result output as ordered `V1..Vn` while retaining T/R input provenance and selected-result G/V lineage. Build, focused 9/9, related 16/16, final lineage 6/6, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-038.md`.
 
 ## Exact Next Action
 

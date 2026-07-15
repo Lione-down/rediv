@@ -133,6 +133,8 @@ T5-036 is `DONE - PASS`. It separates typed connection compatibility from foregr
 
 T5-037 is `DONE - PASS`. It makes multi-node composition predictable before creation by projecting exact prompt/reference roles and independent input order from the authoritative selection generation command onto selected Canvas sources. `REPORT-T5-037.md` is authoritative evidence.
 
+T5-038 is `DONE - PASS`. It makes expanded repeated results read as one generation-owned version family by projecting canonical active typed outputs as `V1..Vn` whenever their generation node is selected. `REPORT-T5-038.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

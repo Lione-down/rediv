@@ -1,5 +1,11 @@
 # 踩坑记录
 
+## 2026-07-15 Generation output variant identity
+
+- Collision-safe expanded result nodes preserve interaction geometry but need generation-selected V identity to read as one output family. Do not physically overlap persisted nodes just to imitate a visual stack.
+- Variant order belongs to active typed generation-to-result connection order. Position, title, task timestamp, and resource recency are not lineage order.
+- Compact node detail drawers intentionally own the pointer layer. Browser tests must close the drawer through its real control before selecting another node, never force-click through the mask.
+
 ## 2026-07-15 Multi-selection input role preview
 
 - Aggregate compose counts do not explain which selected source will become each provider input. Pre-creation UI should project roles and order from the exact preview command, not classify node types again.

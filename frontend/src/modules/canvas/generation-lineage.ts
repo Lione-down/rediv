@@ -47,6 +47,28 @@ function readString(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+export function resolveGenerationResultVariants(
+  generationNode: CanvasNode,
+  nodes: readonly CanvasNode[],
+  connections: readonly CanvasConnection[],
+  selectedResultNodeId?: string,
+): ResultVariantLineage[] {
+  if (!canonical(generationNode, 'generation')) return []
+  const nodesById = new Map(nodes.map((node) => [node.id, node]))
+  return connections.flatMap((connection) => {
+    if (!active(connection) || connection.from !== generationNode.id) return []
+    const target = nodesById.get(connection.to)
+    if (!target || !canonical(target, 'result') || !isTypedResultEdge(connection, generationNode, target)) return []
+    return [{
+      connectionId: connection.id,
+      isSelected: target.id === selectedResultNodeId,
+      nodeId: target.id,
+      order: 0,
+      title: target.title,
+    }]
+  }).map((variant, index) => ({ ...variant, order: index + 1 }))
+}
+
 export function resolveResultLineage(
   resultNode: CanvasNode,
   nodes: readonly CanvasNode[],
@@ -67,18 +89,7 @@ export function resolveResultLineage(
   const edgeTaskId = readString(sourceConnection.metadata?.source_task_id)
   if (resultTaskId && edgeTaskId && resultTaskId !== edgeTaskId) return null
 
-  const variants = connections.flatMap((connection) => {
-    if (!active(connection) || connection.from !== generationNode.id) return []
-    const target = nodesById.get(connection.to)
-    if (!target || !canonical(target, 'result') || !isTypedResultEdge(connection, generationNode, target)) return []
-    return [{
-      connectionId: connection.id,
-      isSelected: target.id === resultNode.id,
-      nodeId: target.id,
-      order: 0,
-      title: target.title,
-    }]
-  }).map((variant, index) => ({ ...variant, order: index + 1 }))
+  const variants = resolveGenerationResultVariants(generationNode, nodes, connections, resultNode.id)
   const selectedVariant = variants.find((variant) => variant.isSelected)
   if (!selectedVariant) return null
 

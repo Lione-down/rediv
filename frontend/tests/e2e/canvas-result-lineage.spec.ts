@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { resolveResultLineage } from '../../src/modules/canvas/generation-lineage'
+import { resolveGenerationResultVariants, resolveResultLineage } from '../../src/modules/canvas/generation-lineage'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
 import { createMultiScenarioState } from './canvas-multi-scenario-fixture'
 import { documentPatches, FIRST_CANVAS_ID, openResourceWorkspace } from './canvas-resource-generation-fixture'
 
-const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-023-result-lineage')
+const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-038-generation-output-variants')
 
 function node(id: string, type: CanvasNode['type'], subtype: string): CanvasNode {
   return { id, type, title: id, x: 0, y: 0, width: 320, height: 200, contentData: { subtype, serialization_version: 1 } }
@@ -37,6 +37,16 @@ test('pure lineage requires one active typed canonical generation parent and kee
   expect(lineage?.variants.map((variant) => [variant.connectionId, variant.order, variant.isSelected])).toEqual([
     ['variant-1', 1, false], ['variant-2', 2, true],
   ])
+  expect(resolveGenerationResultVariants(generation, [generation, first, second], connections)).toEqual([
+    expect.objectContaining({ connectionId: 'variant-1', nodeId: 'first', order: 1, isSelected: false }),
+    expect.objectContaining({ connectionId: 'variant-2', nodeId: 'second', order: 2, isSelected: false }),
+  ])
+  expect(resolveGenerationResultVariants(generation, [generation, first, second], [
+    connections[0],
+    { ...connections[1], active: false, status: 'inactive' },
+    { ...connections[1], id: 'untyped', targetPort: 'media' },
+  ])).toEqual([expect.objectContaining({ connectionId: 'variant-1', order: 1 })])
+  expect(resolveGenerationResultVariants(first, [generation, first, second], connections)).toEqual([])
 
   expect(resolveResultLineage(second, [generation, first, second], [
     ...connections,
@@ -84,8 +94,16 @@ test('selected image result traces four inputs, origin generation, and six varia
   await page.screenshot({ path: resolve(evidenceDirectory, 'image-lineage-1440x900.png'), fullPage: true })
 
   await selectNode(page, '合并四路上下文生成')
-  await expect(page.locator('.result-lineage-node')).toHaveCount(0)
+  await expect(page.locator('.result-lineage-node')).toHaveCount(6)
+  await expect(page.locator('.result-lineage-node').filter({ hasText: 'G' })).toHaveCount(0)
+  for (let index = 1; index <= 6; index += 1) {
+    await expect(page.locator('.result-lineage-node').filter({ hasText: `V${index}` })).toHaveCount(1)
+  }
   await expect(page.locator('.generation-source-provenance')).toHaveCount(4)
+  expect(documentPatches(state)).toHaveLength(0)
+  const viewportPatchCount = state.requests.filter((request) => request.path.endsWith('/viewport')).length
+  await page.screenshot({ path: resolve(evidenceDirectory, 'generation-output-map-1440x900.png'), fullPage: true })
+  expect(state.requests.filter((request) => request.path.endsWith('/viewport'))).toHaveLength(viewportPatchCount)
 })
 
 test('video, unavailable, and broken sibling results keep honest media states and lineage', async ({ page }) => {
@@ -125,6 +143,12 @@ test('readonly compact review preserves lineage without mutation controls', asyn
 
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'result-lineage-readonly-375x812.png'), fullPage: true })
+
+  await page.getByRole('button', { name: '关闭节点详情' }).click()
+  await selectNode(page, '合并四路上下文生成')
+  await expect(page.locator('.result-lineage-node')).toHaveCount(6)
+  await expect(page.locator('.result-lineage-node').filter({ hasText: 'V6' })).toHaveCount(1)
+  await page.screenshot({ path: resolve(evidenceDirectory, 'generation-output-map-readonly-375x812.png'), fullPage: true })
 })
 
 test('comparison tray renders six canonical mixed-media variants without mutation', async ({ page }) => {

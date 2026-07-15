@@ -24,6 +24,7 @@ test('selected multi-input generation shows ordered source and edge provenance',
   await expect(markers.filter({ hasText: 'R2' })).toHaveCount(1)
   await expect(page.locator('.connection-line.provenance')).toHaveCount(4)
   await expect(page.locator('.connection-line.provenance-excluded')).toHaveCount(0)
+  await expect(page.locator('.result-lineage-node')).toHaveCount(6)
 
   const context = page.getByRole('region', { name: '已连接生成上下文' })
   await expect(context).toContainText('提示词 1 · 中文剧情约束')
