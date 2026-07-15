@@ -424,6 +424,8 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     canvasStore.setSelection([], '')
   }
 
+  let suppressNextCompactContextOpen = false
+  function selectNodeForCanvasLocation(nodeId: string) { if (!canvasStore.findNodeById(nodeId)) return false; suppressNextCompactContextOpen = options.isCompact.value; canvasStore.selectNode(nodeId); return true }
   watch(options.projectId, (projectId) => {
     stopResourcePolling()
     if (projectId) void resourceStore.loadProject(projectId).catch(() => undefined)
@@ -452,7 +454,8 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     if (!nodeId) isContextDrawerOpen.value = false
     else if (options.isCompact.value) {
       isResourceOpen.value = false
-      isContextDrawerOpen.value = true
+      if (suppressNextCompactContextOpen) { suppressNextCompactContextOpen = false; isContextDrawerOpen.value = false }
+      else isContextDrawerOpen.value = true
     }
   })
 
@@ -485,6 +488,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     closeResources,
     restoreResourceFocus,
     closeContext,
+    selectNodeForCanvasLocation,
     setPanelWidth,
     insertAsset,
     uploadAsset,

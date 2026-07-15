@@ -47,6 +47,7 @@ const emit = defineEmits<{
   compareResults: []
   continueNode: []
   fitTrace: []
+  locateNode: [nodeId: string]
   generate: [prompt: string]
   reorderInput: [connectionId: string, direction: -1 | 1]
   updatePrompt: [prompt: string]
@@ -161,14 +162,14 @@ function requestGeneration() {
         <div class="context-summary"><span><Link2 :size="14" aria-hidden="true" />已连接上下文</span><strong>{{ connectedInputCount }} 项已使用</strong></div>
         <ul>
           <li v-for="source in generationContext.textSources" :key="`text-${source.nodeId}`" :class="{ muted: !source.isIncluded }">
-            <Link2 :size="13" aria-hidden="true" /><span><strong>提示词 {{ source.order }} · {{ source.title }}</strong><small>{{ source.isIncluded ? '已合并文本' : '空内容，未使用' }}</small></span>
+            <button type="button" class="context-node-link" :aria-label="`定位到画布：${source.title}`" @click="emit('locateNode', source.nodeId)"><Link2 :size="13" aria-hidden="true" /><span><strong>提示词 {{ source.order }} · {{ source.title }}</strong><small>{{ source.isIncluded ? '已合并文本' : '空内容，未使用' }}</small></span><ArrowRight :size="13" aria-hidden="true" /></button>
             <span v-if="!readonly" class="input-order-actions">
               <button type="button" :disabled="!canMoveInput(source.connectionId, 'text', -1)" :aria-label="`上移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
               <button type="button" :disabled="!canMoveInput(source.connectionId, 'text', 1)" :aria-label="`下移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
             </span>
           </li>
           <li v-for="source in generationContext.mediaSources" :key="`media-${source.nodeId}`" :class="{ muted: source.state !== 'included' }">
-            <Image :size="13" aria-hidden="true" /><span><strong>参考图 {{ source.requestOrder ?? source.order }} · {{ source.title }}</strong><small>{{ mediaStateLabel[source.state] }}</small></span>
+            <button type="button" class="context-node-link" :aria-label="`定位到画布：${source.title}`" @click="emit('locateNode', source.nodeId)"><Image :size="13" aria-hidden="true" /><span><strong>参考图 {{ source.requestOrder ?? source.order }} · {{ source.title }}</strong><small>{{ mediaStateLabel[source.state] }}</small></span><ArrowRight :size="13" aria-hidden="true" /></button>
             <span v-if="!readonly" class="input-order-actions">
               <button type="button" :disabled="!canMoveInput(source.connectionId, 'media', -1)" :aria-label="`上移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
               <button type="button" :disabled="!canMoveInput(source.connectionId, 'media', 1)" :aria-label="`下移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
@@ -260,7 +261,7 @@ function requestGeneration() {
       <section v-if="resultLineage" class="result-lineage-detail" aria-label="生成结果谱系">
         <div class="section-heading"><span>生成谱系</span><strong>V{{ resultLineage.selectedVariantOrder }} / {{ resultLineage.variants.length }}</strong></div>
         <dl>
-          <div><dt>来源节点</dt><dd>{{ resultLineage.generationTitle }}</dd></div>
+          <div><dt>来源节点</dt><dd><button type="button" class="lineage-node-link" :aria-label="`定位到画布：${resultLineage.generationTitle}`" @click="emit('locateNode', resultLineage.generationNodeId)">{{ resultLineage.generationTitle }}<ArrowRight :size="13" aria-hidden="true" /></button></dd></div>
           <div v-if="resultLineage.taskId"><dt>任务</dt><dd>{{ resultLineage.taskId }}</dd></div>
           <div v-if="resultLineage.model"><dt>模型</dt><dd>{{ resultLineage.model }}</dd></div>
           <div><dt>输入</dt><dd>{{ resultLineage.inputProvenance.filter((item) => item.isIncluded).length }} 项</dd></div>
@@ -326,6 +327,8 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .connected-context ul { display: grid; gap: 5px; margin: 9px 0 0; padding: 0; list-style: none; }
 .connected-context li { gap: 7px; min-width: 0; padding: 6px 7px; border-radius: 6px; color: var(--v2-accent); background: var(--v2-surface-2); }
 .connected-context li.muted { color: var(--v2-text-muted); }
+.context-node-link { display: grid; flex: 1; grid-template-columns: 13px minmax(0, 1fr) 13px; width: auto; height: auto; min-height: 40px; align-items: center; gap: 7px; padding: 0; color: inherit; background: transparent; text-align: left; }
+.context-node-link:focus-visible, .lineage-node-link:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 .connected-context li span { display: grid; min-width: 0; gap: 1px; }
 .connected-context li > span:not(.input-order-actions) { flex: 1; }
 .connected-context li strong, .connected-context li small { overflow: hidden; white-space: nowrap; text-overflow: clip; }
@@ -379,6 +382,7 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .result-lineage-detail .section-heading { margin-bottom: 8px; }
 .result-lineage-detail .section-heading strong { color: var(--v2-accent); font-variant-numeric: tabular-nums; }
 .result-lineage-detail dd { max-width: 220px; overflow: hidden; text-overflow: clip; white-space: nowrap; }
+.lineage-node-link { display: inline-flex; width: auto; height: auto; min-height: 32px; align-items: center; gap: 5px; padding: 0 2px; color: var(--v2-text-primary); background: transparent; font-size: 12px; }
 dl { display: grid; gap: 1px; margin: 0 0 16px; overflow: hidden; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-border-subtle); }
 dl > div { justify-content: space-between; gap: 12px; padding: 9px 10px; background: var(--v2-surface-1); }
 dt, dd { margin: 0; font-size: 12px; }

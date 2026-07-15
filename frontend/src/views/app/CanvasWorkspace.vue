@@ -107,6 +107,7 @@ const {
   closeResources,
   restoreResourceFocus,
   closeContext,
+  selectNodeForCanvasLocation,
   setPanelWidth,
   insertAsset,
   uploadAsset,
@@ -126,12 +127,22 @@ const canFitProvenanceTrace = computed(() => Boolean(
 ))
 let isDrawerContinuationPending = false
 let isDrawerTraceFitPending = false
+let drawerLocateNodeId = ''
 
 function continueFromContextDrawer() { isDrawerContinuationPending = true; isContextDrawerOpen.value = false }
 function fitTraceFromContextDrawer() { isDrawerTraceFitPending = true; isContextDrawerOpen.value = false }
+function locateNodeFromContext(nodeId: string) {
+  if (isCompact.value) { drawerLocateNodeId = nodeId; isContextDrawerOpen.value = false; return }
+  if (selectNodeForCanvasLocation(nodeId)) void nextTick(() => canvasStageRef.value?.revealNode(nodeId))
+}
 function handleContextDrawerAfterLeave() {
   if (isDrawerContinuationPending) { isDrawerContinuationPending = false; canvasStageRef.value?.openSelectedContinuation() }
   if (isDrawerTraceFitPending) { isDrawerTraceFitPending = false; canvasStageRef.value?.fitSelectedProvenanceTrace() }
+  if (drawerLocateNodeId) {
+    const nodeId = drawerLocateNodeId
+    drawerLocateNodeId = ''
+    if (selectNodeForCanvasLocation(nodeId)) void nextTick(() => canvasStageRef.value?.revealNode(nodeId))
+  }
 }
 
 const comparisonItems = computed(() => (selectedResultLineage.value?.variants ?? []).flatMap((variant) => {
@@ -410,6 +421,7 @@ onBeforeUnmount(() => {
           @compare-results="openResultComparison"
           @fit-trace="canvasStageRef?.fitSelectedProvenanceTrace()"
           @generate="generate"
+          @locate-node="locateNodeFromContext"
           @reorder-input="reorderGenerationInput"
           @update-prompt="updatePrompt"
         />
@@ -486,6 +498,7 @@ onBeforeUnmount(() => {
               @compare-results="openResultComparison"
               @fit-trace="fitTraceFromContextDrawer"
               @generate="generate"
+              @locate-node="locateNodeFromContext"
               @reorder-input="reorderGenerationInput"
               @update-prompt="updatePrompt"
             />

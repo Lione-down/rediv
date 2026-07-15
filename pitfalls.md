@@ -454,3 +454,11 @@ Evidence:
 - Fixed-size toolbars need screen-space collision scoring at low graph zoom. Evaluate adjacent docks against projected node rectangles, then use reserved top/bottom rails only when every adjacent position overlaps dense content.
 - Treat a selected generation's detached composer as occupied toolbar space even though it is not an ordinary graph node.
 - `vite preview` browser tests read the built `dist`; after business-code edits, rebuild before interpreting UI screenshots or placement assertions.
+
+## 2026-07-15 Inspector lineage navigation
+
+- Compact selection normally opens context automatically. An explicit “locate on Canvas” path needs a one-shot suppression beside that watcher; closing the drawer and racing a second assignment from Workspace causes flicker or re-obstruction.
+- Preserve interaction validity in inspector rows: source locate and input reorder are sibling controls, never nested buttons.
+- Excluded or unavailable generation inputs are still real graph nodes. Keep them locatable even though the provider request resolver correctly omits them.
+- Responsive source navigation should wait for modal drawer leave before selecting and revealing, then consume exactly one suppression token so ordinary later selections still open context.
+- Camera-only navigation may be a no-op when the target is already safe; acceptance should require zero or one viewport update and exactly zero document mutations.
