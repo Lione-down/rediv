@@ -58,6 +58,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 46 | T5-046 | Zoom-consistent media fallback content | DONE - PASS | T5-045 |
 | 47 | T5-047 | Proportional provenance markers at overview zoom | DONE - PASS | T5-046 |
 | 48 | T5-048 | Video current-frame reuse as Canvas image input | DONE - PASS | T5-047 |
+| 49 | T5-049 | Captured-frame provenance and repeat capture loop | DONE - PASS | T5-048 |
 
 ## Task Boundaries
 
@@ -160,6 +161,8 @@ T5-046 is `DONE - PASS`. It scales media fallback typography and spacing through
 T5-047 is `DONE - PASS`. It scales T/R/G/V provenance pills as corner-anchored node annotations below 100%, caps high-zoom growth at 120%, and preserves lineage semantics across desktop, compact, and mobile overview. `REPORT-T5-047.md` is authoritative evidence.
 
 T5-048 is `DONE - PASS`. It turns the current decoded frame of a selected video into a durable project image asset and collision-aware Canvas source node, then proves that frame can participate in ordered image and video multi-node composition. `REPORT-T5-048.md` is authoritative evidence.
+
+T5-049 is `DONE - PASS`. Captured frames expose strict source-video and capture-time provenance, navigate back through responsive review contracts, and support repeated independent captures that compose in stable order. `REPORT-T5-049.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

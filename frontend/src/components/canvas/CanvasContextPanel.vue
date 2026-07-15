@@ -8,6 +8,7 @@ import { resolveGenerationRunHistory } from '../../modules/canvas/generation-run
 import { canBranchFromImageResult, type ResultBranchMediaType } from '../../modules/canvas/resource-commands'
 import { useCanvasStore } from '../../store/canvas'
 import type { CanvasNode } from '../../types/canvas'
+import { formatCapturedFrameTime, resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
 
 const props = withDefaults(defineProps<{
   error?: string
@@ -74,6 +75,7 @@ const runHistory = computed(() => resolveGenerationRunHistory(props.node.id, pro
   nodes: canvasStore.nodes,
 }))
 const canBranchResult = computed(() => canBranchFromImageResult(props.node))
+const capturedFrameProvenance = computed(() => resolveCapturedFrameProvenance(props.node, canvasStore.nodes))
 const mediaStateLabel = {
   included: '已作为参考图',
   'missing-asset': '缺少资源，未使用',
@@ -258,6 +260,13 @@ function requestGeneration() {
 
     <section v-else class="node-review" aria-label="节点内容">
       <dl><div><dt>节点类型</dt><dd>{{ node.type }}</dd></div><div><dt>状态</dt><dd>{{ node.status || 'idle' }}</dd></div><div><dt>位置</dt><dd>{{ Math.round(node.x) }}, {{ Math.round(node.y) }}</dd></div></dl>
+      <section v-if="capturedFrameProvenance" class="captured-frame-detail" aria-label="视频帧来源">
+        <div class="section-heading"><span>视频帧来源</span><strong>{{ formatCapturedFrameTime(capturedFrameProvenance.captureTimeSeconds) }}</strong></div>
+        <dl>
+          <div><dt>源视频</dt><dd><button type="button" class="lineage-node-link" :aria-label="`定位到源视频：${capturedFrameProvenance.sourceTitle}`" @click="emit('locateNode', capturedFrameProvenance.sourceNodeId)">{{ capturedFrameProvenance.sourceTitle }}<ArrowRight :size="13" aria-hidden="true" /></button></dd></div>
+          <div><dt>截取时间</dt><dd>{{ formatCapturedFrameTime(capturedFrameProvenance.captureTimeSeconds) }}</dd></div>
+        </dl>
+      </section>
       <section v-if="resultLineage" class="result-lineage-detail" aria-label="生成结果谱系">
         <div class="section-heading"><span>生成谱系</span><strong>V{{ resultLineage.selectedVariantOrder }} / {{ resultLineage.variants.length }}</strong></div>
         <dl>
@@ -378,10 +387,10 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .feedback.is-error { color: var(--v2-danger); background: color-mix(in oklch, var(--v2-danger) 10%, transparent); }
 .feedback.is-success { color: var(--v2-success); background: color-mix(in oklch, var(--v2-success) 10%, transparent); }
 .review-prompt p { margin: 0; padding: 11px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); color: var(--v2-text-primary); background: var(--v2-surface-1); font-size: 12px; line-height: 1.65; white-space: pre-wrap; }
-.result-lineage-detail { margin-bottom: 16px; }
-.result-lineage-detail .section-heading { margin-bottom: 8px; }
-.result-lineage-detail .section-heading strong { color: var(--v2-accent); font-variant-numeric: tabular-nums; }
-.result-lineage-detail dd { max-width: 220px; overflow: hidden; text-overflow: clip; white-space: nowrap; }
+.result-lineage-detail, .captured-frame-detail { margin-bottom: 16px; }
+.result-lineage-detail .section-heading, .captured-frame-detail .section-heading { margin-bottom: 8px; }
+.result-lineage-detail .section-heading strong, .captured-frame-detail .section-heading strong { color: var(--v2-accent); font-variant-numeric: tabular-nums; }
+.result-lineage-detail dd, .captured-frame-detail dd { max-width: 220px; overflow: hidden; text-overflow: clip; white-space: nowrap; }
 .lineage-node-link { display: inline-flex; width: auto; height: auto; min-height: 32px; align-items: center; gap: 5px; padding: 0 2px; color: var(--v2-text-primary); background: transparent; font-size: 12px; }
 dl { display: grid; gap: 1px; margin: 0 0 16px; overflow: hidden; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-border-subtle); }
 dl > div { justify-content: space-between; gap: 12px; padding: 9px 10px; background: var(--v2-surface-1); }

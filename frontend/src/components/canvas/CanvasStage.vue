@@ -31,6 +31,7 @@ import { getGenerationMediaType } from '../../modules/canvas/node-registry'
 import { resolveGenerationResultVariants, resolveResultLineage, resultLineageProvenance, resultVariantProvenance } from '../../modules/canvas/generation-lineage'
 import { resolveSelectionGenerationIntent } from '../../modules/canvas/selection-generation'
 import { resolveCanvasNodeContinuationTrigger } from './canvas-node-continuation-trigger'
+import { resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
 
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; readonly?: boolean; resourcesOpen?: boolean
@@ -133,6 +134,8 @@ const isStartingWorkflow = ref(false)
 const canvasGridStyle = computed(() => getCanvasGridStyle(canvasStore.viewport))
 const continuationTrigger = computed(() => resolveCanvasNodeContinuationTrigger(canvasStore.nodes, canvasStore.selectedNodeIds, props.readonly || props.contextOverlayOpen))
 const selectionGenerationIntent = computed(() => resolveSelectionGenerationIntent(canvasStore.selectedNodes))
+const capturedFrameProvenance = computed(() => resolveCapturedFrameProvenance(canvasStore.selectedNode, canvasStore.nodes))
+const capturedFrameSourceNode = computed(() => capturedFrameProvenance.value ? canvasStore.findNodeById(capturedFrameProvenance.value.sourceNodeId) : null)
 const selectedResultLineage = computed(() => {
   if (canvasStore.selectedNodeIds.length !== 1 || !canvasStore.selectedNode) return null
   return resolveResultLineage(canvasStore.selectedNode, canvasStore.nodes, canvasStore.connections)
@@ -375,6 +378,15 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         :nodes="canvasStore.selectedNodes"
         :surface-node-rect-style="surfaceNodeRectStyle"
       />
+
+      <div
+        v-if="capturedFrameSourceNode"
+        class="captured-frame-source-provenance"
+        :style="surfaceNodeRectStyle(capturedFrameSourceNode)"
+        aria-hidden="true"
+      >
+        <span>源视频</span>
+      </div>
 
       <div
         v-for="source in provenanceSources"

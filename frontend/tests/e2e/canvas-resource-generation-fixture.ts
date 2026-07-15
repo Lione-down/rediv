@@ -1,4 +1,6 @@
 import { Buffer } from 'node:buffer'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { expect, type Page, type Route } from '@playwright/test'
 
 export const API_ORIGIN = 'http://localhost:8000'
@@ -38,7 +40,7 @@ interface CanvasDocument {
 
 export interface ResourceMockState {
   assets: Array<Record<string, unknown>>
-  capturedFrame: Buffer | null
+  capturedFrames: Record<string, Buffer>
   canvases: CanvasRecord[]
   documents: Record<string, CanvasDocument>
   events: string[]
@@ -162,7 +164,7 @@ export function createResourceMockState(): ResourceMockState {
       { id: 'asset-audio', user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: null, type: 'audio', url: null, content_text: '海浪环境声', source: 'upload', source_model: null, source_task_id: null, status: 'active', created_at: NOW, updated_at: NOW },
       { id: 'asset-generated', user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: 'generation-cover', type: 'image', url: 'https://media.revid.test/generated.png', content_text: null, source: 'generation', source_model: 'mock-image-v1', source_task_id: 'task-existing-success', status: 'active', created_at: NOW, updated_at: NOW },
     ],
-    capturedFrame: null,
+    capturedFrames: {},
     canvases: [canvas(FIRST_CANVAS_ID, '画布 1', 0), canvas(SECOND_CANVAS_ID, '分镜', 1)],
     documents: { [FIRST_CANVAS_ID]: firstDocument, [SECOND_CANVAS_ID]: secondDocument },
     events: [],
@@ -264,11 +266,24 @@ function generationResponse(state: ResourceMockState, canvasId: string, nodeId: 
 export async function installResourceMockApi(page: Page, state: ResourceMockState) {
   await page.route('https://media.revid.test/**', (route) => {
     const pathname = new URL(route.request().url()).pathname
-    if (pathname === '/captured-frame.png' && state.capturedFrame) {
-      return route.fulfill({ status: 200, headers: { 'content-type': 'image/png', 'access-control-allow-origin': '*' }, body: state.capturedFrame })
+    if (state.capturedFrames[pathname]) {
+      return route.fulfill({ status: 200, headers: { 'content-type': 'image/png', 'access-control-allow-origin': '*' }, body: state.capturedFrames[pathname] })
     }
     const isBroken = pathname.includes('broken')
     const isVideo = pathname.endsWith('.mp4')
+    if (pathname === '/scenario.mp4') {
+      const body = readFileSync(resolve(process.cwd(), 'tests', 'fixtures', 'dynamic-frame-source.mp4'))
+      const range = route.request().headers().range
+      if (!range?.startsWith('bytes=')) return route.fulfill({ status: 200, headers: { 'content-type': 'video/mp4', 'content-length': String(body.length), 'accept-ranges': 'bytes', 'access-control-allow-origin': '*' }, body })
+      const [startText, endText] = range.slice('bytes='.length).split('-', 2)
+      const start = Number(startText)
+      const end = endText ? Math.min(Number(endText), body.length - 1) : body.length - 1
+      return route.fulfill({
+        status: 206,
+        headers: { 'content-type': 'video/mp4', 'content-length': String(end - start + 1), 'content-range': `bytes ${start}-${end}/${body.length}`, 'accept-ranges': 'bytes', 'access-control-allow-origin': '*' },
+        body: body.subarray(start, end + 1),
+      })
+    }
     const dimensions = pathname.includes('square')
       ? { width: 240, height: 240, label: 'SQUARE 1:1' }
       : pathname.includes('portrait')
@@ -278,7 +293,9 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
     return route.fulfill({
     status: isBroken ? 404 : 200,
     headers: { 'content-type': isBroken ? 'image/png' : isVideo ? 'video/mp4' : 'image/svg+xml', 'access-control-allow-origin': '*' },
-    body: isBroken ? Buffer.from('not-an-image') : isVideo ? Buffer.from(GENERATED_VIDEO_BASE64, 'base64') : Buffer.from(svg),
+    body: isBroken ? Buffer.from('not-an-image') : isVideo
+      ? Buffer.from(GENERATED_VIDEO_BASE64, 'base64')
+      : Buffer.from(svg),
   })})
   await page.route(`${API_ORIGIN}/**`, async (route) => {
     const request = route.request()
@@ -326,11 +343,13 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       const pngEndMarker = Buffer.from([0, 0, 0, 0, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82])
       const pngEnd = buffer.indexOf(pngEndMarker, pngStart)
       if (pngStart < 0 || pngEnd < 0) return fulfillJson(route, { detail: 'mock upload did not contain a complete PNG' }, 422)
-      state.capturedFrame = buffer.subarray(pngStart, pngEnd + pngEndMarker.length)
+      const assetSequence = state.uploads.length
+      const capturedPath = `/captured-frame-${assetSequence}.png`
+      state.capturedFrames[capturedPath] = buffer.subarray(pngStart, pngEnd + pngEndMarker.length)
       const asset = {
-        id: `asset-captured-frame-${state.uploads.length}`, user_id: 'user-resource', project_id: PROJECT_ID,
+        id: `asset-captured-frame-${assetSequence}`, user_id: 'user-resource', project_id: PROJECT_ID,
         origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: null, type: 'image',
-        url: 'https://media.revid.test/captured-frame.png', content_text: '视频截取帧', source: 'upload',
+        url: `https://media.revid.test${capturedPath}`, content_text: '视频截取帧', source: 'upload',
         source_model: null, source_task_id: null, status: 'active', created_at: NOW, updated_at: NOW,
       }
       state.assets.unshift(asset)

@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-048 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-049 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
-- State: `IDLE`
-- Most recently completed: `T5-048 - Video current-frame reuse as Canvas image input` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-048.md`
+- State: `READY`
+- Most recently completed: `T5-049 - Captured-frame provenance and repeat capture loop` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-049.md`
 
 ## Current Verified Facts
 
@@ -77,10 +77,11 @@ Last updated: 2026-07-15
 - T5-046 is now `DONE - PASS`: placeholder/loading/error media messages scale font, padding, and radius with exact Canvas zoom, and failed replaced elements no longer leave browser-native broken-image artifacts behind the explicit alert. Build, focused 3/3, related 43/43, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-046.md`.
 - T5-047 is now `DONE - PASS`: T/R/G/V marker pills scale proportionally below 100%, retain exact node-corner anchors, and cap high-zoom growth at 120%. Build, focused 3/3, related 27/27, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-047.md`.
 - T5-048 is now `DONE - PASS`: a selected decoded video frame uploads as a durable project image asset, inserts as a collision-aware canonical source with capture provenance, and participates in ordered image/video multi-node composition. Build, focused 7/7, related 45/45, real returned-PNG, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-048.md`.
+- T5-049 is now `DONE - PASS`: captured frames expose strict source-video and capture-time provenance, exact responsive source navigation, and quiet derived source emphasis. Two dynamic captures produced distinct assets, URLs, nodes, times, and PNG bytes, then composed in stable image/video order. Build, focused 6/6, related 35/35, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-049.md`.
 
 ## Exact Next Action
 
-Continue the broader Canvas/node visual and multi-scene generation goal with the next bounded Task.
+Audit fresh Canvas product evidence and define the next bounded refinement Task under the continuing Canvas iteration goal.
 
 ## Blockers And Human Gates
 

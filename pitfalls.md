@@ -501,3 +501,10 @@ Evidence:
 - A captured frame is a project image asset with source-video provenance, not a generated result. Reusing the result type would create false generation lineage.
 - Treat upload and document insertion as separate trust boundaries. After upload, revalidate project, Canvas, and source-node identity before dispatching any graph command.
 - A mock upload response with a generic placeholder does not prove pixel capture. Return the exact uploaded PNG bytes and assert intrinsic dimensions after the asset is rendered.
+
+## 2026-07-15 Captured-frame provenance and repeat capture
+
+- Treat frame provenance as derived metadata, not generation lineage. Validate the image asset, source ID, finite non-negative time, and existing video source before rendering any navigation UI.
+- A mock MP4 that exposes metadata is not necessarily seekable. Browser repeat-capture tests need a dynamic faststart video plus correct byte-range responses before different timestamps and PNG bytes are meaningful evidence.
+- Upload completion can precede the Canvas document PATCH. Wait for both durable frame records before asserting node count or composition order.
+- Keep source emphasis selection-scoped and non-persistent. A quiet outline and pill communicate origin without fabricating a saved graph connection.

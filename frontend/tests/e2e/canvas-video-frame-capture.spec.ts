@@ -75,10 +75,10 @@ test('selected playable video captures one PNG and inserts one durable image nod
   expect(state.uploads[0].payload).toContain('image/png')
   await expect.poll(() => documentPatches(state).length).toBe(patchCount + 1)
   await expect(page.getByRole('complementary', { name: /节点详情 视频帧/ })).toBeVisible()
-  const capturedImage = page.locator('img[src*="captured-frame.png"]')
+  const capturedImage = page.locator('img[src*="captured-frame-1.png"]')
   await expect(capturedImage).toBeVisible()
   await expect.poll(() => capturedImage.evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual([160, 90])
-  expect(state.capturedFrame?.byteLength).toBeGreaterThan(100)
+  expect(state.capturedFrames['/captured-frame-1.png']?.byteLength).toBeGreaterThan(100)
   const inserted = state.documents['canvas-first'].nodes.find((node) => String((node.content as Record<string, unknown>)?.title).startsWith('视频帧'))
   expect(inserted).toMatchObject({ node_type: 'asset' })
   expect(inserted?.content).toMatchObject({ subtype: 'image', asset_id: 'asset-captured-frame-1', source_video_node_id: 'result-video' })
@@ -94,7 +94,7 @@ test('selected playable video captures one PNG and inserts one durable image nod
   await page.reload()
   await expect(page.getByRole('region', { name: '项目与画布导航' })).toBeVisible()
   await selectNode(page, String((inserted?.content as Record<string, unknown>).title))
-  await expect(page.locator('img[src*="captured-frame.png"]')).toBeVisible()
+  await expect(page.locator('img[src*="captured-frame-1.png"]')).toBeVisible()
 })
 
 test('readonly mobile video review exposes no frame mutation action', async ({ page }) => {
