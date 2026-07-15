@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Copy, Group, Image as ImageIcon, Link2, LockKeyhole, LockKeyholeOpen, Trash2, Ungroup, Video, WandSparkles, Workflow } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { ChevronDown, ChevronUp, Copy, Group, Image as ImageIcon, Link2, LockKeyhole, LockKeyholeOpen, Trash2, Ungroup, Video, WandSparkles, Workflow } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 type CanvasArrangeMenuKey =
   | 'align-left' | 'align-center-x' | 'align-right' | 'align-top' | 'align-center-y' | 'align-bottom'
@@ -13,7 +13,7 @@ const props = defineProps<{
   composeAssetImageCount: number
   composeImageCount: number
   composeResultCount: number
-  composeSources: Array<{ role: string; title: string }>
+  composeSources: Array<{ nodeId: string; role: string; title: string; canMoveUp: boolean; canMoveDown: boolean }>
   composeTextCount: number
   composeVideoMode: 'text-to-video' | 'img2vid' | 'keyframes'
   canDelete: boolean
@@ -33,6 +33,7 @@ const emit = defineEmits<{
   ungroup: []
   connect: []
   compose: [mediaType: 'image' | 'video']
+  reorderComposeSource: [nodeId: string, direction: 'up' | 'down']
   delete: []
   toggleLock: []
 }>()
@@ -77,6 +78,17 @@ function closeMenus() {
   isArrangeOpen.value = false
   isComposeOpen.value = false
 }
+
+function handleWindowKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Escape') return
+  closeMenus()
+}
+
+watch(() => isArrangeOpen.value || isComposeOpen.value, (isOpen) => {
+  if (isOpen) window.addEventListener('keydown', handleWindowKeydown)
+  else window.removeEventListener('keydown', handleWindowKeydown)
+})
+onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeydown))
 </script>
 
 <template>
@@ -97,14 +109,18 @@ function closeMenus() {
           {{ composeTextCount }} 提示词 · {{ composeAssetImageCount }} 素材图<span v-if="composeResultCount"> · {{ composeResultCount }} 生成结果</span>
         </p>
         <ol class="compose-source-list" aria-label="有序生成输入">
-          <li v-for="source in composeSources" :key="`${source.role}-${source.title}`">
+          <li v-for="source in composeSources" :key="source.nodeId">
             <strong>{{ source.role }}</strong><span>{{ source.title }}</span>
+            <span class="compose-order-actions">
+              <button type="button" class="compose-order-button" :aria-label="`上移 ${source.role} ${source.title}`" :disabled="!source.canMoveUp" @click="emit('reorderComposeSource', source.nodeId, 'up')"><ChevronUp :size="13" aria-hidden="true" /></button>
+              <button type="button" class="compose-order-button" :aria-label="`下移 ${source.role} ${source.title}`" :disabled="!source.canMoveDown" @click="emit('reorderComposeSource', source.nodeId, 'down')"><ChevronDown :size="13" aria-hidden="true" /></button>
+            </span>
           </li>
         </ol>
-        <button type="button" role="menuitem" @click="handleCompose('image')">
+        <button type="button" class="compose-action" role="menuitem" @click="handleCompose('image')">
           <ImageIcon :size="15" aria-hidden="true" /><span><strong>图片生成</strong><small>{{ composeResultCount ? '历史结果融合' : composeImageCount ? '多输入融合' : '纯文本生成' }}</small></span>
         </button>
-        <button type="button" role="menuitem" @click="handleCompose('video')">
+        <button type="button" class="compose-action" role="menuitem" @click="handleCompose('video')">
           <Video :size="15" aria-hidden="true" /><span><strong>视频生成</strong><small>{{ composeVideoMode === 'text-to-video' ? '文生视频' : composeVideoMode === 'img2vid' ? '图生视频' : '有序关键帧' }}</small></span>
         </button>
       </div>
@@ -201,9 +217,12 @@ function closeMenus() {
 .compose-panel { top: var(--compose-menu-top, calc(100% + 10px)); bottom: var(--compose-menu-bottom, auto); width: 220px; }
 .compose-panel > p { margin: 0; padding: 7px 9px 5px; color: var(--text-secondary); font-size: 10px; font-variant-numeric: tabular-nums; }
 .compose-source-list { display: grid; gap: 1px; margin: 0 4px 4px; padding: 0; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--border-subtle); list-style: none; }
-.compose-source-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: start; gap: 6px; padding: 6px 7px; color: var(--text-secondary); background: var(--bg-panel-subtle); font-size: 10px; line-height: 1.35; }
+.compose-source-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 5px 5px 5px 7px; color: var(--text-secondary); background: var(--bg-panel-subtle); font-size: 10px; line-height: 1.35; }
 .compose-source-list li strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .compose-source-list li span { overflow-wrap: anywhere; }
+.compose-order-actions { display: flex; gap: 1px; }
+.compose-order-button { width: 24px; height: 24px; border-radius: var(--v2-radius-sm); }
+.compose-order-button:disabled { cursor: default; opacity: 0.24; }
 .arrange-panel button {
   display: flex;
   width: 136px;
@@ -211,7 +230,7 @@ function closeMenus() {
   padding: 0 10px;
   font-size: 12px;
 }
-.compose-panel button { display: flex; width: 212px; min-height: 46px; height: auto; justify-content: flex-start; gap: 8px; padding: 5px 10px; font-size: 12px; }
+.compose-panel > .compose-action { display: flex; width: 212px; min-height: 46px; height: auto; justify-content: flex-start; gap: 8px; padding: 5px 10px; font-size: 12px; }
 .compose-panel button span { display: grid; gap: 1px; text-align: left; }
 .compose-panel button strong { font-weight: 600; }
 .compose-panel button small { color: var(--text-secondary); font-size: 10px; }

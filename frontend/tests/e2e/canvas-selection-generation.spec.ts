@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { resolveGenerationContext } from '../../src/modules/canvas/generation-context'
-import { createSelectionGenerationCommand, resolveSelectionGenerationIntent } from '../../src/modules/canvas/selection-generation'
+import { createSelectionGenerationCommand, moveSelectionGenerationInput, resolveSelectionGenerationIntent } from '../../src/modules/canvas/selection-generation'
 import { projectSelectedNodes } from '../../src/store/canvas'
 import type { CanvasNode } from '../../src/types/canvas'
 import {
@@ -13,7 +13,7 @@ import {
   PROJECT_ID,
 } from './canvas-resource-generation-fixture'
 
-const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-050-selection-order-preflight')
+const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-051-reorderable-composition-preflight')
 const now = '2026-07-15T10:00:00Z'
 
 function sourceNode(id: string, type: 'script' | 'asset', options: Record<string, unknown> = {}): CanvasNode {
@@ -89,6 +89,34 @@ test('selected node projection preserves explicit selection order before composi
   ])
 })
 
+test('composition preflight reorders one input kind without disturbing the other', () => {
+  const selected = [
+    sourceNode('reference-a', 'asset', { assetId: 'asset-a' }),
+    sourceNode('prompt-a', 'script'),
+    sourceNode('reference-b', 'asset', { assetId: 'asset-b' }),
+    sourceNode('prompt-b', 'script'),
+  ]
+  const referencesMoved = moveSelectionGenerationInput(selected, 'reference-b', 'up')
+  expect(referencesMoved).toEqual(['reference-b', 'prompt-a', 'reference-a', 'prompt-b'])
+  const reordered = projectSelectedNodes(selected, referencesMoved!)
+  const finalIds = moveSelectionGenerationInput(reordered, 'prompt-a', 'down')
+  expect(finalIds).toEqual([
+    'reference-b', 'prompt-b', 'reference-a', 'prompt-a',
+  ])
+  const finalSelection = projectSelectedNodes(selected, finalIds!)
+  for (const mediaType of ['image', 'video'] as const) {
+    let sequence = 0
+    const command = createSelectionGenerationCommand(finalSelection, mediaType, () => `reorder-${mediaType}-${sequence++}`)!
+    expect(command.connections.map((edge) => [edge.from, edge.targetPort, edge.metadata?.input_order])).toEqual([
+      ['reference-b', 'media', 1], ['prompt-b', 'prompt', 1], ['reference-a', 'media', 2], ['prompt-a', 'prompt', 2],
+    ])
+  }
+  expect(moveSelectionGenerationInput(reordered, 'reference-b', 'up')).toBeNull()
+  expect(moveSelectionGenerationInput(reordered, 'reference-a', 'down')).toBeNull()
+  expect(moveSelectionGenerationInput(reordered, 'missing', 'up')).toBeNull()
+  expect(moveSelectionGenerationInput([selected[0]], 'reference-a', 'up')).toBeNull()
+})
+
 test('multi-result composition preserves result order and avoids the occupied graph column', () => {
   const resultA: CanvasNode = {
     id: 'result-a', type: 'result', title: 'Result A', x: 80, y: 80, width: 320, height: 180,
@@ -152,9 +180,9 @@ test('toolbar composes four mixed sources atomically and preserves undo redo and
 
   const surface = page.locator('.canvas-surface')
   await surface.click({ position: { x: 560, y: 460 } })
-  await surface.click({ position: { x: 180, y: 490 }, modifiers: ['Control'] })
-  await surface.click({ position: { x: 560, y: 180 }, modifiers: ['Control'] })
   await surface.click({ position: { x: 180, y: 200 }, modifiers: ['Control'] })
+  await surface.click({ position: { x: 560, y: 180 }, modifiers: ['Control'] })
+  await surface.click({ position: { x: 180, y: 490 }, modifiers: ['Control'] })
   const toolbar = page.getByRole('toolbar', { name: '4 个已选节点的操作' })
   await expect(toolbar).toBeVisible()
   const inputRoles = page.locator('.selection-generation-intent span')
@@ -163,13 +191,31 @@ test('toolbar composes four mixed sources atomically and preserves undo redo and
   await toolbar.getByRole('button', { name: '合并所选节点为生成任务' }).click()
   let composeMenu = page.getByRole('menu', { name: '选择生成任务类型' })
   await expect(composeMenu.getByRole('list', { name: '有序生成输入' }).getByRole('listitem')).toHaveText([
-    'R1人物参考', 'T1镜头约束', 'R2海岸参考', 'T2场景约束',
+    'R1人物参考', 'T1场景约束', 'R2海岸参考', 'T2镜头约束',
   ])
+  await expect(composeMenu.getByRole('button', { name: '上移 R1 人物参考' })).toBeDisabled()
+  await expect(composeMenu.getByRole('button', { name: '下移 R2 海岸参考' })).toBeDisabled()
+  const moveReferenceUp = composeMenu.getByRole('button', { name: '上移 R2 海岸参考' })
+  await moveReferenceUp.focus()
+  await page.keyboard.press('Enter')
+  await expect(composeMenu.getByRole('list', { name: '有序生成输入' }).getByRole('listitem')).toHaveText([
+    'R1海岸参考', 'T1场景约束', 'R2人物参考', 'T2镜头约束',
+  ])
+  await composeMenu.getByRole('button', { name: '下移 T1 场景约束' }).click()
+  await expect(composeMenu.getByRole('list', { name: '有序生成输入' }).getByRole('listitem')).toHaveText([
+    'R1海岸参考', 'T1镜头约束', 'R2人物参考', 'T2场景约束',
+  ])
+  await expect(inputRoles).toHaveText(['R1', 'T1', 'R2', 'T2'])
+  expect(documentPatches(state)).toHaveLength(0)
+  expect(state.canvases[0].graph_revision).toBe(0)
   await page.keyboard.press('Escape')
   await expect(composeMenu).toHaveCount(0)
   expect(documentPatches(state)).toHaveLength(0)
   await toolbar.getByRole('button', { name: '合并所选节点为生成任务' }).click()
   composeMenu = page.getByRole('menu', { name: '选择生成任务类型' })
+  await expect(composeMenu.getByRole('list', { name: '有序生成输入' }).getByRole('listitem')).toHaveText([
+    'R1海岸参考', 'T1镜头约束', 'R2人物参考', 'T2场景约束',
+  ])
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'mixed-selection-compose-menu-1440x900.png'), fullPage: true })
   await composeMenu.getByRole('menuitem', { name: '视频生成' }).click()
@@ -184,7 +230,7 @@ test('toolbar composes four mixed sources atomically and preserves undo redo and
     .map((edge) => [edge.source_node_id, edge.target_port, edge.metadata?.input_order])
     .sort((left, right) => `${left[1]}-${left[2]}`.localeCompare(`${right[1]}-${right[2]}`))
   expect(persistedInputs).toEqual([
-    ['asset-b', 'media', 1], ['asset-a', 'media', 2],
+    ['asset-a', 'media', 1], ['asset-b', 'media', 2],
     ['script-b', 'prompt', 1], ['script-a', 'prompt', 2],
   ])
   await expect(page.getByRole('complementary', { name: '节点详情 视频生成' })).toBeVisible()
@@ -208,8 +254,8 @@ test('toolbar composes four mixed sources atomically and preserves undo redo and
   await page.getByRole('button', { name: '选择并定位 视频生成' }).click()
   await expect(page.getByText('提示词 1 · 镜头约束')).toBeVisible()
   await expect(page.getByText('提示词 2 · 场景约束')).toBeVisible()
-  await expect(page.getByText('参考图 1 · 人物参考')).toBeVisible()
-  await expect(page.getByText('参考图 2 · 海岸参考')).toBeVisible()
+  await expect(page.getByText('参考图 1 · 海岸参考')).toBeVisible()
+  await expect(page.getByText('参考图 2 · 人物参考')).toBeVisible()
 })
 
 test('compact desktop keeps the compose menu in bounds and creates image generation from text', async ({ page }) => {

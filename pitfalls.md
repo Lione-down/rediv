@@ -515,3 +515,10 @@ Evidence:
 - Preview, Canvas T/R markers, command connection metadata, provider context, and reload inspection must share one order resolver. Separate reconstruction makes preflight untrustworthy.
 - A global selection-order migration can unintentionally reverse unrelated two-node connection behavior. Define which operations are sequence-sensitive and preserve established direction semantics elsewhere.
 - Composition menus need exact source identities, not counts alone. Use a bounded scroll surface and natural wrapping for localized titles instead of ellipsis.
+
+## 2026-07-15 Reorderable composition preflight
+
+- T and R input order are independent groups even when their nodes are interleaved in one selection array. Swap positions of adjacent same-kind inputs, not adjacent array items.
+- Preflight reorder is selection state, not graph state. Do not dispatch a document command or create undo history before the user creates the generation workflow.
+- Dynamic ordered rows must use stable node IDs as Vue keys. Role labels change during sorting and will destroy focused controls if used as identity.
+- Escape behavior should belong to the open popover contract, not depend on focus accidentally remaining inside a button after reactive reordering.

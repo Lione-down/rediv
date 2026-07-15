@@ -27,6 +27,8 @@ export interface SelectionGenerationInput {
   order: number
 }
 
+export type SelectionGenerationMoveDirection = 'up' | 'down'
+
 function uniqueSelection(nodes: readonly CanvasNode[]) {
   return nodes.length >= 2 && new Set(nodes.map((node) => node.id)).size === nodes.length
 }
@@ -89,6 +91,29 @@ export function createSelectionGenerationCommand(
 
 export function canCreateGenerationFromSelection(selectedNodes: readonly CanvasNode[]) {
   return Boolean(resolveSelectionGenerationIntent(selectedNodes))
+}
+
+export function moveSelectionGenerationInput(
+  selectedNodes: readonly CanvasNode[],
+  nodeId: string,
+  direction: SelectionGenerationMoveDirection,
+): string[] | null {
+  const intent = resolveSelectionGenerationIntent(selectedNodes)
+  if (!intent) return null
+  const input = intent.inputs.find((candidate) => candidate.nodeId === nodeId)
+  if (!input) return null
+  const peers = intent.inputs.filter((candidate) => candidate.kind === input.kind)
+  const currentIndex = peers.findIndex((candidate) => candidate.nodeId === nodeId)
+  const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+  const target = peers[targetIndex]
+  if (!target) return null
+  const nextIds = selectedNodes.map((node) => node.id)
+  const currentPosition = nextIds.indexOf(nodeId)
+  const targetPosition = nextIds.indexOf(target.nodeId)
+  const targetNodeId = nextIds[targetPosition]
+  nextIds[targetPosition] = nextIds[currentPosition]
+  nextIds[currentPosition] = targetNodeId
+  return nextIds
 }
 
 export function resolveSelectionGenerationIntent(

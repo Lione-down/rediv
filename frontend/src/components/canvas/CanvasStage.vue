@@ -29,7 +29,7 @@ import { useCanvasStage } from './composables/use-canvas-stage'
 import { resolveGenerationContext } from '../../modules/canvas/generation-context'
 import { getGenerationMediaType } from '../../modules/canvas/node-registry'
 import { resolveGenerationResultVariants, resolveResultLineage, resultLineageProvenance, resultVariantProvenance } from '../../modules/canvas/generation-lineage'
-import { resolveSelectionGenerationIntent } from '../../modules/canvas/selection-generation'
+import { moveSelectionGenerationInput, resolveSelectionGenerationIntent, type SelectionGenerationMoveDirection } from '../../modules/canvas/selection-generation'
 import { resolveCanvasNodeContinuationTrigger } from './canvas-node-continuation-trigger'
 import { resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
 
@@ -140,7 +140,13 @@ const selectionGenerationSources = computed(() => {
   const byId = new Map(canvasStore.selectedNodes.map((node) => [node.id, node]))
   return intent.inputs.flatMap((input) => {
     const node = byId.get(input.nodeId)
-    return node ? [{ role: `${input.kind === 'text' ? 'T' : 'R'}${input.order}`, title: node.title }] : []
+    return node ? [{
+      nodeId: node.id,
+      role: `${input.kind === 'text' ? 'T' : 'R'}${input.order}`,
+      title: node.title,
+      canMoveUp: moveSelectionGenerationInput(canvasStore.selectedNodes, node.id, 'up') !== null,
+      canMoveDown: moveSelectionGenerationInput(canvasStore.selectedNodes, node.id, 'down') !== null,
+    }] : []
   })
 })
 const capturedFrameProvenance = computed(() => resolveCapturedFrameProvenance(canvasStore.selectedNode, canvasStore.nodes))
@@ -304,6 +310,10 @@ function commitNodeContent(nodeId: string, content: string) {
 function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
   canvasStore.setNodeMediaAspectRatio(nodeId, aspectRatio)
 }
+function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGenerationMoveDirection) {
+  const nextIds = moveSelectionGenerationInput(canvasStore.selectedNodes, nodeId, direction)
+  if (nextIds) canvasStore.setSelection(nextIds, canvasStore.selectedNode?.id ?? '')
+}
 </script>
 
 <template>
@@ -465,6 +475,7 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         :style="selectionToolbarStyle"
         @duplicate="duplicateSelection('toolbar')"
         @group="groupSelection('toolbar')"
+        @reorder-compose-source="reorderSelectionGenerationInput"
         @ungroup="ungroupSelection('toolbar')"
         @connect="connectSelection('toolbar')"
         @compose="composeAndReveal"
