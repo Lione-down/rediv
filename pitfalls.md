@@ -468,3 +468,9 @@ Evidence:
 - Mocking the provider method proves API orchestration but cannot prove the provider's serialized HTTP body. Use `httpx.MockTransport` at the adapter boundary for exact payload contracts without making external calls.
 - Agnes Image 2.1 Flash image-to-image references belong in `extra_body.image`; `extra_body.response_format` remains beside them, and text-to-image must omit image fields entirely.
 - Agnes Video V2.0 documents completed output at top-level `url`. Add that exact shape narrowly and retain only already-supported compatibility shapes behind the same HTTPS media validation.
+
+## 2026-07-15 Zoom-consistent DOM composer geometry
+
+- Multiplying only an overlay's width and height by Canvas zoom does not scale its typography, padding, border, or focus outline. The frame shrinks while normal-size contents clip and cover the graph.
+- For a world-space DOM editor, project the top-left once, keep its canonical world dimensions, and transform the complete surface with `scale(viewport.zoom)` around `top left`.
+- A test named for multiple surfaces can still leave one unverified. Assert the composer transform and final bounding box directly at low, normal, and extreme zoom instead of inferring coverage from media width.

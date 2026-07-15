@@ -83,10 +83,23 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     if (canvasStore.loadError) return { kind: 'error', title: '画布加载失败', detail: canvasStore.loadError, canRetry: true }
     return null
   })
-  function surfaceNodeRectStyle(node: CanvasNode, role: CanvasNodeGeometryRole = 'content') {
+  function surfaceNodeRectStyle(
+    node: CanvasNode,
+    role: CanvasNodeGeometryRole = 'content',
+  ): Record<string, string> {
     const viewport = options.getViewport()
     const rect = canvasNodeWorldRect(node, role)
     const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)
+    if (role === 'composer') {
+      return {
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        width: `${rect.width}px`,
+        height: `${rect.height}px`,
+        transform: `scale(${viewport.zoom})`,
+        transformOrigin: 'top left',
+      }
+    }
     return { left: `${position.x}px`, top: `${position.y}px`, width: `${rect.width * viewport.zoom}px`, height: `${rect.height * viewport.zoom}px` }
   }
   function statusBadgeStyle() {
