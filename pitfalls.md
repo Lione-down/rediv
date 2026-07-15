@@ -670,3 +670,10 @@ Evidence:
 - Put semantic compatibility in one authoring resolver and use it for chooser, drag, reconnect, insertion, workflow, resource branch, multi-selection, and drop highlighting. Filtering only the menu leaves alternate mutation paths open.
 - A generation task node is not its materialized image result. Even an image-subtype generation has no consumable asset ID and must not be used directly as a downstream image reference.
 - Removing an impossible action is better than adding a warning after mutation. Video assets keep playback, frame capture, keyframes, and inspection while the unsupported generation continuation stays absent.
+
+## 2026-07-15 Versioned visual fidelity and overlay isolation
+
+- Persisted recipe metadata is a runtime contract. Resolve the exact ID and version pair; missing version may support legacy v1, but it must never mean latest.
+- Provider success proves transaction completion, not visual fidelity. Medium, observable identity or geometry, wardrobe or objects, palette or materials, and cross-panel consistency require a separate Human verdict on authorized real output.
+- Overlay collision costs are not interchangeable. Other-node visible content is hard occupancy; selected-node composer and keyframe surfaces are secondary constraints; proximity decides only after both overlap classes.
+- Rebuild frontend `dist` before preview-backed Playwright. Source-import unit tests can pass while the browser still executes an older bundle and appears to omit a newly added request field.

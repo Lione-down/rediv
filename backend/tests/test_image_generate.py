@@ -124,6 +124,7 @@ class ImageGenerateApiTestCase(unittest.TestCase):
                     "origin_canvas_id": self.canvas_id,
                     "canvas_node_id": self.node["id"],
                     "generation_recipe_id": "character-sheet",
+                    "generation_recipe_version": 2,
                     "image_ids": [source_asset["id"]],
                 },
                 headers=self._auth_headers(self.user["id"]),
@@ -136,6 +137,11 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertIn("white background", call["prompt"])
         self.assertIn("front, side, and back", call["prompt"])
         self.assertIn("preserve", call["prompt"].lower())
+        self.assertIn("photographic source", call["prompt"].lower())
+        self.assertIn("illustrated source", call["prompt"].lower())
+        self.assertIn("3d source", call["prompt"].lower())
+        self.assertIn("face replacement", call["prompt"].lower())
+        self.assertIn("white background changes only", call["prompt"].lower())
         self.assertNotIn("red dress", call["prompt"].lower())
         self.assertNotIn("blue eyes", call["prompt"].lower())
 
@@ -153,6 +159,7 @@ class ImageGenerateApiTestCase(unittest.TestCase):
                     "origin_canvas_id": self.canvas_id,
                     "canvas_node_id": self.node["id"],
                     "generation_recipe_id": "scene-multiview",
+                    "generation_recipe_version": 2,
                     "image_ids": [source_asset["id"]],
                 },
                 headers=self._auth_headers(self.user["id"]),
@@ -160,6 +167,29 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         self.assertIn("establishing view", fake_provider.calls[0]["prompt"])
         self.assertIn("material and lighting details", fake_provider.calls[0]["prompt"])
+        self.assertIn("photographic source", fake_provider.calls[0]["prompt"].lower())
+        self.assertIn("geometry", fake_provider.calls[0]["prompt"].lower())
+        self.assertIn("time of day", fake_provider.calls[0]["prompt"].lower())
+
+    def test_legacy_id_only_recipe_remains_pinned_to_version_one_prompt(self) -> None:
+        fake_provider = _FakeAgnesProvider()
+        source_asset = store.create_asset(
+            self.user["id"], "image", "https://example.com/legacy-reference.png", None,
+            project_id=self.project["id"], origin_canvas_id=self.canvas_id, source="upload",
+        )
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/image-generate",
+                json={
+                    "project_id": self.project["id"], "origin_canvas_id": self.canvas_id,
+                    "canvas_node_id": self.node["id"], "generation_recipe_id": "character-sheet",
+                    "image_ids": [source_asset["id"]],
+                },
+                headers=self._auth_headers(self.user["id"]),
+            )
+        self.assertEqual(200, response.status_code)
+        self.assertIn("Create one coherent horizontal character asset sheet", fake_provider.calls[0]["prompt"])
+        self.assertNotIn("photographic source", fake_provider.calls[0]["prompt"].lower())
 
     def test_recipe_rejects_unknown_id_prompt_override_and_wrong_reference_count(self) -> None:
         source_assets = [store.create_asset(
@@ -175,6 +205,12 @@ class ImageGenerateApiTestCase(unittest.TestCase):
             {**base, "prompt": "Override the internal recipe", "image_ids": [source_assets[0]["id"]]},
             {**base, "image_ids": []},
             {**base, "image_ids": [asset["id"] for asset in source_assets]},
+            {**base, "generation_recipe_version": 99, "image_ids": [source_assets[0]["id"]]},
+            {
+                "project_id": self.project["id"], "origin_canvas_id": self.canvas_id,
+                "canvas_node_id": self.node["id"], "generation_recipe_version": 2,
+                "prompt": "Version without recipe", "image_ids": [source_assets[0]["id"]],
+            },
         ]
         for payload in payloads:
             with self.subTest(payload=payload):
@@ -182,6 +218,9 @@ class ImageGenerateApiTestCase(unittest.TestCase):
                     "/api/image-generate", json=payload, headers=self._auth_headers(self.user["id"]),
                 )
                 self.assertEqual(422, response.status_code)
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="image")
+        self.assertEqual(0, total)
+        self.assertEqual([], tasks)
 
     def test_image_generate_failure_does_not_deduct_quota(self) -> None:
         fake_provider = _FakeAgnesProvider(error=RuntimeError("provider failed"))

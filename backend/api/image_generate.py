@@ -35,7 +35,7 @@ async def image_generate(
     provider: GenerationProvider = Depends(get_generation_provider),
 ):
     recipe = (
-        resolve_image_generation_recipe(payload.generation_recipe_id)
+        resolve_image_generation_recipe(payload.generation_recipe_id, payload.generation_recipe_version)
         if payload.generation_recipe_id else None
     )
     try:

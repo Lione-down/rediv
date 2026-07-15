@@ -19,8 +19,11 @@ Last updated: 2026-07-15
 
 ## Active Delivery
 
-- Active implementation Task: none
-- State: `IDLE`
+- Active implementation Task: `T5-071 - Reference-first visual fidelity v2 and honest acceptance`
+- State: `VERIFYING`
+- Task: `ai/tasks/todo/TASK-T5-071.md`
+- Plan: `ai/tasks/doing/TASK-T5-071-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-071-PROGRESS.md`
 - Last completed Task: `T5-070 - Honest generation reference compatibility`
 - Report: `ai/reports/REPORT-T5-070.md`
 
@@ -102,11 +105,11 @@ Last updated: 2026-07-15
 
 ## Exact Next Action
 
-After T5-070 is committed and pushed, reconcile the untracked T5-071 ownership gate before activating its reference-fidelity work.
+Obtain Human direction for a bounded paid Agnes fidelity sample, or explicit acceptance of offline-only closure with the provider-capability caveat.
 
 ## Blockers And Human Gates
 
-- No active blocker. Full backend upload process tests have a separately documented Windows Python 3.13 / AnyIO worker import verifier failure; generation-focused guarded suites pass.
+- T5-071 offline implementation has no active blocker. Final visual-fidelity acceptance requires an authorized paid Agnes sample and Human verdict, or explicit Human acceptance of offline-only closure.
 - Applying Alembic revisions through `c9d0e1f2a3b4` to user/runtime data requires reviewed backup discipline and Human authorization.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.

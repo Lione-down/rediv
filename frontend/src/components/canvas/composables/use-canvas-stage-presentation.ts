@@ -87,14 +87,20 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
       { x: clampX(size.width / 2), y: clampY(104) },
       { x: clampX(size.width / 2), y: clampY(size.height - 112) },
     ]
-    const occupiedRects = canvasStore.nodes.map((node) => {
+    const selectedNodeIds = new Set(canvasStore.selectedNodes.map((node) => node.id))
+    const hardOccupiedRects = canvasStore.nodes.filter((node) => !selectedNodeIds.has(node.id)).map((node) => {
+      const rect = canvasNodeWorldRect(node, 'content')
+      const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)
+      return { left: position.x, top: position.y, right: position.x + rect.width * viewport.zoom, bottom: position.y + rect.height * viewport.zoom }
+    })
+    const softOccupiedRects = canvasStore.selectedNodes.map((node) => {
       const rect = canvasNodeWorldRect(node, 'content')
       const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)
       return { left: position.x, top: position.y, right: position.x + rect.width * viewport.zoom, bottom: position.y + rect.height * viewport.zoom }
     })
     if (selectedVideo && keyframePlacement) {
       const railHeight = 52
-      occupiedRects.push({
+      softOccupiedRects.push({
         left: left + 14,
         top: keyframePlacement === 'above' ? top - railHeight - 8 : bottom + 8,
         right,
@@ -104,14 +110,24 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     if (canvasStore.selectedNodes.length === 1 && canvasStore.selectedNodes[0].type === 'generation') {
       const rect = canvasNodeWorldRect(canvasStore.selectedNodes[0], 'composer')
       const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)
-      occupiedRects.push({ left: position.x, top: position.y, right: position.x + rect.width * viewport.zoom, bottom: position.y + rect.height * viewport.zoom })
+      softOccupiedRects.push({ left: position.x, top: position.y, right: position.x + rect.width * viewport.zoom, bottom: position.y + rect.height * viewport.zoom })
     }
-    const score = (candidate: { x: number; y: number }) => occupiedRects.reduce((total, rect) => {
+    const overlapArea = (candidate: { x: number; y: number }, rects: typeof hardOccupiedRects) => rects.reduce((total, rect) => {
       const overlapWidth = Math.max(0, Math.min(candidate.x + halfWidth, rect.right) - Math.max(candidate.x - halfWidth, rect.left))
       const overlapHeight = Math.max(0, Math.min(candidate.y + toolbarHeight, rect.bottom) - Math.max(candidate.y, rect.top))
       return total + overlapWidth * overlapHeight
     }, 0)
-    const { x, y } = candidates.reduce((best, candidate) => score(candidate) < score(best) ? candidate : best)
+    const rankedCandidates = candidates.map((candidate, index) => ({
+      ...candidate,
+      hardOverlap: overlapArea(candidate, hardOccupiedRects),
+      softOverlap: overlapArea(candidate, softOccupiedRects),
+      distanceRank: index,
+    }))
+    const { x, y } = rankedCandidates.reduce((best, candidate) => {
+      if (candidate.hardOverlap !== best.hardOverlap) return candidate.hardOverlap < best.hardOverlap ? candidate : best
+      if (candidate.softOverlap !== best.softOverlap) return candidate.softOverlap < best.softOverlap ? candidate : best
+      return candidate.distanceRank < best.distanceRank ? candidate : best
+    })
     const openAbove = y > size.height / 2
     return {
       left: `${x}px`,

@@ -5,7 +5,7 @@ import { requestCanvasGeneration } from '../../../modules/canvas/generation-serv
 import { resolveGenerationContext } from '../../../modules/canvas/generation-context'
 import { resolveResultLineage } from '../../../modules/canvas/generation-lineage'
 import { getGenerationMediaType } from '../../../modules/canvas/node-registry'
-import { resolveVisualAssetRecipe, type VisualAssetRecipeId } from '../../../modules/canvas/visual-asset-recipes'
+import { resolveVisualAssetRecipe, type VisualAssetRecipeId, type VisualAssetRecipeVersion } from '../../../modules/canvas/visual-asset-recipes'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import {
   createAssetInsertCommand,
@@ -356,7 +356,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   async function executeGeneration(
     sourceNode: CanvasNode,
     mediaType: 'image' | 'video',
-    requestContext: { prompt?: string; imageIds?: string[]; recipeId?: VisualAssetRecipeId },
+    requestContext: { prompt?: string; imageIds?: string[]; recipeId?: VisualAssetRecipeId; recipeVersion?: VisualAssetRecipeVersion },
     promptToPersist?: string,
   ) {
     if (options.isReviewOnly.value || isGenerating.value) return
@@ -438,7 +438,9 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
       generationError.value = '视觉资产配方需要且仅支持 1 张有效参考图。'
       return
     }
-    await executeGeneration(sourceNode, 'image', { recipeId, imageIds: generationContext.imageIds })
+    await executeGeneration(sourceNode, 'image', {
+      recipeId, recipeVersion: recipe.version, imageIds: generationContext.imageIds,
+    })
   }
 
   function updatePrompt(prompt: string) {

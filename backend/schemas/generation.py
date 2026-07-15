@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 
 from schemas.asset import AssetListItem
 from schemas.generation_task import GenerationTaskItem
-from core.image_generation_recipes import ImageGenerationRecipeId
+from core.image_generation_recipes import ImageGenerationRecipeId, resolve_image_generation_recipe
 
 
 class QuotaBalances(BaseModel):
@@ -30,6 +30,7 @@ class ScopedGenerationRequest(BaseModel):
 class ImageGenerateRequest(ScopedGenerationRequest):
     image_ids: list[ResourceId] | None = Field(default=None, max_length=8)
     generation_recipe_id: ImageGenerationRecipeId | None = None
+    generation_recipe_version: int | None = Field(default=None, ge=1)
 
     @field_validator("image_ids")
     @classmethod
@@ -39,6 +40,8 @@ class ImageGenerateRequest(ScopedGenerationRequest):
     @model_validator(mode="after")
     def validate_prompt_or_recipe(self):
         if self.generation_recipe_id is None:
+            if self.generation_recipe_version is not None:
+                raise ValueError("generation recipe version requires a generation recipe")
             if not self.prompt:
                 raise ValueError("prompt is required without a generation recipe")
             return self
@@ -46,6 +49,7 @@ class ImageGenerateRequest(ScopedGenerationRequest):
             raise ValueError("prompt cannot override a generation recipe")
         if not self.image_ids or len(self.image_ids) != 1:
             raise ValueError("generation recipe requires exactly one image reference")
+        resolve_image_generation_recipe(self.generation_recipe_id, self.generation_recipe_version)
         return self
 
 

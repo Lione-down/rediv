@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { requestCanvasGeneration } from '../../src/modules/canvas/generation-service'
 import { createVisualAssetRecipeBranchCommand } from '../../src/modules/canvas/resource-commands'
+import { resolveVisualAssetRecipe } from '../../src/modules/canvas/visual-asset-recipes'
 import type { QuotaBalance } from '../../src/types/auth'
 import type { CanvasNode } from '../../src/types/canvas'
 import { mkdir } from 'node:fs/promises'
@@ -26,6 +27,14 @@ function canonicalImageResult(): CanvasNode {
   }
 }
 
+function boxesOverlap(
+  first: { x: number; y: number; width: number; height: number },
+  second: { x: number; y: number; width: number; height: number },
+) {
+  return first.x < second.x + second.width && first.x + first.width > second.x &&
+    first.y < second.y + second.height && first.y + first.height > second.y
+}
+
 test('visual asset recipe branch persists typed metadata and one ordered reference edge', () => {
   for (const [recipeId, title] of [
     ['character-sheet', '角色设定图'], ['scene-multiview', '场景多视图'],
@@ -37,7 +46,7 @@ test('visual asset recipe branch persists typed metadata and one ordered referen
       type: 'generation', title, content: undefined,
       contentData: {
         subtype: 'image', serialization_version: 1,
-        generation_recipe_id: recipeId, generation_recipe_version: 1,
+        generation_recipe_id: recipeId, generation_recipe_version: 2,
       },
     })
     expect(command!.connections).toEqual([expect.objectContaining({
@@ -76,17 +85,80 @@ test('recipe generation transport sends identifier and reference without client 
   }
   await requestCanvasGeneration({
     mediaType: 'image', projectId: 'project-recipe', originCanvasId: 'canvas-recipe', canvasNodeId: 'node-recipe',
-    recipeId: 'character-sheet', imageIds: ['asset-reference'],
+    recipeId: 'character-sheet', recipeVersion: 2, imageIds: ['asset-reference'],
   }, quotaStore, transport)
 
   expect(calls).toEqual([{
     path: '/api/image-generate',
     payload: {
       project_id: 'project-recipe', origin_canvas_id: 'canvas-recipe', canvas_node_id: 'node-recipe',
-      generation_recipe_id: 'character-sheet', image_ids: ['asset-reference'],
+      generation_recipe_id: 'character-sheet', generation_recipe_version: 2, image_ids: ['asset-reference'],
     },
   }])
   expect(calls[0].payload).not.toHaveProperty('prompt')
+})
+
+test('visual asset recipe resolver preserves exact persisted v1 and v2 definitions', () => {
+  const v1Node = canonicalImageResult()
+  v1Node.type = 'generation'
+  v1Node.contentData = {
+    subtype: 'image', serialization_version: 1,
+    generation_recipe_id: 'character-sheet', generation_recipe_version: 1,
+  }
+  const v2Node = structuredClone(v1Node)
+  v2Node.contentData!.generation_recipe_version = 2
+  const unknownNode = structuredClone(v1Node)
+  unknownNode.contentData!.generation_recipe_version = 99
+
+  expect(resolveVisualAssetRecipe(v1Node)).toMatchObject({ id: 'character-sheet', version: 1 })
+  expect(resolveVisualAssetRecipe(v2Node)).toMatchObject({ id: 'character-sheet', version: 2 })
+  expect(resolveVisualAssetRecipe(unknownNode)).toBeNull()
+})
+
+test('recipe-flow toolbar never covers the result cards above or below the selected recipe', async ({ page }) => {
+  const state = createResourceMockState()
+  const document = state.documents[FIRST_CANVAS_ID]
+  const upperResult = document.nodes.find((item) => item.id === 'result-existing')!
+  upperResult.position_x = 560
+  upperResult.position_y = 90
+  upperResult.width = 320
+  upperResult.height = 200
+  const recipeNode = {
+    ...document.nodes.find((item) => item.id === 'generation-cover')!,
+    id: 'generation-recipe-stack', position_x: 560, position_y: 302, width: 340, height: 220,
+    content: {
+      subtype: 'image', serialization_version: 1, title: '纵向角色设定图',
+      generation_recipe_id: 'character-sheet', generation_recipe_version: 2,
+    },
+  }
+  const lowerResult = {
+    ...upperResult,
+    id: 'result-recipe-stack', position_y: 534,
+    content: {
+      ...(upperResult.content as Record<string, unknown>),
+      title: '纵向角色设定结果', asset_id: 'asset-recipe-stack',
+      url: 'https://media.revid.test/recipe-stack.png',
+    },
+  }
+  document.nodes.push(recipeNode, lowerResult)
+
+  await openResourceWorkspace(page, state)
+  const documentBeforeSelection = JSON.stringify(document)
+  const mutationsBeforeSelection = state.requests.filter((item) => item.method === 'PATCH').length
+  await selectNode(page, '纵向角色设定图')
+
+  const toolbar = await page.locator('.selection-toolbar').boundingBox()
+  const mediaRects = (await page.locator('.canvas-node-surface.is-media').all()).map((item) => item.boundingBox())
+  const resolvedMediaRects = (await Promise.all(mediaRects)).filter((item): item is NonNullable<typeof item> => item !== null)
+  const stackedResults = resolvedMediaRects.filter((rect) => rect.x >= 500 && rect.x <= 700).sort((a, b) => a.y - b.y)
+  expect(toolbar).not.toBeNull()
+  expect(stackedResults).toHaveLength(2)
+  expect(boxesOverlap(toolbar!, stackedResults[0])).toBe(false)
+  expect(boxesOverlap(toolbar!, stackedResults[1])).toBe(false)
+  expect(JSON.stringify(document)).toBe(documentBeforeSelection)
+  expect(state.requests.filter((item) => item.method === 'PATCH')).toHaveLength(mutationsBeforeSelection)
+  await mkdir(evidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(evidenceDirectory, 'recipe-flow-toolbar-isolation-1440x900.png'), fullPage: true })
 })
 
 test('character recipe directly persists, executes, materializes, and reloads without prompt leakage', async ({ page }) => {
@@ -110,14 +182,14 @@ test('character recipe directly persists, executes, materializes, and reloads wi
   const request = state.requests.find((item) => item.path === '/api/image-generate')!
   expect(request.body).toEqual({
     project_id: PROJECT_ID, origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: expect.any(String),
-    generation_recipe_id: 'character-sheet', image_ids: ['asset-generated'],
+    generation_recipe_id: 'character-sheet', generation_recipe_version: 2, image_ids: ['asset-generated'],
   })
   expect(request.body).not.toHaveProperty('prompt')
   const generationNode = state.documents[FIRST_CANVAS_ID].nodes.find((item) => (
     (item.content as Record<string, unknown>).generation_recipe_id === 'character-sheet'
   ))!
   expect(generationNode.content).toEqual(expect.objectContaining({
-    title: '角色设定图', subtype: 'image', generation_recipe_id: 'character-sheet', generation_recipe_version: 1,
+    title: '角色设定图', subtype: 'image', generation_recipe_id: 'character-sheet', generation_recipe_version: 2,
   }))
   const patchIndex = state.requests.findIndex((item) => item.method === 'PATCH' && item.path.endsWith('/document'))
   const requestIndex = state.requests.findIndex((item) => item.path === '/api/image-generate')
@@ -151,7 +223,7 @@ test('scene recipe stays bounded in compact and all recipe actions disappear in 
   await drawer.getByRole('button', { name: /生成场景多视图/ }).click()
   await expect.poll(() => state.requests.filter((item) => item.path === '/api/image-generate').length).toBe(1)
   expect(state.requests.find((item) => item.path === '/api/image-generate')?.body).toEqual(expect.objectContaining({
-    generation_recipe_id: 'scene-multiview', image_ids: ['asset-generated'],
+    generation_recipe_id: 'scene-multiview', generation_recipe_version: 2, image_ids: ['asset-generated'],
   }))
   const recipeDrawer = page.locator('.n-drawer:visible')
   await expect(recipeDrawer.getByRole('region', { name: '视觉资产配方' })).toContainText('场景多视图')
