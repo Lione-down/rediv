@@ -359,3 +359,9 @@ Evidence:
 - provenance 是当前 intent，不是永久 graph chrome。只有单选 generation node 时显示，badge 保持固定 screen size，edge 不使用循环动画；duplicate、missing、unsupported、limit 必须可见但不能使用 active treatment，也不能进入 request order。
 - result lineage 不能按位置、标题或最近 task 猜测。只接受唯一 active typed canonical generation -> result edge；variant 顺序来自 persisted connection order，result 自身的 `source_task_id`/`source_model` 保持 authoritative，ambiguous 或 task mismatch 时宁可不显示谱系。
 - Media presentation object 会随 selection 重算，但 URL 并未变化。若 watch 整个 object 并重置 loading，缓存资源不会再次触发 load/error，broken media 会卡在 loading；应只监听实际 media identity（kind + URL），让 ready/error 跨 selection 保持稳定。
+
+## 2026-07-15 Generation history result navigation
+
+- A succeeded generation task does not by itself prove that a usable result exists on the current Canvas. Result actions must require one canonical result with one active typed generation-to-result edge, matching generation identity, and exact durable task identity.
+- Zero verified matches should be described as not written to the current Canvas; multiple verified matches are ambiguous and must not navigate arbitrarily.
+- Readonly Canvas review may change ephemeral selection to inspect an existing result, but the test must hold the document PATCH baseline unchanged.

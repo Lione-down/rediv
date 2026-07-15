@@ -113,6 +113,8 @@ T5-026 is `DONE - PASS`. Prompt and media inputs now have independently durable 
 
 T5-027 is `DONE - PASS`. Generation nodes now expose a compact node-scoped history of the latest five durable runs, total count, stable chronology, all five lifecycle states, timing/model identity, and bounded errors. Focused 3/3, related 30/30, full Chromium 198/198, build, visual, and hygiene gates passed. `REPORT-T5-027.md` is authoritative evidence.
 
+T5-028 is `DONE - PASS`. It closes the generation-history loop with result inspection available only when a succeeded task has one exact canonical active result lineage match. Missing, mismatched, inactive, malformed, and ambiguous outputs remain honest status-only states. Focused 6/6, full Chromium 201/201, build, desktop/readonly visual, and hygiene gates passed. `REPORT-T5-028.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

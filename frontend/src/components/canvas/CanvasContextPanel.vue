@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { AlertTriangle, ArrowDown, ArrowUp, CircleCheck, Columns2, Image, Info, Link2, LoaderCircle, Play, Sparkles, X } from 'lucide-vue-next'
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, CircleCheck, Columns2, Image, Info, Link2, LoaderCircle, Play, Sparkles, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import type { ResolvedGenerationContext } from '../../modules/canvas/generation-context'
 import type { ResolvedResultLineage } from '../../modules/canvas/generation-lineage'
 import type { ProjectGenerationTask } from '../../modules/canvas/project-resource-types'
 import { resolveGenerationRunHistory } from '../../modules/canvas/generation-run-history'
+import { useCanvasStore } from '../../store/canvas'
 import type { CanvasNode } from '../../types/canvas'
 
 const props = withDefaults(defineProps<{
@@ -33,6 +34,8 @@ const props = withDefaults(defineProps<{
   success: '',
 })
 
+const canvasStore = useCanvasStore()
+
 const emit = defineEmits<{
   close: []
   compareResults: []
@@ -57,7 +60,10 @@ const includedMediaSources = computed(() => (
 const excludedMediaSources = computed(() => (
   props.generationContext?.mediaSources.filter((source) => source.state !== 'included') ?? []
 ))
-const runHistory = computed(() => resolveGenerationRunHistory(props.node.id, props.generationTasks))
+const runHistory = computed(() => resolveGenerationRunHistory(props.node.id, props.generationTasks, 5, {
+  connections: canvasStore.connections,
+  nodes: canvasStore.nodes,
+}))
 const mediaStateLabel = {
   included: '已作为参考图',
   'missing-asset': '缺少资源，未使用',
@@ -218,6 +224,18 @@ function requestGeneration() {
               <strong>Run {{ run.sequence }} · {{ runStatusLabel[run.task.status] }}</strong>
               <small>{{ run.task.model || run.task.provider }} · {{ runTiming(run.task) }}</small>
               <p v-if="run.task.error_message">{{ run.task.error_message }}</p>
+              <button
+                v-if="run.resultNodeId"
+                type="button"
+                class="run-history__result"
+                :aria-label="`检查 Run ${run.sequence} 结果`"
+                @click="canvasStore.selectNode(run.resultNodeId)"
+              >
+                检查结果 <ArrowRight :size="13" aria-hidden="true" />
+              </button>
+              <p v-else-if="run.task.status === 'succeeded'" class="run-history__availability">
+                {{ run.resultState === 'ambiguous' ? '结果关联不明确' : '结果未写入当前画布' }}
+              </p>
             </div>
           </li>
         </ol>
@@ -323,6 +341,8 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .run-history li strong { color: var(--v2-text-primary); font-size: 11px; white-space: nowrap; }
 .run-history li small { color: var(--v2-text-muted); font-size: 10px; white-space: nowrap; }
 .run-history li p { display: -webkit-box; margin: 2px 0 0; color: var(--v2-danger); font-size: 10px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+.run-history .run-history__availability { color: var(--v2-text-muted); }
+.run-history__result { display: flex; width: max-content; min-width: 0; min-height: 40px; align-items: center; gap: 4px; margin-top: 2px; padding: 0 4px; border-radius: var(--v2-radius-sm); color: var(--v2-accent); font-size: 10px; font-weight: 600; }
 .run-history__remainder { margin: 0; padding: 0 12px 10px; color: var(--v2-text-muted); font-size: 10px; }
 .feedback { align-items: flex-start; gap: 7px; margin: 10px 0 0; padding: 9px 10px; border-radius: var(--v2-radius-md); font-size: 12px; line-height: 1.55; }
 .feedback.is-error { color: var(--v2-danger); background: color-mix(in oklch, var(--v2-danger) 10%, transparent); }
