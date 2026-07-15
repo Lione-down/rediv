@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-060 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-061 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-060 - Two-origin video failure recovery` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-060.md`
+- Most recently completed: `T5-061 - In-flight generation input lock` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-061.md`
 
 ## Current Verified Facts
 
@@ -89,10 +89,11 @@ Last updated: 2026-07-15
 - T5-058 is now `DONE - PASS`: two-origin result reorder changes only downstream R roles while canonical V identity and origin navigation remain stable through provider execution, undo/redo, reload, compact editing, and readonly review. Build, focused 10/10, related 50/50, and three-viewport visual gates passed. Final report: `ai/reports/REPORT-T5-058.md`.
 - T5-059 is now `DONE - PASS`: two generated-image origins become ordered video keyframes through exact provider input, quota-safe durable materialization, native playback, canonical V lineage, reload, compact preflight, and readonly review. Build, focused 12/12, guarded backend 15/15, related 52/52, and three-viewport visual gates passed. Final report: `ai/reports/REPORT-T5-059.md`.
 - T5-060 is now `DONE - PASS`: failed two-origin video generation preserves prompt, order, R/V identity, graph, assets, and quota through reload and readonly review, then one explicit compact retry sends the same payload and creates one valid result. Build, focused 13/13, guarded backend 15/15, related 53/53, and three-viewport visual gates passed. Final report: `ai/reports/REPORT-T5-060.md`.
+- T5-061 is now `DONE - PASS`: an in-flight generation locks prompt and input-order mutation through native disabled semantics while keeping lineage navigation available, then restores valid controls after success or failure. Build, focused 2/2, related 55/55, and desktop/compact visual gates passed. Final report: `ai/reports/REPORT-T5-061.md`.
 
 ## Exact Next Action
 
-Use the persistent Canvas optimization goal to define the next bounded node, media, or multi-generation verification Task from current evidence.
+Select the next bounded Canvas interaction or visual-fidelity gap from current browser evidence and establish its Task contract before implementation.
 
 ## Blockers And Human Gates
 

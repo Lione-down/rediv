@@ -590,3 +590,10 @@ Evidence:
 - Recovery is only credible when the retry sends the exact failed request intent and creates one result. Count requests, quota decrements, assets, nodes, and canonical edges explicitly.
 - Test fixtures are production infrastructure for acceptance. Move shared graph builders before a scenario spec approaches the repository's 500-line boundary instead of duplicating a second topology.
 - Readonly failure review must preserve actionable facts while hiding retry and reorder controls; compare PATCH count before and after review rather than assuming navigation is passive.
+
+## 2026-07-15 In-flight generation input lock
+
+- Disabling only the submit CTA does not freeze the visible request intent. Prompt and ordered inputs must share the same request-lifetime boundary as the submitted provider snapshot.
+- Keep inspection separate from mutation. Source-result and origin-generation navigation should remain available while prompt and reorder controls are disabled.
+- A held request legitimately emits one running-state PATCH. Browser tests should assert that exact state transition instead of treating every post-submit PATCH as an input mutation.
+- Verify settlement in both directions. Success-only coverage can miss a failure path that leaves editing controls permanently disabled.

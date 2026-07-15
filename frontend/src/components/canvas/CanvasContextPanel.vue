@@ -179,7 +179,7 @@ function requestGeneration() {
       <div class="section-heading"><span>{{ generationLabel }}生成</span><span>剩余 {{ quota }}</span></div>
       <label v-if="!readonly" class="prompt-field">
         <span>生成提示词</span>
-        <textarea :value="prompt" rows="6" maxlength="4000" aria-label="生成提示词" @input="updatePrompt"></textarea>
+        <textarea :value="prompt" rows="6" maxlength="4000" aria-label="生成提示词" :disabled="isGenerating" @input="updatePrompt"></textarea>
       </label>
       <div v-else class="review-prompt"><span>生成提示词</span><p>{{ prompt || '未填写提示词' }}</p></div>
 
@@ -189,8 +189,8 @@ function requestGeneration() {
           <li v-for="source in generationContext.textSources" :key="`text-${source.nodeId}`" :class="{ muted: !source.isIncluded }">
             <button type="button" class="context-node-link" :aria-label="`定位到画布：${source.title}`" @click="emit('locateNode', source.nodeId)"><Link2 :size="13" aria-hidden="true" /><span><strong>提示词 {{ source.order }} · {{ source.title }}</strong><small>{{ source.isIncluded ? '已合并文本' : '空内容，未使用' }}</small></span><ArrowRight :size="13" aria-hidden="true" /></button>
             <span v-if="!readonly" class="input-order-actions">
-              <button type="button" :disabled="!canMoveInput(source.connectionId, 'text', -1)" :aria-label="`上移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
-              <button type="button" :disabled="!canMoveInput(source.connectionId, 'text', 1)" :aria-label="`下移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
+              <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'text', -1)" :aria-label="`上移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
+              <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'text', 1)" :aria-label="`下移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
             </span>
           </li>
           <li v-for="source in generationContext.mediaSources" :key="`media-${source.nodeId}`" :class="{ muted: source.state !== 'included' }">
@@ -204,8 +204,8 @@ function requestGeneration() {
               @click="emit('locateNode', mediaSourceLineage(source.connectionId)!.generationNodeId)"
             ><GitBranch :size="14" aria-hidden="true" /></button>
             <span v-if="!readonly" class="input-order-actions">
-              <button type="button" :disabled="!canMoveInput(source.connectionId, 'media', -1)" :aria-label="`上移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
-              <button type="button" :disabled="!canMoveInput(source.connectionId, 'media', 1)" :aria-label="`下移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
+              <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'media', -1)" :aria-label="`上移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
+              <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'media', 1)" :aria-label="`下移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
             </span>
           </li>
         </ul>

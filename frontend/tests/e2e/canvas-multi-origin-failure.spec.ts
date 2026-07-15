@@ -26,6 +26,79 @@ function addTwoOriginVideo(state: ReturnType<typeof createResourceMockState>) {
   }
 }
 
+function deferred() {
+  let resolve!: () => void
+  const promise = new Promise<void>((done) => { resolve = done })
+  return { promise, resolve }
+}
+
+test('in-flight two-origin request locks mutable inputs but keeps lineage navigation available', async ({ page }) => {
+  const state = createResourceMockState()
+  addTwoOriginVideo(state)
+  const gate = deferred()
+  state.generationGate = gate.promise
+  const prompt = '锁定这一版远景到人物近景的关键帧请求。'
+
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '双源恢复视频')
+  const editor = page.locator('.generation-editor')
+  const context = editor.getByRole('region', { name: '已连接生成上下文' })
+  await editor.getByRole('textbox').fill(prompt)
+  const patchesBeforeSubmit = documentPatches(state).length
+  await editor.getByRole('button', { name: '开始视频生成' }).click()
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/video-generate').length).toBe(1)
+
+  await expect(editor.getByRole('textbox')).toBeDisabled()
+  await expect(editor.getByRole('button', { name: '开始视频生成' })).toBeDisabled()
+  await expect(context.getByRole('button', { name: /上移参考图|下移参考图/ })).toHaveCount(4)
+  for (const button of await context.getByRole('button', { name: /上移参考图|下移参考图/ }).all()) {
+    await expect(button).toBeDisabled()
+  }
+  await expect(context.getByRole('button', { name: '定位到上游生成：封面生成 V2' })).toBeEnabled()
+  await expect(context.getByRole('button', { name: '定位到上游生成：第二镜头生成 V1' })).toBeEnabled()
+  await context.getByText('检查最终生成请求').click()
+  await expect(page.getByRole('region', { name: '最终合并提示词' })).toContainText(prompt)
+  expect(state.requests.filter((item) => item.path === '/api/video-generate')).toHaveLength(1)
+  expect(documentPatches(state)).toHaveLength(patchesBeforeSubmit + 1)
+  const runningPatch = documentPatches(state).at(-1)!.body
+  expect(runningPatch?.connection_upserts).toEqual([])
+  expect(runningPatch?.node_upserts).toEqual([
+    expect.objectContaining({ content: expect.objectContaining({ generation_status: 'running', text: prompt }) }),
+  ])
+  await mkdir(evidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(evidenceDirectory, 'in-flight-input-lock-1440x900.png'), fullPage: true })
+
+  gate.resolve()
+  await expect(editor.getByText('视频生成已完成，结果已写入项目资源。')).toBeVisible()
+  await expect(editor.getByRole('textbox')).toBeEnabled()
+  await expect(context.getByRole('button', { name: '下移参考图 历史图片生成结果' })).toBeEnabled()
+})
+
+test('compact failed request unlocks the same mutable controls after settlement', async ({ page }) => {
+  const state = createResourceMockState()
+  addTwoOriginVideo(state)
+  state.generationOutcome = 'failure'
+  const gate = deferred()
+  state.generationGate = gate.promise
+
+  await openResourceWorkspace(page, state, { width: 920, height: 900 })
+  await selectNode(page, '双源恢复视频')
+  const drawer = page.locator('.n-drawer:visible')
+  const context = drawer.getByRole('region', { name: '已连接生成上下文' })
+  await drawer.getByRole('button', { name: '开始视频生成' }).click()
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/video-generate').length).toBe(1)
+  await expect(drawer.getByRole('textbox')).toBeDisabled()
+  await expect(context.getByRole('button', { name: '下移参考图 历史图片生成结果' })).toBeDisabled()
+
+  gate.resolve()
+  await expect(drawer.getByRole('alert')).toContainText('mock provider unavailable')
+  await expect(drawer.getByRole('textbox')).toBeEnabled()
+  await expect(context.getByRole('button', { name: '下移参考图 历史图片生成结果' })).toBeEnabled()
+  const box = await drawer.boundingBox()
+  expect(box?.width).toBeLessThanOrEqual(360)
+  await page.screenshot({ path: resolve(evidenceDirectory, 'failure-unlocked-compact-920x900.png'), fullPage: true })
+})
+
 test('failed two-origin video preserves inputs and recovers through one explicit retry', async ({ page }) => {
   const state = createResourceMockState()
   addTwoOriginVideo(state)
