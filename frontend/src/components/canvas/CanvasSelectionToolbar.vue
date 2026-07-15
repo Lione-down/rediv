@@ -214,9 +214,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeydown)
   box-shadow: var(--shadow-floating, var(--shadow-soft));
   transform: translateX(-50%);
 }
-.compose-panel { top: var(--compose-menu-top, calc(100% + 10px)); bottom: var(--compose-menu-bottom, auto); width: 220px; }
+.compose-panel { top: var(--compose-menu-top, calc(100% + 10px)); bottom: var(--compose-menu-bottom, auto); width: 220px; overflow: hidden; }
 .compose-panel > p { margin: 0; padding: 7px 9px 5px; color: var(--text-secondary); font-size: 10px; font-variant-numeric: tabular-nums; }
-.compose-source-list { display: grid; gap: 1px; margin: 0 4px 4px; padding: 0; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--border-subtle); list-style: none; }
+.compose-source-list { display: grid; gap: 1px; max-height: 200px; margin: 0 4px 4px; padding: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--border-subtle); scrollbar-width: thin; list-style: none; }
 .compose-source-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 5px 5px 5px 7px; color: var(--text-secondary); background: var(--bg-panel-subtle); font-size: 10px; line-height: 1.35; }
 .compose-source-list li strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .compose-source-list li span { overflow-wrap: anywhere; }

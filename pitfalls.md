@@ -522,3 +522,10 @@ Evidence:
 - Preflight reorder is selection state, not graph state. Do not dispatch a document command or create undo history before the user creates the generation workflow.
 - Dynamic ordered rows must use stable node IDs as Vue keys. Role labels change during sorting and will destroy focused controls if used as identity.
 - Escape behavior should belong to the open popover contract, not depend on focus accidentally remaining inside a button after reactive reordering.
+
+## 2026-07-15 Dense composition preflight scalability
+
+- A bounded popover is not usable if its summary, queue, and primary actions share one scroll owner. Keep the frame fixed and let only the repeated source queue scroll.
+- Visibility assertions can hide overflow defects because browser automation may scroll an ancestor automatically. Compare panel and queue `scrollHeight` with `clientHeight` to prove ownership directly.
+- Validate the real product boundary, not a convenient sample. Two prompts plus eight unique references exposed the action displacement that two-source and four-source cases missed.
+- Inspect dense low-zoom evidence after scrolling to the final row. This catches wrapped localization, marker dominance, fixed-action placement, and focus-boundary problems together.

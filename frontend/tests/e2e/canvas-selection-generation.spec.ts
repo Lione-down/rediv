@@ -13,7 +13,7 @@ import {
   PROJECT_ID,
 } from './canvas-resource-generation-fixture'
 
-const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-051-reorderable-composition-preflight')
+const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-052-dense-composition-preflight')
 const now = '2026-07-15T10:00:00Z'
 
 function sourceNode(id: string, type: 'script' | 'asset', options: Record<string, unknown> = {}): CanvasNode {
@@ -291,6 +291,79 @@ test('compact desktop keeps the compose menu in bounds and creates image generat
   await expect.poll(() => documentPatches(state).length).toBe(1)
   expect(documentPatches(state)[0].body?.node_upserts[0]).toMatchObject({ content: { subtype: 'image' } })
   expect(documentPatches(state)[0].body?.connection_upserts).toHaveLength(2)
+})
+
+test('dense ten-node preflight keeps actions fixed while eight references scroll and reorder', async ({ page }) => {
+  const state = createResourceMockState()
+  state.canvases[0].viewport_zoom = 0.5
+  const prompts = [
+    sourceNode('dense-prompt-a', 'script', { title: '全局视觉约束', text: '低饱和电影质感', x: 80, y: 80 }),
+    sourceNode('dense-prompt-b', 'script', { title: '镜头运动约束', text: '缓慢横移并保持主体连续', x: 440, y: 80 }),
+  ]
+  const references = Array.from({ length: 8 }, (_, index) => sourceNode(`dense-reference-${index + 1}`, 'asset', {
+    title: `关键帧参考 ${index + 1}${index === 7 ? '：收束镜头中的人物与环境连续关系' : ''}`,
+    assetId: `dense-asset-${index + 1}`,
+    x: 80 + (index % 4) * 360,
+    y: 380 + Math.floor(index / 4) * 280,
+  }))
+  const sources = [...prompts, ...references]
+  state.documents[FIRST_CANVAS_ID] = { nodes: sources.map(persistedNode), connections: [] }
+  state.assets.push(...references.map((node, index) => ({
+    ...state.assets[0], id: `dense-asset-${index + 1}`, url: `https://media.revid.test/dense-${index + 1}.png`, content_text: node.title,
+  })))
+  for (const mediaType of ['image', 'video'] as const) {
+    let sequence = 0
+    const command = createSelectionGenerationCommand(sources, mediaType, () => `dense-${mediaType}-${sequence++}`)!
+    const context = resolveGenerationContext(command.nodes[0], [...sources, ...command.nodes], command.connections)
+    expect(context.imageIds).toEqual(Array.from({ length: 8 }, (_, index) => `dense-asset-${index + 1}`))
+  }
+  await openResourceWorkspace(page, state, { width: 1440, height: 760 })
+  const surface = page.locator('.canvas-surface')
+  for (const [index, node] of sources.entries()) {
+    await surface.click({
+      position: { x: node.x * 0.5 + 80, y: node.y * 0.5 + 60 },
+      modifiers: index === 0 ? [] : ['Control'],
+    })
+  }
+  await expect(page.getByRole('toolbar', { name: '10 个已选节点的操作' })).toBeVisible()
+  await page.getByRole('button', { name: '合并所选节点为生成任务' }).click()
+  const panel = page.getByRole('menu', { name: '选择生成任务类型' })
+  const sourceList = panel.getByRole('list', { name: '有序生成输入' })
+  await expect(sourceList.getByRole('listitem')).toHaveCount(10)
+  const overflow = await panel.evaluate((element) => ({ clientHeight: element.clientHeight, scrollHeight: element.scrollHeight }))
+  expect(overflow.scrollHeight).toBe(overflow.clientHeight)
+  const listOverflow = await sourceList.evaluate((element) => ({ clientHeight: element.clientHeight, scrollHeight: element.scrollHeight }))
+  expect(listOverflow.scrollHeight).toBeGreaterThan(listOverflow.clientHeight)
+  const videoAction = panel.getByRole('menuitem', { name: '视频生成' })
+  await expect(videoAction).toBeInViewport()
+  await sourceList.evaluate((element) => { element.scrollTop = element.scrollHeight })
+  const moveLastReferenceUp = panel.getByRole('button', { name: /上移 R8 关键帧参考 8/ })
+  await moveLastReferenceUp.focus()
+  await page.keyboard.press('Enter')
+  await expect(sourceList.getByRole('listitem').nth(8)).toContainText('R7关键帧参考 8')
+  await expect(sourceList.getByRole('listitem').nth(9)).toContainText('R8关键帧参考 7')
+  expect(documentPatches(state)).toHaveLength(0)
+  await mkdir(evidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(evidenceDirectory, 'dense-ten-source-preflight-1440x760.png'), fullPage: true })
+  await page.setViewportSize({ width: 920, height: 760 })
+  const compactBox = await panel.boundingBox()
+  expect(compactBox).not.toBeNull()
+  expect(compactBox!.x).toBeGreaterThanOrEqual(0)
+  expect(compactBox!.x + compactBox!.width).toBeLessThanOrEqual(920)
+  expect(await panel.evaluate((element) => element.scrollHeight)).toBe(await panel.evaluate((element) => element.clientHeight))
+  expect(await sourceList.evaluate((element) => element.scrollHeight)).toBeGreaterThan(await sourceList.evaluate((element) => element.clientHeight))
+  expect(await sourceList.evaluate((element) => element.scrollWidth)).toBeLessThanOrEqual(await sourceList.evaluate((element) => element.clientWidth))
+  await expect(videoAction).toBeInViewport()
+  await page.screenshot({ path: resolve(evidenceDirectory, 'dense-ten-source-preflight-920x760.png'), fullPage: true })
+  await videoAction.click()
+  await expect.poll(() => documentPatches(state).length).toBe(1)
+  const persistedMedia = documentPatches(state)[0].body!.connection_upserts
+    .filter((edge) => edge.target_port === 'media')
+    .sort((left, right) => Number(left.metadata?.input_order) - Number(right.metadata?.input_order))
+  expect(persistedMedia.map((edge) => edge.source_node_id)).toEqual([
+    'dense-reference-1', 'dense-reference-2', 'dense-reference-3', 'dense-reference-4',
+    'dense-reference-5', 'dense-reference-6', 'dense-reference-8', 'dense-reference-7',
+  ])
 })
 
 test('invalid desktop and readonly mobile selections expose no composition mutation', async ({ page }) => {
