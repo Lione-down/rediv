@@ -183,6 +183,124 @@ test('375px readonly two-origin merge preserves both origins without mutation', 
   expect(documentPatches(state)).toHaveLength(0)
 })
 
+test('two-origin generated keyframes create a durable playable video result', async ({ page }) => {
+  const state = createResourceMockState()
+  addTwoOriginMerge(state)
+  const document = state.documents[FIRST_CANVAS_ID]
+  const generation = document.nodes.find((item) => item.id === 'generation-two-origin-merge')!
+  generation.content = {
+    ...(generation.content as Record<string, unknown>),
+    subtype: 'video', title: '双源关键帧视频', text: '从远景推进到人物海岸镜头。',
+  }
+  const initialQuota = state.quotas.video
+
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '双源关键帧视频')
+  const editor = page.locator('.generation-editor')
+  const context = editor.getByRole('region', { name: '已连接生成上下文' })
+  await context.getByText('检查最终生成请求').click()
+  const requestPreview = page.getByRole('region', { name: '有序媒体请求' })
+  await expect(requestPreview.locator('li').nth(0)).toContainText('视频关键帧 R1')
+  await expect(requestPreview.locator('li').nth(0)).toContainText('历史图片生成结果')
+  await expect(requestPreview.locator('li').nth(1)).toContainText('视频关键帧 R2')
+  await expect(requestPreview.locator('li').nth(1)).toContainText('第二镜头结果')
+
+  await context.getByRole('button', { name: '下移参考图 历史图片生成结果' }).click()
+  await expect(requestPreview.locator('li').nth(0)).toContainText('第二镜头结果')
+  await expect(page.locator('.generation-source-provenance', { hasText: 'R1 · V1' })).toHaveCount(1)
+  await expect(page.locator('.generation-source-provenance', { hasText: 'R2 · V2' })).toHaveCount(1)
+  await editor.getByRole('textbox').fill('从远景海岸平滑推进到人物近景，保持低饱和电影感。')
+  await editor.locator('.generate-button').click()
+
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/video-generate').length).toBe(1)
+  expect(state.requests.find((item) => item.path === '/api/video-generate')?.body).toEqual({
+    project_id: PROJECT_ID,
+    origin_canvas_id: FIRST_CANVAS_ID,
+    canvas_node_id: 'generation-two-origin-merge',
+    prompt: '从远景海岸平滑推进到人物近景，保持低饱和电影感。',
+    image_ids: ['asset-second-origin', 'asset-generated'],
+  })
+  expect(state.quotas.video).toBe(initialQuota - 1)
+
+  await expect.poll(() => document.nodes.filter((item) => (
+    (item.content as Record<string, unknown>).source_task_id === 'task-success'
+  )).length).toBe(1)
+  const result = document.nodes.find((item) => (
+    (item.content as Record<string, unknown>).source_task_id === 'task-success'
+  ))!
+  expect(result.content).toEqual(expect.objectContaining({
+    subtype: 'video', url: 'https://media.revid.test/success.mp4', source_task_id: 'task-success',
+  }))
+  expect(document.connections).toContainEqual(expect.objectContaining({
+    source_node_id: 'generation-two-origin-merge', target_node_id: result.id,
+  }))
+
+  await page.locator('.view-controls > button').first().click()
+  const video = page.locator('.asset-card video[src$="success.mp4"]')
+  await expect(video).toBeVisible()
+  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState)).toBeGreaterThanOrEqual(1)
+  await mkdir(multiOriginEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(multiOriginEvidenceDirectory, 'two-origin-playable-video-1440x900.png'), fullPage: true })
+
+  await page.reload()
+  await selectNode(page, String((result.content as Record<string, unknown>).title))
+  await expect(page.locator('.result-lineage-detail')).toContainText('task-success')
+  await expect(page.locator('.result-lineage-detail')).toContainText('双源关键帧视频')
+  const reloadedVideo = page.locator('video[aria-label="视频结果"]')
+  await expect(reloadedVideo).toBeVisible()
+  await expect.poll(() => reloadedVideo.evaluate((element: HTMLVideoElement) => element.readyState)).toBeGreaterThanOrEqual(1)
+  const playback = await reloadedVideo.evaluate(async (element: HTMLVideoElement) => {
+    await element.play()
+    return { duration: element.duration, paused: element.paused, width: element.videoWidth, height: element.videoHeight }
+  })
+  expect(playback.paused).toBe(false)
+  expect(playback.duration).toBeGreaterThan(0)
+  expect(playback.width).toBeGreaterThan(0)
+  expect(playback.height).toBeGreaterThan(0)
+  await reloadedVideo.evaluate((element: HTMLVideoElement) => element.pause())
+  await page.screenshot({ path: resolve(multiOriginEvidenceDirectory, 'two-origin-playable-video-reload-1440x900.png'), fullPage: true })
+})
+
+test('two-origin video keyframes stay bounded in compact and passive in readonly', async ({ page }) => {
+  const state = createResourceMockState()
+  addTwoOriginMerge(state)
+  const generation = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-two-origin-merge')!
+  generation.content = {
+    ...(generation.content as Record<string, unknown>),
+    subtype: 'video', title: '双源关键帧视频', text: '从远景推进到人物海岸镜头。',
+  }
+
+  await openResourceWorkspace(page, state, { width: 920, height: 900 })
+  await selectNode(page, '双源关键帧视频')
+  const compactDrawer = page.locator('.n-drawer:visible')
+  const compactContext = compactDrawer.getByRole('region', { name: '已连接生成上下文' })
+  await compactContext.getByText('检查最终生成请求').click()
+  await expect(page.getByRole('region', { name: '有序媒体请求' })).toContainText('视频关键帧 R1')
+  await expect(page.getByRole('region', { name: '有序媒体请求' })).toContainText('视频关键帧 R2')
+  await expect(compactDrawer.getByRole('button', { name: '开始视频生成' })).toBeVisible()
+  const compactBox = await compactDrawer.boundingBox()
+  expect(compactBox?.width).toBeLessThanOrEqual(360)
+  await mkdir(multiOriginEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(multiOriginEvidenceDirectory, 'two-origin-video-keyframes-compact-920x900.png'), fullPage: true })
+
+  await openResourceWorkspace(page, state, { width: 375, height: 812 })
+  await selectNode(page, '双源关键帧视频')
+  const readonlyDrawer = page.locator('.n-drawer:visible')
+  const readonlyContext = readonlyDrawer.getByRole('region', { name: '已连接生成上下文' })
+  await expect(readonlyContext).toContainText('来自 封面生成 · V2')
+  await expect(readonlyContext).toContainText('来自 第二镜头生成 · V1')
+  await expect(readonlyContext.getByRole('button', { name: /上移参考图|下移参考图/ })).toHaveCount(0)
+  await expect(readonlyDrawer.getByRole('button', { name: '开始视频生成' })).toHaveCount(0)
+  await expect.poll(async () => {
+    const box = await readonlyDrawer.boundingBox()
+    return box ? Math.round(box.x + box.width) : Number.POSITIVE_INFINITY
+  }).toBeLessThanOrEqual(375)
+  const readonlyBox = await readonlyDrawer.boundingBox()
+  expect(readonlyBox?.x).toBeGreaterThanOrEqual(0)
+  await page.screenshot({ path: resolve(multiOriginEvidenceDirectory, 'two-origin-video-readonly-375x812.png'), fullPage: true })
+  expect(documentPatches(state)).toHaveLength(0)
+})
+
 test('image result branches into a request-ready video workflow and playable result', async ({ page }) => {
   const state = createResourceMockState()
   addEarlierVariant(state)

@@ -575,3 +575,11 @@ Evidence:
 - Initial two-source rendering does not prove persistence. Exercise one reorder command, exact undo/redo, reload normalization, and the final provider asset sequence together.
 - A desktop multi-source pass does not cover responsive density. Use the same two-origin graph in compact editable and readonly mobile modes rather than substituting a simpler one-source fixture.
 - When stronger end-to-end assertions pass without a product patch, preserve them as a regression contract instead of manufacturing an implementation change.
+
+## 2026-07-15 Two-origin video keyframe generation
+
+- Image-reference success does not prove video-keyframe semantics. Assert the preflight role labels, reordered provider IDs, durable video asset, canonical edge, quota, native playback, and reload together.
+- `readyState >= 1` proves metadata, not active playback. Call native `play()` and verify paused state, positive duration, and decoded dimensions before claiming a video is playable.
+- Resource-panel videos and Canvas-node videos have different DOM ownership and accessible labels. Select evidence from the surface under test instead of reusing a locator across both.
+- Drawer content can become visible while its enter transform is still moving. Poll the real bounding edge to its viewport limit before screenshot capture; fixed sleeps create timing-dependent visual evidence.
+- Use the repository-controlled `backend/.venv` for backend tests. The system Python can contain a partial FastAPI installation and fail collection before exercising project code.

@@ -189,6 +189,8 @@ T5-057 is `DONE - PASS`. It verifies a real two-origin result merge and adds ind
 
 T5-058 is `DONE - PASS`. It proves that two-origin downstream R order can change independently while canonical upstream V identity and origin navigation remain stable through provider execution, undo/redo, reload, compact editing, and readonly review. `REPORT-T5-058.md` is authoritative evidence.
 
+T5-059 is `DONE - PASS`. It verifies two generated-image origins as ordered video keyframes through exact provider input, durable playable result materialization, native playback, canonical lineage, reload, compact preflight, and readonly review. `REPORT-T5-059.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:
