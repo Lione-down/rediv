@@ -606,3 +606,12 @@ Evidence:
 - Selection changes must invalidate and release the sampler immediately; ignoring late results is not enough if the detached media keeps downloading or decoding.
 - Contextual surfaces need neighboring-node clearance. A correct filmstrip that covers another node or its role marker still fails visual acceptance.
 - Keep extraction failure local. A tainted or unsupported preview Canvas must not disable native playback or mutate the graph.
+
+## 2026-07-15 Contextual toolbar collision avoidance
+
+- Collision scoring must include the selected content itself. Excluding it assumes every clamped candidate remains outside the selection, which fails near panel and viewport boundaries.
+- Adjacent media tools need one shared side decision. Independent rail and toolbar placement can each be locally valid while overlapping each other.
+- Do not score every toolbar as its maximum multi-action width. Single media, single generation, and multi-selection have materially different bounds; an oversized estimate can push context controls hundreds of pixels away.
+- Non-overlap alone is insufficient for contextual UI. Add a maximum distance contract so a scorer cannot satisfy safety by docking controls at an unrelated global corner.
+- Distinguish Canvas surface bounds from external panel bounds. Reserving an Inspector that is already outside the surface double-counts space and can force candidates back into selected content.
+- A compact drawer mask owns interaction. Hide toolbar chrome behind it instead of leaving inaccessible ghost controls visible.

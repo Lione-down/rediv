@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 import { resolveGenerationContext } from '../../src/modules/canvas/generation-context'
 import { createSelectionGenerationCommand } from '../../src/modules/canvas/selection-generation'
 import { createVideoFrameAssetInsertCommand } from '../../src/modules/canvas/resource-commands'
+import { resolveKeyframeRailPlacement } from '../../src/components/canvas/canvas-keyframe-placement'
 import type { Asset } from '../../src/types/asset'
 import type { CanvasNode } from '../../src/types/canvas'
 import { createMultiScenarioState } from './canvas-multi-scenario-fixture'
@@ -31,6 +32,17 @@ async function selectNode(page: import('@playwright/test').Page, title: string) 
   await page.getByRole('button', { name: `选择并定位 ${title}` }).click()
 }
 
+function boxesOverlap(left: { x: number; y: number; width: number; height: number }, right: { x: number; y: number; width: number; height: number }) {
+  return left.x < right.x + right.width && left.x + left.width > right.x &&
+    left.y < right.y + right.height && left.y + left.height > right.y
+}
+
+function boxDistance(left: { x: number; y: number; width: number; height: number }, right: { x: number; y: number; width: number; height: number }) {
+  const horizontal = Math.max(0, left.x - (right.x + right.width), right.x - (left.x + left.width))
+  const vertical = Math.max(0, left.y - (right.y + right.height), right.y - (left.y + left.height))
+  return Math.hypot(horizontal, vertical)
+}
+
 test('frame asset command preserves capture provenance, avoids collisions, and composes as image input', () => {
   const source = sourceVideo()
   const blocker: CanvasNode = { ...source, id: 'blocker', type: 'note', title: 'blocker', x: 516, y: 80, width: 320, height: 200 }
@@ -52,6 +64,14 @@ test('frame asset command preserves capture provenance, avoids collisions, and c
   }
 })
 
+test('keyframe rail and toolbar share one deterministic open-side decision', () => {
+  const video = sourceVideo()
+  const above: CanvasNode = { ...video, id: 'above', type: 'note', y: -100, height: 180 }
+  const below: CanvasNode = { ...video, id: 'below', type: 'note', y: 270, height: 180 }
+  expect(resolveKeyframeRailPlacement(video, [video, below])).toBe('above')
+  expect(resolveKeyframeRailPlacement(video, [video, above])).toBe('below')
+})
+
 test('selected playable video captures one PNG and inserts one durable image node', async ({ page }) => {
   const state = createMultiScenarioState()
   await openResourceWorkspace(page, state)
@@ -64,6 +84,20 @@ test('selected playable video captures one PNG and inserts one durable image nod
   for (const thumbnail of await frames.locator('img').all()) {
     await expect.poll(() => thumbnail.evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual([160, 90])
   }
+  const toolbarRect = await page.locator('.selection-toolbar').boundingBox()
+  const videoRect = await video.boundingBox()
+  const railRect = await rail.boundingBox()
+  const inspectorRect = await page.locator('.context-panel-shell').boundingBox()
+  expect(toolbarRect).not.toBeNull()
+  expect(videoRect).not.toBeNull()
+  expect(railRect).not.toBeNull()
+  expect(inspectorRect).not.toBeNull()
+  expect(boxesOverlap(toolbarRect!, videoRect!)).toBe(false)
+  expect(boxesOverlap(toolbarRect!, railRect!)).toBe(false)
+  expect(boxDistance(toolbarRect!, videoRect!), JSON.stringify({
+    inspectorRect, railRect, toolbarRect, toolbarStyle: await page.locator('.selection-toolbar').getAttribute('style'), videoRect,
+  })).toBeLessThanOrEqual(72)
+  expect(toolbarRect!.x + toolbarRect!.width).toBeLessThanOrEqual(inspectorRect!.x - 12)
   const targetFrame = frames.nth(3)
   const targetTime = Number(await targetFrame.getAttribute('data-time'))
   const patchCountBeforeSeek = documentPatches(state).length
@@ -156,12 +190,14 @@ test('keyframe extraction failure stays local while native video remains playabl
 })
 
 test('compact selected video keeps capture action clear of playback controls', async ({ page }) => {
-  await openResourceWorkspace(page, createMultiScenarioState(), { width: 920, height: 760 })
+  const state = createMultiScenarioState()
+  await openResourceWorkspace(page, state, { width: 920, height: 760 })
   await selectNode(page, '动态镜头结果')
   const action = page.getByRole('button', { name: '截取当前帧' })
   const video = page.locator('video[aria-label="视频结果"]')
   const rail = page.getByRole('region', { name: '视频关键帧' })
   await expect(action).toBeVisible()
+  await expect(page.locator('.selection-toolbar')).toHaveCount(0)
   await expect(rail.getByRole('button', { name: /定位到视频/ })).toHaveCount(5)
   const actionRect = await action.boundingBox()
   const videoRect = await video.boundingBox()
@@ -173,7 +209,14 @@ test('compact selected video keeps capture action clear of playback controls', a
   expect(railRect!.width).toBeLessThanOrEqual(videoRect!.width)
   expect(railRect!.y >= videoRect!.y + videoRect!.height || railRect!.y + railRect!.height <= videoRect!.y).toBe(true)
   await mkdir(evidenceDirectory, { recursive: true })
-  await page.screenshot({ path: resolve(evidenceDirectory, 'compact-keyframe-rail-920x760.png'), fullPage: true })
+  await page.screenshot({ path: resolve(evidenceDirectory, 'compact-drawer-owns-toolbar-920x760.png'), fullPage: true })
+  const patchCount = documentPatches(state).length
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.n-drawer:visible')).toHaveCount(0)
+  await expect(page.locator('.selection-toolbar')).toHaveCount(0)
+  await expect(rail).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(patchCount)
+  await page.screenshot({ path: resolve(evidenceDirectory, 'compact-drawer-dismissed-920x760.png'), fullPage: true })
 })
 
 test('failed frame upload reports an accessible error and inserts no node', async ({ page }) => {

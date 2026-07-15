@@ -197,6 +197,8 @@ T5-061 is `DONE - PASS`. It keeps the Inspector's visible request inputs consist
 
 T5-062 is `DONE - PASS`. It turns selected playable video nodes into a bounded five-frame visual source, with click-to-seek navigation, exact timestamp capture provenance, sampler cancellation, and responsive readonly safety. `REPORT-T5-062.md` is authoritative evidence.
 
+T5-063 is `DONE - PASS`. It keeps contextual selection controls adjacent without covering selected media, video keyframes, the desktop Inspector boundary, or compact drawer overlays. `REPORT-T5-063.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

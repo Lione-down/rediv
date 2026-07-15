@@ -127,6 +127,7 @@ const {
   zoomOut,
   zoomPercent,
 } = useCanvasStage({
+  getViewportInsets: () => props.viewportInsets,
   isReadOnly: () => props.readonly,
   onGraphPanelClosed: restoreGraphPanelTriggerFocus,
 })
@@ -478,7 +479,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
       <div v-if="marqueeStyle" class="selection-marquee" :style="marqueeStyle" aria-hidden="true"></div>
 
       <CanvasSelectionToolbar
-        v-if="selectionToolbarStyle && !readonly"
+        v-if="selectionToolbarStyle && !readonly && !contextOverlayOpen"
         :count="canvasStore.selectedNodeIds.length"
         :can-connect="canConnectSelection"
         :can-compose="canComposeGenerationSelection"

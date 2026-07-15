@@ -2,7 +2,8 @@ import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-vue-next'
 import { computed } from 'vue'
 import type { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
-import { canvasNodeWorldRect, worldToSurface, type CanvasNodeGeometryRole, type ViewportSize, type ViewportState } from '../canvas-geometry'
+import { canvasNodeWorldRect, worldToSurface, type CanvasNodeGeometryRole, type ViewportInsets, type ViewportSize, type ViewportState } from '../canvas-geometry'
+import { resolveKeyframeRailPlacement } from '../canvas-keyframe-placement'
 
 type CanvasStore = ReturnType<typeof useCanvasStore>
 type StatusVisualState = Extract<NonNullable<CanvasNode['status']>, 'running' | 'success' | 'warning'>
@@ -10,6 +11,7 @@ type StatusVisualState = Extract<NonNullable<CanvasNode['status']>, 'running' | 
 interface CanvasStagePresentationOptions {
   canvasStore: CanvasStore
   getViewport: () => ViewportState
+  getViewportInsets: () => Partial<ViewportInsets>
   getViewportSize: () => ViewportSize
   isReadOnly: () => boolean
 }
@@ -31,31 +33,55 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     if (options.isReadOnly() || !canvasStore.selectedNodes.length) return null
     const viewport = options.getViewport()
     const size = options.getViewportSize()
+    const insets = options.getViewportInsets()
     const rects = canvasStore.selectedNodes.map((node) => canvasNodeWorldRect(node, 'content'))
     const left = Math.min(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top }, viewport).x))
     const right = Math.max(...rects.map((rect) => worldToSurface({ x: rect.left + rect.width, y: rect.top }, viewport).x))
     const top = Math.min(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top }, viewport).y))
     const bottom = Math.max(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top + rect.height }, viewport).y))
-    const halfWidth = 176
+    const halfWidth = canvasStore.selectedNodes.length === 1
+      ? canvasStore.selectedNodes[0].type === 'generation' ? 106 : 84
+      : 176
     const toolbarHeight = 44
-    const clampX = (x: number) => Math.max(halfWidth + 12, Math.min(x, size.width - halfWidth - 12))
-    const clampY = (y: number) => Math.max(12, Math.min(y, size.height - toolbarHeight - 12))
+    const safeLeft = Math.max(0, insets.left ?? 0)
+    const safeTop = Math.max(0, insets.top ?? 0)
+    const safeRight = Math.max(safeLeft, size.width - Math.max(0, insets.right ?? 0))
+    const safeBottom = Math.max(safeTop, size.height - Math.max(0, insets.bottom ?? 0))
+    const clampX = (x: number) => {
+      const minimum = safeLeft + halfWidth
+      const maximum = safeRight - halfWidth
+      return minimum > maximum ? (safeLeft + safeRight) / 2 : Math.max(minimum, Math.min(x, maximum))
+    }
+    const clampY = (y: number) => Math.max(safeTop + 12, Math.min(y, safeBottom - toolbarHeight - 12))
     const centerX = (left + right) / 2
     const centerY = (top + bottom) / 2
+    const aboveCandidate = { x: clampX(centerX), y: clampY(top - 56) }
+    const belowCandidate = { x: clampX(centerX), y: clampY(bottom + 12) }
+    const selectedVideo = canvasStore.selectedNodes.length === 1 && canvasStore.selectedNodes[0].contentData?.subtype === 'video' && !canvasStore.selectedNodes[0].isLocked
+      ? canvasStore.selectedNodes[0]
+      : null
+    const keyframePlacement = selectedVideo ? resolveKeyframeRailPlacement(selectedVideo, canvasStore.nodes) : null
     const candidates = [
-      { x: clampX(centerX), y: clampY(top - 56) },
-      { x: clampX(centerX), y: clampY(bottom + 12) },
+      ...(keyframePlacement === 'above' ? [belowCandidate, aboveCandidate] : [aboveCandidate, belowCandidate]),
       { x: clampX(left - halfWidth - 12), y: clampY(centerY - toolbarHeight / 2) },
       { x: clampX(right + halfWidth + 12), y: clampY(centerY - toolbarHeight / 2) },
       { x: clampX(size.width / 2), y: clampY(104) },
       { x: clampX(size.width / 2), y: clampY(size.height - 112) },
     ]
-    const selectedIds = new Set(canvasStore.selectedNodeIds)
-    const occupiedRects = canvasStore.nodes.filter((node) => !selectedIds.has(node.id)).map((node) => {
+    const occupiedRects = canvasStore.nodes.map((node) => {
       const rect = canvasNodeWorldRect(node, 'content')
       const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)
       return { left: position.x, top: position.y, right: position.x + rect.width * viewport.zoom, bottom: position.y + rect.height * viewport.zoom }
     })
+    if (selectedVideo && keyframePlacement) {
+      const railHeight = 52
+      occupiedRects.push({
+        left: left + 14,
+        top: keyframePlacement === 'above' ? top - railHeight - 8 : bottom + 8,
+        right,
+        bottom: keyframePlacement === 'above' ? top - 8 : bottom + railHeight + 8,
+      })
+    }
     if (canvasStore.selectedNodes.length === 1 && canvasStore.selectedNodes[0].type === 'generation') {
       const rect = canvasNodeWorldRect(canvasStore.selectedNodes[0], 'composer')
       const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)

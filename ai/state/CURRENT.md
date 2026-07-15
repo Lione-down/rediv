@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-062 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-063 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-062 - Selected video keyframe rail` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-062.md`
+- Most recently completed: `T5-063 - Contextual toolbar collision avoidance` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-063.md`
 
 ## Current Verified Facts
 
@@ -91,10 +91,11 @@ Last updated: 2026-07-15
 - T5-060 is now `DONE - PASS`: failed two-origin video generation preserves prompt, order, R/V identity, graph, assets, and quota through reload and readonly review, then one explicit compact retry sends the same payload and creates one valid result. Build, focused 13/13, guarded backend 15/15, related 53/53, and three-viewport visual gates passed. Final report: `ai/reports/REPORT-T5-060.md`.
 - T5-061 is now `DONE - PASS`: an in-flight generation locks prompt and input-order mutation through native disabled semantics while keeping lineage navigation available, then restores valid controls after success or failure. Build, focused 2/2, related 55/55, and desktop/compact visual gates passed. Final report: `ai/reports/REPORT-T5-061.md`.
 - T5-062 is now `DONE - PASS`: a selected editable video exposes five decoded keyframes that seek native playback and feed the existing durable frame-to-image path with exact timestamp provenance. Sampler cancellation, local failure, compact placement, readonly/locked boundaries, build, focused 9/9, related 42/42, and desktop/compact visual gates passed. Final report: `ai/reports/REPORT-T5-062.md`.
+- T5-063 is now `DONE - PASS`: contextual toolbars score selected content, video rails, neighboring nodes, and Canvas insets, remain within 72px without covering media or Inspector, and disappear under compact drawer ownership. Build, focused 15/15, related 60/60, and desktop/compact visual gates passed. Final report: `ai/reports/REPORT-T5-063.md`.
 
 ## Exact Next Action
 
-Establish the next bounded Canvas Task around contextual-toolbar collision avoidance exposed by dense selected-video visual evidence.
+Select the next bounded Canvas visual or interaction gap from current browser evidence and establish its Task contract before implementation.
 
 ## Blockers And Human Gates
 

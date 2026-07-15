@@ -12,7 +12,7 @@ import {
   nodeInputAnchor as getNodeInputAnchor, nodeOutputAnchor as getNodeOutputAnchor,
   normalizeViewport, nodeIntersectsRect,
   rectFromPoints, snapDeltaToGrid, surfaceToWorld,
-  type Point, type ViewportState,
+  type Point, type ViewportInsets, type ViewportState,
 } from '../canvas-geometry'
 import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
 import { findNearestConnectionTarget } from '../canvas-connection-target'
@@ -32,7 +32,7 @@ interface DraftConnectionState { originNodeId: string; originPort: string; direc
 interface MarqueeState { pointerId: number | null; start: Point; current: Point; additive: boolean }
 interface NativePointerLikeEvent extends MouseEvent { pointerId?: number }
 interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLikeEvent }
-interface CanvasStageOptions { isReadOnly?: () => boolean; onGraphPanelClosed?: () => void }
+interface CanvasStageOptions { getViewportInsets?: () => Partial<ViewportInsets>; isReadOnly?: () => boolean; onGraphPanelClosed?: () => void }
 export function useCanvasStage(options: CanvasStageOptions = {}) {
   const canvasStore = useCanvasStore()
   const stageRef = ref<HTMLElement | null>(null)
@@ -149,6 +149,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   } = useCanvasStagePresentation({
     canvasStore,
     getViewport,
+    getViewportInsets: () => options.getViewportInsets?.() ?? {},
     getViewportSize: () => surfaceViewportSize.value,
     isReadOnly: () => options.isReadOnly?.() ?? false,
   })

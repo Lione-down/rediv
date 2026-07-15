@@ -134,8 +134,10 @@ test('selection, editing, locked content, and supported viewports remain usable'
       await expect(page.getByRole('region', { name: '节点内容编辑器' })).toBeVisible()
       if (viewport.width === 920) {
         expect((await page.locator('.n-drawer:visible').boundingBox())?.width).toBeGreaterThanOrEqual(359)
+        await expect(page.locator('.selection-toolbar')).toHaveCount(0)
+      } else {
+        await expect(page.locator('.selection-toolbar')).toBeVisible()
       }
-      await expect(page.locator('.selection-toolbar')).toBeVisible()
     } else {
       await expect(page.getByRole('region', { name: '节点内容编辑器' })).toHaveCount(0)
       await expect(page.locator('.selection-toolbar')).toHaveCount(0)
