@@ -1,5 +1,11 @@
 # 踩坑记录
 
+## 2026-07-15 Continuation compatibility and authoring intent
+
+- Typed port compatibility describes which persisted edges are valid; it does not prove that every compatible target should be advertised as a foreground creation action.
+- Provider-materialized result nodes may remain registry-creatable for drag and command compatibility, while selected-node chrome uses a separate registry-owned capability to avoid offering blank result creation.
+- Dedicated result branching owns provider-valid image reuse. A generic result continuation action would duplicate that workflow and weaken its asset, subtype, readonly, and lock gates.
+
 ## 2026-07-15 Generation run history scope
 
 - Project generation task 列表跨 Canvas 与 node，共享 resource recency 不能替代 node history；inspector 必须先按 durable `canvas_node_id` 过滤，再按 `created_at` 排序。

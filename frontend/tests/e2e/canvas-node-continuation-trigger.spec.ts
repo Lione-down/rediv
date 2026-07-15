@@ -3,7 +3,9 @@ import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { canvasNodeVisualSize } from '../../src/components/canvas/canvas-node-presentation'
 import { resolveCanvasNodeContinuationTrigger } from '../../src/components/canvas/canvas-node-continuation-trigger'
+import { resolveConnectionContinuationOptions } from '../../src/modules/canvas/connection-continuation'
 import { mapCanvasNode } from '../../src/modules/canvas/mappers'
+import { createRegistryNodeDraft, type CanonicalNodeType } from '../../src/modules/canvas/node-registry'
 import type { CanvasNodeDto } from '../../src/modules/canvas/types'
 import {
   createResourceMockState,
@@ -13,7 +15,7 @@ import {
   type ResourceMockState,
 } from './canvas-resource-generation-fixture'
 
-const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-035-node-continuation-trigger')
+const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-036-intent-safe-continuation')
 
 function viewportPatches(state: ResourceMockState) {
   return state.requests.filter((request) => (
@@ -84,6 +86,7 @@ test('selected script exposes canonical continuation and creates one foreground 
   expect(edge).toMatchObject({ source_node_id: 'script-source', source_port: 'out', target_port: 'prompt' })
   await expect(page.locator('.generation-editor')).toBeVisible()
   await expect(page.getByRole('toolbar', { name: '1 个已选节点的操作' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '继续此节点' })).toHaveCount(0)
   expect(currentViewport(state).zoom).toBe(before.zoom)
   expect(viewportPatches(state).length).toBeGreaterThanOrEqual(viewportCount)
   await mkdir(evidenceDirectory, { recursive: true })
@@ -163,7 +166,7 @@ test('locked, multi-selection, and readonly states expose no trigger', async ({ 
   expect(documentPatches(readonlyState)).toHaveLength(0)
 })
 
-test('eligibility projection rejects unsupported nodes and preserves canonical output choice', () => {
+test('eligibility projection exposes authoring sources without advertising task or result creation', () => {
   const state = createResourceMockState()
   const script = mappedNode(state, 'script-source')
   expect(resolveCanvasNodeContinuationTrigger([script], [script.id], false)).toMatchObject({
@@ -173,4 +176,33 @@ test('eligibility projection rejects unsupported nodes and preserves canonical o
   expect(resolveCanvasNodeContinuationTrigger([unsupported], [unsupported.id], false)).toBeNull()
   expect(resolveCanvasNodeContinuationTrigger([script], [script.id], true)).toBeNull()
   expect(resolveCanvasNodeContinuationTrigger([script], [], false)).toBeNull()
+
+  const canonicalNode = (type: CanonicalNodeType, subtype: string) => ({
+    id: `${type}-${subtype}`,
+    ...createRegistryNodeDraft(type, subtype, { x: 0, y: 0 }),
+  })
+  const imageAsset = canonicalNode('asset', 'image')
+  const videoAsset = canonicalNode('asset', 'video')
+  expect(resolveCanvasNodeContinuationTrigger([imageAsset], [imageAsset.id], false)).toMatchObject({ portId: 'out' })
+  expect(resolveCanvasNodeContinuationTrigger([videoAsset], [videoAsset.id], false)).toMatchObject({ portId: 'out' })
+
+  for (const node of [
+    canonicalNode('generation', 'image'),
+    canonicalNode('generation', 'video'),
+    canonicalNode('result', 'image'),
+    canonicalNode('result', 'video'),
+    canonicalNode('note', 'annotation'),
+    canonicalNode('group', 'group'),
+  ]) {
+    expect(resolveCanvasNodeContinuationTrigger([node], [node.id], false)).toBeNull()
+  }
+
+  const generation = canonicalNode('generation', 'image')
+  const imageResult = canonicalNode('result', 'image')
+  expect(resolveConnectionContinuationOptions(generation, 'out')).toEqual(expect.arrayContaining([
+    expect.objectContaining({ type: 'result', targetPort: 'in' }),
+  ]))
+  expect(resolveConnectionContinuationOptions(imageResult, 'out')).toEqual(expect.arrayContaining([
+    expect.objectContaining({ type: 'generation', targetPort: 'media' }),
+  ]))
 })

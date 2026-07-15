@@ -33,6 +33,7 @@ export interface NodeCapabilities {
   canPreviewMedia: boolean
   canReferenceAsset: boolean
   canContainChildren: boolean
+  canContinueFromSelection: boolean
 }
 
 export interface NodeDefinition {
@@ -70,6 +71,7 @@ const disabledCapabilities: NodeCapabilities = {
   canPreviewMedia: false,
   canReferenceAsset: false,
   canContainChildren: false,
+  canContinueFromSelection: false,
 }
 
 function capabilities(overrides: Partial<NodeCapabilities> = {}): NodeCapabilities {
@@ -83,7 +85,7 @@ const canonicalDefinitions: readonly NodeDefinition[] = [
     defaultSubtype: 'script',
     ports: [{ id: 'out', direction: 'output', dataType: 'text' }],
     defaultSize: { width: 320, height: 200 },
-    capabilities: capabilities({ canEditContent: true }), serializationVersion: 1,
+    capabilities: capabilities({ canEditContent: true, canContinueFromSelection: true }), serializationVersion: 1,
   },
   {
     type: 'note', kind: 'canonical', label: '笔记', icon: 'sticky-note',
@@ -101,7 +103,11 @@ const canonicalDefinitions: readonly NodeDefinition[] = [
     defaultSubtype: 'image',
     ports: [{ id: 'out', direction: 'output', dataType: 'media' }],
     defaultSize: { width: 320, height: 240 },
-    capabilities: capabilities({ canPreviewMedia: true, canReferenceAsset: true }),
+    capabilities: capabilities({
+      canPreviewMedia: true,
+      canReferenceAsset: true,
+      canContinueFromSelection: true,
+    }),
     serializationVersion: 1,
   },
   {

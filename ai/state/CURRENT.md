@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-035 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-036 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-035 - Contextual typed node continuation` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-035.md`
+- Most recently completed: `T5-036 - Intent-safe continuation affordance` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-036.md`
 
 ## Current Verified Facts
 
@@ -64,6 +64,7 @@ Last updated: 2026-07-15
 - T5-033 is now `DONE - PASS`: multiple canonical image results can be selected as explicitly counted historical-result remix inputs, preserving ordered provider references while full-graph placement avoids ordinary and extreme-height occupied bounds. Image/video output, playable media, reload, invalid states, compact/readonly behavior, related 42/42, full Chromium 224/224, post-hardening focused 12/12, a 4,802-module build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-033.md`.
 - T5-034 is now `DONE - PASS`: foreground selection composition and result branching reveal the exact created generation with minimum panel-safe translation while preserving zoom, selection, inspector, history, reload, recovery, and readonly boundaries. Build, focused 4/4, related 50/50, visual, and hygiene gates passed; full Chromium was 228/229 with a separately classified local 200-node performance-threshold variance. Final report: `ai/reports/REPORT-T5-034.md`.
 - T5-035 is now `DONE - PASS`: selected compatible nodes expose a quiet typed continuation trigger backed by the canonical resolver and existing chooser. Explicit continuation is collision-aware, atomic, keyboard accessible, selected, and panel-safely revealed; compact drawers hand off without mask obstruction. Build, focused 5/5, related 29/29, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-035.md`.
+- T5-036 is now `DONE - PASS`: registry-owned authoring intent limits the selected-node continuation action to script and asset sources while preserving typed drag compatibility and dedicated result branching. Build, focused 8/8, related 32/32, desktop/compact visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-036.md`.
 
 ## Exact Next Action
 

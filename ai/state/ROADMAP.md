@@ -129,6 +129,8 @@ T5-034 is `DONE - PASS`. Foreground-created generation workflows use minimum pan
 
 T5-035 is `DONE - PASS`. It turns typed port-drag continuation into a discoverable selected-node action while retaining canonical compatibility, collision-aware placement, atomic history, compact drawer handoff, and panel-safe reveal. `REPORT-T5-035.md` is authoritative evidence.
 
+T5-036 is `DONE - PASS`. It separates typed connection compatibility from foreground authoring intent so script and asset sources keep the quiet selected-node continuation action while generation/result nodes avoid misleading or duplicate generic actions. `REPORT-T5-036.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:
