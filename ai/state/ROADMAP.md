@@ -214,7 +214,7 @@ T5-069 is `DONE - PASS`. Canvas video nodes and comparison previews share one ac
 
 T5-070 is `DONE - PASS`. New generation-reference authoring exposes only image sources the provider can consume, while historical unsupported edges remain visible as excluded provenance. Focused 29/29, cross-surface 85/85, build, visual, and zero-unintended-mutation gates passed.
 
-T5-071 is `VERIFYING`. Exact recipe versions, v2 prompts, toolbar isolation, responsive ownership, offline regression, build, and skill validation pass. The authorized three-image Agnes batch reached the provider but all three requests returned HTTP 503 with zero outputs; provider recovery, renewed bounded-call authorization, and a Human visual verdict remain.
+T5-071 is `VERIFYING`. Exact recipe versions, v2 prompts, toolbar isolation, responsive ownership, offline regression, build, and skill validation pass. The original three-case Agnes batch and a later authorized ten-request serial backoff window all returned HTTP 503 with zero outputs; provider recovery, new bounded-call authorization, and a Human visual verdict remain.
 
 T5-072 is queued as `TODO` and must not activate while T5-071 remains active. It consolidates the existing graph, image, video, recovery, responsive, accessibility, performance, persistence, security, and real-provider evidence into one finite enterprise certification matrix. Expected engineering effort after T5-071 release is three to five focused working days when current regressions remain green; provider recovery time is external.
 

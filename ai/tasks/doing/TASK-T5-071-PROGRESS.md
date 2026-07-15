@@ -1,7 +1,7 @@
 # TASK-T5-071 Progress
 
 - Task state: `VERIFYING`
-- Active unit: the authorized three-request Agnes batch was executed safely, but provider 503 responses produced no images for Human fidelity review.
+- Active unit: a renewed maximum-ten-request Agnes retry window was executed serially with bounded backoff, but every request returned 503 and produced no image for Human fidelity review.
 
 ## Completed work
 
@@ -27,15 +27,17 @@
 - Replaced inaccessible Wikimedia media redirects after preflight; the final OpenCV and Pillow raw fixtures returned HTTP 200 and valid image content before provider calls.
 - Executed exactly three authorized Agnes image requests: photographic character, illustrated character, and photographic scene. All three returned provider HTTP 503 before any result URL or image existed.
 - Rechecked public service information on 2026-07-15 without calling the generation endpoint. No official image-generation status page or recovery notice was available; DNS/HTTPS reachability alone does not release the provider gate.
+- Received renewed Human authorization for at most ten retries and executed exactly ten serial photographic-character requests with 30, 45, then 55-second bounded backoff intervals.
+- Stopped at the authorized limit. All ten requests reached the same image endpoint and returned HTTP 503; no result URL, image file, Human verdict, or extra unapproved call exists.
 
 ## Remaining work
 
-- After Agnes image generation recovers, obtain renewed bounded-call authorization and rerun the three cases.
+- After a materially longer Agnes recovery window, obtain a new bounded-call authorization and first prove one successful photographic-character request before spending calls on illustration and scene cases.
 - Retain successful local outputs and collect the Human fidelity verdict against the checklist.
 
 ## Exact next action
 
-Wait for Agnes image generation service recovery, then request renewed authorization for the same maximum-three-call batch. Do not retry automatically or exceed the consumed call limit.
+Wait for a materially longer Agnes image-service recovery window. Then request new bounded-call authorization, try the photographic-character case first, and expand to illustration and scene only after the endpoint produces one image. Do not retry automatically.
 
 ## Files changed
 
@@ -67,7 +69,8 @@ Wait for Agnes image generation service recovery, then request renewed authoriza
 - Exact compact evidence: `output/playwright/t5-065-visual-asset-recipes/recipe-flow-toolbar-isolation-920x900.png`; stable 360px drawer, zero selection toolbar, two result surfaces, zero document PATCH, zero viewport PATCH.
 - Authorized real-service attempts: `output/agnes/t5-071-20260715T152913Z`, `...T153008Z`, and `...T153021Z`; each metadata file records HTTP 503, zero successful cases, and no credential value.
 - No-call recovery check: public search found no Agnes-owned image endpoint status signal; no quota-consuming request was made and the consumed three-call authorization was not extended.
+- Renewed retry evidence: ten directories from `output/agnes/t5-071-20260715T155008Z` through `...T155937Z`; every metadata file records `HTTPStatusError`, HTTP 503, zero cases, and no credential value.
 
 ## Blockers
 
-- Provider execution blocker: three distinct v2 cases returned HTTP 503 from the Agnes image endpoint; zero outputs were created, so visual fidelity remains untestable. Release condition is provider recovery plus renewed bounded-call authorization.
+- Provider execution blocker: the original three distinct v2 cases and ten later backoff retries all returned HTTP 503 from the Agnes image endpoint; zero outputs were created, so visual fidelity remains untestable. Release condition is provider recovery plus a new bounded-call authorization.
