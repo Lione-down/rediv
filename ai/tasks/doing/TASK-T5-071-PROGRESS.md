@@ -1,7 +1,7 @@
 # TASK-T5-071 Progress
 
 - Task state: `VERIFYING`
-- Active unit: a renewed maximum-ten-request Agnes retry window was executed serially with bounded backoff, but every request returned 503 and produced no image for Human fidelity review.
+- Active unit: a cross-day maximum-three-request Agnes retry window was executed serially after the longer recovery wait, but every request still returned 503 and produced no image for Human fidelity review.
 
 ## Completed work
 
@@ -29,6 +29,8 @@
 - Rechecked public service information on 2026-07-15 without calling the generation endpoint. No official image-generation status page or recovery notice was available; DNS/HTTPS reachability alone does not release the provider gate.
 - Received renewed Human authorization for at most ten retries and executed exactly ten serial photographic-character requests with 30, 45, then 55-second bounded backoff intervals.
 - Stopped at the authorized limit. All ten requests reached the same image endpoint and returned HTTP 503; no result URL, image file, Human verdict, or extra unapproved call exists.
+- After the cross-day recovery window, received authorization for at most three more retries and executed exactly three serial photographic-character requests with immediate, 45-second, and 55-second timing.
+- All three cross-day requests returned the same HTTP 503. No image or result URL was created and no fourth request was made.
 
 ## Remaining work
 
@@ -70,7 +72,8 @@ Wait for a materially longer Agnes image-service recovery window. Then request n
 - Authorized real-service attempts: `output/agnes/t5-071-20260715T152913Z`, `...T153008Z`, and `...T153021Z`; each metadata file records HTTP 503, zero successful cases, and no credential value.
 - No-call recovery check: public search found no Agnes-owned image endpoint status signal; no quota-consuming request was made and the consumed three-call authorization was not extended.
 - Renewed retry evidence: ten directories from `output/agnes/t5-071-20260715T155008Z` through `...T155937Z`; every metadata file records `HTTPStatusError`, HTTP 503, zero cases, and no credential value.
+- Cross-day retry evidence: `output/agnes/t5-071-20260715T160118Z`, `...T160209Z`, and `...T160311Z`; each metadata file records `HTTPStatusError`, HTTP 503, zero cases, and no credential value. Run IDs use UTC.
 
 ## Blockers
 
-- Provider execution blocker: the original three distinct v2 cases and ten later backoff retries all returned HTTP 503 from the Agnes image endpoint; zero outputs were created, so visual fidelity remains untestable. Release condition is provider recovery plus a new bounded-call authorization.
+- Provider execution blocker: the original three distinct v2 cases, ten same-day backoff retries, and three cross-day retries all returned HTTP 503 from the Agnes image endpoint; zero outputs were created, so visual fidelity remains untestable. Release condition is provider recovery plus a new bounded-call authorization.
