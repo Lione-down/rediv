@@ -153,8 +153,8 @@
 
 .generation-source-provenance span {
   position: absolute;
-  top: -9px;
-  left: -9px;
+  top: 0;
+  left: 0;
   display: grid;
   min-width: 22px;
   height: 22px;
@@ -168,6 +168,8 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  transform: translate(-50%, -50%) scale(min(var(--canvas-surface-zoom, 1), 1.2));
+  transform-origin: center;
 }
 
 .generation-source-provenance.is-excluded {
@@ -189,8 +191,8 @@
 
 .result-lineage-node span {
   position: absolute;
-  top: -9px;
-  right: -9px;
+  top: 0;
+  right: 0;
   display: grid;
   min-width: 24px;
   height: 22px;
@@ -204,6 +206,8 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  transform: translate(50%, -50%) scale(min(var(--canvas-surface-zoom, 1), 1.2));
+  transform-origin: center;
 }
 
 .result-lineage-node.is-selected-variant {

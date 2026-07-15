@@ -56,6 +56,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 44 | T5-044 | Zoom-consistent generation composer geometry | DONE - PASS | T5-043 |
 | 45 | T5-045 | Proportional node status badges at overview zoom | DONE - PASS | T5-044 |
 | 46 | T5-046 | Zoom-consistent media fallback content | DONE - PASS | T5-045 |
+| 47 | T5-047 | Proportional provenance markers at overview zoom | DONE - PASS | T5-046 |
 
 ## Task Boundaries
 
@@ -154,6 +155,8 @@ T5-044 is `DONE - PASS`. It scales the detached generation composer as one world
 T5-045 is `DONE - PASS`. It removes the low-zoom status-badge scale floor, preserves the high-zoom cap, and keeps lifecycle labels single-line so dense overview nodes retain proportional status hierarchy. `REPORT-T5-045.md` is authoritative evidence.
 
 T5-046 is `DONE - PASS`. It scales media fallback typography and spacing through a scoped surface zoom contract and removes browser-native failed-media artifacts while preserving native successful image/video rendering. `REPORT-T5-046.md` is authoritative evidence.
+
+T5-047 is `DONE - PASS`. It scales T/R/G/V provenance pills as corner-anchored node annotations below 100%, caps high-zoom growth at 120%, and preserves lineage semantics across desktop, compact, and mobile overview. `REPORT-T5-047.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

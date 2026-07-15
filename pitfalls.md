@@ -486,3 +486,10 @@ Evidence:
 - Replaced content such as images can fit a scaled frame without scaling DOM typography, but placeholder/loading/error text cannot. Publish exact surface zoom locally and scale font, padding, and radius together.
 - Scaling only the fallback message still leaves a browser-native broken-image icon or alt fragment if the failed replaced element stays visible. Hide it after the explicit accessible product alert takes ownership.
 - Tests that count semantic images must exclude failed hidden sources. Count successfully rendered images separately and assert the failed source is hidden behind the alert.
+
+## 2026-07-15 Proportional provenance markers
+
+- Fixed screen-space controls and passive annotations need different zoom contracts. Buttons must stay operable, while lineage pills should shrink with node geometry so they do not dominate overview layouts.
+- Negative pixel offsets coupled to a fixed pill size drift when the pill scales. Center the pill on the canonical overlay corner first, then transform the whole unit.
+- Scale the complete pill rather than only its font so padding, radius, shadow, and label remain one coherent visual token.
+- Mobile screenshot tests should wait until the compact drawer is fully removed before capturing evidence; clicking the handoff action alone can race its leave transition.
