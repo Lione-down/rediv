@@ -110,6 +110,7 @@ Wait for Agnes image service recovery, then obtain renewed maximum-three-call au
 ## Blockers And Human Gates
 
 - T5-071 executed exactly three authorized image-recipe requests on 2026-07-15. All returned Agnes HTTP 503 with zero images, so fidelity remains unverified. Retry requires provider recovery and renewed bounded-call authorization.
+- A later no-call public status check found no official Agnes image-generation recovery signal. Domain reachability is insufficient evidence, so no additional generation request was attempted.
 - Applying Alembic revisions through `c9d0e1f2a3b4` to user/runtime data requires reviewed backup discipline and Human authorization.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.

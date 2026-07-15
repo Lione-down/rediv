@@ -26,6 +26,7 @@
 - Added a dry-run-safe, maximum-three-call visual recipe smoke helper with per-case selection, v2 backend prompt resolution, one reference URL, redacted request identity, bounded image download, and local metadata.
 - Replaced inaccessible Wikimedia media redirects after preflight; the final OpenCV and Pillow raw fixtures returned HTTP 200 and valid image content before provider calls.
 - Executed exactly three authorized Agnes image requests: photographic character, illustrated character, and photographic scene. All three returned provider HTTP 503 before any result URL or image existed.
+- Rechecked public service information on 2026-07-15 without calling the generation endpoint. No official image-generation status page or recovery notice was available; DNS/HTTPS reachability alone does not release the provider gate.
 
 ## Remaining work
 
@@ -65,6 +66,7 @@ Wait for Agnes image generation service recovery, then request renewed authoriza
 - Completion-audit browser gate: PASS, 25/25 across recipe, video/keyframe, compact drawer, readonly, keyboard, and command interactions.
 - Exact compact evidence: `output/playwright/t5-065-visual-asset-recipes/recipe-flow-toolbar-isolation-920x900.png`; stable 360px drawer, zero selection toolbar, two result surfaces, zero document PATCH, zero viewport PATCH.
 - Authorized real-service attempts: `output/agnes/t5-071-20260715T152913Z`, `...T153008Z`, and `...T153021Z`; each metadata file records HTTP 503, zero successful cases, and no credential value.
+- No-call recovery check: public search found no Agnes-owned image endpoint status signal; no quota-consuming request was made and the consumed three-call authorization was not extended.
 
 ## Blockers
 
