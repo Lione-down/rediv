@@ -66,7 +66,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 54 | T5-054 | Ordered multi-generation edge identity | DONE - PASS | T5-053 |
 | 55 | T5-055 | Arrange authoritative generation lineage | DONE - PASS | T5-054 |
 | 56 | T5-056 | Chained generation input lineage bridge | DONE - PASS | T5-055 |
-| 72 | T5-072 | Enterprise Canvas scenario certification and finite release closure | TODO | T5-071 |
+| 72 | T5-072 | Enterprise Canvas scenario certification and finite release closure | DOING | T5-071 |
 
 ## Task Boundaries
 
@@ -216,7 +216,7 @@ T5-070 is `DONE - PASS`. New generation-reference authoring exposes only image s
 
 T5-071 is `DONE - PASS` for its offline implementation and browser boundary by explicit Human offline-only closure. Exact recipe versions, v2 prompts, toolbar isolation, responsive ownership, regression, build, and skill validation pass. All 20 authorized Agnes requests returned HTTP 503 with zero outputs, so real-provider visual fidelity remains unverified and must not be claimed.
 
-T5-072 is queued as `TODO` and must not activate while T5-071 remains active. It consolidates the existing graph, image, video, recovery, responsive, accessibility, performance, persistence, security, and real-provider evidence into one finite enterprise certification matrix. Expected engineering effort after T5-071 release is three to five focused working days when current regressions remain green; provider recovery time is external.
+T5-072 is `DOING`. It consolidates the existing graph, image, video, recovery, responsive, accessibility, performance, persistence, security, and real-provider evidence into one finite enterprise certification matrix. T5-071 real-provider fidelity remains an explicit unsupported boundary by Human decision and is not reclassified as PASS.
 
 ## Canvas First-Acceptance Gate
 

@@ -19,10 +19,11 @@ Last updated: 2026-07-15
 
 ## Active Delivery
 
-- Active implementation Task: `IDLE`
-- State: `IDLE`
-- Next queued Task: `T5-072 - Enterprise Canvas scenario certification and release closure`
+- Active implementation Task: `T5-072 - Enterprise Canvas scenario certification and release closure`
+- State: `DOING`
 - Task: `ai/tasks/todo/TASK-T5-072.md`
+- Plan: `ai/tasks/doing/TASK-T5-072-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-072-PROGRESS.md`
 - Last completed Task: `T5-071 - Reference-first visual fidelity v2 and honest acceptance`
 - Report: `ai/reports/REPORT-T5-071.md`
 
@@ -104,7 +105,7 @@ Last updated: 2026-07-15
 
 ## Exact Next Action
 
-Activate T5-072, create its PLAN and PROGRESS, and certify the current Canvas through representative graph, image, video, recovery, responsive, accessibility, performance, persistence, and security evidence.
+Build the current frontend, then run the representative T5-072 browser certification matrix against fresh preview output.
 
 ## Blockers And Human Gates
 

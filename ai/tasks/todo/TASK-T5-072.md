@@ -1,6 +1,6 @@
 # TASK-T5-072 - Enterprise Canvas scenario certification and release closure
 
-- State: `TODO`
+- State: `DOING`
 - Phase: Product V2 / Phase 5 Canvas refinement
 - Dependency: T5-071 must be `DONE - PASS` or receive an explicit Human offline-only closure decision
 - Owner: Codex Project Lead Engineer
@@ -77,4 +77,3 @@ Produce one enterprise release-certification matrix for the Canvas instead of co
 
 - New collaboration model, realtime multi-user editing, mobile graph editing, provider replacement, automatic visual scoring, face embeddings, new schema, new design system, or wholesale Canvas restyling.
 - Repeating every historical test or regenerating every historical screenshot when representative current evidence proves the same invariant.
-
