@@ -493,3 +493,11 @@ Evidence:
 - Negative pixel offsets coupled to a fixed pill size drift when the pill scales. Center the pill on the canonical overlay corner first, then transform the whole unit.
 - Scale the complete pill rather than only its font so padding, radius, shadow, and label remain one coherent visual token.
 - Mobile screenshot tests should wait until the compact drawer is fully removed before capturing evidence; clicking the handoff action alone can race its leave transition.
+
+## 2026-07-15 Video current-frame reuse
+
+- Adapt reference products at the workflow-contract level. A frame-to-image creative loop is valuable, but a dense permanent frame strip need not be copied into a quieter node system.
+- Set `crossorigin="anonymous"` before video loading when decoded pixels will enter a Canvas; adding it only at capture time cannot repair a tainted resource.
+- A captured frame is a project image asset with source-video provenance, not a generated result. Reusing the result type would create false generation lineage.
+- Treat upload and document insertion as separate trust boundaries. After upload, revalidate project, Canvas, and source-node identity before dispatching any graph command.
+- A mock upload response with a generic placeholder does not prove pixel capture. Return the exact uploaded PNG bytes and assert intrinsic dimensions after the asset is rendered.

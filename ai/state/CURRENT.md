@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-047 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-048 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-047 - Proportional provenance markers at overview zoom` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-047.md`
+- Most recently completed: `T5-048 - Video current-frame reuse as Canvas image input` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-048.md`
 
 ## Current Verified Facts
 
@@ -76,6 +76,7 @@ Last updated: 2026-07-15
 - T5-045 is now `DONE - PASS`: running, success, and failure badges scale proportionally below 100%, stay single-line, and retain the 120% high-zoom cap. Dense portrait/video/failure result columns no longer suffer oversized status chrome. Build, focused 3/3, related 38/38, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-045.md`.
 - T5-046 is now `DONE - PASS`: placeholder/loading/error media messages scale font, padding, and radius with exact Canvas zoom, and failed replaced elements no longer leave browser-native broken-image artifacts behind the explicit alert. Build, focused 3/3, related 43/43, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-046.md`.
 - T5-047 is now `DONE - PASS`: T/R/G/V marker pills scale proportionally below 100%, retain exact node-corner anchors, and cap high-zoom growth at 120%. Build, focused 3/3, related 27/27, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-047.md`.
+- T5-048 is now `DONE - PASS`: a selected decoded video frame uploads as a durable project image asset, inserts as a collision-aware canonical source with capture provenance, and participates in ordered image/video multi-node composition. Build, focused 7/7, related 45/45, real returned-PNG, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-048.md`.
 
 ## Exact Next Action
 

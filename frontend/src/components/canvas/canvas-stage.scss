@@ -39,6 +39,7 @@
   transition: none;
   animation: none;
 }
+.canvas-command-feedback.is-error { color: var(--v2-danger); border-color: color-mix(in oklch, var(--v2-danger) 46%, var(--v2-border-standard)); }
 
 .graph-access-trigger {
   position: absolute;

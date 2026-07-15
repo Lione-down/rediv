@@ -84,6 +84,40 @@ export function createAssetInsertCommand(
   return { type: 'insert-graph', nodes: [node], connections: [] }
 }
 
+export function createVideoFrameAssetInsertCommand(
+  sourceNode: CanvasNode,
+  asset: Asset,
+  captureTimeSeconds: number,
+  aspectRatio: number,
+  existingNodes: readonly CanvasNode[] = [],
+): InsertGraphCommand {
+  if (asset.type !== 'image' || !asset.url) throw new Error('视频帧资产必须是可用图片。')
+  if (!Number.isFinite(captureTimeSeconds) || captureTimeSeconds < 0) throw new Error('视频帧时间无效。')
+  if (!Number.isFinite(aspectRatio) || aspectRatio <= 0) throw new Error('视频帧比例无效。')
+  const draft = createRegistryNodeDraft('asset', 'image', {
+    x: sourceNode.x + sourceNode.width + 96,
+    y: sourceNode.y,
+  })
+  const position = findFirstUnoccupiedPosition(draft, draft, existingNodes, [sourceNode.id])
+  const node: CanvasNode = {
+    id: createCanvasEntityId(),
+    ...draft,
+    ...position,
+    title: `视频帧 ${captureTimeSeconds.toFixed(2)}s`,
+    contentData: {
+      ...draft.contentData,
+      asset_id: asset.id,
+      project_id: asset.project_id,
+      origin_canvas_id: asset.origin_canvas_id,
+      source_video_node_id: sourceNode.id,
+      source_video_time_seconds: captureTimeSeconds,
+      url: asset.url,
+      aspect_ratio: aspectRatio,
+    },
+  }
+  return { type: 'insert-graph', nodes: [node], connections: [] }
+}
+
 export function createGeneratedResultCommand(
   sourceNode: CanvasNode,
   asset: Asset,

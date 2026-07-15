@@ -20,6 +20,7 @@ import type {
 import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
+import { createVideoFrameCaptureAction } from './use-video-frame-capture'
 
 interface CanvasResourceExperienceOptions {
   canvasId: ComputedRef<string>
@@ -99,6 +100,10 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const generationError = ref('')
   const generationSuccess = ref('')
   const foregroundResultNodeId = ref('')
+  const captureVideoFrame = createVideoFrameCaptureAction({
+    actionError, canvasId: options.canvasId, canvasStore, formatError: errorMessage,
+    isReviewOnly: options.isReviewOnly, isUploading, projectId: options.projectId, resourceStore,
+  })
   let resourceOpener: HTMLElement | null = null
   let reconciliationTransition = Promise.resolve<unknown>(undefined)
   let pollingTimer: ReturnType<typeof setTimeout> | null = null
@@ -492,6 +497,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     setPanelWidth,
     insertAsset,
     uploadAsset,
+    captureVideoFrame,
     captureTemplate,
     instantiateTemplate,
     generate,

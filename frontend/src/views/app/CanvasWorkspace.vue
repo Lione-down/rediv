@@ -111,6 +111,7 @@ const {
   setPanelWidth,
   insertAsset,
   uploadAsset,
+  captureVideoFrame,
   captureTemplate,
   instantiateTemplate,
   generate,
@@ -118,6 +119,10 @@ const {
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
 
 const canvasViewportInsets = computed(() => ({ top: 96, right: isCompact.value && isContextDrawerOpen.value ? 376 : 16, bottom: 96, left: 16 }))
+async function captureSelectedVideoFrame(nodeId: string, file: File, timeSeconds: number, aspectRatio: number) {
+  const insertedNodeId = await captureVideoFrame(nodeId, file, timeSeconds, aspectRatio)
+  if (insertedNodeId) await nextTick(() => canvasStageRef.value?.revealNode(insertedNodeId))
+}
 const selectedContinuationTrigger = computed(() => resolveCanvasNodeContinuationTrigger(canvasDocumentStore.nodes, canvasDocumentStore.selectedNodeIds, isReviewOnly.value || canvasRevisionStore.restoringRevision !== null))
 const canFitProvenanceTrace = computed(() => Boolean(
   selectedResultLineage.value || (selectedNode.value && selectedMediaType.value && (
@@ -315,11 +320,14 @@ onBeforeUnmount(() => {
       <div class="canvas-layer" aria-hidden="false">
         <CanvasStage
           ref="canvasStageRef"
+          :action-error="visibleError"
+          :capture-pending="isUploading"
           :readonly="isReviewOnly || canvasRevisionStore.restoringRevision !== null"
           :context-overlay-open="isContextDrawerOpen && isCompact"
           :resources-open="isResourceOpen"
           :viewport-insets="canvasViewportInsets"
           @open-resources="openResources"
+          @capture-video-frame="captureSelectedVideoFrame"
         />
       </div>
 

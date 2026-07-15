@@ -33,14 +33,15 @@ import { resolveSelectionGenerationIntent } from '../../modules/canvas/selection
 import { resolveCanvasNodeContinuationTrigger } from './canvas-node-continuation-trigger'
 
 const props = withDefaults(defineProps<{
-  contextOverlayOpen?: boolean; readonly?: boolean; resourcesOpen?: boolean
+  actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; readonly?: boolean; resourcesOpen?: boolean
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
-  contextOverlayOpen: false, readonly: false, resourcesOpen: false,
+  actionError: '', capturePending: false, contextOverlayOpen: false, readonly: false, resourcesOpen: false,
   viewportInsets: () => ({}),
 })
 
 const emit = defineEmits<{
+  captureVideoFrame: [nodeId: string, file: File, timeSeconds: number, aspectRatio: number]
   openResources: [opener: HTMLElement]
 }>()
 const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
@@ -48,6 +49,7 @@ const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
 function restoreGraphPanelTriggerFocus() {
   void nextTick(() => graphPanelTriggerRef.value?.focus({ preventScroll: true }))
 }
+function forwardCapturedVideoFrame(nodeId: string, file: File, timeSeconds: number, aspectRatio: number) { emit('captureVideoFrame', nodeId, file, timeSeconds, aspectRatio) }
 
 const {
   canvasStore,
@@ -311,6 +313,7 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
     >
       {{ commandFeedback.message }}
     </p>
+    <p v-if="actionError" class="canvas-command-feedback is-error" role="alert" aria-live="assertive" aria-atomic="true">{{ actionError }}</p>
     <div
       v-if="stageNotice"
       class="canvas-state"
@@ -355,6 +358,7 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
       />
 
       <CanvasNodeSurfaceLayer
+        :capture-pending="capturePending"
         :continuation-trigger="continuationTrigger"
         :nodes="canvasStore.nodes"
         :selected-node-ids="canvasStore.selectedNodeIds"
@@ -362,6 +366,7 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         :surface-node-rect-style="surfaceNodeRectStyle"
         @commit-content="commitNodeContent"
         @continue-node="openNodeContinuation"
+        @capture-frame="forwardCapturedVideoFrame"
         @media-metadata="adoptMediaAspectRatio"
       />
 
