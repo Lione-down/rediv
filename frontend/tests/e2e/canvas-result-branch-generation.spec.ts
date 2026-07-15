@@ -2,12 +2,13 @@ import { expect, test } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import {
+  addEarlierVariant,
+  addTwoOriginMerge,
   createResourceMockState,
   documentPatches,
   FIRST_CANVAS_ID,
   openResourceWorkspace,
   PROJECT_ID,
-  type ResourceMockState,
 } from './canvas-resource-generation-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-032-result-branch')
@@ -17,74 +18,6 @@ const multiOriginEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'pla
 async function selectNode(page: import('@playwright/test').Page, title: string) {
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: `选择并定位 ${title}`, exact: true }).click()
-}
-
-function addEarlierVariant(state: ResourceMockState) {
-  const document = state.documents[FIRST_CANVAS_ID]
-  const existingResult = document.nodes.find((item) => item.id === 'result-existing')!
-  const existingResultEdge = document.connections.find((item) => item.target_node_id === existingResult.id)!
-  document.nodes.push({
-    ...existingResult,
-    id: 'result-earlier-variant',
-    content: {
-      ...(existingResult.content as Record<string, unknown>),
-      asset_id: 'asset-earlier-variant',
-      title: '更早的封面版本',
-      url: 'https://media.revid.test/earlier-variant.png',
-    },
-    position_x: existingResult.position_x,
-    position_y: existingResult.position_y + 260,
-  })
-  document.connections.unshift({
-    ...existingResultEdge,
-    id: 'connection-earlier-variant',
-    target_node_id: 'result-earlier-variant',
-  })
-}
-
-function addTwoOriginMerge(state: ResourceMockState) {
-  addEarlierVariant(state)
-  const document = state.documents[FIRST_CANVAS_ID]
-  const sourceGeneration = document.nodes.find((item) => item.id === 'generation-cover')!
-  const sourceResult = document.nodes.find((item) => item.id === 'result-existing')!
-  const sourceEdge = document.connections.find((item) => item.target_node_id === sourceResult.id)!
-  document.nodes.push(
-    {
-      ...sourceGeneration,
-      id: 'generation-second-origin',
-      content: { subtype: 'image', serialization_version: 1, title: '第二镜头生成', text: '远景海岸。' },
-      position_x: 540,
-      position_y: 520,
-    },
-    {
-      ...sourceResult,
-      id: 'result-second-origin',
-      content: {
-        ...(sourceResult.content as Record<string, unknown>),
-        asset_id: 'asset-second-origin', source_task_id: 'task-second-origin',
-        title: '第二镜头结果', url: 'https://media.revid.test/second-origin.png',
-      },
-      position_x: 980,
-      position_y: 520,
-    },
-    {
-      ...sourceGeneration,
-      id: 'generation-two-origin-merge',
-      content: { subtype: 'image', serialization_version: 1, title: '双源合并生成', text: '融合两个海岸镜头。' },
-      position_x: 1420,
-      position_y: 300,
-    },
-  )
-  document.connections.push(
-    { ...sourceEdge, id: 'connection-second-origin-result', source_node_id: 'generation-second-origin', target_node_id: 'result-second-origin', metadata: { source_task_id: 'task-second-origin' } },
-    { ...sourceEdge, id: 'connection-merge-first', source_node_id: 'result-existing', target_node_id: 'generation-two-origin-merge', target_port: 'media', metadata: { input_order: 1 } },
-    { ...sourceEdge, id: 'connection-merge-second', source_node_id: 'result-second-origin', target_node_id: 'generation-two-origin-merge', target_port: 'media', metadata: { input_order: 2 } },
-  )
-  state.assets.push({
-    ...state.assets.find((item) => item.id === 'asset-generated')!,
-    id: 'asset-second-origin', canvas_node_id: 'generation-second-origin',
-    url: 'https://media.revid.test/second-origin.png', source_task_id: 'task-second-origin',
-  })
 }
 
 test('two-origin merge exposes independent R V identity and origin navigation', async ({ page }) => {

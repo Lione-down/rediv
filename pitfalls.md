@@ -583,3 +583,10 @@ Evidence:
 - Resource-panel videos and Canvas-node videos have different DOM ownership and accessible labels. Select evidence from the surface under test instead of reusing a locator across both.
 - Drawer content can become visible while its enter transform is still moving. Poll the real bounding edge to its viewport limit before screenshot capture; fixed sleeps create timing-dependent visual evidence.
 - Use the repository-controlled `backend/.venv` for backend tests. The system Python can contain a partial FastAPI installation and fail collection before exercising project code.
+
+## 2026-07-15 Two-origin video failure recovery
+
+- A visible error is not enough to prove safe failure. Assert quota, assets, nodes, result edges, failed task identity, prompt, and ordered inputs as one transaction boundary.
+- Recovery is only credible when the retry sends the exact failed request intent and creates one result. Count requests, quota decrements, assets, nodes, and canonical edges explicitly.
+- Test fixtures are production infrastructure for acceptance. Move shared graph builders before a scenario spec approaches the repository's 500-line boundary instead of duplicating a second topology.
+- Readonly failure review must preserve actionable facts while hiding retry and reorder controls; compare PATCH count before and after review rather than assuming navigation is passive.
