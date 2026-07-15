@@ -114,6 +114,7 @@ Wait for a materially longer Agnes image-service recovery window, then obtain ne
 - A renewed maximum-ten-request window was then executed serially with bounded backoff. All ten requests returned the same HTTP 503 and created zero images; the authorization was exhausted without an eleventh call.
 - After a cross-day recovery wait, a newly authorized maximum-three-request probe also returned HTTP 503 three times and created zero images; no fourth request was made.
 - One further request after an explicitly requested ten-minute wait also returned HTTP 503 and created zero images; no second request was made.
+- A subsequent authorized three-request window also returned HTTP 503 three times and created zero images; no fourth request was made. The cumulative authorized total is now 20 failures with zero outputs.
 - Applying Alembic revisions through `c9d0e1f2a3b4` to user/runtime data requires reviewed backup discipline and Human authorization.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.

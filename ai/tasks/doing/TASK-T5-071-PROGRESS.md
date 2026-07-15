@@ -1,7 +1,7 @@
 # TASK-T5-071 Progress
 
 - Task state: `VERIFYING`
-- Active unit: one additional Human-authorized request was executed after a ten-minute wait, but it still returned 503 and produced no image for Human fidelity review.
+- Active unit: a further Human-authorized three-request retry window was executed serially, but every request still returned 503 and produced no image for Human fidelity review.
 
 ## Completed work
 
@@ -32,6 +32,7 @@
 - After the cross-day recovery window, received authorization for at most three more retries and executed exactly three serial photographic-character requests with immediate, 45-second, and 55-second timing.
 - All three cross-day requests returned the same HTTP 503. No image or result URL was created and no fourth request was made.
 - Received authorization to wait ten minutes and retry once. The single photographic-character request returned HTTP 503 after the wait; no image, result URL, or second request exists.
+- Received authorization for three further attempts and executed exactly three serial photographic-character requests with immediate, 45-second, and 55-second timing. All returned HTTP 503; no image, result URL, or fourth request exists.
 
 ## Remaining work
 
@@ -75,7 +76,8 @@ Wait for a materially longer Agnes image-service recovery window. Then request n
 - Renewed retry evidence: ten directories from `output/agnes/t5-071-20260715T155008Z` through `...T155937Z`; every metadata file records `HTTPStatusError`, HTTP 503, zero cases, and no credential value.
 - Cross-day retry evidence: `output/agnes/t5-071-20260715T160118Z`, `...T160209Z`, and `...T160311Z`; each metadata file records `HTTPStatusError`, HTTP 503, zero cases, and no credential value. Run IDs use UTC.
 - Ten-minute retry evidence: `output/agnes/t5-071-20260715T160534Z`; metadata records `HTTPStatusError`, HTTP 503, zero cases, and no credential value. Run ID uses UTC.
+- Latest three-request evidence: `output/agnes/t5-071-20260715T171503Z`, `...T171554Z`, and `...T171655Z`; every metadata file records `HTTPStatusError`, HTTP 503, zero cases, and no credential value. Run IDs use UTC.
 
 ## Blockers
 
-- Provider execution blocker: all 17 authorized requests, including three recipe classes, same-day backoff, cross-day probes, and a ten-minute delayed retry, returned HTTP 503 from the Agnes image endpoint; zero outputs were created, so visual fidelity remains untestable. Release condition is provider recovery plus a new bounded-call authorization.
+- Provider execution blocker: all 20 authorized requests, including three recipe classes, same-day backoff, cross-day probes, a ten-minute delayed retry, and the latest three attempts, returned HTTP 503 from the Agnes image endpoint; zero outputs were created, so visual fidelity remains untestable. Release condition is provider recovery plus a new bounded-call authorization.
