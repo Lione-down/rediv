@@ -568,3 +568,10 @@ Evidence:
 - Reuse the responsive node-location handoff for secondary lineage links. A new selection path can otherwise leave compact drawer masks open or diverge from readonly behavior.
 - Multi-origin proof must combine resolver identity, rendered `Rn · Vn`, exact provider asset order, and navigation to each distinct generation. A single chained source cannot prove merge behavior.
 - Browser tests against preview need a production rebuild after UI source changes; repeated missing-element failures can otherwise be stale-bundle evidence rather than product evidence.
+
+## 2026-07-15 Multi-origin reorder identity lifecycle
+
+- Request order and source lineage are orthogonal identities. Reorder may change `Rn`, but `Vn` and origin generation must remain attached to the canonical result node.
+- Initial two-source rendering does not prove persistence. Exercise one reorder command, exact undo/redo, reload normalization, and the final provider asset sequence together.
+- A desktop multi-source pass does not cover responsive density. Use the same two-origin graph in compact editable and readonly mobile modes rather than substituting a simpler one-source fixture.
+- When stronger end-to-end assertions pass without a product patch, preserve them as a regression contract instead of manufacturing an implementation change.
