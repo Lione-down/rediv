@@ -189,6 +189,7 @@ function closeResultComparison() { isResultCompareOpen.value = false }
 function selectComparedResult(nodeId: string) {
   isResultCompareOpen.value = false
   canvasDocumentStore.selectNode(nodeId)
+  void nextTick(() => canvasStageRef.value?.revealNode(nodeId))
 }
 const { branchFromResult, branchVisualRecipe, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode, revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId) })
 async function createVisualAssetRecipe(recipeId: VisualAssetRecipeId) {

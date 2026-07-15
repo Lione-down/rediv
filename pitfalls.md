@@ -648,3 +648,10 @@ Evidence:
 - Generation entry must not invent a current variant. Only result entry may mark one V card selected, and generation entry stays neutral until the user chooses.
 - Share canonical variant filtering and connection order across Canvas markers, Inspector count, and tray items. Parallel counting logic will drift on inactive or malformed edges.
 - Compact comparison must wait for the context drawer to leave before screenshot or interaction. Showing the tray under a closing drawer creates a false two-layer UI even when both components are individually correct.
+
+## 2026-07-15 Comparison result reveal
+
+- Selection handoff is not location handoff. A tray can update the Inspector to the correct V result while leaving that persisted node thousands of pixels outside the viewport.
+- Reuse the same panel-safe reveal contract after selection state settles. Parallel camera math will drift from Inspector and drawer insets.
+- Separate distant and already-visible browser cases. The first proves one bounded viewport update; the second prevents gratuitous camera motion.
+- Count only `PATCH .../viewport` requests after the 500 ms persistence debounce settles. Route logs also contain non-mutation viewport traffic that can produce false positives.

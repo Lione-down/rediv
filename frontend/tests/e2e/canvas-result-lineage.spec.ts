@@ -8,6 +8,7 @@ import { documentPatches, FIRST_CANVAS_ID, openResourceWorkspace } from './canva
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-038-generation-output-variants')
 const generationComparisonEvidence = resolve(process.cwd(), '..', 'output', 'playwright', 't5-067-generation-output-comparison')
+const comparisonRevealEvidence = resolve(process.cwd(), '..', 'output', 'playwright', 't5-068-comparison-reveal')
 
 function node(id: string, type: CanvasNode['type'], subtype: string): CanvasNode {
   return { id, type, title: id, x: 0, y: 0, width: 320, height: 200, contentData: { subtype, serialization_version: 1 } }
@@ -202,6 +203,64 @@ test('generation owner opens the exact mixed-media variant family without an arb
   await tray.getByRole('button', { name: '选择变体 V4' }).click()
   await expect(tray).toHaveCount(0)
   await expect(page.getByRole('region', { name: '生成结果谱系' })).toContainText('V4 / 6')
+  expect(documentPatches(state)).toHaveLength(0)
+})
+
+test('comparison selection reveals a distant variant once without mutating the graph', async ({ page }) => {
+  const state = createMultiScenarioState()
+  const distantResult = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'result-broken')!
+  distantResult.position_x = 3200
+  distantResult.position_y = 1200
+  await openResourceWorkspace(page, state)
+  const generation = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-compose')!
+  await selectNode(page, String(generation.content.title))
+  await page.waitForTimeout(650)
+
+  const viewportPatches = () => state.requests.filter((request) => request.method === 'PATCH' && request.path.endsWith('/viewport'))
+  const viewportPatchesBefore = viewportPatches().length
+  const initialZoom = state.canvases[0].viewport_zoom
+  await page.locator('.compare-results-button').click()
+  const tray = page.locator('.result-compare-tray')
+  await tray.locator('li').nth(5).locator('button').click()
+
+  await expect(tray).toHaveCount(0)
+  await expect(page.locator('.result-lineage-detail')).toContainText('V6 / 6')
+  await expect.poll(() => viewportPatches().length).toBe(viewportPatchesBefore + 1)
+  const viewportBody = viewportPatches().at(-1)!.body
+  const viewport = { x: Number(viewportBody.x), y: Number(viewportBody.y), zoom: Number(viewportBody.zoom) }
+  expect(viewport.zoom).toBe(initialZoom)
+  const screenLeft = distantResult.position_x * viewport.zoom + viewport.x
+  const screenTop = distantResult.position_y * viewport.zoom + viewport.y
+  expect(screenLeft).toBeGreaterThanOrEqual(40)
+  expect(screenLeft + distantResult.width * viewport.zoom).toBeLessThanOrEqual(1048)
+  expect(screenTop).toBeGreaterThanOrEqual(120)
+  expect(screenTop + distantResult.height * viewport.zoom).toBeLessThanOrEqual(800)
+  expect(documentPatches(state)).toHaveLength(0)
+  await mkdir(comparisonRevealEvidence, { recursive: true })
+  await page.screenshot({ path: resolve(comparisonRevealEvidence, 'distant-v6-revealed-1440x900.png'), fullPage: true })
+})
+
+test('comparison selection leaves an already-visible variant and zoom unchanged', async ({ page }) => {
+  const state = createMultiScenarioState()
+  const visibleResult = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'result-square')!
+  visibleResult.position_x = 820
+  visibleResult.position_y = 250
+  await openResourceWorkspace(page, state)
+  const generation = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-compose')!
+  await selectNode(page, String(generation.content.title))
+  await page.waitForTimeout(650)
+  const viewportPatches = () => state.requests.filter((request) => request.method === 'PATCH' && request.path.endsWith('/viewport'))
+  const viewportPatchesBefore = viewportPatches().length
+  const zoomBefore = state.canvases[0].viewport_zoom
+
+  await page.locator('.compare-results-button').click()
+  const tray = page.locator('.result-compare-tray')
+  await tray.locator('li').nth(1).locator('button').click()
+  await expect(page.locator('.result-lineage-detail')).toContainText('V2 / 6')
+  await page.waitForTimeout(650)
+
+  expect(viewportPatches()).toHaveLength(viewportPatchesBefore)
+  expect(state.canvases[0].viewport_zoom).toBe(zoomBefore)
   expect(documentPatches(state)).toHaveLength(0)
 })
 

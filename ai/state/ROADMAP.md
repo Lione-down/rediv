@@ -207,6 +207,8 @@ T5-066 is `DONE - PASS`. Generated-video nodes now preserve canvas-readable play
 
 T5-067 is `DONE - PASS`. A canonical generation with multiple outputs now opens the existing mixed-media V1..Vn comparison tray directly, while result-owned current selection, exact connection order, compact/readonly review, and zero graph mutation remain intact. Focused 3/3, related 50/50, build, and three-viewport visual gates passed.
 
+T5-068 is `DONE - PASS`. Comparison tray selection now reuses the existing panel-safe node reveal contract so distant V variants return to the unobscured Canvas area while already-visible variants remain camera-neutral. Focused 2/2, related 19/19, build, visual, and zero graph-mutation gates passed.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:
