@@ -597,3 +597,12 @@ Evidence:
 - Keep inspection separate from mutation. Source-result and origin-generation navigation should remain available while prompt and reorder controls are disabled.
 - A held request legitimately emits one running-state PATCH. Browser tests should assert that exact state transition instead of treating every post-submit PATCH as an input mutation.
 - Verify settlement in both directions. Success-only coverage can miss a failure path that leaves editing controls permanently disabled.
+
+## 2026-07-15 Selected video keyframe rail
+
+- Sample previews with a detached video element. Seeking the visible player during extraction makes the product appear to jump before the user acts.
+- Bound decode work by selection and thumbnail count. One selected video and five small previews provide orientation without turning every Canvas video into a background decoder.
+- A frame rail is useful only when it feeds durable product behavior. Reuse canonical upload, source-video/time provenance, collision placement, and undo/redo instead of creating browser-only blob nodes.
+- Selection changes must invalidate and release the sampler immediately; ignoring late results is not enough if the detached media keeps downloading or decoding.
+- Contextual surfaces need neighboring-node clearance. A correct filmstrip that covers another node or its role marker still fails visual acceptance.
+- Keep extraction failure local. A tainted or unsupported preview Canvas must not disable native playback or mutate the graph.

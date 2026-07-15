@@ -2,5 +2,5 @@
 .canvas-node-surface { position: absolute; box-sizing: border-box; overflow: visible; border-radius: var(--v2-radius-md); pointer-events: none; }
 .canvas-node-surface.is-composer { z-index: 3; }
 .canvas-node-composer { box-sizing: border-box; width: 100%; height: 100%; padding: 5px; border: 1px solid var(--canvas-composer-outline, var(--v2-border-standard)); border-radius: var(--v2-radius-sm); background: var(--canvas-composer-surface, var(--v2-surface-2)); box-shadow: 0 10px 28px oklch(3% 0.01 292 / 0.28); pointer-events: auto; }
-.canvas-node-surface.is-media { overflow: hidden; }
+.canvas-node-surface.is-media { overflow: visible; }
 @media (max-width: 720px) { .canvas-node-surface.is-composer { display: none; } }

@@ -195,6 +195,8 @@ T5-060 is `DONE - PASS`. It verifies two-origin video keyframes through provider
 
 T5-061 is `DONE - PASS`. It keeps the Inspector's visible request inputs consistent with the submitted provider snapshot by locking prompt and input-order mutation only while generation is in flight, while preserving lineage navigation and success/failure recovery. `REPORT-T5-061.md` is authoritative evidence.
 
+T5-062 is `DONE - PASS`. It turns selected playable video nodes into a bounded five-frame visual source, with click-to-seek navigation, exact timestamp capture provenance, sampler cancellation, and responsive readonly safety. `REPORT-T5-062.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

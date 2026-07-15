@@ -9,7 +9,7 @@ import type { CanvasNode } from '../../src/types/canvas'
 import { createMultiScenarioState } from './canvas-multi-scenario-fixture'
 import { documentPatches, openResourceWorkspace, PROJECT_ID, SECOND_CANVAS_ID } from './canvas-resource-generation-fixture'
 
-const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-048-video-frame-capture')
+const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-062-video-keyframes')
 
 function frameAsset(): Asset {
   return {
@@ -58,13 +58,22 @@ test('selected playable video captures one PNG and inserts one durable image nod
   await selectNode(page, '动态镜头结果')
   const video = page.locator('video[aria-label="视频结果"]')
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState)).toBeGreaterThanOrEqual(2)
-  await video.evaluate(async (element: HTMLVideoElement) => {
-    element.currentTime = Math.min(0.2, element.duration / 2)
-    await new Promise<void>((resolveSeek) => element.addEventListener('seeked', () => resolveSeek(), { once: true }))
-  })
+  const rail = page.getByRole('region', { name: '视频关键帧' })
+  const frames = rail.getByRole('button', { name: /定位到视频/ })
+  await expect(frames).toHaveCount(5)
+  for (const thumbnail of await frames.locator('img').all()) {
+    await expect.poll(() => thumbnail.evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual([160, 90])
+  }
+  const targetFrame = frames.nth(3)
+  const targetTime = Number(await targetFrame.getAttribute('data-time'))
+  const patchCountBeforeSeek = documentPatches(state).length
+  await targetFrame.click()
+  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.currentTime)).toBeCloseTo(targetTime, 2)
+  await expect(targetFrame).toHaveAttribute('aria-current', 'true')
+  expect(documentPatches(state)).toHaveLength(patchCountBeforeSeek)
   await expect(page.getByRole('button', { name: '截取当前帧' })).toBeVisible()
   await mkdir(evidenceDirectory, { recursive: true })
-  await page.screenshot({ path: resolve(evidenceDirectory, 'selected-video-capture-action-1440x900.png'), fullPage: true })
+  await page.screenshot({ path: resolve(evidenceDirectory, 'selected-keyframe-rail-1440x900.png'), fullPage: true })
   const patchCount = documentPatches(state).length
   await page.getByRole('button', { name: '截取当前帧' }).click()
 
@@ -81,9 +90,9 @@ test('selected playable video captures one PNG and inserts one durable image nod
   expect(state.capturedFrames['/captured-frame-1.png']?.byteLength).toBeGreaterThan(100)
   const inserted = state.documents['canvas-first'].nodes.find((node) => String((node.content as Record<string, unknown>)?.title).startsWith('视频帧'))
   expect(inserted).toMatchObject({ node_type: 'asset' })
-  expect(inserted?.content).toMatchObject({ subtype: 'image', asset_id: 'asset-captured-frame-1', source_video_node_id: 'result-video' })
+  expect(inserted?.content).toMatchObject({ subtype: 'image', asset_id: 'asset-captured-frame-1', source_video_node_id: 'result-video', source_video_time_seconds: targetTime })
 
-  await page.screenshot({ path: resolve(evidenceDirectory, 'captured-frame-selected-1440x900.png'), fullPage: true })
+  await page.screenshot({ path: resolve(evidenceDirectory, 'captured-from-keyframe-1440x900.png'), fullPage: true })
   const stage = page.getByRole('region', { name: 'Revid 无限画布工作区' })
   await stage.focus()
   await page.keyboard.press('Control+z')
@@ -101,6 +110,7 @@ test('readonly mobile video review exposes no frame mutation action', async ({ p
   await openResourceWorkspace(page, createMultiScenarioState(), { width: 375, height: 812 })
   await selectNode(page, '动态镜头结果')
   await expect(page.getByRole('button', { name: '截取当前帧' })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: '视频关键帧' })).toHaveCount(0)
 })
 
 test('locked desktop video exposes no frame mutation action', async ({ page }) => {
@@ -110,6 +120,39 @@ test('locked desktop video exposes no frame mutation action', async ({ page }) =
   await openResourceWorkspace(page, state)
   await selectNode(page, '动态镜头结果')
   await expect(page.getByRole('button', { name: '截取当前帧' })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: '视频关键帧' })).toHaveCount(0)
+})
+
+test('leaving a playable video removes its keyframe sampler without graph mutation', async ({ page }) => {
+  const state = createMultiScenarioState()
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '动态镜头结果')
+  await expect(page.getByRole('region', { name: '视频关键帧' }).getByRole('button', { name: /定位到视频/ })).toHaveCount(5)
+  const patchCount = documentPatches(state).length
+  await selectNode(page, '损坏媒体结果')
+  await expect(page.getByRole('region', { name: '视频关键帧' })).toHaveCount(0)
+  await expect(page.getByRole('alert').filter({ hasText: '媒体不可用' })).toBeVisible()
+  expect(documentPatches(state)).toHaveLength(patchCount)
+})
+
+test('keyframe extraction failure stays local while native video remains playable', async ({ page }) => {
+  await page.addInitScript(() => {
+    const nativeToDataUrl = HTMLCanvasElement.prototype.toDataURL
+    HTMLCanvasElement.prototype.toDataURL = function (...args) {
+      if (this.width === 160 && this.height === 90) throw new DOMException('mock keyframe export rejected', 'SecurityError')
+      return nativeToDataUrl.apply(this, args as Parameters<typeof nativeToDataUrl>)
+    }
+  })
+  const state = createMultiScenarioState()
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '动态镜头结果')
+  const video = page.locator('video[aria-label="视频结果"]')
+  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState)).toBeGreaterThanOrEqual(2)
+  const rail = page.getByRole('region', { name: '视频关键帧' })
+  await expect(rail.getByRole('alert')).toHaveText('无法预览')
+  await expect(rail.getByRole('button', { name: /定位到视频/ })).toHaveCount(0)
+  await expect(video).toBeVisible()
+  expect(documentPatches(state)).toHaveLength(0)
 })
 
 test('compact selected video keeps capture action clear of playback controls', async ({ page }) => {
@@ -117,14 +160,20 @@ test('compact selected video keeps capture action clear of playback controls', a
   await selectNode(page, '动态镜头结果')
   const action = page.getByRole('button', { name: '截取当前帧' })
   const video = page.locator('video[aria-label="视频结果"]')
+  const rail = page.getByRole('region', { name: '视频关键帧' })
   await expect(action).toBeVisible()
+  await expect(rail.getByRole('button', { name: /定位到视频/ })).toHaveCount(5)
   const actionRect = await action.boundingBox()
   const videoRect = await video.boundingBox()
+  const railRect = await rail.boundingBox()
   expect(actionRect).not.toBeNull()
   expect(videoRect).not.toBeNull()
+  expect(railRect).not.toBeNull()
   expect(actionRect!.y + actionRect!.height).toBeLessThan(videoRect!.y + videoRect!.height - 24)
+  expect(railRect!.width).toBeLessThanOrEqual(videoRect!.width)
+  expect(railRect!.y >= videoRect!.y + videoRect!.height || railRect!.y + railRect!.height <= videoRect!.y).toBe(true)
   await mkdir(evidenceDirectory, { recursive: true })
-  await page.screenshot({ path: resolve(evidenceDirectory, 'compact-selected-video-920x760.png'), fullPage: true })
+  await page.screenshot({ path: resolve(evidenceDirectory, 'compact-keyframe-rail-920x760.png'), fullPage: true })
 })
 
 test('failed frame upload reports an accessible error and inserts no node', async ({ page }) => {

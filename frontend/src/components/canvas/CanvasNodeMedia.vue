@@ -2,18 +2,27 @@
 import { Camera } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
 import type { CanvasNodeMediaPresentation } from './canvas-node-presentation'
-const props = withDefaults(defineProps<{ media: CanvasNodeMediaPresentation; canCaptureFrame?: boolean; capturePending?: boolean }>(), { canCaptureFrame: false, capturePending: false })
+import CanvasVideoKeyframeRail from './CanvasVideoKeyframeRail.vue'
+const props = withDefaults(defineProps<{ media: CanvasNodeMediaPresentation; canCaptureFrame?: boolean; capturePending?: boolean; keyframeRailPlacement?: 'above' | 'below' }>(), { canCaptureFrame: false, capturePending: false, keyframeRailPlacement: 'below' })
 const emit = defineEmits<{ captureFrame: [file: File, timeSeconds: number, aspectRatio: number]; metadata: [aspectRatio: number] }>()
 const state = ref<'loading' | 'ready' | 'error'>('loading')
 const captureError = ref('')
 const isCapturing = ref(false)
 const videoRef = ref<HTMLVideoElement | null>(null)
+const currentTime = ref(0)
 watch(() => props.media.kind === 'placeholder' ? props.media.kind : `${props.media.kind}:${props.media.url}`, () => {
   state.value = 'loading'
   captureError.value = ''
 })
 function imageLoaded(event: Event) { const image = event.currentTarget as HTMLImageElement; state.value = image.naturalWidth > 0 && image.naturalHeight > 0 ? 'ready' : 'error'; if (state.value === 'ready') emit('metadata', image.naturalWidth / image.naturalHeight) }
-function videoLoaded(event: Event) { const video = event.currentTarget as HTMLVideoElement; state.value = video.videoWidth > 0 && video.videoHeight > 0 ? 'ready' : 'error'; if (state.value === 'ready') emit('metadata', video.videoWidth / video.videoHeight) }
+function videoLoaded(event: Event) { const video = event.currentTarget as HTMLVideoElement; state.value = video.videoWidth > 0 && video.videoHeight > 0 ? 'ready' : 'error'; currentTime.value = video.currentTime; if (state.value === 'ready') emit('metadata', video.videoWidth / video.videoHeight) }
+function syncCurrentTime(event: Event) { currentTime.value = (event.currentTarget as HTMLVideoElement).currentTime }
+function seekToFrame(timeSeconds: number) {
+  const video = videoRef.value
+  if (!video || state.value !== 'ready') return
+  video.currentTime = timeSeconds
+  currentTime.value = timeSeconds
+}
 async function captureCurrentFrame() {
   const video = videoRef.value
   if (!video || state.value !== 'ready' || !video.videoWidth || !video.videoHeight || isCapturing.value || props.capturePending) return
@@ -37,18 +46,21 @@ async function captureCurrentFrame() {
 }
 </script>
 <template>
-  <div class="canvas-node-media" :aria-label="media.label">
-    <span v-if="media.kind === 'placeholder'" class="canvas-node-media__message">{{ media.label }}</span>
-    <template v-else>
-      <span v-if="state === 'loading'" class="canvas-node-media__message" role="status">媒体加载中…</span>
-      <span v-if="state === 'error'" class="canvas-node-media__message is-error" role="alert">媒体不可用，可稍后重试</span>
-      <img v-if="media.kind === 'image'" v-show="state !== 'error'" :src="media.url" :alt="media.label" @load="imageLoaded" @error="state = 'error'" />
-      <video v-else ref="videoRef" v-show="state !== 'error'" :src="media.url" :poster="media.poster" :aria-label="media.label" crossorigin="anonymous" controls preload="metadata" @loadedmetadata="videoLoaded" @error="state = 'error'" />
-      <button v-if="media.kind === 'video' && canCaptureFrame && state === 'ready'" type="button" class="canvas-node-media__capture" :disabled="isCapturing || capturePending" @click.stop="captureCurrentFrame" @pointerdown.stop>
-        <Camera :size="14" aria-hidden="true" />{{ isCapturing || capturePending ? '正在截取' : '截取当前帧' }}
-      </button>
-      <span v-if="captureError" class="canvas-node-media__capture-error" role="alert">{{ captureError }}</span>
-    </template>
+  <div class="canvas-node-media" :class="{ 'is-keyframes-above': keyframeRailPlacement === 'above' }" :aria-label="media.label">
+    <div class="canvas-node-media__viewport">
+      <span v-if="media.kind === 'placeholder'" class="canvas-node-media__message">{{ media.label }}</span>
+      <template v-else>
+        <span v-if="state === 'loading'" class="canvas-node-media__message" role="status">媒体加载中…</span>
+        <span v-if="state === 'error'" class="canvas-node-media__message is-error" role="alert">媒体不可用，可稍后重试</span>
+        <img v-if="media.kind === 'image'" v-show="state !== 'error'" :src="media.url" :alt="media.label" @load="imageLoaded" @error="state = 'error'" />
+        <video v-else ref="videoRef" v-show="state !== 'error'" :src="media.url" :poster="media.poster" :aria-label="media.label" crossorigin="anonymous" controls preload="metadata" @loadedmetadata="videoLoaded" @timeupdate="syncCurrentTime" @seeked="syncCurrentTime" @error="state = 'error'" />
+        <button v-if="media.kind === 'video' && canCaptureFrame && state === 'ready'" type="button" class="canvas-node-media__capture" :disabled="isCapturing || capturePending" @click.stop="captureCurrentFrame" @pointerdown.stop>
+          <Camera :size="14" aria-hidden="true" />{{ isCapturing || capturePending ? '正在截取' : '截取当前帧' }}
+        </button>
+        <span v-if="captureError" class="canvas-node-media__capture-error" role="alert">{{ captureError }}</span>
+      </template>
+    </div>
+    <CanvasVideoKeyframeRail v-if="media.kind === 'video' && canCaptureFrame && state === 'ready'" :current-time="currentTime" :src="media.url" @seek="seekToFrame" />
   </div>
 </template>
 
@@ -58,15 +70,15 @@ async function captureCurrentFrame() {
   display: grid;
   width: 100%;
   height: 100%;
-  place-items: center;
-  overflow: hidden;
+  overflow: visible;
   border-radius: var(--canvas-media-radius, var(--v2-radius-sm));
-  background: var(--v2-surface-1);
   pointer-events: none;
 }
 
-.canvas-node-media img,
-.canvas-node-media video {
+.canvas-node-media__viewport { position: relative; display: grid; width: 100%; height: 100%; place-items: center; overflow: hidden; border-radius: inherit; background: var(--v2-surface-1); }
+
+.canvas-node-media__viewport img,
+.canvas-node-media__viewport video {
   display: block;
   width: auto;
   height: auto;
@@ -75,7 +87,7 @@ async function captureCurrentFrame() {
   object-fit: cover;
 }
 
-.canvas-node-media video { pointer-events: auto; }
+.canvas-node-media__viewport video { pointer-events: auto; }
 .canvas-node-media__capture { position: absolute; z-index: 2; top: 8px; right: 8px; display: inline-flex; min-height: 30px; align-items: center; gap: 5px; padding: 0 9px; border: 1px solid color-mix(in oklch, var(--accent-select) 54%, var(--v2-border-standard)); border-radius: var(--radius-pill); color: var(--v2-text-primary); background: color-mix(in oklch, var(--v2-surface-1) 88%, transparent); box-shadow: 0 8px 20px oklch(3% 0.01 292 / 0.3); font: inherit; font-size: 11px; white-space: nowrap; backdrop-filter: blur(10px); pointer-events: auto; cursor: pointer; }
 .canvas-node-media__capture:hover { border-color: var(--accent-select); background: var(--v2-surface-2); }
 .canvas-node-media__capture:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
