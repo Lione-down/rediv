@@ -134,6 +134,15 @@ const isStartingWorkflow = ref(false)
 const canvasGridStyle = computed(() => getCanvasGridStyle(canvasStore.viewport))
 const continuationTrigger = computed(() => resolveCanvasNodeContinuationTrigger(canvasStore.nodes, canvasStore.selectedNodeIds, props.readonly || props.contextOverlayOpen))
 const selectionGenerationIntent = computed(() => resolveSelectionGenerationIntent(canvasStore.selectedNodes))
+const selectionGenerationSources = computed(() => {
+  const intent = selectionGenerationIntent.value
+  if (!intent) return []
+  const byId = new Map(canvasStore.selectedNodes.map((node) => [node.id, node]))
+  return intent.inputs.flatMap((input) => {
+    const node = byId.get(input.nodeId)
+    return node ? [{ role: `${input.kind === 'text' ? 'T' : 'R'}${input.order}`, title: node.title }] : []
+  })
+})
 const capturedFrameProvenance = computed(() => resolveCapturedFrameProvenance(canvasStore.selectedNode, canvasStore.nodes))
 const capturedFrameSourceNode = computed(() => capturedFrameProvenance.value ? canvasStore.findNodeById(capturedFrameProvenance.value.sourceNodeId) : null)
 const selectedResultLineage = computed(() => {
@@ -442,6 +451,7 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         :compose-asset-image-count="selectionGenerationIntent?.assetImageCount ?? 0"
         :compose-image-count="selectionGenerationIntent?.imageCount ?? 0"
         :compose-result-count="selectionGenerationIntent?.resultCount ?? 0"
+        :compose-sources="selectionGenerationSources"
         :compose-text-count="selectionGenerationIntent?.textCount ?? 0"
         :compose-video-mode="selectionGenerationIntent?.videoMode ?? 'text-to-video'"
         :can-delete="canDeleteSelection"

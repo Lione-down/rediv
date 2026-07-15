@@ -29,20 +29,20 @@ function typedConnection(id: string, from: string, to: string): CanvasConnection
   return { id, from, to, sourcePort: 'out', targetPort: 'prompt', active: true }
 }
 
-test('selection reducer follows graph order and keeps one deterministic primary target', () => {
+test('selection reducer preserves request order and keeps one deterministic primary target', () => {
   const empty = { nodeIds: [], primaryNodeId: '', connectionId: '' }
   const replaced = reduceCanvasSelection(domain, empty, {
     type: 'set-nodes',
     nodeIds: ['node-c', 'missing', 'node-a', 'node-c'],
     primaryNodeId: 'missing',
   })
-  expect(replaced).toEqual({ nodeIds: ['node-a', 'node-c'], primaryNodeId: 'node-c', connectionId: '' })
+  expect(replaced).toEqual({ nodeIds: ['node-c', 'node-a'], primaryNodeId: 'node-a', connectionId: '' })
 
   const added = reduceCanvasSelection(domain, replaced, { type: 'add-node', nodeId: 'node-b' })
-  expect(added).toEqual({ nodeIds: ['node-a', 'node-b', 'node-c'], primaryNodeId: 'node-b', connectionId: '' })
+  expect(added).toEqual({ nodeIds: ['node-c', 'node-a', 'node-b'], primaryNodeId: 'node-b', connectionId: '' })
 
   const toggled = reduceCanvasSelection(domain, added, { type: 'toggle-node', nodeId: 'node-b' })
-  expect(toggled).toEqual({ nodeIds: ['node-a', 'node-c'], primaryNodeId: 'node-c', connectionId: '' })
+  expect(toggled).toEqual({ nodeIds: ['node-c', 'node-a'], primaryNodeId: 'node-a', connectionId: '' })
 
   expect(reduceCanvasSelection(domain, toggled, {
     type: 'select-connection',

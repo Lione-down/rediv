@@ -38,6 +38,15 @@ type CanvasNodeStatus = CanvasNode['status']
 type CanvasSelectionMode = 'replace' | 'toggle' | 'add'
 
 const DEFAULT_VIEWPORT: PersistedViewport = { zoom: 1, x: 0, y: 0 }
+
+export function projectSelectedNodes(nodes: readonly CanvasNode[], selectedNodeIds: readonly string[]) {
+  const byId = new Map(nodes.map((node) => [node.id, node]))
+  return selectedNodeIds.flatMap((nodeId) => {
+    const node = byId.get(nodeId)
+    return node ? [node] : []
+  })
+}
+
 export const useCanvasStore = defineStore('canvas', () => {
   const authStore = useAuthStore()
   const activeProjectId = ref('')
@@ -70,10 +79,7 @@ export const useCanvasStore = defineStore('canvas', () => {
   let confirmedViewport: PersistedViewport = { ...DEFAULT_VIEWPORT }
   let desiredViewport: PersistedViewport = { ...DEFAULT_VIEWPORT }
   const selectedNode = computed(() => nodes.value.find((node) => node.id === selectedNodeId.value) || null)
-  const selectedNodes = computed(() => {
-    const selectedIds = new Set(selectedNodeIds.value)
-    return nodes.value.filter((node) => selectedIds.has(node.id))
-  })
+  const selectedNodes = computed(() => projectSelectedNodes(nodes.value, selectedNodeIds.value))
 
   function bumpDataRevision() {
     dataRevision += 1

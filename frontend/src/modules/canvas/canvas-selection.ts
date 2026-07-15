@@ -25,8 +25,13 @@ export function normalizeCanvasSelection(
   nodeIds: readonly string[],
   primaryNodeId = '',
 ): CanvasSelectionState {
-  const requestedIds = new Set(nodeIds)
-  const normalizedIds = domain.nodeIds.filter((nodeId) => requestedIds.has(nodeId))
+  const availableIds = new Set(domain.nodeIds)
+  const seenIds = new Set<string>()
+  const normalizedIds = nodeIds.filter((nodeId) => {
+    if (!availableIds.has(nodeId) || seenIds.has(nodeId)) return false
+    seenIds.add(nodeId)
+    return true
+  })
   return {
     nodeIds: normalizedIds,
     primaryNodeId: normalizedIds.includes(primaryNodeId)

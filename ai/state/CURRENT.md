@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-049 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-050 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `READY`
-- Most recently completed: `T5-049 - Captured-frame provenance and repeat capture loop` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-049.md`
+- Most recently completed: `T5-050 - Selection-order composition preflight` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-050.md`
 
 ## Current Verified Facts
 
@@ -78,10 +78,11 @@ Last updated: 2026-07-15
 - T5-047 is now `DONE - PASS`: T/R/G/V marker pills scale proportionally below 100%, retain exact node-corner anchors, and cap high-zoom growth at 120%. Build, focused 3/3, related 27/27, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-047.md`.
 - T5-048 is now `DONE - PASS`: a selected decoded video frame uploads as a durable project image asset, inserts as a collision-aware canonical source with capture provenance, and participates in ordered image/video multi-node composition. Build, focused 7/7, related 45/45, real returned-PNG, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-048.md`.
 - T5-049 is now `DONE - PASS`: captured frames expose strict source-video and capture-time provenance, exact responsive source navigation, and quiet derived source emphasis. Two dynamic captures produced distinct assets, URLs, nodes, times, and PNG bytes, then composed in stable image/video order. Build, focused 6/6, related 35/35, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-049.md`.
+- T5-050 is now `DONE - PASS`: explicit multi-selection order drives T/R roles, preflight identity, persisted input order, provider context, and reload inspection. The bounded menu lists every exact role and source title, including long localized compact content, while Escape and readonly remain mutation-free. Build, focused 17/17, related 35/35, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-050.md`.
 
 ## Exact Next Action
 
-Audit fresh Canvas product evidence and define the next bounded refinement Task under the continuing Canvas iteration goal.
+Audit fresh Canvas runtime evidence and define the next bounded refinement Task under the continuing Canvas iteration goal.
 
 ## Blockers And Human Gates
 

@@ -106,23 +106,33 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
     return true
   }
 
+  function resolveSelectedConnection() {
+    if (canvasStore.selectedNodes.length !== 2) return null
+    const selectedIds = new Set(canvasStore.selectedNodeIds)
+    const [firstNode, secondNode] = canvasStore.nodes.filter((node) => selectedIds.has(node.id))
+    const forwardPorts = getDefaultConnectionPorts(firstNode, secondNode)
+    if (forwardPorts) return { sourceNode: firstNode, targetNode: secondNode, ports: forwardPorts }
+    const reversePorts = getDefaultConnectionPorts(secondNode, firstNode)
+    return reversePorts ? { sourceNode: secondNode, targetNode: firstNode, ports: reversePorts } : null
+  }
+
   function connectSelection(source: CanvasCommandSource) {
     if (canvasStore.selectedNodes.length !== 2) {
       announceCommandFeedback('请选择两个可连接的节点后重试。')
       return false
     }
-    const [sourceNode, targetNode] = canvasStore.selectedNodes
+    const resolved = resolveSelectedConnection()
+    if (!resolved) {
+      announceCommandFeedback('所选节点的端口不兼容，请选择端口兼容的节点。')
+      return false
+    }
+    const { sourceNode, targetNode, ports } = resolved
     if (
       sourceNode.type === 'group' || targetNode.type === 'group' ||
       sourceNode.parentNodeId || targetNode.parentNodeId || sourceNode.isLocked || targetNode.isLocked ||
       !isNodeMutationSupported(sourceNode) || !isNodeMutationSupported(targetNode)
     ) {
       announceCommandFeedback('请选择两个可连接的节点后重试。')
-      return false
-    }
-    const ports = getDefaultConnectionPorts(sourceNode, targetNode)
-    if (!ports) {
-      announceCommandFeedback('所选节点的端口不兼容，请选择端口兼容的节点。')
       return false
     }
     const isDuplicate = canvasStore.connections.some((connection) => (
@@ -239,9 +249,13 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
   return {
     canAlignSelection: () => canvasStore.selectedNodes.length >= 2 && canvasStore.selectedNodes.every(isArrangeEligibleNode),
     canAutoArrange: () => canvasStore.nodes.filter(isArrangeEligibleNode).length >= 2,
-    canConnectSelection: () => canvasStore.selectedNodes.length === 2 && Boolean(createConnectNodesCommand(
-      canvasStore.nodes, canvasStore.connections, canvasStore.selectedNodes[0].id, canvasStore.selectedNodes[1].id,
-    )),
+    canConnectSelection: () => {
+      const resolved = resolveSelectedConnection()
+      return Boolean(resolved && createConnectNodesCommand(
+        canvasStore.nodes, canvasStore.connections, resolved.sourceNode.id, resolved.targetNode.id,
+        resolved.ports.sourcePort, resolved.ports.targetPort,
+      ))
+    },
     canComposeGenerationSelection: () => canCreateGenerationFromSelection(canvasStore.selectedNodes),
     canGroupSelection: () => Boolean(createGroupNodesCommand(canvasStore.nodes, canvasStore.selectedNodeIds)),
     canDuplicateSelection: () => (

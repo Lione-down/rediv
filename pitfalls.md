@@ -508,3 +508,10 @@ Evidence:
 - A mock MP4 that exposes metadata is not necessarily seekable. Browser repeat-capture tests need a dynamic faststart video plus correct byte-range responses before different timestamps and PNG bytes are meaningful evidence.
 - Upload completion can precede the Canvas document PATCH. Wait for both durable frame records before asserting node count or composition order.
 - Keep source emphasis selection-scoped and non-persistent. A quiet outline and pill communicate origin without fabricating a saved graph connection.
+
+## 2026-07-15 Selection-order composition preflight
+
+- Keeping ordered IDs is insufficient if node projection filters the graph array through a Set. Preserve the explicit ID sequence when resolving objects or user click order silently becomes document order.
+- Preview, Canvas T/R markers, command connection metadata, provider context, and reload inspection must share one order resolver. Separate reconstruction makes preflight untrustworthy.
+- A global selection-order migration can unintentionally reverse unrelated two-node connection behavior. Define which operations are sequence-sensitive and preserve established direction semantics elsewhere.
+- Composition menus need exact source identities, not counts alone. Use a bounded scroll surface and natural wrapping for localized titles instead of ellipsis.

@@ -13,6 +13,7 @@ const props = defineProps<{
   composeAssetImageCount: number
   composeImageCount: number
   composeResultCount: number
+  composeSources: Array<{ role: string; title: string }>
   composeTextCount: number
   composeVideoMode: 'text-to-video' | 'img2vid' | 'keyframes'
   canDelete: boolean
@@ -95,6 +96,11 @@ function closeMenus() {
         <p>
           {{ composeTextCount }} 提示词 · {{ composeAssetImageCount }} 素材图<span v-if="composeResultCount"> · {{ composeResultCount }} 生成结果</span>
         </p>
+        <ol class="compose-source-list" aria-label="有序生成输入">
+          <li v-for="source in composeSources" :key="`${source.role}-${source.title}`">
+            <strong>{{ source.role }}</strong><span>{{ source.title }}</span>
+          </li>
+        </ol>
         <button type="button" role="menuitem" @click="handleCompose('image')">
           <ImageIcon :size="15" aria-hidden="true" /><span><strong>图片生成</strong><small>{{ composeResultCount ? '历史结果融合' : composeImageCount ? '多输入融合' : '纯文本生成' }}</small></span>
         </button>
@@ -192,8 +198,12 @@ function closeMenus() {
   box-shadow: var(--shadow-floating, var(--shadow-soft));
   transform: translateX(-50%);
 }
-.compose-panel { top: var(--compose-menu-top, calc(100% + 10px)); bottom: var(--compose-menu-bottom, auto); width: 180px; }
+.compose-panel { top: var(--compose-menu-top, calc(100% + 10px)); bottom: var(--compose-menu-bottom, auto); width: 220px; }
 .compose-panel > p { margin: 0; padding: 7px 9px 5px; color: var(--text-secondary); font-size: 10px; font-variant-numeric: tabular-nums; }
+.compose-source-list { display: grid; gap: 1px; margin: 0 4px 4px; padding: 0; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--border-subtle); list-style: none; }
+.compose-source-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: start; gap: 6px; padding: 6px 7px; color: var(--text-secondary); background: var(--bg-panel-subtle); font-size: 10px; line-height: 1.35; }
+.compose-source-list li strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.compose-source-list li span { overflow-wrap: anywhere; }
 .arrange-panel button {
   display: flex;
   width: 136px;
@@ -201,7 +211,7 @@ function closeMenus() {
   padding: 0 10px;
   font-size: 12px;
 }
-.compose-panel button { display: flex; width: 172px; min-height: 46px; height: auto; justify-content: flex-start; gap: 8px; padding: 5px 10px; font-size: 12px; }
+.compose-panel button { display: flex; width: 212px; min-height: 46px; height: auto; justify-content: flex-start; gap: 8px; padding: 5px 10px; font-size: 12px; }
 .compose-panel button span { display: grid; gap: 1px; text-align: left; }
 .compose-panel button strong { font-weight: 600; }
 .compose-panel button small { color: var(--text-secondary); font-size: 10px; }
