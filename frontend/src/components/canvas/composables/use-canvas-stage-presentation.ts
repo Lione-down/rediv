@@ -29,16 +29,35 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     (node): node is CanvasNode & { status: StatusVisualState } =>
       node.status === 'running' || node.status === 'success' || node.status === 'warning',
   ))
+  const selectionSurfaceBounds = computed(() => {
+    if (!canvasStore.selectedNodes.length) return null
+    const viewport = options.getViewport()
+    const rects = canvasStore.selectedNodes.map((node) => canvasNodeWorldRect(node, 'content'))
+    return {
+      left: Math.min(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top }, viewport).x)),
+      right: Math.max(...rects.map((rect) => worldToSurface({ x: rect.left + rect.width, y: rect.top }, viewport).x)),
+      top: Math.min(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top }, viewport).y)),
+      bottom: Math.max(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top + rect.height }, viewport).y)),
+    }
+  })
+  const selectionCompositionHullStyle = computed(() => {
+    const bounds = selectionSurfaceBounds.value
+    if (options.isReadOnly() || canvasStore.selectedNodes.length < 2 || !bounds) return null
+    const gutter = 12
+    return {
+      left: `${bounds.left - gutter}px`,
+      top: `${bounds.top - gutter}px`,
+      width: `${bounds.right - bounds.left + gutter * 2}px`,
+      height: `${bounds.bottom - bounds.top + gutter * 2}px`,
+    }
+  })
   const selectionToolbarStyle = computed(() => {
-    if (options.isReadOnly() || !canvasStore.selectedNodes.length) return null
+    const bounds = selectionSurfaceBounds.value
+    if (options.isReadOnly() || !bounds) return null
     const viewport = options.getViewport()
     const size = options.getViewportSize()
     const insets = options.getViewportInsets()
-    const rects = canvasStore.selectedNodes.map((node) => canvasNodeWorldRect(node, 'content'))
-    const left = Math.min(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top }, viewport).x))
-    const right = Math.max(...rects.map((rect) => worldToSurface({ x: rect.left + rect.width, y: rect.top }, viewport).x))
-    const top = Math.min(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top }, viewport).y))
-    const bottom = Math.max(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top + rect.height }, viewport).y))
+    const { left, right, top, bottom } = bounds
     const halfWidth = canvasStore.selectedNodes.length === 1
       ? canvasStore.selectedNodes[0].type === 'generation' ? 106 : 84
       : 176
@@ -144,7 +163,7 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     return '生成失败'
   }
   return {
-    nodeAppearances, nodePositions, selectionToolbarStyle, stageNotice, statusBadgeStyle,
+    nodeAppearances, nodePositions, selectionCompositionHullStyle, selectionToolbarStyle, stageNotice, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, surfaceNodeRectStyle,
   }
 }

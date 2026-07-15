@@ -86,6 +86,7 @@ const {
   marqueeStyle,
   viewportCursor,
   retryProjectLoad,
+  selectionCompositionHullStyle,
   selectionToolbarStyle,
   deleteSelection,
   duplicateSelection,
@@ -422,6 +423,15 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :nodes="canvasStore.selectedNodes"
         :surface-node-rect-style="surfaceNodeRectStyle"
       />
+
+      <div
+        v-if="selectionCompositionHullStyle && canComposeGenerationSelection && !readonly && !contextOverlayOpen"
+        class="selection-composition-hull"
+        :style="selectionCompositionHullStyle"
+        aria-hidden="true"
+      >
+        <span>待合并 · {{ canvasStore.selectedNodeIds.length }}</span>
+      </div>
 
       <div
         v-if="capturedFrameSourceNode"

@@ -615,3 +615,11 @@ Evidence:
 - Non-overlap alone is insufficient for contextual UI. Add a maximum distance contract so a scorer cannot satisfy safety by docking controls at an unrelated global corner.
 - Distinguish Canvas surface bounds from external panel bounds. Reserving an Inspector that is already outside the surface double-counts space and can force candidates back into selected content.
 - A compact drawer mask owns interaction. Hide toolbar chrome behind it instead of leaving inaccessible ghost controls visible.
+
+## 2026-07-15 Composition selection hull
+
+- Per-node role markers explain input semantics but do not establish aggregate spatial ownership. Compose-ready multi-selection benefits from one quiet outer boundary without inventing persisted group semantics.
+- Derive the hull and contextual toolbar from one selected surface-bounds contract. Independent min/max calculations drift when geometry behavior changes.
+- Aggregate labels must be checked against corner role badges. A top-left label that appears natural can collide directly with T1.
+- Pointer-passive styling is part of the interaction contract, not decorative polish. Assert computed `pointer-events: none` so a visual hull cannot steal Canvas gestures later.
+- Browser screenshots of hybrid Leafer and DOM surfaces need a settled shared frame. Wait for consecutive animation frames before retaining visual evidence.

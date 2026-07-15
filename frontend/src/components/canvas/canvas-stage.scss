@@ -255,6 +255,32 @@
   pointer-events: none;
 }
 
+.selection-composition-hull {
+  position: absolute;
+  z-index: 2;
+  border: 1px solid color-mix(in oklch, var(--accent-select) 42%, transparent);
+  border-radius: calc(var(--radius-md) + 4px);
+  background: color-mix(in oklch, var(--accent-select) 2.5%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--bg-canvas) 64%, transparent);
+  pointer-events: none;
+}
+
+.selection-composition-hull > span {
+  position: absolute;
+  top: 0;
+  right: 14px;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in oklch, var(--accent-select) 34%, var(--border-subtle));
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  background: color-mix(in oklch, var(--bg-canvas) 92%, transparent);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
 .node-status-overlay.is-running {
   box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--warning) 68%, transparent);
 }

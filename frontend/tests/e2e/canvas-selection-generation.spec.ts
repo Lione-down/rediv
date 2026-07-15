@@ -14,6 +14,7 @@ import {
 } from './canvas-resource-generation-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-052-dense-composition-preflight')
+const hullEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-064-composition-hull')
 const now = '2026-07-15T10:00:00Z'
 
 function sourceNode(id: string, type: 'script' | 'asset', options: Record<string, unknown> = {}): CanvasNode {
@@ -275,6 +276,14 @@ test('compact desktop keeps the compose menu in bounds and creates image generat
   await page.mouse.up()
   await expect(page.getByRole('toolbar', { name: '2 个已选节点的操作' })).toBeVisible()
   await expect(page.locator('.selection-generation-intent span')).toHaveText(['T1', 'T2'])
+  const compactHull = page.locator('.selection-composition-hull')
+  await expect(compactHull).toContainText('待合并 · 2')
+  const compactHullBox = await compactHull.boundingBox()
+  expect(compactHullBox).not.toBeNull()
+  expect(compactHullBox!.x).toBeGreaterThanOrEqual(surfaceBox!.x)
+  expect(compactHullBox!.x + compactHullBox!.width).toBeLessThanOrEqual(surfaceBox!.x + surfaceBox!.width)
+  await mkdir(hullEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(hullEvidenceDirectory, 'compose-ready-hull-920x900.png'), fullPage: true })
   await page.getByRole('button', { name: '合并所选节点为生成任务' }).click()
   const menu = page.getByRole('menu', { name: '选择生成任务类型' })
   await expect(menu.getByRole('list', { name: '有序生成输入' }).getByRole('listitem')).toHaveText([
@@ -291,6 +300,57 @@ test('compact desktop keeps the compose menu in bounds and creates image generat
   await expect.poll(() => documentPatches(state).length).toBe(1)
   expect(documentPatches(state)[0].body?.node_upserts[0]).toMatchObject({ content: { subtype: 'image' } })
   expect(documentPatches(state)[0].body?.connection_upserts).toHaveLength(2)
+})
+
+test('compose-ready sources share one passive aggregate hull through zoom', async ({ page }) => {
+  const state = createResourceMockState()
+  const sources = [
+    sourceNode('hull-script-left', 'script', { title: '主体描述', text: '雨夜街道中的人物', x: 100, y: 180 }),
+    sourceNode('hull-script-right', 'script', { title: '光线描述', text: '霓虹反射与潮湿路面', x: 500, y: 220 }),
+  ]
+  state.documents[FIRST_CANVAS_ID] = { nodes: sources.map(persistedNode), connections: [] }
+  await openResourceWorkspace(page, state)
+  const surface = page.locator('.canvas-surface')
+  await surface.click({ position: { x: 180, y: 260 } })
+  await surface.click({ position: { x: 580, y: 300 }, modifiers: ['Control'] })
+
+  const hull = page.locator('.selection-composition-hull')
+  await expect(hull).toHaveCount(1)
+  await expect(hull).toContainText('待合并 · 2')
+  await expect(hull).toHaveCSS('pointer-events', 'none')
+  const assertContainment = async () => {
+    const hullBox = await hull.boundingBox()
+    const roleBoxes = await page.locator('.selection-generation-intent').evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().toJSON()))
+    expect(hullBox).not.toBeNull()
+    expect(roleBoxes).toHaveLength(2)
+    for (const box of roleBoxes) {
+      expect(box.x).toBeGreaterThan(hullBox!.x)
+      expect(box.y).toBeGreaterThan(hullBox!.y)
+      expect(box.x + box.width).toBeLessThan(hullBox!.x + hullBox!.width)
+      expect(box.y + box.height).toBeLessThan(hullBox!.y + hullBox!.height)
+    }
+    return hullBox!
+  }
+  const initialBox = await assertContainment()
+  const hullLabelBox = await hull.locator('span').boundingBox()
+  const roleLabelBoxes = await page.locator('.selection-generation-intent span').evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().toJSON()))
+  expect(hullLabelBox).not.toBeNull()
+  for (const box of roleLabelBoxes) {
+    const overlaps = hullLabelBox!.x < box.x + box.width && hullLabelBox!.x + hullLabelBox!.width > box.x &&
+      hullLabelBox!.y < box.y + box.height && hullLabelBox!.y + hullLabelBox!.height > box.y
+    expect(overlaps).toBe(false)
+  }
+  await page.locator('.workspace-stage').evaluate(() => new Promise<void>((resolveFrame) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolveFrame()))
+  }))
+  await mkdir(hullEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(hullEvidenceDirectory, 'compose-ready-hull-1440x900.png'), fullPage: true })
+  const zoom = page.getByLabel('缩放百分比')
+  await zoom.fill('150')
+  await zoom.press('Enter')
+  await expect(zoom).toHaveValue('150')
+  const zoomedBox = await assertContainment()
+  expect(zoomedBox.width).toBeGreaterThan(initialBox.width * 1.4)
 })
 
 test('dense ten-node preflight keeps actions fixed while eight references scroll and reorder', async ({ page }) => {
@@ -379,10 +439,12 @@ test('invalid desktop and readonly mobile selections expose no composition mutat
   await surface.click({ position: { x: 560, y: 180 }, modifiers: ['Control'] })
   await expect(page.getByRole('button', { name: '合并所选节点为生成任务' })).toHaveCount(0)
   await expect(page.locator('.selection-generation-intent')).toHaveCount(0)
+  await expect(page.locator('.selection-composition-hull')).toHaveCount(0)
   expect(documentPatches(state)).toHaveLength(0)
 
   await openResourceWorkspace(page, state, { width: 375, height: 812 })
   await expect(page.locator('.selection-toolbar')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '合并所选节点为生成任务' })).toHaveCount(0)
   await expect(page.locator('.selection-generation-intent')).toHaveCount(0)
+  await expect(page.locator('.selection-composition-hull')).toHaveCount(0)
 })

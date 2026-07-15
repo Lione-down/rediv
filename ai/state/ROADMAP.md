@@ -199,6 +199,8 @@ T5-062 is `DONE - PASS`. It turns selected playable video nodes into a bounded f
 
 T5-063 is `DONE - PASS`. It keeps contextual selection controls adjacent without covering selected media, video keyframes, the desktop Inspector boundary, or compact drawer overlays. `REPORT-T5-063.md` is authoritative evidence.
 
+T5-064 is `DONE - PASS`. Compose-ready multi-node selections now read as one deliberate generation input set through a passive aggregate hull while individual T/R roles, toolbar behavior, readonly review, and generation semantics remain intact. `REPORT-T5-064.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:
