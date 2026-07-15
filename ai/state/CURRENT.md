@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-052 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-053 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-052 - Dense composition preflight scalability` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-052.md`
+- Most recently completed: `T5-053 - Selected edge semantic identity` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-053.md`
 
 ## Current Verified Facts
 
@@ -81,10 +81,11 @@ Last updated: 2026-07-15
 - T5-050 is now `DONE - PASS`: explicit multi-selection order drives T/R roles, preflight identity, persisted input order, provider context, and reload inspection. The bounded menu lists every exact role and source title, including long localized compact content, while Escape and readonly remain mutation-free. Build, focused 17/17, related 35/35, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-050.md`.
 - T5-051 is now `DONE - PASS`: creators can reorder prompt and reference sources independently inside the bounded preflight through accessible controls. The selection-only change updates Canvas/menu roles without graph mutation, then drives exact image/video generation order and reload inspection. Build, focused 8/8, related 46/46, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-051.md`.
 - T5-052 is now `DONE - PASS`: a near-limit 2-prompt plus 8-image composition keeps its summary and image/video actions fixed while only the ordered source queue scrolls. R8 remains keyboard-reorderable without graph mutation, and exact adjusted media order reaches image/video context plus persisted connections. Build, focused 9/9, related 47/47, desktop/compact visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-052.md`.
+- T5-053 is now `DONE - PASS`: selecting one edge exposes a quiet semantic identity for prompt, reference, result, or generic data flow without labeling every connection. Collision-aware placement avoids Canvas nodes, a leader preserves midpoint ownership, insertion stays integrated, and readonly stays passive. Build, focused 3/3, related 56/56, desktop/compact/readonly visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-053.md`.
 
 ## Exact Next Action
 
-Use the active Canvas optimization goal to define the next bounded Task after reviewing current runtime and visual evidence.
+Use the persistent Canvas optimization goal to define the next bounded node or multi-generation verification Task from current runtime evidence.
 
 ## Blockers And Human Gates
 

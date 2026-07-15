@@ -529,3 +529,11 @@ Evidence:
 - Visibility assertions can hide overflow defects because browser automation may scroll an ancestor automatically. Compare panel and queue `scrollHeight` with `clientHeight` to prove ownership directly.
 - Validate the real product boundary, not a convenient sample. Two prompts plus eight unique references exposed the action displacement that two-source and four-source cases missed.
 - Inspect dense low-zoom evidence after scrolling to the final row. This catches wrapped localization, marker dominance, fixed-action placement, and focus-boundary problems together.
+
+## 2026-07-15 Selected edge semantic identity
+
+- A reference repository README can suggest a product pattern but cannot prove implementation details when the named source files are absent from the public commit. Treat the pattern as inspiration, not code evidence.
+- Persistent content labels on every edge trade one tracing problem for a dense-graph noise problem. Reveal exact source, role, and target only for the current selected connection.
+- A geometric edge midpoint is not necessarily empty Canvas space. Place contextual chrome against canonical visual node rectangles and retain a quiet leader back to the original midpoint when displaced.
+- Leafer-rendered nodes are not DOM elements. Browser overlap tests must map persisted DTOs through the same node presentation geometry used by the renderer instead of querying invented `.canvas-node` selectors or trusting stored heights.
+- Media fixtures can asynchronously adopt decoded aspect ratios and create unrelated autosave PATCHes. Seed known metadata when the test's contract is zero mutation from a separate inspection interaction.

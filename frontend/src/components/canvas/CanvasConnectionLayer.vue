@@ -5,13 +5,14 @@ import { useCanvasStore } from '../../store/canvas'
 import type { CanvasConnection } from '../../types/canvas'
 import type { CanvasGenerationProvenance } from '../../modules/canvas/generation-lineage'
 import { buildConnectionPath, normalizeViewport, surfaceToWorld, type Point } from './canvas-geometry'
-import { worldToSurface } from './canvas-geometry'
 import { findNearestConnectionTarget } from './canvas-connection-target'
 import {
   createEdgeInsertionCommand,
   resolveEdgeInsertionOptions,
 } from '../../modules/canvas/edge-insertion'
 import CanvasEdgeInsertionMenu from './CanvasEdgeInsertionMenu.vue'
+import { resolveCanvasConnectionPresentation } from './canvas-connection-presentation'
+import { resolveCanvasEdgeIdentityPlacement } from './canvas-edge-identity-placement'
 
 export interface CanvasConnectionPath {
   active?: boolean
@@ -48,20 +49,39 @@ const selectedPath = computed(() => props.paths.find(
   (path) => path.id === canvasStore.selectedConnectionId,
 ) ?? null)
 const handleRadius = computed(() => 6 / viewport.value.zoom)
-const insertionContext = computed(() => {
+const selectedEdgeContext = computed(() => {
   const path = selectedPath.value
-  if (!path || props.readonly) return null
+  if (!path) return null
   const source = canvasStore.findNodeById(path.connection.from)
   const target = canvasStore.findNodeById(path.connection.to)
   if (!source || !target) return null
+  const midpoint = { x: (path.source.x + path.target.x) / 2, y: (path.source.y + path.target.y) / 2 }
+  const placement = resolveCanvasEdgeIdentityPlacement(midpoint, canvasStore.nodes, viewport.value)
+  return {
+    path,
+    source,
+    target,
+    midpoint,
+    placement,
+    surface: placement.position,
+    presentation: resolveCanvasConnectionPresentation(path.connection, source, target),
+  }
+})
+const insertionContext = computed(() => {
+  const context = selectedEdgeContext.value
+  if (!context || props.readonly) return null
+  const { path, source, target, midpoint, surface } = context
   const options = resolveEdgeInsertionOptions(source, target, path.connection)
   if (!options.length) return null
-  const midpoint = { x: (path.source.x + path.target.x) / 2, y: (path.source.y + path.target.y) / 2 }
-  return { path, source, target, options, midpoint, surface: worldToSurface(midpoint, viewport.value) }
+  return { path, source, target, options, midpoint, surface }
 })
-const insertionButtonStyle = computed(() => {
-  const context = insertionContext.value
-  return context ? { left: `${context.surface.x}px`, top: `${context.surface.y}px` } : null
+const selectedEdgeStyle = computed(() => {
+  const context = selectedEdgeContext.value
+  if (!context) return null
+  return {
+    left: `clamp(162px, ${context.surface.x}px, calc(100% - 162px))`,
+    top: `clamp(24px, ${context.surface.y}px, calc(100% - 24px))`,
+  }
 })
 const insertionMenuStyle = computed(() => {
   const context = insertionContext.value
@@ -272,14 +292,38 @@ onBeforeUnmount(stopReroute)
       </template>
     </g>
   </svg>
-  <button
-    v-if="insertionContext && !isInsertionMenuOpen"
-    type="button"
-    class="edge-insertion-trigger"
-    :style="insertionButtonStyle"
-    aria-label="在连线中插入节点"
-    @click.stop="openInsertionMenu"
-  >+</button>
+  <svg
+    v-if="selectedEdgeContext?.placement.isDisplaced"
+    class="edge-identity-leader"
+    aria-hidden="true"
+  >
+    <line
+      :x1="selectedEdgeContext.placement.origin.x"
+      :y1="selectedEdgeContext.placement.origin.y"
+      :x2="selectedEdgeContext.placement.position.x"
+      :y2="selectedEdgeContext.placement.position.y"
+      vector-effect="non-scaling-stroke"
+    />
+  </svg>
+  <section
+    v-if="selectedEdgeContext"
+    class="selected-edge-identity"
+    :style="selectedEdgeStyle"
+    role="group"
+    :aria-label="selectedEdgeContext.presentation.accessibleLabel"
+  >
+    <strong>{{ selectedEdgeContext.presentation.roleLabel }}</strong>
+    <span class="edge-identity-title" :title="selectedEdgeContext.presentation.sourceTitle">{{ selectedEdgeContext.presentation.sourceTitle }}</span>
+    <span class="edge-identity-arrow" aria-hidden="true">→</span>
+    <span class="edge-identity-title" :title="selectedEdgeContext.presentation.targetTitle">{{ selectedEdgeContext.presentation.targetTitle }}</span>
+    <button
+      v-if="insertionContext && !isInsertionMenuOpen"
+      type="button"
+      class="edge-insertion-trigger"
+      aria-label="在连线中插入节点"
+      @click.stop="openInsertionMenu"
+    >+</button>
+  </section>
   <CanvasEdgeInsertionMenu
     v-if="isInsertionMenuOpen && insertionContext"
     :options="insertionContext.options"
@@ -301,10 +345,19 @@ onBeforeUnmount(stopReroute)
 .connection-hit { fill: none; stroke: transparent; stroke-width: 16; outline: none; pointer-events: stroke; cursor: pointer; }
 .connection-hit:focus-visible { stroke: color-mix(in oklch, var(--accent-select) 18%, transparent); outline: none; }
 .connection-arrow { fill: var(--border-strong); pointer-events: none; }
+.edge-identity-leader { position: absolute; inset: 0; z-index: 5; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.edge-identity-leader line { stroke: color-mix(in oklch, var(--accent-select) 44%, var(--border-strong)); stroke-width: 1; stroke-dasharray: 2 3; }
 .connection-handle { fill: var(--bg-panel); stroke: var(--accent-select); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: all; cursor: crosshair; }
 .connection-handle:focus-visible { outline: none; stroke: white; stroke-width: 3; }
-.edge-insertion-trigger { position: absolute; z-index: 6; display: grid; width: 24px; height: 24px; padding: 0; place-items: center; border: 1px solid var(--accent-select); border-radius: 50%; color: var(--v2-text-primary); background: var(--bg-panel); box-shadow: var(--shadow-soft); font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1; cursor: pointer; transform: translate(-50%, -50%); }
+.selected-edge-identity { position: absolute; z-index: 6; display: flex; width: max-content; max-width: min(300px, calc(100% - 24px)); min-height: 32px; align-items: center; gap: 5px; padding: 4px 5px 4px 8px; overflow: hidden; border: 1px solid color-mix(in oklch, var(--accent-select) 36%, var(--border-subtle)); border-radius: var(--radius-lg); color: var(--v2-text-secondary); background: var(--bg-panel); box-shadow: var(--shadow-soft); font-size: 10px; line-height: 1.25; pointer-events: none; transform: translate(-50%, -50%); animation: edge-identity-in 120ms cubic-bezier(0.16, 1, 0.3, 1); }
+.selected-edge-identity strong { flex: none; padding: 3px 5px; border-radius: var(--radius-sm); color: var(--v2-text-primary); background: color-mix(in oklch, var(--accent-select) 16%, transparent); font-size: 9px; font-weight: 650; white-space: nowrap; }
+.edge-identity-title { min-width: 0; max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.edge-identity-arrow { flex: none; color: var(--accent-select); }
+.edge-insertion-trigger { position: relative; display: grid; flex: none; width: 24px; height: 24px; padding: 0; place-items: center; border: 1px solid var(--accent-select); border-radius: 50%; color: var(--v2-text-primary); background: var(--bg-panel); font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1; pointer-events: auto; cursor: pointer; transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms ease-out; }
+.edge-insertion-trigger::before { position: absolute; width: 40px; height: 40px; content: ''; }
+.edge-insertion-trigger:active { transform: scale(0.96); }
 .edge-insertion-trigger:focus-visible { outline: 2px solid var(--v2-focus-ring, var(--accent-select)); outline-offset: 2px; }
 @media (hover: hover) { .edge-insertion-trigger:hover { color: white; background: var(--accent-select); } }
-@media (prefers-reduced-motion: reduce) { .connection-line, .connection-handle { transition: none; } }
+@keyframes edge-identity-in { from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .connection-line, .connection-handle, .edge-insertion-trigger { transition: none; } .selected-edge-identity { animation: none; } }
 </style>
