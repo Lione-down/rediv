@@ -677,3 +677,4 @@ Evidence:
 - Provider success proves transaction completion, not visual fidelity. Medium, observable identity or geometry, wardrobe or objects, palette or materials, and cross-panel consistency require a separate Human verdict on authorized real output.
 - Overlay collision costs are not interchangeable. Other-node visible content is hard occupancy; selected-node composer and keyframe surfaces are secondary constraints; proximity decides only after both overlap classes.
 - Rebuild frontend `dist` before preview-backed Playwright. Source-import unit tests can pass while the browser still executes an older bundle and appears to omit a newly added request field.
+- A provider HTTP 503 before a result URL is availability evidence only. It cannot validate or reject prompt fidelity, reference compatibility, medium preservation, or identity consistency; retain redacted metadata and stop at the authorized call limit.

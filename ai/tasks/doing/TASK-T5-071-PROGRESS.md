@@ -1,7 +1,7 @@
 # TASK-T5-071 Progress
 
-- Task state: `BLOCKED`
-- Active unit: all offline implementation and literal geometry/persistence evidence complete; the same Human authorization gate has remained unresolved through three consecutive goal turns.
+- Task state: `VERIFYING`
+- Active unit: the authorized three-request Agnes batch was executed safely, but provider 503 responses produced no images for Human fidelity review.
 
 ## Completed work
 
@@ -22,14 +22,19 @@
 - Audited the toolbar acceptance literally: desktop measures actual toolbar and both result bounds at zero intersection; 920px compact preserves drawer ownership with zero toolbar instances and two visible result surfaces.
 - Separated document and viewport persistence evidence. The drawer-safe compact fixture emits neither document PATCH nor viewport PATCH on selection, while the desktop fixture also remains mutation-free.
 - Waited for the compact drawer's final 360px geometry before screenshot and assertions, avoiding transition-frame false evidence.
+- Received explicit Human authorization for a bounded paid Agnes visual batch and confirmed the process credential by name only without reading or printing its value.
+- Added a dry-run-safe, maximum-three-call visual recipe smoke helper with per-case selection, v2 backend prompt resolution, one reference URL, redacted request identity, bounded image download, and local metadata.
+- Replaced inaccessible Wikimedia media redirects after preflight; the final OpenCV and Pillow raw fixtures returned HTTP 200 and valid image content before provider calls.
+- Executed exactly three authorized Agnes image requests: photographic character, illustrated character, and photographic scene. All three returned provider HTTP 503 before any result URL or image existed.
 
 ## Remaining work
 
-- Obtain an authorized real-service sample plus Human fidelity verdict, or explicit Human acceptance of offline-only closure.
+- After Agnes image generation recovers, obtain renewed bounded-call authorization and rerun the three cases.
+- Retain successful local outputs and collect the Human fidelity verdict against the checklist.
 
 ## Exact next action
 
-Resume only after the Human Owner either authorizes a bounded paid Agnes visual sample for photograph, illustration, and scene references, or explicitly accepts offline-only closure with the provider-capability caveat.
+Wait for Agnes image generation service recovery, then request renewed authorization for the same maximum-three-call batch. Do not retry automatically or exceed the consumed call limit.
 
 ## Files changed
 
@@ -59,8 +64,8 @@ Resume only after the Human Owner either authorizes a bounded paid Agnes visual 
 - Visual evidence: `output/playwright/t5-065-visual-asset-recipes/recipe-flow-toolbar-isolation-1440x900.png` plus refreshed recipe desktop/compact/readonly/failure screenshots.
 - Completion-audit browser gate: PASS, 25/25 across recipe, video/keyframe, compact drawer, readonly, keyboard, and command interactions.
 - Exact compact evidence: `output/playwright/t5-065-visual-asset-recipes/recipe-flow-toolbar-isolation-920x900.png`; stable 360px drawer, zero selection toolbar, two result surfaces, zero document PATCH, zero viewport PATCH.
+- Authorized real-service attempts: `output/agnes/t5-071-20260715T152913Z`, `...T153008Z`, and `...T153021Z`; each metadata file records HTTP 503, zero successful cases, and no credential value.
 
 ## Blockers
 
-- Final visual-fidelity acceptance requires explicit authorization for paid Agnes samples and a Human verdict, or explicit Human acceptance of offline-only closure.
-- Blocked audit: this identical release condition persisted across the implementation handoff, the completion-audit continuation, and the current third audit. No further mock, prompt-only, or browser-only work can prove the missing real-service fidelity claim.
+- Provider execution blocker: three distinct v2 cases returned HTTP 503 from the Agnes image endpoint; zero outputs were created, so visual fidelity remains untestable. Release condition is provider recovery plus renewed bounded-call authorization.

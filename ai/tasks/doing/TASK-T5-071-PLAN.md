@@ -1,6 +1,6 @@
 # TASK-T5-071 Plan
 
-- State: `BLOCKED`
+- State: `VERIFYING`
 - Objective: add exact recipe-version transport and fidelity-first v2 prompts, and isolate recipe-flow contextual controls from neighboring node content, while preserving v1 retries and honest Human visual acceptance.
 
 ## Design thesis
@@ -21,6 +21,7 @@
 8. Run focused and related offline suites, build, browser evidence, skill validation, diff, encoding, file-size, and sensitive-path checks.
 9. Leave the Task `VERIFYING` until an authorized real Agnes sample receives a Human verdict, unless the Human Owner explicitly accepts offline-only closure.
 10. Audit required evidence literally: measure recipe-flow toolbar isolation at both 1440px and 920px after compact drawer handoff, and distinguish document from viewport persistence requests.
+11. After explicit Human authorization, run one bounded three-sample Agnes recipe batch with public non-sensitive references, retain redacted local evidence, and request a separate Human fidelity verdict.
 
 ## Invariants
 
