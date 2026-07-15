@@ -22,6 +22,7 @@ import { useProjectStore } from '../../modules/project/store'
 import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
 import { createArrangeGenerationLineageCommand } from '../../modules/canvas/generation-lineage-arrangement'
+import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
 
 type MoveDirection = -1 | 1
 interface CanvasStageHandle { arrangeSelectedProvenanceTrace: () => boolean; fitSelectedProvenanceTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
@@ -130,6 +131,13 @@ const canFitProvenanceTrace = computed(() => Boolean(
     selectedGenerationContext.value?.provenance.length ||
     resolveGenerationResultVariants(selectedNode.value, canvasDocumentStore.nodes, canvasDocumentStore.connections).length
   )),
+))
+const selectedGenerationInputLineage = computed(() => (
+  selectedNode.value && selectedMediaType.value
+    ? resolveGenerationInputLineageBridges(
+        selectedNode.value, canvasDocumentStore.nodes, canvasDocumentStore.connections,
+      )
+    : []
 ))
 const canArrangeProvenanceTrace = computed(() => Boolean(
   !isReviewOnly.value && selectedNode.value && createArrangeGenerationLineageCommand(
@@ -426,6 +434,7 @@ onBeforeUnmount(() => {
           :is-generating="isGenerating"
           :latest-task="latestTask"
           :generation-context="selectedGenerationContext"
+          :generation-input-lineage="selectedGenerationInputLineage"
           :generation-tasks="resourceStore.tasks"
           :media-type="selectedMediaType"
           :result-lineage="selectedResultLineage"
@@ -504,6 +513,7 @@ onBeforeUnmount(() => {
               :is-generating="isGenerating"
               :latest-task="latestTask"
               :generation-context="selectedGenerationContext"
+              :generation-input-lineage="selectedGenerationInputLineage"
               :generation-tasks="resourceStore.tasks"
               :media-type="selectedMediaType"
               :result-lineage="selectedResultLineage"

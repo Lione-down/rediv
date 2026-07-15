@@ -9,6 +9,7 @@ import { canBranchFromImageResult, type ResultBranchMediaType } from '../../modu
 import { useCanvasStore } from '../../store/canvas'
 import type { CanvasNode } from '../../types/canvas'
 import { formatCapturedFrameTime, resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
+import type { GenerationInputLineageBridge } from '../../modules/canvas/generation-input-lineage'
 
 const props = withDefaults(defineProps<{
   error?: string
@@ -16,6 +17,7 @@ const props = withDefaults(defineProps<{
   canArrangeTrace?: boolean
   canFitTrace?: boolean
   generationContext?: ResolvedGenerationContext | null
+  generationInputLineage?: GenerationInputLineageBridge[]
   generationTasks?: ProjectGenerationTask[]
   isGenerating?: boolean
   latestTask?: ProjectGenerationTask | null
@@ -32,6 +34,7 @@ const props = withDefaults(defineProps<{
   canArrangeTrace: false,
   canFitTrace: false,
   generationContext: null,
+  generationInputLineage: () => [],
   generationTasks: () => [],
   isGenerating: false,
   latestTask: null,
@@ -73,6 +76,9 @@ const includedMediaSources = computed(() => (
 const excludedMediaSources = computed(() => (
   props.generationContext?.mediaSources.filter((source) => source.state !== 'included') ?? []
 ))
+const inputLineageByConnectionId = computed(() => new Map(
+  props.generationInputLineage.map((bridge) => [bridge.connectionId, bridge]),
+))
 const runHistory = computed(() => resolveGenerationRunHistory(props.node.id, props.generationTasks, 5, {
   connections: canvasStore.connections,
   nodes: canvasStore.nodes,
@@ -109,6 +115,16 @@ function mediaRequestRole(requestOrder: number | null) {
   if (props.mediaType === 'image') return `参考图 R${order}`
   if (includedMediaSources.value.length === 1) return '图生视频参考 R1'
   return `视频关键帧 R${order}`
+}
+
+function mediaSourceState(connectionId: string, state: keyof typeof mediaStateLabel) {
+  const bridge = inputLineageByConnectionId.value.get(connectionId)
+  return bridge ? `来自 ${bridge.generationTitle} · V${bridge.variantOrder}` : mediaStateLabel[state]
+}
+
+function mediaSourceAriaLabel(connectionId: string, title: string) {
+  const bridge = inputLineageByConnectionId.value.get(connectionId)
+  return `定位到画布：${title}${bridge ? `，来自 ${bridge.generationTitle} V${bridge.variantOrder}` : ''}`
 }
 
 function canMoveInput(connectionId: string, kind: 'text' | 'media', direction: -1 | 1) {
@@ -174,7 +190,7 @@ function requestGeneration() {
             </span>
           </li>
           <li v-for="source in generationContext.mediaSources" :key="`media-${source.nodeId}`" :class="{ muted: source.state !== 'included' }">
-            <button type="button" class="context-node-link" :aria-label="`定位到画布：${source.title}`" @click="emit('locateNode', source.nodeId)"><Image :size="13" aria-hidden="true" /><span><strong>参考图 {{ source.requestOrder ?? source.order }} · {{ source.title }}</strong><small>{{ mediaStateLabel[source.state] }}</small></span><ArrowRight :size="13" aria-hidden="true" /></button>
+            <button type="button" class="context-node-link" :aria-label="mediaSourceAriaLabel(source.connectionId, source.title)" @click="emit('locateNode', source.nodeId)"><Image :size="13" aria-hidden="true" /><span><strong>参考图 {{ source.requestOrder ?? source.order }} · {{ source.title }}</strong><small>{{ mediaSourceState(source.connectionId, source.state) }}</small></span><ArrowRight :size="13" aria-hidden="true" /></button>
             <span v-if="!readonly" class="input-order-actions">
               <button type="button" :disabled="!canMoveInput(source.connectionId, 'media', -1)" :aria-label="`上移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
               <button type="button" :disabled="!canMoveInput(source.connectionId, 'media', 1)" :aria-label="`下移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>

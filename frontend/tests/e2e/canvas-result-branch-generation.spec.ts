@@ -7,17 +7,43 @@ import {
   FIRST_CANVAS_ID,
   openResourceWorkspace,
   PROJECT_ID,
+  type ResourceMockState,
 } from './canvas-resource-generation-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-032-result-branch')
+const bridgeEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-056-generation-input-lineage')
 
 async function selectNode(page: import('@playwright/test').Page, title: string) {
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
-  await page.getByRole('button', { name: `选择并定位 ${title}` }).click()
+  await page.getByRole('button', { name: `选择并定位 ${title}`, exact: true }).click()
+}
+
+function addEarlierVariant(state: ResourceMockState) {
+  const document = state.documents[FIRST_CANVAS_ID]
+  const existingResult = document.nodes.find((item) => item.id === 'result-existing')!
+  const existingResultEdge = document.connections.find((item) => item.target_node_id === existingResult.id)!
+  document.nodes.push({
+    ...existingResult,
+    id: 'result-earlier-variant',
+    content: {
+      ...(existingResult.content as Record<string, unknown>),
+      asset_id: 'asset-earlier-variant',
+      title: '更早的封面版本',
+      url: 'https://media.revid.test/earlier-variant.png',
+    },
+    position_x: existingResult.position_x,
+    position_y: existingResult.position_y + 260,
+  })
+  document.connections.unshift({
+    ...existingResultEdge,
+    id: 'connection-earlier-variant',
+    target_node_id: 'result-earlier-variant',
+  })
 }
 
 test('image result branches into a request-ready video workflow and playable result', async ({ page }) => {
   const state = createResourceMockState()
+  addEarlierVariant(state)
   const initialVideoQuota = state.quotas.video
   await openResourceWorkspace(page, state)
   await selectNode(page, '历史图片生成结果')
@@ -42,6 +68,10 @@ test('image result branches into a request-ready video workflow and playable res
   const editor = page.locator('.generation-editor')
   await expect(editor).toBeVisible()
   await expect(editor.locator('.connected-context')).toContainText('历史图片生成结果')
+  await expect(editor.locator('.connected-context')).toContainText('来自 封面生成 · V2')
+  await expect(page.locator('.generation-source-provenance')).toContainText('R1 · V2')
+  await mkdir(bridgeEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(bridgeEvidenceDirectory, 'chained-v2-to-r1-1440x900.png'), fullPage: true })
 
   await page.locator('.workspace-stage').focus()
   await page.keyboard.press('Control+z')
@@ -83,6 +113,13 @@ test('image result branches into a request-ready video workflow and playable res
   await page.reload()
   expect(state.documents[FIRST_CANVAS_ID].nodes.some((item) => item.id === generationNode.id)).toBe(true)
   expect(state.documents[FIRST_CANVAS_ID].nodes.some((item) => item.id === result.id)).toBe(true)
+  await selectNode(page, '视频生成')
+  await expect(page.locator('.generation-editor .connected-context')).toContainText('来自 封面生成 · V2')
+  await expect(page.locator('.generation-source-provenance')).toContainText('R1 · V2')
+  await page.getByRole('button', {
+    name: '定位到画布：历史图片生成结果，来自 封面生成 V2',
+  }).click()
+  await expect(page.locator('.result-lineage-detail')).toContainText('V2 / 2')
   await selectNode(page, String((result.content as Record<string, unknown>).title))
   await expect(page.locator('.result-lineage-detail')).toContainText('task-success')
 })
@@ -120,6 +157,53 @@ test('920px result branch disclosure and generation drawer stay in bounds', asyn
   expect(box!.x + box!.width).toBeLessThanOrEqual(920)
   await branch.getByRole('button', { name: /图片生成/ }).click()
   await expect(page.locator('.generation-editor')).toBeVisible()
+  await expect(page.locator('.generation-source-provenance')).toContainText('R1 · V1')
   const drawerBox = await page.locator('.n-drawer:visible').boundingBox()
   expect(drawerBox?.width).toBeLessThanOrEqual(360)
+  await mkdir(bridgeEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(bridgeEvidenceDirectory, 'compact-v1-to-r1-920x900.png'), fullPage: true })
+  await page.getByRole('textbox', { name: '生成提示词' }).fill('保留海岸构图，增强远处雾气层次。')
+  await page.getByRole('button', { name: '开始图片生成' }).click()
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/image-generate').length).toBe(1)
+  expect(state.requests.find((item) => item.path === '/api/image-generate')?.body).toEqual({
+    project_id: PROJECT_ID,
+    origin_canvas_id: FIRST_CANVAS_ID,
+    canvas_node_id: expect.any(String),
+    prompt: '保留海岸构图，增强远处雾气层次。',
+    image_ids: ['asset-generated'],
+  })
+})
+
+test('375px readonly downstream generation preserves the V2 to R1 bridge without mutation', async ({ page }) => {
+  const state = createResourceMockState()
+  addEarlierVariant(state)
+  const document = state.documents[FIRST_CANVAS_ID]
+  const sourceGeneration = document.nodes.find((item) => item.id === 'generation-cover')!
+  document.nodes.push({
+    ...sourceGeneration,
+    id: 'generation-downstream',
+    content: {
+      subtype: 'video', serialization_version: 1, title: '续写动态镜头', text: '保持海岸雾气并缓慢推进。',
+    },
+    position_x: 1380,
+    position_y: 240,
+  })
+  const resultEdge = document.connections.find((item) => item.target_node_id === 'result-existing')!
+  document.connections.push({
+    ...resultEdge,
+    id: 'connection-downstream-result',
+    source_node_id: 'result-existing',
+    target_node_id: 'generation-downstream',
+    target_port: 'media',
+    metadata: { input_order: 1 },
+  })
+
+  await openResourceWorkspace(page, state, { width: 375, height: 812 })
+  await selectNode(page, '续写动态镜头')
+  await expect(page.locator('.generation-source-provenance')).toContainText('R1 · V2')
+  await expect(page.locator('.generation-editor .connected-context')).toContainText('来自 封面生成 · V2')
+  await expect(page.getByRole('button', { name: '开始视频生成' })).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
+  await mkdir(bridgeEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(bridgeEvidenceDirectory, 'readonly-v2-to-r1-375x812.png'), fullPage: true })
 })

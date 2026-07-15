@@ -65,6 +65,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 53 | T5-053 | Selected edge semantic identity | DONE - PASS | T5-052 |
 | 54 | T5-054 | Ordered multi-generation edge identity | DONE - PASS | T5-053 |
 | 55 | T5-055 | Arrange authoritative generation lineage | DONE - PASS | T5-054 |
+| 56 | T5-056 | Chained generation input lineage bridge | DONE - PASS | T5-055 |
 
 ## Task Boundaries
 
@@ -181,6 +182,8 @@ T5-053 is `DONE - PASS`. One selected connection now exposes contextual prompt, 
 T5-054 is `DONE - PASS`. Selected generation connections now expose exact authoritative T/R/V order and excluded state, synchronized with provider context, persisted input order, and canonical result lineage across desktop, compact, reload, and readonly review. `REPORT-T5-054.md` is authoritative evidence.
 
 T5-055 is `DONE - PASS`. One selected generation or canonical result can explicitly arrange its exact movable T/R-to-G-to-V family into ordered, real-height-aware columns through one reversible command without moving exclusions or unrelated nodes. `REPORT-T5-055.md` is authoritative evidence.
+
+T5-056 is `DONE - PASS`. A generated result used by a later generation now exposes exact downstream R and canonical upstream G/V identity in the existing Canvas and inspector provenance vocabulary, while provider behavior and invalid-state honesty remain unchanged. `REPORT-T5-056.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

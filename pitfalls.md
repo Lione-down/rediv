@@ -553,3 +553,11 @@ Evidence:
 - Never move a partial family and imply it was fully organized. If any participating node is locked, grouped, or unsupported, hide the contextual action rather than skipping that node.
 - Arrangement and camera fitting are separate user intents. Persist one graph command without viewport mutation, then let the existing explicit fit action reveal the whole family when requested.
 - Playwright against `vite preview` validates the last production build. Rebuild after UI source changes or a correct implementation will appear absent in browser tests.
+
+## 2026-07-15 Chained generation input lineage
+
+- A generated result can have two simultaneous local roles: upstream Vn and downstream Rn. Showing only the downstream role makes multi-generation workflows look like unrelated uploads.
+- Do not infer ancestry from `asset_id`, title, node position, or source metadata alone. Compose downstream inclusion from generation context with upstream identity from canonical result lineage.
+- Invalid upstream lineage and excluded downstream input are independent rejection gates. A bridge exists only when both sides are authoritative.
+- Keep ancestry local and selection-scoped. `Rn · Vn` plus one `来自 G · Vn` line explains the handoff without recursively flooding the Canvas with every ancestor.
+- Result-branch tests can create names where one node title prefixes another. Use exact accessible-name matching or strict Playwright locators will correctly reject ambiguous navigation.

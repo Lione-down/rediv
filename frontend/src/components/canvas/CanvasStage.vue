@@ -33,6 +33,7 @@ import { moveSelectionGenerationInput, resolveSelectionGenerationIntent, type Se
 import { resolveCanvasNodeContinuationTrigger } from './canvas-node-continuation-trigger'
 import { resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
 import { createArrangeGenerationLineageCommand } from '../../modules/canvas/generation-lineage-arrangement'
+import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
 
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; readonly?: boolean; resourcesOpen?: boolean
@@ -172,11 +173,23 @@ const generationProvenance = computed(() => {
   }
   return selectedResultLineage.value ? resultLineageProvenance(selectedResultLineage.value) : []
 })
+const generationInputLineageByConnectionId = computed(() => {
+  const selectedNode = canvasStore.selectedNode
+  const generationNode = selectedNode && getGenerationMediaType(selectedNode)
+    ? selectedNode
+    : selectedResultLineage.value
+      ? canvasStore.findNodeById(selectedResultLineage.value.generationNodeId)
+      : null
+  return new Map((generationNode
+    ? resolveGenerationInputLineageBridges(generationNode, canvasStore.nodes, canvasStore.connections)
+    : []
+  ).map((bridge) => [bridge.connectionId, bridge]))
+})
 const provenanceSources = computed(() => generationProvenance.value.filter(
   (entry) => entry.kind !== 'result',
 ).flatMap((entry) => {
   const node = canvasStore.findNodeById(entry.nodeId)
-  return node ? [{ ...entry, node }] : []
+  return node ? [{ ...entry, node, inputLineage: generationInputLineageByConnectionId.value.get(entry.connectionId) ?? null }] : []
 }))
 const lineageNodes = computed(() => {
   const lineage = selectedResultLineage.value
@@ -426,7 +439,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :style="surfaceNodeRectStyle(source.node)"
         aria-hidden="true"
       >
-        <span>{{ source.kind === 'text' ? 'T' : 'R' }}{{ source.isIncluded ? source.order : '×' }}</span>
+        <span>{{ source.kind === 'text' ? 'T' : 'R' }}{{ source.isIncluded ? source.order : '×' }}<template v-if="source.inputLineage"> · V{{ source.inputLineage.variantOrder }}</template></span>
       </div>
 
       <div

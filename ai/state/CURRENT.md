@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-055 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-056 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-055 - Arrange authoritative generation lineage` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-055.md`
+- Most recently completed: `T5-056 - Chained generation input lineage bridge` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-056.md`
 
 ## Current Verified Facts
 
@@ -84,6 +84,7 @@ Last updated: 2026-07-15
 - T5-053 is now `DONE - PASS`: selecting one edge exposes a quiet semantic identity for prompt, reference, result, or generic data flow without labeling every connection. Collision-aware placement avoids Canvas nodes, a leader preserves midpoint ownership, insertion stays integrated, and readonly stays passive. Build, focused 3/3, related 56/56, desktop/compact/readonly visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-053.md`.
 - T5-054 is now `DONE - PASS`: selected generation edges expose exact authoritative `Tn`, `Rn`, and `Vn` identity plus excluded state. Reordered persisted inputs match provider prompt/reference context, result roles match canonical lineage, reload stays stable, and inspection remains mutation-free. Build, focused 5/5, related 69/69, desktop/compact/readonly visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-054.md`.
 - T5-055 is now `DONE - PASS`: one selected generation or canonical result can explicitly arrange its exact movable T/R-to-G-to-V family into ordered non-overlapping columns through one reversible command. Exclusions, unrelated nodes, selection, viewport, provider order, compact handoff, and readonly safety remain intact. Build, focused 21/21, related 66/66, desktop/compact/readonly visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-055.md`.
+- T5-056 is now `DONE - PASS`: a canonical generated result used by a later generation retains exact downstream R and upstream G/V identity through one authoritative bridge resolver. Image/video payloads, reload, navigation, compact/readonly presentation, and zero inspection mutation passed build, focused 6/6, related 50/50, and three-viewport visual gates. Final report: `ai/reports/REPORT-T5-056.md`.
 
 ## Exact Next Action
 
