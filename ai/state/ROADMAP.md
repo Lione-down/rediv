@@ -185,6 +185,8 @@ T5-055 is `DONE - PASS`. One selected generation or canonical result can explici
 
 T5-056 is `DONE - PASS`. A generated result used by a later generation now exposes exact downstream R and canonical upstream G/V identity in the existing Canvas and inspector provenance vocabulary, while provider behavior and invalid-state honesty remain unchanged. `REPORT-T5-056.md` is authoritative evidence.
 
+T5-057 is `DONE - PASS`. It verifies a real two-origin result merge and adds independent inspector navigation from each downstream reference row to its authoritative origin generation without recursive ancestry or provider changes. `REPORT-T5-057.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

@@ -561,3 +561,10 @@ Evidence:
 - Invalid upstream lineage and excluded downstream input are independent rejection gates. A bridge exists only when both sides are authoritative.
 - Keep ancestry local and selection-scoped. `Rn · Vn` plus one `来自 G · Vn` line explains the handoff without recursively flooding the Canvas with every ancestor.
 - Result-branch tests can create names where one node title prefixes another. Use exact accessible-name matching or strict Playwright locators will correctly reject ambiguous navigation.
+
+## 2026-07-15 Multi-origin chained generation navigation
+
+- Provenance text inside a source-result button does not make the origin generation independently navigable. Keep result and origin as separate interactive targets rather than nesting buttons.
+- Reuse the responsive node-location handoff for secondary lineage links. A new selection path can otherwise leave compact drawer masks open or diverge from readonly behavior.
+- Multi-origin proof must combine resolver identity, rendered `Rn · Vn`, exact provider asset order, and navigation to each distinct generation. A single chained source cannot prove merge behavior.
+- Browser tests against preview need a production rebuild after UI source changes; repeated missing-element failures can otherwise be stale-bundle evidence rather than product evidence.

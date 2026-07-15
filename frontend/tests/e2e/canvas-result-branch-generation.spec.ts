@@ -12,6 +12,7 @@ import {
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-032-result-branch')
 const bridgeEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-056-generation-input-lineage')
+const multiOriginEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-057-multi-origin-navigation')
 
 async function selectNode(page: import('@playwright/test').Page, title: string) {
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
@@ -40,6 +41,77 @@ function addEarlierVariant(state: ResourceMockState) {
     target_node_id: 'result-earlier-variant',
   })
 }
+
+function addTwoOriginMerge(state: ResourceMockState) {
+  addEarlierVariant(state)
+  const document = state.documents[FIRST_CANVAS_ID]
+  const sourceGeneration = document.nodes.find((item) => item.id === 'generation-cover')!
+  const sourceResult = document.nodes.find((item) => item.id === 'result-existing')!
+  const sourceEdge = document.connections.find((item) => item.target_node_id === sourceResult.id)!
+  document.nodes.push(
+    {
+      ...sourceGeneration,
+      id: 'generation-second-origin',
+      content: { subtype: 'image', serialization_version: 1, title: '第二镜头生成', text: '远景海岸。' },
+      position_x: 540,
+      position_y: 520,
+    },
+    {
+      ...sourceResult,
+      id: 'result-second-origin',
+      content: {
+        ...(sourceResult.content as Record<string, unknown>),
+        asset_id: 'asset-second-origin', source_task_id: 'task-second-origin',
+        title: '第二镜头结果', url: 'https://media.revid.test/second-origin.png',
+      },
+      position_x: 980,
+      position_y: 520,
+    },
+    {
+      ...sourceGeneration,
+      id: 'generation-two-origin-merge',
+      content: { subtype: 'image', serialization_version: 1, title: '双源合并生成', text: '融合两个海岸镜头。' },
+      position_x: 1420,
+      position_y: 300,
+    },
+  )
+  document.connections.push(
+    { ...sourceEdge, id: 'connection-second-origin-result', source_node_id: 'generation-second-origin', target_node_id: 'result-second-origin', metadata: { source_task_id: 'task-second-origin' } },
+    { ...sourceEdge, id: 'connection-merge-first', source_node_id: 'result-existing', target_node_id: 'generation-two-origin-merge', target_port: 'media', metadata: { input_order: 1 } },
+    { ...sourceEdge, id: 'connection-merge-second', source_node_id: 'result-second-origin', target_node_id: 'generation-two-origin-merge', target_port: 'media', metadata: { input_order: 2 } },
+  )
+  state.assets.push({
+    ...state.assets.find((item) => item.id === 'asset-generated')!,
+    id: 'asset-second-origin', canvas_node_id: 'generation-second-origin',
+    url: 'https://media.revid.test/second-origin.png', source_task_id: 'task-second-origin',
+  })
+}
+
+test('two-origin merge exposes independent R V identity and origin navigation', async ({ page }) => {
+  const state = createResourceMockState()
+  addTwoOriginMerge(state)
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '双源合并生成')
+
+  await expect(page.locator('.generation-source-provenance', { hasText: 'R1 · V2' })).toHaveCount(1)
+  await expect(page.locator('.generation-source-provenance', { hasText: 'R2 · V1' })).toHaveCount(1)
+  const editor = page.locator('.generation-editor')
+  await expect(editor.getByRole('button', { name: '定位到上游生成：封面生成 V2' })).toBeVisible()
+  await expect(editor.getByRole('button', { name: '定位到上游生成：第二镜头生成 V1' })).toBeVisible()
+  await mkdir(multiOriginEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(multiOriginEvidenceDirectory, 'two-origin-merge-1440x900.png'), fullPage: true })
+
+  await editor.getByRole('textbox').fill('融合两个海岸镜头并保持低饱和。')
+  await editor.locator('.generate-button').click()
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/image-generate').length).toBe(1)
+  expect(state.requests.find((item) => item.path === '/api/image-generate')?.body).toEqual(expect.objectContaining({
+    image_ids: ['asset-generated', 'asset-second-origin'],
+  }))
+
+  await selectNode(page, '双源合并生成')
+  await page.getByRole('button', { name: '定位到上游生成：第二镜头生成 V1' }).click()
+  await expect(page.getByRole('complementary', { name: '节点详情 第二镜头生成' })).toBeVisible()
+})
 
 test('image result branches into a request-ready video workflow and playable result', async ({ page }) => {
   const state = createResourceMockState()
@@ -70,6 +142,7 @@ test('image result branches into a request-ready video workflow and playable res
   await expect(editor.locator('.connected-context')).toContainText('历史图片生成结果')
   await expect(editor.locator('.connected-context')).toContainText('来自 封面生成 · V2')
   await expect(page.locator('.generation-source-provenance')).toContainText('R1 · V2')
+  await expect(editor.getByRole('button', { name: '定位到上游生成：封面生成 V2' })).toBeVisible()
   await mkdir(bridgeEvidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(bridgeEvidenceDirectory, 'chained-v2-to-r1-1440x900.png'), fullPage: true })
 
@@ -116,6 +189,9 @@ test('image result branches into a request-ready video workflow and playable res
   await selectNode(page, '视频生成')
   await expect(page.locator('.generation-editor .connected-context')).toContainText('来自 封面生成 · V2')
   await expect(page.locator('.generation-source-provenance')).toContainText('R1 · V2')
+  await page.getByRole('button', { name: '定位到上游生成：封面生成 V2' }).click()
+  await expect(page.getByRole('complementary', { name: '节点详情 封面生成' })).toBeVisible()
+  await selectNode(page, '视频生成')
   await page.getByRole('button', {
     name: '定位到画布：历史图片生成结果，来自 封面生成 V2',
   }).click()
@@ -162,6 +238,7 @@ test('920px result branch disclosure and generation drawer stay in bounds', asyn
   expect(drawerBox?.width).toBeLessThanOrEqual(360)
   await mkdir(bridgeEvidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(bridgeEvidenceDirectory, 'compact-v1-to-r1-920x900.png'), fullPage: true })
+  await page.screenshot({ path: resolve(multiOriginEvidenceDirectory, 'origin-link-compact-920x900.png'), fullPage: true })
   await page.getByRole('textbox', { name: '生成提示词' }).fill('保留海岸构图，增强远处雾气层次。')
   await page.getByRole('button', { name: '开始图片生成' }).click()
   await expect.poll(() => state.requests.filter((item) => item.path === '/api/image-generate').length).toBe(1)
@@ -202,8 +279,11 @@ test('375px readonly downstream generation preserves the V2 to R1 bridge without
   await selectNode(page, '续写动态镜头')
   await expect(page.locator('.generation-source-provenance')).toContainText('R1 · V2')
   await expect(page.locator('.generation-editor .connected-context')).toContainText('来自 封面生成 · V2')
-  await expect(page.getByRole('button', { name: '开始视频生成' })).toHaveCount(0)
-  expect(documentPatches(state)).toHaveLength(0)
   await mkdir(bridgeEvidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(bridgeEvidenceDirectory, 'readonly-v2-to-r1-375x812.png'), fullPage: true })
+  await page.screenshot({ path: resolve(multiOriginEvidenceDirectory, 'origin-link-readonly-375x812.png'), fullPage: true })
+  await page.getByRole('button', { name: '定位到上游生成：封面生成 V2' }).click()
+  await expect(page.locator('.n-drawer:visible')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '开始视频生成' })).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
 })

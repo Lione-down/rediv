@@ -122,6 +122,10 @@ function mediaSourceState(connectionId: string, state: keyof typeof mediaStateLa
   return bridge ? `来自 ${bridge.generationTitle} · V${bridge.variantOrder}` : mediaStateLabel[state]
 }
 
+function mediaSourceLineage(connectionId: string) {
+  return inputLineageByConnectionId.value.get(connectionId)
+}
+
 function mediaSourceAriaLabel(connectionId: string, title: string) {
   const bridge = inputLineageByConnectionId.value.get(connectionId)
   return `定位到画布：${title}${bridge ? `，来自 ${bridge.generationTitle} V${bridge.variantOrder}` : ''}`
@@ -191,6 +195,14 @@ function requestGeneration() {
           </li>
           <li v-for="source in generationContext.mediaSources" :key="`media-${source.nodeId}`" :class="{ muted: source.state !== 'included' }">
             <button type="button" class="context-node-link" :aria-label="mediaSourceAriaLabel(source.connectionId, source.title)" @click="emit('locateNode', source.nodeId)"><Image :size="13" aria-hidden="true" /><span><strong>参考图 {{ source.requestOrder ?? source.order }} · {{ source.title }}</strong><small>{{ mediaSourceState(source.connectionId, source.state) }}</small></span><ArrowRight :size="13" aria-hidden="true" /></button>
+            <button
+              v-if="mediaSourceLineage(source.connectionId)"
+              type="button"
+              class="input-origin-link"
+              :aria-label="`定位到上游生成：${mediaSourceLineage(source.connectionId)!.generationTitle} V${mediaSourceLineage(source.connectionId)!.variantOrder}`"
+              :title="`定位到上游生成：${mediaSourceLineage(source.connectionId)!.generationTitle} V${mediaSourceLineage(source.connectionId)!.variantOrder}`"
+              @click="emit('locateNode', mediaSourceLineage(source.connectionId)!.generationNodeId)"
+            ><GitBranch :size="14" aria-hidden="true" /></button>
             <span v-if="!readonly" class="input-order-actions">
               <button type="button" :disabled="!canMoveInput(source.connectionId, 'media', -1)" :aria-label="`上移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
               <button type="button" :disabled="!canMoveInput(source.connectionId, 'media', 1)" :aria-label="`下移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
@@ -357,6 +369,9 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .connected-context li.muted { color: var(--v2-text-muted); }
 .context-node-link { display: grid; flex: 1; grid-template-columns: 13px minmax(0, 1fr) 13px; width: auto; height: auto; min-height: 40px; align-items: center; gap: 7px; padding: 0; color: inherit; background: transparent; text-align: left; }
 .context-node-link:focus-visible, .lineage-node-link:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
+.input-origin-link { display: grid; flex: none; min-width: 40px; min-height: 40px; place-items: center; border: 1px solid transparent; border-radius: 6px; color: var(--v2-text-muted); background: transparent; }
+.input-origin-link:hover { border-color: var(--v2-border-subtle); color: var(--v2-accent); background: var(--v2-surface-3); }
+.input-origin-link:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 .connected-context li span { display: grid; min-width: 0; gap: 1px; }
 .connected-context li > span:not(.input-order-actions) { flex: 1; }
 .connected-context li strong, .connected-context li small { overflow: hidden; white-space: nowrap; text-overflow: clip; }

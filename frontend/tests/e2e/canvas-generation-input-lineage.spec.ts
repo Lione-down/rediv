@@ -59,6 +59,29 @@ test('chained generation input bridges exact downstream R and upstream G V ident
   }])
 })
 
+test('two distinct upstream generations retain independent downstream R and upstream V identity', () => {
+  const graph = chainedGraph()
+  const generationThree = node('generation-three', 'generation', 'image')
+  const otherResult = node('other-result', 'result', 'image', {
+    asset_id: 'asset-other', source_task_id: 'task-other', source_model: 'agnes-image',
+  })
+  const nodes = [...graph.nodes, generationThree, otherResult]
+  const connections = [
+    ...graph.connections.filter((connection) => connection.id !== 'downstream-upload'),
+    edge('other-result-edge', generationThree.id, otherResult.id, 'in', { source_task_id: 'task-other' }),
+    edge('downstream-other', otherResult.id, graph.generationTwo.id, 'media', { input_order: 2 }),
+  ]
+
+  expect(resolveGenerationInputLineageBridges(graph.generationTwo, nodes, connections)).toEqual([
+    expect.objectContaining({
+      connectionId: 'downstream-result', generationNodeId: 'generation-one', requestOrder: 1, variantOrder: 2,
+    }),
+    expect.objectContaining({
+      connectionId: 'downstream-other', generationNodeId: 'generation-three', requestOrder: 2, variantOrder: 1,
+    }),
+  ])
+})
+
 test('bridge resolver rejects invalid upstream lineage and excluded downstream inputs', () => {
   const graph = chainedGraph()
   const upstream = graph.connections.find((connection) => connection.id === 'variant-edge-2')!
