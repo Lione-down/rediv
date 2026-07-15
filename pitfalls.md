@@ -398,3 +398,11 @@ Evidence:
 - Prompt and media connection order remain independent groups. Backend persistence may return the groups in a different global array order, so tests must assert T and R ordering within their owning port instead of inventing a cross-group order contract.
 - Collision scanning bounded by `occupied node count + 1` is not safe when one node is much taller than the generated node. Derive the terminal candidate from the highest occupied bottom so the final slot is guaranteed to clear every persisted bound.
 - Compact Canvas marquee gestures must start outside identity chrome and overlay panels. A pointer initiated under fixed chrome never reaches the stage, and forcing the click would hide a real interaction constraint rather than validate selection.
+
+## 2026-07-15 Foreground workflow reveal
+
+- Foreground camera intent belongs at the user-action adapter, not in command storage or graph reconciliation; otherwise undo, redo, reload, and background completion can unexpectedly move the viewport.
+- Reveal only after the local command commit and the next Vue reconciliation tick, so node geometry exists before minimum panel-safe translation is calculated.
+- An autosave failure after local commit is not a command failure. Keep the recoverable node selected and visible while explicitly showing unsaved state.
+- Desktop side panels resize the stage, but compact drawers overlay it; only the compact path needs the drawer-safe right inset.
+- Readonly mobile can persist its initial fit viewport during mount. Camera-neutral assertions should record a settled baseline, then verify no additional mutation from unavailable actions.

@@ -9,6 +9,7 @@ import type { CanvasNode } from '../../../types/canvas'
 
 export function useCanvasNodeActions(options: {
   isReviewOnly: Readonly<Ref<boolean>>
+  revealNode?: (nodeId: string) => void
   selectedNode: Readonly<Ref<CanvasNode | null>>
 }) {
   const canvasStore = useCanvasStore()
@@ -27,6 +28,7 @@ export function useCanvasNodeActions(options: {
     if (!command) return
     await canvasStore.dispatchCommand({ source: 'toolbar', command })
     canvasStore.selectNode(command.nodes[0].id)
+    options.revealNode?.(command.nodes[0].id)
   }
 
   return { branchFromResult, reorderGenerationInput }

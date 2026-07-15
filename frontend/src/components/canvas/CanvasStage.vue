@@ -233,6 +233,13 @@ function revealNode(nodeId: string) {
   return true
 }
 
+async function composeAndReveal(mediaType: 'image' | 'video') {
+  const nodeId = await composeGenerationSelection('toolbar', mediaType)
+  if (!nodeId) return
+  await nextTick()
+  revealNode(nodeId)
+}
+
 defineExpose({ revealNode })
 
 function commitNodeContent(nodeId: string, content: string) {
@@ -384,7 +391,7 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         @group="groupSelection('toolbar')"
         @ungroup="ungroupSelection('toolbar')"
         @connect="connectSelection('toolbar')"
-        @compose="composeGenerationSelection('toolbar', $event)"
+        @compose="composeAndReveal"
         @arrange="arrangeSelectionFromToolbar"
         @toggle-lock="toggleLockSelection('toolbar')"
         @delete="deleteSelection('toolbar')"

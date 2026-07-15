@@ -178,18 +178,22 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
     return true
   }
 
-  function composeGenerationSelection(source: CanvasCommandSource, mediaType: SelectionGenerationMediaType) {
-    if (options.isReadOnly()) return false
+  async function composeGenerationSelection(source: CanvasCommandSource, mediaType: SelectionGenerationMediaType) {
+    if (options.isReadOnly()) return null
     const command = createSelectionGenerationCommand(
       canvasStore.selectedNodes, mediaType, undefined, canvasStore.nodes,
     )
     if (!command) {
       announceCommandFeedback('请选择至少两个可直接用于生成的文本或图片节点。')
-      return false
+      return null
     }
     commandFeedback.value = null
-    void canvasStore.dispatchCommand({ source, command }).catch(() => undefined)
-    return true
+    try {
+      await canvasStore.dispatchCommand({ source, command })
+      return command.nodes[0].id
+    } catch {
+      return null
+    }
   }
 
   function handleCommandKeyDown(event: KeyboardEvent) {

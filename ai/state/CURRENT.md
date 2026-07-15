@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-033 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-034 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-033 - Multi-result remix composition` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-033.md`
+- Most recently completed: `T5-034 - Foreground workflow reveal` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-034.md`
 
 ## Current Verified Facts
 
@@ -62,10 +62,11 @@ Last updated: 2026-07-15
 - T5-031 is now `DONE - PASS`: repeated generated results use deterministic collision-aware right-side slots, while only the initiating foreground success minimally translates the panel-safe viewport without changing zoom, selection, or inspector context. Desktop dual panels, 920px drawer, already-visible no-op, background/reload neutrality, focused 10/10, related 47/47, full Chromium 216/216, a 4,800-module build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-031.md`.
 - T5-032 is now `DONE - PASS`: canonical image results can explicitly branch into image or video generation through one collision-aware atomic node-plus-edge command. Exact reference payload, undo/redo, playable video result, lineage, reload, invalid states, readonly behavior, focused 5/5, related 41/41, full Chromium 220/220, a 4,801-module build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-032.md`.
 - T5-033 is now `DONE - PASS`: multiple canonical image results can be selected as explicitly counted historical-result remix inputs, preserving ordered provider references while full-graph placement avoids ordinary and extreme-height occupied bounds. Image/video output, playable media, reload, invalid states, compact/readonly behavior, related 42/42, full Chromium 224/224, post-hardening focused 12/12, a 4,802-module build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-033.md`.
+- T5-034 is now `DONE - PASS`: foreground selection composition and result branching reveal the exact created generation with minimum panel-safe translation while preserving zoom, selection, inspector, history, reload, recovery, and readonly boundaries. Build, focused 4/4, related 50/50, visual, and hygiene gates passed; full Chromium was 228/229 with a separately classified local 200-node performance-threshold variance. Final report: `ai/reports/REPORT-T5-034.md`.
 
 ## Exact Next Action
 
-Select the next bounded Canvas optimization from current evidence; the broader Canvas and node validation goal remains active.
+Continue the broader Canvas/node visual and multi-scene workflow goal with the next bounded Task.
 
 ## Blockers And Human Gates
 

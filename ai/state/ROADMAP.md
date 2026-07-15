@@ -125,6 +125,8 @@ T5-032 is `DONE - PASS`. Canonical image results can create explicit image/video
 
 T5-033 is `DONE - PASS`. Multiple canonical image results now form an explicit source-aware remix selection with independent source counts, ordered image/video requests, full-graph collision-safe placement, extreme-height handling, playable output, reload, invalid-state, compact, readonly, visual, and Chromium evidence. `REPORT-T5-033.md` is authoritative evidence.
 
+T5-034 is `DONE - PASS`. Foreground-created generation workflows use minimum panel-safe camera translation while zoom, selection, inspector, undo/redo, reload, recovery, and background behavior remain stable. `REPORT-T5-034.md` records the classified local performance-gate variance.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

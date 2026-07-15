@@ -144,7 +144,7 @@ function selectComparedResult(nodeId: string) {
   isResultCompareOpen.value = false
   canvasDocumentStore.selectNode(nodeId)
 }
-const { branchFromResult, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode })
+const { branchFromResult, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode, revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId) })
 
 function updateResponsiveBoundaries() {
   isReviewOnly.value = reviewMediaQuery?.matches ?? false
