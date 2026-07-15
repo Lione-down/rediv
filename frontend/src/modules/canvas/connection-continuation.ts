@@ -4,8 +4,8 @@ import type { InsertGraphCommand } from './canvas-commands'
 import { findFirstUnoccupiedPosition } from './graph-placement'
 import {
   createRegistryNodeDraft,
+  getAuthoringConnectionPorts,
   getCreatableNodeDefinitions,
-  getDefaultConnectionPorts,
   type CanonicalNodeType,
 } from './node-registry'
 
@@ -33,8 +33,8 @@ export function resolveConnectionContinuationOptions(
       const ports = definition.ports
         .filter((port) => port.direction === (direction === 'downstream' ? 'input' : 'output'))
         .map((port) => direction === 'downstream'
-          ? getDefaultConnectionPorts(origin, candidate, originPort, port.id)
-          : getDefaultConnectionPorts(candidate, origin, port.id, originPort))
+          ? getAuthoringConnectionPorts(origin, candidate, originPort, port.id)
+          : getAuthoringConnectionPorts(candidate, origin, port.id, originPort))
         .find(Boolean)
       return ports ? [{
         key: `${definition.type}:${subtype.id}:${direction === 'downstream' ? ports.targetPort : ports.sourcePort}`,

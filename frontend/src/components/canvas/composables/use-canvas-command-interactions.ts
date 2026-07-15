@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useCanvasStore } from '../../../store/canvas'
-import { getDefaultConnectionPorts, isNodeMutationSupported } from '../../../modules/canvas/node-registry'
+import { getAuthoringConnectionPorts, isNodeMutationSupported } from '../../../modules/canvas/node-registry'
 import {
   canCreateGenerationFromSelection,
   createSelectionGenerationCommand,
@@ -110,9 +110,9 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
     if (canvasStore.selectedNodes.length !== 2) return null
     const selectedIds = new Set(canvasStore.selectedNodeIds)
     const [firstNode, secondNode] = canvasStore.nodes.filter((node) => selectedIds.has(node.id))
-    const forwardPorts = getDefaultConnectionPorts(firstNode, secondNode)
+    const forwardPorts = getAuthoringConnectionPorts(firstNode, secondNode)
     if (forwardPorts) return { sourceNode: firstNode, targetNode: secondNode, ports: forwardPorts }
-    const reversePorts = getDefaultConnectionPorts(secondNode, firstNode)
+    const reversePorts = getAuthoringConnectionPorts(secondNode, firstNode)
     return reversePorts ? { sourceNode: secondNode, targetNode: firstNode, ports: reversePorts } : null
   }
 

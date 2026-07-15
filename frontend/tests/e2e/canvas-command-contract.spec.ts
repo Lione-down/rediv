@@ -86,6 +86,8 @@ test('connect command selects registry-compatible ports and rejects non-connecta
   const nodes: CanvasNode[] = [
     { id: 'script', type: 'script', title: '脚本', x: 0, y: 0, width: 320, height: 200, contentData: { subtype: 'script', serialization_version: 1 } },
     { id: 'asset', type: 'asset', title: '图片', x: 0, y: 0, width: 320, height: 240, contentData: { subtype: 'image', serialization_version: 1 } },
+    { id: 'video-asset', type: 'asset', title: 'Video', x: 0, y: 0, width: 320, height: 240, contentData: { subtype: 'video', serialization_version: 1 } },
+    { id: 'video-result', type: 'result', title: 'Video result', x: 0, y: 0, width: 320, height: 180, contentData: { subtype: 'video', serialization_version: 1 } },
     { id: 'generation', type: 'generation', title: '视频生成', x: 0, y: 0, width: 340, height: 220, contentData: { subtype: 'video', serialization_version: 1 } },
     { id: 'note', type: 'note', title: '备注', x: 0, y: 0, width: 260, height: 180, contentData: { subtype: 'annotation', serialization_version: 1 } },
     { id: 'future', type: 'future-storyboard', title: '未来类型', x: 0, y: 0, width: 280, height: 160 },
@@ -101,6 +103,8 @@ test('connect command selects registry-compatible ports and rejects non-connecta
   expect(createConnectNodesCommand(nodes, [], 'asset', 'generation', 'out', 'media')).toEqual(expect.objectContaining({
     sourcePort: 'out', targetPort: 'media',
   }))
+  expect(createConnectNodesCommand(nodes, [], 'video-asset', 'generation', 'out', 'media')).toBeNull()
+  expect(createConnectNodesCommand(nodes, [], 'video-result', 'generation', 'out', 'media')).toBeNull()
   expect(createConnectNodesCommand(nodes, [], 'script', 'generation', 'missing', 'prompt')).toBeNull()
   expect(createConnectNodesCommand(nodes, [], 'note', 'generation')).toBeNull()
   expect(createConnectNodesCommand(nodes, [], 'future', 'generation')).toBeNull()
@@ -112,6 +116,8 @@ test('reconnect command preserves identity and rejects duplicate or unchanged en
     canonicalNode('script-b', 'script', 'prompt'),
     canonicalNode('generation-a', 'generation', 'image'),
     canonicalNode('generation-b', 'generation', 'video'),
+    { id: 'video-asset', type: 'asset', title: 'Video', x: 0, y: 0, width: 320, height: 180,
+      contentData: { subtype: 'video', serialization_version: 1 } } as CanvasNode,
   ]
   const connections = [
     typedConnection('edge-a', 'script-a', 'generation-a'),
@@ -129,6 +135,9 @@ test('reconnect command preserves identity and rejects duplicate or unchanged en
   )).toBeNull()
   expect(createReconnectConnectionCommand(
     nodes, connections, 'edge-a', 'script-b', 'generation-b', 'out', 'prompt',
+  )).toBeNull()
+  expect(createReconnectConnectionCommand(
+    nodes, connections, 'edge-a', 'video-asset', 'generation-a', 'out', 'media',
   )).toBeNull()
 })
 

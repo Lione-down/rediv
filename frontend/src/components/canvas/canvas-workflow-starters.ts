@@ -3,7 +3,7 @@ import { createCanvasEntityId } from '../../modules/canvas/canvas-autosave'
 import type { InsertGraphCommand } from '../../modules/canvas/canvas-commands'
 import {
   createRegistryNodeDraft,
-  getDefaultConnectionPorts,
+  getAuthoringConnectionPorts,
   type CanonicalNodeType,
 } from '../../modules/canvas/node-registry'
 import type { Point } from './canvas-geometry'
@@ -35,7 +35,7 @@ function createNode(
 }
 
 function connect(source: CanvasNode, target: CanvasNode): CanvasConnection {
-  const ports = getDefaultConnectionPorts(source, target)
+  const ports = getAuthoringConnectionPorts(source, target)
   if (!ports) throw new Error('工作流起点包含不兼容的节点端口。')
   return {
     id: createCanvasEntityId(),

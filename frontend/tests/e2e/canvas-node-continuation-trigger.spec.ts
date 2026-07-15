@@ -16,6 +16,7 @@ import {
 } from './canvas-resource-generation-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-036-intent-safe-continuation')
+const honestReferenceEvidence = resolve(process.cwd(), '..', 'output', 'playwright', 't5-070-honest-generation-reference')
 
 function viewportPatches(state: ResourceMockState) {
   return state.requests.filter((request) => (
@@ -101,6 +102,35 @@ test('selected script exposes canonical continuation and creates one foreground 
   expect(viewportPatches(state)).toHaveLength(afterCreateCount)
 })
 
+test('selected video asset exposes no generation continuation affordance', async ({ page }) => {
+  const state = createResourceMockState()
+  const template = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'result-existing')!
+  state.documents[FIRST_CANVAS_ID].nodes.push({
+    ...template,
+    id: 'video-reference',
+    node_type: 'asset',
+    content: {
+      title: 'Video reference', subtype: 'video', serialization_version: 1,
+      asset_id: 'asset-video-reference', url: 'https://media.revid.test/scenario.mp4', width: 320, height: 180,
+    },
+    position_x: 580,
+    position_y: 480,
+  })
+  await openResourceWorkspace(page, state)
+  const viewport = currentViewport(state)
+  await page.locator('.canvas-surface').click({ position: {
+    x: (580 + 12) * viewport.zoom + viewport.x,
+    y: (480 + 12) * viewport.zoom + viewport.y,
+  } })
+
+  await expect(page.locator('.selection-toolbar')).toBeVisible()
+  await expect(page.locator('.context-panel-shell button:has(.lucide-git-branch)')).toHaveCount(0)
+  await expect(page.locator('.node-continuation-anchor')).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
+  await mkdir(honestReferenceEvidence, { recursive: true })
+  await page.screenshot({ path: resolve(honestReferenceEvidence, 'video-asset-no-generation-continuation-1440x900.png'), fullPage: true })
+})
+
 test('trigger remains screen-sized and canonically attached through desktop zoom', async ({ page }) => {
   const state = createResourceMockState()
   const canvas = state.canvases.find((item) => item.id === FIRST_CANVAS_ID)!
@@ -184,7 +214,7 @@ test('eligibility projection exposes authoring sources without advertising task 
   const imageAsset = canonicalNode('asset', 'image')
   const videoAsset = canonicalNode('asset', 'video')
   expect(resolveCanvasNodeContinuationTrigger([imageAsset], [imageAsset.id], false)).toMatchObject({ portId: 'out' })
-  expect(resolveCanvasNodeContinuationTrigger([videoAsset], [videoAsset.id], false)).toMatchObject({ portId: 'out' })
+  expect(resolveCanvasNodeContinuationTrigger([videoAsset], [videoAsset.id], false)).toBeNull()
 
   for (const node of [
     canonicalNode('generation', 'image'),

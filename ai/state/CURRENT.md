@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-069 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-070 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Last completed Task: `T5-069 - Canvas single-active video playback`
-- Report: `ai/reports/REPORT-T5-069.md`
+- Last completed Task: `T5-070 - Honest generation reference compatibility`
+- Report: `ai/reports/REPORT-T5-070.md`
 
 ## Current Verified Facts
 
@@ -98,10 +98,11 @@ Last updated: 2026-07-15
 - T5-067 is now `DONE - PASS`: selecting a canonical generation with multiple outputs exposes one direct mixed-media V1..Vn comparison entry backed by the existing variant resolver and tray. Result-owned current V, exact selection handoff, compact/readonly review, and graph immutability remain intact. Focused 3/3, related 50/50, build, and three-viewport visual gates passed. Final report: `ai/reports/REPORT-T5-067.md`.
 - T5-068 is now `DONE - PASS`: comparison selection reuses the existing panel-safe reveal contract, so a distant V variant returns to the unobscured Canvas with one viewport update while an already-visible variant remains camera-neutral. Focused 2/2, related 19/19, build, visual, and zero graph-mutation gates passed. Final report: `ai/reports/REPORT-T5-068.md`.
 - T5-069 is now `DONE - PASS`: mounted Canvas videos share one active playback owner, so node-to-node and comparison tray/background previews pause peers without rewind. Focused 2/2, related 30/30, build, visual, keyboard, CORS, frame-capture, and zero-mutation gates passed. Final report: `ai/reports/REPORT-T5-069.md`.
+- T5-070 is now `DONE - PASS`: new generation-reference authoring accepts only image asset/result sources the provider can consume, while historical video edges remain visible as excluded provenance. Focused 29/29, cross-surface 85/85, build, visual, multi-image order, and zero-unintended-mutation gates passed. Final report: `ai/reports/REPORT-T5-070.md`.
 
 ## Exact Next Action
 
-Audit the next evidence-backed multi-node or media scenario and activate one bounded Task before business-code edits.
+After T5-070 is committed and pushed, reconcile the untracked T5-071 ownership gate before activating its reference-fidelity work.
 
 ## Blockers And Human Gates
 

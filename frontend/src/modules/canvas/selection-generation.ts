@@ -5,7 +5,7 @@ import { resolveGenerationContext } from './generation-context'
 import { findFirstUnoccupiedPosition } from './graph-placement'
 import {
   createRegistryNodeDraft,
-  getDefaultConnectionPorts,
+  getAuthoringConnectionPorts,
   isNodeMutationSupported,
 } from './node-registry'
 
@@ -61,7 +61,7 @@ export function createSelectionGenerationCommand(
   }
   const inputOrder = new Map<string, number>()
   const connections = selectedNodes.flatMap((source): CanvasConnection[] => {
-    const ports = getDefaultConnectionPorts(source, generationNode)
+    const ports = getAuthoringConnectionPorts(source, generationNode)
     if (!ports || (ports.targetPort !== 'prompt' && ports.targetPort !== 'media')) return []
     const order = (inputOrder.get(ports.targetPort) ?? 0) + 1
     inputOrder.set(ports.targetPort, order)

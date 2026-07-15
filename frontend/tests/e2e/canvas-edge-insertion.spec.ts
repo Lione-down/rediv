@@ -34,11 +34,10 @@ test('two-sided compatibility exposes only canonical bridge subtypes', () => {
 
   expect(resolveEdgeInsertionOptions(
     asset, generation, edge('asset', 'generation', 'out', 'media'),
-  ).map((option) => option.key)).toEqual(['generation:image:media:out', 'generation:video:media:out'])
+  )).toEqual([])
   expect(resolveEdgeInsertionOptions(
     generation, result, edge('generation', 'result', 'out', 'in'),
   ).map((option) => option.key)).toEqual([
-    'generation:image:media:out', 'generation:video:media:out',
     'result:image:in:out', 'result:video:in:out', 'result:text:in:out',
   ])
   expect(resolveEdgeInsertionOptions(
@@ -83,7 +82,7 @@ test('selected result edge inserts one bridge node through one undoable patch', 
 
   const chooser = page.getByRole('dialog', { name: '在线路中插入节点' })
   await expect(chooser).toBeVisible()
-  await expect(chooser.getByRole('menuitem')).toHaveCount(5)
+  await expect(chooser.getByRole('menuitem')).toHaveCount(3)
   expect(documentPatches(state)).toHaveLength(0)
   await chooser.getByRole('menuitem', { name: /图片结果/ }).click()
 

@@ -345,3 +345,20 @@ export function getDefaultConnectionPorts(
   }
   return null
 }
+
+function isGenerationImageReferenceSource(source: Pick<CanvasNode, 'type' | 'contentData'>) {
+  if (source.type === 'image') return true
+  return (source.type === 'asset' || source.type === 'result') && source.contentData?.subtype === 'image'
+}
+
+export function getAuthoringConnectionPorts(
+  source: Pick<CanvasNode, 'type' | 'contentData'>,
+  target: Pick<CanvasNode, 'type' | 'contentData'>,
+  sourcePort?: string,
+  targetPort?: string,
+): { sourcePort: string; targetPort: string } | null {
+  const ports = getDefaultConnectionPorts(source, target, sourcePort, targetPort)
+  if (!ports) return null
+  if (target.type === 'generation' && ports.targetPort === 'media' && !isGenerationImageReferenceSource(source)) return null
+  return ports
+}

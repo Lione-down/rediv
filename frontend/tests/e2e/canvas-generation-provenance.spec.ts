@@ -10,6 +10,7 @@ const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', '
 const traceFitEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-040-full-trace-fit')
 const resultTraceFitEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-041-result-origin-trace-fit')
 const lineageArrangeEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-055-lineage-arrange')
+const honestReferenceEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-070-honest-generation-reference')
 
 function viewportPatches(state: ReturnType<typeof createMultiScenarioState>) {
   return state.requests.filter((request) => (
@@ -318,6 +319,26 @@ test('excluded duplicate and missing media stay visible without entering request
   await expect.poll(() => state.requests.filter((request) => request.path === '/api/image-generate').length).toBe(1)
   expect(state.requests.find((request) => request.path === '/api/image-generate')?.body?.image_ids)
     .toEqual(['asset-reference', 'asset-character'])
+})
+
+test('persisted video reference remains visible as excluded legacy provenance', async ({ page }) => {
+  const state = createMultiScenarioState()
+  const document = state.documents[FIRST_CANVAS_ID]
+  const videoReference = document.nodes.find((node) => node.id === 'asset-portrait')!
+  Object.assign(videoReference.content, {
+    subtype: 'video', asset_id: 'asset-video-reference', url: 'https://media.revid.test/scenario.mp4',
+  })
+  const generation = document.nodes.find((node) => node.id === 'generation-compose')!
+  await openResourceWorkspace(page, state)
+  await selectNode(page, String(generation.content.title))
+
+  await expect(page.locator('.generation-source-provenance.is-included')).toHaveCount(3)
+  await expect(page.locator('.generation-source-provenance.is-excluded')).toHaveCount(1)
+  await expect(page.locator('.connection-line.provenance-excluded')).toHaveCount(1)
+  await expect(page.locator('.connected-context')).toContainText('仅支持图片，未使用')
+  expect(documentPatches(state)).toHaveLength(0)
+  await mkdir(honestReferenceEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(honestReferenceEvidenceDirectory, 'legacy-video-reference-excluded-1440x900.png'), fullPage: true })
 })
 
 test('readonly compact review exposes provenance without mutation controls', async ({ page }) => {

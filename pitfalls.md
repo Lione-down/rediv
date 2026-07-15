@@ -662,3 +662,11 @@ Evidence:
 - Pause peers without seeking, muting, or reloading. Ownership handoff should preserve each review position so creators can resume comparison exactly where they left it.
 - A SFC module singleton can be brittle across render/chunk boundaries. A namespaced browser event with per-instance mount/unmount listeners crosses ordinary-node and overlay mounts without DOM scanning or business-state coupling.
 - Short looping fixtures are required for deterministic concurrent-playback tests. Without `loop`, a clip can naturally end and create a false ownership pass.
+
+## 2026-07-15 Honest generation reference compatibility
+
+- Structural port compatibility is not provider capability. A media-shaped edge can be valid persisted graph data while still being invalid new authoring for an image-only request boundary.
+- Preserve historical unsupported edges as excluded provenance. Tightening the structural reader would hide why an old request omitted a source and make the graph less honest.
+- Put semantic compatibility in one authoring resolver and use it for chooser, drag, reconnect, insertion, workflow, resource branch, multi-selection, and drop highlighting. Filtering only the menu leaves alternate mutation paths open.
+- A generation task node is not its materialized image result. Even an image-subtype generation has no consumable asset ID and must not be used directly as a downstream image reference.
+- Removing an impossible action is better than adding a warning after mutation. Video assets keep playback, frame capture, keyframes, and inspection while the unsupported generation continuation stays absent.

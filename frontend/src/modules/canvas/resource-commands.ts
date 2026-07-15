@@ -3,7 +3,7 @@ import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import { createCanvasEntityId } from './canvas-autosave'
 import type { InsertGraphCommand } from './canvas-commands'
 import { findFirstUnoccupiedPosition } from './graph-placement'
-import { createRegistryNodeDraft, getDefaultConnectionPorts, isNodeMutationSupported } from './node-registry'
+import { createRegistryNodeDraft, getAuthoringConnectionPorts, getDefaultConnectionPorts, isNodeMutationSupported } from './node-registry'
 import type { GenerationTask } from './project-resource-types'
 import { VISUAL_ASSET_RECIPES, type VisualAssetRecipeId } from './visual-asset-recipes'
 
@@ -33,7 +33,7 @@ export function createResultGenerationBranchCommand(
   })
   const position = findFirstUnoccupiedPosition(draft, draft, existingNodes, [sourceNode.id])
   const generationNode: CanvasNode = { id: createCanvasEntityId(), ...draft, ...position }
-  const ports = getDefaultConnectionPorts(sourceNode, generationNode, 'out', 'media')
+  const ports = getAuthoringConnectionPorts(sourceNode, generationNode, 'out', 'media')
   if (!ports) return null
   return {
     type: 'insert-graph',

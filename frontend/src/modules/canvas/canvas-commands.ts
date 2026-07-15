@@ -5,7 +5,7 @@ import {
   type GenerationInputDirection,
 } from './generation-input-order'
 import {
-  getDefaultConnectionPorts,
+  getAuthoringConnectionPorts,
   isNodeGroupContainer,
   isNodeMutationSupported,
 } from './node-registry'
@@ -272,7 +272,7 @@ export function createConnectNodesCommand(
     !source || !target || source.type === 'group' || target.type === 'group' ||
     source.parentNodeId || target.parentNodeId || source.isLocked || target.isLocked
   ) return null
-  const resolvedPorts = getDefaultConnectionPorts(source, target, sourcePort, targetPort)
+  const resolvedPorts = getAuthoringConnectionPorts(source, target, sourcePort, targetPort)
   if (!resolvedPorts) return null
   const duplicate = connections.some((connection) => (
     connection.from === sourceNodeId &&

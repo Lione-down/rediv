@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import {
   CANONICAL_NODE_TYPES,
   createRegistryNodeDraft,
+  getAuthoringConnectionPorts,
   getGenerationMediaType,
   getLegacyGenerationQuotaType,
   getCreatableNodeDefinitions,
@@ -153,4 +154,24 @@ test('registry creates subtype-aware drafts and owns compatible default ports', 
     { type: 'note', contentData: { subtype: 'annotation', serialization_version: 1 } },
     { type: 'generation', contentData: { subtype: 'video', serialization_version: 1 } },
   )).toBeNull()
+})
+
+test('authoring compatibility accepts only consumable image generation references while structural reading stays lossless', () => {
+  const target = { type: 'generation', contentData: { subtype: 'video', serialization_version: 1 } }
+  for (const source of [
+    { type: 'asset', contentData: { subtype: 'image', serialization_version: 1 } },
+    { type: 'result', contentData: { subtype: 'image', serialization_version: 1 } },
+    { type: 'image' },
+  ]) expect(getAuthoringConnectionPorts(source, target)).toEqual({ sourcePort: 'out', targetPort: 'media' })
+
+  for (const source of [
+    { type: 'asset', contentData: { subtype: 'video', serialization_version: 1 } },
+    { type: 'asset', contentData: { subtype: 'audio', serialization_version: 1 } },
+    { type: 'result', contentData: { subtype: 'video', serialization_version: 1 } },
+    { type: 'result', contentData: { subtype: 'text', serialization_version: 1 } },
+    { type: 'generation', contentData: { subtype: 'image', serialization_version: 1 } },
+  ]) {
+    expect(getDefaultConnectionPorts(source, target)).toEqual({ sourcePort: 'out', targetPort: 'media' })
+    expect(getAuthoringConnectionPorts(source, target)).toBeNull()
+  }
 })

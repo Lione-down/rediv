@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import type { CanvasConnection, CanvasNode } from '../../../types/canvas'
-import { getDefaultConnectionPorts, resolveNodeDefinition, type NodePortDirection } from '../../../modules/canvas/node-registry'
+import { getAuthoringConnectionPorts, resolveNodeDefinition, type NodePortDirection } from '../../../modules/canvas/node-registry'
 import { buildConnectionPath, nodePortWorldAnchor, type ViewportState } from '../canvas-geometry'
 
 interface CanvasConnectionPresentationOptions {
@@ -14,14 +14,14 @@ export function isConnectionTargetCompatible(source: CanvasNode, target: CanvasN
   const definition = resolveNodeDefinition(target.type, target.contentData)
   return definition.kind !== 'unsupported' && definition.ports
     .filter((port) => port.direction === 'input')
-    .some((port) => Boolean(getDefaultConnectionPorts(source, target, sourcePort, port.id)))
+    .some((port) => Boolean(getAuthoringConnectionPorts(source, target, sourcePort, port.id)))
 }
 
 export function isReverseConnectionTargetCompatible(target: CanvasNode, source: CanvasNode, targetPort: string) {
   const definition = resolveNodeDefinition(source.type, source.contentData)
   return definition.kind !== 'unsupported' && definition.ports
     .filter((port) => port.direction === 'output')
-    .some((port) => Boolean(getDefaultConnectionPorts(source, target, port.id, targetPort)))
+    .some((port) => Boolean(getAuthoringConnectionPorts(source, target, port.id, targetPort)))
 }
 
 export function useCanvasConnectionPresentation(options: CanvasConnectionPresentationOptions) {

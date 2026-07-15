@@ -211,6 +211,8 @@ T5-068 is `DONE - PASS`. Comparison tray selection now reuses the existing panel
 
 T5-069 is `DONE - PASS`. Canvas video nodes and comparison previews share one active playback owner, preventing overlapping motion or audio while preserving native controls, keyboard playback, CORS fallback, frame tools, and zero graph mutation. Focused 2/2, related 30/30, build, and visual gates passed.
 
+T5-070 is `DONE - PASS`. New generation-reference authoring exposes only image sources the provider can consume, while historical unsupported edges remain visible as excluded provenance. Focused 29/29, cross-surface 85/85, build, visual, and zero-unintended-mutation gates passed.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

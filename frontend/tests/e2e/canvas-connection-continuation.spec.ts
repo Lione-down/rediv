@@ -24,6 +24,10 @@ test('text output offers only image and video generation continuations', () => {
 test('media and result outputs expose registry-compatible typed continuations', () => {
   const media = resolveConnectionContinuationOptions(node('asset', 'asset', 'image'), 'out')
   const result = resolveConnectionContinuationOptions(node('result', 'result', 'image'), 'out')
+  const videoAsset = resolveConnectionContinuationOptions(node('video-asset', 'asset', 'video'), 'out')
+  const videoResult = resolveConnectionContinuationOptions(node('video-result', 'result', 'video'), 'out')
+  const textResult = resolveConnectionContinuationOptions(node('text-result', 'result', 'text'), 'out')
+  const generation = resolveConnectionContinuationOptions(node('generation', 'generation', 'image'), 'out')
 
   expect(media.map((option) => option.key)).toEqual([
     'generation:image:media', 'generation:video:media',
@@ -32,6 +36,12 @@ test('media and result outputs expose registry-compatible typed continuations', 
     'generation:image:media', 'generation:video:media',
     'result:image:in', 'result:video:in', 'result:text:in',
   ])
+  expect(videoAsset.map((option) => option.key)).toEqual([])
+  for (const options of [videoResult, textResult, generation]) {
+    expect(options.map((option) => option.key)).toEqual([
+      'result:image:in', 'result:video:in', 'result:text:in',
+    ])
+  }
 })
 
 test('non-connectable and unknown source ports expose no continuation', () => {
@@ -64,9 +74,7 @@ test('input continuation offers only compatible upstream outputs', () => {
 
   expect(prompt.map((option) => option.key)).toEqual(['script:script:out', 'script:prompt:out'])
   expect(media.map((option) => option.key)).toEqual([
-    'asset:image:out', 'asset:video:out', 'asset:audio:out',
-    'generation:image:out', 'generation:video:out',
-    'result:image:out', 'result:video:out', 'result:text:out',
+    'asset:image:out', 'result:image:out',
   ])
 })
 

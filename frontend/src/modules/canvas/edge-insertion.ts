@@ -3,7 +3,7 @@ import { createCanvasEntityId } from './canvas-autosave'
 import {
   createRegistryNodeDraft,
   getCreatableNodeDefinitions,
-  getDefaultConnectionPorts,
+  getAuthoringConnectionPorts,
   isNodeMutationSupported,
   type CanonicalNodeType,
 } from './node-registry'
@@ -40,12 +40,12 @@ export function resolveEdgeInsertionOptions(
     const type = definition.type as CanonicalNodeType
     const candidate = createRegistryNodeDraft(type, subtype.id, { x: 0, y: 0 })
     for (const input of definition.ports.filter((port) => port.direction === 'input')) {
-      const incoming = getDefaultConnectionPorts(
+      const incoming = getAuthoringConnectionPorts(
         source, candidate, connection.sourcePort ?? 'out', input.id,
       )
       if (!incoming) continue
       for (const output of definition.ports.filter((port) => port.direction === 'output')) {
-        const outgoing = getDefaultConnectionPorts(
+        const outgoing = getAuthoringConnectionPorts(
           candidate, target, output.id, connection.targetPort ?? 'in',
         )
         if (!outgoing) continue
