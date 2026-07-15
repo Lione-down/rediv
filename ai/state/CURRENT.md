@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-031 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-032 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-031 - Generation result placement and reveal` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-031.md`
+- Most recently completed: `T5-032 - Branch generation from image result` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-032.md`
 
 ## Current Verified Facts
 
@@ -60,10 +60,11 @@ Last updated: 2026-07-15
 - T5-029 is now `DONE - PASS`: two or more request-ready selected text/image sources can atomically create an image or video generation workflow with durable independent T/R order. Mixed, text-only, image-only, invalid, undo/redo, reload, compact, readonly, focused 5/5, related 45/45, full Chromium 206/206, build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-029.md`.
 - T5-030 is now `DONE - PASS`: the compose menu previews exact included text/image counts and video semantics, while selection-created image/video workflows are proven through payload, scoped task/asset identity, quota, canonical result, edge, lineage, playable media, history, reload, and durable no-charge failure. Focused 4/4, related 27/27, full Chromium 210/210, a 4,800-module build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-030.md`.
 - T5-031 is now `DONE - PASS`: repeated generated results use deterministic collision-aware right-side slots, while only the initiating foreground success minimally translates the panel-safe viewport without changing zoom, selection, or inspector context. Desktop dual panels, 920px drawer, already-visible no-op, background/reload neutrality, focused 10/10, related 47/47, full Chromium 216/216, a 4,800-module build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-031.md`.
+- T5-032 is now `DONE - PASS`: canonical image results can explicitly branch into image or video generation through one collision-aware atomic node-plus-edge command. Exact reference payload, undo/redo, playable video result, lineage, reload, invalid states, readonly behavior, focused 5/5, related 41/41, full Chromium 220/220, a 4,801-module build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-032.md`.
 
 ## Exact Next Action
 
-Select the next bounded multi-node Canvas scenario from the continuing project goal and create its Task before business-code edits.
+Select the next bounded Canvas optimization from current evidence; the broader Canvas and node validation goal remains active.
 
 ## Blockers And Human Gates
 

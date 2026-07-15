@@ -384,3 +384,10 @@ Evidence:
 - Foreground camera intent must not live inside shared reconciliation. Emit reveal only after the initiating request materializes its exact result; polling, reload, and Canvas-switch reconciliation must remain quiet.
 - Desktop side panels already resize the Canvas stage, while compact drawers overlay it. Applying the same panel inset to both double-counts desktop space and under-counts compact obstruction.
 - Browser viewport evidence should use the final request body, not mutable fixture state that concurrent older responses can overwrite. Rendered media visibility must use canonical aspect-ratio geometry rather than persisted default card height.
+
+## 2026-07-15 Result branching and Playwright process lifetime
+
+- Result reuse must be gated by provider-valid reference identity, not port compatibility alone. The current generation request accepts image asset IDs, so video, text, missing-asset, grouped, locked, readonly, and unsupported results must remain action-free even if a registry port looks connectable.
+- Branching should create graph intent only: one generation node plus one ordered typed edge in one command. Automatic execution would bypass prompt, preflight, quota review, and the user's explicit provider action.
+- Collision-aware placement must inspect persisted graph bounds and keep deterministic slot order so undo, redo, reload, minimap, and selection agree.
+- A shell/tool timeout that kills Playwright before its own final exit is infrastructure interruption, not a failed product assertion. Long regression commands need a process window that covers preview startup and the full suite, and only Playwright's final exit code/count is test evidence.

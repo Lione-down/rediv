@@ -2,12 +2,69 @@ import type { Asset } from '../../types/asset'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import { createCanvasEntityId } from './canvas-autosave'
 import type { InsertGraphCommand } from './canvas-commands'
-import { createRegistryNodeDraft, getDefaultConnectionPorts } from './node-registry'
+import { createRegistryNodeDraft, getDefaultConnectionPorts, isNodeMutationSupported } from './node-registry'
 import type { GenerationTask } from './project-resource-types'
 
 export interface ResourceInsertionPoint {
   x: number
   y: number
+}
+
+export type ResultBranchMediaType = 'image' | 'video'
+
+function firstUnoccupiedPosition(
+  origin: ResourceInsertionPoint,
+  size: { width: number; height: number },
+  existingNodes: readonly CanvasNode[],
+  excludedNodeId: string,
+) {
+  const occupiedNodes = existingNodes.filter((node) => node.id !== excludedNodeId)
+  for (let slot = 0; slot <= occupiedNodes.length; slot += 1) {
+    const candidate = { x: origin.x, y: origin.y + slot * (size.height + 24) }
+    const isOccupied = occupiedNodes.some((node) => (
+      candidate.x < node.x + node.width && candidate.x + size.width > node.x &&
+      candidate.y < node.y + node.height && candidate.y + size.height > node.y
+    ))
+    if (!isOccupied) return candidate
+  }
+  return origin
+}
+
+export function canBranchFromImageResult(node: CanvasNode) {
+  const assetId = node.contentData?.asset_id
+  return node.type === 'result' && node.contentData?.subtype === 'image' &&
+    typeof assetId === 'string' && Boolean(assetId.trim()) &&
+    !node.isLocked && !node.parentNodeId && isNodeMutationSupported(node)
+}
+
+export function createResultGenerationBranchCommand(
+  sourceNode: CanvasNode,
+  mediaType: ResultBranchMediaType,
+  existingNodes: readonly CanvasNode[] = [],
+): InsertGraphCommand | null {
+  if (!canBranchFromImageResult(sourceNode)) return null
+  const draft = createRegistryNodeDraft('generation', mediaType, {
+    x: sourceNode.x + sourceNode.width + 96,
+    y: sourceNode.y,
+  })
+  const position = firstUnoccupiedPosition(draft, draft, existingNodes, sourceNode.id)
+  const generationNode: CanvasNode = { id: createCanvasEntityId(), ...draft, ...position }
+  const ports = getDefaultConnectionPorts(sourceNode, generationNode, 'out', 'media')
+  if (!ports) return null
+  return {
+    type: 'insert-graph',
+    nodes: [generationNode],
+    connections: [{
+      id: createCanvasEntityId(),
+      from: sourceNode.id,
+      to: generationNode.id,
+      sourcePort: ports.sourcePort,
+      targetPort: ports.targetPort,
+      status: 'active',
+      active: true,
+      metadata: { input_order: 1 },
+    }],
+  }
 }
 
 function assetTitle(asset: Asset) {
@@ -71,21 +128,7 @@ export function createGeneratedResultCommand(
       url: asset.url,
     },
   }
-  const resultSize = { width: resultNode.width, height: resultNode.height }
-  const verticalStep = resultSize.height + 24
-  const occupiedNodes = existingNodes.filter((node) => node.id !== sourceNode.id)
-  for (let slot = 0; slot <= occupiedNodes.length; slot += 1) {
-    const candidateY = sourceNode.y + slot * verticalStep
-    const isOccupied = occupiedNodes.some((node) => {
-      const size = { width: node.width, height: node.height }
-      return resultNode.x < node.x + size.width && resultNode.x + resultSize.width > node.x &&
-        candidateY < node.y + size.height && candidateY + resultSize.height > node.y
-    })
-    if (!isOccupied) {
-      resultNode.y = candidateY
-      break
-    }
-  }
+  Object.assign(resultNode, firstUnoccupiedPosition(resultNode, resultNode, existingNodes, sourceNode.id))
   const ports = getDefaultConnectionPorts(sourceNode, resultNode, 'out', 'in')
   if (!ports) throw new Error('生成节点与结果节点端口不兼容。')
   const connection: CanvasConnection = {

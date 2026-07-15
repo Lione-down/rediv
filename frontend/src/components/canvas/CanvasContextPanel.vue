@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, CircleCheck, Columns2, Image, Info, Link2, LoaderCircle, Play, Sparkles, X } from 'lucide-vue-next'
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, CircleCheck, Columns2, GitBranch, Image, Info, Link2, LoaderCircle, Play, Sparkles, Video, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import type { ResolvedGenerationContext } from '../../modules/canvas/generation-context'
 import type { ResolvedResultLineage } from '../../modules/canvas/generation-lineage'
 import type { ProjectGenerationTask } from '../../modules/canvas/project-resource-types'
 import { resolveGenerationRunHistory } from '../../modules/canvas/generation-run-history'
+import { canBranchFromImageResult, type ResultBranchMediaType } from '../../modules/canvas/resource-commands'
 import { useCanvasStore } from '../../store/canvas'
 import type { CanvasNode } from '../../types/canvas'
 
@@ -37,6 +38,7 @@ const props = withDefaults(defineProps<{
 const canvasStore = useCanvasStore()
 
 const emit = defineEmits<{
+  branchGeneration: [mediaType: ResultBranchMediaType]
   close: []
   compareResults: []
   generate: [prompt: string]
@@ -64,6 +66,7 @@ const runHistory = computed(() => resolveGenerationRunHistory(props.node.id, pro
   connections: canvasStore.connections,
   nodes: canvasStore.nodes,
 }))
+const canBranchResult = computed(() => canBranchFromImageResult(props.node))
 const mediaStateLabel = {
   included: '已作为参考图',
   'missing-asset': '缺少资源，未使用',
@@ -267,6 +270,13 @@ function requestGeneration() {
           比较同源结果
         </button>
       </section>
+      <details v-if="!readonly && canBranchResult" class="result-branch">
+        <summary><span><GitBranch :size="14" aria-hidden="true" />以此结果继续</span><small>作为参考图</small></summary>
+        <div>
+          <button type="button" @click="emit('branchGeneration', 'image')"><Image :size="15" aria-hidden="true" /><span><strong>图片生成</strong><small>创建参考分支</small></span></button>
+          <button type="button" @click="emit('branchGeneration', 'video')"><Video :size="15" aria-hidden="true" /><span><strong>视频生成</strong><small>图生视频</small></span></button>
+        </div>
+      </details>
       <div class="review-prompt"><span>内容</span><p>{{ node.content || '此节点没有文本内容。' }}</p></div>
     </section>
   </aside>
@@ -288,6 +298,16 @@ button:active:not(:disabled) { transform: scale(var(--v2-press-scale)); }
 button:focus-visible, textarea:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 button:disabled { opacity: .42; cursor: not-allowed; }
 .generation-editor, .node-review { min-height: 0; flex: 1; overflow: auto; padding: 16px; }
+.result-branch { margin-top: 12px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
+.result-branch summary { display: flex; min-height: 40px; align-items: center; justify-content: space-between; gap: 8px; padding: 0 10px; color: var(--v2-text-secondary); cursor: pointer; font-size: 11px; list-style: none; }
+.result-branch summary::-webkit-details-marker { display: none; }
+.result-branch summary span, .result-branch button { display: flex; align-items: center; gap: 7px; }
+.result-branch summary small { color: var(--v2-text-muted); }
+.result-branch > div { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 6px 6px; }
+.result-branch button { min-width: 0; justify-content: flex-start; padding: 6px 8px; background: var(--v2-surface-2); }
+.result-branch button span { display: grid; min-width: 0; gap: 1px; text-align: left; }
+.result-branch button strong { font-size: 11px; font-weight: 600; }
+.result-branch button small { overflow: hidden; color: var(--v2-text-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .section-heading { align-items: center; justify-content: space-between; margin-bottom: 14px; color: var(--v2-text-secondary); font-size: 12px; }
 .prompt-field, .review-prompt { display: grid; gap: 7px; color: var(--v2-text-secondary); font-size: 11px; }
 textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-md); color: var(--v2-text-primary); background: var(--v2-canvas); font: inherit; line-height: 1.6; }

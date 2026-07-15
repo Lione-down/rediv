@@ -121,6 +121,8 @@ T5-030 is `DONE - PASS`. It adds a verified T/R intent summary and closes image/
 
 T5-031 is `DONE - PASS`. It prevents repeated generated results from overlapping and makes the latest foreground result visible through a minimal panel-safe viewport translation without changing zoom, selection, or background reconciliation behavior. Focused 10/10, related 47/47, full Chromium 216/216, build, visual, and hygiene gates passed. `REPORT-T5-031.md` is authoritative evidence.
 
+T5-032 is `DONE - PASS`. Canonical image results can create explicit image/video generation branches through one collision-aware atomic command, with exact reference payload, undo/redo, playable output, lineage, reload, invalid-state, readonly, compact, build, visual, and full Chromium 220/220 evidence. `REPORT-T5-032.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

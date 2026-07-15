@@ -10,19 +10,18 @@ import CanvasIdentityBar from '../../components/canvas/CanvasIdentityBar.vue'
 import CanvasRevisionPanel from '../../components/canvas/CanvasRevisionPanel.vue'
 import CanvasResultCompareTray from '../../components/canvas/CanvasResultCompareTray.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
+import { useCanvasNodeActions } from '../../components/canvas/composables/use-canvas-node-actions'
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
 import { useCanvasResourceExperience } from '../../components/canvas/composables/use-canvas-resource-experience'
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
 import { useCanvasRevisionStore } from '../../modules/canvas/canvas-revision-store'
 import { canvasRouteLocation, normalizeRouteIdentifier } from '../../modules/canvas/metadata'
-import { createReorderGenerationInputCommand } from '../../modules/canvas/canvas-commands'
 import { useProjectStore } from '../../modules/project/store'
 import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
 
 type MoveDirection = -1 | 1
 interface CanvasStageHandle { revealNode: (nodeId: string) => boolean }
-
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -30,9 +29,7 @@ const projectStore = useProjectStore()
 const canvasListStore = useCanvasListStore()
 const canvasDocumentStore = useCanvasStore()
 const canvasRevisionStore = useCanvasRevisionStore()
-
 useCanvasPersistenceLifecycle()
-
 const isReviewOnly = ref(false)
 const isCompact = ref(false)
 const isRevisionPanelOpen = ref(false)
@@ -42,7 +39,6 @@ const canvasStageRef = ref<CanvasStageHandle | null>(null)
 let revisionPanelOpener: HTMLElement | null = null
 let reviewMediaQuery: MediaQueryList | null = null
 let compactMediaQuery: MediaQueryList | null = null
-
 const projectId = computed(() => normalizeRouteIdentifier(route.params.projectId))
 const canvasId = computed(() => normalizeRouteIdentifier(route.params.canvasId))
 const activeCanvas = computed(() => (
@@ -148,13 +144,7 @@ function selectComparedResult(nodeId: string) {
   isResultCompareOpen.value = false
   canvasDocumentStore.selectNode(nodeId)
 }
-
-function reorderGenerationInput(connectionId: string, direction: -1 | 1) {
-  const command = createReorderGenerationInputCommand(
-    canvasDocumentStore.nodes, canvasDocumentStore.connections, connectionId, direction,
-  )
-  if (command) void canvasDocumentStore.dispatchCommand({ source: 'toolbar', command }).catch(() => undefined)
-}
+const { branchFromResult, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode })
 
 function updateResponsiveBoundaries() {
   isReviewOnly.value = reviewMediaQuery?.matches ?? false
@@ -409,6 +399,7 @@ onBeforeUnmount(() => {
           :quota="selectedQuota"
           :readonly="isReviewOnly"
           :success="generationSuccess"
+          @branch-generation="branchFromResult"
           @close="closeContext"
           @compare-results="openResultComparison"
           @generate="generate"
@@ -479,6 +470,7 @@ onBeforeUnmount(() => {
               :quota="selectedQuota"
               :readonly="isReviewOnly"
               :success="generationSuccess"
+              @branch-generation="branchFromResult"
               @close="closeContext"
               @compare-results="openResultComparison"
               @generate="generate"
