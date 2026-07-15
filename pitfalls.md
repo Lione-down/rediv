@@ -377,3 +377,10 @@ Evidence:
 - A shared generation fixture must derive task media type, model, asset type, URL, quota bucket, and failure identity from the actual request route and dynamic Canvas node. Returning image-shaped identity for video can make UI tests pass while proving the wrong lifecycle.
 - Composition labels should be projections of the already validated command, not a second input classifier. Zero, one, and multiple included images map to text-to-video, img2vid, and ordered keyframes only after every selected source is request-ready.
 - Run history and result lineage have different disclosure contracts: history summarizes status/model/timing, while exact task identity belongs to verified lineage. Tests should assert each fact at its owning surface.
+
+## 2026-07-15 Generation result placement and reveal
+
+- Repeated generation materialization cannot reuse one fixed result coordinate. Choose the first deterministic unoccupied slot from current persisted graph bounds so variants remain individually selectable before and after media metadata changes.
+- Foreground camera intent must not live inside shared reconciliation. Emit reveal only after the initiating request materializes its exact result; polling, reload, and Canvas-switch reconciliation must remain quiet.
+- Desktop side panels already resize the Canvas stage, while compact drawers overlay it. Applying the same panel inset to both double-counts desktop space and under-counts compact obstruction.
+- Browser viewport evidence should use the final request body, not mutable fixture state that concurrent older responses can overwrite. Rendered media visibility must use canonical aspect-ratio geometry rather than persisted default card height.

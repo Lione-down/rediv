@@ -3,6 +3,7 @@ import {
   CANVAS_GRID_SIZE,
   clampZoom,
   fitViewportToNodes,
+  revealWorldRectViewport,
   snapDeltaToGrid,
 } from '../../src/components/canvas/canvas-geometry'
 import {
@@ -32,6 +33,21 @@ test('fit geometry and grid snapping stay finite across the 10% to 800% contract
   expect(fitted?.y).toBeCloseTo(-92.857143, 5)
   expect(snapDeltaToGrid({ x: 10, y: -10 }, { x: 19, y: -17 })).toEqual({ x: 14, y: -14 })
   expect(CANVAS_GRID_SIZE).toBe(24)
+})
+
+test('result reveal preserves zoom and applies only the minimum panel-safe translation', () => {
+  const viewport = { x: 0, y: 0, zoom: 1 }
+  const size = { width: 1440, height: 900 }
+  const insets = { top: 96, right: 376, bottom: 96, left: 336 }
+  expect(revealWorldRectViewport(
+    { left: 400, top: 200, width: 320, height: 180 }, viewport, size, insets,
+  )).toEqual(viewport)
+  expect(revealWorldRectViewport(
+    { left: 900, top: 700, width: 320, height: 180 }, viewport, size, insets,
+  )).toEqual({ x: -180, y: -100, zoom: 1 })
+  expect(revealWorldRectViewport(
+    { left: 0, top: 0, width: 900, height: 700 }, { x: 12, y: 18, zoom: 1 }, size, insets,
+  )).toEqual({ x: 250, y: 100, zoom: 1 })
 })
 
 test('align and distribute commands emit deterministic reversible moves', () => {

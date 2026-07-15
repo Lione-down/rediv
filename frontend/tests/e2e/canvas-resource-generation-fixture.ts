@@ -42,6 +42,7 @@ export interface ResourceMockState {
   documents: Record<string, CanvasDocument>
   events: string[]
   generationGate: Promise<void> | null
+  generationCount: number
   generationOutcome: 'success' | 'failure'
   requests: MockRequest[]
   tasks: Array<Record<string, unknown>>
@@ -161,6 +162,7 @@ export function createResourceMockState(): ResourceMockState {
     documents: { [FIRST_CANVAS_ID]: firstDocument, [SECOND_CANVAS_ID]: secondDocument },
     events: [],
     generationGate: null,
+    generationCount: 0,
     generationOutcome: 'success',
     requests: [],
     tasks: [
@@ -237,9 +239,13 @@ function instantiateTemplate(state: ResourceMockState, canvasId: string) {
 }
 
 function generationResponse(state: ResourceMockState, canvasId: string, nodeId: string, mediaType: 'image' | 'video') {
+  state.generationCount += 1
+  const suffix = state.generationCount === 1 ? '' : `-${state.generationCount}`
+  const taskId = `task-success${suffix}`
+  const assetId = `asset-success${suffix}`
   const model = `mock-${mediaType}-v1`
-  const task = generationTask({ id: 'task-success', origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType, model, status: 'succeeded', result_asset_id: 'asset-success', provider_request_id: 'request-success' })
-  const asset = { id: 'asset-success', user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: canvasId, canvas_node_id: nodeId, type: mediaType, url: `https://media.revid.test/success.${mediaType === 'video' ? 'mp4' : 'png'}`, content_text: null, source: 'generation', source_model: model, source_task_id: 'task-success', status: 'active', created_at: NOW, updated_at: NOW }
+  const task = generationTask({ id: taskId, origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType, model, status: 'succeeded', result_asset_id: assetId, provider_request_id: `request-success${suffix}` })
+  const asset = { id: assetId, user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: canvasId, canvas_node_id: nodeId, type: mediaType, url: `https://media.revid.test/success${suffix}.${mediaType === 'video' ? 'mp4' : 'png'}`, content_text: null, source: 'generation', source_model: model, source_task_id: taskId, status: 'active', created_at: NOW, updated_at: NOW }
   state.tasks = [task, ...state.tasks.filter((item) => item.id !== task.id)]
   state.assets = [asset, ...state.assets.filter((item) => item.id !== asset.id)]
   state.quotas = { ...state.quotas, [mediaType]: state.quotas[mediaType] - 1 }
@@ -289,7 +295,11 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
     const viewportMatch = path.match(new RegExp(`^/api/projects/${PROJECT_ID}/canvases/([^/]+)/viewport$`))
     if (method === 'PATCH' && viewportMatch) {
       const activeCanvas = state.canvases.find((item) => item.id === viewportMatch[1])!
-      Object.assign(activeCanvas, { viewport_x: body?.viewport_x ?? 0, viewport_y: body?.viewport_y ?? 0, viewport_zoom: body?.viewport_zoom ?? 1 })
+      Object.assign(activeCanvas, {
+        viewport_x: body?.x ?? body?.viewport_x ?? 0,
+        viewport_y: body?.y ?? body?.viewport_y ?? 0,
+        viewport_zoom: body?.zoom ?? body?.viewport_zoom ?? 1,
+      })
       return fulfillJson(route, activeCanvas)
     }
     if (method === 'GET' && path === '/assets') {

@@ -15,16 +15,27 @@ import {
   createWorkflowStarterCommand,
   type WorkflowStarterId,
 } from './canvas-workflow-starters'
-import { normalizeViewport, surfaceToWorld } from './canvas-geometry'
+import {
+  canvasNodeWorldRect,
+  normalizeViewport,
+  revealWorldRectViewport,
+  surfaceToWorld,
+  type ViewportInsets,
+} from './canvas-geometry'
 import { useCanvasStage } from './composables/use-canvas-stage'
 import { resolveGenerationContext } from '../../modules/canvas/generation-context'
 import { getGenerationMediaType } from '../../modules/canvas/node-registry'
 import { resolveResultLineage, resultLineageProvenance } from '../../modules/canvas/generation-lineage'
 import { resolveSelectionGenerationIntent } from '../../modules/canvas/selection-generation'
 
-const props = withDefaults(defineProps<{ readonly?: boolean; resourcesOpen?: boolean }>(), {
+const props = withDefaults(defineProps<{
+  readonly?: boolean
+  resourcesOpen?: boolean
+  viewportInsets?: Partial<ViewportInsets>
+}>(), {
   readonly: false,
   resourcesOpen: false,
+  viewportInsets: () => ({}),
 })
 
 const emit = defineEmits<{
@@ -207,6 +218,22 @@ function selectAndLocateNode(nodeId: string) {
   canvasStore.selectNode(nodeId)
   centerNodeInViewport(nodeId)
 }
+
+function revealNode(nodeId: string) {
+  const node = canvasStore.findNodeById(nodeId)
+  const surface = canvasSurfaceRef.value
+  if (!node || !surface) return false
+  const current = normalizeViewport(canvasStore.viewport)
+  const next = revealWorldRectViewport(
+    canvasNodeWorldRect(node, 'content'), current,
+    { width: surface.clientWidth, height: surface.clientHeight }, props.viewportInsets,
+  )
+  if (next.x === current.x && next.y === current.y) return false
+  canvasStore.updateViewport(next)
+  return true
+}
+
+defineExpose({ revealNode })
 
 function commitNodeContent(nodeId: string, content: string) {
   void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)

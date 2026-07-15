@@ -22,6 +22,13 @@ export interface ViewportSize {
   height: number
 }
 
+export interface ViewportInsets {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
+
 export interface WorldRect {
   left: number
   top: number
@@ -139,6 +146,36 @@ export function viewportWorldRect(viewport: ViewportState, size: ViewportSize): 
     width: size.width / viewport.zoom,
     height: size.height / viewport.zoom,
   }
+}
+
+export function revealWorldRectViewport(
+  rect: WorldRect,
+  viewport: ViewportState,
+  size: ViewportSize,
+  insets: Partial<ViewportInsets> = {},
+  padding = 24,
+): ViewportState {
+  const normalized = normalizeViewport(viewport)
+  const safePadding = Math.max(0, padding)
+  const safeLeft = Math.max(0, insets.left ?? 0) + safePadding
+  const safeTop = Math.max(0, insets.top ?? 0) + safePadding
+  const safeRight = Math.max(safeLeft, size.width - Math.max(0, insets.right ?? 0) - safePadding)
+  const safeBottom = Math.max(safeTop, size.height - Math.max(0, insets.bottom ?? 0) - safePadding)
+  const left = rect.left * normalized.zoom + normalized.x
+  const top = rect.top * normalized.zoom + normalized.y
+  const width = rect.width * normalized.zoom
+  const height = rect.height * normalized.zoom
+  const horizontalShift = width > safeRight - safeLeft
+    ? (safeLeft + safeRight - width) / 2 - left
+    : left < safeLeft ? safeLeft - left : left + width > safeRight ? safeRight - left - width : 0
+  const verticalShift = height > safeBottom - safeTop
+    ? (safeTop + safeBottom - height) / 2 - top
+    : top < safeTop ? safeTop - top : top + height > safeBottom ? safeBottom - top - height : 0
+  return normalizeViewport({
+    zoom: normalized.zoom,
+    x: normalized.x + horizontalShift,
+    y: normalized.y + verticalShift,
+  })
 }
 
 export function nodePortWorldAnchors(

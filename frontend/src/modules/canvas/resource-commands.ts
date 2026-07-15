@@ -48,6 +48,7 @@ export function createGeneratedResultCommand(
   sourceNode: CanvasNode,
   asset: Asset,
   task: GenerationTask,
+  existingNodes: readonly CanvasNode[] = [],
 ): InsertGraphCommand {
   const subtype = task.media_type
   const draft = createRegistryNodeDraft('result', subtype, {
@@ -69,6 +70,21 @@ export function createGeneratedResultCommand(
       source_model: asset.source_model,
       url: asset.url,
     },
+  }
+  const resultSize = { width: resultNode.width, height: resultNode.height }
+  const verticalStep = resultSize.height + 24
+  const occupiedNodes = existingNodes.filter((node) => node.id !== sourceNode.id)
+  for (let slot = 0; slot <= occupiedNodes.length; slot += 1) {
+    const candidateY = sourceNode.y + slot * verticalStep
+    const isOccupied = occupiedNodes.some((node) => {
+      const size = { width: node.width, height: node.height }
+      return resultNode.x < node.x + size.width && resultNode.x + resultSize.width > node.x &&
+        candidateY < node.y + size.height && candidateY + resultSize.height > node.y
+    })
+    if (!isOccupied) {
+      resultNode.y = candidateY
+      break
+    }
   }
   const ports = getDefaultConnectionPorts(sourceNode, resultNode, 'out', 'in')
   if (!ports) throw new Error('生成节点与结果节点端口不兼容。')

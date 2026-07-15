@@ -98,6 +98,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const actionError = ref('')
   const generationError = ref('')
   const generationSuccess = ref('')
+  const foregroundResultNodeId = ref('')
   let resourceOpener: HTMLElement | null = null
   let reconciliationTransition = Promise.resolve<unknown>(undefined)
   let pollingTimer: ReturnType<typeof setTimeout> | null = null
@@ -316,7 +317,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
             const primaryNodeId = canvasStore.selectedNodeId
             await actions.execute({
               source: 'toolbar',
-              command: createGeneratedResultCommand(sourceNode, asset, task),
+              command: createGeneratedResultCommand(sourceNode, asset, task, canvasStore.nodes),
             })
             canvasStore.setSelection(selectedIds, primaryNodeId)
           }
@@ -390,6 +391,9 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
       resourceStore.upsertTask(response.generation_task)
       await queueResourceReconciliation()
       if (isExactGenerationContext(context)) {
+        foregroundResultNodeId.value = canvasStore.nodes.find((node) => (
+          node.type === 'result' && node.contentData?.source_task_id === response.generation_task.id
+        ))?.id ?? ''
         generationSuccess.value = `${mediaType === 'video' ? '视频' : '图片'}生成已完成，结果已写入项目资源。`
       }
     } catch (error) {
@@ -476,6 +480,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     visibleError,
     generationError,
     generationSuccess,
+    foregroundResultNodeId,
     openResources,
     closeResources,
     restoreResourceFocus,

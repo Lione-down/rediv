@@ -119,6 +119,8 @@ T5-029 is `DONE - PASS`. It turns two or more request-ready selected text/image 
 
 T5-030 is `DONE - PASS`. It adds a verified T/R intent summary and closes image/video success plus durable failure output validation for workflows created from multi-selection. Focused 4/4, related 27/27, full Chromium 210/210, build, visual, and hygiene gates passed. `REPORT-T5-030.md` is authoritative evidence.
 
+T5-031 is `DONE - PASS`. It prevents repeated generated results from overlapping and makes the latest foreground result visible through a minimal panel-safe viewport translation without changing zoom, selection, or background reconciliation behavior. Focused 10/10, related 47/47, full Chromium 216/216, build, visual, and hygiene gates passed. `REPORT-T5-031.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

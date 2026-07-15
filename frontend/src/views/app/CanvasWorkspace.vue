@@ -21,6 +21,7 @@ import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
 
 type MoveDirection = -1 | 1
+interface CanvasStageHandle { revealNode: (nodeId: string) => boolean }
 
 const route = useRoute()
 const router = useRouter()
@@ -37,6 +38,7 @@ const isCompact = ref(false)
 const isRevisionPanelOpen = ref(false)
 const isResultCompareOpen = ref(false)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
+const canvasStageRef = ref<CanvasStageHandle | null>(null)
 let revisionPanelOpener: HTMLElement | null = null
 let reviewMediaQuery: MediaQueryList | null = null
 let compactMediaQuery: MediaQueryList | null = null
@@ -102,6 +104,7 @@ const {
   visibleError,
   generationError,
   generationSuccess,
+  foregroundResultNodeId,
   openResources,
   closeResources,
   restoreResourceFocus,
@@ -114,6 +117,13 @@ const {
   generate,
   updatePrompt,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
+
+const canvasViewportInsets = computed(() => ({
+  top: 96,
+  right: isCompact.value && isContextDrawerOpen.value ? 376 : 16,
+  bottom: 96,
+  left: 16,
+}))
 
 const comparisonItems = computed(() => (selectedResultLineage.value?.variants ?? []).flatMap((variant) => {
   const node = canvasDocumentStore.findNodeById(variant.nodeId)
@@ -264,6 +274,10 @@ watch(() => canvasDocumentStore.saveState, (state) => {
   if (state === 'conflict') openRevisionPanel()
 })
 
+watch(foregroundResultNodeId, (nodeId) => {
+  if (nodeId) void nextTick(() => canvasStageRef.value?.revealNode(nodeId))
+})
+
 onMounted(() => {
   reviewMediaQuery = window.matchMedia('(max-width: 767px)')
   compactMediaQuery = window.matchMedia('(max-width: 1023px)')
@@ -295,8 +309,10 @@ onBeforeUnmount(() => {
 
       <div class="canvas-layer" aria-hidden="false">
         <CanvasStage
+          ref="canvasStageRef"
           :readonly="isReviewOnly || canvasRevisionStore.restoringRevision !== null"
           :resources-open="isResourceOpen"
+          :viewport-insets="canvasViewportInsets"
           @open-resources="openResources"
         />
       </div>
