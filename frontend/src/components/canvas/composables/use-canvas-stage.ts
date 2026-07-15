@@ -133,7 +133,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     getConnections: () => canvasStore.connections, getDraftConnection: () => draftConnection.value, getNodes: () => canvasStore.nodes, getViewport,
   })
   const {
-    applyZoomAtPoint, areEdgesVisible, fitGraph, fitSelection, handleViewKeyDown,
+    applyZoomAtPoint, areEdgesVisible, fitGraph, fitNodes, fitSelection, handleViewKeyDown,
     isGridEnabled, isMinimapVisible, maybeAutoFitReadonly, setZoomPercent,
     toggleEdges, toggleGrid, toggleMinimap, zoomIn, zoomOut, zoomPercent,
   } = useCanvasViewControls({
@@ -493,7 +493,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     createNodeFromMenu, deleteSelection, duplicateSelection, groupSelection, isGraphPanelOpen, isNodeMenuOpen,
     toggleGraphPanel, ungroupSelection, updateNodeMenuOpen,
     arrangeSelectionFromToolbar, autoArrange, toggleLockSelection,
-    areEdgesVisible, fitGraph, fitSelection, isGridEnabled, isMinimapVisible, setZoomPercent,
+    areEdgesVisible, fitGraph, fitNodes, fitSelection, isGridEnabled, isMinimapVisible, setZoomPercent,
     toggleEdges, toggleGrid, toggleMinimap, zoomIn, zoomOut, zoomPercent,
     handleContextMenuSelect, updateContextMenuShow,
   }

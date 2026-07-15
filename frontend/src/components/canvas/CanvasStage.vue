@@ -110,6 +110,7 @@ const {
   hasLockedSelection,
   areEdgesVisible,
   fitGraph,
+  fitNodes,
   fitSelection,
   isGridEnabled,
   isMinimapVisible,
@@ -269,7 +270,14 @@ async function selectForegroundContinuation(key: string) {
 }
 function openSelectedContinuation() { const trigger = resolveCanvasNodeContinuationTrigger(canvasStore.nodes, canvasStore.selectedNodeIds, props.readonly); if (trigger) openNodeContinuation(trigger.node.id, trigger.portId) }
 
-defineExpose({ openSelectedContinuation, revealNode })
+function fitSelectedGenerationTrace() {
+  const selectedNode = canvasStore.selectedNode
+  if (!selectedNode || !getGenerationMediaType(selectedNode)) return false
+  const nodeIds = new Set([selectedNode.id, ...generationProvenance.value.map((entry) => entry.nodeId)])
+  return fitNodes(canvasStore.nodes.filter((node) => nodeIds.has(node.id)), true, props.viewportInsets)
+}
+
+defineExpose({ fitSelectedGenerationTrace, openSelectedContinuation, revealNode })
 
 function commitNodeContent(nodeId: string, content: string) {
   void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)

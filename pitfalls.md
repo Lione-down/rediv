@@ -438,3 +438,11 @@ Evidence:
 - Fixed screen-space overlay controls should attach to world geometry after viewport projection; scaling the control with world zoom makes it unusable at 10% and oversized at 800%.
 - Compact context drawers own a modal mask and focus trap. A Canvas control behind that mask is not reachable even when visible in DOM; place the action in the drawer, preserve selection, close it, then open the Canvas chooser after the drawer leave event.
 - Keep pointer-drag continuation semantics separate from explicit foreground actions. Only the explicit action should auto-select and reveal its result; background, history, and user-positioned drag flows remain camera-neutral.
+
+## 2026-07-15 Explicit full-trace camera fit
+
+- Fit actions for a semantic subgraph should consume the same canonical provenance projection used by its visual explanation; parallel edge filtering can make the camera omit nodes that the graph highlights.
+- Compact modal drawers must finish leaving before measuring and fitting the newly unobstructed viewport. Preserve selection during the handoff instead of calling the ordinary context-close path.
+- Leafer-owned static nodes do not expose DOM node surfaces. Browser geometry tests should use the authoritative T/R and V provenance overlays plus the generation status overlay rather than text-filtering `.canvas-node-surface`.
+- A 375px full-workflow fit is an overview, not a readable editing layout. Keep mobile readonly and avoid inflating nodes or hiding variants merely to make labels legible.
+- Run Playwright from `frontend/` so its project config is discovered; a repo-root invocation can report no configured Chromium project without exercising product code.

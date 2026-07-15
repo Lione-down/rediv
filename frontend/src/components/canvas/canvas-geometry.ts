@@ -103,17 +103,22 @@ export function fitViewportToNodes(
   nodes: readonly CanvasNode[],
   size: ViewportSize,
   padding = 48,
+  insets: Partial<ViewportInsets> = {},
 ): ViewportState | null {
   const bounds = getNodesBounds(nodes)
   if (!bounds || size.width <= 0 || size.height <= 0) return null
   const safePadding = Math.max(0, padding)
-  const availableWidth = Math.max(size.width - safePadding * 2, 1)
-  const availableHeight = Math.max(size.height - safePadding * 2, 1)
+  const safeLeft = Math.max(0, insets.left ?? 0) + safePadding
+  const safeTop = Math.max(0, insets.top ?? 0) + safePadding
+  const safeRight = Math.max(safeLeft, size.width - Math.max(0, insets.right ?? 0) - safePadding)
+  const safeBottom = Math.max(safeTop, size.height - Math.max(0, insets.bottom ?? 0) - safePadding)
+  const availableWidth = Math.max(safeRight - safeLeft, 1)
+  const availableHeight = Math.max(safeBottom - safeTop, 1)
   const zoom = clampZoom(Math.min(availableWidth / bounds.width, availableHeight / bounds.height))
   return normalizeViewport({
     zoom,
-    x: size.width / 2 - (bounds.left + bounds.width / 2) * zoom,
-    y: size.height / 2 - (bounds.top + bounds.height / 2) * zoom,
+    x: (safeLeft + safeRight) / 2 - (bounds.left + bounds.width / 2) * zoom,
+    y: (safeTop + safeBottom) / 2 - (bounds.top + bounds.height / 2) * zoom,
   })
 }
 

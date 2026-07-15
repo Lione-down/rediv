@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-039 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-040 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-039 - End-to-end generation provenance trace` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-039.md`
+- Most recently completed: `T5-040 - Explicit full generation trace fit` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-040.md`
 
 ## Current Verified Facts
 
@@ -68,6 +68,7 @@ Last updated: 2026-07-15
 - T5-037 is now `DONE - PASS`: eligible multi-selection sources expose exact `T1..Tn` and `R1..Rn` roles projected from the authoritative preview command before composition, then hand off to persisted generation provenance. Build, focused 10/10, related 23/23, desktop/compact visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-037.md`.
 - T5-038 is now `DONE - PASS`: selecting a canonical generation maps every active typed result output as ordered `V1..Vn` while retaining T/R input provenance and selected-result G/V lineage. Build, focused 9/9, related 16/16, final lineage 6/6, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-038.md`.
 - T5-039 is now `DONE - PASS`: selected generations expose one continuous authoritative provenance trace from T/R inputs through the task to all canonical V outputs, with restrained result edges and corrected accessible semantics. Build, focused 20/20, final 3/3, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-039.md`.
+- T5-040 is now `DONE - PASS`: selected generations expose an explicit panel-safe fit action for their authoritative T/R-to-generation-to-V trace. Desktop, compact drawer, and readonly overview preserve selection and graph history while producing only one viewport update. Build, related 15/15, final 3/3, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-040.md`.
 
 ## Exact Next Action
 

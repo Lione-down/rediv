@@ -11,6 +11,7 @@ import CanvasRevisionPanel from '../../components/canvas/CanvasRevisionPanel.vue
 import CanvasResultCompareTray from '../../components/canvas/CanvasResultCompareTray.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
 import { resolveCanvasNodeContinuationTrigger } from '../../components/canvas/canvas-node-continuation-trigger'
+import { resolveGenerationResultVariants } from '../../modules/canvas/generation-lineage'
 import { useCanvasNodeActions } from '../../components/canvas/composables/use-canvas-node-actions'
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
 import { useCanvasResourceExperience } from '../../components/canvas/composables/use-canvas-resource-experience'
@@ -22,7 +23,7 @@ import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
 
 type MoveDirection = -1 | 1
-interface CanvasStageHandle { openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
+interface CanvasStageHandle { fitSelectedGenerationTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -117,10 +118,19 @@ const {
 
 const canvasViewportInsets = computed(() => ({ top: 96, right: isCompact.value && isContextDrawerOpen.value ? 376 : 16, bottom: 96, left: 16 }))
 const selectedContinuationTrigger = computed(() => resolveCanvasNodeContinuationTrigger(canvasDocumentStore.nodes, canvasDocumentStore.selectedNodeIds, isReviewOnly.value || canvasRevisionStore.restoringRevision !== null))
+const canFitGenerationTrace = computed(() => Boolean(selectedNode.value && selectedMediaType.value && (
+  selectedGenerationContext.value?.provenance.length ||
+  resolveGenerationResultVariants(selectedNode.value, canvasDocumentStore.nodes, canvasDocumentStore.connections).length
+)))
 let isDrawerContinuationPending = false
+let isDrawerTraceFitPending = false
 
 function continueFromContextDrawer() { isDrawerContinuationPending = true; isContextDrawerOpen.value = false }
-function handleContextDrawerAfterLeave() { if (isDrawerContinuationPending) { isDrawerContinuationPending = false; canvasStageRef.value?.openSelectedContinuation() } }
+function fitTraceFromContextDrawer() { isDrawerTraceFitPending = true; isContextDrawerOpen.value = false }
+function handleContextDrawerAfterLeave() {
+  if (isDrawerContinuationPending) { isDrawerContinuationPending = false; canvasStageRef.value?.openSelectedContinuation() }
+  if (isDrawerTraceFitPending) { isDrawerTraceFitPending = false; canvasStageRef.value?.fitSelectedGenerationTrace() }
+}
 
 const comparisonItems = computed(() => (selectedResultLineage.value?.variants ?? []).flatMap((variant) => {
   const node = canvasDocumentStore.findNodeById(variant.nodeId)
@@ -380,6 +390,7 @@ onBeforeUnmount(() => {
 
       <div v-if="selectedNode && isDesktopContextOpen" class="context-panel-shell">
         <CanvasContextPanel
+          :can-fit-trace="canFitGenerationTrace"
           :error="generationError"
           :is-generating="isGenerating"
           :latest-task="latestTask"
@@ -395,6 +406,7 @@ onBeforeUnmount(() => {
           @branch-generation="branchFromResult"
           @close="closeContext"
           @compare-results="openResultComparison"
+          @fit-trace="canvasStageRef?.fitSelectedGenerationTrace()"
           @generate="generate"
           @reorder-input="reorderGenerationInput"
           @update-prompt="updatePrompt"
@@ -453,6 +465,7 @@ onBeforeUnmount(() => {
             <CanvasContextPanel
               v-if="selectedNode"
               :can-continue="Boolean(selectedContinuationTrigger)"
+              :can-fit-trace="canFitGenerationTrace"
               :error="generationError"
               :is-generating="isGenerating"
               :latest-task="latestTask"
@@ -469,6 +482,7 @@ onBeforeUnmount(() => {
               @close="closeContext"
               @continue-node="continueFromContextDrawer"
               @compare-results="openResultComparison"
+              @fit-trace="fitTraceFromContextDrawer"
               @generate="generate"
               @reorder-input="reorderGenerationInput"
               @update-prompt="updatePrompt"

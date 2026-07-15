@@ -137,6 +137,8 @@ T5-038 is `DONE - PASS`. It makes expanded repeated results read as one generati
 
 T5-039 is `DONE - PASS`. It completes selected-generation provenance by tracing authoritative T/R inputs through the generation node to every canonical ordered V output with restrained result-edge emphasis. `REPORT-T5-039.md` is authoritative evidence.
 
+T5-040 is `DONE - PASS`. It adds an explicit panel-safe camera action that fits the authoritative T/R-to-generation-to-V trace without automatic movement, graph mutation, or history changes. `REPORT-T5-040.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

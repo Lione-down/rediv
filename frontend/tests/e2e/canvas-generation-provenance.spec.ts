@@ -2,9 +2,45 @@ import { expect, test } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createMultiScenarioState } from './canvas-multi-scenario-fixture'
-import { FIRST_CANVAS_ID, openResourceWorkspace } from './canvas-resource-generation-fixture'
+import { documentPatches, FIRST_CANVAS_ID, openResourceWorkspace } from './canvas-resource-generation-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-039-end-to-end-provenance')
+const traceFitEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-040-full-trace-fit')
+
+function viewportPatches(state: ReturnType<typeof createMultiScenarioState>) {
+  return state.requests.filter((request) => (
+    request.method === 'PATCH' && request.path.endsWith(`/canvases/${FIRST_CANVAS_ID}/viewport`)
+  ))
+}
+
+async function expectTraceInsideSurface(page: import('@playwright/test').Page) {
+  const surface = await page.locator('.canvas-surface').boundingBox()
+  expect(surface).not.toBeNull()
+  const titles = [
+    '中文剧情约束', 'Cinematic direction with deliberately long English content',
+    '海岸环境参考', '人物造型参考', '合并四路上下文生成', '宽银幕主镜头',
+    '方形社交版本', '竖屏人物版本', '动态镜头结果', '上游返回空结果', '损坏媒体结果',
+  ]
+  const sourceMarkers = page.locator('.generation-source-provenance')
+  const resultMarkers = page.locator('.result-lineage-node')
+  const generationMarker = page.locator('.node-status-overlay').first()
+  await expect(sourceMarkers).toHaveCount(4)
+  await expect(resultMarkers).toHaveCount(6)
+  await expect(generationMarker).toBeVisible()
+  const nodes = [
+    ...Array.from({ length: 4 }, (_, index) => sourceMarkers.nth(index)),
+    generationMarker,
+    ...Array.from({ length: 6 }, (_, index) => resultMarkers.nth(index)),
+  ]
+  for (const [index, title] of titles.entries()) {
+    const rect = await nodes[index].boundingBox()
+    expect(rect, title).not.toBeNull()
+    expect(rect!.x, title).toBeGreaterThanOrEqual(surface!.x + 14)
+    expect(rect!.y, title).toBeGreaterThanOrEqual(surface!.y + 90)
+    expect(rect!.x + rect!.width, title).toBeLessThanOrEqual(surface!.x + surface!.width - 14)
+    expect(rect!.y + rect!.height, title).toBeLessThanOrEqual(surface!.y + surface!.height - 90)
+  }
+}
 
 async function selectNode(page: import('@playwright/test').Page, title: string) {
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
@@ -55,6 +91,43 @@ test('selected multi-input generation shows ordered source and edge provenance',
   await expect(page.locator('.result-lineage-node')).toHaveCount(0)
   await expect(page.locator('.connection-line.provenance')).toHaveCount(0)
 })
+
+test('explicit trace fit keeps the selected generation and mutates only one desktop viewport', async ({ page }) => {
+  const state = createMultiScenarioState()
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '合并四路上下文生成')
+  const viewportCount = viewportPatches(state).length
+
+  await page.getByRole('button', { name: '适配完整生成链路' }).click()
+  await expect.poll(() => viewportPatches(state).length).toBe(viewportCount + 1)
+  expect(documentPatches(state)).toHaveLength(0)
+  await expect(page.getByRole('complementary', { name: /节点详情 合并四路上下文生成/ })).toBeVisible()
+  await expectTraceInsideSurface(page)
+
+  await mkdir(traceFitEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(traceFitEvidenceDirectory, 'desktop-full-trace-1440x900.png'), fullPage: true })
+})
+
+for (const viewport of [{ width: 920, height: 760 }, { width: 375, height: 812 }]) {
+  test(`compact ${viewport.width}px closes the drawer before fitting the full trace`, async ({ page }) => {
+    const state = createMultiScenarioState()
+    await openResourceWorkspace(page, state, viewport)
+    await selectNode(page, '合并四路上下文生成')
+    const viewportCount = viewportPatches(state).length
+
+    await page.getByRole('button', { name: '适配完整生成链路' }).click()
+    await expect(page.locator('.n-drawer')).toHaveCount(0)
+    await expect.poll(() => viewportPatches(state).length).toBe(viewportCount + 1)
+    expect(documentPatches(state)).toHaveLength(0)
+    await expectTraceInsideSurface(page)
+
+    await mkdir(traceFitEvidenceDirectory, { recursive: true })
+    await page.screenshot({
+      path: resolve(traceFitEvidenceDirectory, `${viewport.width === 375 ? 'readonly' : 'compact'}-full-trace-${viewport.width}x${viewport.height}.png`),
+      fullPage: true,
+    })
+  })
+}
 
 test('excluded duplicate and missing media stay visible without entering request order', async ({ page }) => {
   const state = createMultiScenarioState()

@@ -31,6 +31,12 @@ test('fit geometry and grid snapping stay finite across the 10% to 800% contract
   expect(fitted?.zoom).toBeCloseTo(1.785714, 5)
   expect(fitted?.x).toBeCloseTo(-107.142857, 5)
   expect(fitted?.y).toBeCloseTo(-92.857143, 5)
+  const insetFitted = fitViewportToNodes(nodes.slice(0, 2), { width: 1000, height: 600 }, 50, {
+    top: 80, right: 240, bottom: 40, left: 20,
+  })
+  expect(insetFitted?.zoom).toBeCloseTo(1.333333, 5)
+  expect(insetFitted?.x).toBeCloseTo(-63.333333, 5)
+  expect(insetFitted?.y).toBeCloseTo(26.666667, 5)
   expect(snapDeltaToGrid({ x: 10, y: -10 }, { x: 19, y: -17 })).toEqual({ x: 14, y: -14 })
   expect(CANVAS_GRID_SIZE).toBe(24)
 })

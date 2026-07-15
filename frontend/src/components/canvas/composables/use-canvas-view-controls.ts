@@ -6,6 +6,7 @@ import {
   fitViewportToNodes,
   surfaceToWorld,
   type Point,
+  type ViewportInsets,
   type ViewportSize,
   type ViewportState,
 } from '../canvas-geometry'
@@ -78,8 +79,8 @@ export function useCanvasViewControls(options: CanvasViewControlsOptions) {
     return applyZoomAtPoint(percent / 100)
   }
 
-  function fitNodes(nodes: readonly CanvasNode[], shouldFocus = true) {
-    const viewport = fitViewportToNodes(nodes, options.getViewportSize())
+  function fitNodes(nodes: readonly CanvasNode[], shouldFocus = true, insets: Partial<ViewportInsets> = {}) {
+    const viewport = fitViewportToNodes(nodes, options.getViewportSize(), 48, insets)
     if (!viewport) return false
     options.updateViewport(viewport)
     if (shouldFocus) options.focusStage()
@@ -136,7 +137,7 @@ export function useCanvasViewControls(options: CanvasViewControlsOptions) {
   )
 
   return {
-    applyZoomAtPoint, areEdgesVisible, fitGraph, fitSelection, handleViewKeyDown,
+    applyZoomAtPoint, areEdgesVisible, fitGraph, fitNodes, fitSelection, handleViewKeyDown,
     isGridEnabled, isMinimapVisible, maybeAutoFitReadonly, setZoomPercent,
     toggleEdges, toggleGrid, toggleMinimap, zoomIn: () => stepZoom(1),
     zoomOut: () => stepZoom(-1), zoomPercent,
