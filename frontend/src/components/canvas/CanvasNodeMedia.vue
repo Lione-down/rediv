@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Camera } from 'lucide-vue-next'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { CanvasNodeMediaPresentation } from './canvas-node-presentation'
 import CanvasVideoKeyframeRail from './CanvasVideoKeyframeRail.vue'
 const props = withDefaults(defineProps<{ media: CanvasNodeMediaPresentation; canCaptureFrame?: boolean; capturePending?: boolean; keyframeRailPlacement?: 'above' | 'below' }>(), { canCaptureFrame: false, capturePending: false, keyframeRailPlacement: 'below' })
@@ -10,13 +10,44 @@ const captureError = ref('')
 const isCapturing = ref(false)
 const videoRef = ref<HTMLVideoElement | null>(null)
 const currentTime = ref(0)
+const videoLoadMode = ref<'canvas-readable' | 'playback-only'>('canvas-readable')
+const canReadVideoFrames = computed(() => videoLoadMode.value === 'canvas-readable' && props.canCaptureFrame)
 watch(() => props.media.kind === 'placeholder' ? props.media.kind : `${props.media.kind}:${props.media.url}`, () => {
   state.value = 'loading'
   captureError.value = ''
+  videoLoadMode.value = 'canvas-readable'
 })
 function imageLoaded(event: Event) { const image = event.currentTarget as HTMLImageElement; state.value = image.naturalWidth > 0 && image.naturalHeight > 0 ? 'ready' : 'error'; if (state.value === 'ready') emit('metadata', image.naturalWidth / image.naturalHeight) }
 function videoLoaded(event: Event) { const video = event.currentTarget as HTMLVideoElement; state.value = video.videoWidth > 0 && video.videoHeight > 0 ? 'ready' : 'error'; currentTime.value = video.currentTime; if (state.value === 'ready') emit('metadata', video.videoWidth / video.videoHeight) }
 function syncCurrentTime(event: Event) { currentTime.value = (event.currentTarget as HTMLVideoElement).currentTime }
+async function handleVideoKeydown(event: KeyboardEvent) {
+  const video = event.currentTarget as HTMLVideoElement
+  if (event.key === ' ' || event.key.toLowerCase() === 'k') {
+    event.preventDefault()
+    if (video.paused) await video.play()
+    else video.pause()
+    return
+  }
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    event.preventDefault()
+    const step = event.key === 'ArrowLeft' ? -5 : 5
+    video.currentTime = Math.min(Math.max(video.currentTime + step, 0), Number.isFinite(video.duration) ? video.duration : video.currentTime)
+    return
+  }
+  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+    event.preventDefault()
+    const step = event.key === 'ArrowUp' ? 0.1 : -0.1
+    video.volume = Math.min(Math.max(Number((video.volume + step).toFixed(2)), 0), 1)
+  }
+}
+function videoFailed() {
+  if (videoLoadMode.value === 'canvas-readable') {
+    state.value = 'loading'
+    videoLoadMode.value = 'playback-only'
+    return
+  }
+  state.value = 'error'
+}
 function seekToFrame(timeSeconds: number) {
   const video = videoRef.value
   if (!video || state.value !== 'ready') return
@@ -53,14 +84,14 @@ async function captureCurrentFrame() {
         <span v-if="state === 'loading'" class="canvas-node-media__message" role="status">媒体加载中…</span>
         <span v-if="state === 'error'" class="canvas-node-media__message is-error" role="alert">媒体不可用，可稍后重试</span>
         <img v-if="media.kind === 'image'" v-show="state !== 'error'" :src="media.url" :alt="media.label" @load="imageLoaded" @error="state = 'error'" />
-        <video v-else ref="videoRef" v-show="state !== 'error'" :src="media.url" :poster="media.poster" :aria-label="media.label" crossorigin="anonymous" controls preload="metadata" @loadedmetadata="videoLoaded" @timeupdate="syncCurrentTime" @seeked="syncCurrentTime" @error="state = 'error'" />
-        <button v-if="media.kind === 'video' && canCaptureFrame && state === 'ready'" type="button" class="canvas-node-media__capture" :disabled="isCapturing || capturePending" @click.stop="captureCurrentFrame" @pointerdown.stop>
+        <video v-else :key="videoLoadMode" ref="videoRef" v-show="state !== 'error'" :src="media.url" :poster="media.poster" :aria-label="media.label" :crossorigin="videoLoadMode === 'canvas-readable' ? 'anonymous' : undefined" :data-playback-capability="videoLoadMode" controls preload="metadata" @loadedmetadata="videoLoaded" @timeupdate="syncCurrentTime" @seeked="syncCurrentTime" @error="videoFailed" @click.stop @dblclick.stop @pointerdown.stop @keydown.stop="handleVideoKeydown" />
+        <button v-if="media.kind === 'video' && canReadVideoFrames && state === 'ready'" type="button" class="canvas-node-media__capture" :disabled="isCapturing || capturePending" @click.stop="captureCurrentFrame" @pointerdown.stop>
           <Camera :size="14" aria-hidden="true" />{{ isCapturing || capturePending ? '正在截取' : '截取当前帧' }}
         </button>
         <span v-if="captureError" class="canvas-node-media__capture-error" role="alert">{{ captureError }}</span>
       </template>
     </div>
-    <CanvasVideoKeyframeRail v-if="media.kind === 'video' && canCaptureFrame && state === 'ready'" :current-time="currentTime" :src="media.url" @seek="seekToFrame" />
+    <CanvasVideoKeyframeRail v-if="media.kind === 'video' && canReadVideoFrames && state === 'ready'" :current-time="currentTime" :src="media.url" @seek="seekToFrame" />
   </div>
 </template>
 

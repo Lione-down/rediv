@@ -339,6 +339,8 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
     }
     const isBroken = pathname.includes('broken')
     const isVideo = pathname.endsWith('.mp4')
+    if (pathname === '/forbidden.mp4') return route.fulfill({ status: 403, headers: { 'content-type': 'video/mp4', 'access-control-allow-origin': '*' }, body: Buffer.from('expired') })
+    if (pathname === '/unsupported.mp4') return route.fulfill({ status: 200, headers: { 'content-type': 'video/mp4', 'access-control-allow-origin': '*' }, body: Buffer.from('not-a-supported-codec') })
     if (pathname === '/scenario.mp4') {
       const body = readFileSync(resolve(process.cwd(), 'tests', 'fixtures', 'dynamic-frame-source.mp4'))
       const range = route.request().headers().range

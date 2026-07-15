@@ -203,6 +203,8 @@ T5-064 is `DONE - PASS`. Compose-ready multi-node selections now read as one del
 
 T5-065 is `DONE - PASS`. Two backend-authoritative, single-reference visual asset recipes directly create character sheets or scene multi-view boards while reusing the existing generation transaction and keeping internal recipe prompts out of editable UI. Backend 36 plus 7 subtests, browser 5/5 plus related 51/51, build, skill validation, and five visual states passed.
 
+T5-066 is `DONE - PASS`. Generated-video nodes now preserve canvas-readable playback and frame tools when CORS permits them, fall back exactly once to playback-only for valid no-ACAO media, provide deterministic keyboard controls, and retain explicit bounded failures without a backend proxy. Focused 6/6, related 50/50, build, reload, no-mutation, and three-viewport visual gates passed.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

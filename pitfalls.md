@@ -631,3 +631,12 @@ Evidence:
 - Capture running evidence with a controllable provider gate, but wait for quota and result reconciliation after releasing it. Reading settlement state immediately tests event-loop timing rather than the transaction contract.
 - Failure retry must reuse the same recipe node. A second branch obscures request identity and risks duplicate results or charges.
 - Document fixed-template limitations explicitly. Backend prompts can encourage fidelity, but they do not prove person detection, semantic scene understanding, face matching, or automatic quality scoring.
+
+## 2026-07-15 Generated video playback capability
+
+- A video can be browser-playable without being CORS-readable by Canvas APIs. Model ordinary playback and frame extraction as separate capabilities instead of treating one successful load as proof of both.
+- `crossorigin="anonymous"` must be present before `src` for readable media, but a no-ACAO CDN response can then fail entirely. Use one keyed playback-only fallback, never an unconditional error reload.
+- Media error code 4 can be a CORS rejection rather than an unsupported codec. Compare the exact URL without CORS mode and inspect console plus response headers before classifying it.
+- Native video controls do not make the host element reliably keyboard operable in Chromium automation. Provide explicit Space/K, seek, and volume handling while stopping events before Canvas gestures.
+- Route-fulfilled browser mocks can mask real media CORS behavior. Use an independent HTTP origin with actual range responses for transport-boundary evidence.
+- Screenshot drawer and mask transitions only after their real bounds or removal settle. A visible panel is not necessarily at its final transform, and a closing mask can make a healthy Canvas look blank.
