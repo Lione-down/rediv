@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, CircleCheck, Image, Info, Link2, LoaderCircle, Play, Sparkles, X } from 'lucide-vue-next'
+import { AlertTriangle, CircleCheck, Columns2, Image, Info, Link2, LoaderCircle, Play, Sparkles, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import type { ResolvedGenerationContext } from '../../modules/canvas/generation-context'
 import type { ResolvedResultLineage } from '../../modules/canvas/generation-lineage'
@@ -32,6 +32,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   close: []
+  compareResults: []
   generate: [prompt: string]
   updatePrompt: [prompt: string]
 }>()
@@ -146,6 +147,16 @@ function requestGeneration() {
           <div v-if="resultLineage.model"><dt>模型</dt><dd>{{ resultLineage.model }}</dd></div>
           <div><dt>输入</dt><dd>{{ resultLineage.inputProvenance.filter((item) => item.isIncluded).length }} 项</dd></div>
         </dl>
+        <button
+          v-if="resultLineage.variants.length > 1"
+          type="button"
+          class="compare-results-button"
+          :aria-label="`比较 ${resultLineage.variants.length} 个同源结果`"
+          @click="emit('compareResults')"
+        >
+          <Columns2 :size="16" aria-hidden="true" />
+          比较同源结果
+        </button>
       </section>
       <div class="review-prompt"><span>内容</span><p>{{ node.content || '此节点没有文本内容。' }}</p></div>
     </section>
@@ -185,6 +196,8 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .connected-context li small, .connected-context > p { color: var(--v2-text-muted); font-size: 10px; }
 .connected-context > p { margin: 8px 0 0; }
 .generate-button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; color: var(--v2-text-on-accent); background: var(--v2-accent); font-weight: 600; }
+.compare-results-button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 7px; margin-top: 12px; border: 1px solid var(--v2-border-standard); color: var(--v2-text-primary); background: var(--v2-surface-3); font-size: 12px; }
+.compare-results-button:hover { border-color: color-mix(in srgb, var(--v2-accent) 52%, var(--v2-border-standard)); }
 .generation-status { min-height: 42px; align-items: center; gap: 7px; margin: 14px 0 0; padding: 8px 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); color: var(--v2-text-secondary); background: var(--v2-surface-1); font-size: 12px; }
 .generation-status small { margin-left: auto; color: var(--v2-text-muted); }
 .feedback { align-items: flex-start; gap: 7px; margin: 10px 0 0; padding: 9px 10px; border-radius: var(--v2-radius-md); font-size: 12px; line-height: 1.55; }

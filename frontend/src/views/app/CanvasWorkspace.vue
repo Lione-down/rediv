@@ -8,6 +8,7 @@ import CanvasAssetPanel from '../../components/canvas/CanvasAssetPanel.vue'
 import CanvasContextPanel from '../../components/canvas/CanvasContextPanel.vue'
 import CanvasIdentityBar from '../../components/canvas/CanvasIdentityBar.vue'
 import CanvasRevisionPanel from '../../components/canvas/CanvasRevisionPanel.vue'
+import CanvasResultCompareTray from '../../components/canvas/CanvasResultCompareTray.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
 import { useCanvasResourceExperience } from '../../components/canvas/composables/use-canvas-resource-experience'
@@ -33,6 +34,7 @@ useCanvasPersistenceLifecycle()
 const isReviewOnly = ref(false)
 const isCompact = ref(false)
 const isRevisionPanelOpen = ref(false)
+const isResultCompareOpen = ref(false)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
 let revisionPanelOpener: HTMLElement | null = null
 let reviewMediaQuery: MediaQueryList | null = null
@@ -111,6 +113,30 @@ const {
   generate,
   updatePrompt,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
+
+const comparisonItems = computed(() => (selectedResultLineage.value?.variants ?? []).flatMap((variant) => {
+  const node = canvasDocumentStore.findNodeById(variant.nodeId)
+  return node ? [{ node, order: variant.order, isSelected: variant.isSelected }] : []
+}))
+const compareTrayStyle = computed(() => ({
+  '--compare-left': isResourceOpen.value && !isCompact.value ? `${panelWidth.value + 16}px` : '16px',
+  '--compare-right': isDesktopContextOpen.value ? '376px' : '16px',
+}))
+
+function openResultComparison() {
+  if (!selectedResultLineage.value || comparisonItems.value.length < 2) return
+  isContextDrawerOpen.value = false
+  isResultCompareOpen.value = true
+}
+
+function closeResultComparison() {
+  isResultCompareOpen.value = false
+}
+
+function selectComparedResult(nodeId: string) {
+  isResultCompareOpen.value = false
+  canvasDocumentStore.selectNode(nodeId)
+}
 
 function updateResponsiveBoundaries() {
   isReviewOnly.value = reviewMediaQuery?.matches ?? false
@@ -218,6 +244,7 @@ function updateContextDrawer(show: boolean) {
 }
 
 watch([projectId, canvasId], ([nextProjectId, nextCanvasId]) => {
+  isResultCompareOpen.value = false
   void loadWorkspaceContext(nextProjectId, nextCanvasId)
 }, { immediate: true })
 
@@ -358,10 +385,20 @@ onBeforeUnmount(() => {
           :readonly="isReviewOnly"
           :success="generationSuccess"
           @close="closeContext"
+          @compare-results="openResultComparison"
           @generate="generate"
           @update-prompt="updatePrompt"
         />
       </div>
+
+      <CanvasResultCompareTray
+        v-if="isResultCompareOpen && selectedResultLineage && comparisonItems.length > 1"
+        :items="comparisonItems"
+        :origin-title="selectedResultLineage.generationTitle"
+        :style="compareTrayStyle"
+        @close="closeResultComparison"
+        @select="selectComparedResult"
+      />
 
       <NDrawer
         :show="isResourceOpen && isCompact"
@@ -416,6 +453,7 @@ onBeforeUnmount(() => {
               :readonly="isReviewOnly"
               :success="generationSuccess"
               @close="closeContext"
+              @compare-results="openResultComparison"
               @generate="generate"
               @update-prompt="updatePrompt"
             />

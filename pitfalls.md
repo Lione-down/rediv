@@ -1,5 +1,11 @@
 # 踩坑记录
 
+## 2026-07-15 Canvas 同源结果比较边界
+
+- 同源结果比较应复用 canonical node media presentation 和 persisted connection order，避免 gallery 自行猜测媒体状态或重新排序 V1..Vn。
+- Compact 模式从详情 drawer 打开 Canvas overlay 时，只关闭 drawer state，不能调用会清空 node selection 的通用 close handler。
+- 比较属于只读审阅：打开、滚动、播放 video、Escape 和切换 sibling selection 都不得产生 document PATCH 或 provider 请求。
+
 ## 2026-07-13 自动化授权与推送边界
 
 - Human Owner 为 `project_revid` 的 scheduled delivery 提供项目内的 standing authorization：完成并验证通过的 scoped commit 必须在 secret hygiene 与 staged diff review 后推送至 `origin`，禁止 WIP 或空提交/推送。

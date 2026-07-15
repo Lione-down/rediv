@@ -48,6 +48,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 21 | T5-021 | Atomic typed node insertion into an existing edge | DONE - PASS | T5-020 |
 | 22 | T5-022 | Generation input provenance spotlight and deterministic ordering | DONE - PASS | T5-021 |
 | 23 | T5-023 | Result lineage and sibling variant inspection | DONE - PASS | T5-022 |
+| 24 | T5-024 | In-canvas sibling result comparison tray | DONE - PASS | T5-023 |
 
 ## Task Boundaries
 
@@ -100,6 +101,8 @@ T5-021 is `DONE - PASS`. A selected compatible edge now exposes one restrained m
 T5-022 is `DONE - PASS`. Selecting a generation node now exposes stable T/R input order, participating edge paths, source rings, and muted excluded references from the same resolver that builds provider payloads. Focused 6/6, related 39/39, full Chromium 182/182, build, desktop/mobile visual, and hygiene gates passed. `REPORT-T5-022.md` is authoritative evidence.
 
 T5-023 is `DONE - PASS`. Selecting a canonical image/video result now traces one typed origin generation, ordered T/R inputs, stable V siblings, and source task/model metadata. Media state survives selection changes, including decoded, unavailable, and broken results. Focused 10/10, related 48/48, full Chromium 186/186, build, visual, and hygiene gates passed. `REPORT-T5-023.md` is authoritative evidence.
+
+T5-024 is `DONE - PASS`. Selected result lineage now opens a non-modal Canvas comparison tray for all persisted sibling variants, including canonical images, user-controlled video, unavailable, and broken media. No-mutation, desktop/375px responsive, focused 6/6, related 9/9, full Chromium 188/188, build, visual, and hygiene gates passed. `REPORT-T5-024.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 
