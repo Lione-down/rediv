@@ -131,6 +131,8 @@ T5-035 is `DONE - PASS`. It turns typed port-drag continuation into a discoverab
 
 T5-036 is `DONE - PASS`. It separates typed connection compatibility from foreground authoring intent so script and asset sources keep the quiet selected-node continuation action while generation/result nodes avoid misleading or duplicate generic actions. `REPORT-T5-036.md` is authoritative evidence.
 
+T5-037 is `DONE - PASS`. It makes multi-node composition predictable before creation by projecting exact prompt/reference roles and independent input order from the authoritative selection generation command onto selected Canvas sources. `REPORT-T5-037.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

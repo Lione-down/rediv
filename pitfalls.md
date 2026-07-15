@@ -1,5 +1,11 @@
 # 踩坑记录
 
+## 2026-07-15 Multi-selection input role preview
+
+- Aggregate compose counts do not explain which selected source will become each provider input. Pre-creation UI should project roles and order from the exact preview command, not classify node types again.
+- Prompt and reference sequences own independent order domains. Canvas markers, persisted connection metadata, generation provenance, preflight, and provider payload must all retain the same `T1..Tn` and `R1..Rn` mapping.
+- Pre-creation intent is ephemeral and mutation-free. After insertion, remove it and let persisted generation provenance own the graph rather than layering two competing explanations.
+
 ## 2026-07-15 Continuation compatibility and authoring intent
 
 - Typed port compatibility describes which persisted edges are valid; it does not prove that every compatible target should be advertised as a foreground creation action.

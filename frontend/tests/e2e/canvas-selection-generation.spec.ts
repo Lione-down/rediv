@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { resolveGenerationContext } from '../../src/modules/canvas/generation-context'
-import { createSelectionGenerationCommand } from '../../src/modules/canvas/selection-generation'
+import { createSelectionGenerationCommand, resolveSelectionGenerationIntent } from '../../src/modules/canvas/selection-generation'
 import type { CanvasNode } from '../../src/types/canvas'
 import {
   createResourceMockState,
@@ -12,7 +12,7 @@ import {
   PROJECT_ID,
 } from './canvas-resource-generation-fixture'
 
-const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-029-selection-generation')
+const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-037-selection-input-roles')
 const now = '2026-07-15T10:00:00Z'
 
 function sourceNode(id: string, type: 'script' | 'asset', options: Record<string, unknown> = {}): CanvasNode {
@@ -58,6 +58,12 @@ test('pure composition creates one ordered request-ready generation fragment', (
   expect(context.textSources.map((item) => item.nodeId)).toEqual(['script-a', 'script-b'])
   expect(context.mediaSources.map((item) => item.nodeId)).toEqual(['asset-a', 'asset-b'])
   expect(context.provenance.every((item) => item.isIncluded)).toBe(true)
+  expect(resolveSelectionGenerationIntent(sources)?.inputs).toEqual([
+    { kind: 'text', nodeId: 'script-a', order: 1 },
+    { kind: 'reference', nodeId: 'asset-a', order: 1 },
+    { kind: 'text', nodeId: 'script-b', order: 2 },
+    { kind: 'reference', nodeId: 'asset-b', order: 2 },
+  ])
 
   expect(createSelectionGenerationCommand(sources.filter((node) => node.type === 'script'), 'image', () => crypto.randomUUID()))
     .toMatchObject({ nodes: [{ contentData: { subtype: 'image' } }], connections: [{ targetPort: 'prompt' }, { targetPort: 'prompt' }] })
@@ -133,6 +139,9 @@ test('toolbar composes four mixed sources atomically and preserves undo redo and
   await surface.click({ position: { x: 560, y: 460 }, modifiers: ['Control'] })
   const toolbar = page.getByRole('toolbar', { name: '4 个已选节点的操作' })
   await expect(toolbar).toBeVisible()
+  const inputRoles = page.locator('.selection-generation-intent span')
+  await expect(inputRoles).toHaveText(['T1', 'R1', 'T2', 'R2'])
+  expect(documentPatches(state)).toHaveLength(0)
   await toolbar.getByRole('button', { name: '合并所选节点为生成任务' }).click()
   const composeMenu = page.getByRole('menu', { name: '选择生成任务类型' })
   await mkdir(evidenceDirectory, { recursive: true })
@@ -140,6 +149,7 @@ test('toolbar composes four mixed sources atomically and preserves undo redo and
   await composeMenu.getByRole('menuitem', { name: '视频生成' }).click()
 
   await expect.poll(() => documentPatches(state).length).toBe(1)
+  await expect(page.locator('.selection-generation-intent')).toHaveCount(0)
   const firstPatch = documentPatches(state)[0].body!
   expect(firstPatch.node_upserts).toHaveLength(1)
   expect(firstPatch.connection_upserts).toHaveLength(4)
@@ -192,12 +202,15 @@ test('compact desktop keeps the compose menu in bounds and creates image generat
   await page.mouse.move(surfaceBox!.x + 830, surfaceBox!.y + 390, { steps: 4 })
   await page.mouse.up()
   await expect(page.getByRole('toolbar', { name: '2 个已选节点的操作' })).toBeVisible()
+  await expect(page.locator('.selection-generation-intent span')).toHaveText(['T1', 'T2'])
   await page.getByRole('button', { name: '合并所选节点为生成任务' }).click()
   const menu = page.getByRole('menu', { name: '选择生成任务类型' })
   const box = await menu.boundingBox()
   expect(box).not.toBeNull()
   expect(box!.x).toBeGreaterThanOrEqual(0)
   expect(box!.x + box!.width).toBeLessThanOrEqual(920)
+  await mkdir(evidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(evidenceDirectory, 'text-selection-compose-menu-920x900.png'), fullPage: true })
   await menu.getByRole('menuitem', { name: '图片生成' }).click()
   await expect.poll(() => documentPatches(state).length).toBe(1)
   expect(documentPatches(state)[0].body?.node_upserts[0]).toMatchObject({ content: { subtype: 'image' } })
@@ -216,9 +229,11 @@ test('invalid desktop and readonly mobile selections expose no composition mutat
   await surface.click({ position: { x: 180, y: 200 } })
   await surface.click({ position: { x: 560, y: 180 }, modifiers: ['Control'] })
   await expect(page.getByRole('button', { name: '合并所选节点为生成任务' })).toHaveCount(0)
+  await expect(page.locator('.selection-generation-intent')).toHaveCount(0)
   expect(documentPatches(state)).toHaveLength(0)
 
   await openResourceWorkspace(page, state, { width: 375, height: 812 })
   await expect(page.locator('.selection-toolbar')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '合并所选节点为生成任务' })).toHaveCount(0)
+  await expect(page.locator('.selection-generation-intent')).toHaveCount(0)
 })

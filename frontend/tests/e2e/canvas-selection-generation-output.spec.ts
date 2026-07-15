@@ -97,17 +97,27 @@ test('selection intent reports exact counts and video semantics', () => {
     sourceNode('result-a', 'result', { assetId: 'result-asset-a' }),
     sourceNode('result-b', 'result', { assetId: 'result-asset-b' }),
   ]
-  expect(resolveSelectionGenerationIntent(scripts)).toEqual({
+  expect(resolveSelectionGenerationIntent(scripts)).toMatchObject({
     textCount: 2, imageCount: 0, assetImageCount: 0, resultCount: 0, videoMode: 'text-to-video',
+    inputs: [
+      { kind: 'text', nodeId: 'script-a', order: 1 },
+      { kind: 'text', nodeId: 'script-b', order: 2 },
+    ],
   })
-  expect(resolveSelectionGenerationIntent([...scripts, images[0]])).toEqual({
+  expect(resolveSelectionGenerationIntent([...scripts, images[0]])).toMatchObject({
     textCount: 2, imageCount: 1, assetImageCount: 1, resultCount: 0, videoMode: 'img2vid',
   })
-  expect(resolveSelectionGenerationIntent([...scripts, ...images])).toEqual({
+  expect(resolveSelectionGenerationIntent([...scripts, ...images])).toMatchObject({
     textCount: 2, imageCount: 2, assetImageCount: 2, resultCount: 0, videoMode: 'keyframes',
   })
-  expect(resolveSelectionGenerationIntent([scripts[0], images[0], ...results])).toEqual({
+  expect(resolveSelectionGenerationIntent([scripts[0], images[0], ...results])).toMatchObject({
     textCount: 1, imageCount: 3, assetImageCount: 1, resultCount: 2, videoMode: 'keyframes',
+    inputs: [
+      { kind: 'text', nodeId: 'script-a', order: 1 },
+      { kind: 'reference', nodeId: 'image-a', order: 1 },
+      { kind: 'reference', nodeId: 'result-a', order: 2 },
+      { kind: 'reference', nodeId: 'result-b', order: 3 },
+    ],
   })
 })
 

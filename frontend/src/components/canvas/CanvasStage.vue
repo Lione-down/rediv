@@ -8,6 +8,7 @@ import CanvasConnectionLayer from './CanvasConnectionLayer.vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasNodeSurfaceLayer from './CanvasNodeSurfaceLayer.vue'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
+import CanvasSelectionGenerationIntent from './CanvasSelectionGenerationIntent.vue'
 import CanvasToolDock from './CanvasToolDock.vue'
 import CanvasViewControls from './CanvasViewControls.vue'
 import { getCanvasGridStyle } from './canvas-grid-presentation'
@@ -343,6 +344,12 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         @commit-content="commitNodeContent"
         @continue-node="openNodeContinuation"
         @media-metadata="adoptMediaAspectRatio"
+      />
+
+      <CanvasSelectionGenerationIntent
+        v-if="!readonly && canvasStore.selectedNodes.length >= 2"
+        :nodes="canvasStore.selectedNodes"
+        :surface-node-rect-style="surfaceNodeRectStyle"
       />
 
       <div

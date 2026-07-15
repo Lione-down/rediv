@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-036 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-037 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-036 - Intent-safe continuation affordance` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-036.md`
+- Most recently completed: `T5-037 - Multi-selection input role preview` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-037.md`
 
 ## Current Verified Facts
 
@@ -65,6 +65,7 @@ Last updated: 2026-07-15
 - T5-034 is now `DONE - PASS`: foreground selection composition and result branching reveal the exact created generation with minimum panel-safe translation while preserving zoom, selection, inspector, history, reload, recovery, and readonly boundaries. Build, focused 4/4, related 50/50, visual, and hygiene gates passed; full Chromium was 228/229 with a separately classified local 200-node performance-threshold variance. Final report: `ai/reports/REPORT-T5-034.md`.
 - T5-035 is now `DONE - PASS`: selected compatible nodes expose a quiet typed continuation trigger backed by the canonical resolver and existing chooser. Explicit continuation is collision-aware, atomic, keyboard accessible, selected, and panel-safely revealed; compact drawers hand off without mask obstruction. Build, focused 5/5, related 29/29, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-035.md`.
 - T5-036 is now `DONE - PASS`: registry-owned authoring intent limits the selected-node continuation action to script and asset sources while preserving typed drag compatibility and dedicated result branching. Build, focused 8/8, related 32/32, desktop/compact visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-036.md`.
+- T5-037 is now `DONE - PASS`: eligible multi-selection sources expose exact `T1..Tn` and `R1..Rn` roles projected from the authoritative preview command before composition, then hand off to persisted generation provenance. Build, focused 10/10, related 23/23, desktop/compact visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-037.md`.
 
 ## Exact Next Action
 

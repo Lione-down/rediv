@@ -15,9 +15,16 @@ export type SelectionVideoMode = 'text-to-video' | 'img2vid' | 'keyframes'
 export interface SelectionGenerationIntent {
   assetImageCount: number
   imageCount: number
+  inputs: readonly SelectionGenerationInput[]
   resultCount: number
   textCount: number
   videoMode: SelectionVideoMode
+}
+
+export interface SelectionGenerationInput {
+  kind: 'text' | 'reference'
+  nodeId: string
+  order: number
 }
 
 function uniqueSelection(nodes: readonly CanvasNode[]) {
@@ -100,6 +107,11 @@ export function resolveSelectionGenerationIntent(
   return {
     assetImageCount: imageCount - resultCount,
     imageCount,
+    inputs: command.connections.map((connection) => ({
+      kind: connection.targetPort === 'prompt' ? 'text' : 'reference',
+      nodeId: connection.from,
+      order: Number(connection.metadata?.input_order),
+    })),
     resultCount,
     textCount,
     videoMode: imageCount === 0 ? 'text-to-video' : imageCount === 1 ? 'img2vid' : 'keyframes',
