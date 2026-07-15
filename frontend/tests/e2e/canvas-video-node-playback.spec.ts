@@ -6,8 +6,10 @@ import { resolve } from 'node:path'
 import {
   createResourceMockState, documentPatches, FIRST_CANVAS_ID, openResourceWorkspace,
 } from './canvas-resource-generation-fixture'
+import { createMultiScenarioState } from './canvas-multi-scenario-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-066-video-node-playback')
+const playbackOwnershipEvidence = resolve(process.cwd(), '..', 'output', 'playwright', 't5-069-video-playback-ownership')
 
 function addGeneratedVideo(state: ReturnType<typeof createResourceMockState>, videoUrl: string, title = '无 CORS 生成视频') {
   const document = state.documents[FIRST_CANVAS_ID]
@@ -86,6 +88,62 @@ async function mediaSnapshot(video: import('@playwright/test').Locator) {
     crossOrigin: element.crossOrigin,
   }))
 }
+
+test('starting a second Canvas video pauses the first without rewinding it', async ({ page }) => {
+  const state = createResourceMockState()
+  addGeneratedVideo(state, 'https://media.revid.test/scenario.mp4', 'First video result')
+  const first = state.documents[FIRST_CANVAS_ID].nodes.at(-1)!
+  state.documents[FIRST_CANVAS_ID].nodes.push({
+    ...first,
+    id: 'result-second-video',
+    content: {
+      ...first.content,
+      title: 'Second video result',
+      asset_id: 'asset-second-video',
+      source_task_id: 'task-second-video',
+    },
+    position_x: 940,
+  })
+  await openResourceWorkspace(page, state)
+  const videos = page.locator('.canvas-node-surface video')
+  await expect(videos).toHaveCount(2)
+  await expect.poll(() => videos.nth(0).evaluate((video: HTMLVideoElement) => video.readyState)).toBeGreaterThanOrEqual(2)
+  await expect.poll(() => videos.nth(1).evaluate((video: HTMLVideoElement) => video.readyState)).toBeGreaterThanOrEqual(2)
+
+  await videos.nth(0).evaluate(async (video: HTMLVideoElement) => { video.loop = true; video.muted = true; await video.play() })
+  await expect.poll(() => videos.nth(0).evaluate((video: HTMLVideoElement) => video.currentTime)).toBeGreaterThan(0)
+  const firstTime = await videos.nth(0).evaluate((video: HTMLVideoElement) => video.currentTime)
+  await videos.nth(1).evaluate(async (video: HTMLVideoElement) => { video.loop = true; video.muted = true; await video.play() })
+
+  await expect.poll(() => videos.nth(0).evaluate((video: HTMLVideoElement) => video.paused)).toBe(true)
+  expect(await videos.nth(0).evaluate((video: HTMLVideoElement) => video.currentTime)).toBeGreaterThanOrEqual(firstTime)
+  expect(await videos.nth(1).evaluate((video: HTMLVideoElement) => video.paused)).toBe(false)
+  expect(documentPatches(state)).toHaveLength(0)
+})
+
+test('comparison preview and background node hand playback ownership to each other', async ({ page }) => {
+  const state = createMultiScenarioState()
+  await openResourceWorkspace(page, state)
+  const generation = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-compose')!
+  await selectNode(page, String(generation.content.title))
+  await page.locator('.compare-results-button').click()
+  const backgroundVideo = page.locator('.canvas-node-surface video')
+  const trayVideo = page.locator('.result-compare-tray video')
+  await expect(backgroundVideo).toHaveCount(1)
+  await expect(trayVideo).toHaveCount(1)
+  await expect.poll(() => trayVideo.evaluate((video: HTMLVideoElement) => video.readyState)).toBeGreaterThanOrEqual(2)
+
+  await backgroundVideo.evaluate(async (video: HTMLVideoElement) => { video.loop = true; video.muted = true; await video.play() })
+  await expect.poll(() => backgroundVideo.evaluate((video: HTMLVideoElement) => video.currentTime)).toBeGreaterThan(0)
+  await trayVideo.evaluate(async (video: HTMLVideoElement) => { video.loop = true; video.muted = true; await video.play() })
+  await expect.poll(() => backgroundVideo.evaluate((video: HTMLVideoElement) => video.paused)).toBe(true)
+  await mkdir(playbackOwnershipEvidence, { recursive: true })
+  await page.screenshot({ path: resolve(playbackOwnershipEvidence, 'tray-video-owns-playback-1440x900.png'), fullPage: true })
+  await backgroundVideo.focus()
+  await page.keyboard.press('k')
+  await expect.poll(() => trayVideo.evaluate((video: HTMLVideoElement) => video.paused)).toBe(true)
+  expect(documentPatches(state)).toHaveLength(0)
+})
 
 test('same no-ACAO generated video falls back once to direct native playback inside its node', async ({ page }) => {
   const mediaServer = await startNoCorsVideoServer()

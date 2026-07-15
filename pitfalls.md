@@ -655,3 +655,10 @@ Evidence:
 - Reuse the same panel-safe reveal contract after selection state settles. Parallel camera math will drift from Inspector and drawer insets.
 - Separate distant and already-visible browser cases. The first proves one bounded viewport update; the second prevents gratuitous camera motion.
 - Count only `PATCH .../viewport` requests after the 500 ms persistence debounce settles. Route logs also contain non-mutation viewport traffic that can produce false positives.
+
+## 2026-07-15 Canvas video playback ownership
+
+- Multiple native controls do not imply coordinated preview ownership. Two video nodes or a tray/background duplicate can play concurrently unless the media component owns an explicit peer-pause contract.
+- Pause peers without seeking, muting, or reloading. Ownership handoff should preserve each review position so creators can resume comparison exactly where they left it.
+- A SFC module singleton can be brittle across render/chunk boundaries. A namespaced browser event with per-instance mount/unmount listeners crosses ordinary-node and overlay mounts without DOM scanning or business-state coupling.
+- Short looping fixtures are required for deterministic concurrent-playback tests. Without `loop`, a clip can naturally end and create a false ownership pass.

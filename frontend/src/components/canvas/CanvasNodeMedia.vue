@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Camera } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { CanvasNodeMediaPresentation } from './canvas-node-presentation'
 import CanvasVideoKeyframeRail from './CanvasVideoKeyframeRail.vue'
+const CANVAS_VIDEO_PLAY_EVENT = 'revid:canvas-video-play'
 const props = withDefaults(defineProps<{ media: CanvasNodeMediaPresentation; canCaptureFrame?: boolean; capturePending?: boolean; keyframeRailPlacement?: 'above' | 'below' }>(), { canCaptureFrame: false, capturePending: false, keyframeRailPlacement: 'below' })
 const emit = defineEmits<{ captureFrame: [file: File, timeSeconds: number, aspectRatio: number]; metadata: [aspectRatio: number] }>()
 const state = ref<'loading' | 'ready' | 'error'>('loading')
@@ -20,6 +21,15 @@ watch(() => props.media.kind === 'placeholder' ? props.media.kind : `${props.med
 function imageLoaded(event: Event) { const image = event.currentTarget as HTMLImageElement; state.value = image.naturalWidth > 0 && image.naturalHeight > 0 ? 'ready' : 'error'; if (state.value === 'ready') emit('metadata', image.naturalWidth / image.naturalHeight) }
 function videoLoaded(event: Event) { const video = event.currentTarget as HTMLVideoElement; state.value = video.videoWidth > 0 && video.videoHeight > 0 ? 'ready' : 'error'; currentTime.value = video.currentTime; if (state.value === 'ready') emit('metadata', video.videoWidth / video.videoHeight) }
 function syncCurrentTime(event: Event) { currentTime.value = (event.currentTarget as HTMLVideoElement).currentTime }
+function claimVideoPlayback(event: Event) {
+  const video = event.currentTarget as HTMLVideoElement
+  window.dispatchEvent(new CustomEvent<HTMLVideoElement>(CANVAS_VIDEO_PLAY_EVENT, { detail: video }))
+}
+function pauseForPeerPlayback(event: Event) {
+  const video = videoRef.value
+  const peer = (event as CustomEvent<HTMLVideoElement>).detail
+  if (video && video !== peer && !video.paused) video.pause()
+}
 async function handleVideoKeydown(event: KeyboardEvent) {
   const video = event.currentTarget as HTMLVideoElement
   if (event.key === ' ' || event.key.toLowerCase() === 'k') {
@@ -75,6 +85,8 @@ async function captureCurrentFrame() {
     isCapturing.value = false
   }
 }
+onMounted(() => window.addEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseForPeerPlayback))
+onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseForPeerPlayback))
 </script>
 <template>
   <div class="canvas-node-media" :class="{ 'is-keyframes-above': keyframeRailPlacement === 'above' }" :aria-label="media.label">
@@ -84,7 +96,7 @@ async function captureCurrentFrame() {
         <span v-if="state === 'loading'" class="canvas-node-media__message" role="status">媒体加载中…</span>
         <span v-if="state === 'error'" class="canvas-node-media__message is-error" role="alert">媒体不可用，可稍后重试</span>
         <img v-if="media.kind === 'image'" v-show="state !== 'error'" :src="media.url" :alt="media.label" @load="imageLoaded" @error="state = 'error'" />
-        <video v-else :key="videoLoadMode" ref="videoRef" v-show="state !== 'error'" :src="media.url" :poster="media.poster" :aria-label="media.label" :crossorigin="videoLoadMode === 'canvas-readable' ? 'anonymous' : undefined" :data-playback-capability="videoLoadMode" controls preload="metadata" @loadedmetadata="videoLoaded" @timeupdate="syncCurrentTime" @seeked="syncCurrentTime" @error="videoFailed" @click.stop @dblclick.stop @pointerdown.stop @keydown.stop="handleVideoKeydown" />
+        <video v-else :key="videoLoadMode" ref="videoRef" v-show="state !== 'error'" :src="media.url" :poster="media.poster" :aria-label="media.label" :crossorigin="videoLoadMode === 'canvas-readable' ? 'anonymous' : undefined" :data-playback-capability="videoLoadMode" controls preload="metadata" @loadedmetadata="videoLoaded" @timeupdate="syncCurrentTime" @seeked="syncCurrentTime" @play="claimVideoPlayback" @error="videoFailed" @click.stop @dblclick.stop @pointerdown.stop @keydown.stop="handleVideoKeydown" />
         <button v-if="media.kind === 'video' && canReadVideoFrames && state === 'ready'" type="button" class="canvas-node-media__capture" :disabled="isCapturing || capturePending" @click.stop="captureCurrentFrame" @pointerdown.stop>
           <Camera :size="14" aria-hidden="true" />{{ isCapturing || capturePending ? '正在截取' : '截取当前帧' }}
         </button>
