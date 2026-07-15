@@ -47,6 +47,12 @@ const connectedInputCount = computed(() => (
   (props.generationContext?.textSources.filter((source) => source.isIncluded).length ?? 0) +
   (props.generationContext?.imageIds.length ?? 0)
 ))
+const includedMediaSources = computed(() => (
+  props.generationContext?.mediaSources.filter((source) => source.state === 'included') ?? []
+))
+const excludedMediaSources = computed(() => (
+  props.generationContext?.mediaSources.filter((source) => source.state !== 'included') ?? []
+))
 const mediaStateLabel = {
   included: '已作为参考图',
   'missing-asset': '缺少资源，未使用',
@@ -64,6 +70,13 @@ const statusLabel = computed(() => {
   if (props.latestTask?.status === 'queued') return '排队中'
   return props.mediaType ? '准备就绪' : '只读详情'
 })
+
+function mediaRequestRole(requestOrder: number | null) {
+  const order = requestOrder ?? 0
+  if (props.mediaType === 'image') return `参考图 R${order}`
+  if (includedMediaSources.value.length === 1) return '图生视频参考 R1'
+  return `视频关键帧 R${order}`
+}
 
 watch(() => props.node.id, () => {
   prompt.value = props.node.content?.trim() || ''
@@ -111,6 +124,33 @@ function requestGeneration() {
           </li>
         </ul>
         <p>最终提示词 {{ generationContext.prompt.length }} / 4000 字符</p>
+        <details class="request-preflight">
+          <summary>检查最终生成请求</summary>
+          <div class="request-preflight__body">
+            <section aria-label="最终合并提示词">
+              <div class="request-preflight__heading"><span>最终 prompt</span><strong>{{ generationContext.prompt.length }} 字符</strong></div>
+              <pre>{{ generationContext.prompt || '没有可发送的 prompt' }}</pre>
+            </section>
+            <section v-if="includedMediaSources.length" aria-label="有序媒体请求">
+              <div class="request-preflight__heading"><span>媒体输入</span><strong>{{ includedMediaSources.length }} 项</strong></div>
+              <ol>
+                <li v-for="source in includedMediaSources" :key="`request-${source.connectionId}`">
+                  <span>{{ mediaRequestRole(source.requestOrder) }}</span>
+                  <strong>{{ source.title }}</strong>
+                </li>
+              </ol>
+            </section>
+            <section v-if="excludedMediaSources.length" aria-label="未进入生成请求的输入">
+              <div class="request-preflight__heading"><span>未进入请求</span><strong>{{ excludedMediaSources.length }} 项</strong></div>
+              <ul>
+                <li v-for="source in excludedMediaSources" :key="`excluded-${source.connectionId}`">
+                  <strong>{{ source.title }}</strong>
+                  <span>{{ mediaStateLabel[source.state] }}</span>
+                </li>
+              </ul>
+            </section>
+          </div>
+        </details>
       </section>
 
       <button
@@ -195,6 +235,19 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .connected-context li strong { color: var(--v2-text-primary); font-size: 11px; font-weight: 600; }
 .connected-context li small, .connected-context > p { color: var(--v2-text-muted); font-size: 10px; }
 .connected-context > p { margin: 8px 0 0; }
+.request-preflight { margin-top: 10px; border-top: 1px solid var(--v2-border-subtle); }
+.request-preflight summary { min-height: 40px; padding: 12px 2px 0; color: var(--v2-text-primary); cursor: pointer; font-size: 11px; font-weight: 600; }
+.request-preflight summary:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
+.request-preflight__body { display: grid; gap: 10px; padding-top: 9px; }
+.request-preflight__body section { display: grid; gap: 6px; }
+.request-preflight__heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--v2-text-secondary); font-size: 10px; }
+.request-preflight__heading strong { color: var(--v2-text-muted); font-variant-numeric: tabular-nums; }
+.request-preflight pre { max-height: 180px; margin: 0; padding: 9px; overflow: auto; border-radius: var(--v2-radius-sm); color: var(--v2-text-primary); background: var(--v2-canvas); font: 11px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.request-preflight ol, .request-preflight ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.request-preflight li { display: flex; min-height: 30px; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 7px; border-radius: 5px; color: var(--v2-text-secondary); background: var(--v2-surface-2); font-size: 10px; }
+.request-preflight ol li > span { flex: none; color: var(--v2-accent); font-weight: 700; }
+.request-preflight li strong { min-width: 0; overflow: hidden; color: var(--v2-text-primary); font-size: 10px; text-overflow: clip; white-space: nowrap; }
+.request-preflight ul li > span { color: var(--v2-text-muted); text-align: right; }
 .generate-button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; color: var(--v2-text-on-accent); background: var(--v2-accent); font-weight: 600; }
 .compare-results-button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 7px; margin-top: 12px; border: 1px solid var(--v2-border-standard); color: var(--v2-text-primary); background: var(--v2-surface-3); font-size: 12px; }
 .compare-results-button:hover { border-color: color-mix(in srgb, var(--v2-accent) 52%, var(--v2-border-standard)); }

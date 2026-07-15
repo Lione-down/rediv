@@ -1,5 +1,11 @@
 # 踩坑记录
 
+## 2026-07-15 Multi-input generation request preflight
+
+- 生成前预览不能重新拼接 prompt 或重新计算 image order，必须直接渲染构造 provider payload 的 authoritative resolver output，否则 UI 与实际请求会发生顺序漂移。
+- Video 的一张图和多张图语义不同：单图是 img2vid reference，多图是 ordered keyframes；标签可以按 media type 和 included count 推导，但不能改变 request body。
+- 展开 preflight 是只读检查行为，必须验证不会触发 prompt autosave、document PATCH、provider request 或 selection change。
+
 ## 2026-07-15 Canvas 同源结果比较边界
 
 - 同源结果比较应复用 canonical node media presentation 和 persisted connection order，避免 gallery 自行猜测媒体状态或重新排序 V1..Vn。
