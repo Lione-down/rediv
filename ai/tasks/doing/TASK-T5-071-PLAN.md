@@ -1,6 +1,6 @@
 # TASK-T5-071 Plan
 
-- State: `VERIFYING`
+- State: `DONE`
 - Objective: add exact recipe-version transport and fidelity-first v2 prompts, and isolate recipe-flow contextual controls from neighboring node content, while preserving v1 retries and honest Human visual acceptance.
 
 ## Design thesis

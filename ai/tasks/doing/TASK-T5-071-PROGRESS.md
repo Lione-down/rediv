@@ -1,7 +1,7 @@
 # TASK-T5-071 Progress
 
-- Task state: `VERIFYING`
-- Active unit: a further Human-authorized three-request retry window was executed serially, but every request still returned 503 and produced no image for Human fidelity review.
+- Task state: `DONE`
+- Active unit: closed by explicit Human offline-only acceptance after implementation, browser, regression, build, and skill gates passed; real Agnes visual fidelity remains an unsupported provider caveat.
 
 ## Completed work
 
@@ -36,12 +36,11 @@
 
 ## Remaining work
 
-- After a materially longer Agnes recovery window, obtain a new bounded-call authorization and first prove one successful photographic-character request before spending calls on illustration and scene cases.
-- Retain successful local outputs and collect the Human fidelity verdict against the checklist.
+- None for T5-071. Real Agnes fidelity may be re-evaluated under a future separately authorized Task after provider recovery.
 
 ## Exact next action
 
-Wait for a materially longer Agnes image-service recovery window. Then request new bounded-call authorization, try the photographic-character case first, and expand to illustration and scene only after the endpoint produces one image. Do not retry automatically.
+Activate T5-072 and execute the enterprise Canvas certification matrix without claiming real Agnes visual fidelity.
 
 ## Files changed
 
@@ -80,4 +79,4 @@ Wait for a materially longer Agnes image-service recovery window. Then request n
 
 ## Blockers
 
-- Provider execution blocker: all 20 authorized requests, including three recipe classes, same-day backoff, cross-day probes, a ten-minute delayed retry, and the latest three attempts, returned HTTP 503 from the Agnes image endpoint; zero outputs were created, so visual fidelity remains untestable. Release condition is provider recovery plus a new bounded-call authorization.
+- None for the accepted offline implementation boundary. Real Agnes visual fidelity is explicitly unverified and must not be presented as passed.

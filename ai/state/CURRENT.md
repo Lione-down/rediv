@@ -15,17 +15,16 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-070 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-071 (`DONE - PASS`, T5-071 real-provider fidelity deferred by explicit Human decision)
 
 ## Active Delivery
 
-- Active implementation Task: `T5-071 - Reference-first visual fidelity v2 and honest acceptance`
-- State: `VERIFYING`
-- Task: `ai/tasks/todo/TASK-T5-071.md`
-- Plan: `ai/tasks/doing/TASK-T5-071-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-071-PROGRESS.md`
-- Last completed Task: `T5-070 - Honest generation reference compatibility`
-- Report: `ai/reports/REPORT-T5-070.md`
+- Active implementation Task: `IDLE`
+- State: `IDLE`
+- Next queued Task: `T5-072 - Enterprise Canvas scenario certification and release closure`
+- Task: `ai/tasks/todo/TASK-T5-072.md`
+- Last completed Task: `T5-071 - Reference-first visual fidelity v2 and honest acceptance`
+- Report: `ai/reports/REPORT-T5-071.md`
 
 ## Current Verified Facts
 
@@ -105,16 +104,11 @@ Last updated: 2026-07-15
 
 ## Exact Next Action
 
-Wait for a materially longer Agnes image-service recovery window, then obtain new bounded-call authorization. Prove one photographic-character output first and only then run the retained illustration and scene cases.
+Activate T5-072, create its PLAN and PROGRESS, and certify the current Canvas through representative graph, image, video, recovery, responsive, accessibility, performance, persistence, and security evidence.
 
 ## Blockers And Human Gates
 
-- T5-071 executed exactly three authorized image-recipe requests on 2026-07-15. All returned Agnes HTTP 503 with zero images, so fidelity remains unverified. Retry requires provider recovery and renewed bounded-call authorization.
-- A later no-call public status check found no official Agnes image-generation recovery signal. Domain reachability is insufficient evidence, so no additional generation request was attempted.
-- A renewed maximum-ten-request window was then executed serially with bounded backoff. All ten requests returned the same HTTP 503 and created zero images; the authorization was exhausted without an eleventh call.
-- After a cross-day recovery wait, a newly authorized maximum-three-request probe also returned HTTP 503 three times and created zero images; no fourth request was made.
-- One further request after an explicitly requested ten-minute wait also returned HTTP 503 and created zero images; no second request was made.
-- A subsequent authorized three-request window also returned HTTP 503 three times and created zero images; no fourth request was made. The cumulative authorized total is now 20 failures with zero outputs.
+- T5-071 real-provider fidelity was explicitly accepted for offline-only closure after all 20 authorized Agnes requests returned HTTP 503 with zero outputs. It remains an unsupported release caveat, not a visual-quality pass.
 - Applying Alembic revisions through `c9d0e1f2a3b4` to user/runtime data requires reviewed backup discipline and Human authorization.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.
