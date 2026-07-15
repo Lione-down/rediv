@@ -1,6 +1,7 @@
 import { Ellipse, Group, Image as LeaferImage, Leafer, Rect, Text } from 'leafer-ui'
 import type { CanvasNode } from '../../types/canvas'
 import type { ViewportState } from './canvas-geometry'
+import { resolveCanvasAuthoringCardPresentation } from './canvas-authoring-card-presentation'
 import { buildCanvasNodePresentation, canvasNodeVisualSize, isSupportedCanvasGroupNode } from './canvas-node-presentation'
 import { planKeyedReconciliation } from './canvas-renderer-reconciliation'
 
@@ -15,12 +16,15 @@ interface NodeVisuals {
   card: Rect
   mediaImage: LeaferImage
   contentText: Text
+  statusText?: Text
   titleText: Text
   typeText: Text
   state: NodeVisualState
 }
 
 interface NodeVisualState {
+  authoringKey: string
+  hasAuthoringLifecycle: boolean
   content: string
   height: number
   isSelected: boolean
@@ -77,11 +81,16 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
 
   function getNodeVisualState(node: CanvasNode): NodeVisualState {
     const presentation = buildCanvasNodePresentation(node)
+    const authoringCard = resolveCanvasAuthoringCardPresentation(node)
     const size = canvasNodeVisualSize(node)
     const mediaKey = presentation.media
       ? `${presentation.media.kind}:${presentation.media.kind === 'image' ? presentation.media.url : presentation.media.label}`
       : ''
     return {
+      authoringKey: authoringCard
+        ? [authoringCard.kind, authoringCard.title, authoringCard.bodyPreview, authoringCard.isLocked, authoringCard.lifecycle?.label ?? ''].join('|')
+        : '',
+      hasAuthoringLifecycle: Boolean(authoringCard?.lifecycle),
       content: presentation.media?.kind === 'placeholder'
         ? presentation.media.label
         : presentation.content,
@@ -103,6 +112,8 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
 
   function isSameNodeVisualState(left: NodeVisualState, right: NodeVisualState) {
     return (
+      left.authoringKey === right.authoringKey &&
+      left.hasAuthoringLifecycle === right.hasAuthoringLifecycle &&
       left.content === right.content &&
       left.height === right.height &&
       left.isSelected === right.isSelected &&
@@ -157,6 +168,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
   function createNodeVisual(node: CanvasNode) {
     const state = getNodeVisualState(node)
     const presentation = buildCanvasNodePresentation(node)
+    const authoringCard = resolveCanvasAuthoringCardPresentation(node)
     const isGroup = isSupportedCanvasGroupNode(node)
     const isMedia = presentation.visualKind === 'media' || presentation.visualKind === 'result'
     const size = canvasNodeVisualSize(node)
@@ -210,19 +222,21 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     })
     const typeText = new Text({
       x: 16,
-      y: isMedia ? -22 : 14,
-      text: `${node.isLocked ? '已锁定 · ' : ''}${isGroup || isMedia ? node.title : presentation.typeLabel}`,
+      y: isMedia ? -22 : authoringCard ? 13 : 14,
+      text: authoringCard
+        ? `${authoringCard.typeLabel}${authoringCard.isLocked ? ' · 已锁定' : ''}`
+        : `${node.isLocked ? '已锁定 · ' : ''}${isGroup || isMedia ? node.title : presentation.typeLabel}`,
       fill: options.cssVar('--text-muted', 'oklch(62% 0.014 245)'),
-      fontSize: 11,
-      fontWeight: '500',
+      fontSize: authoringCard ? 10 : 11,
+      fontWeight: authoringCard ? 600 : 500,
     })
     const titleText = new Text({
-      x: 16,
-      y: 34,
-      width: size.width - 32,
-      text: isGroup || isMedia ? '' : compactNodeTitle(node.title),
+      x: authoringCard ? 92 : 16,
+      y: authoringCard ? 10 : 34,
+      width: authoringCard ? size.width - 108 : size.width - 32,
+      text: authoringCard ? authoringCard.title : isGroup || isMedia ? '' : compactNodeTitle(node.title),
       fill: options.cssVar('--text-primary', 'oklch(18% 0.014 245)'),
-      fontSize: 15,
+      fontSize: authoringCard ? 14 : 15,
       fontWeight: '600',
       height: 22,
       textWrap: 'none',
@@ -230,20 +244,32 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     })
     const contentText = new Text({
       x: 16,
-      y: 62,
+      y: authoringCard ? 52 : 62,
       width: size.width - 32,
-      text: isGroup || imageMedia ? '' : state.content,
+      text: authoringCard ? authoringCard.bodyPreview : isGroup || imageMedia ? '' : state.content,
       fill: presentation.isUnsupported
         ? options.cssVar('--danger', 'oklch(66% 0.19 24)')
         : options.cssVar('--text-secondary', 'oklch(46% 0.018 245)'),
       fontSize: 13,
       lineHeight: 22,
       textWrap: 'break',
-      height: Math.max(22, size.height - 70),
+      height: authoringCard ? Math.max(18, authoringCard.slots.body.height - 20) : Math.max(22, size.height - 70),
       textOverflow: 'hide',
     })
+    const statusText = authoringCard?.lifecycle ? new Text({
+      x: 16,
+      y: (authoringCard?.slots.status?.y ?? size.height) + 8,
+      text: authoringCard?.lifecycle?.label ?? '',
+      fill: authoringCard?.lifecycle?.tone === 'danger'
+        ? options.cssVar('--danger', 'oklch(66% 0.19 24)')
+        : authoringCard?.lifecycle?.tone === 'success'
+          ? options.cssVar('--success', 'oklch(72% 0.14 145)')
+          : options.cssVar('--warning', 'oklch(70% 0.13 78)'),
+      fontSize: 11,
+      fontWeight: '600',
+    }) : undefined
 
-    group.add([card, mediaImage, ...ports.map((port) => port.shape), typeText, titleText, contentText])
+    group.add([card, mediaImage, ...ports.map((port) => port.shape), typeText, titleText, contentText, ...(statusText ? [statusText] : [])])
     worldGroup.add(group)
     const visual: NodeVisuals = {
       group,
@@ -251,12 +277,13 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       card,
       mediaImage,
       contentText,
+      statusText,
       titleText,
       typeText,
       state,
     }
     nodeVisuals.set(node.id, visual)
-    ;[group, card, mediaImage, ...ports.map((port) => port.shape), typeText, titleText, contentText].forEach((target) => {
+    ;[group, card, mediaImage, ...ports.map((port) => port.shape), typeText, titleText, contentText, ...(statusText ? [statusText] : [])].forEach((target) => {
       interactiveTargets.add(target)
     })
     ;(group as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
@@ -280,13 +307,14 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
   function updateNodeVisual(node: CanvasNode, visual: NodeVisuals) {
     const nextState = getNodeVisualState(node)
     if (isSameNodeVisualState(visual.state, nextState)) return
-    if (visual.state.portKey !== nextState.portKey) {
+    if (visual.state.portKey !== nextState.portKey || visual.state.hasAuthoringLifecycle !== nextState.hasAuthoringLifecycle) {
       worldGroup.remove(visual.group, true)
       nodeVisuals.delete(node.id)
       createNodeVisual(node)
       return
     }
     const presentation = buildCanvasNodePresentation(node)
+    const authoringCard = resolveCanvasAuthoringCardPresentation(node)
     const isGroup = isSupportedCanvasGroupNode(node)
     const size = canvasNodeVisualSize(node)
 
@@ -317,16 +345,33 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     visual.mediaImage.width = Math.max(1, size.width)
     visual.mediaImage.height = Math.max(1, size.height)
     if (imageMedia) visual.mediaImage.url = imageMedia.url
-    visual.typeText.y = isMedia ? -22 : 14
-    visual.typeText.text = `${node.isLocked ? '已锁定 · ' : ''}${isGroup || isMedia ? node.title : presentation.typeLabel}`
-    visual.titleText.width = size.width - 32
-    visual.titleText.text = isGroup || isMedia ? '' : compactNodeTitle(node.title)
+    visual.typeText.y = isMedia ? -22 : authoringCard ? 13 : 14
+    visual.typeText.text = authoringCard
+      ? `${authoringCard.typeLabel}${authoringCard.isLocked ? ' · 已锁定' : ''}`
+      : `${node.isLocked ? '已锁定 · ' : ''}${isGroup || isMedia ? node.title : presentation.typeLabel}`
+    visual.typeText.fontSize = authoringCard ? 10 : 11
+    visual.typeText.fontWeight = authoringCard ? 600 : 500
+    visual.titleText.x = authoringCard ? 92 : 16
+    visual.titleText.y = authoringCard ? 10 : 34
+    visual.titleText.width = authoringCard ? size.width - 108 : size.width - 32
+    visual.titleText.fontSize = authoringCard ? 14 : 15
+    visual.titleText.text = authoringCard ? authoringCard.title : isGroup || isMedia ? '' : compactNodeTitle(node.title)
     visual.contentText.width = size.width - 32
-    visual.contentText.height = Math.max(22, size.height - 70)
-    visual.contentText.text = isGroup || imageMedia ? '' : nextState.content
+    visual.contentText.y = authoringCard ? 52 : 62
+    visual.contentText.height = authoringCard ? Math.max(18, authoringCard.slots.body.height - 20) : Math.max(22, size.height - 70)
+    visual.contentText.text = authoringCard ? authoringCard.bodyPreview : isGroup || imageMedia ? '' : nextState.content
     visual.contentText.fill = presentation.isUnsupported
       ? options.cssVar('--danger', 'oklch(66% 0.19 24)')
       : options.cssVar('--text-secondary', 'oklch(46% 0.018 245)')
+    if (visual.statusText && authoringCard?.lifecycle) {
+      visual.statusText.y = authoringCard.slots.status!.y + 8
+      visual.statusText.text = authoringCard.lifecycle.label
+      visual.statusText.fill = authoringCard.lifecycle.tone === 'danger'
+        ? options.cssVar('--danger', 'oklch(66% 0.19 24)')
+        : authoringCard.lifecycle.tone === 'success'
+          ? options.cssVar('--success', 'oklch(72% 0.14 145)')
+          : options.cssVar('--warning', 'oklch(70% 0.13 78)')
+    }
     visual.state = nextState
   }
 

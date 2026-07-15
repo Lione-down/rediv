@@ -4,6 +4,7 @@ import type { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
 import { canvasNodeWorldRect, worldToSurface, type CanvasNodeGeometryRole, type ViewportInsets, type ViewportSize, type ViewportState } from '../canvas-geometry'
 import { resolveKeyframeRailPlacement } from '../canvas-keyframe-placement'
+import { resolveCanvasAuthoringCardPresentation } from '../canvas-authoring-card-presentation'
 
 type CanvasStore = ReturnType<typeof useCanvasStore>
 type StatusVisualState = Extract<NonNullable<CanvasNode['status']>, 'running' | 'success' | 'warning'>
@@ -27,7 +28,8 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
   const nodePositions = computed(() => canvasStore.nodes.map(({ id, x, y }) => ({ id, x, y })))
   const statusNodes = computed(() => canvasStore.nodes.filter(
     (node): node is CanvasNode & { status: StatusVisualState } =>
-      node.status === 'running' || node.status === 'success' || node.status === 'warning',
+      (node.status === 'running' || node.status === 'success' || node.status === 'warning') &&
+      !resolveCanvasAuthoringCardPresentation(node),
   ))
   const selectionSurfaceBounds = computed(() => {
     if (!canvasStore.selectedNodes.length) return null

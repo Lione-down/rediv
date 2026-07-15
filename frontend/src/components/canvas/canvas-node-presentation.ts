@@ -1,5 +1,6 @@
 import { isNodeGroupContainer, resolveNodeDefinition, type NodePortDefinition } from '../../modules/canvas/node-registry'
 import type { CanvasNode } from '../../types/canvas'
+import { resolveCanvasAuthoringCardPresentation } from './canvas-authoring-card-presentation'
 
 export type CanvasNodeMediaPresentation =
   | { kind: 'image'; url: string; label: string; aspectRatio: number | null }
@@ -71,14 +72,9 @@ export function buildCanvasNodePresentation(node: CanvasNode): CanvasNodePresent
 }
 
 export function canvasNodeVisualSize(node: CanvasNode) {
+  const authoringCard = resolveCanvasAuthoringCardPresentation(node)
+  if (authoringCard) return { width: node.width, height: authoringCard.visualHeight }
   const presentation = buildCanvasNodePresentation(node)
-  if (presentation.visualKind === 'text') {
-    const contentHeight = presentation.content.trim().length > 80 ? 150 : 120
-    return { width: node.width, height: Math.min(node.height, contentHeight) }
-  }
-  if (presentation.visualKind === 'generation') {
-    return { width: node.width, height: Math.min(node.height, 128) }
-  }
   const ratio = presentation.media?.kind !== 'placeholder' ? presentation.media?.aspectRatio : null
   if (!ratio) return { width: node.width, height: node.height }
   const longEdge = Math.max(node.width, Math.min(node.height, node.width))

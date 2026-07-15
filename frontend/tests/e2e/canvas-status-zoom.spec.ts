@@ -38,7 +38,7 @@ test('running, success, and failure badges scale proportionally below 100% and c
     metrics.set(percent, await badgeMetrics(page))
   }
 
-  expect(metrics.get(100)).toHaveLength(7)
+  expect(metrics.get(100)).toHaveLength(6)
   for (const [index, normal] of metrics.get(100)!.entries()) {
     const tiny = metrics.get(10)![index]
     const overview = metrics.get(50)![index]
@@ -59,12 +59,12 @@ test('dense full trace keeps every lifecycle label on one proportional line', as
   await page.getByRole('button', { name: '适配完整生成链路' }).click()
 
   const metrics = await badgeMetrics(page)
-  expect(metrics).toHaveLength(7)
+  expect(metrics).toHaveLength(6)
   for (const metric of metrics) {
     expect(metric.labelWhiteSpace).toBe('nowrap')
     expect(metric.labelHeight).toBeLessThanOrEqual(metric.height)
   }
-  await expect(page.locator('.node-status-overlay.is-running')).toHaveCount(1)
+  await expect(page.locator('.node-status-overlay.is-running')).toHaveCount(0)
   await expect(page.locator('.node-status-overlay.is-success')).toHaveCount(4)
   await expect(page.locator('.node-status-overlay.is-warning')).toHaveCount(2)
 
@@ -78,13 +78,13 @@ test('compact and mobile overview retain distinct lifecycle signals without edit
   await page.getByRole('button', { name: '选择并定位 合并四路上下文生成' }).click()
   await page.getByRole('button', { name: '适配完整生成链路' }).click()
   await expect(page.locator('.n-drawer')).toHaveCount(0)
-  await expect(page.locator('.node-status-badge')).toHaveCount(7)
+  await expect(page.locator('.node-status-badge')).toHaveCount(6)
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'compact-full-trace-920x760.png'), fullPage: true })
 
   await openResourceWorkspace(page, createMultiScenarioState(), { width: 375, height: 812 })
   await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
   await page.keyboard.press('Control+0')
-  await expect(page.locator('.node-status-badge')).toHaveCount(7)
+  await expect(page.locator('.node-status-badge')).toHaveCount(6)
   await page.screenshot({ path: resolve(evidenceDirectory, 'readonly-overview-375x812.png'), fullPage: true })
 })

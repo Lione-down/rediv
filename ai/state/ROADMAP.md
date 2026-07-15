@@ -67,6 +67,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 55 | T5-055 | Arrange authoritative generation lineage | DONE - PASS | T5-054 |
 | 56 | T5-056 | Chained generation input lineage bridge | DONE - PASS | T5-055 |
 | 72 | T5-072 | Enterprise Canvas scenario certification and finite release closure | DONE - PASS | T5-071 |
+| 73 | T5-073 | Canvas authoring card hierarchy refinement | DONE - PASS | T5-072 |
 
 ## Task Boundaries
 
@@ -217,6 +218,8 @@ T5-070 is `DONE - PASS`. New generation-reference authoring exposes only image s
 T5-071 is `DONE - PASS` for its offline implementation and browser boundary by explicit Human offline-only closure. Exact recipe versions, v2 prompts, toolbar isolation, responsive ownership, regression, build, and skill validation pass. All 20 authorized Agnes requests returned HTTP 503 with zero outputs, so real-provider visual fidelity remains unverified and must not be claimed.
 
 T5-072 is `DONE - PASS`. Current evidence certifies graph authoring, multi-node image/video workflows, dense ordering, recovery, responsive ownership, accessibility, live 200/300 performance, persistence, and security. The final release decision is PASS with real Agnes visual fidelity retained as an explicit Human-deferred unsupported boundary.
+
+T5-073 is `DONE - PASS`. Script, note, and generation authoring nodes now use one compact Revid-native header/body/status grammar while media/results stay intrinsic and media-first. Focused browser groups, responsive/zoom/editing/recipe/toolbar regressions, build, hygiene, and a fresh guarded live 200-node/300-connection run passed. `REPORT-T5-073.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

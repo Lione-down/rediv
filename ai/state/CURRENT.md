@@ -1,6 +1,6 @@
 # Revid Current Project State
 
-Last updated: 2026-07-15
+Last updated: 2026-07-16
 
 ## Delivery Mode
 
@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-072 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
+- Completed V2 Tasks: T5-001 through T5-073 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
 
 ## Active Delivery
 
 - Active implementation Task: `IDLE`
 - State: `IDLE`
-- Last completed Task: `T5-072 - Enterprise Canvas scenario certification and release closure`
-- Report: `ai/reports/REPORT-T5-072.md`
+- Last completed Task: `T5-073 - Canvas authoring card hierarchy refinement`
+- Report: `ai/reports/REPORT-T5-073.md`
 
 ## Current Verified Facts
 
@@ -99,10 +99,11 @@ Last updated: 2026-07-15
 - T5-068 is now `DONE - PASS`: comparison selection reuses the existing panel-safe reveal contract, so a distant V variant returns to the unobscured Canvas with one viewport update while an already-visible variant remains camera-neutral. Focused 2/2, related 19/19, build, visual, and zero graph-mutation gates passed. Final report: `ai/reports/REPORT-T5-068.md`.
 - T5-069 is now `DONE - PASS`: mounted Canvas videos share one active playback owner, so node-to-node and comparison tray/background previews pause peers without rewind. Focused 2/2, related 30/30, build, visual, keyboard, CORS, frame-capture, and zero-mutation gates passed. Final report: `ai/reports/REPORT-T5-069.md`.
 - T5-070 is now `DONE - PASS`: new generation-reference authoring accepts only image asset/result sources the provider can consume, while historical video edges remain visible as excluded provenance. Focused 29/29, cross-surface 85/85, build, visual, multi-image order, and zero-unintended-mutation gates passed. Final report: `ai/reports/REPORT-T5-070.md`.
+- T5-073 is now `DONE - PASS`: canonical script, note, and generation nodes share a compact clean-room authoring hierarchy with bounded content, one lifecycle expression, coherent selected editing, unchanged media-first results, and fresh live 200-node/300-connection evidence. Final report: `ai/reports/REPORT-T5-073.md`.
 
 ## Exact Next Action
 
-Keep the certified Canvas boundary stable. Create a new Task only for a concrete defect, new product direction, or future authorized Agnes fidelity re-evaluation.
+Keep the refined Canvas boundary stable. Create a new Task only for a concrete defect, new product direction, or future authorized Agnes fidelity re-evaluation.
 
 ## Blockers And Human Gates
 

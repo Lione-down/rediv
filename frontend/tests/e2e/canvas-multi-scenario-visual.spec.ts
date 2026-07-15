@@ -39,7 +39,7 @@ test('mixed image, video, lifecycle, and unavailable states render together', as
   await expect(video).toBeVisible()
   await expect(page.getByText('图片结果暂未提供预览')).toBeVisible()
   await expect(page.getByRole('alert').filter({ hasText: '媒体不可用' })).toBeVisible()
-  await expect(page.locator('.node-status-overlay.is-running')).toHaveCount(1)
+  await expect(page.locator('.node-status-overlay.is-running')).toHaveCount(0)
   await expect(page.locator('.node-status-overlay.is-warning')).toHaveCount(2)
   await expect(page.locator('.connection-line.active')).toHaveCount(10)
   await expect(page.locator('.connection-line.active').first()).toHaveCSS('stroke-dasharray', 'none')
