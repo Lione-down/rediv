@@ -1,6 +1,7 @@
 import type { Asset } from '../../types/asset'
 import type { QuotaBalance } from '../../types/auth'
 import type { GenerationTask } from './project-resource-types'
+import type { VisualAssetRecipeId } from './visual-asset-recipes'
 
 export type GenerationMediaType = keyof QuotaBalance
 
@@ -9,8 +10,9 @@ export interface CanvasGenerationContext {
   projectId: string
   originCanvasId: string
   canvasNodeId?: string | null
-  prompt: string
+  prompt?: string
   imageIds?: string[]
+  recipeId?: VisualAssetRecipeId
 }
 
 export interface CanvasGenerationResponse {
@@ -75,6 +77,10 @@ export async function requestCanvasGeneration(
   quotaStore: GenerationQuotaStore,
   transport: GenerationTransport,
 ) {
+  if (context.recipeId && (
+    context.mediaType !== 'image' || context.prompt !== undefined || context.imageIds?.length !== 1
+  )) throw new Error('Invalid visual asset recipe request')
+  if (!context.recipeId && !context.prompt) throw new Error('Generation prompt is required')
   const authSessionToken = quotaStore.token
   const response = await transport.post<CanvasGenerationResponse>(
     GENERATION_ROUTES[context.mediaType],
@@ -82,8 +88,9 @@ export async function requestCanvasGeneration(
       project_id: context.projectId,
       origin_canvas_id: context.originCanvasId,
       canvas_node_id: context.canvasNodeId ?? null,
-      prompt: context.prompt,
+      ...(context.prompt ? { prompt: context.prompt } : {}),
       ...(context.imageIds?.length ? { image_ids: context.imageIds } : {}),
+      ...(context.recipeId ? { generation_recipe_id: context.recipeId } : {}),
     },
     { timeout: 0 },
   )

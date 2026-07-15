@@ -2,8 +2,10 @@ import type { Ref } from 'vue'
 import { createReorderGenerationInputCommand } from '../../../modules/canvas/canvas-commands'
 import {
   createResultGenerationBranchCommand,
+  createVisualAssetRecipeBranchCommand,
   type ResultBranchMediaType,
 } from '../../../modules/canvas/resource-commands'
+import type { VisualAssetRecipeId } from '../../../modules/canvas/visual-asset-recipes'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
 
@@ -31,5 +33,17 @@ export function useCanvasNodeActions(options: {
     options.revealNode?.(command.nodes[0].id)
   }
 
-  return { branchFromResult, reorderGenerationInput }
+  async function branchVisualRecipe(recipeId: VisualAssetRecipeId) {
+    const sourceNode = options.selectedNode.value
+    if (!sourceNode || options.isReviewOnly.value) return null
+    const command = createVisualAssetRecipeBranchCommand(sourceNode, recipeId, canvasStore.nodes)
+    if (!command) return null
+    await canvasStore.dispatchCommand({ source: 'toolbar', command })
+    const nodeId = command.nodes[0].id
+    canvasStore.selectNode(nodeId)
+    options.revealNode?.(nodeId)
+    return nodeId
+  }
+
+  return { branchFromResult, branchVisualRecipe, reorderGenerationInput }
 }

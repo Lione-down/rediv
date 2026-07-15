@@ -10,6 +10,7 @@ import { useCanvasStore } from '../../store/canvas'
 import type { CanvasNode } from '../../types/canvas'
 import { formatCapturedFrameTime, resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
 import type { GenerationInputLineageBridge } from '../../modules/canvas/generation-input-lineage'
+import { resolveVisualAssetRecipe, VISUAL_ASSET_RECIPES, type VisualAssetRecipeId } from '../../modules/canvas/visual-asset-recipes'
 
 const props = withDefaults(defineProps<{
   error?: string
@@ -58,11 +59,14 @@ const emit = defineEmits<{
   generate: [prompt: string]
   reorderInput: [connectionId: string, direction: -1 | 1]
   updatePrompt: [prompt: string]
+  retryRecipe: [recipeId: VisualAssetRecipeId]
+  visualRecipe: [recipeId: VisualAssetRecipeId]
 }>()
 
 const prompt = ref(props.node.content?.trim() || '')
+const visualRecipe = computed(() => resolveVisualAssetRecipe(props.node))
 const canGenerate = computed(() => Boolean(
-  props.mediaType && (prompt.value.trim() || props.generationContext?.prompt) &&
+  props.mediaType && (visualRecipe.value || prompt.value.trim() || props.generationContext?.prompt) &&
   props.quota > 0 && !props.isGenerating,
 ))
 const generationLabel = computed(() => props.mediaType === 'video' ? '视频' : '图片')
@@ -164,7 +168,8 @@ function updatePrompt(event: Event) {
 
 function requestGeneration() {
   if (!canGenerate.value) return
-  emit('generate', prompt.value.trim())
+  if (visualRecipe.value) emit('retryRecipe', visualRecipe.value.id)
+  else emit('generate', prompt.value.trim())
 }
 </script>
 
@@ -177,7 +182,12 @@ function requestGeneration() {
 
     <section v-if="mediaType" class="generation-editor" role="region" aria-label="生成任务编辑器">
       <div class="section-heading"><span>{{ generationLabel }}生成</span><span>剩余 {{ quota }}</span></div>
-      <label v-if="!readonly" class="prompt-field">
+      <section v-if="visualRecipe" class="recipe-summary" aria-label="视觉资产配方">
+        <span>参考优先配方</span>
+        <strong>{{ visualRecipe.title }}</strong>
+        <p>{{ visualRecipe.description }}。保持参考中的身份、造型与视觉风格，由你检查结果后决定是否重试。</p>
+      </section>
+      <label v-else-if="!readonly" class="prompt-field">
         <span>生成提示词</span>
         <textarea :value="prompt" rows="6" maxlength="4000" aria-label="生成提示词" :disabled="isGenerating" @input="updatePrompt"></textarea>
       </label>
@@ -188,7 +198,7 @@ function requestGeneration() {
         <ul>
           <li v-for="source in generationContext.textSources" :key="`text-${source.nodeId}`" :class="{ muted: !source.isIncluded }">
             <button type="button" class="context-node-link" :aria-label="`定位到画布：${source.title}`" @click="emit('locateNode', source.nodeId)"><Link2 :size="13" aria-hidden="true" /><span><strong>提示词 {{ source.order }} · {{ source.title }}</strong><small>{{ source.isIncluded ? '已合并文本' : '空内容，未使用' }}</small></span><ArrowRight :size="13" aria-hidden="true" /></button>
-            <span v-if="!readonly" class="input-order-actions">
+            <span v-if="!readonly && !visualRecipe" class="input-order-actions">
               <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'text', -1)" :aria-label="`上移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
               <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'text', 1)" :aria-label="`下移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
             </span>
@@ -203,14 +213,14 @@ function requestGeneration() {
               :title="`定位到上游生成：${mediaSourceLineage(source.connectionId)!.generationTitle} V${mediaSourceLineage(source.connectionId)!.variantOrder}`"
               @click="emit('locateNode', mediaSourceLineage(source.connectionId)!.generationNodeId)"
             ><GitBranch :size="14" aria-hidden="true" /></button>
-            <span v-if="!readonly" class="input-order-actions">
+            <span v-if="!readonly && !visualRecipe" class="input-order-actions">
               <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'media', -1)" :aria-label="`上移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
               <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'media', 1)" :aria-label="`下移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
             </span>
           </li>
         </ul>
-        <p>最终提示词 {{ generationContext.prompt.length }} / 4000 字符</p>
-        <details class="request-preflight">
+        <p v-if="!visualRecipe">最终提示词 {{ generationContext.prompt.length }} / 4000 字符</p>
+        <details v-if="!visualRecipe" class="request-preflight">
           <summary>检查最终生成请求</summary>
           <div class="request-preflight__body">
             <section aria-label="最终合并提示词">
@@ -244,12 +254,12 @@ function requestGeneration() {
         type="button"
         class="generate-button"
         :disabled="!canGenerate"
-        :aria-label="`开始${generationLabel}生成`"
+        :aria-label="visualRecipe ? `重新生成${visualRecipe.title}` : `开始${generationLabel}生成`"
         @click="requestGeneration"
       >
         <LoaderCircle v-if="isGenerating" :size="17" class="is-spinning" aria-hidden="true" />
         <Play v-else :size="17" aria-hidden="true" />
-        {{ isGenerating ? `${generationLabel}生成中` : `开始${generationLabel}生成` }}
+        {{ isGenerating ? `${visualRecipe?.title ?? generationLabel}生成中` : visualRecipe ? `重新生成${visualRecipe.title}` : `开始${generationLabel}生成` }}
       </button>
 
       <p class="generation-status" role="status" aria-label="生成状态">
@@ -323,6 +333,11 @@ function requestGeneration() {
           <button type="button" @click="emit('branchGeneration', 'image')"><Image :size="15" aria-hidden="true" /><span><strong>图片生成</strong><small>创建参考分支</small></span></button>
           <button type="button" @click="emit('branchGeneration', 'video')"><Video :size="15" aria-hidden="true" /><span><strong>视频生成</strong><small>图生视频</small></span></button>
         </div>
+        <section class="recipe-branch-actions" aria-label="视觉资产快捷生成">
+          <button v-for="recipe in VISUAL_ASSET_RECIPES" :key="recipe.id" type="button" @click="emit('visualRecipe', recipe.id)">
+            <Sparkles :size="15" aria-hidden="true" /><span><strong>{{ recipe.actionLabel }}</strong><small>{{ recipe.description }}</small></span>
+          </button>
+        </section>
       </details>
       <div class="review-prompt"><span>内容</span><p>{{ node.content || '此节点没有文本内容。' }}</p></div>
     </section>
@@ -352,11 +367,16 @@ button:disabled { opacity: .42; cursor: not-allowed; }
 .result-branch summary span, .result-branch button { display: flex; align-items: center; gap: 7px; }
 .result-branch summary small { color: var(--v2-text-muted); }
 .result-branch > div { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 6px 6px; }
+.recipe-branch-actions { display: grid; gap: 6px; padding: 0 6px 6px; }
+.result-branch .recipe-branch-actions button { width: 100%; }
 .result-branch button { min-width: 0; justify-content: flex-start; padding: 6px 8px; background: var(--v2-surface-2); }
 .result-branch button span { display: grid; min-width: 0; gap: 1px; text-align: left; }
 .result-branch button strong { font-size: 11px; font-weight: 600; }
 .result-branch button small { overflow: hidden; color: var(--v2-text-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .section-heading { align-items: center; justify-content: space-between; margin-bottom: 14px; color: var(--v2-text-secondary); font-size: 12px; }
+.recipe-summary { display: grid; gap: 6px; margin-bottom: 14px; padding: 11px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
+.recipe-summary span, .recipe-summary p { color: var(--v2-text-secondary); font-size: 11px; }
+.recipe-summary p { margin: 0; line-height: 1.55; }
 .prompt-field, .review-prompt { display: grid; gap: 7px; color: var(--v2-text-secondary); font-size: 11px; }
 textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-md); color: var(--v2-text-primary); background: var(--v2-canvas); font: inherit; line-height: 1.6; }
 .connected-context { margin-top: 12px; padding: 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }

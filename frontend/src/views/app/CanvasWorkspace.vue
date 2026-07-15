@@ -23,6 +23,7 @@ import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
 import { createArrangeGenerationLineageCommand } from '../../modules/canvas/generation-lineage-arrangement'
 import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
+import type { VisualAssetRecipeId } from '../../modules/canvas/visual-asset-recipes'
 
 type MoveDirection = -1 | 1
 interface CanvasStageHandle { arrangeSelectedProvenanceTrace: () => boolean; fitSelectedProvenanceTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
@@ -117,6 +118,7 @@ const {
   captureTemplate,
   instantiateTemplate,
   generate,
+  generateRecipe,
   updatePrompt,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
 
@@ -181,7 +183,13 @@ function selectComparedResult(nodeId: string) {
   isResultCompareOpen.value = false
   canvasDocumentStore.selectNode(nodeId)
 }
-const { branchFromResult, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode, revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId) })
+const { branchFromResult, branchVisualRecipe, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode, revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId) })
+async function createVisualAssetRecipe(recipeId: VisualAssetRecipeId) {
+  const nodeId = await branchVisualRecipe(recipeId)
+  if (!nodeId) return
+  await nextTick()
+  await generateRecipe(recipeId)
+}
 
 function updateResponsiveBoundaries() {
   isReviewOnly.value = reviewMediaQuery?.matches ?? false
@@ -444,6 +452,7 @@ onBeforeUnmount(() => {
           :readonly="isReviewOnly"
           :success="generationSuccess"
           @branch-generation="branchFromResult"
+          @visual-recipe="createVisualAssetRecipe"
           @arrange-trace="canvasStageRef?.arrangeSelectedProvenanceTrace()"
           @close="closeContext"
           @compare-results="openResultComparison"
@@ -451,6 +460,7 @@ onBeforeUnmount(() => {
           @generate="generate"
           @locate-node="locateNodeFromContext"
           @reorder-input="reorderGenerationInput"
+          @retry-recipe="generateRecipe"
           @update-prompt="updatePrompt"
         />
       </div>
@@ -523,6 +533,7 @@ onBeforeUnmount(() => {
               :readonly="isReviewOnly"
               :success="generationSuccess"
               @branch-generation="branchFromResult"
+              @visual-recipe="createVisualAssetRecipe"
               @arrange-trace="arrangeTraceFromContextDrawer"
               @close="closeContext"
               @continue-node="continueFromContextDrawer"
@@ -531,6 +542,7 @@ onBeforeUnmount(() => {
               @generate="generate"
               @locate-node="locateNodeFromContext"
               @reorder-input="reorderGenerationInput"
+              @retry-recipe="generateRecipe"
               @update-prompt="updatePrompt"
             />
           </div>

@@ -623,3 +623,11 @@ Evidence:
 - Aggregate labels must be checked against corner role badges. A top-left label that appears natural can collide directly with T1.
 - Pointer-passive styling is part of the interaction contract, not decorative polish. Assert computed `pointer-events: none` so a visual hull cannot steal Canvas gestures later.
 - Browser screenshots of hybrid Leafer and DOM surfaces need a settled shared frame. Wait for consecutive animation frames before retaining visual evidence.
+
+## 2026-07-15 Reference-first visual asset recipes
+
+- A fixed visual recipe is a server-owned contract, not a client prompt shortcut. Persist only the allow-listed recipe ID and version, then resolve prompt text, reference count, and output size on the backend.
+- Direct generation must flush the new recipe branch before the provider request. Otherwise a fast response or reload can produce a task whose Canvas intent was never durable.
+- Capture running evidence with a controllable provider gate, but wait for quota and result reconciliation after releasing it. Reading settlement state immediately tests event-loop timing rather than the transaction contract.
+- Failure retry must reuse the same recipe node. A second branch obscures request identity and risks duplicate results or charges.
+- Document fixed-template limitations explicitly. Backend prompts can encourage fidelity, but they do not prove person detection, semantic scene understanding, face matching, or automatic quality scoring.

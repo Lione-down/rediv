@@ -1,0 +1,4 @@
+interface:
+  display_name: "Revid Visual Assets"
+  short_description: "Build faithful character and scene reference boards"
+  default_prompt: "Use $revid-visual-assets to turn one canonical Revid image into a character sheet or scene multi-view board."

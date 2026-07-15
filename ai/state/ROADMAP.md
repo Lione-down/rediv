@@ -201,6 +201,8 @@ T5-063 is `DONE - PASS`. It keeps contextual selection controls adjacent without
 
 T5-064 is `DONE - PASS`. Compose-ready multi-node selections now read as one deliberate generation input set through a passive aggregate hull while individual T/R roles, toolbar behavior, readonly review, and generation semantics remain intact. `REPORT-T5-064.md` is authoritative evidence.
 
+T5-065 is `DONE - PASS`. Two backend-authoritative, single-reference visual asset recipes directly create character sheets or scene multi-view boards while reusing the existing generation transaction and keeping internal recipe prompts out of editable UI. Backend 36 plus 7 subtests, browser 5/5 plus related 51/51, build, skill validation, and five visual states passed.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

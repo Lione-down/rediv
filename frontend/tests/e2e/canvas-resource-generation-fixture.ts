@@ -439,6 +439,7 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       const canvasId = String(body?.origin_canvas_id ?? FIRST_CANVAS_ID)
       const nodeId = String(body?.canvas_node_id ?? 'generation-cover')
       const mediaType = path === '/api/video-generate' ? 'video' : 'image'
+      state.events.push(`generation-requested:${nodeId}`)
       await state.generationGate
       if (state.generationOutcome === 'success') return fulfillJson(route, generationResponse(state, canvasId, nodeId, mediaType))
       const failedTask = generationTask({ id: 'task-failure', origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType, model: `mock-${mediaType}-v1`, status: 'failed', result_asset_id: null, provider_request_id: null, error_code: 'provider_error', error_message: 'mock provider unavailable' })

@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-064 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-065 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-064 - Composition selection hull` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-064.md`
+- Last completed Task: `T5-065 - Reference-first visual asset recipes`
+- Report: `ai/reports/REPORT-T5-065.md`
 
 ## Current Verified Facts
 
@@ -93,10 +93,11 @@ Last updated: 2026-07-15
 - T5-062 is now `DONE - PASS`: a selected editable video exposes five decoded keyframes that seek native playback and feed the existing durable frame-to-image path with exact timestamp provenance. Sampler cancellation, local failure, compact placement, readonly/locked boundaries, build, focused 9/9, related 42/42, and desktop/compact visual gates passed. Final report: `ai/reports/REPORT-T5-062.md`.
 - T5-063 is now `DONE - PASS`: contextual toolbars score selected content, video rails, neighboring nodes, and Canvas insets, remain within 72px without covering media or Inspector, and disappear under compact drawer ownership. Build, focused 15/15, related 60/60, and desktop/compact visual gates passed. Final report: `ai/reports/REPORT-T5-063.md`.
 - T5-064 is now `DONE - PASS`: compose-ready multi-selection gains one passive aggregate hull driven by shared selected-node geometry, while individual T/R roles, toolbar behavior, generation semantics, readonly, and invalid selections remain unchanged. Build, focused 10/10, related 50/50, and desktop/compact visual gates passed. Final report: `ai/reports/REPORT-T5-064.md`.
+- T5-065 is now `DONE - PASS`: canonical image results directly create backend-owned character-sheet or scene-multiview recipe branches with one reference, hidden internal prompts, durable-before-request execution, quota-safe explicit retry, and responsive review. Skill validation, build, backend 36 plus 7 subtests, focused browser 5/5, related browser 51/51, and five visual states passed. Final report: `ai/reports/REPORT-T5-065.md`.
 
 ## Exact Next Action
 
-Select the next bounded Canvas visual or multi-generation interaction gap from current browser evidence and establish its Task contract before implementation.
+Confirm the committed T5-065 baseline, then activate T5-066 only in a new bounded run if it is dependency-ready.
 
 ## Blockers And Human Gates
 

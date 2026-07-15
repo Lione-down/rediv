@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 
 from schemas.asset import AssetListItem
 from schemas.generation_task import GenerationTaskItem
+from core.image_generation_recipes import ImageGenerationRecipeId
 
 
 class QuotaBalances(BaseModel):
@@ -23,16 +24,29 @@ class ScopedGenerationRequest(BaseModel):
     project_id: ResourceId
     origin_canvas_id: ResourceId
     canvas_node_id: ResourceId | None = None
-    prompt: str = Field(..., min_length=1)
+    prompt: str | None = Field(default=None, min_length=1)
 
 
 class ImageGenerateRequest(ScopedGenerationRequest):
     image_ids: list[ResourceId] | None = Field(default=None, max_length=8)
+    generation_recipe_id: ImageGenerationRecipeId | None = None
 
     @field_validator("image_ids")
     @classmethod
     def deduplicate_image_ids(cls, value: list[str] | None) -> list[str] | None:
         return list(dict.fromkeys(value)) if value is not None else None
+
+    @model_validator(mode="after")
+    def validate_prompt_or_recipe(self):
+        if self.generation_recipe_id is None:
+            if not self.prompt:
+                raise ValueError("prompt is required without a generation recipe")
+            return self
+        if self.prompt is not None:
+            raise ValueError("prompt cannot override a generation recipe")
+        if not self.image_ids or len(self.image_ids) != 1:
+            raise ValueError("generation recipe requires exactly one image reference")
+        return self
 
 
 class VideoGenerateRequest(ScopedGenerationRequest):
@@ -42,6 +56,12 @@ class VideoGenerateRequest(ScopedGenerationRequest):
     @classmethod
     def deduplicate_image_ids(cls, value: list[str] | None) -> list[str] | None:
         return list(dict.fromkeys(value)) if value is not None else None
+
+    @model_validator(mode="after")
+    def require_prompt(self):
+        if not self.prompt:
+            raise ValueError("prompt is required")
+        return self
 
 
 class TextGenerateRequest(BaseModel):

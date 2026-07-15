@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from api.generation_common import map_generation_error
 from controllers import generation_transactions as generation_controller
 from core.generation_provider import GenerationProvider, get_generation_provider
+from core.image_generation_recipes import resolve_image_generation_recipe
 from core.generation_results import (
     ProviderResultError,
     extract_image_url,
@@ -33,6 +34,10 @@ async def image_generate(
     user=Depends(current_user),
     provider: GenerationProvider = Depends(get_generation_provider),
 ):
+    recipe = (
+        resolve_image_generation_recipe(payload.generation_recipe_id)
+        if payload.generation_recipe_id else None
+    )
     try:
         task, input_images = generation_controller.start_image_generation_task(
             user_id=user["id"],
@@ -51,8 +56,9 @@ async def image_generate(
     try:
         response = await provider.generate_image(
             model=MODEL_NAME,
-            prompt=payload.prompt,
+            prompt=recipe.prompt if recipe else payload.prompt,
             image=input_images,
+            **({"size": recipe.output_size} if recipe else {}),
         )
         image_url = extract_image_url(response)
         provider_request_id = validate_optional_provider_identifier(

@@ -5,6 +5,7 @@ import { requestCanvasGeneration } from '../../../modules/canvas/generation-serv
 import { resolveGenerationContext } from '../../../modules/canvas/generation-context'
 import { resolveResultLineage } from '../../../modules/canvas/generation-lineage'
 import { getGenerationMediaType } from '../../../modules/canvas/node-registry'
+import { resolveVisualAssetRecipe, type VisualAssetRecipeId } from '../../../modules/canvas/visual-asset-recipes'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import {
   createAssetInsertCommand,
@@ -352,19 +353,13 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     return result
   }
 
-  async function generate(prompt: string) {
-    const sourceNode = selectedNode.value
-    const mediaType = selectedMediaType.value
-    if (!sourceNode || !mediaType || options.isReviewOnly.value || isGenerating.value) return
-    const generationContext = resolveGenerationContext(
-      { ...sourceNode, content: prompt },
-      canvasStore.nodes,
-      canvasStore.connections,
-    )
-    if (!generationContext.prompt) {
-      generationError.value = '请填写提示词或连接至少一个有内容的脚本节点。'
-      return
-    }
+  async function executeGeneration(
+    sourceNode: CanvasNode,
+    mediaType: 'image' | 'video',
+    requestContext: { prompt?: string; imageIds?: string[]; recipeId?: VisualAssetRecipeId },
+    promptToPersist?: string,
+  ) {
+    if (options.isReviewOnly.value || isGenerating.value) return
     const context: GenerationRequestContext = {
       authToken: authStore.token,
       projectId: options.projectId.value,
@@ -380,7 +375,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     generationSuccess.value = ''
     isGenerating.value = true
     try {
-      await canvasStore.setNodeContent(sourceNode.id, prompt)
+      if (promptToPersist !== undefined) await canvasStore.setNodeContent(sourceNode.id, promptToPersist)
       await canvasStore.setNodeGenerationState(sourceNode.id, 'running')
       await canvasStore.flushPendingPersistence()
       const response = await requestCanvasGeneration({
@@ -388,8 +383,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
         projectId: context.projectId,
         originCanvasId: context.canvasId,
         canvasNodeId: context.nodeId,
-        prompt: generationContext.prompt,
-        imageIds: generationContext.imageIds,
+        ...requestContext,
       }, authStore, request)
       if (!response.asset) throw new Error('生成已完成，但响应缺少结果资产。')
       resourceStore.upsertAsset(response.asset)
@@ -399,7 +393,8 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
         foregroundResultNodeId.value = canvasStore.nodes.find((node) => (
           node.type === 'result' && node.contentData?.source_task_id === response.generation_task.id
         ))?.id ?? ''
-        generationSuccess.value = `${mediaType === 'video' ? '视频' : '图片'}生成已完成，结果已写入项目资源。`
+        const recipe = resolveVisualAssetRecipe(sourceNode)
+        generationSuccess.value = `${recipe?.title ?? (mediaType === 'video' ? '视频' : '图片')}生成已完成，结果已写入项目资源。`
       }
     } catch (error) {
       const isCurrentAuthSession = authStore.token === context.authToken
@@ -416,6 +411,34 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     } finally {
       isGenerating.value = false
     }
+  }
+
+  async function generate(prompt: string) {
+    const sourceNode = selectedNode.value
+    const mediaType = selectedMediaType.value
+    if (!sourceNode || !mediaType || resolveVisualAssetRecipe(sourceNode)) return
+    const generationContext = resolveGenerationContext(
+      { ...sourceNode, content: prompt }, canvasStore.nodes, canvasStore.connections,
+    )
+    if (!generationContext.prompt) {
+      generationError.value = '请填写提示词或连接至少一个有内容的脚本节点。'
+      return
+    }
+    await executeGeneration(sourceNode, mediaType, {
+      prompt: generationContext.prompt, imageIds: generationContext.imageIds,
+    }, prompt)
+  }
+
+  async function generateRecipe(recipeId: VisualAssetRecipeId) {
+    const sourceNode = selectedNode.value
+    const recipe = sourceNode ? resolveVisualAssetRecipe(sourceNode) : null
+    if (!sourceNode || selectedMediaType.value !== 'image' || recipe?.id !== recipeId) return
+    const generationContext = resolveGenerationContext(sourceNode, canvasStore.nodes, canvasStore.connections)
+    if (generationContext.imageIds.length !== 1) {
+      generationError.value = '视觉资产配方需要且仅支持 1 张有效参考图。'
+      return
+    }
+    await executeGeneration(sourceNode, 'image', { recipeId, imageIds: generationContext.imageIds })
   }
 
   function updatePrompt(prompt: string) {
@@ -501,6 +524,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     captureTemplate,
     instantiateTemplate,
     generate,
+    generateRecipe,
     updatePrompt,
   }
 }

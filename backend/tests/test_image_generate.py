@@ -109,6 +109,80 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual(["https://example.com/source-image.png"], fake_provider.calls[0]["image"])
 
+    def test_character_sheet_recipe_uses_backend_prompt_one_reference_and_landscape_size(self) -> None:
+        fake_provider = _FakeAgnesProvider()
+        source_asset = store.create_asset(
+            self.user["id"], "image", "https://example.com/character-reference.png", None,
+            project_id=self.project["id"], origin_canvas_id=self.canvas_id, source="upload",
+        )
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/image-generate",
+                json={
+                    "project_id": self.project["id"],
+                    "origin_canvas_id": self.canvas_id,
+                    "canvas_node_id": self.node["id"],
+                    "generation_recipe_id": "character-sheet",
+                    "image_ids": [source_asset["id"]],
+                },
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(200, response.status_code)
+        call = fake_provider.calls[0]
+        self.assertEqual(["https://example.com/character-reference.png"], call["image"])
+        self.assertEqual("1024x768", call["kwargs"]["size"])
+        self.assertIn("white background", call["prompt"])
+        self.assertIn("front, side, and back", call["prompt"])
+        self.assertIn("preserve", call["prompt"].lower())
+        self.assertNotIn("red dress", call["prompt"].lower())
+        self.assertNotIn("blue eyes", call["prompt"].lower())
+
+    def test_scene_multiview_recipe_uses_distinct_backend_prompt(self) -> None:
+        fake_provider = _FakeAgnesProvider()
+        source_asset = store.create_asset(
+            self.user["id"], "image", "https://example.com/scene-reference.png", None,
+            project_id=self.project["id"], origin_canvas_id=self.canvas_id, source="upload",
+        )
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/image-generate",
+                json={
+                    "project_id": self.project["id"],
+                    "origin_canvas_id": self.canvas_id,
+                    "canvas_node_id": self.node["id"],
+                    "generation_recipe_id": "scene-multiview",
+                    "image_ids": [source_asset["id"]],
+                },
+                headers=self._auth_headers(self.user["id"]),
+            )
+        self.assertEqual(200, response.status_code)
+        self.assertIn("establishing view", fake_provider.calls[0]["prompt"])
+        self.assertIn("material and lighting details", fake_provider.calls[0]["prompt"])
+
+    def test_recipe_rejects_unknown_id_prompt_override_and_wrong_reference_count(self) -> None:
+        source_assets = [store.create_asset(
+            self.user["id"], "image", f"https://example.com/source-{index}.png", None,
+            project_id=self.project["id"], origin_canvas_id=self.canvas_id, source="upload",
+        ) for index in range(2)]
+        base = {
+            "project_id": self.project["id"], "origin_canvas_id": self.canvas_id,
+            "canvas_node_id": self.node["id"], "generation_recipe_id": "character-sheet",
+        }
+        payloads = [
+            {**base, "generation_recipe_id": "unknown-recipe", "image_ids": [source_assets[0]["id"]]},
+            {**base, "prompt": "Override the internal recipe", "image_ids": [source_assets[0]["id"]]},
+            {**base, "image_ids": []},
+            {**base, "image_ids": [asset["id"] for asset in source_assets]},
+        ]
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                response = self.client.post(
+                    "/api/image-generate", json=payload, headers=self._auth_headers(self.user["id"]),
+                )
+                self.assertEqual(422, response.status_code)
+
     def test_image_generate_failure_does_not_deduct_quota(self) -> None:
         fake_provider = _FakeAgnesProvider(error=RuntimeError("provider failed"))
         original_quota = store.quotas[self.user["id"]]["image"]

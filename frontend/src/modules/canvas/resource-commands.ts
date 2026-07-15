@@ -5,6 +5,7 @@ import type { InsertGraphCommand } from './canvas-commands'
 import { findFirstUnoccupiedPosition } from './graph-placement'
 import { createRegistryNodeDraft, getDefaultConnectionPorts, isNodeMutationSupported } from './node-registry'
 import type { GenerationTask } from './project-resource-types'
+import { VISUAL_ASSET_RECIPES, type VisualAssetRecipeId } from './visual-asset-recipes'
 
 export interface ResourceInsertionPoint {
   x: number
@@ -48,6 +49,26 @@ export function createResultGenerationBranchCommand(
       metadata: { input_order: 1 },
     }],
   }
+}
+
+export function createVisualAssetRecipeBranchCommand(
+  sourceNode: CanvasNode,
+  recipeId: VisualAssetRecipeId,
+  existingNodes: readonly CanvasNode[] = [],
+): InsertGraphCommand | null {
+  if (!canBranchFromImageResult(sourceNode)) return null
+  const recipe = VISUAL_ASSET_RECIPES[recipeId]
+  const command = createResultGenerationBranchCommand(sourceNode, 'image', existingNodes)
+  if (!command) return null
+  const generationNode = command.nodes[0]
+  generationNode.title = recipe.title
+  generationNode.content = undefined
+  generationNode.contentData = {
+    ...generationNode.contentData,
+    generation_recipe_id: recipe.id,
+    generation_recipe_version: recipe.version,
+  }
+  return command
 }
 
 function assetTitle(asset: Asset) {
