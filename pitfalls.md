@@ -1,5 +1,11 @@
 # 踩坑记录
 
+## 2026-07-15 Generation run history scope
+
+- Project generation task 列表跨 Canvas 与 node，共享 resource recency 不能替代 node history；inspector 必须先按 durable `canvas_node_id` 过滤，再按 `created_at` 排序。
+- Equal timestamp 需要稳定 tie behavior，避免 refresh 后 run 顺序跳动；可用原列表顺序作为次级证据，但不得按 task ID 猜测时间。
+- History 展开本身是只读动作，但 terminal task reconciliation 可能同时产生预期 node PATCH；测试应先等待 background reconciliation，再以 baseline 证明展开没有新增 mutation。
+
 ## 2026-07-15 Generation input order persistence
 
 - 前端 connection array order 不是可靠持久化字段，document PATCH 以 entity ID 为边界；需要可控顺序时应写入 connection metadata，并为旧图保留现有 array-order fallback。

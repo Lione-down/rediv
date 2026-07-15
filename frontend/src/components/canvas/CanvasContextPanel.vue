@@ -4,11 +4,13 @@ import { computed, ref, watch } from 'vue'
 import type { ResolvedGenerationContext } from '../../modules/canvas/generation-context'
 import type { ResolvedResultLineage } from '../../modules/canvas/generation-lineage'
 import type { ProjectGenerationTask } from '../../modules/canvas/project-resource-types'
+import { resolveGenerationRunHistory } from '../../modules/canvas/generation-run-history'
 import type { CanvasNode } from '../../types/canvas'
 
 const props = withDefaults(defineProps<{
   error?: string
   generationContext?: ResolvedGenerationContext | null
+  generationTasks?: ProjectGenerationTask[]
   isGenerating?: boolean
   latestTask?: ProjectGenerationTask | null
   mediaType?: 'image' | 'video' | null
@@ -21,6 +23,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   error: '',
   generationContext: null,
+  generationTasks: () => [],
   isGenerating: false,
   latestTask: null,
   mediaType: null,
@@ -54,12 +57,20 @@ const includedMediaSources = computed(() => (
 const excludedMediaSources = computed(() => (
   props.generationContext?.mediaSources.filter((source) => source.state !== 'included') ?? []
 ))
+const runHistory = computed(() => resolveGenerationRunHistory(props.node.id, props.generationTasks))
 const mediaStateLabel = {
   included: '已作为参考图',
   'missing-asset': '缺少资源，未使用',
   'unsupported-media': '仅支持图片，未使用',
   duplicate: '重复资源，已合并',
   limit: '超出 8 张上限，未使用',
+} as const
+const runStatusLabel = {
+  queued: '排队中',
+  running: '生成中',
+  succeeded: '已完成',
+  failed: '失败',
+  timed_out: '已超时',
 } as const
 const statusLabel = computed(() => {
   if (props.isGenerating) return '生成中'
@@ -85,6 +96,15 @@ function canMoveInput(connectionId: string, kind: 'text' | 'media', direction: -
     : props.generationContext?.mediaSources
   const index = sources?.findIndex((source) => source.connectionId === connectionId) ?? -1
   return index >= 0 && index + direction >= 0 && index + direction < (sources?.length ?? 0)
+}
+
+function runTiming(task: ProjectGenerationTask) {
+  if (task.duration_ms !== null) return `${(task.duration_ms / 1000).toFixed(1)}s`
+  const date = new Date(task.created_at)
+  if (!Number.isFinite(date.getTime())) return '时间未知'
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(date)
 }
 
 watch(() => props.node.id, () => {
@@ -189,6 +209,20 @@ function requestGeneration() {
         <span>{{ statusLabel }}</span>
         <small v-if="latestTask">{{ latestTask.id }}</small>
       </p>
+      <details v-if="runHistory.total" class="run-history">
+        <summary><span>运行记录</span><strong>{{ runHistory.total }} 次</strong></summary>
+        <ol aria-label="生成运行记录">
+          <li v-for="run in runHistory.runs" :key="run.task.id" :class="`is-${run.task.status}`">
+            <span class="run-history__marker" aria-hidden="true"></span>
+            <div>
+              <strong>Run {{ run.sequence }} · {{ runStatusLabel[run.task.status] }}</strong>
+              <small>{{ run.task.model || run.task.provider }} · {{ runTiming(run.task) }}</small>
+              <p v-if="run.task.error_message">{{ run.task.error_message }}</p>
+            </div>
+          </li>
+        </ol>
+        <p v-if="runHistory.total > runHistory.runs.length" class="run-history__remainder">仅显示最近 {{ runHistory.runs.length }} 次</p>
+      </details>
       <p v-if="error" class="feedback is-error" role="alert"><AlertTriangle :size="15" aria-hidden="true" />{{ error }}。结果未扣费，可在确认服务恢复后手动重试。</p>
       <p v-else-if="success" class="feedback is-success"><CircleCheck :size="15" aria-hidden="true" />{{ success }}</p>
       <p v-else-if="latestTask?.error_message" class="feedback is-error" role="alert"><AlertTriangle :size="15" aria-hidden="true" />{{ latestTask.error_message }}</p>
@@ -274,6 +308,22 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .compare-results-button:hover { border-color: color-mix(in srgb, var(--v2-accent) 52%, var(--v2-border-standard)); }
 .generation-status { min-height: 42px; align-items: center; gap: 7px; margin: 14px 0 0; padding: 8px 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); color: var(--v2-text-secondary); background: var(--v2-surface-1); font-size: 12px; }
 .generation-status small { margin-left: auto; color: var(--v2-text-muted); }
+.run-history { margin-top: 8px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
+.run-history summary { display: flex; min-height: 40px; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; color: var(--v2-text-secondary); cursor: pointer; font-size: 11px; }
+.run-history summary strong { color: var(--v2-text-primary); font-variant-numeric: tabular-nums; }
+.run-history summary:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
+.run-history ol { display: grid; gap: 1px; margin: 0; padding: 0 8px 8px; list-style: none; }
+.run-history li { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 8px; padding: 8px 4px; border-top: 1px solid var(--v2-border-subtle); }
+.run-history__marker { width: 7px; height: 7px; margin-top: 5px; border-radius: 50%; background: var(--v2-text-muted); }
+.run-history li.is-succeeded .run-history__marker { background: var(--v2-success); }
+.run-history li.is-failed .run-history__marker, .run-history li.is-timed_out .run-history__marker { background: var(--v2-danger); }
+.run-history li.is-running .run-history__marker { background: var(--v2-accent); }
+.run-history li > div { display: grid; min-width: 0; gap: 2px; }
+.run-history li strong, .run-history li small, .run-history li p { overflow: hidden; text-overflow: clip; }
+.run-history li strong { color: var(--v2-text-primary); font-size: 11px; white-space: nowrap; }
+.run-history li small { color: var(--v2-text-muted); font-size: 10px; white-space: nowrap; }
+.run-history li p { display: -webkit-box; margin: 2px 0 0; color: var(--v2-danger); font-size: 10px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+.run-history__remainder { margin: 0; padding: 0 12px 10px; color: var(--v2-text-muted); font-size: 10px; }
 .feedback { align-items: flex-start; gap: 7px; margin: 10px 0 0; padding: 9px 10px; border-radius: var(--v2-radius-md); font-size: 12px; line-height: 1.55; }
 .feedback.is-error { color: var(--v2-danger); background: color-mix(in oklch, var(--v2-danger) 10%, transparent); }
 .feedback.is-success { color: var(--v2-success); background: color-mix(in oklch, var(--v2-success) 10%, transparent); }

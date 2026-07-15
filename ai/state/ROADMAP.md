@@ -51,6 +51,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 24 | T5-024 | In-canvas sibling result comparison tray | DONE - PASS | T5-023 |
 | 25 | T5-025 | Multi-input generation request preflight | DONE - PASS | T5-024 |
 | 26 | T5-026 | Undoable generation input ordering | DONE - PASS | T5-025 |
+| 27 | T5-027 | Generation node run history | DONE - PASS | T5-026 |
 
 ## Task Boundaries
 
@@ -109,6 +110,8 @@ T5-024 is `DONE - PASS`. Selected result lineage now opens a non-modal Canvas co
 T5-025 is `DONE - PASS`. The generation inspector now exposes an authoritative request preflight with exact composed prompt, ordered image references, video keyframe/img2vid semantics, and excluded inputs. Focused 3/3, related 14/14, full Chromium 191/191, build, visual, and hygiene gates passed. `REPORT-T5-025.md` is authoritative evidence.
 
 T5-026 is `DONE - PASS`. Prompt and media inputs now have independently durable order through edge metadata, one atomic command, reload persistence, and exact undo/redo. Provenance, preflight, provider prompt, image IDs, and video keyframes share the same order resolver. Focused 7/7, related 29/29, full Chromium 195/195, build, visual, and hygiene gates passed. `REPORT-T5-026.md` is authoritative evidence.
+
+T5-027 is `DONE - PASS`. Generation nodes now expose a compact node-scoped history of the latest five durable runs, total count, stable chronology, all five lifecycle states, timing/model identity, and bounded errors. Focused 3/3, related 30/30, full Chromium 198/198, build, visual, and hygiene gates passed. `REPORT-T5-027.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

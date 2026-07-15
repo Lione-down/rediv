@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-026 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-027 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-026 - Undoable generation input ordering` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-026.md`
+- Most recently completed: `T5-027 - Generation node run history` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-027.md`
 
 ## Current Verified Facts
 
@@ -55,6 +55,7 @@ Last updated: 2026-07-15
 - T5-024 is now `DONE - PASS`: sibling image, video, unavailable, and broken results can be compared in a Canvas-local V1..Vn tray without mutation. Desktop panel avoidance, readonly 375px review, Escape, selection, build, focused 6/6, related 9/9, and full Chromium 188/188 passed. Final report: `ai/reports/REPORT-T5-024.md`.
 - T5-025 is now `DONE - PASS`: multi-node generation exposes the exact final prompt, ordered image references, video keyframe/img2vid semantics, and excluded inputs before execution. Preview-to-provider equality, no-mutation inspection, focused 3/3, related 14/14, full Chromium 191/191, build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-025.md`.
 - T5-026 is now `DONE - PASS`: prompt and media inputs have durable independent order, accessible controls, atomic autosave, reload persistence, and exact undo/redo. T/R provenance, preflight, prompt composition, image IDs, and video keyframes stay synchronized. Focused 7/7, related 29/29, full Chromium 195/195, build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-026.md`.
+- T5-027 is now `DONE - PASS`: generation nodes expose their latest five durable runs with total count, stable chronology, five lifecycle states, timing, model, and bounded errors. Foreign-node filtering, readonly, no-action-mutation, focused 3/3, related 30/30, full Chromium 198/198, build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-027.md`.
 
 ## Exact Next Action
 
