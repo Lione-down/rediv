@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-029 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-030 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-029 - Multi-selection generation composition` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-029.md`
+- Most recently completed: `T5-030 - Selection composition output validation` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-030.md`
 
 ## Current Verified Facts
 
@@ -58,10 +58,11 @@ Last updated: 2026-07-15
 - T5-027 is now `DONE - PASS`: generation nodes expose their latest five durable runs with total count, stable chronology, five lifecycle states, timing, model, and bounded errors. Foreign-node filtering, readonly, no-action-mutation, focused 3/3, related 30/30, full Chromium 198/198, build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-027.md`.
 - T5-028 is now `DONE - PASS`: succeeded history rows expose result inspection only for one exact canonical active lineage and matching task identity. Missing, mismatched, inactive, malformed, and ambiguous cases stay action-free. Focused 6/6, full Chromium 201/201, build, desktop/readonly visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-028.md`.
 - T5-029 is now `DONE - PASS`: two or more request-ready selected text/image sources can atomically create an image or video generation workflow with durable independent T/R order. Mixed, text-only, image-only, invalid, undo/redo, reload, compact, readonly, focused 5/5, related 45/45, full Chromium 206/206, build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-029.md`.
+- T5-030 is now `DONE - PASS`: the compose menu previews exact included text/image counts and video semantics, while selection-created image/video workflows are proven through payload, scoped task/asset identity, quota, canonical result, edge, lineage, playable media, history, reload, and durable no-charge failure. Focused 4/4, related 27/27, full Chromium 210/210, a 4,800-module build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-030.md`.
 
 ## Exact Next Action
 
-Define the next bounded Canvas iteration Task from remaining multi-node editing and generated-output validation gaps.
+Select the next bounded Canvas scenario from the continuing project goal and create its Task before business-code edits.
 
 ## Blockers And Human Gates
 

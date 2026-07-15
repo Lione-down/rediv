@@ -10,6 +10,9 @@ const props = defineProps<{
   count: number
   canConnect: boolean
   canCompose: boolean
+  composeImageCount: number
+  composeTextCount: number
+  composeVideoMode: 'text-to-video' | 'img2vid' | 'keyframes'
   canDelete: boolean
   canDuplicate: boolean
   canGroup: boolean
@@ -87,8 +90,13 @@ function closeMenus() {
         <WandSparkles :size="16" aria-hidden="true" />
       </button>
       <div v-if="isComposeOpen" class="compose-panel" role="menu" aria-label="选择生成任务类型">
-        <button type="button" role="menuitem" @click="handleCompose('image')"><ImageIcon :size="15" aria-hidden="true" />图片生成</button>
-        <button type="button" role="menuitem" @click="handleCompose('video')"><Video :size="15" aria-hidden="true" />视频生成</button>
+        <p>{{ composeTextCount }} 提示词 · {{ composeImageCount }} 参考图</p>
+        <button type="button" role="menuitem" @click="handleCompose('image')">
+          <ImageIcon :size="15" aria-hidden="true" /><span><strong>图片生成</strong><small>{{ composeImageCount ? '多输入融合' : '纯文本生成' }}</small></span>
+        </button>
+        <button type="button" role="menuitem" @click="handleCompose('video')">
+          <Video :size="15" aria-hidden="true" /><span><strong>视频生成</strong><small>{{ composeVideoMode === 'text-to-video' ? '文生视频' : composeVideoMode === 'img2vid' ? '图生视频' : '有序关键帧' }}</small></span>
+        </button>
       </div>
     </div>
     <button v-if="canGroup" type="button" aria-label="组合所选节点" title="组合所选节点 (Ctrl+G)" @click="$emit('group')">
@@ -180,7 +188,8 @@ function closeMenus() {
   box-shadow: var(--shadow-floating, var(--shadow-soft));
   transform: translateX(-50%);
 }
-.compose-panel { top: var(--compose-menu-top, calc(100% + 10px)); bottom: var(--compose-menu-bottom, auto); width: 132px; }
+.compose-panel { top: var(--compose-menu-top, calc(100% + 10px)); bottom: var(--compose-menu-bottom, auto); width: 180px; }
+.compose-panel > p { margin: 0; padding: 7px 9px 5px; color: var(--text-secondary); font-size: 10px; font-variant-numeric: tabular-nums; }
 .arrange-panel button {
   display: flex;
   width: 136px;
@@ -188,7 +197,10 @@ function closeMenus() {
   padding: 0 10px;
   font-size: 12px;
 }
-.compose-panel button { display: flex; width: 124px; justify-content: flex-start; gap: 7px; padding: 0 10px; font-size: 12px; }
+.compose-panel button { display: flex; width: 172px; min-height: 46px; height: auto; justify-content: flex-start; gap: 8px; padding: 5px 10px; font-size: 12px; }
+.compose-panel button span { display: grid; gap: 1px; text-align: left; }
+.compose-panel button strong { font-weight: 600; }
+.compose-panel button small { color: var(--text-secondary); font-size: 10px; }
 
 button {
   display: grid;

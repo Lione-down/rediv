@@ -9,6 +9,13 @@ import {
 } from './node-registry'
 
 export type SelectionGenerationMediaType = 'image' | 'video'
+export type SelectionVideoMode = 'text-to-video' | 'img2vid' | 'keyframes'
+
+export interface SelectionGenerationIntent {
+  imageCount: number
+  textCount: number
+  videoMode: SelectionVideoMode
+}
 
 function uniqueSelection(nodes: readonly CanvasNode[]) {
   return nodes.length >= 2 && new Set(nodes.map((node) => node.id)).size === nodes.length
@@ -68,6 +75,20 @@ export function createSelectionGenerationCommand(
 }
 
 export function canCreateGenerationFromSelection(selectedNodes: readonly CanvasNode[]) {
+  return Boolean(resolveSelectionGenerationIntent(selectedNodes))
+}
+
+export function resolveSelectionGenerationIntent(
+  selectedNodes: readonly CanvasNode[],
+): SelectionGenerationIntent | null {
   let index = 0
-  return Boolean(createSelectionGenerationCommand(selectedNodes, 'image', () => `selection-preview-${index++}`))
+  const command = createSelectionGenerationCommand(selectedNodes, 'image', () => `selection-preview-${index++}`)
+  if (!command) return null
+  const textCount = command.connections.filter((connection) => connection.targetPort === 'prompt').length
+  const imageCount = command.connections.length - textCount
+  return {
+    imageCount,
+    textCount,
+    videoMode: imageCount === 0 ? 'text-to-video' : imageCount === 1 ? 'img2vid' : 'keyframes',
+  }
 }

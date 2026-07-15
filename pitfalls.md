@@ -371,3 +371,9 @@ Evidence:
 - Port compatibility is not enough to advertise bulk generation. Build the candidate fragment first, resolve it through the same generation-context code used by preflight/provider requests, and expose the action only when every selected source is included.
 - Prompt and media order are independent sequences. Persist `input_order` per target port; do not make cross-kind edge-array interleaving part of the contract.
 - A primary selected node can still exist inside a multi-selection. Inspector and compact drawer ownership must require exactly one selected node, otherwise a drawer mask can block the multi-selection toolbar.
+
+## 2026-07-15 Selection composition output validation
+
+- A shared generation fixture must derive task media type, model, asset type, URL, quota bucket, and failure identity from the actual request route and dynamic Canvas node. Returning image-shaped identity for video can make UI tests pass while proving the wrong lifecycle.
+- Composition labels should be projections of the already validated command, not a second input classifier. Zero, one, and multiple included images map to text-to-video, img2vid, and ordered keyframes only after every selected source is request-ready.
+- Run history and result lineage have different disclosure contracts: history summarizes status/model/timing, while exact task identity belongs to verified lineage. Tests should assert each fact at its owning surface.

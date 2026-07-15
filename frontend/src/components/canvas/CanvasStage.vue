@@ -20,6 +20,7 @@ import { useCanvasStage } from './composables/use-canvas-stage'
 import { resolveGenerationContext } from '../../modules/canvas/generation-context'
 import { getGenerationMediaType } from '../../modules/canvas/node-registry'
 import { resolveResultLineage, resultLineageProvenance } from '../../modules/canvas/generation-lineage'
+import { resolveSelectionGenerationIntent } from '../../modules/canvas/selection-generation'
 
 const props = withDefaults(defineProps<{ readonly?: boolean; resourcesOpen?: boolean }>(), {
   readonly: false,
@@ -113,6 +114,7 @@ const {
 const dismissedEmptyCanvasIds = ref<ReadonlySet<string>>(new Set())
 const isStartingWorkflow = ref(false)
 const canvasGridStyle = computed(() => getCanvasGridStyle(canvasStore.viewport))
+const selectionGenerationIntent = computed(() => resolveSelectionGenerationIntent(canvasStore.selectedNodes))
 const selectedResultLineage = computed(() => {
   if (canvasStore.selectedNodeIds.length !== 1 || !canvasStore.selectedNode) return null
   return resolveResultLineage(canvasStore.selectedNode, canvasStore.nodes, canvasStore.connections)
@@ -337,6 +339,9 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         :count="canvasStore.selectedNodeIds.length"
         :can-connect="canConnectSelection"
         :can-compose="canComposeGenerationSelection"
+        :compose-image-count="selectionGenerationIntent?.imageCount ?? 0"
+        :compose-text-count="selectionGenerationIntent?.textCount ?? 0"
+        :compose-video-mode="selectionGenerationIntent?.videoMode ?? 'text-to-video'"
         :can-delete="canDeleteSelection"
         :can-duplicate="canDuplicateSelection"
         :can-group="canGroupSelection"

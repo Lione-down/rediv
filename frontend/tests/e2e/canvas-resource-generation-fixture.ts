@@ -236,12 +236,13 @@ function instantiateTemplate(state: ResourceMockState, canvasId: string) {
   }
 }
 
-function generationResponse(state: ResourceMockState, canvasId: string, nodeId = 'generation-cover') {
-  const task = generationTask({ id: 'task-success', origin_canvas_id: canvasId, canvas_node_id: nodeId, status: 'succeeded', result_asset_id: 'asset-success', provider_request_id: 'request-success' })
-  const asset = { id: 'asset-success', user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: canvasId, canvas_node_id: nodeId, type: 'image', url: 'https://media.revid.test/success.png', content_text: null, source: 'generation', source_model: 'mock-image-v1', source_task_id: 'task-success', status: 'active', created_at: NOW, updated_at: NOW }
+function generationResponse(state: ResourceMockState, canvasId: string, nodeId: string, mediaType: 'image' | 'video') {
+  const model = `mock-${mediaType}-v1`
+  const task = generationTask({ id: 'task-success', origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType, model, status: 'succeeded', result_asset_id: 'asset-success', provider_request_id: 'request-success' })
+  const asset = { id: 'asset-success', user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: canvasId, canvas_node_id: nodeId, type: mediaType, url: `https://media.revid.test/success.${mediaType === 'video' ? 'mp4' : 'png'}`, content_text: null, source: 'generation', source_model: model, source_task_id: 'task-success', status: 'active', created_at: NOW, updated_at: NOW }
   state.tasks = [task, ...state.tasks.filter((item) => item.id !== task.id)]
   state.assets = [asset, ...state.assets.filter((item) => item.id !== asset.id)]
-  state.quotas = { ...state.quotas, image: state.quotas.image - 1 }
+  state.quotas = { ...state.quotas, [mediaType]: state.quotas[mediaType] - 1 }
   state.quotaRevision += 1
   return { asset, generation_task: task, quotas: state.quotas, quota_revision: state.quotaRevision }
 }
@@ -307,11 +308,13 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       state.events.push(`template-committed:${instantiateMatch[1]}`)
       return fulfillJson(route, result, 201)
     }
-    if (method === 'POST' && path === '/api/image-generate') {
+    if (method === 'POST' && (path === '/api/image-generate' || path === '/api/video-generate')) {
       const canvasId = String(body?.origin_canvas_id ?? FIRST_CANVAS_ID)
+      const nodeId = String(body?.canvas_node_id ?? 'generation-cover')
+      const mediaType = path === '/api/video-generate' ? 'video' : 'image'
       await state.generationGate
-      if (state.generationOutcome === 'success') return fulfillJson(route, generationResponse(state, canvasId, String(body?.canvas_node_id ?? 'generation-cover')))
-      const failedTask = generationTask({ id: 'task-failure', origin_canvas_id: canvasId, status: 'failed', result_asset_id: null, provider_request_id: null, error_code: 'provider_error', error_message: 'mock provider unavailable' })
+      if (state.generationOutcome === 'success') return fulfillJson(route, generationResponse(state, canvasId, nodeId, mediaType))
+      const failedTask = generationTask({ id: 'task-failure', origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType, model: `mock-${mediaType}-v1`, status: 'failed', result_asset_id: null, provider_request_id: null, error_code: 'provider_error', error_message: 'mock provider unavailable' })
       state.tasks = [failedTask, ...state.tasks.filter((item) => item.id !== failedTask.id)]
       return fulfillJson(route, { detail: 'mock provider unavailable' }, 503)
     }

@@ -117,6 +117,8 @@ T5-028 is `DONE - PASS`. It closes the generation-history loop with result inspe
 
 T5-029 is `DONE - PASS`. It turns two or more request-ready selected text/image sources into one canonical image or video generation workflow through a single ordered `insert-graph` command and one undo boundary. Focused 5/5, related 45/45, full Chromium 206/206, build, desktop/compact visual, and hygiene gates passed. `REPORT-T5-029.md` is authoritative evidence.
 
+T5-030 is `DONE - PASS`. It adds a verified T/R intent summary and closes image/video success plus durable failure output validation for workflows created from multi-selection. Focused 4/4, related 27/27, full Chromium 210/210, build, visual, and hygiene gates passed. `REPORT-T5-030.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:
