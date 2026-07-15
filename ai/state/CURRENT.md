@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-028 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-029 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-028 - Verified run result navigation` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-028.md`
+- Most recently completed: `T5-029 - Multi-selection generation composition` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-029.md`
 
 ## Current Verified Facts
 
@@ -57,6 +57,7 @@ Last updated: 2026-07-15
 - T5-026 is now `DONE - PASS`: prompt and media inputs have durable independent order, accessible controls, atomic autosave, reload persistence, and exact undo/redo. T/R provenance, preflight, prompt composition, image IDs, and video keyframes stay synchronized. Focused 7/7, related 29/29, full Chromium 195/195, build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-026.md`.
 - T5-027 is now `DONE - PASS`: generation nodes expose their latest five durable runs with total count, stable chronology, five lifecycle states, timing, model, and bounded errors. Foreign-node filtering, readonly, no-action-mutation, focused 3/3, related 30/30, full Chromium 198/198, build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-027.md`.
 - T5-028 is now `DONE - PASS`: succeeded history rows expose result inspection only for one exact canonical active lineage and matching task identity. Missing, mismatched, inactive, malformed, and ambiguous cases stay action-free. Focused 6/6, full Chromium 201/201, build, desktop/readonly visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-028.md`.
+- T5-029 is now `DONE - PASS`: two or more request-ready selected text/image sources can atomically create an image or video generation workflow with durable independent T/R order. Mixed, text-only, image-only, invalid, undo/redo, reload, compact, readonly, focused 5/5, related 45/45, full Chromium 206/206, build, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-029.md`.
 
 ## Exact Next Action
 

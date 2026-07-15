@@ -137,7 +137,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     }, delay)
   }
 
-  const selectedNode = computed(() => canvasStore.selectedNode)
+  const selectedNode = computed(() => canvasStore.selectedNodeIds.length === 1 ? canvasStore.selectedNode : null)
   const selectedMediaType = computed(() => (
     selectedNode.value ? getGenerationMediaType(selectedNode.value) : null
   ))

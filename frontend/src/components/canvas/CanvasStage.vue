@@ -70,6 +70,7 @@ const {
   deleteSelection,
   duplicateSelection,
   canConnectSelection,
+  canComposeGenerationSelection,
   canDeleteSelection,
   canDuplicateSelection,
   canGroupSelection,
@@ -81,6 +82,7 @@ const {
   closeGraphPanel,
   createNodeFromMenu,
   connectSelection,
+  composeGenerationSelection,
   groupSelection,
   isGraphPanelOpen,
   isNodeMenuOpen,
@@ -334,6 +336,7 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         v-if="selectionToolbarStyle && !readonly"
         :count="canvasStore.selectedNodeIds.length"
         :can-connect="canConnectSelection"
+        :can-compose="canComposeGenerationSelection"
         :can-delete="canDeleteSelection"
         :can-duplicate="canDuplicateSelection"
         :can-group="canGroupSelection"
@@ -347,6 +350,7 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         @group="groupSelection('toolbar')"
         @ungroup="ungroupSelection('toolbar')"
         @connect="connectSelection('toolbar')"
+        @compose="composeGenerationSelection('toolbar', $event)"
         @arrange="arrangeSelectionFromToolbar"
         @toggle-lock="toggleLockSelection('toolbar')"
         @delete="deleteSelection('toolbar')"

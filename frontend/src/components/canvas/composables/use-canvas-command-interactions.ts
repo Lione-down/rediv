@@ -2,6 +2,11 @@ import { ref } from 'vue'
 import { useCanvasStore } from '../../../store/canvas'
 import { getDefaultConnectionPorts, isNodeMutationSupported } from '../../../modules/canvas/node-registry'
 import {
+  canCreateGenerationFromSelection,
+  createSelectionGenerationCommand,
+  type SelectionGenerationMediaType,
+} from '../../../modules/canvas/selection-generation'
+import {
   canDeleteCanvasNode,
   createAlignNodesCommand,
   createAutoArrangeNodesCommand,
@@ -173,6 +178,18 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
     return true
   }
 
+  function composeGenerationSelection(source: CanvasCommandSource, mediaType: SelectionGenerationMediaType) {
+    if (options.isReadOnly()) return false
+    const command = createSelectionGenerationCommand(canvasStore.selectedNodes, mediaType)
+    if (!command) {
+      announceCommandFeedback('请选择至少两个可直接用于生成的文本或图片节点。')
+      return false
+    }
+    commandFeedback.value = null
+    void canvasStore.dispatchCommand({ source, command }).catch(() => undefined)
+    return true
+  }
+
   function handleCommandKeyDown(event: KeyboardEvent) {
     if (event.repeat || isCanvasEditableTarget(event.target)) return false
     const isReadOnly = options.isReadOnly()
@@ -219,6 +236,7 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
     canConnectSelection: () => canvasStore.selectedNodes.length === 2 && Boolean(createConnectNodesCommand(
       canvasStore.nodes, canvasStore.connections, canvasStore.selectedNodes[0].id, canvasStore.selectedNodes[1].id,
     )),
+    canComposeGenerationSelection: () => canCreateGenerationFromSelection(canvasStore.selectedNodes),
     canGroupSelection: () => Boolean(createGroupNodesCommand(canvasStore.nodes, canvasStore.selectedNodeIds)),
     canDuplicateSelection: () => (
       canvasStore.selectedNodes.length > 0 &&
@@ -245,6 +263,7 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
     autoArrange,
     connectNodes,
     connectSelection,
+    composeGenerationSelection,
     deleteSelection,
     duplicateSelection,
     distributeSelection,

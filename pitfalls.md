@@ -365,3 +365,9 @@ Evidence:
 - A succeeded generation task does not by itself prove that a usable result exists on the current Canvas. Result actions must require one canonical result with one active typed generation-to-result edge, matching generation identity, and exact durable task identity.
 - Zero verified matches should be described as not written to the current Canvas; multiple verified matches are ambiguous and must not navigate arbitrarily.
 - Readonly Canvas review may change ephemeral selection to inspect an existing result, but the test must hold the document PATCH baseline unchanged.
+
+## 2026-07-15 Multi-selection generation composition
+
+- Port compatibility is not enough to advertise bulk generation. Build the candidate fragment first, resolve it through the same generation-context code used by preflight/provider requests, and expose the action only when every selected source is included.
+- Prompt and media order are independent sequences. Persist `input_order` per target port; do not make cross-kind edge-array interleaving part of the contract.
+- A primary selected node can still exist inside a multi-selection. Inspector and compact drawer ownership must require exactly one selected node, otherwise a drawer mask can block the multi-selection toolbar.

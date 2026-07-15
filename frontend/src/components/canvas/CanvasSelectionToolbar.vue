@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Copy, Group, Link2, LockKeyhole, LockKeyholeOpen, Trash2, Ungroup, Workflow } from 'lucide-vue-next'
+import { Copy, Group, Image as ImageIcon, Link2, LockKeyhole, LockKeyholeOpen, Trash2, Ungroup, Video, WandSparkles, Workflow } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
 type CanvasArrangeMenuKey =
@@ -9,6 +9,7 @@ type CanvasArrangeMenuKey =
 const props = defineProps<{
   count: number
   canConnect: boolean
+  canCompose: boolean
   canDelete: boolean
   canDuplicate: boolean
   canGroup: boolean
@@ -25,10 +26,12 @@ const emit = defineEmits<{
   group: []
   ungroup: []
   connect: []
+  compose: [mediaType: 'image' | 'video']
   delete: []
   toggleLock: []
 }>()
 const isArrangeOpen = ref(false)
+const isComposeOpen = ref(false)
 
 const arrangeOptions = computed(() => [
   ...((props.canAlign || props.canGroup) ? [
@@ -48,11 +51,46 @@ function handleArrangeSelect(key: string | number) {
   emit('arrange', key as CanvasArrangeMenuKey)
   isArrangeOpen.value = false
 }
+
+function toggleArrange() {
+  isComposeOpen.value = false
+  isArrangeOpen.value = !isArrangeOpen.value
+}
+
+function toggleCompose() {
+  isArrangeOpen.value = false
+  isComposeOpen.value = !isComposeOpen.value
+}
+
+function handleCompose(mediaType: 'image' | 'video') {
+  emit('compose', mediaType)
+  isComposeOpen.value = false
+}
+
+function closeMenus() {
+  isArrangeOpen.value = false
+  isComposeOpen.value = false
+}
 </script>
 
 <template>
-  <div class="selection-toolbar" role="toolbar" :aria-label="`${count} 个已选节点的操作`">
+  <div class="selection-toolbar" role="toolbar" :aria-label="`${count} 个已选节点的操作`" @keydown.esc.stop="closeMenus">
     <span class="selection-count">已选 {{ count }}</span>
+    <div v-if="canCompose" class="compose-menu">
+      <button
+        type="button"
+        aria-label="合并所选节点为生成任务"
+        title="合并所选节点为生成任务"
+        :aria-expanded="isComposeOpen"
+        @click="toggleCompose"
+      >
+        <WandSparkles :size="16" aria-hidden="true" />
+      </button>
+      <div v-if="isComposeOpen" class="compose-panel" role="menu" aria-label="选择生成任务类型">
+        <button type="button" role="menuitem" @click="handleCompose('image')"><ImageIcon :size="15" aria-hidden="true" />图片生成</button>
+        <button type="button" role="menuitem" @click="handleCompose('video')"><Video :size="15" aria-hidden="true" />视频生成</button>
+      </div>
+    </div>
     <button v-if="canGroup" type="button" aria-label="组合所选节点" title="组合所选节点 (Ctrl+G)" @click="$emit('group')">
       <Group :size="16" aria-hidden="true" />
     </button>
@@ -68,7 +106,7 @@ function handleArrangeSelect(key: string | number) {
         aria-label="排列所选节点"
         title="排列所选节点"
         :aria-expanded="isArrangeOpen"
-        @click="isArrangeOpen = !isArrangeOpen"
+        @click="toggleArrange"
       >
         <Workflow :size="16" aria-hidden="true" />
       </button>
@@ -125,8 +163,8 @@ function handleArrangeSelect(key: string | number) {
   white-space: nowrap;
 }
 
-.arrange-menu { position: relative; }
-.arrange-panel {
+.arrange-menu, .compose-menu { position: relative; }
+.arrange-panel, .compose-panel {
   position: absolute;
   top: var(--arrange-menu-top, calc(100% + 10px));
   bottom: var(--arrange-menu-bottom, auto);
@@ -142,6 +180,7 @@ function handleArrangeSelect(key: string | number) {
   box-shadow: var(--shadow-floating, var(--shadow-soft));
   transform: translateX(-50%);
 }
+.compose-panel { top: var(--compose-menu-top, calc(100% + 10px)); bottom: var(--compose-menu-bottom, auto); width: 132px; }
 .arrange-panel button {
   display: flex;
   width: 136px;
@@ -149,6 +188,7 @@ function handleArrangeSelect(key: string | number) {
   padding: 0 10px;
   font-size: 12px;
 }
+.compose-panel button { display: flex; width: 124px; justify-content: flex-start; gap: 7px; padding: 0 10px; font-size: 12px; }
 
 button {
   display: grid;

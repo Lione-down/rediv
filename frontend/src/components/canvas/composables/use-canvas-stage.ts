@@ -85,18 +85,19 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     alignSelection, autoArrange,
     canAlignSelection: canAlignSelectionNow,
     canAutoArrange: canAutoArrangeNow,
-    canConnectSelection: canConnectSelectionNow,
+    canConnectSelection: canConnectSelectionNow, canComposeGenerationSelection: canComposeGenerationSelectionNow,
     canDeleteSelection: canDeleteSelectionNow,
     canDistributeSelection: canDistributeSelectionNow,
     canDuplicateSelection: canDuplicateSelectionNow,
     canGroupSelection: canGroupSelectionNow,
     canUngroupSelection: canUngroupSelectionNow,
-    commandFeedback, connectNodes, connectSelection, deleteSelection, duplicateSelection,
+    commandFeedback, composeGenerationSelection, connectNodes, connectSelection, deleteSelection, duplicateSelection,
     distributeSelection, groupSelection, handleCommandKeyDown,
     hasLockedSelection: hasLockedSelectionNow,
     toggleLockSelection, ungroupSelection,
   } = useCanvasCommandInteractions({ isReadOnly: () => options.isReadOnly?.() ?? false })
   const canConnectSelection = computed(() => canConnectSelectionNow())
+  const canComposeGenerationSelection = computed(() => canComposeGenerationSelectionNow())
   const canDeleteSelection = computed(() => canDeleteSelectionNow())
   const canDuplicateSelection = computed(() => canDuplicateSelectionNow())
   const canGroupSelection = computed(() => canGroupSelectionNow())
@@ -487,7 +488,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     minimapViewportStyle, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
     viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu, selectionToolbarStyle,
-    canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection, closeGraphPanel, commandFeedback, connectSelection,
+    canComposeGenerationSelection, canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection, closeGraphPanel, commandFeedback, composeGenerationSelection, connectSelection,
     canAlignSelection, canAutoArrange, canDeleteSelection, canDistributeSelection, hasLockedSelection,
     createNodeFromMenu, deleteSelection, duplicateSelection, groupSelection, isGraphPanelOpen, isNodeMenuOpen,
     toggleGraphPanel, ungroupSelection, updateNodeMenuOpen,

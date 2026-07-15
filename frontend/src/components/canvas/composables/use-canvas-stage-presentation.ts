@@ -36,7 +36,7 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     const right = Math.max(...rects.map((rect) => worldToSurface({ x: rect.left + rect.width, y: rect.top }, viewport).x))
     const top = Math.min(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top }, viewport).y))
     const bottom = Math.max(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top + rect.height }, viewport).y))
-    const halfWidth = 156
+    const halfWidth = 176
     const x = Math.max(halfWidth + 12, Math.min((left + right) / 2, size.width - halfWidth - 12))
     const y = top >= 60 ? top - 56 : Math.min(bottom + 12, size.height - 52)
     const openAbove = y > size.height / 2
@@ -45,6 +45,8 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
       top: `${Math.max(12, y)}px`,
       '--arrange-menu-top': openAbove ? 'auto' : 'calc(100% + 10px)',
       '--arrange-menu-bottom': openAbove ? 'calc(100% + 10px)' : 'auto',
+      '--compose-menu-top': openAbove ? 'auto' : 'calc(100% + 10px)',
+      '--compose-menu-bottom': openAbove ? 'calc(100% + 10px)' : 'auto',
     }
   })
   const stageNotice = computed(() => {

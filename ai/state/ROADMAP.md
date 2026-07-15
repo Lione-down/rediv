@@ -115,6 +115,8 @@ T5-027 is `DONE - PASS`. Generation nodes now expose a compact node-scoped histo
 
 T5-028 is `DONE - PASS`. It closes the generation-history loop with result inspection available only when a succeeded task has one exact canonical active result lineage match. Missing, mismatched, inactive, malformed, and ambiguous outputs remain honest status-only states. Focused 6/6, full Chromium 201/201, build, desktop/readonly visual, and hygiene gates passed. `REPORT-T5-028.md` is authoritative evidence.
 
+T5-029 is `DONE - PASS`. It turns two or more request-ready selected text/image sources into one canonical image or video generation workflow through a single ordered `insert-graph` command and one undo boundary. Focused 5/5, related 45/45, full Chromium 206/206, build, desktop/compact visual, and hygiene gates passed. `REPORT-T5-029.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:
