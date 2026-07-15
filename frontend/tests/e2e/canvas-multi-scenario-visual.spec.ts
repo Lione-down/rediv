@@ -133,7 +133,11 @@ test('selection, editing, locked content, and supported viewports remain usable'
       await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
       await expect(page.getByRole('region', { name: '节点内容编辑器' })).toBeVisible()
       if (viewport.width === 920) {
-        expect((await page.locator('.n-drawer:visible').boundingBox())?.width).toBeGreaterThanOrEqual(359)
+        const drawer = page.locator('.n-drawer:visible')
+        await expect.poll(async () => {
+          const rect = await drawer.boundingBox()
+          return rect ? { right: Math.round(rect.x + rect.width), width: Math.round(rect.width) } : null
+        }).toEqual({ right: viewport.width, width: 360 })
         await expect(page.locator('.selection-toolbar')).toHaveCount(0)
       } else {
         await expect(page.locator('.selection-toolbar')).toBeVisible()
@@ -143,7 +147,11 @@ test('selection, editing, locked content, and supported viewports remain usable'
       await expect(page.locator('.selection-toolbar')).toHaveCount(0)
       await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
       await page.getByRole('button', { name: '选择并定位 合并四路上下文生成' }).click()
-      expect((await page.locator('.n-drawer:visible').boundingBox())?.width).toBeGreaterThanOrEqual(viewport.width - 1)
+      const drawer = page.locator('.n-drawer:visible')
+      await expect.poll(async () => {
+        const rect = await drawer.boundingBox()
+        return rect ? { right: Math.round(rect.x + rect.width), width: Math.round(rect.width) } : null
+      }).toEqual({ right: viewport.width, width: viewport.width })
       await stage.focus()
       await page.keyboard.press('Control++')
       await page.keyboard.press('Control++')
