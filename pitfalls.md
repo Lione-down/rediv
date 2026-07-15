@@ -537,3 +537,11 @@ Evidence:
 - A geometric edge midpoint is not necessarily empty Canvas space. Place contextual chrome against canonical visual node rectangles and retain a quiet leader back to the original midpoint when displaced.
 - Leafer-rendered nodes are not DOM elements. Browser overlap tests must map persisted DTOs through the same node presentation geometry used by the renderer instead of querying invented `.canvas-node` selectors or trusting stored heights.
 - Media fixtures can asynchronously adopt decoded aspect ratios and create unrelated autosave PATCHes. Seed known metadata when the test's contract is zero mutation from a separate inspection interaction.
+
+## 2026-07-15 Ordered multi-generation edge identity
+
+- Persisted `input_order` is evidence, not the complete generation semantic. Project selected-edge roles from `resolveGenerationContext` so validation, deduplication, limits, provider request order, and UI notation cannot diverge.
+- Result V order is canonical active-edge lineage order, not node position, task timestamp, or title order. Reuse `resolveGenerationResultVariants` instead of creating a second sorter.
+- Excluded references still need a stable graph identity even though they have no provider request position. Show their contextual R order and a separate `未参与` state rather than pretending they disappeared.
+- Ordered-input fixtures must seed the full peer group. Assigning only a duplicate `input_order=3` while original peers have no order moves the duplicate before them under the valid-first sorting contract and invalidates the intended scenario.
+- Visual equality is not provider equality. Assert the exact T/R provenance, image ID sequence, V connection sequence, reload identity, and rendered role together.

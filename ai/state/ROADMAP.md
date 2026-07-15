@@ -63,6 +63,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 51 | T5-051 | Reorderable composition preflight | DONE - PASS | T5-050 |
 | 52 | T5-052 | Dense composition preflight scalability | DONE - PASS | T5-051 |
 | 53 | T5-053 | Selected edge semantic identity | DONE - PASS | T5-052 |
+| 54 | T5-054 | Ordered multi-generation edge identity | DONE - PASS | T5-053 |
 
 ## Task Boundaries
 
@@ -175,6 +176,8 @@ T5-051 is `DONE - PASS`. Prompt and reference sources can be reordered independe
 T5-052 is `DONE - PASS`. A near-limit 10-source composition now keeps summary and generation actions fixed while the ordered queue alone scrolls; keyboard R8 reorder and exact image/video order remain intact at desktop and compact widths. `REPORT-T5-052.md` is authoritative evidence.
 
 T5-053 is `DONE - PASS`. One selected connection now exposes contextual prompt, reference, result, or generic data identity without permanent edge labels. Collision-aware placement, integrated insertion, compact bounds, and passive readonly review preserve the quiet Canvas. `REPORT-T5-053.md` is authoritative evidence.
+
+T5-054 is `DONE - PASS`. Selected generation connections now expose exact authoritative T/R/V order and excluded state, synchronized with provider context, persisted input order, and canonical result lineage across desktop, compact, reload, and readonly review. `REPORT-T5-054.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

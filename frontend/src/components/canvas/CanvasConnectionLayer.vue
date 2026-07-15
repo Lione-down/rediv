@@ -64,7 +64,13 @@ const selectedEdgeContext = computed(() => {
     midpoint,
     placement,
     surface: placement.position,
-    presentation: resolveCanvasConnectionPresentation(path.connection, source, target),
+    presentation: resolveCanvasConnectionPresentation(
+      path.connection,
+      source,
+      target,
+      canvasStore.nodes,
+      canvasStore.connections,
+    ),
   }
 })
 const insertionContext = computed(() => {
@@ -313,6 +319,7 @@ onBeforeUnmount(stopReroute)
     :aria-label="selectedEdgeContext.presentation.accessibleLabel"
   >
     <strong>{{ selectedEdgeContext.presentation.roleLabel }}</strong>
+    <span v-if="selectedEdgeContext.presentation.stateLabel" class="edge-identity-state">{{ selectedEdgeContext.presentation.stateLabel }}</span>
     <span class="edge-identity-title" :title="selectedEdgeContext.presentation.sourceTitle">{{ selectedEdgeContext.presentation.sourceTitle }}</span>
     <span class="edge-identity-arrow" aria-hidden="true">→</span>
     <span class="edge-identity-title" :title="selectedEdgeContext.presentation.targetTitle">{{ selectedEdgeContext.presentation.targetTitle }}</span>
@@ -351,6 +358,7 @@ onBeforeUnmount(stopReroute)
 .connection-handle:focus-visible { outline: none; stroke: white; stroke-width: 3; }
 .selected-edge-identity { position: absolute; z-index: 6; display: flex; width: max-content; max-width: min(300px, calc(100% - 24px)); min-height: 32px; align-items: center; gap: 5px; padding: 4px 5px 4px 8px; overflow: hidden; border: 1px solid color-mix(in oklch, var(--accent-select) 36%, var(--border-subtle)); border-radius: var(--radius-lg); color: var(--v2-text-secondary); background: var(--bg-panel); box-shadow: var(--shadow-soft); font-size: 10px; line-height: 1.25; pointer-events: none; transform: translate(-50%, -50%); animation: edge-identity-in 120ms cubic-bezier(0.16, 1, 0.3, 1); }
 .selected-edge-identity strong { flex: none; padding: 3px 5px; border-radius: var(--radius-sm); color: var(--v2-text-primary); background: color-mix(in oklch, var(--accent-select) 16%, transparent); font-size: 9px; font-weight: 650; white-space: nowrap; }
+.edge-identity-state { flex: none; color: var(--v2-text-muted); font-size: 9px; white-space: nowrap; }
 .edge-identity-title { min-width: 0; max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .edge-identity-arrow { flex: none; color: var(--accent-select); }
 .edge-insertion-trigger { position: relative; display: grid; flex: none; width: 24px; height: 24px; padding: 0; place-items: center; border: 1px solid var(--accent-select); border-radius: 50%; color: var(--v2-text-primary); background: var(--bg-panel); font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1; pointer-events: auto; cursor: pointer; transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms ease-out; }

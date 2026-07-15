@@ -3,9 +3,12 @@ import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { resolveCanvasConnectionPresentation } from '../../src/components/canvas/canvas-connection-presentation'
 import { canvasNodeVisualSize } from '../../src/components/canvas/canvas-node-presentation'
-import { mapCanvasNode } from '../../src/modules/canvas/mappers'
-import type { CanvasNodeDto } from '../../src/modules/canvas/types'
+import { resolveGenerationContext } from '../../src/modules/canvas/generation-context'
+import { resolveGenerationResultVariants } from '../../src/modules/canvas/generation-lineage'
+import { mapCanvasConnection, mapCanvasNode } from '../../src/modules/canvas/mappers'
+import type { CanvasConnectionDto, CanvasNodeDto } from '../../src/modules/canvas/types'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
+import { createMultiScenarioState } from './canvas-multi-scenario-fixture'
 import {
   FIRST_CANVAS_ID,
   createResourceMockState,
@@ -14,9 +17,23 @@ import {
 } from './canvas-resource-generation-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-053-selected-edge-identity')
+const orderedEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-054-ordered-edge-identity')
 
 function semanticNode(id: string, type: CanvasNode['type'], title: string): CanvasNode {
-  return { id, type, title, x: 0, y: 0, width: 320, height: 200 }
+  const subtype = type === 'asset' || type === 'generation' || type === 'result'
+    ? 'image'
+    : type === 'script' ? 'script' : 'annotation'
+  return {
+    id,
+    type,
+    title,
+    x: 0,
+    y: 0,
+    width: 320,
+    height: 200,
+    content: type === 'script' ? title : undefined,
+    contentData: { subtype, serialization_version: 1, ...(type === 'asset' ? { asset_id: id } : {}) },
+  }
 }
 
 test('connection presentation names prompt media result and generic data roles', () => {
@@ -29,10 +46,19 @@ test('connection presentation names prompt media result and generic data roles',
     id: targetPort, from: 'source', to: 'target', sourcePort: 'out', targetPort,
   })
 
-  expect(resolveCanvasConnectionPresentation(connection('prompt'), script, generation).roleLabel).toBe('提示词输入')
-  expect(resolveCanvasConnectionPresentation(connection('media'), asset, generation).roleLabel).toBe('参考图输入')
-  expect(resolveCanvasConnectionPresentation(connection('in'), generation, result).roleLabel).toBe('生成结果')
-  expect(resolveCanvasConnectionPresentation(connection('in'), note, script)).toMatchObject({
+  const presentation = (edge: CanvasConnection, source: CanvasNode, target: CanvasNode) => (
+    resolveCanvasConnectionPresentation(
+      { ...edge, from: source.id, to: target.id },
+      source,
+      target,
+      [source, target],
+      [{ ...edge, from: source.id, to: target.id }],
+    )
+  )
+  expect(presentation(connection('prompt'), script, generation).roleLabel).toBe('T1 提示词')
+  expect(presentation(connection('media'), asset, generation).roleLabel).toBe('R1 参考图')
+  expect(presentation(connection('in'), generation, result).roleLabel).toBe('V1 生成结果')
+  expect(presentation(connection('in'), note, script)).toMatchObject({
     roleLabel: '数据连接', accessibleLabel: '选中连线：数据连接，备注 到 脚本',
   })
 })
@@ -78,6 +104,24 @@ function addInputEdges(state: ReturnType<typeof createResourceMockState>) {
   )
 }
 
+async function selectEdge(page: import('@playwright/test').Page, source: string, target: string) {
+  const edge = page.getByRole('button', { name: `选择连线：${source} 到 ${target}` })
+  await edge.focus()
+  await edge.press('Enter')
+}
+
+function reorderScenarioInputs(state: ReturnType<typeof createMultiScenarioState>) {
+  const orders: Record<string, number> = {
+    'edge-cn-prompt': 2,
+    'edge-en-prompt': 1,
+    'edge-landscape-media': 2,
+    'edge-portrait-media': 1,
+  }
+  for (const connection of state.documents[FIRST_CANVAS_ID].connections) {
+    if (orders[String(connection.id)]) connection.metadata = { input_order: orders[String(connection.id)] }
+  }
+}
+
 test('selected prompt media and result edges expose one contextual semantic identity', async ({ page }) => {
   const state = createResourceMockState()
   addInputEdges(state)
@@ -92,9 +136,9 @@ test('selected prompt media and result edges expose one contextual semantic iden
   await promptEdge.focus()
   await promptEdge.press('Enter')
   await expect(identity).toHaveAccessibleName(
-    '选中连线：提示词输入，镜头运动与人物关系的长中文约束 到 封面生成',
+    '选中连线：T1 提示词，镜头运动与人物关系的长中文约束 到 封面生成',
   )
-  await expect(identity.getByText('提示词输入')).toBeVisible()
+  await expect(identity.getByText('T1 提示词')).toBeVisible()
   await expect(identity.getByText('镜头运动与人物关系的长中文约束')).toBeVisible()
   await expect(identity.getByText('封面生成')).toBeVisible()
   await expect(identity.getByRole('button', { name: '在连线中插入节点' })).toHaveCount(0)
@@ -103,14 +147,14 @@ test('selected prompt media and result edges expose one contextual semantic iden
     name: '选择连线：海岸环境与人物造型连续性参考图 到 封面生成',
   }).click()
   await expect(identity).toHaveAccessibleName(
-    '选中连线：参考图输入，海岸环境与人物造型连续性参考图 到 封面生成',
+    '选中连线：R1 参考图，海岸环境与人物造型连续性参考图 到 封面生成',
   )
 
   await page.getByRole('button', {
     name: '选择连线：封面生成 到 历史图片生成结果与收束画面',
   }).click()
   await expect(identity).toHaveAccessibleName(
-    '选中连线：生成结果，封面生成 到 历史图片生成结果与收束画面',
+    '选中连线：V1 生成结果，封面生成 到 历史图片生成结果与收束画面',
   )
   await expect(identity.getByRole('button', { name: '在连线中插入节点' })).toBeVisible()
   await expect(page.locator('.selected-edge-identity')).toHaveCount(1)
@@ -153,7 +197,7 @@ test('selected edge identity stays bounded at compact width and passive in reado
     name: '选择连线：海岸环境与人物造型连续性参考图 到 封面生成',
   }).click()
   const identity = page.getByRole('group', {
-    name: '选中连线：参考图输入，海岸环境与人物造型连续性参考图 到 封面生成',
+    name: '选中连线：R1 参考图，海岸环境与人物造型连续性参考图 到 封面生成',
   })
   const surface = await page.locator('.canvas-surface').boundingBox()
   const compactBox = await identity.boundingBox()
@@ -173,4 +217,97 @@ test('selected edge identity stays bounded at compact width and passive in reado
   await expect(page.getByRole('button', { name: '改接连线来源' })).toHaveCount(0)
   expect(documentPatches(state)).toHaveLength(0)
   await page.screenshot({ path: resolve(evidenceDirectory, 'selected-media-edge-readonly-375x812.png'), fullPage: true })
+})
+
+test('reordered generation edges expose authoritative T R and V identities after reload', async ({ page }) => {
+  const state = createMultiScenarioState()
+  reorderScenarioInputs(state)
+  const document = state.documents[FIRST_CANVAS_ID]
+  const nodes = document.nodes.map((node) => mapCanvasNode(node as unknown as CanvasNodeDto))
+  const connections = document.connections.map((connection) => (
+    mapCanvasConnection(connection as unknown as CanvasConnectionDto)
+  ))
+  const generation = nodes.find((node) => node.id === 'generation-compose')!
+  const context = resolveGenerationContext(generation, nodes, connections)
+  expect(context.provenance.map((item) => [item.connectionId, item.kind, item.order])).toEqual([
+    ['edge-en-prompt', 'text', 1],
+    ['edge-cn-prompt', 'text', 2],
+    ['edge-portrait-media', 'media', 1],
+    ['edge-landscape-media', 'media', 2],
+  ])
+  expect(context.imageIds).toEqual(['asset-character', 'asset-reference'])
+  expect(resolveGenerationResultVariants(generation, nodes, connections).map((item) => [item.connectionId, item.order]))
+    .toEqual([
+      ['edge-result-landscape', 1],
+      ['edge-result-square', 2],
+      ['edge-result-portrait', 3],
+      ['edge-result-video', 4],
+      ['edge-result-unavailable', 5],
+      ['edge-result-broken', 6],
+    ])
+  await openResourceWorkspace(page, state)
+
+  await selectEdge(page, 'Cinematic direction with deliberately long English content', '合并四路上下文生成')
+  await expect(page.getByRole('group', {
+    name: '选中连线：T1 提示词，Cinematic direction with deliberately long English content 到 合并四路上下文生成',
+  })).toBeVisible()
+  await selectEdge(page, '中文剧情约束', '合并四路上下文生成')
+  await expect(page.getByRole('group', {
+    name: '选中连线：T2 提示词，中文剧情约束 到 合并四路上下文生成',
+  })).toBeVisible()
+  await selectEdge(page, '人物造型参考', '合并四路上下文生成')
+  await expect(page.getByRole('group', {
+    name: '选中连线：R1 参考图，人物造型参考 到 合并四路上下文生成',
+  })).toBeVisible()
+  await selectEdge(page, '合并四路上下文生成', '方形社交版本')
+  const variantIdentity = page.getByRole('group', {
+    name: '选中连线：V2 生成结果，合并四路上下文生成 到 方形社交版本',
+  })
+  await expect(variantIdentity).toBeVisible()
+  expect(documentPatches(state)).toHaveLength(0)
+  await mkdir(orderedEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(orderedEvidenceDirectory, 'ordered-v2-result-edge-1440x900.png'), fullPage: true })
+
+  await page.reload()
+  await selectEdge(page, '人物造型参考', '合并四路上下文生成')
+  await expect(page.getByRole('group', {
+    name: '选中连线：R1 参考图，人物造型参考 到 合并四路上下文生成',
+  })).toBeVisible()
+  expect(documentPatches(state)).toHaveLength(0)
+})
+
+test('excluded duplicate edge keeps its R identity and readonly no-mutation state', async ({ page }) => {
+  const state = createMultiScenarioState()
+  reorderScenarioInputs(state)
+  const document = state.documents[FIRST_CANVAS_ID]
+  const source = document.nodes.find((node) => node.id === 'asset-landscape')!
+  document.nodes.push({
+    ...source,
+    id: 'asset-duplicate',
+    content: { ...source.content as object, title: '重复海岸参考' },
+    position_x: 420,
+    position_y: 520,
+  })
+  document.connections.push({
+    ...document.connections[2],
+    id: 'edge-duplicate-media',
+    source_node_id: 'asset-duplicate',
+    metadata: { input_order: 3 },
+  })
+  await openResourceWorkspace(page, state, { width: 920, height: 760 })
+  await selectEdge(page, '重复海岸参考', '合并四路上下文生成')
+  const identity = page.getByRole('group', {
+    name: '选中连线：R3 参考图，未参与生成，重复海岸参考 到 合并四路上下文生成',
+  })
+  await expect(identity).toBeVisible()
+  await expect(identity.getByText('未参与')).toBeVisible()
+  expect(documentPatches(state)).toHaveLength(0)
+  await mkdir(orderedEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(orderedEvidenceDirectory, 'excluded-r3-edge-920x760.png'), fullPage: true })
+
+  await page.setViewportSize({ width: 375, height: 812 })
+  await expect(identity).toBeVisible()
+  await expect(identity.getByRole('button')).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
+  await page.screenshot({ path: resolve(orderedEvidenceDirectory, 'excluded-r3-edge-readonly-375x812.png'), fullPage: true })
 })
