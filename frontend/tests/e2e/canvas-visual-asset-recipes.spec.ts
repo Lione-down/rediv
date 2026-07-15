@@ -8,6 +8,7 @@ import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import {
   createResourceMockState, documentPatches, FIRST_CANVAS_ID, openResourceWorkspace, PROJECT_ID,
+  type ResourceMockState,
 } from './canvas-resource-generation-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-065-visual-asset-recipes')
@@ -33,6 +34,41 @@ function boxesOverlap(
 ) {
   return first.x < second.x + second.width && first.x + first.width > second.x &&
     first.y < second.y + second.height && first.y + first.height > second.y
+}
+
+function viewportPatches(state: ResourceMockState) {
+  return state.requests.filter((item) => (
+    item.method === 'PATCH' && item.path.endsWith(`/canvases/${FIRST_CANVAS_ID}/viewport`)
+  ))
+}
+
+function configureDenseRecipeStack(state: ResourceMockState) {
+  const document = state.documents[FIRST_CANVAS_ID]
+  const upperResult = document.nodes.find((item) => item.id === 'result-existing')!
+  upperResult.position_x = 560
+  upperResult.position_y = 90
+  upperResult.width = 320
+  upperResult.height = 200
+  document.nodes.push(
+    {
+      ...document.nodes.find((item) => item.id === 'generation-cover')!,
+      id: 'generation-recipe-stack', position_x: 560, position_y: 302, width: 340, height: 220,
+      content: {
+        subtype: 'image', serialization_version: 1, title: '纵向角色设定图',
+        generation_recipe_id: 'character-sheet', generation_recipe_version: 2,
+      },
+    },
+    {
+      ...upperResult,
+      id: 'result-recipe-stack', position_y: 534,
+      content: {
+        ...(upperResult.content as Record<string, unknown>),
+        title: '纵向角色设定结果', asset_id: 'asset-recipe-stack',
+        url: 'https://media.revid.test/recipe-stack.png',
+      },
+    },
+  )
+  return document
 }
 
 test('visual asset recipe branch persists typed metadata and one ordered reference edge', () => {
@@ -115,36 +151,14 @@ test('visual asset recipe resolver preserves exact persisted v1 and v2 definitio
   expect(resolveVisualAssetRecipe(unknownNode)).toBeNull()
 })
 
-test('recipe-flow toolbar never covers the result cards above or below the selected recipe', async ({ page }) => {
+test('recipe-flow toolbar isolates desktop results and compact drawer suppresses competing chrome', async ({ page }) => {
   const state = createResourceMockState()
-  const document = state.documents[FIRST_CANVAS_ID]
-  const upperResult = document.nodes.find((item) => item.id === 'result-existing')!
-  upperResult.position_x = 560
-  upperResult.position_y = 90
-  upperResult.width = 320
-  upperResult.height = 200
-  const recipeNode = {
-    ...document.nodes.find((item) => item.id === 'generation-cover')!,
-    id: 'generation-recipe-stack', position_x: 560, position_y: 302, width: 340, height: 220,
-    content: {
-      subtype: 'image', serialization_version: 1, title: '纵向角色设定图',
-      generation_recipe_id: 'character-sheet', generation_recipe_version: 2,
-    },
-  }
-  const lowerResult = {
-    ...upperResult,
-    id: 'result-recipe-stack', position_y: 534,
-    content: {
-      ...(upperResult.content as Record<string, unknown>),
-      title: '纵向角色设定结果', asset_id: 'asset-recipe-stack',
-      url: 'https://media.revid.test/recipe-stack.png',
-    },
-  }
-  document.nodes.push(recipeNode, lowerResult)
+  const document = configureDenseRecipeStack(state)
 
   await openResourceWorkspace(page, state)
   const documentBeforeSelection = JSON.stringify(document)
-  const mutationsBeforeSelection = state.requests.filter((item) => item.method === 'PATCH').length
+  const documentPatchesBeforeSelection = documentPatches(state).length
+  const viewportPatchesBeforeSelection = viewportPatches(state).length
   await selectNode(page, '纵向角色设定图')
 
   const toolbar = await page.locator('.selection-toolbar').boundingBox()
@@ -156,9 +170,36 @@ test('recipe-flow toolbar never covers the result cards above or below the selec
   expect(boxesOverlap(toolbar!, stackedResults[0])).toBe(false)
   expect(boxesOverlap(toolbar!, stackedResults[1])).toBe(false)
   expect(JSON.stringify(document)).toBe(documentBeforeSelection)
-  expect(state.requests.filter((item) => item.method === 'PATCH')).toHaveLength(mutationsBeforeSelection)
+  expect(documentPatches(state)).toHaveLength(documentPatchesBeforeSelection)
+  expect(viewportPatches(state)).toHaveLength(viewportPatchesBeforeSelection)
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'recipe-flow-toolbar-isolation-1440x900.png'), fullPage: true })
+
+  const compactState = createResourceMockState()
+  const compactDocument = configureDenseRecipeStack(compactState)
+  for (const nodeId of ['result-existing', 'generation-recipe-stack', 'result-recipe-stack']) {
+    compactDocument.nodes.find((item) => item.id === nodeId)!.position_x = 170
+  }
+  await openResourceWorkspace(page, compactState, { width: 920, height: 900 })
+  const compactDocumentBeforeSelection = JSON.stringify(compactDocument)
+  const compactDocumentPatchCount = documentPatches(compactState).length
+  const compactViewportPatchCount = viewportPatches(compactState).length
+  await selectNode(page, '纵向角色设定图')
+  const compactDrawer = page.locator('.n-drawer:visible')
+  await expect(compactDrawer).toHaveCount(1)
+  await expect.poll(async () => {
+    const rect = await compactDrawer.boundingBox()
+    return rect ? { right: Math.round(rect.x + rect.width), width: Math.round(rect.width) } : null
+  }).toEqual({ right: 920, width: 360 })
+  await expect(page.locator('.selection-toolbar')).toHaveCount(0)
+  const compactMediaRects = await Promise.all(
+    (await page.locator('.canvas-node-surface.is-media').all()).map((item) => item.boundingBox()),
+  )
+  expect(compactMediaRects.filter((item) => item !== null)).toHaveLength(2)
+  expect(JSON.stringify(compactDocument)).toBe(compactDocumentBeforeSelection)
+  expect(documentPatches(compactState)).toHaveLength(compactDocumentPatchCount)
+  expect(viewportPatches(compactState)).toHaveLength(compactViewportPatchCount)
+  await page.screenshot({ path: resolve(evidenceDirectory, 'recipe-flow-toolbar-isolation-920x900.png'), fullPage: true })
 })
 
 test('character recipe directly persists, executes, materializes, and reloads without prompt leakage', async ({ page }) => {

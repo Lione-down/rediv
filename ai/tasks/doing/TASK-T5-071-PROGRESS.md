@@ -1,7 +1,7 @@
 # TASK-T5-071 Progress
 
 - Task state: `VERIFYING`
-- Active unit: offline implementation and regression complete; real-service visual fidelity awaits Human authorization and verdict.
+- Active unit: all offline implementation and literal geometry/persistence evidence complete; real-service visual fidelity awaits Human authorization and verdict.
 
 ## Completed work
 
@@ -19,6 +19,9 @@
 - Kept internal prompts backend-only and ordinary prompt/image/video generation behavior unchanged.
 - Updated and validated the project-local visual-assets skill with the manual medium, identity, hair, proportion, wardrobe, palette/material, and cross-panel checklist.
 - Rebuilt the frontend before browser verification and retained desktop, compact, readonly, failure, retry, and toolbar-isolation evidence.
+- Audited the toolbar acceptance literally: desktop measures actual toolbar and both result bounds at zero intersection; 920px compact preserves drawer ownership with zero toolbar instances and two visible result surfaces.
+- Separated document and viewport persistence evidence. The drawer-safe compact fixture emits neither document PATCH nor viewport PATCH on selection, while the desktop fixture also remains mutation-free.
+- Waited for the compact drawer's final 360px geometry before screenshot and assertions, avoiding transition-frame false evidence.
 
 ## Remaining work
 
@@ -54,6 +57,8 @@ Ask the Human Owner whether to authorize a bounded paid Agnes visual sample for 
 - Project skill validation: PASS.
 - `git diff --check`: PASS; scoped file-size audit records one pre-existing 500-line exception, `use-canvas-resource-experience.ts` at 532 lines.
 - Visual evidence: `output/playwright/t5-065-visual-asset-recipes/recipe-flow-toolbar-isolation-1440x900.png` plus refreshed recipe desktop/compact/readonly/failure screenshots.
+- Completion-audit browser gate: PASS, 25/25 across recipe, video/keyframe, compact drawer, readonly, keyboard, and command interactions.
+- Exact compact evidence: `output/playwright/t5-065-visual-asset-recipes/recipe-flow-toolbar-isolation-920x900.png`; stable 360px drawer, zero selection toolbar, two result surfaces, zero document PATCH, zero viewport PATCH.
 
 ## Blockers
 
