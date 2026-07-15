@@ -1,5 +1,11 @@
 # 踩坑记录
 
+## 2026-07-15 Generation input order persistence
+
+- 前端 connection array order 不是可靠持久化字段，document PATCH 以 entity ID 为边界；需要可控顺序时应写入 connection metadata，并为旧图保留现有 array-order fallback。
+- Prompt 与 media 是两个独立 provider input group，必须各自维护连续 order；跨组 comparator 若混用 fallback index，可能不满足传递性并产生不稳定排序。
+- 一次 reorder 应在一个 `mutateGraph` 中更新同组完整 metadata，才能保证 autosave、history、undo/redo 和失败边界不会出现半完成顺序。
+
 ## 2026-07-15 Multi-input generation request preflight
 
 - 生成前预览不能重新拼接 prompt 或重新计算 image order，必须直接渲染构造 provider payload 的 authoritative resolver output，否则 UI 与实际请求会发生顺序漂移。

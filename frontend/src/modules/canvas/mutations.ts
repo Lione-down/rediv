@@ -5,6 +5,8 @@ import { createCanvasCommandExecutor } from './canvas-command-executor'
 import { mapCanvasConnection, mapCanvasNode } from './mappers'
 import type { CanvasConnectionDraft, CanvasNodeDraft } from './persistence'
 import type { CanvasDocumentPatchResponse } from './types'
+import type { ReorderGenerationInputCommand } from './canvas-commands'
+import { reorderGenerationInputConnections } from './generation-input-order'
 
 interface CanvasMutationOptions {
   activeProjectId: Ref<string>
@@ -222,6 +224,14 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     })
   }
 
+  function reorderGenerationInput(command: ReorderGenerationInputCommand) {
+    const reordered = reorderGenerationInputConnections(
+      nodes.value, connections.value, command.connectionId, command.direction,
+    )
+    if (!reordered) return
+    mutateGraph(() => { connections.value = reordered })
+  }
+
   const commandExecutor = createCanvasCommandExecutor({
     getNodes: () => nodes.value,
     getConnections: () => connections.value,
@@ -237,6 +247,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     selectConnection,
     insertGraph,
     insertNodeIntoConnection,
+    reorderGenerationInput,
   })
 
   return {

@@ -1,6 +1,10 @@
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import type { InsertNodeIntoConnectionCommand } from './edge-insertion'
 import {
+  reorderGenerationInputConnections,
+  type GenerationInputDirection,
+} from './generation-input-order'
+import {
   getDefaultConnectionPorts,
   isNodeGroupContainer,
   isNodeMutationSupported,
@@ -90,6 +94,12 @@ export interface InsertGraphCommand {
   connections: CanvasConnection[]
 }
 
+export interface ReorderGenerationInputCommand {
+  type: 'reorder-generation-input'
+  connectionId: string
+  direction: GenerationInputDirection
+}
+
 export type CanvasCommand =
   | MoveNodesCommand
   | DuplicateNodesCommand
@@ -101,11 +111,23 @@ export type CanvasCommand =
   | ArrangeNodesCommand
   | SetNodesLockedCommand
   | InsertGraphCommand
+  | ReorderGenerationInputCommand
   | InsertNodeIntoConnectionCommand
 
 export interface CanvasCommandEnvelope {
   source: CanvasCommandSource
   command: CanvasCommand
+}
+
+export function createReorderGenerationInputCommand(
+  nodes: readonly CanvasNode[],
+  connections: readonly CanvasConnection[],
+  connectionId: string,
+  direction: GenerationInputDirection,
+): ReorderGenerationInputCommand | null {
+  return reorderGenerationInputConnections(nodes, connections, connectionId, direction)
+    ? { type: 'reorder-generation-input', connectionId, direction }
+    : null
 }
 
 function uniqueIds(ids: readonly string[]) {

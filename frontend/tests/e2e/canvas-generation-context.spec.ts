@@ -5,6 +5,9 @@ import {
   resolveGenerationContext,
 } from '../../src/modules/canvas/generation-context'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
+import {
+  reorderGenerationInputConnections,
+} from '../../src/modules/canvas/generation-input-order'
 
 function node(id: string, type: CanvasNode['type'], title: string, content = '', contentData: Record<string, unknown> = {}): CanvasNode {
   return { id, type, title, content, contentData, x: 0, y: 0, width: 320, height: 200 }
@@ -76,4 +79,28 @@ test('prompt composition prioritizes local text and clips without adding synthet
   expect(context.prompt).toHaveLength(GENERATION_PROMPT_LIMIT)
   expect(context.prompt.startsWith('L'.repeat(3_990))).toBe(true)
   expect(context.prompt.endsWith('…')).toBe(false)
+})
+
+test('persisted generation input order is group-scoped, stable, and rejects invalid moves', () => {
+  const generation = node('generation', 'generation', '合并生成', '', { subtype: 'video', serialization_version: 1 })
+  const nodes = [
+    node('text-a', 'script', '文本 A', 'A'), node('text-b', 'script', '文本 B', 'B'),
+    node('image-a', 'asset', '图片 A', '', { subtype: 'image', asset_id: 'asset-a' }),
+    node('image-b', 'asset', '图片 B', '', { subtype: 'image', asset_id: 'asset-b' }), generation,
+  ]
+  const connections = [
+    edge('text-a', 'prompt'), edge('image-a', 'media'), edge('text-b', 'prompt'), edge('image-b', 'media'),
+  ]
+  const reorderedText = reorderGenerationInputConnections(nodes, connections, 'text-b-prompt', -1)!
+  let context = resolveGenerationContext(generation, nodes, reorderedText)
+  expect(context.textSources.map((source) => source.nodeId)).toEqual(['text-b', 'text-a'])
+  expect(context.mediaSources.map((source) => source.nodeId)).toEqual(['image-a', 'image-b'])
+  expect(reorderedText.filter((item) => item.targetPort === 'prompt').map((item) => item.metadata?.input_order)).toEqual([2, 1])
+
+  const reorderedMedia = reorderGenerationInputConnections(nodes, reorderedText, 'image-b-media', -1)!
+  context = resolveGenerationContext(generation, nodes, reorderedMedia)
+  expect(context.imageIds).toEqual(['asset-b', 'asset-a'])
+  expect(context.textSources.map((source) => source.nodeId)).toEqual(['text-b', 'text-a'])
+  expect(reorderGenerationInputConnections(nodes, reorderedMedia, 'text-b-prompt', -1)).toBeNull()
+  expect(reorderGenerationInputConnections(nodes, connections, 'missing', 1)).toBeNull()
 })

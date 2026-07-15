@@ -25,6 +25,7 @@ import {
   type InsertGraphCommand,
   type MoveNodesCommand,
   type ReconnectConnectionCommand,
+  type ReorderGenerationInputCommand,
   type SetNodesLockedCommand,
   type UngroupNodesCommand,
 } from './canvas-commands'
@@ -46,6 +47,7 @@ interface CanvasCommandExecutorOptions {
   insertNodeIntoConnection?: (
     node: CanvasNode, upstream: CanvasConnection, downstream: CanvasConnection,
   ) => Promise<void> | void
+  reorderGenerationInput?: (command: ReorderGenerationInputCommand) => Promise<void> | void
 }
 
 function cloneNodeDraft(node: CanvasNode, offset: { x: number; y: number }): CanvasNodeDraft {
@@ -275,6 +277,11 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     options.setSelection([command.node.id], command.node.id)
   }
 
+  async function reorderGenerationInput(command: ReorderGenerationInputCommand) {
+    if (!options.reorderGenerationInput) throw new Error('Generation input ordering is unavailable')
+    await options.reorderGenerationInput(command)
+  }
+
   async function executeCommand(envelope: CanvasCommandEnvelope) {
     const { command } = envelope
     if (command.type === 'move-nodes') return moveNodes(command)
@@ -287,6 +294,7 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'arrange-nodes') return arrangeNodes(command)
     if (command.type === 'set-nodes-locked') return setNodesLocked(command)
     if (command.type === 'insert-graph') return insertGraph(command)
+    if (command.type === 'reorder-generation-input') return reorderGenerationInput(command)
     return insertNodeIntoConnection(command)
   }
 

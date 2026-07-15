@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, CircleCheck, Columns2, Image, Info, Link2, LoaderCircle, Play, Sparkles, X } from 'lucide-vue-next'
+import { AlertTriangle, ArrowDown, ArrowUp, CircleCheck, Columns2, Image, Info, Link2, LoaderCircle, Play, Sparkles, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import type { ResolvedGenerationContext } from '../../modules/canvas/generation-context'
 import type { ResolvedResultLineage } from '../../modules/canvas/generation-lineage'
@@ -34,6 +34,7 @@ const emit = defineEmits<{
   close: []
   compareResults: []
   generate: [prompt: string]
+  reorderInput: [connectionId: string, direction: -1 | 1]
   updatePrompt: [prompt: string]
 }>()
 
@@ -78,6 +79,14 @@ function mediaRequestRole(requestOrder: number | null) {
   return `视频关键帧 R${order}`
 }
 
+function canMoveInput(connectionId: string, kind: 'text' | 'media', direction: -1 | 1) {
+  const sources = kind === 'text'
+    ? props.generationContext?.textSources
+    : props.generationContext?.mediaSources
+  const index = sources?.findIndex((source) => source.connectionId === connectionId) ?? -1
+  return index >= 0 && index + direction >= 0 && index + direction < (sources?.length ?? 0)
+}
+
 watch(() => props.node.id, () => {
   prompt.value = props.node.content?.trim() || ''
 }, { flush: 'sync' })
@@ -118,9 +127,17 @@ function requestGeneration() {
         <ul>
           <li v-for="source in generationContext.textSources" :key="`text-${source.nodeId}`" :class="{ muted: !source.isIncluded }">
             <Link2 :size="13" aria-hidden="true" /><span><strong>提示词 {{ source.order }} · {{ source.title }}</strong><small>{{ source.isIncluded ? '已合并文本' : '空内容，未使用' }}</small></span>
+            <span v-if="!readonly" class="input-order-actions">
+              <button type="button" :disabled="!canMoveInput(source.connectionId, 'text', -1)" :aria-label="`上移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
+              <button type="button" :disabled="!canMoveInput(source.connectionId, 'text', 1)" :aria-label="`下移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
+            </span>
           </li>
           <li v-for="source in generationContext.mediaSources" :key="`media-${source.nodeId}`" :class="{ muted: source.state !== 'included' }">
             <Image :size="13" aria-hidden="true" /><span><strong>参考图 {{ source.requestOrder ?? source.order }} · {{ source.title }}</strong><small>{{ mediaStateLabel[source.state] }}</small></span>
+            <span v-if="!readonly" class="input-order-actions">
+              <button type="button" :disabled="!canMoveInput(source.connectionId, 'media', -1)" :aria-label="`上移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
+              <button type="button" :disabled="!canMoveInput(source.connectionId, 'media', 1)" :aria-label="`下移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
+            </span>
           </li>
         </ul>
         <p>最终提示词 {{ generationContext.prompt.length }} / 4000 字符</p>
@@ -231,10 +248,14 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .connected-context li { gap: 7px; min-width: 0; padding: 6px 7px; border-radius: 6px; color: var(--v2-accent); background: var(--v2-surface-2); }
 .connected-context li.muted { color: var(--v2-text-muted); }
 .connected-context li span { display: grid; min-width: 0; gap: 1px; }
+.connected-context li > span:not(.input-order-actions) { flex: 1; }
 .connected-context li strong, .connected-context li small { overflow: hidden; white-space: nowrap; text-overflow: clip; }
 .connected-context li strong { color: var(--v2-text-primary); font-size: 11px; font-weight: 600; }
 .connected-context li small, .connected-context > p { color: var(--v2-text-muted); font-size: 10px; }
 .connected-context > p { margin: 8px 0 0; }
+.input-order-actions { display: flex; flex: none; grid-auto-flow: column; gap: 2px; opacity: 0; transition: opacity var(--v2-duration-fast); }
+.input-order-actions button { display: grid; min-width: 40px; min-height: 40px; place-items: center; }
+.connected-context li:hover .input-order-actions, .connected-context li:focus-within .input-order-actions { opacity: 1; }
 .request-preflight { margin-top: 10px; border-top: 1px solid var(--v2-border-subtle); }
 .request-preflight summary { min-height: 40px; padding: 12px 2px 0; color: var(--v2-text-primary); cursor: pointer; font-size: 11px; font-weight: 600; }
 .request-preflight summary:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
@@ -268,5 +289,6 @@ dt { color: var(--v2-text-secondary); }
 .is-spinning { animation: context-spin 900ms linear infinite; }
 @keyframes context-spin { to { transform: rotate(360deg); } }
 @media (hover: hover) { button:not(:disabled):hover { color: var(--v2-accent); background: var(--v2-surface-3); } .generate-button:hover { color: var(--v2-text-on-accent); background: var(--v2-accent-hover); } }
-@media (prefers-reduced-motion: reduce) { button { transition: none; } button:active:not(:disabled) { transform: none; } .is-spinning { animation: none; } }
+@media (hover: none) { .input-order-actions { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { button, .input-order-actions { transition: none; } button:active:not(:disabled) { transform: none; } .is-spinning { animation: none; } }
 </style>

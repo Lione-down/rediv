@@ -1,5 +1,6 @@
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import { getDefaultConnectionPorts } from './node-registry'
+import { orderedGenerationInputConnections } from './generation-input-order'
 
 export const GENERATION_PROMPT_LIMIT = 4_000
 export const GENERATION_IMAGE_LIMIT = 8
@@ -42,14 +43,6 @@ export interface ResolvedGenerationContext {
   provenance: GenerationInputProvenance[]
 }
 
-function activeIncomingConnections(nodeId: string, connections: readonly CanvasConnection[]) {
-  return connections.filter((connection) => (
-    connection.to === nodeId &&
-    connection.active !== false &&
-    (!connection.status || connection.status === 'active')
-  ))
-}
-
 function boundedPrompt(localPrompt: string, sources: readonly ConnectedTextContext[]) {
   const segments = [
     localPrompt,
@@ -76,7 +69,7 @@ export function resolveGenerationContext(
   const seenTextNodes = new Set<string>()
   const seenImageIds = new Set<string>()
 
-  for (const connection of activeIncomingConnections(generationNode.id, connections)) {
+  for (const { connection } of orderedGenerationInputConnections(generationNode, nodes, connections)) {
     const source = nodesById.get(connection.from)
     if (!source) continue
     const ports = getDefaultConnectionPorts(

@@ -15,6 +15,7 @@ import { useCanvasResourceExperience } from '../../components/canvas/composables
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
 import { useCanvasRevisionStore } from '../../modules/canvas/canvas-revision-store'
 import { canvasRouteLocation, normalizeRouteIdentifier } from '../../modules/canvas/metadata'
+import { createReorderGenerationInputCommand } from '../../modules/canvas/canvas-commands'
 import { useProjectStore } from '../../modules/project/store'
 import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
@@ -136,6 +137,13 @@ function closeResultComparison() {
 function selectComparedResult(nodeId: string) {
   isResultCompareOpen.value = false
   canvasDocumentStore.selectNode(nodeId)
+}
+
+function reorderGenerationInput(connectionId: string, direction: -1 | 1) {
+  const command = createReorderGenerationInputCommand(
+    canvasDocumentStore.nodes, canvasDocumentStore.connections, connectionId, direction,
+  )
+  if (command) void canvasDocumentStore.dispatchCommand({ source: 'toolbar', command }).catch(() => undefined)
 }
 
 function updateResponsiveBoundaries() {
@@ -387,6 +395,7 @@ onBeforeUnmount(() => {
           @close="closeContext"
           @compare-results="openResultComparison"
           @generate="generate"
+          @reorder-input="reorderGenerationInput"
           @update-prompt="updatePrompt"
         />
       </div>
@@ -455,6 +464,7 @@ onBeforeUnmount(() => {
               @close="closeContext"
               @compare-results="openResultComparison"
               @generate="generate"
+              @reorder-input="reorderGenerationInput"
               @update-prompt="updatePrompt"
             />
           </div>
