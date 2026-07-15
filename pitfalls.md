@@ -474,3 +474,9 @@ Evidence:
 - Multiplying only an overlay's width and height by Canvas zoom does not scale its typography, padding, border, or focus outline. The frame shrinks while normal-size contents clip and cover the graph.
 - For a world-space DOM editor, project the top-left once, keep its canonical world dimensions, and transform the complete surface with `scale(viewport.zoom)` around `top left`.
 - A test named for multiple surfaces can still leave one unverified. Assert the composer transform and final bounding box directly at low, normal, and extreme zoom instead of inferring coverage from media width.
+
+## 2026-07-15 Proportional lifecycle badges
+
+- A large minimum screen-space scale helps badge text at ordinary zoom but overwhelms nodes in a full-workflow overview. Lifecycle chrome must follow node zoom below 100%, where color and icon carry the signal.
+- Keep the high-zoom cap separately. Removing the low floor does not justify allowing badges to grow to 800%.
+- Absolutely positioned pill labels can wrap before transform when their parent overlay is narrow. Use a single-line contract and verify the final badge-to-node ratio across portrait, video, success, running, and failure states.

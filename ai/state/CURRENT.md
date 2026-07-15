@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-044 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-045 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-044 - Zoom-consistent generation composer geometry` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-044.md`
+- Most recently completed: `T5-045 - Proportional node status badges at overview zoom` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-045.md`
 
 ## Current Verified Facts
 
@@ -73,10 +73,11 @@ Last updated: 2026-07-15
 - T5-042 is now `DONE - PASS`: generation T/R rows and result-origin G identity are directly keyboard-navigable to exact Canvas nodes. Desktop synchronizes inspector selection; compact/readonly close once and reveal without reopening or graph mutation. Build, focused 5/5, related 21/21, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-042.md`.
 - T5-043 is now `DONE - PASS`: Agnes image-to-image references follow the official `extra_body.image` contract, exact outbound JSON is tested offline, and completed video polling accepts official top-level `url` while retaining validated `video_url` compatibility. Focused provider/generation regression passed 51/51 plus 3 subtests. Final report: `ai/reports/REPORT-T5-043.md`.
 - T5-044 is now `DONE - PASS`: the selected generation composer scales as one world-space surface, so low-zoom multi-input trace views no longer clip oversized prompt text across graph content. Build, focused 3/3, related 50/50, extreme zoom, desktop/compact/mobile visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-044.md`.
+- T5-045 is now `DONE - PASS`: running, success, and failure badges scale proportionally below 100%, stay single-line, and retain the 120% high-zoom cap. Dense portrait/video/failure result columns no longer suffer oversized status chrome. Build, focused 3/3, related 38/38, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-045.md`.
 
 ## Exact Next Action
 
-Continue the broader Canvas/node visual and multi-scene generation goal with the next bounded Task.
+Scale unavailable and broken media placeholder content consistently at overview zoom without affecting native image/video surfaces.
 
 ## Blockers And Human Gates
 

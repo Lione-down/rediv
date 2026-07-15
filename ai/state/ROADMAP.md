@@ -54,6 +54,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 27 | T5-027 | Generation node run history | DONE - PASS | T5-026 |
 | 43 | T5-043 | Align Agnes image and video provider contracts | DONE - PASS | T5-042 |
 | 44 | T5-044 | Zoom-consistent generation composer geometry | DONE - PASS | T5-043 |
+| 45 | T5-045 | Proportional node status badges at overview zoom | DONE - PASS | T5-044 |
 
 ## Task Boundaries
 
@@ -148,6 +149,8 @@ T5-042 is `DONE - PASS`. It makes authoritative inspector lineage sources direct
 T5-043 is `DONE - PASS`. It aligns image-to-image references with `extra_body.image`, locks exact outbound image payloads at the HTTP boundary, and accepts the official top-level completed-video `url` without removing safe `video_url` compatibility. `REPORT-T5-043.md` is authoritative evidence.
 
 T5-044 is `DONE - PASS`. It scales the detached generation composer as one world-space DOM surface so typography, padding, border, and focus geometry remain proportional from 10% through 800% without low-zoom trace obstruction. `REPORT-T5-044.md` is authoritative evidence.
+
+T5-045 is `DONE - PASS`. It removes the low-zoom status-badge scale floor, preserves the high-zoom cap, and keeps lifecycle labels single-line so dense overview nodes retain proportional status hierarchy. `REPORT-T5-045.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

@@ -104,7 +104,7 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
   }
   function statusBadgeStyle() {
     const zoom = options.getViewport().zoom
-    return { left: `${16 * zoom}px`, top: `${14 * zoom}px`, transform: `scale(${Math.max(0.88, Math.min(zoom, 1.2))})`, transformOrigin: 'top left' }
+    return { left: `${16 * zoom}px`, top: `${14 * zoom}px`, transform: `scale(${Math.min(zoom, 1.2)})`, transformOrigin: 'top left' }
   }
   function statusLabel(status: StatusVisualState) {
     if (status === 'running') return '运行中'
