@@ -32,6 +32,7 @@ import { resolveGenerationResultVariants, resolveResultLineage, resultLineagePro
 import { moveSelectionGenerationInput, resolveSelectionGenerationIntent, type SelectionGenerationMoveDirection } from '../../modules/canvas/selection-generation'
 import { resolveCanvasNodeContinuationTrigger } from './canvas-node-continuation-trigger'
 import { resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
+import { createArrangeGenerationLineageCommand } from '../../modules/canvas/generation-lineage-arrangement'
 
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; readonly?: boolean; resourcesOpen?: boolean
@@ -301,7 +302,17 @@ function fitSelectedProvenanceTrace() {
   return fitNodes(canvasStore.nodes.filter((node) => nodeIds.has(node.id)), true, props.viewportInsets)
 }
 
-defineExpose({ fitSelectedProvenanceTrace, openSelectedContinuation, revealNode })
+function arrangeSelectedProvenanceTrace() {
+  if (props.readonly || !canvasStore.selectedNode) return false
+  const command = createArrangeGenerationLineageCommand(
+    canvasStore.nodes, canvasStore.connections, canvasStore.selectedNode.id,
+  )
+  if (!command) return false
+  void canvasStore.dispatchCommand({ source: 'toolbar', command }).catch(() => undefined)
+  return true
+}
+
+defineExpose({ arrangeSelectedProvenanceTrace, fitSelectedProvenanceTrace, openSelectedContinuation, revealNode })
 
 function commitNodeContent(nodeId: string, content: string) {
   void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)

@@ -13,6 +13,7 @@ import { formatCapturedFrameTime, resolveCapturedFrameProvenance } from '../../m
 const props = withDefaults(defineProps<{
   error?: string
   canContinue?: boolean
+  canArrangeTrace?: boolean
   canFitTrace?: boolean
   generationContext?: ResolvedGenerationContext | null
   generationTasks?: ProjectGenerationTask[]
@@ -28,6 +29,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   error: '',
   canContinue: false,
+  canArrangeTrace: false,
   canFitTrace: false,
   generationContext: null,
   generationTasks: () => [],
@@ -44,6 +46,7 @@ const canvasStore = useCanvasStore()
 
 const emit = defineEmits<{
   branchGeneration: [mediaType: ResultBranchMediaType]
+  arrangeTrace: []
   close: []
   compareResults: []
   continueNode: []
@@ -149,7 +152,7 @@ function requestGeneration() {
   <aside class="context-panel" :class="`is-${mode}`" :aria-label="`节点详情 ${node.title}`">
     <header>
       <div><Sparkles v-if="mediaType" :size="18" aria-hidden="true" /><Info v-else :size="18" aria-hidden="true" /><span><strong>{{ node.title }}</strong><small>{{ node.type }} · {{ String(node.contentData?.subtype || node.type) }}</small></span></div>
-      <div class="header-actions"><button v-if="canFitTrace" type="button" aria-label="适配完整生成链路" title="适配完整生成链路" @click="emit('fitTrace')"><Focus :size="17" aria-hidden="true" /></button><button v-if="canContinue" type="button" aria-label="继续此节点" title="继续此节点" @click="emit('continueNode')"><GitBranch :size="17" aria-hidden="true" /></button><button type="button" aria-label="关闭节点详情" title="关闭节点详情" @click="emit('close')"><X :size="18" aria-hidden="true" /></button></div>
+      <div class="header-actions"><button v-if="canArrangeTrace" type="button" aria-label="整理完整生成链路" title="整理完整生成链路" @click="emit('arrangeTrace')"><Columns2 :size="17" aria-hidden="true" /></button><button v-if="canFitTrace" type="button" aria-label="适配完整生成链路" title="适配完整生成链路" @click="emit('fitTrace')"><Focus :size="17" aria-hidden="true" /></button><button v-if="canContinue" type="button" aria-label="继续此节点" title="继续此节点" @click="emit('continueNode')"><GitBranch :size="17" aria-hidden="true" /></button><button type="button" aria-label="关闭节点详情" title="关闭节点详情" @click="emit('close')"><X :size="18" aria-hidden="true" /></button></div>
     </header>
 
     <section v-if="mediaType" class="generation-editor" role="region" aria-label="生成任务编辑器">

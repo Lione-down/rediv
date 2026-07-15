@@ -21,9 +21,10 @@ import { canvasRouteLocation, normalizeRouteIdentifier } from '../../modules/can
 import { useProjectStore } from '../../modules/project/store'
 import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
+import { createArrangeGenerationLineageCommand } from '../../modules/canvas/generation-lineage-arrangement'
 
 type MoveDirection = -1 | 1
-interface CanvasStageHandle { fitSelectedProvenanceTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
+interface CanvasStageHandle { arrangeSelectedProvenanceTrace: () => boolean; fitSelectedProvenanceTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -130,11 +131,18 @@ const canFitProvenanceTrace = computed(() => Boolean(
     resolveGenerationResultVariants(selectedNode.value, canvasDocumentStore.nodes, canvasDocumentStore.connections).length
   )),
 ))
+const canArrangeProvenanceTrace = computed(() => Boolean(
+  !isReviewOnly.value && selectedNode.value && createArrangeGenerationLineageCommand(
+    canvasDocumentStore.nodes, canvasDocumentStore.connections, selectedNode.value.id,
+  ),
+))
 let isDrawerContinuationPending = false
+let isDrawerTraceArrangePending = false
 let isDrawerTraceFitPending = false
 let drawerLocateNodeId = ''
 
 function continueFromContextDrawer() { isDrawerContinuationPending = true; isContextDrawerOpen.value = false }
+function arrangeTraceFromContextDrawer() { isDrawerTraceArrangePending = true; isContextDrawerOpen.value = false }
 function fitTraceFromContextDrawer() { isDrawerTraceFitPending = true; isContextDrawerOpen.value = false }
 function locateNodeFromContext(nodeId: string) {
   if (isCompact.value) { drawerLocateNodeId = nodeId; isContextDrawerOpen.value = false; return }
@@ -142,6 +150,7 @@ function locateNodeFromContext(nodeId: string) {
 }
 function handleContextDrawerAfterLeave() {
   if (isDrawerContinuationPending) { isDrawerContinuationPending = false; canvasStageRef.value?.openSelectedContinuation() }
+  if (isDrawerTraceArrangePending) { isDrawerTraceArrangePending = false; canvasStageRef.value?.arrangeSelectedProvenanceTrace() }
   if (isDrawerTraceFitPending) { isDrawerTraceFitPending = false; canvasStageRef.value?.fitSelectedProvenanceTrace() }
   if (drawerLocateNodeId) {
     const nodeId = drawerLocateNodeId
@@ -411,6 +420,7 @@ onBeforeUnmount(() => {
 
       <div v-if="selectedNode && isDesktopContextOpen" class="context-panel-shell">
         <CanvasContextPanel
+          :can-arrange-trace="canArrangeProvenanceTrace"
           :can-fit-trace="canFitProvenanceTrace"
           :error="generationError"
           :is-generating="isGenerating"
@@ -425,6 +435,7 @@ onBeforeUnmount(() => {
           :readonly="isReviewOnly"
           :success="generationSuccess"
           @branch-generation="branchFromResult"
+          @arrange-trace="canvasStageRef?.arrangeSelectedProvenanceTrace()"
           @close="closeContext"
           @compare-results="openResultComparison"
           @fit-trace="canvasStageRef?.fitSelectedProvenanceTrace()"
@@ -486,6 +497,7 @@ onBeforeUnmount(() => {
           <div class="v2-canvas-theme drawer-theme">
             <CanvasContextPanel
               v-if="selectedNode"
+              :can-arrange-trace="canArrangeProvenanceTrace"
               :can-continue="Boolean(selectedContinuationTrigger)"
               :can-fit-trace="canFitProvenanceTrace"
               :error="generationError"
@@ -501,6 +513,7 @@ onBeforeUnmount(() => {
               :readonly="isReviewOnly"
               :success="generationSuccess"
               @branch-generation="branchFromResult"
+              @arrange-trace="arrangeTraceFromContextDrawer"
               @close="closeContext"
               @continue-node="continueFromContextDrawer"
               @compare-results="openResultComparison"

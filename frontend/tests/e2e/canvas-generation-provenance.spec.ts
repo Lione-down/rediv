@@ -3,10 +3,13 @@ import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createMultiScenarioState } from './canvas-multi-scenario-fixture'
 import { documentPatches, FIRST_CANVAS_ID, openResourceWorkspace } from './canvas-resource-generation-fixture'
+import { mapCanvasConnection, mapCanvasNode } from '../../src/modules/canvas/mappers'
+import { createArrangeGenerationLineageCommand } from '../../src/modules/canvas/generation-lineage-arrangement'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-039-end-to-end-provenance')
 const traceFitEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-040-full-trace-fit')
 const resultTraceFitEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-041-result-origin-trace-fit')
+const lineageArrangeEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-055-lineage-arrange')
 
 function viewportPatches(state: ReturnType<typeof createMultiScenarioState>) {
   return state.requests.filter((request) => (
@@ -119,6 +122,98 @@ test('explicit trace fit keeps the selected generation and mutates only one desk
 
   await mkdir(traceFitEvidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(traceFitEvidenceDirectory, 'desktop-full-trace-1440x900.png'), fullPage: true })
+})
+
+test('explicit lineage arrange creates one reversible T R G V layout without collateral mutation', async ({ page }) => {
+  const state = createMultiScenarioState()
+  state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'script-en')!.is_locked = false
+  expect(createArrangeGenerationLineageCommand(
+    state.documents[FIRST_CANVAS_ID].nodes.map(mapCanvasNode),
+    state.documents[FIRST_CANVAS_ID].connections.map(mapCanvasConnection),
+    'generation-compose',
+  )).not.toBeNull()
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '合并四路上下文生成')
+  await expect.poll(() => viewportPatches(state).length).toBeGreaterThanOrEqual(1)
+  const document = state.documents[FIRST_CANVAS_ID]
+  const originalPositions = new Map(document.nodes.map((node) => [node.id, [node.position_x, node.position_y]]))
+  const originalViewportPatchCount = viewportPatches(state).length
+
+  await page.getByRole('button', { name: '整理完整生成链路' }).click()
+  await expect.poll(() => documentPatches(state).length).toBe(1)
+  await expect(page.getByRole('complementary', { name: /节点详情 合并四路上下文生成/ })).toBeVisible()
+  const generation = document.nodes.find((node) => node.id === 'generation-compose')!
+  const inputIds = ['script-cn', 'script-en', 'asset-landscape', 'asset-portrait']
+  const resultIds = document.connections
+    .filter((connection) => connection.source_node_id === generation.id && connection.target_port === 'in')
+    .map((connection) => connection.target_node_id)
+  const inputs = inputIds.map((id) => document.nodes.find((node) => node.id === id)!)
+  const results = resultIds.map((id) => document.nodes.find((node) => node.id === id)!)
+  expect(inputs.map((node) => node.position_x + node.width)).toEqual(
+    inputs.map(() => generation.position_x - 96),
+  )
+  expect(results.map((node) => node.position_x)).toEqual(
+    results.map(() => generation.position_x + generation.width + 96),
+  )
+  expect(inputs.map((node) => node.position_y)).toEqual([...inputs].map((node) => node.position_y).sort((a, b) => a - b))
+  expect(results.map((node) => node.position_y)).toEqual([...results].map((node) => node.position_y).sort((a, b) => a - b))
+  expect(viewportPatches(state)).toHaveLength(originalViewportPatchCount)
+
+  await page.locator('.workspace-stage').press('Control+z')
+  await expect.poll(() => documentPatches(state).length).toBe(2)
+  for (const node of document.nodes) expect([node.position_x, node.position_y]).toEqual(originalPositions.get(node.id))
+  await page.locator('.workspace-stage').press('Control+Shift+z')
+  await expect.poll(() => documentPatches(state).length).toBe(3)
+  await page.getByRole('button', { name: '适配完整生成链路' }).click()
+
+  await mkdir(lineageArrangeEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(lineageArrangeEvidenceDirectory, 'arranged-generation-lineage-1440x900.png'), fullPage: true })
+  await page.getByRole('button', { name: '开始图片生成' }).click()
+  await expect.poll(() => state.requests.filter((request) => request.path === '/api/image-generate').length).toBe(1)
+  expect(state.requests.find((request) => request.path === '/api/image-generate')?.body?.image_ids)
+    .toEqual(['asset-reference', 'asset-character'])
+})
+
+test('locked authoritative family does not expose a partial lineage arrange action', async ({ page }) => {
+  const state = createMultiScenarioState()
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '合并四路上下文生成')
+
+  await expect(page.getByRole('button', { name: '整理完整生成链路' })).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
+})
+
+test('compact result entry closes its drawer before arranging the same lineage', async ({ page }) => {
+  const state = createMultiScenarioState()
+  state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'script-en')!.is_locked = false
+  await openResourceWorkspace(page, state, { width: 920, height: 760 })
+  await selectNode(page, '方形社交版本')
+
+  await page.getByRole('button', { name: '整理完整生成链路' }).click()
+  await expect(page.locator('.n-drawer')).toHaveCount(0)
+  await expect.poll(() => documentPatches(state).length).toBe(1)
+  await expect(page.locator('.connection-line.provenance-selected-result')).toHaveCount(1)
+  await selectNode(page, '合并四路上下文生成')
+  await page.getByRole('button', { name: '关闭节点详情' }).click()
+  await expect(page.locator('.n-drawer')).toHaveCount(0)
+  await selectNode(page, '方形社交版本')
+  await page.getByRole('button', { name: '适配完整生成链路' }).click()
+  await expect(page.locator('.n-drawer')).toHaveCount(0)
+
+  await mkdir(lineageArrangeEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(lineageArrangeEvidenceDirectory, 'arranged-result-lineage-920x760.png'), fullPage: true })
+})
+
+test('readonly lineage review never exposes the mutating arrange action', async ({ page }) => {
+  const state = createMultiScenarioState()
+  state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'script-en')!.is_locked = false
+  await openResourceWorkspace(page, state, { width: 375, height: 812 })
+  await selectNode(page, '合并四路上下文生成')
+
+  await expect(page.getByRole('button', { name: '整理完整生成链路' })).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
+  await mkdir(lineageArrangeEvidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(lineageArrangeEvidenceDirectory, 'readonly-lineage-375x812.png'), fullPage: true })
 })
 
 for (const viewport of [{ width: 920, height: 760 }, { width: 375, height: 812 }]) {

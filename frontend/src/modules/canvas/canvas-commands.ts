@@ -75,6 +75,7 @@ export type CanvasArrangeOperation =
   | { kind: 'align'; alignment: CanvasAlignment }
   | { kind: 'distribute'; distribution: CanvasDistribution }
   | { kind: 'auto-arrange' }
+  | { kind: 'generation-lineage'; generationNodeId: string }
 
 export interface ArrangeNodesCommand {
   type: 'arrange-nodes'

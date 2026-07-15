@@ -545,3 +545,11 @@ Evidence:
 - Excluded references still need a stable graph identity even though they have no provider request position. Show their contextual R order and a separate `未参与` state rather than pretending they disappeared.
 - Ordered-input fixtures must seed the full peer group. Assigning only a duplicate `input_order=3` while original peers have no order moves the duplicate before them under the valid-first sorting contract and invalidates the intended scenario.
 - Visual equality is not provider equality. Assert the exact T/R provenance, image ID sequence, V connection sequence, reload identity, and rendered role together.
+
+## 2026-07-15 Authoritative generation lineage arrangement
+
+- Generic topological layout preserves reachability but not product semantics. A generation family needs T then R request order on the input side and canonical V order on the result side.
+- Keep G fixed as the spatial anchor. Right-align variable-width inputs to its left and left-align outputs to its right so ports share a calm column boundary while real node heights determine vertical spacing.
+- Never move a partial family and imply it was fully organized. If any participating node is locked, grouped, or unsupported, hide the contextual action rather than skipping that node.
+- Arrangement and camera fitting are separate user intents. Persist one graph command without viewport mutation, then let the existing explicit fit action reveal the whole family when requested.
+- Playwright against `vite preview` validates the last production build. Rebuild after UI source changes or a correct implementation will appear absent in browser tests.
