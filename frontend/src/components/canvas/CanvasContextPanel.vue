@@ -25,6 +25,7 @@ const props = withDefaults(defineProps<{
   mediaType?: 'image' | 'video' | null
   mode: 'panel' | 'drawer'
   node: CanvasNode
+  outputVariantCount?: number
   quota?: number
   readonly?: boolean
   resultLineage?: ResolvedResultLineage | null
@@ -40,6 +41,7 @@ const props = withDefaults(defineProps<{
   isGenerating: false,
   latestTask: null,
   mediaType: null,
+  outputVariantCount: 0,
   quota: 0,
   readonly: false,
   resultLineage: null,
@@ -268,6 +270,12 @@ function requestGeneration() {
         <span>{{ statusLabel }}</span>
         <small v-if="latestTask">{{ latestTask.id }}</small>
       </p>
+      <section v-if="outputVariantCount > 1" class="output-variant-summary" aria-label="生成输出版本">
+        <div><span>生成结果</span><strong>{{ outputVariantCount }} 个版本</strong></div>
+        <button type="button" class="compare-results-button" :aria-label="`比较 ${outputVariantCount} 个生成结果`" @click="emit('compareResults')">
+          <Columns2 :size="16" aria-hidden="true" />比较生成结果
+        </button>
+      </section>
       <details v-if="runHistory.total" class="run-history">
         <summary><span>运行记录</span><strong>{{ runHistory.total }} 次</strong></summary>
         <ol aria-label="生成运行记录">
@@ -417,6 +425,10 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .generate-button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; color: var(--v2-text-on-accent); background: var(--v2-accent); font-weight: 600; }
 .compare-results-button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 7px; margin-top: 12px; border: 1px solid var(--v2-border-standard); color: var(--v2-text-primary); background: var(--v2-surface-3); font-size: 12px; }
 .compare-results-button:hover { border-color: color-mix(in srgb, var(--v2-accent) 52%, var(--v2-border-standard)); }
+.output-variant-summary { display: grid; gap: 8px; margin-top: 12px; padding: 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
+.output-variant-summary > div { display: flex; align-items: center; justify-content: space-between; color: var(--v2-text-secondary); font-size: 11px; }
+.output-variant-summary strong { color: var(--v2-text-primary); font-variant-numeric: tabular-nums; }
+.output-variant-summary .compare-results-button { margin-top: 0; }
 .generation-status { min-height: 42px; align-items: center; gap: 7px; margin: 14px 0 0; padding: 8px 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); color: var(--v2-text-secondary); background: var(--v2-surface-1); font-size: 12px; }
 .generation-status small { margin-left: auto; color: var(--v2-text-muted); }
 .run-history { margin-top: 8px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }

@@ -141,6 +141,11 @@ const selectedGenerationInputLineage = computed(() => (
       )
     : []
 ))
+const selectedGenerationVariants = computed(() => (
+  selectedNode.value && selectedMediaType.value
+    ? resolveGenerationResultVariants(selectedNode.value, canvasDocumentStore.nodes, canvasDocumentStore.connections)
+    : []
+))
 const canArrangeProvenanceTrace = computed(() => Boolean(
   !isReviewOnly.value && selectedNode.value && createArrangeGenerationLineageCommand(
     canvasDocumentStore.nodes, canvasDocumentStore.connections, selectedNode.value.id,
@@ -169,13 +174,15 @@ function handleContextDrawerAfterLeave() {
   }
 }
 
-const comparisonItems = computed(() => (selectedResultLineage.value?.variants ?? []).flatMap((variant) => {
+const comparisonVariants = computed(() => selectedResultLineage.value?.variants ?? selectedGenerationVariants.value)
+const comparisonOriginTitle = computed(() => selectedResultLineage.value?.generationTitle ?? selectedNode.value?.title ?? '')
+const comparisonItems = computed(() => comparisonVariants.value.flatMap((variant) => {
   const node = canvasDocumentStore.findNodeById(variant.nodeId)
   return node ? [{ node, order: variant.order, isSelected: variant.isSelected }] : []
 }))
 const compareTrayStyle = computed(() => ({ '--compare-left': isResourceOpen.value && !isCompact.value ? `${panelWidth.value + 16}px` : '16px', '--compare-right': isDesktopContextOpen.value ? '376px' : '16px' }))
 
-function openResultComparison() { if (selectedResultLineage.value && comparisonItems.value.length > 1) { isContextDrawerOpen.value = false; isResultCompareOpen.value = true } }
+function openResultComparison() { if (comparisonItems.value.length > 1) { isContextDrawerOpen.value = false; isResultCompareOpen.value = true } }
 
 function closeResultComparison() { isResultCompareOpen.value = false }
 
@@ -448,6 +455,7 @@ onBeforeUnmount(() => {
           :result-lineage="selectedResultLineage"
           mode="panel"
           :node="selectedNode"
+          :output-variant-count="selectedGenerationVariants.length"
           :quota="selectedQuota"
           :readonly="isReviewOnly"
           :success="generationSuccess"
@@ -466,9 +474,9 @@ onBeforeUnmount(() => {
       </div>
 
       <CanvasResultCompareTray
-        v-if="isResultCompareOpen && selectedResultLineage && comparisonItems.length > 1"
+        v-if="isResultCompareOpen && comparisonItems.length > 1"
         :items="comparisonItems"
-        :origin-title="selectedResultLineage.generationTitle"
+        :origin-title="comparisonOriginTitle"
         :style="compareTrayStyle"
         @close="closeResultComparison"
         @select="selectComparedResult"
@@ -529,6 +537,7 @@ onBeforeUnmount(() => {
               :result-lineage="selectedResultLineage"
               mode="drawer"
               :node="selectedNode"
+              :output-variant-count="selectedGenerationVariants.length"
               :quota="selectedQuota"
               :readonly="isReviewOnly"
               :success="generationSuccess"

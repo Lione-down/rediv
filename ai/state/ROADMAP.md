@@ -205,6 +205,8 @@ T5-065 is `DONE - PASS`. Two backend-authoritative, single-reference visual asse
 
 T5-066 is `DONE - PASS`. Generated-video nodes now preserve canvas-readable playback and frame tools when CORS permits them, fall back exactly once to playback-only for valid no-ACAO media, provide deterministic keyboard controls, and retain explicit bounded failures without a backend proxy. Focused 6/6, related 50/50, build, reload, no-mutation, and three-viewport visual gates passed.
 
+T5-067 is `DONE - PASS`. A canonical generation with multiple outputs now opens the existing mixed-media V1..Vn comparison tray directly, while result-owned current selection, exact connection order, compact/readonly review, and zero graph mutation remain intact. Focused 3/3, related 50/50, build, and three-viewport visual gates passed.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

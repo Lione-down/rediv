@@ -640,3 +640,11 @@ Evidence:
 - Native video controls do not make the host element reliably keyboard operable in Chromium automation. Provide explicit Space/K, seek, and volume handling while stopping events before Canvas gestures.
 - Route-fulfilled browser mocks can mask real media CORS behavior. Use an independent HTTP origin with actual range responses for transport-boundary evidence.
 - Screenshot drawer and mask transitions only after their real bounds or removal settle. A visible panel is not necessarily at its final transform, and a closing mask can make a healthy Canvas look blank.
+
+## 2026-07-15 Generation-owned output comparison
+
+- A result family belongs to its generation even when no individual result is selected. Expose comparison at the owner instead of forcing navigation through an arbitrary child.
+- Do not fake LibTV-style stacking by moving persisted result nodes. Graph geometry, edges, hit testing, minimap, and layout remain authoritative; project the version family into an existing comparison surface.
+- Generation entry must not invent a current variant. Only result entry may mark one V card selected, and generation entry stays neutral until the user chooses.
+- Share canonical variant filtering and connection order across Canvas markers, Inspector count, and tray items. Parallel counting logic will drift on inactive or malformed edges.
+- Compact comparison must wait for the context drawer to leave before screenshot or interaction. Showing the tray under a closing drawer creates a false two-layer UI even when both components are individually correct.

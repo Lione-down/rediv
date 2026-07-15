@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-066 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-067 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Last completed Task: `T5-066 - Generated video playback inside Canvas nodes`
-- Report: `ai/reports/REPORT-T5-066.md`
+- Last completed Task: `T5-067 - Generation-owned output variant comparison`
+- Report: `ai/reports/REPORT-T5-067.md`
 
 ## Current Verified Facts
 
@@ -95,10 +95,11 @@ Last updated: 2026-07-15
 - T5-064 is now `DONE - PASS`: compose-ready multi-selection gains one passive aggregate hull driven by shared selected-node geometry, while individual T/R roles, toolbar behavior, generation semantics, readonly, and invalid selections remain unchanged. Build, focused 10/10, related 50/50, and desktop/compact visual gates passed. Final report: `ai/reports/REPORT-T5-064.md`.
 - T5-065 is now `DONE - PASS`: canonical image results directly create backend-owned character-sheet or scene-multiview recipe branches with one reference, hidden internal prompts, durable-before-request execution, quota-safe explicit retry, and responsive review. Skill validation, build, backend 36 plus 7 subtests, focused browser 5/5, related browser 51/51, and five visual states passed. Final report: `ai/reports/REPORT-T5-065.md`.
 - T5-066 is now `DONE - PASS`: generated videos retain canvas-readable CORS playback and frame tools when available, fall back once to playback-only for valid no-ACAO media, expose deterministic keyboard play/pause/seek/volume, and keep invalid or second-load failures explicit. Focused 6/6, related 50/50, build, reload, no-mutation, and three-viewport visual gates passed. Final report: `ai/reports/REPORT-T5-066.md`.
+- T5-067 is now `DONE - PASS`: selecting a canonical generation with multiple outputs exposes one direct mixed-media V1..Vn comparison entry backed by the existing variant resolver and tray. Result-owned current V, exact selection handoff, compact/readonly review, and graph immutability remain intact. Focused 3/3, related 50/50, build, and three-viewport visual gates passed. Final report: `ai/reports/REPORT-T5-067.md`.
 
 ## Exact Next Action
 
-Audit the next unresolved Canvas/media or multi-node scenario and activate one dependency-ready bounded Task before business-code edits.
+Audit the next evidence-backed multi-node or media scenario and activate one bounded Task before business-code edits.
 
 ## Blockers And Human Gates
 

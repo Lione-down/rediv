@@ -7,6 +7,7 @@ import { createMultiScenarioState } from './canvas-multi-scenario-fixture'
 import { documentPatches, FIRST_CANVAS_ID, openResourceWorkspace } from './canvas-resource-generation-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-038-generation-output-variants')
+const generationComparisonEvidence = resolve(process.cwd(), '..', 'output', 'playwright', 't5-067-generation-output-comparison')
 
 function node(id: string, type: CanvasNode['type'], subtype: string): CanvasNode {
   return { id, type, title: id, x: 0, y: 0, width: 320, height: 200, contentData: { subtype, serialization_version: 1 } }
@@ -178,6 +179,82 @@ test('comparison tray renders six canonical mixed-media variants without mutatio
   await expect(tray).toHaveCount(0)
   await expect(page.getByRole('region', { name: '生成结果谱系' })).toContainText('V4 / 6')
   expect(documentPatches(state)).toHaveLength(0)
+})
+
+test('generation owner opens the exact mixed-media variant family without an arbitrary current result', async ({ page }) => {
+  const state = createMultiScenarioState()
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '合并四路上下文生成')
+
+  await page.getByRole('button', { name: '比较 6 个生成结果' }).click()
+  const tray = page.getByRole('region', { name: '结果变体比较' })
+  await expect(tray).toBeVisible()
+  await expect(tray.locator('li')).toHaveCount(6)
+  await expect(tray.locator('li.is-selected')).toHaveCount(0)
+  for (let index = 1; index <= 6; index += 1) await expect(tray.getByText(`V${index}`, { exact: true })).toBeVisible()
+  await expect(tray.locator('img')).toHaveCount(4)
+  await expect(tray.locator('video')).toHaveCount(1)
+  await expect(tray.getByText('图片结果暂未提供预览')).toBeVisible()
+  expect(documentPatches(state)).toHaveLength(0)
+  await mkdir(generationComparisonEvidence, { recursive: true })
+  await page.screenshot({ path: resolve(generationComparisonEvidence, 'generation-output-family-1440x900.png'), fullPage: true })
+
+  await tray.getByRole('button', { name: '选择变体 V4' }).click()
+  await expect(tray).toHaveCount(0)
+  await expect(page.getByRole('region', { name: '生成结果谱系' })).toContainText('V4 / 6')
+  expect(documentPatches(state)).toHaveLength(0)
+})
+
+test('generation comparison hands compact selection to the exact result after drawer ownership ends', async ({ page }) => {
+  const state = createMultiScenarioState()
+  await openResourceWorkspace(page, state, { width: 920, height: 900 })
+  await selectNode(page, '合并四路上下文生成')
+  await page.getByRole('button', { name: '比较 6 个生成结果' }).click()
+
+  const tray = page.getByRole('region', { name: '结果变体比较' })
+  await expect(tray).toBeVisible()
+  await expect(page.locator('.n-drawer')).toHaveCount(0)
+  const bounds = await tray.boundingBox()
+  expect(bounds).not.toBeNull()
+  expect(bounds!.x).toBeGreaterThanOrEqual(0)
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(920)
+  await mkdir(generationComparisonEvidence, { recursive: true })
+  await page.screenshot({ path: resolve(generationComparisonEvidence, 'generation-output-family-920x900.png'), fullPage: true })
+
+  await tray.getByRole('button', { name: '选择变体 V2' }).click()
+  await expect(tray).toHaveCount(0)
+  await expect(page.getByRole('region', { name: '生成结果谱系' })).toContainText('V2 / 6')
+  expect(documentPatches(state)).toHaveLength(0)
+})
+
+test('generation comparison stays review-only at 375px and one-output owners fail closed', async ({ page }) => {
+  const readonlyState = createMultiScenarioState()
+  await openResourceWorkspace(page, readonlyState, { width: 375, height: 812 })
+  await selectNode(page, '合并四路上下文生成')
+  await page.getByRole('button', { name: '比较 6 个生成结果' }).click()
+  const tray = page.getByRole('region', { name: '结果变体比较' })
+  await expect(tray).toBeVisible()
+  await expect(page.locator('.n-drawer')).toHaveCount(0)
+  await expect(tray.locator('li.is-selected')).toHaveCount(0)
+  const bounds = await tray.boundingBox()
+  expect(bounds).not.toBeNull()
+  expect(bounds!.x).toBeGreaterThanOrEqual(0)
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(375)
+  await mkdir(generationComparisonEvidence, { recursive: true })
+  await page.screenshot({ path: resolve(generationComparisonEvidence, 'generation-output-family-readonly-375x812.png'), fullPage: true })
+  await page.keyboard.press('Escape')
+  await expect(tray).toHaveCount(0)
+  expect(documentPatches(readonlyState)).toHaveLength(0)
+
+  const oneOutputState = createMultiScenarioState()
+  const document = oneOutputState.documents[FIRST_CANVAS_ID]
+  document.connections = document.connections.filter((connection) => (
+    connection.source_node_id !== 'generation-compose' || connection.id === 'edge-result-landscape'
+  ))
+  await openResourceWorkspace(page, oneOutputState)
+  await selectNode(page, '合并四路上下文生成')
+  await expect(page.getByRole('button', { name: /比较 \d+ 个生成结果/ })).toHaveCount(0)
+  expect(documentPatches(oneOutputState)).toHaveLength(0)
 })
 
 test('readonly mobile comparison dismisses the drawer, stays in bounds, and closes on Escape', async ({ page }) => {
