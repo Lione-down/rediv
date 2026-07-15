@@ -1,6 +1,6 @@
 # TASK-T5-072 Plan
 
-- State: `DOING`
+- State: `DONE`
 - Objective: certify the current Canvas against one finite enterprise scenario matrix, close only evidence-backed defects, and publish a binary release recommendation with explicit unsupported boundaries.
 
 ## Visual thesis

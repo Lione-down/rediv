@@ -1,7 +1,7 @@
 # TASK-T5-072 Progress
 
-- Task state: `DOING`
-- Active unit: representative enterprise certification gates passed; final hygiene, report, and state reconciliation remain.
+- Task state: `DONE`
+- Active unit: enterprise certification matrix passed with real Agnes visual fidelity retained as an explicit Human-deferred boundary.
 
 ## Completed work
 
@@ -17,15 +17,16 @@
 - Inspected the live 1440x900, 1366x768, 920x900, and 375x812 viewport set from one build. Desktop and compact remained bounded; mobile exposed explicit browse/review-only status.
 - Found that the multi-media evidence spec captured 920 and 375 detail screenshots during the drawer transition. Added a stable right-edge and width poll, rebuilt after the live harness restored a live API base in `dist`, and passed the focused spec 5/5.
 - Inspected the refreshed multi-media screenshots: 920 drawer is exactly 360px and right-aligned; 375 drawer is exactly full-width; neither screenshot contains transition clipping.
+- Completed final diff, file-size, staging-scope, and sensitive-path hygiene checks. The changed browser spec is 162 lines and no secret-like path was staged.
+- Published `REPORT-T5-072.md` with a binary `RELEASE - PASS WITH DECLARED PROVIDER CAVEAT` recommendation.
 
 ## Remaining work
 
-- Run final diff, encoding, file-size, sensitive-path, and staging-scope checks.
-- Publish REPORT and binary release recommendation, then reconcile Task, CURRENT, and ROADMAP.
+- None.
 
 ## Exact next action
 
-Run final hygiene checks, publish REPORT-T5-072, and reconcile the release state.
+Keep the Canvas release boundary stable. Open a new Task only for a concrete product defect, a new product decision, or future authorized Agnes fidelity re-evaluation.
 
 ## Files changed
 
@@ -50,4 +51,4 @@ Run final hygiene checks, publish REPORT-T5-072, and reconcile the release state
 
 ## Blockers
 
-- None for offline enterprise certification. Real Agnes visual fidelity remains an explicitly accepted unsupported boundary.
+- None. Real Agnes visual fidelity remains an explicitly accepted unsupported boundary, not a blocker for this release decision.

@@ -15,17 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-071 (`DONE - PASS`, T5-071 real-provider fidelity deferred by explicit Human decision)
+- Completed V2 Tasks: T5-001 through T5-072 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
 
 ## Active Delivery
 
-- Active implementation Task: `T5-072 - Enterprise Canvas scenario certification and release closure`
-- State: `DOING`
-- Task: `ai/tasks/todo/TASK-T5-072.md`
-- Plan: `ai/tasks/doing/TASK-T5-072-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-072-PROGRESS.md`
-- Last completed Task: `T5-071 - Reference-first visual fidelity v2 and honest acceptance`
-- Report: `ai/reports/REPORT-T5-071.md`
+- Active implementation Task: `IDLE`
+- State: `IDLE`
+- Last completed Task: `T5-072 - Enterprise Canvas scenario certification and release closure`
+- Report: `ai/reports/REPORT-T5-072.md`
 
 ## Current Verified Facts
 
@@ -105,7 +102,7 @@ Last updated: 2026-07-15
 
 ## Exact Next Action
 
-Build the current frontend, then run the representative T5-072 browser certification matrix against fresh preview output.
+Keep the certified Canvas boundary stable. Create a new Task only for a concrete defect, new product direction, or future authorized Agnes fidelity re-evaluation.
 
 ## Blockers And Human Gates
 

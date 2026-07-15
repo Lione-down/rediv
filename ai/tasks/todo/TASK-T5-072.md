@@ -1,6 +1,6 @@
 # TASK-T5-072 - Enterprise Canvas scenario certification and release closure
 
-- State: `DOING`
+- State: `DONE`
 - Phase: Product V2 / Phase 5 Canvas refinement
 - Dependency: T5-071 must be `DONE - PASS` or receive an explicit Human offline-only closure decision
 - Owner: Codex Project Lead Engineer
