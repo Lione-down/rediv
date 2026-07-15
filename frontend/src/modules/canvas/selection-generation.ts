@@ -2,6 +2,7 @@ import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import { createCanvasEntityId } from './canvas-autosave'
 import type { InsertGraphCommand } from './canvas-commands'
 import { resolveGenerationContext } from './generation-context'
+import { findFirstUnoccupiedPosition } from './graph-placement'
 import {
   createRegistryNodeDraft,
   getDefaultConnectionPorts,
@@ -12,7 +13,9 @@ export type SelectionGenerationMediaType = 'image' | 'video'
 export type SelectionVideoMode = 'text-to-video' | 'img2vid' | 'keyframes'
 
 export interface SelectionGenerationIntent {
+  assetImageCount: number
   imageCount: number
+  resultCount: number
   textCount: number
   videoMode: SelectionVideoMode
 }
@@ -32,6 +35,7 @@ export function createSelectionGenerationCommand(
   selectedNodes: readonly CanvasNode[],
   mediaType: SelectionGenerationMediaType,
   createId: () => string = createCanvasEntityId,
+  existingNodes: readonly CanvasNode[] = selectedNodes,
 ): InsertGraphCommand | null {
   if (
     !uniqueSelection(selectedNodes) ||
@@ -40,9 +44,11 @@ export function createSelectionGenerationCommand(
     ))
   ) return null
 
+  const draft = createRegistryNodeDraft('generation', mediaType, generationPosition(selectedNodes))
   const generationNode: CanvasNode = {
     id: createId(),
-    ...createRegistryNodeDraft('generation', mediaType, generationPosition(selectedNodes)),
+    ...draft,
+    ...findFirstUnoccupiedPosition(draft, draft, existingNodes, selectedNodes.map((node) => node.id)),
   }
   const inputOrder = new Map<string, number>()
   const connections = selectedNodes.flatMap((source): CanvasConnection[] => {
@@ -86,8 +92,15 @@ export function resolveSelectionGenerationIntent(
   if (!command) return null
   const textCount = command.connections.filter((connection) => connection.targetPort === 'prompt').length
   const imageCount = command.connections.length - textCount
+  const resultCount = command.connections.filter((connection) => (
+    connection.targetPort === 'media' && selectedNodes.some((node) => (
+      node.id === connection.from && node.type === 'result'
+    ))
+  )).length
   return {
+    assetImageCount: imageCount - resultCount,
     imageCount,
+    resultCount,
     textCount,
     videoMode: imageCount === 0 ? 'text-to-video' : imageCount === 1 ? 'img2vid' : 'keyframes',
   }

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { findFirstUnoccupiedPosition } from '../../src/modules/canvas/graph-placement'
 import {
   canBranchFromImageResult,
   createGeneratedResultCommand,
@@ -52,6 +53,16 @@ test('generated variants fill deterministic non-overlapping slots around occupie
     source, asset('asset-2', 'task-2'), task('task-2', 'asset-2'), [source, first, blocker],
   ).nodes[0]
   expect(repeated).toMatchObject({ x: second.x, y: second.y })
+})
+
+test('placement scans beyond tall occupied bounds instead of assuming one slot per node', () => {
+  const tallNode: CanvasNode = {
+    id: 'tall', type: 'note', title: 'Tall blocker', x: 500, y: 100, width: 340, height: 900,
+    contentData: { subtype: 'annotation', serialization_version: 1 },
+  }
+  expect(findFirstUnoccupiedPosition(
+    { x: 500, y: 100 }, { width: 340, height: 220 }, [tallNode],
+  )).toEqual({ x: 500, y: 1076 })
 })
 
 test('image result branch is guarded, typed, ordered, and collision-aware', () => {

@@ -10,7 +10,9 @@ const props = defineProps<{
   count: number
   canConnect: boolean
   canCompose: boolean
+  composeAssetImageCount: number
   composeImageCount: number
+  composeResultCount: number
   composeTextCount: number
   composeVideoMode: 'text-to-video' | 'img2vid' | 'keyframes'
   canDelete: boolean
@@ -90,9 +92,11 @@ function closeMenus() {
         <WandSparkles :size="16" aria-hidden="true" />
       </button>
       <div v-if="isComposeOpen" class="compose-panel" role="menu" aria-label="选择生成任务类型">
-        <p>{{ composeTextCount }} 提示词 · {{ composeImageCount }} 参考图</p>
+        <p>
+          {{ composeTextCount }} 提示词 · {{ composeAssetImageCount }} 素材图<span v-if="composeResultCount"> · {{ composeResultCount }} 生成结果</span>
+        </p>
         <button type="button" role="menuitem" @click="handleCompose('image')">
-          <ImageIcon :size="15" aria-hidden="true" /><span><strong>图片生成</strong><small>{{ composeImageCount ? '多输入融合' : '纯文本生成' }}</small></span>
+          <ImageIcon :size="15" aria-hidden="true" /><span><strong>图片生成</strong><small>{{ composeResultCount ? '历史结果融合' : composeImageCount ? '多输入融合' : '纯文本生成' }}</small></span>
         </button>
         <button type="button" role="menuitem" @click="handleCompose('video')">
           <Video :size="15" aria-hidden="true" /><span><strong>视频生成</strong><small>{{ composeVideoMode === 'text-to-video' ? '文生视频' : composeVideoMode === 'img2vid' ? '图生视频' : '有序关键帧' }}</small></span>

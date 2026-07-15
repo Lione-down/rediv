@@ -123,6 +123,8 @@ T5-031 is `DONE - PASS`. It prevents repeated generated results from overlapping
 
 T5-032 is `DONE - PASS`. Canonical image results can create explicit image/video generation branches through one collision-aware atomic command, with exact reference payload, undo/redo, playable output, lineage, reload, invalid-state, readonly, compact, build, visual, and full Chromium 220/220 evidence. `REPORT-T5-032.md` is authoritative evidence.
 
+T5-033 is `DONE - PASS`. Multiple canonical image results now form an explicit source-aware remix selection with independent source counts, ordered image/video requests, full-graph collision-safe placement, extreme-height handling, playable output, reload, invalid-state, compact, readonly, visual, and Chromium evidence. `REPORT-T5-033.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

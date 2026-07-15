@@ -391,3 +391,10 @@ Evidence:
 - Branching should create graph intent only: one generation node plus one ordered typed edge in one command. Automatic execution would bypass prompt, preflight, quota review, and the user's explicit provider action.
 - Collision-aware placement must inspect persisted graph bounds and keep deterministic slot order so undo, redo, reload, minimap, and selection agree.
 - A shell/tool timeout that kills Playwright before its own final exit is infrastructure interruption, not a failed product assertion. Long regression commands need a process window that covers preview startup and the full suite, and only Playwright's final exit code/count is test evidence.
+
+## 2026-07-15 Multi-result remix and graph placement
+
+- Generated image results and ordinary image assets can share the same provider media port but should not share one UI source label. Derive source counts from the already validated command connections, then classify the exact source nodes; never run a parallel eligibility classifier that can disagree with preflight.
+- Prompt and media connection order remain independent groups. Backend persistence may return the groups in a different global array order, so tests must assert T and R ordering within their owning port instead of inventing a cross-group order contract.
+- Collision scanning bounded by `occupied node count + 1` is not safe when one node is much taller than the generated node. Derive the terminal candidate from the highest occupied bottom so the final slot is guaranteed to clear every persisted bound.
+- Compact Canvas marquee gestures must start outside identity chrome and overlay panels. A pointer initiated under fixed chrome never reaches the stage, and forcing the click would hide a real interaction constraint rather than validate selection.

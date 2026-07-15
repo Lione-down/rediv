@@ -65,9 +65,35 @@ test('pure composition creates one ordered request-ready generation fragment', (
     .toMatchObject({ nodes: [{ contentData: { subtype: 'video' } }], connections: [{ targetPort: 'media' }, { targetPort: 'media' }] })
 })
 
+test('multi-result composition preserves result order and avoids the occupied graph column', () => {
+  const resultA: CanvasNode = {
+    id: 'result-a', type: 'result', title: 'Result A', x: 80, y: 80, width: 320, height: 180,
+    contentData: { subtype: 'image', serialization_version: 1, asset_id: 'result-asset-a' },
+  }
+  const resultB: CanvasNode = {
+    ...resultA, id: 'result-b', title: 'Result B', x: 80, y: 320,
+    contentData: { subtype: 'image', serialization_version: 1, asset_id: 'result-asset-b' },
+  }
+  const blocker: CanvasNode = {
+    id: 'blocker', type: 'note', title: 'Occupied', x: 496, y: 190, width: 340, height: 220,
+    contentData: { subtype: 'annotation', serialization_version: 1 },
+  }
+  let id = 0
+  const command = createSelectionGenerationCommand(
+    [resultA, resultB], 'video', () => `remix-${id++}`, [resultA, resultB, blocker],
+  )!
+  expect(command.nodes[0]).toMatchObject({ type: 'generation', x: 496, y: 424, contentData: { subtype: 'video' } })
+  expect(command.connections.map((edge) => [edge.from, edge.targetPort, edge.metadata?.input_order])).toEqual([
+    ['result-a', 'media', 1], ['result-b', 'media', 2],
+  ])
+})
+
 test('pure composition rejects partial, excluded, protected, and unsupported selections', () => {
   const script = sourceNode('script', 'script')
   const image = sourceNode('image', 'asset', { assetId: 'asset-image' })
+  const invalidResult = (id: string, contentData: CanvasNode['contentData']): CanvasNode => ({
+    id, type: 'result', title: id, x: 0, y: 0, width: 320, height: 180, contentData,
+  })
   const invalidCases: CanvasNode[][] = [
     [script],
     [sourceNode('locked', 'script', { isLocked: true }), image],
@@ -75,6 +101,8 @@ test('pure composition rejects partial, excluded, protected, and unsupported sel
     [sourceNode('empty', 'script', { text: '' }), image],
     [script, sourceNode('missing', 'asset')],
     [script, sourceNode('video', 'asset', { subtype: 'video', assetId: 'asset-video' })],
+    [script, invalidResult('video-result', { subtype: 'video', serialization_version: 1, asset_id: 'asset-video-result' })],
+    [script, invalidResult('missing-result', { subtype: 'image', serialization_version: 1 })],
     [sourceNode('duplicate-a', 'asset', { assetId: 'same' }), sourceNode('duplicate-b', 'asset', { assetId: 'same' })],
     Array.from({ length: 9 }, (_, index) => sourceNode(`image-${index}`, 'asset', { assetId: `asset-${index}` })),
     [script, { ...script, id: 'note', type: 'note', contentData: { subtype: 'annotation', serialization_version: 1 } }],

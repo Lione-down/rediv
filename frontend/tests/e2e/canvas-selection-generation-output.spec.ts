@@ -15,7 +15,7 @@ import {
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-030-selection-output')
 const now = '2026-07-15T10:00:00Z'
 
-function sourceNode(id: string, type: 'script' | 'asset', options: Record<string, unknown> = {}): CanvasNode {
+function sourceNode(id: string, type: 'script' | 'asset' | 'result', options: Record<string, unknown> = {}): CanvasNode {
   const isScript = type === 'script'
   return {
     id, type, title: String(options.title ?? id), x: Number(options.x ?? 0), y: Number(options.y ?? 0),
@@ -93,9 +93,22 @@ test('selection intent reports exact counts and video semantics', () => {
     sourceNode('image-a', 'asset', { assetId: 'asset-a' }),
     sourceNode('image-b', 'asset', { assetId: 'asset-b' }),
   ]
-  expect(resolveSelectionGenerationIntent(scripts)).toEqual({ textCount: 2, imageCount: 0, videoMode: 'text-to-video' })
-  expect(resolveSelectionGenerationIntent([...scripts, images[0]])).toEqual({ textCount: 2, imageCount: 1, videoMode: 'img2vid' })
-  expect(resolveSelectionGenerationIntent([...scripts, ...images])).toEqual({ textCount: 2, imageCount: 2, videoMode: 'keyframes' })
+  const results = [
+    sourceNode('result-a', 'result', { assetId: 'result-asset-a' }),
+    sourceNode('result-b', 'result', { assetId: 'result-asset-b' }),
+  ]
+  expect(resolveSelectionGenerationIntent(scripts)).toEqual({
+    textCount: 2, imageCount: 0, assetImageCount: 0, resultCount: 0, videoMode: 'text-to-video',
+  })
+  expect(resolveSelectionGenerationIntent([...scripts, images[0]])).toEqual({
+    textCount: 2, imageCount: 1, assetImageCount: 1, resultCount: 0, videoMode: 'img2vid',
+  })
+  expect(resolveSelectionGenerationIntent([...scripts, ...images])).toEqual({
+    textCount: 2, imageCount: 2, assetImageCount: 2, resultCount: 0, videoMode: 'keyframes',
+  })
+  expect(resolveSelectionGenerationIntent([scripts[0], images[0], ...results])).toEqual({
+    textCount: 1, imageCount: 3, assetImageCount: 1, resultCount: 2, videoMode: 'keyframes',
+  })
 })
 
 test('composed image request materializes one durable linked result', async ({ page }) => {

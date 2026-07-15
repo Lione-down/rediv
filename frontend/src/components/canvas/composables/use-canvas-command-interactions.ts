@@ -180,7 +180,9 @@ export function useCanvasCommandInteractions(options: CanvasCommandInteractionOp
 
   function composeGenerationSelection(source: CanvasCommandSource, mediaType: SelectionGenerationMediaType) {
     if (options.isReadOnly()) return false
-    const command = createSelectionGenerationCommand(canvasStore.selectedNodes, mediaType)
+    const command = createSelectionGenerationCommand(
+      canvasStore.selectedNodes, mediaType, undefined, canvasStore.nodes,
+    )
     if (!command) {
       announceCommandFeedback('请选择至少两个可直接用于生成的文本或图片节点。')
       return false
