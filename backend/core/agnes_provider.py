@@ -110,13 +110,10 @@ class AgnesProvider:
         if return_base64:
             payload["return_base64"] = True
 
+        extra_body: dict[str, Any] = {"response_format": response_format}
         if image is not None:
-            # 图生图：image 放顶层
-            payload["image"] = image
-            payload["extra_body"] = {"response_format": response_format}
-        else:
-            # 文生图
-            payload["extra_body"] = {"response_format": response_format}
+            extra_body["image"] = image
+        payload["extra_body"] = extra_body
 
         resp = await self._client.post("/v1/images/generations", json=payload)
         resp.raise_for_status()
@@ -182,7 +179,7 @@ class AgnesProvider:
             video_id: 视频任务返回的 video_id
 
         Returns:
-            任务状态响应，status 为 "completed" 时 video_url 可用
+            任务状态响应，status 为 "completed" 时 url 可用
         """
         resp = await self._client.get("/agnesapi", params={"video_id": video_id})
         resp.raise_for_status()

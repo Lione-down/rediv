@@ -462,3 +462,9 @@ Evidence:
 - Excluded or unavailable generation inputs are still real graph nodes. Keep them locatable even though the provider request resolver correctly omits them.
 - Responsive source navigation should wait for modal drawer leave before selecting and revealing, then consume exactly one suppression token so ordinary later selections still open context.
 - Camera-only navigation may be a no-op when the target is already safe; acceptance should require zero or one viewport update and exactly zero document mutations.
+
+## 2026-07-15 Agnes provider contract alignment
+
+- Mocking the provider method proves API orchestration but cannot prove the provider's serialized HTTP body. Use `httpx.MockTransport` at the adapter boundary for exact payload contracts without making external calls.
+- Agnes Image 2.1 Flash image-to-image references belong in `extra_body.image`; `extra_body.response_format` remains beside them, and text-to-image must omit image fields entirely.
+- Agnes Video V2.0 documents completed output at top-level `url`. Add that exact shape narrowly and retain only already-supported compatibility shapes behind the same HTTPS media validation.

@@ -48,9 +48,10 @@ def _extract_video_id(response: object) -> str:
 def _extract_video_url(response: object) -> str | None:
     if not isinstance(response, dict):
         raise ProviderResultError("Provider returned invalid video result data")
-    video_url = response.get("video_url")
-    if isinstance(video_url, str) and video_url:
-        return validate_https_url(video_url, media_type="video")
+    for field in ("url", "video_url"):
+        video_url = response.get(field)
+        if isinstance(video_url, str) and video_url:
+            return validate_https_url(video_url, media_type="video")
 
     data = response.get("data")
     if isinstance(data, dict):

@@ -77,7 +77,7 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         fake_provider = _FakeAgnesProvider(
             poll_responses=[
                 {"status": "processing"},
-                {"status": "completed", "video_url": "https://example.com/generated-video.mp4"},
+                {"status": "completed", "url": "https://example.com/generated-video.mp4"},
             ],
         )
         original_quota = store.quotas[self.user["id"]]["video"]

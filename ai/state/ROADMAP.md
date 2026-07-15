@@ -52,6 +52,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 25 | T5-025 | Multi-input generation request preflight | DONE - PASS | T5-024 |
 | 26 | T5-026 | Undoable generation input ordering | DONE - PASS | T5-025 |
 | 27 | T5-027 | Generation node run history | DONE - PASS | T5-026 |
+| 43 | T5-043 | Align Agnes image and video provider contracts | DONE - PASS | T5-042 |
 
 ## Task Boundaries
 
@@ -142,6 +143,8 @@ T5-040 is `DONE - PASS`. It adds an explicit panel-safe camera action that fits 
 T5-041 is `DONE - PASS`. It extends the same explicit full-lineage fit to any canonical selected result while retaining exact V selection, provenance emphasis, and collision-aware toolbar clearance. `REPORT-T5-041.md` is authoritative evidence.
 
 T5-042 is `DONE - PASS`. It makes authoritative inspector lineage sources directly keyboard-navigable to their exact Canvas nodes across desktop, compact, and readonly review. `REPORT-T5-042.md` is authoritative evidence.
+
+T5-043 is `DONE - PASS`. It aligns image-to-image references with `extra_body.image`, locks exact outbound image payloads at the HTTP boundary, and accepts the official top-level completed-video `url` without removing safe `video_url` compatibility. `REPORT-T5-043.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

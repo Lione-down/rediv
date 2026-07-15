@@ -15,14 +15,14 @@ Last updated: 2026-07-15
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-042 (`DONE - PASS`)
+- Completed V2 Tasks: T5-001 through T5-043 (`DONE - PASS`)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Most recently completed: `T5-042 - Inspector lineage source navigation` (`DONE - PASS`)
-- Final report: `ai/reports/REPORT-T5-042.md`
+- Most recently completed: `T5-043 - Align Agnes image and video provider contracts` (`DONE - PASS`)
+- Final report: `ai/reports/REPORT-T5-043.md`
 
 ## Current Verified Facts
 
@@ -71,10 +71,11 @@ Last updated: 2026-07-15
 - T5-040 is now `DONE - PASS`: selected generations expose an explicit panel-safe fit action for their authoritative T/R-to-generation-to-V trace. Desktop, compact drawer, and readonly overview preserve selection and graph history while producing only one viewport update. Build, related 15/15, final 3/3, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-040.md`.
 - T5-041 is now `DONE - PASS`: any canonical selected result can fit the same complete T/R-to-generation-to-V lineage while retaining exact V selection and emphasis. Collision-aware toolbar docking keeps dense sibling results unobstructed. Build, provenance 10/10, related 37/37, final 3/3, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-041.md`.
 - T5-042 is now `DONE - PASS`: generation T/R rows and result-origin G identity are directly keyboard-navigable to exact Canvas nodes. Desktop synchronizes inspector selection; compact/readonly close once and reveal without reopening or graph mutation. Build, focused 5/5, related 21/21, visual, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-042.md`.
+- T5-043 is now `DONE - PASS`: Agnes image-to-image references follow the official `extra_body.image` contract, exact outbound JSON is tested offline, and completed video polling accepts official top-level `url` while retaining validated `video_url` compatibility. Focused provider/generation regression passed 51/51 plus 3 subtests. Final report: `ai/reports/REPORT-T5-043.md`.
 
 ## Exact Next Action
 
-Continue the broader Canvas/node visual and multi-scene workflow goal with the next bounded Task.
+Continue the broader Canvas/node visual and multi-scene generation goal with the next bounded Task.
 
 ## Blockers And Human Gates
 
