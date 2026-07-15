@@ -23,7 +23,7 @@ import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
 
 type MoveDirection = -1 | 1
-interface CanvasStageHandle { fitSelectedGenerationTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
+interface CanvasStageHandle { fitSelectedProvenanceTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -118,10 +118,12 @@ const {
 
 const canvasViewportInsets = computed(() => ({ top: 96, right: isCompact.value && isContextDrawerOpen.value ? 376 : 16, bottom: 96, left: 16 }))
 const selectedContinuationTrigger = computed(() => resolveCanvasNodeContinuationTrigger(canvasDocumentStore.nodes, canvasDocumentStore.selectedNodeIds, isReviewOnly.value || canvasRevisionStore.restoringRevision !== null))
-const canFitGenerationTrace = computed(() => Boolean(selectedNode.value && selectedMediaType.value && (
-  selectedGenerationContext.value?.provenance.length ||
-  resolveGenerationResultVariants(selectedNode.value, canvasDocumentStore.nodes, canvasDocumentStore.connections).length
-)))
+const canFitProvenanceTrace = computed(() => Boolean(
+  selectedResultLineage.value || (selectedNode.value && selectedMediaType.value && (
+    selectedGenerationContext.value?.provenance.length ||
+    resolveGenerationResultVariants(selectedNode.value, canvasDocumentStore.nodes, canvasDocumentStore.connections).length
+  )),
+))
 let isDrawerContinuationPending = false
 let isDrawerTraceFitPending = false
 
@@ -129,7 +131,7 @@ function continueFromContextDrawer() { isDrawerContinuationPending = true; isCon
 function fitTraceFromContextDrawer() { isDrawerTraceFitPending = true; isContextDrawerOpen.value = false }
 function handleContextDrawerAfterLeave() {
   if (isDrawerContinuationPending) { isDrawerContinuationPending = false; canvasStageRef.value?.openSelectedContinuation() }
-  if (isDrawerTraceFitPending) { isDrawerTraceFitPending = false; canvasStageRef.value?.fitSelectedGenerationTrace() }
+  if (isDrawerTraceFitPending) { isDrawerTraceFitPending = false; canvasStageRef.value?.fitSelectedProvenanceTrace() }
 }
 
 const comparisonItems = computed(() => (selectedResultLineage.value?.variants ?? []).flatMap((variant) => {
@@ -390,7 +392,7 @@ onBeforeUnmount(() => {
 
       <div v-if="selectedNode && isDesktopContextOpen" class="context-panel-shell">
         <CanvasContextPanel
-          :can-fit-trace="canFitGenerationTrace"
+          :can-fit-trace="canFitProvenanceTrace"
           :error="generationError"
           :is-generating="isGenerating"
           :latest-task="latestTask"
@@ -406,7 +408,7 @@ onBeforeUnmount(() => {
           @branch-generation="branchFromResult"
           @close="closeContext"
           @compare-results="openResultComparison"
-          @fit-trace="canvasStageRef?.fitSelectedGenerationTrace()"
+          @fit-trace="canvasStageRef?.fitSelectedProvenanceTrace()"
           @generate="generate"
           @reorder-input="reorderGenerationInput"
           @update-prompt="updatePrompt"
@@ -465,7 +467,7 @@ onBeforeUnmount(() => {
             <CanvasContextPanel
               v-if="selectedNode"
               :can-continue="Boolean(selectedContinuationTrigger)"
-              :can-fit-trace="canFitGenerationTrace"
+              :can-fit-trace="canFitProvenanceTrace"
               :error="generationError"
               :is-generating="isGenerating"
               :latest-task="latestTask"

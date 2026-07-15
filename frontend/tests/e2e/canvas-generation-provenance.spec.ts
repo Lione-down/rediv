@@ -6,6 +6,7 @@ import { documentPatches, FIRST_CANVAS_ID, openResourceWorkspace } from './canva
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-039-end-to-end-provenance')
 const traceFitEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-040-full-trace-fit')
+const resultTraceFitEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-041-result-origin-trace-fit')
 
 function viewportPatches(state: ReturnType<typeof createMultiScenarioState>) {
   return state.requests.filter((request) => (
@@ -13,7 +14,7 @@ function viewportPatches(state: ReturnType<typeof createMultiScenarioState>) {
   ))
 }
 
-async function expectTraceInsideSurface(page: import('@playwright/test').Page) {
+async function expectTraceInsideSurface(page: import('@playwright/test').Page, resultOrigin = false) {
   const surface = await page.locator('.canvas-surface').boundingBox()
   expect(surface).not.toBeNull()
   const titles = [
@@ -25,13 +26,11 @@ async function expectTraceInsideSurface(page: import('@playwright/test').Page) {
   const resultMarkers = page.locator('.result-lineage-node')
   const generationMarker = page.locator('.node-status-overlay').first()
   await expect(sourceMarkers).toHaveCount(4)
-  await expect(resultMarkers).toHaveCount(6)
-  await expect(generationMarker).toBeVisible()
-  const nodes = [
-    ...Array.from({ length: 4 }, (_, index) => sourceMarkers.nth(index)),
-    generationMarker,
-    ...Array.from({ length: 6 }, (_, index) => resultMarkers.nth(index)),
-  ]
+  await expect(resultMarkers).toHaveCount(resultOrigin ? 7 : 6)
+  if (!resultOrigin) await expect(generationMarker).toBeVisible()
+  const nodes = resultOrigin
+    ? [...Array.from({ length: 4 }, (_, index) => sourceMarkers.nth(index)), ...Array.from({ length: 7 }, (_, index) => resultMarkers.nth(index))]
+    : [...Array.from({ length: 4 }, (_, index) => sourceMarkers.nth(index)), generationMarker, ...Array.from({ length: 6 }, (_, index) => resultMarkers.nth(index))]
   for (const [index, title] of titles.entries()) {
     const rect = await nodes[index].boundingBox()
     expect(rect, title).not.toBeNull()
@@ -39,6 +38,20 @@ async function expectTraceInsideSurface(page: import('@playwright/test').Page) {
     expect(rect!.y, title).toBeGreaterThanOrEqual(surface!.y + 90)
     expect(rect!.x + rect!.width, title).toBeLessThanOrEqual(surface!.x + surface!.width - 14)
     expect(rect!.y + rect!.height, title).toBeLessThanOrEqual(surface!.y + surface!.height - 90)
+  }
+}
+
+async function expectToolbarClearOfTrace(page: import('@playwright/test').Page) {
+  const toolbar = await page.locator('.selection-toolbar').boundingBox()
+  expect(toolbar).not.toBeNull()
+  const markers = page.locator('.generation-source-provenance, .result-lineage-node')
+  await expect(markers).toHaveCount(11)
+  for (let index = 0; index < await markers.count(); index += 1) {
+    const rect = await markers.nth(index).boundingBox()
+    expect(rect).not.toBeNull()
+    const overlaps = toolbar!.x < rect!.x + rect!.width && toolbar!.x + toolbar!.width > rect!.x &&
+      toolbar!.y < rect!.y + rect!.height && toolbar!.y + toolbar!.height > rect!.y
+    expect(overlaps, `toolbar overlaps lineage marker ${index}`).toBe(false)
   }
 }
 
@@ -128,6 +141,43 @@ for (const viewport of [{ width: 920, height: 760 }, { width: 375, height: 812 }
     })
   })
 }
+
+for (const scenario of [
+  { name: 'desktop-broken', title: '损坏媒体结果', viewport: { width: 1440, height: 900 } },
+  { name: 'compact-video', title: '动态镜头结果', viewport: { width: 920, height: 760 } },
+  { name: 'readonly-image', title: '宽银幕主镜头', viewport: { width: 375, height: 812 } },
+]) {
+  test(`${scenario.name} result fits its complete lineage without losing V selection`, async ({ page }) => {
+    const state = createMultiScenarioState()
+    await openResourceWorkspace(page, state, scenario.viewport)
+    await selectNode(page, scenario.title)
+    const viewportCount = viewportPatches(state).length
+
+    await expect(page.locator('.connection-line.provenance-selected-result')).toHaveCount(1)
+    await page.getByRole('button', { name: '适配完整生成链路' }).click()
+    if (scenario.viewport.width < 1024) await expect(page.locator('.n-drawer')).toHaveCount(0)
+    await expect.poll(() => viewportPatches(state).length).toBe(viewportCount + 1)
+    expect(documentPatches(state)).toHaveLength(0)
+    await expect(page.locator('.connection-line.provenance-selected-result')).toHaveCount(1)
+    await expect(page.locator('.result-lineage-node.is-selected-variant')).toHaveCount(1)
+    await expectTraceInsideSurface(page, true)
+    if (scenario.viewport.width > 767) await expectToolbarClearOfTrace(page)
+
+    await mkdir(resultTraceFitEvidenceDirectory, { recursive: true })
+    await page.screenshot({ path: resolve(resultTraceFitEvidenceDirectory, `result-origin-${scenario.name}-${scenario.viewport.width}x${scenario.viewport.height}.png`), fullPage: true })
+  })
+}
+
+test('lineage-free result does not expose a misleading full-trace fit action', async ({ page }) => {
+  const state = createMultiScenarioState()
+  const resultEdge = state.documents[FIRST_CANVAS_ID].connections.find((connection) => connection.target_node_id === 'result-landscape')!
+  resultEdge.status = 'inactive'
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '宽银幕主镜头')
+
+  await expect(page.getByRole('button', { name: '适配完整生成链路' })).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
+})
 
 test('excluded duplicate and missing media stay visible without entering request order', async ({ page }) => {
   const state = createMultiScenarioState()

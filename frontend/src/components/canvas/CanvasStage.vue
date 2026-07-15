@@ -270,14 +270,18 @@ async function selectForegroundContinuation(key: string) {
 }
 function openSelectedContinuation() { const trigger = resolveCanvasNodeContinuationTrigger(canvasStore.nodes, canvasStore.selectedNodeIds, props.readonly); if (trigger) openNodeContinuation(trigger.node.id, trigger.portId) }
 
-function fitSelectedGenerationTrace() {
+function fitSelectedProvenanceTrace() {
   const selectedNode = canvasStore.selectedNode
-  if (!selectedNode || !getGenerationMediaType(selectedNode)) return false
-  const nodeIds = new Set([selectedNode.id, ...generationProvenance.value.map((entry) => entry.nodeId)])
+  if (!selectedNode) return false
+  const generationNodeId = getGenerationMediaType(selectedNode)
+    ? selectedNode.id
+    : selectedResultLineage.value?.generationNodeId
+  if (!generationNodeId) return false
+  const nodeIds = new Set([generationNodeId, ...generationProvenance.value.map((entry) => entry.nodeId)])
   return fitNodes(canvasStore.nodes.filter((node) => nodeIds.has(node.id)), true, props.viewportInsets)
 }
 
-defineExpose({ fitSelectedGenerationTrace, openSelectedContinuation, revealNode })
+defineExpose({ fitSelectedProvenanceTrace, openSelectedContinuation, revealNode })
 
 function commitNodeContent(nodeId: string, content: string) {
   void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)

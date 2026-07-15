@@ -446,3 +446,11 @@ Evidence:
 - Leafer-owned static nodes do not expose DOM node surfaces. Browser geometry tests should use the authoritative T/R and V provenance overlays plus the generation status overlay rather than text-filtering `.canvas-node-surface`.
 - A 375px full-workflow fit is an overview, not a readable editing layout. Keep mobile readonly and avoid inflating nodes or hiding variants merely to make labels legible.
 - Run Playwright from `frontend/` so its project config is discovered; a repo-root invocation can report no configured Chromium project without exercising product code.
+
+## 2026-07-15 Result-origin lineage and dense toolbar docking
+
+- Provenance entry should not force selection handoff. Resolve a canonical result's generation owner for camera bounds while keeping the result selected, its inspector open, and its exact output edge emphasized.
+- Context action eligibility and Stage execution must share the same canonical lineage resolver; inactive, malformed, untyped, or ambiguous results must not advertise a camera action that Stage rejects.
+- Fixed-size toolbars need screen-space collision scoring at low graph zoom. Evaluate adjacent docks against projected node rectangles, then use reserved top/bottom rails only when every adjacent position overlaps dense content.
+- Treat a selected generation's detached composer as occupied toolbar space even though it is not an ordinary graph node.
+- `vite preview` browser tests read the built `dist`; after business-code edits, rebuild before interpreting UI screenshots or placement assertions.

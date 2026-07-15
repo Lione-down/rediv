@@ -37,8 +37,36 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     const top = Math.min(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top }, viewport).y))
     const bottom = Math.max(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top + rect.height }, viewport).y))
     const halfWidth = 176
-    const x = Math.max(halfWidth + 12, Math.min((left + right) / 2, size.width - halfWidth - 12))
-    const y = top >= 60 ? top - 56 : Math.min(bottom + 12, size.height - 52)
+    const toolbarHeight = 44
+    const clampX = (x: number) => Math.max(halfWidth + 12, Math.min(x, size.width - halfWidth - 12))
+    const clampY = (y: number) => Math.max(12, Math.min(y, size.height - toolbarHeight - 12))
+    const centerX = (left + right) / 2
+    const centerY = (top + bottom) / 2
+    const candidates = [
+      { x: clampX(centerX), y: clampY(top - 56) },
+      { x: clampX(centerX), y: clampY(bottom + 12) },
+      { x: clampX(left - halfWidth - 12), y: clampY(centerY - toolbarHeight / 2) },
+      { x: clampX(right + halfWidth + 12), y: clampY(centerY - toolbarHeight / 2) },
+      { x: clampX(size.width / 2), y: clampY(104) },
+      { x: clampX(size.width / 2), y: clampY(size.height - 112) },
+    ]
+    const selectedIds = new Set(canvasStore.selectedNodeIds)
+    const occupiedRects = canvasStore.nodes.filter((node) => !selectedIds.has(node.id)).map((node) => {
+      const rect = canvasNodeWorldRect(node, 'content')
+      const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)
+      return { left: position.x, top: position.y, right: position.x + rect.width * viewport.zoom, bottom: position.y + rect.height * viewport.zoom }
+    })
+    if (canvasStore.selectedNodes.length === 1 && canvasStore.selectedNodes[0].type === 'generation') {
+      const rect = canvasNodeWorldRect(canvasStore.selectedNodes[0], 'composer')
+      const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)
+      occupiedRects.push({ left: position.x, top: position.y, right: position.x + rect.width * viewport.zoom, bottom: position.y + rect.height * viewport.zoom })
+    }
+    const score = (candidate: { x: number; y: number }) => occupiedRects.reduce((total, rect) => {
+      const overlapWidth = Math.max(0, Math.min(candidate.x + halfWidth, rect.right) - Math.max(candidate.x - halfWidth, rect.left))
+      const overlapHeight = Math.max(0, Math.min(candidate.y + toolbarHeight, rect.bottom) - Math.max(candidate.y, rect.top))
+      return total + overlapWidth * overlapHeight
+    }, 0)
+    const { x, y } = candidates.reduce((best, candidate) => score(candidate) < score(best) ? candidate : best)
     const openAbove = y > size.height / 2
     return {
       left: `${x}px`,

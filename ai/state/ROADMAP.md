@@ -139,6 +139,8 @@ T5-039 is `DONE - PASS`. It completes selected-generation provenance by tracing 
 
 T5-040 is `DONE - PASS`. It adds an explicit panel-safe camera action that fits the authoritative T/R-to-generation-to-V trace without automatic movement, graph mutation, or history changes. `REPORT-T5-040.md` is authoritative evidence.
 
+T5-041 is `DONE - PASS`. It extends the same explicit full-lineage fit to any canonical selected result while retaining exact V selection, provenance emphasis, and collision-aware toolbar clearance. `REPORT-T5-041.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:
