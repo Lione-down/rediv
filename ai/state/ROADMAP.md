@@ -66,6 +66,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 54 | T5-054 | Ordered multi-generation edge identity | DONE - PASS | T5-053 |
 | 55 | T5-055 | Arrange authoritative generation lineage | DONE - PASS | T5-054 |
 | 56 | T5-056 | Chained generation input lineage bridge | DONE - PASS | T5-055 |
+| 72 | T5-072 | Enterprise Canvas scenario certification and finite release closure | TODO | T5-071 |
 
 ## Task Boundaries
 
@@ -214,6 +215,8 @@ T5-069 is `DONE - PASS`. Canvas video nodes and comparison previews share one ac
 T5-070 is `DONE - PASS`. New generation-reference authoring exposes only image sources the provider can consume, while historical unsupported edges remain visible as excluded provenance. Focused 29/29, cross-surface 85/85, build, visual, and zero-unintended-mutation gates passed.
 
 T5-071 is `VERIFYING`. Exact recipe versions, v2 prompts, toolbar isolation, responsive ownership, offline regression, build, and skill validation pass. The authorized three-image Agnes batch reached the provider but all three requests returned HTTP 503 with zero outputs; provider recovery, renewed bounded-call authorization, and a Human visual verdict remain.
+
+T5-072 is queued as `TODO` and must not activate while T5-071 remains active. It consolidates the existing graph, image, video, recovery, responsive, accessibility, performance, persistence, security, and real-provider evidence into one finite enterprise certification matrix. Expected engineering effort after T5-071 release is three to five focused working days when current regressions remain green; provider recovery time is external.
 
 ## Canvas First-Acceptance Gate
 
