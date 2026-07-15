@@ -1,6 +1,6 @@
 # TASK-T5-071 - Reference-first visual fidelity v2 and recipe-flow isolation
 
-- State: `VERIFYING`
+- State: `BLOCKED`
 - Phase: Product V2 / Phase 5 Canvas refinement
 - Dependency: T5-070 must be `DONE - PASS`
 - Owner: Codex Project Lead Engineer

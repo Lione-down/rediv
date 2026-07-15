@@ -20,7 +20,7 @@ Last updated: 2026-07-15
 ## Active Delivery
 
 - Active implementation Task: `T5-071 - Reference-first visual fidelity v2 and honest acceptance`
-- State: `VERIFYING`
+- State: `BLOCKED`
 - Task: `ai/tasks/todo/TASK-T5-071.md`
 - Plan: `ai/tasks/doing/TASK-T5-071-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-071-PROGRESS.md`
@@ -105,11 +105,11 @@ Last updated: 2026-07-15
 
 ## Exact Next Action
 
-Obtain Human direction for a bounded paid Agnes fidelity sample, or explicit acceptance of offline-only closure with the provider-capability caveat.
+Resume T5-071 only after Human authorization for a bounded paid Agnes fidelity sample, or explicit acceptance of offline-only closure with the provider-capability caveat.
 
 ## Blockers And Human Gates
 
-- T5-071 offline implementation has no active blocker. Final visual-fidelity acceptance requires an authorized paid Agnes sample and Human verdict, or explicit Human acceptance of offline-only closure.
+- T5-071 is blocked after three consecutive audits on the same Human gate. Final visual-fidelity acceptance requires an authorized paid Agnes sample and Human verdict, or explicit Human acceptance of offline-only closure.
 - Applying Alembic revisions through `c9d0e1f2a3b4` to user/runtime data requires reviewed backup discipline and Human authorization.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.

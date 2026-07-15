@@ -1,7 +1,7 @@
 # TASK-T5-071 Progress
 
-- Task state: `VERIFYING`
-- Active unit: all offline implementation and literal geometry/persistence evidence complete; real-service visual fidelity awaits Human authorization and verdict.
+- Task state: `BLOCKED`
+- Active unit: all offline implementation and literal geometry/persistence evidence complete; the same Human authorization gate has remained unresolved through three consecutive goal turns.
 
 ## Completed work
 
@@ -29,7 +29,7 @@
 
 ## Exact next action
 
-Ask the Human Owner whether to authorize a bounded paid Agnes visual sample for photograph, illustration, and scene references, or explicitly accept offline-only closure with the provider-capability caveat.
+Resume only after the Human Owner either authorizes a bounded paid Agnes visual sample for photograph, illustration, and scene references, or explicitly accepts offline-only closure with the provider-capability caveat.
 
 ## Files changed
 
@@ -62,4 +62,5 @@ Ask the Human Owner whether to authorize a bounded paid Agnes visual sample for 
 
 ## Blockers
 
-- Final visual-fidelity acceptance requires explicit authorization for paid Agnes samples and a Human verdict, or explicit Human acceptance of offline-only closure. Offline implementation is otherwise complete.
+- Final visual-fidelity acceptance requires explicit authorization for paid Agnes samples and a Human verdict, or explicit Human acceptance of offline-only closure.
+- Blocked audit: this identical release condition persisted across the implementation handoff, the completion-audit continuation, and the current third audit. No further mock, prompt-only, or browser-only work can prove the missing real-service fidelity claim.

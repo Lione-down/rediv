@@ -213,7 +213,7 @@ T5-069 is `DONE - PASS`. Canvas video nodes and comparison previews share one ac
 
 T5-070 is `DONE - PASS`. New generation-reference authoring exposes only image sources the provider can consume, while historical unsupported edges remain visible as excluded provenance. Focused 29/29, cross-surface 85/85, build, visual, and zero-unintended-mutation gates passed.
 
-T5-071 is `VERIFYING`. Exact recipe-version transport, deterministic v1 compatibility, fidelity-first v2 prompts, desktop zero-intersection toolbar geometry, compact drawer ownership, exact zero document/viewport mutation, offline regression, build, and skill validation pass. Offline gates do not prove real visual fidelity, and no paid Agnes call is authorized.
+T5-071 is `BLOCKED`. Exact recipe-version transport, deterministic v1 compatibility, fidelity-first v2 prompts, desktop zero-intersection toolbar geometry, compact drawer ownership, exact zero document/viewport mutation, offline regression, build, and skill validation pass. Three consecutive audits reached the same Human gate: authorize a paid Agnes visual sample and judge it, or explicitly accept offline-only closure with the provider-capability caveat.
 
 ## Canvas First-Acceptance Gate
 
