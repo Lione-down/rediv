@@ -17,9 +17,11 @@ import {
 } from './canvas-workflow-starters'
 import {
   canvasNodeWorldRect,
+  nodePortWorldAnchor,
   normalizeViewport,
   revealWorldRectViewport,
   surfaceToWorld,
+  worldToSurface,
   type ViewportInsets,
 } from './canvas-geometry'
 import { useCanvasStage } from './composables/use-canvas-stage'
@@ -27,14 +29,13 @@ import { resolveGenerationContext } from '../../modules/canvas/generation-contex
 import { getGenerationMediaType } from '../../modules/canvas/node-registry'
 import { resolveResultLineage, resultLineageProvenance } from '../../modules/canvas/generation-lineage'
 import { resolveSelectionGenerationIntent } from '../../modules/canvas/selection-generation'
+import { resolveCanvasNodeContinuationTrigger } from './canvas-node-continuation-trigger'
 
 const props = withDefaults(defineProps<{
-  readonly?: boolean
-  resourcesOpen?: boolean
+  contextOverlayOpen?: boolean; readonly?: boolean; resourcesOpen?: boolean
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
-  readonly: false,
-  resourcesOpen: false,
+  contextOverlayOpen: false, readonly: false, resourcesOpen: false,
   viewportInsets: () => ({}),
 })
 
@@ -65,6 +66,7 @@ const {
   minimapNodes,
   minimapRef,
   minimapViewportStyle,
+  openConnectionContinuation,
   stageRef,
   statusBadgeStyle,
   statusIconMap,
@@ -125,6 +127,7 @@ const {
 const dismissedEmptyCanvasIds = ref<ReadonlySet<string>>(new Set())
 const isStartingWorkflow = ref(false)
 const canvasGridStyle = computed(() => getCanvasGridStyle(canvasStore.viewport))
+const continuationTrigger = computed(() => resolveCanvasNodeContinuationTrigger(canvasStore.nodes, canvasStore.selectedNodeIds, props.readonly || props.contextOverlayOpen))
 const selectionGenerationIntent = computed(() => resolveSelectionGenerationIntent(canvasStore.selectedNodes))
 const selectedResultLineage = computed(() => {
   if (canvasStore.selectedNodeIds.length !== 1 || !canvasStore.selectedNode) return null
@@ -240,7 +243,25 @@ async function composeAndReveal(mediaType: 'image' | 'video') {
   revealNode(nodeId)
 }
 
-defineExpose({ revealNode })
+function openNodeContinuation(nodeId: string, portId: string) {
+  const node = canvasStore.findNodeById(nodeId)
+  if (!node) return
+  const anchor = nodePortWorldAnchor(node, 'output', portId)
+  const viewport = normalizeViewport(canvasStore.viewport)
+  openConnectionContinuation(
+    nodeId, portId, 'downstream', worldToSurface(anchor, viewport),
+    { x: anchor.x + 32, y: anchor.y }, true,
+  )
+}
+async function selectForegroundContinuation(key: string) {
+  const nodeId = await selectConnectionContinuation(key)
+  if (!nodeId) return
+  await nextTick()
+  revealNode(nodeId)
+}
+function openSelectedContinuation() { const trigger = resolveCanvasNodeContinuationTrigger(canvasStore.nodes, canvasStore.selectedNodeIds, props.readonly); if (trigger) openNodeContinuation(trigger.node.id, trigger.portId) }
+
+defineExpose({ openSelectedContinuation, revealNode })
 
 function commitNodeContent(nodeId: string, content: string) {
   void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)
@@ -310,15 +331,17 @@ function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
         :direction="connectionContinuation.direction"
         :style="continuationStyle"
         @cancel="closeConnectionContinuation"
-        @select="selectConnectionContinuation"
+        @select="selectForegroundContinuation"
       />
 
       <CanvasNodeSurfaceLayer
+        :continuation-trigger="continuationTrigger"
         :nodes="canvasStore.nodes"
         :selected-node-ids="canvasStore.selectedNodeIds"
         :readonly="readonly"
         :surface-node-rect-style="surfaceNodeRectStyle"
         @commit-content="commitNodeContent"
+        @continue-node="openNodeContinuation"
         @media-metadata="adoptMediaAspectRatio"
       />
 

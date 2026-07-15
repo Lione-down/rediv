@@ -406,3 +406,11 @@ Evidence:
 - An autosave failure after local commit is not a command failure. Keep the recoverable node selected and visible while explicitly showing unsaved state.
 - Desktop side panels resize the stage, but compact drawers overlay it; only the compact path needs the drawer-safe right inset.
 - Readonly mobile can persist its initial fit viewport during mount. Camera-neutral assertions should record a settled baseline, then verify no additional mutation from unavailable actions.
+
+## 2026-07-15 Contextual node continuation
+
+- Reference implementations are best treated as interaction evidence, not a component library. Reuse the discoverability principle, but route eligibility, commands, placement, history, and reveal through the product's existing canonical contracts.
+- A fixed-origin continuation button cannot reuse a user-chosen drag-drop position blindly. Run its draft through collision-aware graph placement before committing, especially when an existing result already occupies the natural right-side slot.
+- Fixed screen-space overlay controls should attach to world geometry after viewport projection; scaling the control with world zoom makes it unusable at 10% and oversized at 800%.
+- Compact context drawers own a modal mask and focus trap. A Canvas control behind that mask is not reachable even when visible in DOM; place the action in the drawer, preserve selection, close it, then open the Canvas chooser after the drawer leave event.
+- Keep pointer-drag continuation semantics separate from explicit foreground actions. Only the explicit action should auto-select and reveal its result; background, history, and user-positioned drag flows remain camera-neutral.

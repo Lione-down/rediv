@@ -483,7 +483,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   })
   return {
     canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionTargetStates,
-    closeConnectionContinuation, connectionContinuation, continuationStyle, selectConnectionContinuation,
+    closeConnectionContinuation, connectionContinuation, continuationStyle, openConnectionContinuation, selectConnectionContinuation,
     handleMinimapPointerDown, minimapNodeStyle, minimapNodes, minimapRef,
     minimapViewportStyle, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,

@@ -10,6 +10,7 @@ import CanvasIdentityBar from '../../components/canvas/CanvasIdentityBar.vue'
 import CanvasRevisionPanel from '../../components/canvas/CanvasRevisionPanel.vue'
 import CanvasResultCompareTray from '../../components/canvas/CanvasResultCompareTray.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
+import { resolveCanvasNodeContinuationTrigger } from '../../components/canvas/canvas-node-continuation-trigger'
 import { useCanvasNodeActions } from '../../components/canvas/composables/use-canvas-node-actions'
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
 import { useCanvasResourceExperience } from '../../components/canvas/composables/use-canvas-resource-experience'
@@ -21,7 +22,7 @@ import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
 
 type MoveDirection = -1 | 1
-interface CanvasStageHandle { revealNode: (nodeId: string) => boolean }
+interface CanvasStageHandle { openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -114,31 +115,22 @@ const {
   updatePrompt,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
 
-const canvasViewportInsets = computed(() => ({
-  top: 96,
-  right: isCompact.value && isContextDrawerOpen.value ? 376 : 16,
-  bottom: 96,
-  left: 16,
-}))
+const canvasViewportInsets = computed(() => ({ top: 96, right: isCompact.value && isContextDrawerOpen.value ? 376 : 16, bottom: 96, left: 16 }))
+const selectedContinuationTrigger = computed(() => resolveCanvasNodeContinuationTrigger(canvasDocumentStore.nodes, canvasDocumentStore.selectedNodeIds, isReviewOnly.value || canvasRevisionStore.restoringRevision !== null))
+let isDrawerContinuationPending = false
+
+function continueFromContextDrawer() { isDrawerContinuationPending = true; isContextDrawerOpen.value = false }
+function handleContextDrawerAfterLeave() { if (isDrawerContinuationPending) { isDrawerContinuationPending = false; canvasStageRef.value?.openSelectedContinuation() } }
 
 const comparisonItems = computed(() => (selectedResultLineage.value?.variants ?? []).flatMap((variant) => {
   const node = canvasDocumentStore.findNodeById(variant.nodeId)
   return node ? [{ node, order: variant.order, isSelected: variant.isSelected }] : []
 }))
-const compareTrayStyle = computed(() => ({
-  '--compare-left': isResourceOpen.value && !isCompact.value ? `${panelWidth.value + 16}px` : '16px',
-  '--compare-right': isDesktopContextOpen.value ? '376px' : '16px',
-}))
+const compareTrayStyle = computed(() => ({ '--compare-left': isResourceOpen.value && !isCompact.value ? `${panelWidth.value + 16}px` : '16px', '--compare-right': isDesktopContextOpen.value ? '376px' : '16px' }))
 
-function openResultComparison() {
-  if (!selectedResultLineage.value || comparisonItems.value.length < 2) return
-  isContextDrawerOpen.value = false
-  isResultCompareOpen.value = true
-}
+function openResultComparison() { if (selectedResultLineage.value && comparisonItems.value.length > 1) { isContextDrawerOpen.value = false; isResultCompareOpen.value = true } }
 
-function closeResultComparison() {
-  isResultCompareOpen.value = false
-}
+function closeResultComparison() { isResultCompareOpen.value = false }
 
 function selectComparedResult(nodeId: string) {
   isResultCompareOpen.value = false
@@ -301,6 +293,7 @@ onBeforeUnmount(() => {
         <CanvasStage
           ref="canvasStageRef"
           :readonly="isReviewOnly || canvasRevisionStore.restoringRevision !== null"
+          :context-overlay-open="isContextDrawerOpen && isCompact"
           :resources-open="isResourceOpen"
           :viewport-insets="canvasViewportInsets"
           @open-resources="openResources"
@@ -453,11 +446,13 @@ onBeforeUnmount(() => {
         placement="right"
         :width="isReviewOnly ? '100%' : 360"
         @update:show="updateContextDrawer"
+        @after-leave="handleContextDrawerAfterLeave"
       >
         <NDrawerContent body-content-style="height: 100%; padding: 0;">
           <div class="v2-canvas-theme drawer-theme">
             <CanvasContextPanel
               v-if="selectedNode"
+              :can-continue="Boolean(selectedContinuationTrigger)"
               :error="generationError"
               :is-generating="isGenerating"
               :latest-task="latestTask"
@@ -472,6 +467,7 @@ onBeforeUnmount(() => {
               :success="generationSuccess"
               @branch-generation="branchFromResult"
               @close="closeContext"
+              @continue-node="continueFromContextDrawer"
               @compare-results="openResultComparison"
               @generate="generate"
               @reorder-input="reorderGenerationInput"

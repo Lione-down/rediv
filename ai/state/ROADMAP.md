@@ -127,6 +127,8 @@ T5-033 is `DONE - PASS`. Multiple canonical image results now form an explicit s
 
 T5-034 is `DONE - PASS`. Foreground-created generation workflows use minimum panel-safe camera translation while zoom, selection, inspector, undo/redo, reload, recovery, and background behavior remain stable. `REPORT-T5-034.md` records the classified local performance-gate variance.
 
+T5-035 is `DONE - PASS`. It turns typed port-drag continuation into a discoverable selected-node action while retaining canonical compatibility, collision-aware placement, atomic history, compact drawer handoff, and panel-safe reveal. `REPORT-T5-035.md` is authoritative evidence.
+
 ## Canvas First-Acceptance Gate
 
 T5-008 passes only when `ai/requirements/REVID-V2-CANVAS-ACCEPTANCE.md` is satisfied, including:

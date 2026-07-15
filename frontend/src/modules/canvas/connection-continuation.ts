@@ -1,6 +1,7 @@
 import type { CanvasNode } from '../../types/canvas'
 import { createCanvasEntityId } from './canvas-autosave'
 import type { InsertGraphCommand } from './canvas-commands'
+import { findFirstUnoccupiedPosition } from './graph-placement'
 import {
   createRegistryNodeDraft,
   getCreatableNodeDefinitions,
@@ -54,6 +55,7 @@ export function createConnectionContinuationCommand(
   point: { x: number; y: number },
   direction: ConnectionContinuationDirection = 'downstream',
   createId: () => string = createCanvasEntityId,
+  existingNodes: readonly CanvasNode[] = [],
 ): InsertGraphCommand {
   const nodeId = createId()
   const connectionId = createId()
@@ -63,6 +65,7 @@ export function createConnectionContinuationCommand(
     y: point.y - 0.5 * getCreatableNodeDefinitions()
       .find((definition) => definition.type === option.type)!.defaultSize.height,
   })
+  if (existingNodes.length) Object.assign(draft, findFirstUnoccupiedPosition(draft, draft, existingNodes, [origin.id]))
   const node: CanvasNode = { id: nodeId, ...draft }
   return {
     type: 'insert-graph',

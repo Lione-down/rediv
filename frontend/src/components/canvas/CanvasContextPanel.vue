@@ -11,6 +11,7 @@ import type { CanvasNode } from '../../types/canvas'
 
 const props = withDefaults(defineProps<{
   error?: string
+  canContinue?: boolean
   generationContext?: ResolvedGenerationContext | null
   generationTasks?: ProjectGenerationTask[]
   isGenerating?: boolean
@@ -24,6 +25,7 @@ const props = withDefaults(defineProps<{
   success?: string
 }>(), {
   error: '',
+  canContinue: false,
   generationContext: null,
   generationTasks: () => [],
   isGenerating: false,
@@ -41,6 +43,7 @@ const emit = defineEmits<{
   branchGeneration: [mediaType: ResultBranchMediaType]
   close: []
   compareResults: []
+  continueNode: []
   generate: [prompt: string]
   reorderInput: [connectionId: string, direction: -1 | 1]
   updatePrompt: [prompt: string]
@@ -140,7 +143,7 @@ function requestGeneration() {
   <aside class="context-panel" :class="`is-${mode}`" :aria-label="`节点详情 ${node.title}`">
     <header>
       <div><Sparkles v-if="mediaType" :size="18" aria-hidden="true" /><Info v-else :size="18" aria-hidden="true" /><span><strong>{{ node.title }}</strong><small>{{ node.type }} · {{ String(node.contentData?.subtype || node.type) }}</small></span></div>
-      <button type="button" aria-label="关闭节点详情" title="关闭节点详情" @click="emit('close')"><X :size="18" aria-hidden="true" /></button>
+      <div class="header-actions"><button v-if="canContinue" type="button" aria-label="继续此节点" title="继续此节点" @click="emit('continueNode')"><GitBranch :size="17" aria-hidden="true" /></button><button type="button" aria-label="关闭节点详情" title="关闭节点详情" @click="emit('close')"><X :size="18" aria-hidden="true" /></button></div>
     </header>
 
     <section v-if="mediaType" class="generation-editor" role="region" aria-label="生成任务编辑器">
@@ -289,6 +292,7 @@ function requestGeneration() {
 header, header > div, header span, .section-heading, .generation-status, .feedback, dl > div { display: flex; }
 header { min-height: 56px; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--v2-border-subtle); }
 header > div { min-width: 0; align-items: center; gap: 9px; }
+header > .header-actions { flex-shrink: 0; gap: 2px; }
 header span { min-width: 0; flex-direction: column; }
 header strong, header small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 header strong { font-size: 13px; }

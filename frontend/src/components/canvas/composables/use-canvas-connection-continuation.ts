@@ -12,6 +12,7 @@ export interface ContinuationState {
   originNodeId: string
   originPort: string
   direction: ConnectionContinuationDirection
+  isForegroundAction: boolean
   surfacePoint: Point
   worldPoint: Point
   options: ConnectionContinuationOption[]
@@ -47,6 +48,7 @@ export function useCanvasConnectionContinuation(options: ConnectionContinuationO
     direction: ConnectionContinuationDirection,
     surfacePoint: Point,
     worldPoint: Point,
+    isForegroundAction = false,
   ) {
     const origin = canvasStore.findNodeById(originNodeId)
     if (!origin) return false
@@ -56,6 +58,7 @@ export function useCanvasConnectionContinuation(options: ConnectionContinuationO
       originNodeId,
       originPort,
       direction,
+      isForegroundAction,
       surfacePoint,
       worldPoint,
       options: compatibleOptions,
@@ -68,11 +71,18 @@ export function useCanvasConnectionContinuation(options: ConnectionContinuationO
     const origin = state ? canvasStore.findNodeById(state.originNodeId) : null
     const selected = state?.options.find((option) => option.key === key)
     closeConnectionContinuation()
-    if (!state || !origin || !selected) return
+    if (!state || !origin || !selected) return null
+    const command = createConnectionContinuationCommand(
+      origin, selected, state.worldPoint, state.direction, undefined,
+      state.isForegroundAction ? canvasStore.nodes : [],
+    )
     await canvasStore.dispatchCommand({
       source: 'pointer',
-      command: createConnectionContinuationCommand(origin, selected, state.worldPoint, state.direction),
+      command,
     })
+    if (!state.isForegroundAction) return null
+    canvasStore.selectNode(command.nodes[0].id)
+    return command.nodes[0].id
   }
 
   return {
