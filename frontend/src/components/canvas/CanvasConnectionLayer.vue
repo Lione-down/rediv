@@ -93,9 +93,11 @@ function connectionLabel(connection: CanvasConnection) {
   const target = canvasStore.findNodeById(connection.to)?.title ?? '目标节点'
   const provenance = provenanceByConnectionId.value.get(connection.id)
   const kindLabel = provenance?.kind === 'text' ? '提示词' : provenance?.kind === 'media' ? '参考图' : '结果变体'
-  const provenanceLabel = provenance
-    ? `，${kindLabel} ${provenance.order}，${provenance.isIncluded ? '已参与生成' : '未参与生成'}`
-    : ''
+  const provenanceLabel = provenance?.kind === 'result'
+    ? `，${kindLabel} ${provenance.order}，生成结果`
+    : provenance
+      ? `，${kindLabel} ${provenance.order}，${provenance.isIncluded ? '已参与生成' : '未参与生成'}`
+      : ''
   return `选择连线：${source} 到 ${target}${provenanceLabel}`
 }
 

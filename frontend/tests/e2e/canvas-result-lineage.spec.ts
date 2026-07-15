@@ -79,6 +79,9 @@ test('selected image result traces four inputs, origin generation, and six varia
   await expect(page.locator('.connection-line.provenance')).toHaveCount(10)
   await expect(page.locator('.connection-line.provenance-result')).toHaveCount(6)
   await expect(page.locator('.connection-line.provenance-selected-result')).toHaveCount(1)
+  await expect(page.getByRole('button', {
+    name: '选择连线：合并四路上下文生成 到 宽银幕主镜头，结果变体 1，生成结果',
+  })).toHaveCount(1)
 
   const detail = page.getByRole('region', { name: '生成结果谱系' })
   await expect(detail).toContainText('V1 / 6')

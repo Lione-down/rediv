@@ -28,7 +28,7 @@ import {
 import { useCanvasStage } from './composables/use-canvas-stage'
 import { resolveGenerationContext } from '../../modules/canvas/generation-context'
 import { getGenerationMediaType } from '../../modules/canvas/node-registry'
-import { resolveGenerationResultVariants, resolveResultLineage, resultLineageProvenance } from '../../modules/canvas/generation-lineage'
+import { resolveGenerationResultVariants, resolveResultLineage, resultLineageProvenance, resultVariantProvenance } from '../../modules/canvas/generation-lineage'
 import { resolveSelectionGenerationIntent } from '../../modules/canvas/selection-generation'
 import { resolveCanvasNodeContinuationTrigger } from './canvas-node-continuation-trigger'
 
@@ -134,12 +134,19 @@ const selectedResultLineage = computed(() => {
   if (canvasStore.selectedNodeIds.length !== 1 || !canvasStore.selectedNode) return null
   return resolveResultLineage(canvasStore.selectedNode, canvasStore.nodes, canvasStore.connections)
 })
+const selectedGenerationVariants = computed(() => {
+  if (canvasStore.selectedNodeIds.length !== 1 || !canvasStore.selectedNode) return []
+  return resolveGenerationResultVariants(canvasStore.selectedNode, canvasStore.nodes, canvasStore.connections)
+})
 const generationProvenance = computed(() => {
   if (canvasStore.selectedNodeIds.length !== 1) return []
   const selectedNode = canvasStore.selectedNode
   if (!selectedNode) return []
   if (getGenerationMediaType(selectedNode)) {
-    return resolveGenerationContext(selectedNode, canvasStore.nodes, canvasStore.connections).provenance
+    return [
+      ...resolveGenerationContext(selectedNode, canvasStore.nodes, canvasStore.connections).provenance,
+      ...resultVariantProvenance(selectedGenerationVariants.value),
+    ]
   }
   return selectedResultLineage.value ? resultLineageProvenance(selectedResultLineage.value) : []
 })
@@ -151,12 +158,7 @@ const provenanceSources = computed(() => generationProvenance.value.filter(
 }))
 const lineageNodes = computed(() => {
   const lineage = selectedResultLineage.value
-  const selectedGeneration = canvasStore.selectedNodeIds.length === 1 && canvasStore.selectedNode
-    ? canvasStore.selectedNode
-    : null
-  const variants = lineage?.variants ?? (selectedGeneration
-    ? resolveGenerationResultVariants(selectedGeneration, canvasStore.nodes, canvasStore.connections)
-    : [])
+  const variants = lineage?.variants ?? selectedGenerationVariants.value
   const generationNode = lineage ? canvasStore.findNodeById(lineage.generationNodeId) : null
   return [
     ...(generationNode ? [{ key: `generation-${generationNode.id}`, label: 'G', node: generationNode, selected: false }] : []),

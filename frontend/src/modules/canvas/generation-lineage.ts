@@ -107,13 +107,19 @@ export function resolveResultLineage(
 export function resultLineageProvenance(lineage: ResolvedResultLineage): CanvasGenerationProvenance[] {
   return [
     ...lineage.inputProvenance,
-    ...lineage.variants.map((variant) => ({
-      connectionId: variant.connectionId,
-      isIncluded: true as const,
-      isSelected: variant.isSelected,
-      kind: 'result' as const,
-      nodeId: variant.nodeId,
-      order: variant.order,
-    })),
+    ...resultVariantProvenance(lineage.variants),
   ]
+}
+
+export function resultVariantProvenance(
+  variants: readonly ResultVariantLineage[],
+): CanvasGenerationProvenance[] {
+  return variants.map((variant) => ({
+    connectionId: variant.connectionId,
+    isIncluded: true as const,
+    isSelected: variant.isSelected,
+    kind: 'result' as const,
+    nodeId: variant.nodeId,
+    order: variant.order,
+  }))
 }

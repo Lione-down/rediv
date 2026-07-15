@@ -1,5 +1,11 @@
 # 踩坑记录
 
+## 2026-07-15 End-to-end generation provenance
+
+- Output markers without output paths identify variants but do not explain graph ownership. Selected-generation provenance should join authoritative inputs and canonical outputs into one trace.
+- Input and output edges need different semantic weight. Included T/R inputs carry current intent; V outputs use a quieter result treatment, while only one selected-result edge receives stronger emphasis.
+- Result edge accessibility must describe generated output, not reuse input language such as “participated in generation”. Ordinary unselected edge names must remain stable for keyboard graph operations.
+
 ## 2026-07-15 Generation output variant identity
 
 - Collision-safe expanded result nodes preserve interaction geometry but need generation-selected V identity to read as one output family. Do not physically overlap persisted nodes just to imitate a visual stack.

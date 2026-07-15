@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 import { createMultiScenarioState } from './canvas-multi-scenario-fixture'
 import { FIRST_CANVAS_ID, openResourceWorkspace } from './canvas-resource-generation-fixture'
 
-const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-022-generation-provenance')
+const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-039-end-to-end-provenance')
 
 async function selectNode(page: import('@playwright/test').Page, title: string) {
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
@@ -22,9 +22,14 @@ test('selected multi-input generation shows ordered source and edge provenance',
   await expect(markers.filter({ hasText: 'T2' })).toHaveCount(1)
   await expect(markers.filter({ hasText: 'R1' })).toHaveCount(1)
   await expect(markers.filter({ hasText: 'R2' })).toHaveCount(1)
-  await expect(page.locator('.connection-line.provenance')).toHaveCount(4)
+  await expect(page.locator('.connection-line.provenance')).toHaveCount(10)
   await expect(page.locator('.connection-line.provenance-excluded')).toHaveCount(0)
+  await expect(page.locator('.connection-line.provenance-result')).toHaveCount(6)
+  await expect(page.locator('.connection-line.provenance-selected-result')).toHaveCount(0)
   await expect(page.locator('.result-lineage-node')).toHaveCount(6)
+  await expect(page.getByRole('button', {
+    name: '选择连线：合并四路上下文生成 到 宽银幕主镜头，结果变体 1，生成结果',
+  })).toHaveCount(1)
 
   const context = page.getByRole('region', { name: '已连接生成上下文' })
   await expect(context).toContainText('提示词 1 · 中文剧情约束')
@@ -32,12 +37,14 @@ test('selected multi-input generation shows ordered source and edge provenance',
   await expect(context).toContainText('参考图 1 · 海岸环境参考')
   await expect(context).toContainText('参考图 2 · 人物造型参考')
 
+  await mkdir(evidenceDirectory, { recursive: true })
+  await page.screenshot({ path: resolve(evidenceDirectory, 'full-input-output-trace-1440x900.png'), fullPage: true })
+
   await page.getByRole('button', { name: '开始图片生成' }).click()
   await expect.poll(() => state.requests.filter((request) => request.path === '/api/image-generate').length).toBe(1)
   const request = state.requests.find((candidate) => candidate.path === '/api/image-generate')
   expect(request?.body?.image_ids).toEqual(['asset-reference', 'asset-character'])
 
-  await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'ordered-four-inputs-1440x900.png'), fullPage: true })
 
   await selectNode(page, '宽银幕主镜头')
@@ -82,6 +89,7 @@ test('excluded duplicate and missing media stay visible without entering request
   await expect(page.locator('.generation-source-provenance.is-excluded')).toHaveCount(2)
   await expect(page.locator('.generation-source-provenance.is-excluded').filter({ hasText: 'R×' })).toHaveCount(2)
   await expect(page.locator('.connection-line.provenance-excluded')).toHaveCount(2)
+  await expect(page.locator('.connection-line.provenance-result')).toHaveCount(6)
   const context = page.getByRole('region', { name: '已连接生成上下文' })
   await expect(context).toContainText('参考图 3 · 重复海岸参考')
   await expect(context).toContainText('重复资源，已合并')
@@ -99,7 +107,8 @@ test('readonly compact review exposes provenance without mutation controls', asy
   await selectNode(page, '合并四路上下文生成')
 
   await expect(page.locator('.generation-source-provenance')).toHaveCount(4)
-  await expect(page.locator('.connection-line.provenance')).toHaveCount(4)
+  await expect(page.locator('.connection-line.provenance')).toHaveCount(10)
+  await expect(page.locator('.connection-line.provenance-result')).toHaveCount(6)
   await expect(page.getByRole('region', { name: '已连接生成上下文' })).toContainText('4 项已使用')
   await expect(page.getByRole('button', { name: '开始图片生成' })).toHaveCount(0)
   await expect(page.locator('.selection-toolbar')).toHaveCount(0)
