@@ -1,5 +1,5 @@
 import { isAxiosError } from 'axios'
-import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref, watch, type ComputedRef, type Ref } from 'vue'
+import { computed, nextTick, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { resolveGenerationRequestContext } from '../../../modules/canvas/generation-parameters'
 import { resolveResultLineage } from '../../../modules/canvas/generation-lineage'
 import { getGenerationMediaType } from '../../../modules/canvas/node-registry'
@@ -21,6 +21,7 @@ import type { CanvasNode } from '../../../types/canvas'
 import { createVideoFrameCaptureAction } from './use-video-frame-capture'
 import { useGenerationCapabilities } from './use-generation-capabilities'
 import { useCanvasGenerationActions } from './use-canvas-generation-actions'
+import { useCanvasGenerationRuntime } from './use-canvas-generation-runtime'
 
 interface CanvasResourceExperienceOptions {
   canvasId: ComputedRef<string>
@@ -99,42 +100,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   })
   let resourceOpener: HTMLElement | null = null
   let reconciliationTransition = Promise.resolve<unknown>(undefined)
-  let pollingTimer: ReturnType<typeof setTimeout> | null = null
-  let pollingAttempt = 0
-  let pollingGeneration = 0
-
-  function stopResourcePolling() {
-    pollingGeneration += 1
-    pollingAttempt = 0
-    if (pollingTimer) clearTimeout(pollingTimer)
-    pollingTimer = null
-  }
-
-  function hasPendingGeneration() {
-    return latestTasksByNode(resourceStore.tasks).some((task) => (
-      task.status === 'queued' || task.status === 'running'
-    ))
-  }
-
-  function scheduleResourcePolling(force = false) {
-    if (pollingTimer || (!force && !hasPendingGeneration())) return
-    const projectId = options.projectId.value
-    const canvasId = options.canvasId.value
-    const authToken = authStore.token
-    if (!projectId || !canvasId || !authToken || resourceStore.projectId !== projectId) return
-    const generation = pollingGeneration
-    const delay = Math.min(1000 * (2 ** pollingAttempt), 8000)
-    pollingTimer = setTimeout(async () => {
-      pollingTimer = null
-      if (generation !== pollingGeneration || authStore.token !== authToken || options.projectId.value !== projectId || options.canvasId.value !== canvasId) return
-      pollingAttempt += 1
-      await resourceStore.refreshIfCurrent(projectId).catch(() => undefined)
-      await queueResourceReconciliation().catch(() => undefined)
-      if (generation !== pollingGeneration) return
-      if (hasPendingGeneration() && pollingAttempt < 10) scheduleResourcePolling(true)
-      else stopResourcePolling()
-    }, delay)
-  }
+  const generationRuntime = useCanvasGenerationRuntime({ canvasId: options.canvasId, projectId: options.projectId })
 
   const selectedNode = computed(() => canvasStore.selectedNodeIds.length === 1 ? canvasStore.selectedNode : null)
   const selectedMediaType = computed(() => (
@@ -159,8 +125,12 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const selectedQuota = computed(() => (
     selectedMediaType.value ? authStore.quotas[selectedMediaType.value] : 0
   ))
+  const selectedRuntimePresentation = computed(() => (
+    selectedNode.value ? generationRuntime.presentations.value.get(selectedNode.value.id) ?? null : null
+  ))
   const latestTask = computed(() => {
     const nodeId = selectedNode.value?.id
+    if (selectedRuntimePresentation.value) return selectedRuntimePresentation.value.task
     return nodeId
       ? latestTasksByNode(resourceStore.tasks).find((task) => task.canvas_node_id === nodeId) ?? null
       : null
@@ -359,7 +329,9 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     foregroundResultNodeId,
     formatError: errorMessage,
     queueResourceReconciliation,
-    scheduleResourcePolling,
+    beginRuntimeRequest: generationRuntime.beginRequest,
+    requestRuntimeRecoveryPolling: generationRuntime.requestRecoveryPolling,
+    settleRuntimeRequest: generationRuntime.settleRequest,
   })
 
   function closeContext() {
@@ -370,7 +342,6 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   let suppressNextCompactContextOpen = false
   function selectNodeForCanvasLocation(nodeId: string) { if (!canvasStore.findNodeById(nodeId)) return false; suppressNextCompactContextOpen = options.isCompact.value; canvasStore.selectNode(nodeId); return true }
   watch(options.projectId, (projectId) => {
-    stopResourcePolling()
     if (projectId) void resourceStore.loadProject(projectId).catch(() => undefined)
   }, { immediate: true })
 
@@ -385,11 +356,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     () => resourceStore.assets.map((asset) => `${asset.id}:${asset.updated_at}`).join('|'),
   ], () => {
     void queueResourceReconciliation().catch(() => undefined)
-    if (hasPendingGeneration()) scheduleResourcePolling()
-    else if (pollingTimer) stopResourcePolling()
   }, { immediate: true, flush: 'post' })
-
-  watch([options.canvasId, () => authStore.token], stopResourcePolling, { flush: 'sync' })
 
   watch(() => selectedNode.value?.id, (nodeId) => {
     generationError.value = ''
@@ -406,8 +373,6 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     if (!isCompact) isContextDrawerOpen.value = false
   })
 
-  if (getCurrentInstance()) onBeforeUnmount(stopResourcePolling)
-
   return {
     resourceStore,
     activeTab,
@@ -422,6 +387,8 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     selectedGenerationContext,
     selectedResultLineage,
     selectedQuota,
+    selectedRuntimePresentation,
+    generationRuntimePresentations: generationRuntime.presentations,
     latestTask,
     visibleError,
     generationError: visibleGenerationError,

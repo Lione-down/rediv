@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { expect, type Page, type Route, type TestInfo } from '@playwright/test'
+import { GENERATION_CAPABILITIES } from './canvas-generation-parameters-fixture'
 
 const API_ORIGIN = 'http://localhost:8000'
 export const APP_ORIGIN = 'http://127.0.0.1:9099'
@@ -244,6 +245,11 @@ export async function installMockApi(page: Page, state: MockState) {
         page: Number(url.searchParams.get('page') || 1),
         page_size: Number(url.searchParams.get('page_size') || 100),
       })
+      return
+    }
+
+    if (request.method() === 'GET' && pathname === '/api/generation-capabilities') {
+      await fulfillJson(route, GENERATION_CAPABILITIES)
       return
     }
 

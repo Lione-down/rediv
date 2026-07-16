@@ -286,6 +286,37 @@ test('an in-flight refresh cannot overwrite newer asset and task upserts', async
   expect(store.tasks.map((item) => item.id)).toEqual(['task-newer'])
 })
 
+test('task-only refresh deduplicates polling reads without reloading assets or templates', async () => {
+  const calls: string[] = []
+  let taskStatus = 'queued'
+  request.defaults.adapter = async (config) => {
+    calls.push(String(config.url))
+    if (config.url === '/assets') {
+      return response(config, { items: [asset('asset-stable', 'project-resource')], total: 1, page: 1, page_size: 100 })
+    }
+    if (config.url === '/templates') return response(config, { items: [template()], total: 1 })
+    return response(config, {
+      items: [{ ...generationTask('task-runtime', 'project-resource'), status: taskStatus }],
+      total: 1, page: 1, page_size: 100,
+    })
+  }
+  const { useProjectResourceStore } = await import('../../src/modules/canvas/project-resource-store')
+  const store = useProjectResourceStore()
+  await store.loadProject('project-resource')
+  calls.length = 0
+  taskStatus = 'running'
+
+  await Promise.all([
+    store.refreshTasksIfCurrent('project-resource'),
+    store.refreshTasksIfCurrent('project-resource'),
+  ])
+
+  expect(calls).toEqual(['/api/generation-tasks'])
+  expect(store.tasks).toMatchObject([{ id: 'task-runtime', status: 'running' }])
+  expect(store.assets.map((item) => item.id)).toEqual(['asset-stable'])
+  expect(store.templates.map((item) => item.id)).toEqual(['template-one'])
+})
+
 test('project resource store aggregates every bounded asset and task page from server totals', async () => {
   const allAssets = Array.from({ length: 205 }, (_, index) => (
     asset(`asset-${String(index + 1).padStart(3, '0')}`, 'project-resource')

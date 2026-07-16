@@ -81,6 +81,12 @@ interface LoadRequest {
   promise: Promise<ProjectResourceSnapshot>
 }
 
+interface TaskRefreshRequest {
+  generation: number
+  projectId: string
+  promise: Promise<GenerationTask[]>
+}
+
 interface ResourceErrorResponse {
   detail?: unknown
 }
@@ -113,6 +119,7 @@ export const useProjectResourceStore = defineStore('canvas-project-resources', (
   let generation = 0
   let resourceRevision = 0
   let loadRequest: LoadRequest | null = null
+  let taskRefreshRequest: TaskRefreshRequest | null = null
   const mutationIds = createStableMutationIdPool()
   const assetRevisions = new Map<string, number>()
   const taskRevisions = new Map<string, number>()
@@ -129,6 +136,7 @@ export const useProjectResourceStore = defineStore('canvas-project-resources', (
   function resetProjectResources() {
     generation += 1
     loadRequest = null
+    taskRefreshRequest = null
     projectId.value = ''
     assets.value = []
     templates.value = []
@@ -153,6 +161,7 @@ export const useProjectResourceStore = defineStore('canvas-project-resources', (
     if (normalizedProjectId !== projectId.value) {
       generation += 1
       loadRequest = null
+      taskRefreshRequest = null
       projectId.value = normalizedProjectId
       assets.value = []
       templates.value = []
@@ -240,6 +249,38 @@ export const useProjectResourceStore = defineStore('canvas-project-resources', (
     return normalizedProjectId && normalizedProjectId === projectId.value
       ? loadProject(normalizedProjectId, true)
       : Promise.resolve(snapshot())
+  }
+
+  function refreshTasksIfCurrent(expectedProjectId: string) {
+    const normalizedProjectId = expectedProjectId.trim()
+    if (!normalizedProjectId || normalizedProjectId !== projectId.value) {
+      return Promise.resolve(tasks.value)
+    }
+    const requestedGeneration = generation
+    if (
+      taskRefreshRequest?.generation === requestedGeneration &&
+      taskRefreshRequest.projectId === normalizedProjectId
+    ) {
+      return taskRefreshRequest.promise
+    }
+    const requestedResourceRevision = resourceRevision
+    const promise = (async () => {
+      const response = await fetchProjectGenerationTasks(normalizedProjectId)
+      if (generation === requestedGeneration && projectId.value === normalizedProjectId) {
+        tasks.value = mergeAfterRequest(
+          response.data.items.filter((task) => task.project_id === normalizedProjectId),
+          tasks.value,
+          taskRevisions,
+          requestedResourceRevision,
+        )
+      }
+      return tasks.value
+    })()
+    const currentRequest = { generation: requestedGeneration, projectId: normalizedProjectId, promise }
+    taskRefreshRequest = currentRequest
+    return promise.finally(() => {
+      if (taskRefreshRequest === currentRequest) taskRefreshRequest = null
+    })
   }
 
   function upsertById<T extends { id: string }>(items: T[], item: T) {
@@ -419,6 +460,7 @@ export const useProjectResourceStore = defineStore('canvas-project-resources', (
     loadProject,
     refresh,
     refreshIfCurrent,
+    refreshTasksIfCurrent,
     uploadAsset,
     captureTemplate,
     instantiateTemplate,

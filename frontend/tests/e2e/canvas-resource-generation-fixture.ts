@@ -53,6 +53,7 @@ export interface ResourceMockState {
   generationCount: number
   generationOutcome: 'success' | 'failure'
   requests: MockRequest[]
+  taskListOutcome: 'success' | 'failure'
   tasks: Array<Record<string, unknown>>
   templateInstantiationGate: Promise<void> | null
   templates: Array<Record<string, unknown>>
@@ -178,6 +179,7 @@ export function createResourceMockState(): ResourceMockState {
     generationCount: 0,
     generationOutcome: 'success',
     requests: [],
+    taskListOutcome: 'success',
     tasks: [
       generationTask({}),
       generationTask({ id: 'task-existing-failure', status: 'failed', result_asset_id: null, error_code: 'provider_error', error_message: '历史 mock provider unavailable', provider_request_id: null }),
@@ -445,6 +447,7 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
     if (method === 'GET' && path === '/templates') return fulfillJson(route, { items: state.templates, total: state.templates.length })
     if (method === 'GET' && path === '/api/generation-tasks') {
       if (url.searchParams.get('project_id') !== PROJECT_ID) return fulfillJson(route, { detail: 'project_id required' }, 400)
+      if (state.taskListOutcome === 'failure') return fulfillJson(route, { detail: 'mock task list unavailable' }, 503)
       return fulfillJson(route, { items: state.tasks, total: state.tasks.length, page: 1, page_size: 100 })
     }
     if (method === 'GET' && path === '/api/generation-capabilities') {

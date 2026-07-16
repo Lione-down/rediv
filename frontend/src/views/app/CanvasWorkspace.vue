@@ -102,6 +102,8 @@ const {
   selectedGenerationContext,
   selectedResultLineage,
   selectedQuota,
+  selectedRuntimePresentation,
+  generationRuntimePresentations,
   latestTask,
   visibleError,
   generationError,
@@ -359,6 +361,7 @@ onBeforeUnmount(() => {
           :capture-pending="isUploading"
           :readonly="isReviewOnly || canvasRevisionStore.restoringRevision !== null"
           :context-overlay-open="isContextDrawerOpen && isCompact"
+          :generation-runtime-presentations="generationRuntimePresentations"
           :resources-open="isResourceOpen"
           :viewport-insets="canvasViewportInsets"
           @open-resources="openResources"
@@ -448,6 +451,7 @@ onBeforeUnmount(() => {
           :error="generationError"
           :is-generating="isGenerating"
           :latest-task="latestTask"
+          :runtime-presentation="selectedRuntimePresentation"
           :generation-context="selectedGenerationContext"
           :generation-input-lineage="selectedGenerationInputLineage"
           :generation-tasks="resourceStore.tasks"
@@ -531,6 +535,7 @@ onBeforeUnmount(() => {
               :error="generationError"
               :is-generating="isGenerating"
               :latest-task="latestTask"
+              :runtime-presentation="selectedRuntimePresentation"
               :generation-context="selectedGenerationContext"
               :generation-input-lineage="selectedGenerationInputLineage"
               :generation-tasks="resourceStore.tasks"

@@ -26,13 +26,14 @@ import { useCanvasStageKeyboard } from './use-canvas-stage-keyboard'
 import { useCanvasStageOverlays } from './use-canvas-stage-overlays'
 import { useCanvasStagePresentation } from './use-canvas-stage-presentation'
 import { useCanvasViewControls } from './use-canvas-view-controls'
+import { useCanvasGenerationRuntimeRenderer, type GenerationRuntimePresentationGetter } from './use-canvas-generation-runtime-renderer'
 interface DragState { pointerId: number | null; startWorldPoint: Point; origins: CanvasNodePosition[]; moved: boolean }
 interface PanState { pointerId: number | null; startClientX: number; startClientY: number; originX: number; originY: number }
 interface DraftConnectionState { originNodeId: string; originPort: string; direction: 'input' | 'output'; pointerId: number | null; currentX: number; currentY: number; startX: number; startY: number; moved: boolean }
 interface MarqueeState { pointerId: number | null; start: Point; current: Point; additive: boolean }
 interface NativePointerLikeEvent extends MouseEvent { pointerId?: number }
 interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLikeEvent }
-interface CanvasStageOptions { getViewportInsets?: () => Partial<ViewportInsets>; isReadOnly?: () => boolean; onGraphPanelClosed?: () => void }
+interface CanvasStageOptions { getGenerationRuntimePresentations?: GenerationRuntimePresentationGetter; getViewportInsets?: () => Partial<ViewportInsets>; isReadOnly?: () => boolean; onGraphPanelClosed?: () => void }
 export function useCanvasStage(options: CanvasStageOptions = {}) {
   const canvasStore = useCanvasStore()
   const stageRef = ref<HTMLElement | null>(null)
@@ -427,7 +428,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (!surface || !stage) return
     surfaceViewportSize.value = { width: Math.max(stage.clientWidth, 1), height: Math.max(stage.clientHeight, 1) }
     renderer = createCanvasRenderer({
-      surface, getNodes: () => canvasStore.nodes, getSelectedNodeIds: () => canvasStore.selectedNodeIds,
+      surface, getNodes: () => canvasStore.nodes, getSelectedNodeIds: () => canvasStore.selectedNodeIds, getGenerationRuntimePresentation: (nodeId) => options.getGenerationRuntimePresentations?.().get(nodeId) ?? null,
       getViewport, cssVar, onStagePointerDown: handleStagePointerDown,
       onContextMenu: handleContextMenu, onStageDoubleClick: handleStageDoubleClick,
       onNodePointerDown: handleNodePointerDown, onPortPointerDown: handlePortPointerDown,
@@ -453,6 +454,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   })
   watch(nodeAppearances, () => renderer?.syncNodes(), { deep: true })
   watch(() => [...canvasStore.selectedNodeIds], () => renderer?.syncNodes())
+  useCanvasGenerationRuntimeRenderer(() => options.getGenerationRuntimePresentations?.() ?? new Map(), (nodeIds) => renderer?.updateNodeVisuals(nodeIds))
   watch(nodePositions, (positions, previousPositions = []) => {
     const previousById = new Map(previousPositions.map((position) => [position.id, position]))
     for (const position of positions) {
@@ -462,10 +464,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       }
     }
   })
-  watch(
-    () => [canvasStore.viewport.x, canvasStore.viewport.y, canvasStore.viewport.zoom],
-    () => renderer?.updateViewport(),
-  )
+  watch(() => [canvasStore.viewport.x, canvasStore.viewport.y, canvasStore.viewport.zoom], () => renderer?.updateViewport())
   onBeforeUnmount(() => {
     pointerMoveQueue.clear()
     unbindWindowPointerListeners()

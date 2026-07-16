@@ -15,14 +15,17 @@ Last updated: 2026-07-16
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-075 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
+- Completed V2 Tasks: T5-001 through T5-076 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
 
 ## Active Delivery
 
-- Active implementation Task: `None`
+- Active implementation Task: none
 - State: `IDLE`
-- Last completed Task: `T5-075 - Provider-backed generation parameters and reference intent`
-- Report: `ai/reports/REPORT-T5-075.md`
+- Last completed Task: `T5-076 - Runtime generation visibility`
+- Task: `ai/tasks/todo/TASK-T5-076.md`
+- Plan: `ai/tasks/doing/TASK-T5-076-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-076-PROGRESS.md`
+- Report: `ai/reports/REPORT-T5-076.md`
 
 ## Current Verified Facts
 
@@ -102,10 +105,11 @@ Last updated: 2026-07-16
 - T5-073 is now `DONE - PASS`: canonical script, note, and generation nodes share a compact clean-room authoring hierarchy with bounded content, one lifecycle expression, coherent selected editing, unchanged media-first results, and fresh live 200-node/300-connection evidence. Final report: `ai/reports/REPORT-T5-073.md`.
 - T5-074 is now `DONE - PASS`: authenticated logout acknowledgement, immediate failure-safe local teardown, and one accessible responsive account menu cover Home, Workspace, Space, Canvas, and Admin. Backend auth 13/13, frontend regression 12/12, a 4,824-module build, desktop/375px visual checks, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-074.md`.
 - T5-075 is now `DONE - PASS`: backend-owned capability normalization, explicit image ratio and video duration/reference intent, typed preference persistence, exact provider payloads, and immutable sanitized task snapshots passed backend 40 plus 14 subtests, browser 31/31, build, responsive visual, migration, and hygiene gates. Final report: `ai/reports/REPORT-T5-075.md`.
+- T5-076 is now `DONE - PASS`: local submission plus strict durable queued/running/terminal task state is projected continuously to generation cards and Inspector through task-only polling and targeted renderer updates, with zero active-tick graph/camera mutation. Focused 6/6, related 26/26, broader effective 38/38, a 4,833-module build, responsive visual checks, and fresh live 200/300 evidence passed. Final report: `ai/reports/REPORT-T5-076.md`.
 
 ## Exact Next Action
 
-After the T5-075 commit is pushed and the owned baseline is clean, activate T5-076 for task-only polling and runtime generation visibility.
+Commit and push T5-076, then activate T5-077 doc-first for backend-owned durable progress stage/percent.
 
 ## Blockers And Human Gates
 

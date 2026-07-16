@@ -14,6 +14,7 @@ import { useCanvasStore } from '../../store/canvas'
 import type { CanvasNode } from '../../types/canvas'
 import { formatCapturedFrameTime, resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
 import type { GenerationInputLineageBridge } from '../../modules/canvas/generation-input-lineage'
+import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import { resolveVisualAssetRecipe, VISUAL_ASSET_RECIPES, type VisualAssetRecipeId } from '../../modules/canvas/visual-asset-recipes'
 import CanvasGenerationParameterControls from './CanvasGenerationParameterControls.vue'
 
@@ -34,6 +35,7 @@ const props = withDefaults(defineProps<{
   quota?: number
   readonly?: boolean
   resultLineage?: ResolvedResultLineage | null
+  runtimePresentation?: GenerationRuntimePresentation | null
   success?: string
 }>(), {
   error: '',
@@ -50,6 +52,7 @@ const props = withDefaults(defineProps<{
   quota: 0,
   readonly: false,
   resultLineage: null,
+  runtimePresentation: null,
   success: '',
 })
 
@@ -112,8 +115,9 @@ const runStatusLabel = {
   failed: '失败',
   timed_out: '已超时',
 } as const
+const isRuntimeActive = computed(() => ['submitting', 'queued', 'running'].includes(props.runtimePresentation?.phase ?? ''))
 const statusLabel = computed(() => {
-  if (props.isGenerating) return '生成中'
+  if (props.runtimePresentation) return props.runtimePresentation.label
   if (props.success) return '已完成'
   if (props.latestTask?.status === 'succeeded') return '已完成'
   if (props.latestTask?.status === 'failed') return '失败'
@@ -282,13 +286,13 @@ function requestGeneration() {
         :aria-label="visualRecipe ? `重新生成${visualRecipe.title}` : `开始${generationLabel}生成`"
         @click="requestGeneration"
       >
-        <LoaderCircle v-if="isGenerating" :size="17" class="is-spinning" aria-hidden="true" />
+        <LoaderCircle v-if="isRuntimeActive" :size="17" class="is-spinning" aria-hidden="true" />
         <Play v-else :size="17" aria-hidden="true" />
-        {{ isGenerating ? `${visualRecipe?.title ?? generationLabel}生成中` : visualRecipe ? `重新生成${visualRecipe.title}` : `开始${generationLabel}生成` }}
+        {{ isRuntimeActive ? `${visualRecipe?.title ?? generationLabel}生成中` : visualRecipe ? `重新生成${visualRecipe.title}` : `开始${generationLabel}生成` }}
       </button>
 
       <p class="generation-status" role="status" aria-label="生成状态">
-        <LoaderCircle v-if="isGenerating" :size="15" class="is-spinning" aria-hidden="true" />
+        <LoaderCircle v-if="isRuntimeActive" :size="15" class="is-spinning" aria-hidden="true" />
         <CircleCheck v-else-if="statusLabel === '已完成'" :size="15" aria-hidden="true" />
         <span>{{ statusLabel }}</span>
         <small v-if="latestTask">{{ latestTask.id }}</small>

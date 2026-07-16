@@ -1,6 +1,7 @@
 import { Ellipse, Group, Image as LeaferImage, Leafer, Rect, Text } from 'leafer-ui'
 import type { CanvasNode } from '../../types/canvas'
 import type { ViewportState } from './canvas-geometry'
+import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import { resolveCanvasAuthoringCardPresentation } from './canvas-authoring-card-presentation'
 import { buildCanvasNodePresentation, canvasNodeVisualSize, isSupportedCanvasGroupNode } from './canvas-node-presentation'
 import { planKeyedReconciliation } from './canvas-renderer-reconciliation'
@@ -48,6 +49,7 @@ interface CanvasRendererOptions {
   surface: HTMLElement
   getNodes: () => CanvasNode[]
   getSelectedNodeIds: () => string[]
+  getGenerationRuntimePresentation: (nodeId: string) => GenerationRuntimePresentation | null
   getViewport: () => ViewportState
   cssVar: (name: string, fallback: string) => string
   onStagePointerDown: (event: PointerEventPayload) => void
@@ -63,6 +65,7 @@ export interface CanvasRenderer {
   isPortTarget: (nodeId: string, target: unknown) => boolean
   resize: () => void
   syncNodes: () => void
+  updateNodeVisuals: (nodeIds: readonly string[]) => void
   updateNodePosition: (nodeId: string) => void
   updateViewport: () => void
 }
@@ -81,7 +84,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
 
   function getNodeVisualState(node: CanvasNode): NodeVisualState {
     const presentation = buildCanvasNodePresentation(node)
-    const authoringCard = resolveCanvasAuthoringCardPresentation(node)
+    const authoringCard = resolveCanvasAuthoringCardPresentation(node, options.getGenerationRuntimePresentation(node.id))
     const size = canvasNodeVisualSize(node)
     const mediaKey = presentation.media
       ? `${presentation.media.kind}:${presentation.media.kind === 'image' ? presentation.media.url : presentation.media.label}`
@@ -130,17 +133,31 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
   }
 
   function nodeStrokeColor(node: CanvasNode) {
-    if (node.status === 'running') return options.cssVar('--warning', 'oklch(70% 0.13 78)')
-    if (node.status === 'warning') return options.cssVar('--danger', 'oklch(58% 0.17 27)')
+    if (isNodeProgress(node)) return options.cssVar('--warning', 'oklch(70% 0.13 78)')
+    if (isNodeDanger(node)) return options.cssVar('--danger', 'oklch(58% 0.17 27)')
     if (options.getSelectedNodeIds().includes(node.id)) return options.cssVar('--accent-select', 'oklch(58% 0.115 252)')
     return options.cssVar('--border-subtle', 'oklch(88% 0.009 92)')
   }
 
   function nodeShadowColor(node: CanvasNode) {
-    if (node.status === 'running') return 'oklch(70% 0.13 78 / 0.18)'
-    if (node.status === 'warning') return 'oklch(58% 0.17 27 / 0.18)'
+    if (isNodeProgress(node)) return 'oklch(70% 0.13 78 / 0.18)'
+    if (isNodeDanger(node)) return 'oklch(58% 0.17 27 / 0.18)'
     if (options.getSelectedNodeIds().includes(node.id)) return options.cssVar('--canvas-node-selected-shadow', 'rgba(75, 122, 255, 0.16)')
     return options.cssVar('--canvas-node-shadow', 'rgba(44, 52, 68, 0.10)')
+  }
+
+  function isNodeProgress(node: CanvasNode) {
+    const runtime = options.getGenerationRuntimePresentation(node.id)
+    return runtime
+      ? runtime.phase === 'submitting' || runtime.phase === 'queued' || runtime.phase === 'running'
+      : node.status === 'running'
+  }
+
+  function isNodeDanger(node: CanvasNode) {
+    const runtime = options.getGenerationRuntimePresentation(node.id)
+    return runtime
+      ? runtime.phase === 'failed' || runtime.phase === 'timed_out'
+      : node.status === 'warning'
   }
 
   function resize() {
@@ -168,11 +185,11 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
   function createNodeVisual(node: CanvasNode) {
     const state = getNodeVisualState(node)
     const presentation = buildCanvasNodePresentation(node)
-    const authoringCard = resolveCanvasAuthoringCardPresentation(node)
+    const authoringCard = resolveCanvasAuthoringCardPresentation(node, options.getGenerationRuntimePresentation(node.id))
     const isGroup = isSupportedCanvasGroupNode(node)
     const isMedia = presentation.visualKind === 'media' || presentation.visualKind === 'result'
     const size = canvasNodeVisualSize(node)
-    const hasEmphasis = node.status === 'running' || node.status === 'warning' || state.isSelected
+    const hasEmphasis = isNodeProgress(node) || isNodeDanger(node) || state.isSelected
     const group = new Group({ x: node.x, y: node.y })
     const card = new Rect({
       width: size.width,
@@ -314,7 +331,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       return
     }
     const presentation = buildCanvasNodePresentation(node)
-    const authoringCard = resolveCanvasAuthoringCardPresentation(node)
+    const authoringCard = resolveCanvasAuthoringCardPresentation(node, options.getGenerationRuntimePresentation(node.id))
     const isGroup = isSupportedCanvasGroupNode(node)
     const size = canvasNodeVisualSize(node)
 
@@ -327,7 +344,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
         ? options.cssVar('--v2-surface-3', 'oklch(21% 0.035 292)')
       : options.cssVar('--canvas-node-surface', 'rgba(255, 255, 255, 0.92)')
     const isMedia = presentation.visualKind === 'media' || presentation.visualKind === 'result'
-    const hasEmphasis = node.status === 'running' || node.status === 'warning' || nextState.isSelected
+    const hasEmphasis = isNodeProgress(node) || isNodeDanger(node) || nextState.isSelected
     visual.card.cornerRadius = isMedia ? 8 : 12
     if (isMedia) visual.card.fill = 'transparent'
     visual.card.strokeWidth = nextState.isSelected ? 1.5 : 1
@@ -408,6 +425,15 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     syncNodeOrder(nodes)
   }
 
+  function updateNodeVisuals(nodeIds: readonly string[]) {
+    const nodesById = new Map(options.getNodes().map((node) => [node.id, node]))
+    for (const nodeId of nodeIds) {
+      const node = nodesById.get(nodeId)
+      const visual = nodeVisuals.get(nodeId)
+      if (node && visual) updateNodeVisual(node, visual)
+    }
+  }
+
   ;(leafer as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
     POINTER_DOWN,
     options.onStagePointerDown,
@@ -430,6 +456,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     },
     resize,
     syncNodes,
+    updateNodeVisuals,
     updateNodePosition,
     updateViewport,
   }

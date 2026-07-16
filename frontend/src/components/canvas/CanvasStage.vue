@@ -34,12 +34,15 @@ import { resolveCanvasNodeContinuationTrigger } from './canvas-node-continuation
 import { resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
 import { createArrangeGenerationLineageCommand } from '../../modules/canvas/generation-lineage-arrangement'
 import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
+import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; readonly?: boolean; resourcesOpen?: boolean
+  generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
   actionError: '', capturePending: false, contextOverlayOpen: false, readonly: false, resourcesOpen: false,
+  generationRuntimePresentations: () => new Map(),
   viewportInsets: () => ({}),
 })
 
@@ -128,6 +131,7 @@ const {
   zoomOut,
   zoomPercent,
 } = useCanvasStage({
+  getGenerationRuntimePresentations: () => props.generationRuntimePresentations,
   getViewportInsets: () => props.viewportInsets,
   isReadOnly: () => props.readonly,
   onGraphPanelClosed: restoreGraphPanelTriggerFocus,

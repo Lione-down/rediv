@@ -168,6 +168,7 @@ test('canonical generation editor persists prompt and creates one linked result 
     origin_canvas_id: FIRST_CANVAS_ID,
     canvas_node_id: 'generation-cover',
     prompt: '新的电影感海边封面',
+    aspect_ratio: '4:3',
   })
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.filter((item) => (
     (item.content as Record<string, unknown>).source_task_id === 'task-success'

@@ -1,5 +1,6 @@
 import { resolveNodeDefinition } from '../../modules/canvas/node-registry'
 import { resolveVisualAssetRecipe } from '../../modules/canvas/visual-asset-recipes'
+import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import type { CanvasNode, CanvasNodeStatus } from '../../types/canvas'
 
 export type CanvasAuthoringCardKind = 'script' | 'note' | 'generation'
@@ -47,6 +48,7 @@ function lifecycleFor(status: CanvasNodeStatus | undefined) {
 
 export function resolveCanvasAuthoringCardPresentation(
   node: CanvasNode,
+  generationRuntime: GenerationRuntimePresentation | null = null,
 ): CanvasAuthoringCardPresentation | null {
   if (node.type !== 'script' && node.type !== 'note' && node.type !== 'generation') return null
   const definition = resolveNodeDefinition(node.type, node.contentData)
@@ -56,7 +58,11 @@ export function resolveCanvasAuthoringCardPresentation(
   const kind: CanvasAuthoringCardKind = node.type === 'script'
     ? 'script'
     : node.type === 'note' ? 'note' : 'generation'
-  const lifecycle = kind === 'generation' ? lifecycleFor(node.status) : null
+  const lifecycle = kind === 'generation'
+    ? generationRuntime
+      ? { tone: generationRuntime.tone, label: generationRuntime.label }
+      : lifecycleFor(node.status)
+    : null
   const visualHeight = kind === 'generation'
     ? 128
     : Math.min(node.height, (node.content ?? '').trim().length > 80 ? 150 : 120)

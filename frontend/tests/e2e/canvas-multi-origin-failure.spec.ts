@@ -23,6 +23,10 @@ function addTwoOriginVideo(state: ReturnType<typeof createResourceMockState>) {
   generation.content = {
     ...(generation.content as Record<string, unknown>),
     subtype: 'video', title: '双源恢复视频', text: '从远景推进到人物海岸镜头。',
+    generation_parameters: {
+      schema_version: 1,
+      video: { duration_seconds: 5, reference_mode: 'keyframes' },
+    },
   }
 }
 
@@ -126,6 +130,8 @@ test('failed two-origin video preserves inputs and recovers through one explicit
     canvas_node_id: 'generation-two-origin-merge',
     prompt,
     image_ids: ['asset-second-origin', 'asset-generated'],
+    reference_mode: 'keyframes',
+    duration_seconds: 5,
   })
   await expect(editor.getByRole('alert')).toContainText('mock provider unavailable')
   await expect(editor.getByRole('alert')).toContainText('结果未扣费')

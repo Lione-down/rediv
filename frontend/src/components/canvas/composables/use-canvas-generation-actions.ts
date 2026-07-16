@@ -33,7 +33,9 @@ interface CanvasGenerationActionOptions {
   foregroundResultNodeId: Ref<string>
   formatError: (error: unknown) => string
   queueResourceReconciliation: () => Promise<number>
-  scheduleResourcePolling: (force?: boolean) => void
+  beginRuntimeRequest: (context: GenerationRequestContext) => string
+  requestRuntimeRecoveryPolling: () => void
+  settleRuntimeRequest: (runtimeRequestId: string) => void
 }
 
 interface GenerationExecutionOptions {
@@ -79,6 +81,8 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
     options.generationError.value = ''
     options.generationSuccess.value = ''
     options.isGenerating.value = true
+    let runtimeRequestId = ''
+    let shouldPollForRecovery = false
     try {
       if (requestContext.parameters) {
         await canvasStore.setNodeGenerationParameters(sourceNode.id, requestContext.parameters)
@@ -86,6 +90,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
       if (promptToPersist !== undefined) await canvasStore.setNodeContent(sourceNode.id, promptToPersist)
       await canvasStore.setNodeGenerationState(sourceNode.id, 'running')
       await canvasStore.flushPendingPersistence()
+      runtimeRequestId = options.beginRuntimeRequest(context)
       const response = await requestCanvasGeneration({
         mediaType,
         projectId: context.projectId,
@@ -118,10 +123,12 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
           options.generationError.value = reconciled
             ? options.formatError(error)
             : '生成请求连接已中断，正在根据任务记录核对结果；请稍后刷新项目资源。'
-          if (!reconciled) options.scheduleResourcePolling(true)
+          shouldPollForRecovery = !reconciled
         }
       }
     } finally {
+      if (runtimeRequestId) options.settleRuntimeRequest(runtimeRequestId)
+      if (shouldPollForRecovery) options.requestRuntimeRecoveryPolling()
       options.isGenerating.value = false
     }
   }
