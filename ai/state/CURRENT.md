@@ -15,17 +15,14 @@ Last updated: 2026-07-16
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-077 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
+- Completed V2 Tasks: T5-001 through T5-078 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Task: `ai/tasks/todo/TASK-T5-077.md`
-- Plan: `ai/tasks/doing/TASK-T5-077-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-077-PROGRESS.md`
-- Last completed Task: `T5-077 - Truthful durable generation progress`
-- Report: `ai/reports/REPORT-T5-077.md`
+- Last completed Task: `T5-078 - Pending output reservation and exact result handoff`
+- Report: `ai/reports/REPORT-T5-078.md`
 
 ## Current Verified Facts
 
@@ -107,10 +104,11 @@ Last updated: 2026-07-16
 - T5-075 is now `DONE - PASS`: backend-owned capability normalization, explicit image ratio and video duration/reference intent, typed preference persistence, exact provider payloads, and immutable sanitized task snapshots passed backend 40 plus 14 subtests, browser 31/31, build, responsive visual, migration, and hygiene gates. Final report: `ai/reports/REPORT-T5-075.md`.
 - T5-076 is now `DONE - PASS`: local submission plus strict durable queued/running/terminal task state is projected continuously to generation cards and Inspector through task-only polling and targeted renderer updates, with zero active-tick graph/camera mutation. Focused 6/6, related 26/26, broader effective 38/38, a 4,833-module build, responsive visual checks, and fresh live 200/300 evidence passed. Final report: `ai/reports/REPORT-T5-076.md`.
 - T5-077 is now `DONE - PASS`: guarded nullable progress fields, monotonic backend normalization, truthful provider/persisting/success semantics, and shared card/Inspector/history/Graph Access presentation passed full backend 463 plus 78 subtests, focused browser 4/4, a 4,837-module build, migration/hygiene gates, and fresh owned 200/300 evidence at 59.85 FPS. Final report: `ai/reports/REPORT-T5-077.md`.
+- T5-078 is now `DONE - PASS`: local and durable active generation work projects into stable collision-aware result-sized reservations, then hands successful reconciliation to the canonical result command at the exact predicted position without graph identity or runtime persistence. Focused 6/6, related 36/36, functional Chromium 354/354, backend 463 plus 78 subtests, a 4,841-module build, visual/hygiene gates, and fresh owned 200/300 evidence at 59.87 FPS passed. Final report: `ai/reports/REPORT-T5-078.md`.
 
 ## Exact Next Action
 
-Commit and push T5-077, then activate T5-078 doc-first for non-persistent pending output placement and exact terminal result handoff.
+Keep the repository `IDLE` until the Human Owner selects the next bounded Task.
 
 ## Blockers And Human Gates
 

@@ -3,6 +3,11 @@ import {
   resolveGenerationRuntimePresentations,
   type LocalGenerationRuntimeRequest,
 } from '../../../modules/canvas/generation-runtime-presentation'
+import {
+  resolveGenerationResultProjections,
+  resolveTerminalGenerationResultPlacement,
+} from '../../../modules/canvas/generation-result-projection'
+import type { GenerationTask } from '../../../modules/canvas/project-resource-types'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
@@ -37,6 +42,13 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
   let pollingErrorCount = 0
 
   const presentations = computed(() => resolveGenerationRuntimePresentations(
+    canvasStore.nodes,
+    resourceStore.tasks,
+    localRequests.value,
+    options.projectId.value,
+    options.canvasId.value,
+  ))
+  const pendingResultProjections = computed(() => resolveGenerationResultProjections(
     canvasStore.nodes,
     resourceStore.tasks,
     localRequests.value,
@@ -109,6 +121,7 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
       nodeId: context.nodeId,
       mediaType: context.mediaType,
       knownTaskIds,
+      startedAt: Date.now(),
     }
     localRequests.value = new Map(localRequests.value).set(context.nodeId, request)
     schedulePolling(true)
@@ -129,6 +142,17 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
     schedulePolling(true)
   }
 
+  function resolveTerminalResultPlacement(task: GenerationTask) {
+    return resolveTerminalGenerationResultPlacement(
+      task,
+      canvasStore.nodes,
+      resourceStore.tasks,
+      localRequests.value,
+      options.projectId.value,
+      options.canvasId.value,
+    )
+  }
+
   watch([
     options.projectId,
     options.canvasId,
@@ -147,8 +171,10 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
 
   return {
     beginRequest,
+    pendingResultProjections,
     presentations,
     requestRecoveryPolling,
+    resolveTerminalResultPlacement,
     settleRequest,
   }
 }

@@ -103,7 +103,7 @@ const {
   selectedResultLineage,
   selectedQuota,
   selectedRuntimePresentation,
-  generationRuntimePresentations,
+  generationRuntimePresentations, pendingGenerationResults,
   latestTask,
   visibleError,
   generationError,
@@ -361,7 +361,7 @@ onBeforeUnmount(() => {
           :capture-pending="isUploading"
           :readonly="isReviewOnly || canvasRevisionStore.restoringRevision !== null"
           :context-overlay-open="isContextDrawerOpen && isCompact"
-          :generation-runtime-presentations="generationRuntimePresentations"
+          :generation-runtime-presentations="generationRuntimePresentations" :pending-generation-results="pendingGenerationResults"
           :resources-open="isResourceOpen"
           :viewport-insets="canvasViewportInsets"
           @open-resources="openResources"

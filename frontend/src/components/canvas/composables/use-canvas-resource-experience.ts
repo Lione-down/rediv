@@ -286,7 +286,13 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
             const primaryNodeId = canvasStore.selectedNodeId
             await actions.execute({
               source: 'toolbar',
-              command: createGeneratedResultCommand(sourceNode, asset, task, canvasStore.nodes),
+              command: createGeneratedResultCommand(
+                sourceNode,
+                asset,
+                task,
+                canvasStore.nodes,
+                generationRuntime.resolveTerminalResultPlacement(task),
+              ),
             })
             canvasStore.setSelection(selectedIds, primaryNodeId)
           }
@@ -389,6 +395,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     selectedQuota,
     selectedRuntimePresentation,
     generationRuntimePresentations: generationRuntime.presentations,
+    pendingGenerationResults: generationRuntime.pendingResultProjections,
     latestTask,
     visibleError,
     generationError: visibleGenerationError,

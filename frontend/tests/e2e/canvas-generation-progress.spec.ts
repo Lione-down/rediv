@@ -87,7 +87,7 @@ test('Inspector and Graph Access track indeterminate, monotonic provider progres
       ? { ...item, progress_percent: percent, updated_at: `2026-07-16T${updatedAt}:00Z` }
       : item)
     await expect(progress).toHaveAttribute('value', String(percent), { timeout: 6_000 })
-    await expect(page.getByText(`${percent}%`, { exact: true })).toBeVisible()
+    await expect(page.locator('.generation-editor').getByText(`${percent}%`, { exact: true })).toBeVisible()
   }
 
   state.tasks = state.tasks.map((item) => item.id === 'task-progress'

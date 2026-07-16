@@ -7,6 +7,7 @@ import CanvasConnectionContinuation from './CanvasConnectionContinuation.vue'
 import CanvasConnectionLayer from './CanvasConnectionLayer.vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasNodeSurfaceLayer from './CanvasNodeSurfaceLayer.vue'
+import CanvasPendingGenerationLayer from './CanvasPendingGenerationLayer.vue'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
 import CanvasSelectionGenerationIntent from './CanvasSelectionGenerationIntent.vue'
 import CanvasToolDock from './CanvasToolDock.vue'
@@ -35,23 +36,21 @@ import { resolveCapturedFrameProvenance } from '../../modules/canvas/captured-fr
 import { createArrangeGenerationLineageCommand } from '../../modules/canvas/generation-lineage-arrangement'
 import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
-
+import type { GenerationResultProjection } from '../../modules/canvas/generation-result-projection'
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; readonly?: boolean; resourcesOpen?: boolean
-  generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>
+  generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>; pendingGenerationResults?: readonly GenerationResultProjection[]
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
   actionError: '', capturePending: false, contextOverlayOpen: false, readonly: false, resourcesOpen: false,
-  generationRuntimePresentations: () => new Map(),
+  generationRuntimePresentations: () => new Map(), pendingGenerationResults: () => [],
   viewportInsets: () => ({}),
 })
-
 const emit = defineEmits<{
   captureVideoFrame: [nodeId: string, file: File, timeSeconds: number, aspectRatio: number]
   openResources: [opener: HTMLElement]
 }>()
 const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
-
 function restoreGraphPanelTriggerFocus() {
   void nextTick(() => graphPanelTriggerRef.value?.focus({ preventScroll: true }))
 }
@@ -399,6 +398,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
       <svg v-if="temporaryConnectionPath" class="connection-layer draft-layer" aria-hidden="true">
         <path class="draft" :d="temporaryConnectionPath" />
       </svg>
+      <CanvasPendingGenerationLayer :projections="pendingGenerationResults" :viewport="canvasStore.viewport" />
       <CanvasConnectionContinuation
         v-if="connectionContinuation"
         :options="connectionContinuation.options"

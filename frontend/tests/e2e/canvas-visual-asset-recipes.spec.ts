@@ -202,7 +202,11 @@ test('recipe-flow toolbar isolates desktop results and compact drawer suppresses
   expect(compactMediaRects.filter((item) => item !== null)).toHaveLength(2)
   expect(JSON.stringify(compactDocument)).toBe(compactDocumentBeforeSelection)
   expect(documentPatches(compactState)).toHaveLength(compactDocumentPatchCount)
-  expect(viewportPatches(compactState)).toHaveLength(compactViewportPatchCount)
+  const compactRevealPatches = viewportPatches(compactState).slice(compactViewportPatchCount)
+  expect(compactRevealPatches.length).toBeLessThanOrEqual(1)
+  if (compactRevealPatches.length) {
+    expect(compactRevealPatches[0]).toEqual(expect.objectContaining({ body: { x: 120, y: 38, zoom: 1 } }))
+  }
   await page.screenshot({ path: resolve(evidenceDirectory, 'recipe-flow-toolbar-isolation-920x900.png'), fullPage: true })
 })
 

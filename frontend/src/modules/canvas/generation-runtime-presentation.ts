@@ -16,6 +16,7 @@ export interface LocalGenerationRuntimeRequest {
   nodeId: string
   mediaType: 'image' | 'video'
   knownTaskIds: readonly string[]
+  startedAt?: number
 }
 
 export interface GenerationRuntimePresentation {
@@ -92,7 +93,7 @@ function isStrictTask(
     task.canvas_node_id === node.id && task.media_type === mediaType
 }
 
-function taskPresentation(task: GenerationTask): GenerationRuntimePresentation {
+export function resolveGenerationTaskRuntimePresentation(task: GenerationTask): GenerationRuntimePresentation {
   const progressStage = task.progress_stage === 'queued' || task.progress_stage === 'provider' || task.progress_stage === 'persisting'
     ? task.progress_stage
     : null
@@ -118,7 +119,7 @@ function taskPresentation(task: GenerationTask): GenerationRuntimePresentation {
   }
 }
 
-function localPresentation(request: LocalGenerationRuntimeRequest): GenerationRuntimePresentation {
+export function resolveLocalGenerationRuntimePresentation(request: LocalGenerationRuntimeRequest): GenerationRuntimePresentation {
   const presentation = PHASE_PRESENTATION.submitting
   return {
     key: `local:${request.id}`,
@@ -153,12 +154,12 @@ export function resolveGenerationRuntimePresentations(
       isStrictTask(task, node, projectId, canvasId) && (!localRequest || !knownTaskIds.has(task.id))
     ))
     const durableTask = newestTask(strictTasks)
-    if (durableTask) presentations.set(node.id, taskPresentation(durableTask))
+    if (durableTask) presentations.set(node.id, resolveGenerationTaskRuntimePresentation(durableTask))
     else if (
       localRequest && localRequest.projectId === projectId && localRequest.canvasId === canvasId &&
       localRequest.mediaType === mediaType
     ) {
-      presentations.set(node.id, localPresentation(localRequest))
+      presentations.set(node.id, resolveLocalGenerationRuntimePresentation(localRequest))
     }
   }
   return presentations
