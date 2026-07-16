@@ -10,6 +10,9 @@ import {
   isNodeGroupContainer,
   isNodeMutationSupported,
 } from './node-registry'
+import { resolveCanvasDragNodeIds } from './canvas-drag-resolution'
+
+export { resolveCanvasDragNodeIds } from './canvas-drag-resolution'
 
 export type CanvasCommandSource = 'pointer' | 'keyboard' | 'toolbar' | 'context-menu' | 'accessibility'
 
@@ -148,15 +151,24 @@ export function createMoveNodesCommand(
   nodes: readonly CanvasNode[],
 ): MoveNodesCommand | null {
   const currentById = new Map(nodes.map((node) => [node.id, node]))
-  const moves = origins.flatMap((origin) => {
+  const originById = new Map(origins.filter((origin) => currentById.has(origin.nodeId)).map((origin) => [origin.nodeId, origin]))
+  const resolvedIds = resolveCanvasDragNodeIds(nodes, [...originById.keys()])
+  if (!resolvedIds || resolvedIds.some((nodeId) => !originById.has(nodeId))) return null
+  const moves = resolvedIds.flatMap((nodeId) => {
+    const origin = originById.get(nodeId)!
     const current = currentById.get(origin.nodeId)
-    if (!current || !isArrangeEligibleNode(current) || (current.x === origin.x && current.y === origin.y)) return []
+    if (!current || (current.x === origin.x && current.y === origin.y)) return []
     return [{
       nodeId: origin.nodeId,
       from: { ...origin },
       to: { nodeId: current.id, x: current.x, y: current.y },
     }]
   })
+  if (resolvedIds.some((nodeId) => isNodeGroupContainer(currentById.get(nodeId)!))) {
+    if (moves.length !== resolvedIds.length) return null
+    const delta = { x: moves[0].to.x - moves[0].from.x, y: moves[0].to.y - moves[0].from.y }
+    if (moves.some((move) => move.to.x - move.from.x !== delta.x || move.to.y - move.from.y !== delta.y)) return null
+  }
   return moves.length ? { type: 'move-nodes', moves } : null
 }
 

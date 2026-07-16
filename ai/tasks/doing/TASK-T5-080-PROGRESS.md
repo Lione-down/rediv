@@ -1,7 +1,7 @@
 # TASK-T5-080 Progress
 
 - Task state: `DOING`
-- Active unit: Unit 6, move normal groups and supported descendants as one graph unit.
+- Active unit: Unit 7, add restrained active-only connection flow with reduced-motion fallback.
 
 ## Completed work
 
@@ -34,17 +34,25 @@
 - The aggregate preflight reports exact source, text, reference, and result-reference counts plus the canonical video mode. Escape restores trigger focus, outside pointerdown closes the menu, and source order stays owned by the existing selection-order command.
 - Both aggregate and toolbar actions reuse `composeGenerationSelection`, which dispatches the existing `createSelectionGenerationCommand` `insert-graph` result unchanged. The aggregate browser case creates one generation node and N typed edges through one document PATCH; existing history/output coverage remains GREEN.
 - Passed the complete Unit 5 selection-generation, output, command-history, and LibTV visual parity matrix 25/25, the Escape/outside-click recheck 1/1, and a 4,853-module production build.
+- Completed group-as-one-unit movement through strict RED-GREEN-REFACTOR. The pure RED failed because `resolveCanvasDragNodeIds` did not exist; the browser RED proved a group pointer move left the external `B -> C` path unchanged, so current interaction never entered preview.
+- Added one pure `canvas-drag-resolution.ts` contract. It expands each selected normal group into deterministic parent-before-child IDs, supports nested descendants, de-duplicates covered selection, and rejects orphaned, cyclic, locked, unsupported, or partial child movement.
+- Reused the exact resolved ID set for pointer origins, preview mutation, `createMoveNodesCommand`, and executor validation. Group moves additionally require one complete move record per resolved node and one identical delta across the unit.
+- Verified browser semantics end to end: the external edge reflows during pointer preview; pointercancel restores every origin and creates zero PATCH; a completed drag emits one PATCH containing the group then both children; the unrelated node is absent; undo, redo, and reload retain exact IDs and positions.
+- Verified ungroup after reload leaves both child world positions and both connections unchanged. Locked and unsupported descendants fail closed before preview or command creation.
+- Extracted the pure tree policy after GREEN so `canvas-commands.ts` is 453 lines, the new resolver is 61 lines, and `use-canvas-stage.ts` remains exactly 500 lines.
+- Added and visually inspected clean desktop evidence at `output/playwright/t5-080-group-drag/group-and-children-moved.png`; group hull, children, toolbar, Inspector, minimap, and external edge agree on the moved state without mock-resource errors.
+- Passed the final Unit 6 command contract, interaction, history, persistence, and arrangement matrix 32/32 plus a 4,854-module production build.
 
 ## Remaining work
 
-- Add and run focused RED evidence for group movement and active-only edge motion.
-- Implement Units 6-7 through strict RED-GREEN-REFACTOR cycles.
+- Add and run focused RED evidence for active-only edge motion.
+- Implement Unit 7 through strict RED-GREEN-REFACTOR.
 - Run focused, related, build, visual, full functional Chromium, hygiene, and applicable owned 200/300 verification.
 - Perform fresh diff review, write REPORT, close durable state, then scoped commit and push.
 
 ## Exact next action
 
-Commit and push the verified neutral aggregate Unit, then freeze the normal-group pointer preview/commit delta mismatch before changing drag resolution.
+Commit and push the verified group-movement Unit, then freeze draft, selected, provenance, idle, and reduced-motion edge-flow behavior before changing connection presentation.
 
 ## Files changed
 
@@ -55,6 +63,7 @@ Commit and push the verified neutral aggregate Unit, then freeze the normal-grou
 - `ai/state/ROADMAP.md`
 - `frontend/src/modules/canvas/node-layout.ts`
 - `frontend/src/modules/canvas/canvas-command-executor.ts`
+- `frontend/src/modules/canvas/canvas-drag-resolution.ts`
 - `frontend/src/modules/canvas/selection-generation.ts`
 - `frontend/src/components/canvas/canvas-authoring-card-presentation.ts`
 - `frontend/src/components/canvas/canvas-node-presentation.ts`
@@ -104,6 +113,12 @@ Commit and push the verified neutral aggregate Unit, then freeze the normal-grou
 - Aggregate GREEN: valid and invalid desktop hull behavior plus 375px readonly behavior passed 3/3; direct Escape focus restoration and outside-pointer cancellation passed 1/1.
 - Unit 5 related matrix: `npx playwright test tests/e2e/canvas-selection-generation.spec.ts tests/e2e/canvas-selection-generation-output.spec.ts tests/e2e/canvas-command-history.spec.ts tests/e2e/canvas-libtv-visual-parity.spec.ts --project=chromium`; PASS 25/25.
 - Unit 5 production build: `npm run build`; PASS, 4,853 transformed modules.
+- Group RED: pure contract could not import `resolveCanvasDragNodeIds`; browser pointer move kept external path `M 760 330 C 870 330, 750 330, 860 330` unchanged.
+- Group focused GREEN: pure resolver/factory and full browser preview, cancellation, commit, history, reload, and ungroup cases passed 2/2.
+- Unit 6 related matrix: `npx playwright test tests/e2e/canvas-command-contract.spec.ts tests/e2e/canvas-command-interactions.spec.ts tests/e2e/canvas-command-history.spec.ts tests/e2e/canvas-document-persistence.spec.ts tests/e2e/canvas-view-arrangement.spec.ts --project=chromium`; PASS 32/32.
+- Unit 6 visual evidence: `output/playwright/t5-080-group-drag/group-and-children-moved.png`; inspected at 1366x768 with no mock error toast or ownership drift.
+- Unit 6 production build after extraction: `npm run build`; PASS, 4,854 transformed modules.
+- Unit 6 hygiene: `git diff --check`; PASS. `canvas-commands.ts` 453 lines, `canvas-drag-resolution.ts` 61 lines, `use-canvas-stage.ts` 500 lines.
 
 ## Blockers and release conditions
 

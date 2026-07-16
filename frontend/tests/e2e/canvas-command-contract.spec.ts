@@ -11,6 +11,7 @@ import {
   createSetNodesLockedCommand,
   createUngroupNodesCommand,
   isArrangeEligibleNode,
+  resolveCanvasDragNodeIds,
 } from '../../src/modules/canvas/canvas-commands'
 import { reduceCanvasSelection } from '../../src/modules/canvas/canvas-selection'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
@@ -48,6 +49,38 @@ test('selection reducer preserves request order and keeps one deterministic prim
     type: 'select-connection',
     connectionId: 'connection-a',
   })).toEqual({ nodeIds: [], primaryNodeId: '', connectionId: 'connection-a' })
+})
+
+test('group drag resolution expands parent before children and rejects partial protected units', () => {
+  const nodes: CanvasNode[] = [
+    { id: 'group-a', type: 'group', title: '组合 A', x: 80, y: 60, width: 640, height: 360,
+      contentData: { subtype: 'group', serialization_version: 1 } },
+    { id: 'child-a', type: 'script', title: '子节点 A', x: 120, y: 110, width: 320, height: 200,
+      parentNodeId: 'group-a', contentData: { subtype: 'script', serialization_version: 1 } },
+    { id: 'child-b', type: 'asset', title: '子节点 B', x: 460, y: 130, width: 240, height: 180,
+      parentNodeId: 'group-a', contentData: { subtype: 'image', serialization_version: 1 } },
+    { id: 'unrelated', type: 'note', title: '无关节点', x: 900, y: 80, width: 260, height: 180,
+      contentData: { subtype: 'annotation', serialization_version: 1 } },
+  ]
+
+  expect(resolveCanvasDragNodeIds(nodes, ['group-a'])).toEqual(['group-a', 'child-a', 'child-b'])
+  expect(resolveCanvasDragNodeIds(nodes, ['child-a'])).toBeNull()
+
+  const origins = nodes.slice(0, 3).map(({ id, x, y }) => ({ nodeId: id, x, y }))
+  for (const node of nodes.slice(0, 3)) {
+    node.x += 72
+    node.y -= 40
+  }
+  expect(createMoveNodesCommand(origins, nodes)?.moves.map((move) => move.nodeId)).toEqual([
+    'group-a', 'child-a', 'child-b',
+  ])
+
+  nodes[2].isLocked = true
+  expect(resolveCanvasDragNodeIds(nodes, ['group-a'])).toBeNull()
+  nodes[2].isLocked = false
+  nodes[2].type = 'future-storyboard'
+  nodes[2].contentData = { serialization_version: 7 }
+  expect(resolveCanvasDragNodeIds(nodes, ['group-a'])).toBeNull()
 })
 
 test('command factories remove empty work and preserve deterministic target order', () => {

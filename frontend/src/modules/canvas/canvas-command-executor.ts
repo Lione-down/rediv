@@ -16,6 +16,7 @@ import {
   createGroupNodesCommand,
   createUngroupNodesCommand,
   isArrangeEligibleNode,
+  resolveCanvasDragNodeIds,
   type ArrangeNodesCommand,
   getInternalConnections,
   isConnectionMutationSupported,
@@ -77,13 +78,23 @@ function cloneNodeDraft(node: CanvasNode, offset: { x: number; y: number }): Can
 
 export function createCanvasCommandExecutor(options: CanvasCommandExecutorOptions) {
   function moveNodes(command: MoveNodesCommand) {
-    const nodesById = new Map(options.getNodes().map((node) => [node.id, node]))
-    if (command.moves.some((move) => {
-      const node = nodesById.get(move.nodeId)
-      return node && !isArrangeEligibleNode(node)
-    })) return
-    for (const move of command.moves) {
-      if (nodesById.has(move.nodeId)) options.queueNodeMove(move.nodeId, move.to.x, move.to.y)
+    const nodes = options.getNodes()
+    const nodesById = new Map(nodes.map((node) => [node.id, node]))
+    const movesById = new Map(command.moves.filter((move) => nodesById.has(move.nodeId)).map((move) => [move.nodeId, move]))
+    const resolvedIds = resolveCanvasDragNodeIds(nodes, [...movesById.keys()])
+    if (!resolvedIds) return
+    if (resolvedIds.some((nodeId) => isNodeGroupContainer(nodesById.get(nodeId)!))) {
+      if (resolvedIds.some((nodeId) => !movesById.has(nodeId))) return
+      const first = movesById.get(resolvedIds[0])!
+      const delta = { x: first.to.x - first.from.x, y: first.to.y - first.from.y }
+      if (resolvedIds.some((nodeId) => {
+        const move = movesById.get(nodeId)!
+        return move.to.x - move.from.x !== delta.x || move.to.y - move.from.y !== delta.y
+      })) return
+    }
+    for (const nodeId of resolvedIds) {
+      const move = movesById.get(nodeId)
+      if (move) options.queueNodeMove(move.nodeId, move.to.x, move.to.y)
     }
   }
 

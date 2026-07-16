@@ -1,11 +1,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useCanvasStore } from '../../../store/canvas'
 import {
-  createMoveNodesCommand,
-  isArrangeEligibleNode,
-  type CanvasAlignment,
-  type CanvasDistribution,
-  type CanvasNodePosition,
+  createMoveNodesCommand, isArrangeEligibleNode, resolveCanvasDragNodeIds,
+  type CanvasAlignment, type CanvasDistribution, type CanvasNodePosition,
 } from '../../../modules/canvas/canvas-commands'
 import { isPointInsideCanvasNodeLayout, resolveCanvasNodeLayoutCenter } from '../../../modules/canvas/node-layout'
 import {
@@ -254,13 +251,16 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (hasModifier) canvasStore.selectNode(nodeId, 'toggle')
     else if (!canvasStore.selectedNodeIds.includes(nodeId)) canvasStore.selectNode(nodeId)
     if (options.isReadOnly?.()) return
-    if (!isArrangeEligibleNode(node) || canvasStore.selectedNodes.some((selectedNode) => !isArrangeEligibleNode(selectedNode))) return
-    if (!canvasStore.selectedNodeIds.includes(nodeId)) return
+    const dragNodeIds = resolveCanvasDragNodeIds(canvasStore.nodes, canvasStore.selectedNodeIds)
+    if (!canvasStore.selectedNodeIds.includes(nodeId) || !dragNodeIds?.includes(nodeId)) return
     const worldPoint = surfaceToWorld(point, getViewport())
     dragState = {
       pointerId: event.origin?.pointerId ?? null,
       startWorldPoint: worldPoint,
-      origins: canvasStore.selectedNodes.map(({ id, x, y }) => ({ nodeId: id, x, y })),
+      origins: dragNodeIds.map((dragNodeId) => {
+        const { x, y } = findNode(dragNodeId)!
+        return { nodeId: dragNodeId, x, y }
+      }),
       moved: false,
     }
     bindWindowPointerListeners()

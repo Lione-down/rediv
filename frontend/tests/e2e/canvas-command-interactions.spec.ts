@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { GENERATION_CAPABILITIES } from './canvas-generation-parameters-fixture'
 
 const API_ORIGIN = 'http://localhost:8000'
 const APP_ORIGIN = 'http://127.0.0.1:9099'
@@ -86,6 +87,10 @@ async function installCommandApi(page: Page, state: CommandState) {
     if (method === 'GET' && path === '/projects') {
       return fulfillJson(route, { items: [{ id: 'project-command', user_id: user.id, name: '交互项目', created_at: NOW }], total: 1 })
     }
+    if (method === 'GET' && path === '/assets') return fulfillJson(route, { items: [], total: 0, page: 1, page_size: 100 })
+    if (method === 'GET' && path === '/templates') return fulfillJson(route, { items: [], total: 0 })
+    if (method === 'GET' && path === '/api/generation-tasks') return fulfillJson(route, { items: [], total: 0, page: 1, page_size: 100 })
+    if (method === 'GET' && path === '/api/generation-capabilities') return fulfillJson(route, GENERATION_CAPABILITIES)
     if (method === 'GET' && path === '/api/projects/project-command/canvases') {
       return fulfillJson(route, { items: [canvas], order_revision: 0 })
     }
@@ -263,6 +268,100 @@ test('modifier selection stays deterministic and dragging one selected node move
   const desktopEvidence = await captureCommandEvidence(page, 'desktop-multi-selection-toolbar')
   await page.screenshot({ path: desktopEvidence })
   await testInfo.attach('desktop-multi-selection-toolbar', { path: desktopEvidence, contentType: 'image/png' })
+})
+
+test('dragging a normal group previews and commits the parent and children as one exact unit', async ({ page }, testInfo) => {
+  const state = createState()
+  await openCommandCanvas(page, state)
+  await clickNode(page, 180)
+  await clickNode(page, 520, ['Control'])
+  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
+  await page.keyboard.press('Control+g')
+  await expect.poll(() => state.nodes.filter((item) => item.node_type === 'group').length).toBe(1)
+
+  const group = state.nodes.find((item) => item.node_type === 'group')!
+  const movedIds = [String(group.id), 'node-a', 'node-b']
+  const before = new Map(state.nodes.map((item) => [String(item.id), {
+    x: Number(item.position_x), y: Number(item.position_y), parentId: item.parent_node_id,
+  }]))
+  const documentPatches = () => state.requests.filter((request) => (
+    request.method === 'PATCH' && request.path.endsWith('/document')
+  ))
+  const baselinePatchCount = documentPatches().length
+  const externalEdge = page.getByRole('button', { name: '选择连线：镜头 B 到 镜头 C' })
+  const originalPath = await externalEdge.getAttribute('d')
+  const surfaceBox = await page.locator('.canvas-surface').boundingBox()
+  if (!surfaceBox || !originalPath) throw new Error('Group drag browser geometry is unavailable')
+  const start = {
+    x: surfaceBox.x + Number(group.position_x) + 8,
+    y: surfaceBox.y + Number(group.position_y) + 8,
+  }
+
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(start.x + 96, start.y + 64, { steps: 4 })
+  await expect(externalEdge).not.toHaveAttribute('d', originalPath)
+  await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointercancel', { pointerId: 1 })))
+  await page.mouse.up()
+  await expect(externalEdge).toHaveAttribute('d', originalPath)
+  expect(documentPatches()).toHaveLength(baselinePatchCount)
+
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(start.x + 96, start.y + 64, { steps: 4 })
+  await page.mouse.up()
+  await expect.poll(() => documentPatches().length).toBe(baselinePatchCount + 1)
+  const moveUpserts = documentPatches().at(-1)?.body?.node_upserts as Array<Record<string, unknown>>
+  expect(moveUpserts.map((item) => item.id)).toEqual(movedIds)
+  const delta = {
+    x: Number(moveUpserts[0].position_x) - before.get(movedIds[0])!.x,
+    y: Number(moveUpserts[0].position_y) - before.get(movedIds[0])!.y,
+  }
+  expect(delta).not.toEqual({ x: 0, y: 0 })
+  for (const item of moveUpserts) {
+    const origin = before.get(String(item.id))!
+    expect({ x: Number(item.position_x) - origin.x, y: Number(item.position_y) - origin.y }).toEqual(delta)
+  }
+  expect(moveUpserts.some((item) => item.id === 'node-c')).toBe(false)
+  const groupEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-080-group-drag')
+  const groupEvidence = resolve(groupEvidenceDirectory, 'group-and-children-moved.png')
+  await mkdir(groupEvidenceDirectory, { recursive: true })
+  await expect(page.getByRole('button', { name: `定位到 ${String((group.content as Record<string, unknown>).title)}` })).toHaveClass(/selected/)
+  await page.locator('.workspace-stage').evaluate(() => new Promise<void>((resolveFrame) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolveFrame()))
+  }))
+  await page.screenshot({ path: groupEvidence, fullPage: true })
+  await testInfo.attach('group-and-children-moved', { path: groupEvidence, contentType: 'image/png' })
+
+  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
+  await page.keyboard.press('Control+z')
+  await expect.poll(() => movedIds.map((id) => {
+    const item = state.nodes.find((node) => node.id === id)!
+    return [item.position_x, item.position_y]
+  })).toEqual(movedIds.map((id) => [before.get(id)!.x, before.get(id)!.y]))
+  await page.keyboard.press('Control+Shift+z')
+  await expect.poll(() => movedIds.map((id) => {
+    const item = state.nodes.find((node) => node.id === id)!
+    return [Number(item.position_x) - before.get(id)!.x, Number(item.position_y) - before.get(id)!.y]
+  })).toEqual(movedIds.map(() => [delta.x, delta.y]))
+
+  await page.reload()
+  await expect(page.getByRole('region', { name: 'Revid 无限画布工作区' })).toBeVisible()
+  const reloadedGroup = state.nodes.find((item) => item.node_type === 'group')!
+  await page.locator('.canvas-surface').click({ position: {
+    x: Number(reloadedGroup.position_x) + 8,
+    y: Number(reloadedGroup.position_y) + 8,
+  } })
+  await expect(page.getByRole('toolbar', { name: '1 个已选节点的操作' })).toBeVisible()
+  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
+  await page.keyboard.press('Control+Shift+g')
+  await expect.poll(() => state.nodes.filter((item) => item.node_type === 'group').length).toBe(0)
+  for (const childId of ['node-a', 'node-b']) {
+    const child = state.nodes.find((item) => item.id === childId)!
+    expect(child.parent_node_id).toBeNull()
+    expect([Number(child.position_x) - before.get(childId)!.x, Number(child.position_y) - before.get(childId)!.y]).toEqual([delta.x, delta.y])
+  }
+  expect(state.connections.map((item) => item.id)).toEqual(['connection-ab', 'connection-bc'])
 })
 
 test('keyboard duplicate and toolbar delete share one selected-subgraph command boundary', async ({ page }) => {
