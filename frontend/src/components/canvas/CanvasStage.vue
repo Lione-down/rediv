@@ -5,6 +5,7 @@ import { computed, nextTick, ref, type ComponentPublicInstance } from 'vue'
 import CanvasEmptyGuide from './CanvasEmptyGuide.vue'
 import CanvasConnectionContinuation from './CanvasConnectionContinuation.vue'
 import CanvasConnectionLayer from './CanvasConnectionLayer.vue'
+import CanvasConnectionTargetPorts from './CanvasConnectionTargetPorts.vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasNodeSurfaceLayer from './CanvasNodeSurfaceLayer.vue'
 import CanvasPendingGenerationLayer from './CanvasPendingGenerationLayer.vue'
@@ -61,6 +62,7 @@ const {
   canvasSurfaceRef,
   centerNodeInViewport,
   connectionPaths,
+  connectionTargetPorts,
   connectionTargetStates,
   closeConnectionContinuation,
   connectionContinuation,
@@ -476,6 +478,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :style="surfaceNodeRectStyle(target.node)"
         aria-hidden="true"
       />
+      <CanvasConnectionTargetPorts :ports="connectionTargetPorts" />
       <div
         v-for="node in statusNodes"
         :key="`${node.id}-${node.status}`"

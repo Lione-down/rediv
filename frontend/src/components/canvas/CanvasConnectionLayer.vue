@@ -5,7 +5,7 @@ import { useCanvasStore } from '../../store/canvas'
 import type { CanvasConnection } from '../../types/canvas'
 import type { CanvasGenerationProvenance } from '../../modules/canvas/generation-lineage'
 import { buildConnectionPath, normalizeViewport, surfaceToWorld, type Point } from './canvas-geometry'
-import { findNearestConnectionTarget } from './canvas-connection-target'
+import { findCompatibleConnectionTarget } from './canvas-connection-target'
 import {
   createEdgeInsertionCommand,
   resolveEdgeInsertionOptions,
@@ -182,12 +182,12 @@ function handlePointerUp(event: PointerEvent) {
   const point = toSurfacePoint(event)
   if (point) {
     const isSource = draft.endpoint === 'source'
-    const target = findNearestConnectionTarget(
+    const target = findCompatibleConnectionTarget(
       point,
       isSource ? draft.connection.to : draft.connection.from,
-      canvasStore.nodes,
-      viewport.value,
-      isSource ? 'output' : 'input',
+      isSource ? draft.connection.targetPort ?? 'in' : draft.connection.sourcePort ?? 'out',
+      isSource ? 'input' : 'output',
+      canvasStore.nodes, viewport.value,
     )
     if (target) {
       const command = createReconnectConnectionCommand(

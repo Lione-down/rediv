@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import type { CanvasConnection, CanvasNode } from '../../../types/canvas'
 import { getAuthoringConnectionPorts, resolveNodeDefinition, type NodePortDirection } from '../../../modules/canvas/node-registry'
-import { buildConnectionPath, nodePortWorldAnchor, type ViewportState } from '../canvas-geometry'
+import { buildConnectionPath, nodePortWorldAnchor, worldToSurface, type ViewportState } from '../canvas-geometry'
 
 interface CanvasConnectionPresentationOptions {
   getConnections: () => CanvasConnection[]
@@ -11,17 +11,26 @@ interface CanvasConnectionPresentationOptions {
 }
 
 export function isConnectionTargetCompatible(source: CanvasNode, target: CanvasNode, sourcePort: string) {
-  const definition = resolveNodeDefinition(target.type, target.contentData)
-  return definition.kind !== 'unsupported' && definition.ports
-    .filter((port) => port.direction === 'input')
-    .some((port) => Boolean(getAuthoringConnectionPorts(source, target, sourcePort, port.id)))
+  return resolveCompatibleConnectionTargetPorts(source, target, sourcePort, 'output').length > 0
 }
 
 export function isReverseConnectionTargetCompatible(target: CanvasNode, source: CanvasNode, targetPort: string) {
-  const definition = resolveNodeDefinition(source.type, source.contentData)
-  return definition.kind !== 'unsupported' && definition.ports
-    .filter((port) => port.direction === 'output')
-    .some((port) => Boolean(getAuthoringConnectionPorts(source, target, port.id, targetPort)))
+  return resolveCompatibleConnectionTargetPorts(target, source, targetPort, 'input').length > 0
+}
+
+export function resolveCompatibleConnectionTargetPorts(
+  origin: CanvasNode,
+  candidate: CanvasNode,
+  originPort: string,
+  originDirection: NodePortDirection,
+) {
+  const definition = resolveNodeDefinition(candidate.type, candidate.contentData)
+  if (candidate.isLocked || definition.kind === 'unsupported') return []
+  const isOutput = originDirection === 'output'
+  return definition.ports.filter((port) => port.direction === (isOutput ? 'input' : 'output'))
+    .filter((port) => Boolean(isOutput
+      ? getAuthoringConnectionPorts(origin, candidate, originPort, port.id)
+      : getAuthoringConnectionPorts(candidate, origin, port.id, originPort)))
 }
 
 export function useCanvasConnectionPresentation(options: CanvasConnectionPresentationOptions) {
@@ -50,13 +59,17 @@ export function useCanvasConnectionPresentation(options: CanvasConnectionPresent
     const nodes = options.getNodes()
     const origin = nodes.find((node) => node.id === draft.originNodeId)
     if (!origin) return []
-    return nodes.flatMap((node) => node.id === origin.id ? [] : [{
-      node,
-      isCompatible: draft.direction === 'output'
-        ? isConnectionTargetCompatible(origin, node, draft.originPort)
-        : isReverseConnectionTargetCompatible(origin, node, draft.originPort),
-    }])
+    return nodes.flatMap((node) => {
+      if (node.id === origin.id) return []
+      const compatiblePorts = resolveCompatibleConnectionTargetPorts(origin, node, draft.originPort, draft.direction)
+        .map((port) => ({
+          anchor: worldToSurface(nodePortWorldAnchor(node, port.direction, port.id), options.getViewport()),
+          nodeId: node.id, nodeTitle: node.title, portId: port.id,
+        }))
+      return [{ node, isCompatible: compatiblePorts.length > 0, compatiblePorts }]
+    })
   })
+  const connectionTargetPorts = computed(() => connectionTargetStates.value.flatMap((target) => target.compatiblePorts))
 
-  return { connectionPaths, connectionTargetStates }
+  return { connectionPaths, connectionTargetPorts, connectionTargetStates }
 }

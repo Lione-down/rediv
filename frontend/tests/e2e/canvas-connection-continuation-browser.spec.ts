@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { nodeInputAnchor, nodeOutputAnchor } from '../../src/components/canvas/canvas-geometry'
+import { buildConnectionPath, nodeInputAnchor, nodeOutputAnchor } from '../../src/components/canvas/canvas-geometry'
 import { mapCanvasNode } from '../../src/modules/canvas/mappers'
 import type { CanvasNodeDto } from '../../src/modules/canvas/types'
 import {
@@ -221,6 +221,33 @@ test('direct compatible port drop bypasses continuation chooser', async ({ page 
   await expect(page.getByRole('dialog', { name: '继续连接' })).toHaveCount(0)
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(2)
   expect(state.documents[FIRST_CANVAS_ID].connections.at(-1)).toMatchObject({
+    source_node_id: 'script-source', target_node_id: 'generation-cover',
+    source_port: 'out', target_port: 'prompt',
+  })
+})
+
+test('direct drop skips a nearer incompatible port for the exact compatible target', async ({ page }) => {
+  const state = createResourceMockState()
+  const document = state.documents[FIRST_CANVAS_ID]
+  const generation = document.nodes.find((node) => node.id === 'generation-cover')!
+  const result = document.nodes.find((node) => node.id === 'result-existing')!
+  const generationAnchor = nodeInputAnchor(mappedNode(state, generation.id), { x: 0, y: 0, zoom: 1 }, 'prompt')
+  const resultAnchor = nodeInputAnchor(mappedNode(state, result.id), { x: 0, y: 0, zoom: 1 }, 'in')
+  result.position_x = generation.position_x - 12
+  result.position_y += generationAnchor.y - resultAnchor.y
+  await openResourceWorkspace(page, state)
+
+  const nearestIncompatible = nodeInputAnchor(mappedNode(state, result.id), { x: 0, y: 0, zoom: 1 }, 'in')
+  await beginOutputDrag(page, state, nearestIncompatible)
+  await expect(page.locator('.connection-target-port[data-node-id="generation-cover"][data-port-id="prompt"]')).toBeVisible()
+  await expect(page.locator('.connection-target-port[data-node-id="result-existing"][data-port-id="in"]')).toHaveCount(0)
+  const sourceAnchor = nodeOutputAnchor(mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out')
+  await expect(page.locator('.draft-layer .draft')).toHaveAttribute('d', buildConnectionPath(sourceAnchor, generationAnchor))
+  await page.mouse.up()
+
+  await expect(page.getByRole('dialog', { name: '继续连接' })).toHaveCount(0)
+  await expect.poll(() => document.connections.length).toBe(2)
+  expect(document.connections.at(-1)).toMatchObject({
     source_node_id: 'script-source', target_node_id: 'generation-cover',
     source_port: 'out', target_port: 'prompt',
   })

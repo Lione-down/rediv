@@ -1,7 +1,7 @@
 # TASK-T5-080 Progress
 
 - Task state: `DOING`
-- Active unit: Unit 4, rank exact compatible connection targets before empty-space continuation.
+- Active unit: Unit 5, generalize the neutral aggregate hull and batch continuation entry point.
 
 ## Completed work
 
@@ -22,17 +22,23 @@
 - Diagnosed the first transparent-target implementation before retaining it: 400 alpha-painted or path-hit Leafer targets reduced the mock dense trace to 50.79 FPS or a 33.3 ms scheduling bucket. Removing those leaves restored the unchanged owned gate.
 - Corrected the canonical minimap resolver import left by the prior geometry refactor, then rebuilt the exact bundle used by Playwright preview.
 - Passed the final Unit 3 matrix 22/22 across port geometry, continuation, endpoint reroute, 200-node/300-connection performance, listener/heap, accessibility, and viewport coverage. Production build passes with 4,844 transformed modules.
+- Committed and pushed the verified port-target Unit as `e77e40b` (`fix(canvas): enlarge real port hit targets`).
+- Completed exact compatible drop resolution through two deterministic RED fingerprints: the resolver chose the nearest incompatible `result-nearest:in` instead of a 12px-farther compatible `generation-compatible:prompt`, and it returned an incompatible port rather than `null` when no compatible port existed.
+- Extended one shared resolver to filter locked, direction-mismatched, unsupported, and canonically incompatible candidates before stable distance ranking. Its result now includes exact surface anchor and distance, and both new connections and same-ID endpoint reroutes reuse it.
+- Snapped the active draft path to the exact eligible anchor and added pointer-passive exact-port feedback. In the overlapping browser case only `generation-cover:prompt` is marked, `result-existing:in` remains unavailable, and the committed edge uses the exact compatible port.
+- Kept `use-canvas-stage.ts` at 500 lines by extracting compatible-target and snapped-draft policy into `canvas-connection-target.ts`.
+- Passed Unit 4 target, continuation, and reroute matrix 19/19, target/workflow focused matrix 9/9, and the extracted-overlay 1/1 recheck. The final production build passes with 4,847 transformed modules.
 
 ## Remaining work
 
-- Add and run focused RED evidence for compatible landing, neutral aggregate selection, batch continuation, group movement, and active-only edge motion.
-- Implement Units 4-7 through strict RED-GREEN-REFACTOR cycles.
+- Add and run focused RED evidence for neutral aggregate selection, batch continuation, group movement, and active-only edge motion.
+- Implement Units 5-7 through strict RED-GREEN-REFACTOR cycles.
 - Run focused, related, build, visual, full functional Chromium, hygiene, and applicable owned 200/300 verification.
 - Perform fresh diff review, write REPORT, close durable state, then scoped commit and push.
 
 ## Exact next action
 
-Commit and push the verified port-target Unit, then freeze a nearest-incompatible versus slightly-farther-compatible RED case before changing connection-target ranking.
+Commit and push the verified compatible-target Unit, then freeze neutral hull visibility for valid and invalid editable multi-selections before changing aggregate presentation.
 
 ## Files changed
 
@@ -47,14 +53,21 @@ Commit and push the verified port-target Unit, then freeze a nearest-incompatibl
 - `frontend/src/components/canvas/canvas-authoring-card-presentation.ts`
 - `frontend/src/components/canvas/canvas-node-presentation.ts`
 - `frontend/src/components/canvas/canvas-geometry.ts`
+- `frontend/src/components/canvas/canvas-connection-target.ts`
+- `frontend/src/components/canvas/canvas-stage.scss`
+- `frontend/src/components/canvas/CanvasConnectionLayer.vue`
+- `frontend/src/components/canvas/CanvasConnectionTargetPorts.vue`
+- `frontend/src/components/canvas/CanvasStage.vue`
 - `frontend/src/components/canvas/canvas-port-interaction.ts`
 - `frontend/src/components/canvas/canvas-port-presentation.ts`
 - `frontend/src/components/canvas/canvas-renderer.ts`
 - `frontend/src/components/canvas/composables/use-canvas-stage.ts`
+- `frontend/src/components/canvas/composables/use-canvas-connection-presentation.ts`
 - `frontend/tests/e2e/canvas-command-contract.spec.ts`
 - `frontend/tests/e2e/canvas-selection-generation.spec.ts`
 - `frontend/tests/e2e/canvas-libtv-visual-parity.spec.ts`
 - `frontend/tests/e2e/canvas-connection-continuation-browser.spec.ts`
+- `frontend/tests/e2e/canvas-connection-target.spec.ts`
 - `frontend/tests/e2e/canvas-port-geometry.spec.ts`
 
 ## Commands and evidence
@@ -73,6 +86,10 @@ Commit and push the verified port-target Unit, then freeze a nearest-incompatibl
 - Final port Unit matrix: `npx playwright test tests/e2e/canvas-port-geometry.spec.ts tests/e2e/canvas-connection-continuation-browser.spec.ts tests/e2e/canvas-edge-reroute.spec.ts tests/e2e/canvas-performance-accessibility.spec.ts --project=chromium`; PASS 22/22.
 - Current production build: `npm run build`; PASS, 4,844 transformed modules.
 - Hygiene: `git diff --check`; PASS. `canvas-renderer.ts` is 458 lines and `use-canvas-stage.ts` remains 500 lines.
+- Compatible-target RED: current geometry-first code returned `result-nearest:in`; no-compatible case also returned that incompatible port instead of `null`.
+- Compatible-target GREEN: exact resolver plus node-workflow matrix passed 9/9; full target, forward/reverse continuation, and reroute matrix passed 19/19.
+- Exact feedback/snap browser evidence: overlapping drop showed only `generation-cover:prompt`, omitted `result-existing:in`, snapped the draft SVG path to the compatible anchor, and committed the matching typed edge.
+- Unit 4 production build after exact-port overlay extraction: `npm run build`; PASS, 4,847 transformed modules.
 
 ## Blockers and release conditions
 

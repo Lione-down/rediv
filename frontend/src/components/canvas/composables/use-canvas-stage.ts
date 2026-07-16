@@ -16,7 +16,7 @@ import {
   type Point, type ViewportInsets, type ViewportState,
 } from '../canvas-geometry'
 import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
-import { findNearestConnectionTarget } from '../canvas-connection-target'
+import { findCompatibleConnectionTarget, resolveCompatibleConnectionDraftPosition } from '../canvas-connection-target'
 import { createPointerFrameQueue } from '../canvas-pointer-frame'
 import { useCanvasCommandInteractions } from './use-canvas-command-interactions'
 import { useCanvasConnectionContinuation } from './use-canvas-connection-continuation'
@@ -131,7 +131,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     getViewport,
     getViewportSize: () => surfaceViewportSize.value,
   })
-  const { connectionPaths, connectionTargetStates } = useCanvasConnectionPresentation({
+  const { connectionPaths, connectionTargetPorts, connectionTargetStates } = useCanvasConnectionPresentation({
     getConnections: () => canvasStore.connections, getDraftConnection: () => draftConnection.value, getNodes: () => canvasStore.nodes, getViewport,
   })
   const {
@@ -316,7 +316,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     }
     if (!draft || (draft.pointerId !== null && event.pointerId !== draft.pointerId)) return
     const point = toSurfacePoint(event.clientX, event.clientY)
-    if (point) draftConnection.value = { ...draft, currentX: point.x, currentY: point.y,
+    if (point) draftConnection.value = { ...draft, ...resolveCompatibleConnectionDraftPosition(point, draft.originNodeId, draft.originPort, draft.direction, canvasStore.nodes, getViewport()),
       moved: draft.moved || Math.hypot(point.x - draft.startX, point.y - draft.startY) >= 4 }
   }
   function handleWindowPointerMove(event: PointerEvent) {
@@ -331,8 +331,8 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       draftConnection.value = null
       return
     }
-    const target = findNearestConnectionTarget(
-      point, draft.originNodeId, canvasStore.nodes, getViewport(), draft.direction === 'output' ? 'input' : 'output',
+    const target = findCompatibleConnectionTarget(
+      point, draft.originNodeId, draft.originPort, draft.direction, canvasStore.nodes, getViewport(),
     )
     if (target) {
       if (draft.direction === 'output') connectNodes('pointer', draft.originNodeId, target.node.id, draft.originPort, target.portId)
@@ -482,7 +482,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     closeContextMenu()
   })
   return {
-    canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionTargetStates,
+    canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionTargetPorts, connectionTargetStates,
     closeConnectionContinuation, connectionContinuation, continuationStyle, openConnectionContinuation, selectConnectionContinuation,
     handleMinimapPointerDown, minimapNodeStyle, minimapNodes, minimapRef,
     minimapViewportStyle, stageRef, statusBadgeStyle,
