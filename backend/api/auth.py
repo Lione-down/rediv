@@ -18,6 +18,7 @@ from schemas.auth import (
     AuthResponse,
     GuestResponse,
     LoginRequest,
+    LogoutResponse,
     MockWechatLoginRequest,
     RegisterRequest,
     RegistrationSettingsResponse,
@@ -248,9 +249,12 @@ def login(payload: LoginRequest):
     return _issue_auth(store.get_user(user["id"]) or user)
 
 
-@router.post("/logout")
-def logout():
-    return {"ok": True, "detail": "Client should discard the bearer token"}
+@router.post("/logout", response_model=LogoutResponse)
+def logout(_user=Depends(current_user)):
+    return LogoutResponse(
+        ok=True,
+        detail="Bearer session acknowledged for client logout",
+    )
 
 
 @router.post("/guest", response_model=GuestResponse)

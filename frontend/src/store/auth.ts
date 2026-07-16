@@ -34,6 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
   const registrationSettings = ref<RegistrationSettings | null>(null)
   const isLoadingRegistrationSettings = ref(false)
   const isRestoringSession = ref(false)
+  const isLoggingOut = ref(false)
   const hasRestoredSession = ref(!token.value)
 
   let registrationSettingsRequest: Promise<RegistrationSettings> | null = null
@@ -290,18 +291,22 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
-    const hadToken = Boolean(token.value)
-    clearSession()
-    clearWechatLoginAttempt()
-
-    if (!hadToken) {
+    if (isLoggingOut.value) {
       return
     }
 
+    const activeToken = token.value
+    isLoggingOut.value = true
+    clearSession()
+    clearWechatLoginAttempt()
     try {
-      await logoutCurrentSession()
+      if (activeToken) {
+        await logoutCurrentSession(activeToken)
+      }
     } catch {
-      // The backend logout endpoint is acknowledgement-only; local token removal is authoritative.
+      // Local teardown remains authoritative when acknowledgement is unavailable or expired.
+    } finally {
+      isLoggingOut.value = false
     }
   }
 
@@ -325,6 +330,7 @@ export const useAuthStore = defineStore('auth', () => {
     registrationSettings,
     isLoadingRegistrationSettings,
     isRestoringSession,
+    isLoggingOut,
     hasRestoredSession,
     isLoggedIn,
     isAdmin,

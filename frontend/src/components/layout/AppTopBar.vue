@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import { Shield, UserRound, Workflow } from 'lucide-vue-next'
+import { Shield, Workflow } from 'lucide-vue-next'
 import { useAuthStore } from '../../store/auth'
+import AccountSessionMenu from './account-session-menu.vue'
 
 const authStore = useAuthStore()
 </script>
@@ -21,14 +22,11 @@ const authStore = useAuthStore()
         <Workflow :size="17" />
         工作流
       </RouterLink>
-      <RouterLink class="nav-link focus-ring" to="/app/space">
-        <UserRound :size="17" />
-        个人空间
-      </RouterLink>
       <RouterLink v-if="authStore.isAdmin" class="nav-link focus-ring" to="/admin">
         <Shield :size="17" />
         Admin
       </RouterLink>
+      <AccountSessionMenu />
     </nav>
   </header>
 </template>

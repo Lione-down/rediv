@@ -125,6 +125,43 @@ class PasswordAuthContractTestCase(unittest.TestCase):
         self.assertEqual(200, frozen_login.status_code)
         self.assertEqual("frozen", frozen_login.json()["user"]["generation_status"])
 
+    def test_logout_requires_an_active_bearer_session(self) -> None:
+        missing_token = self.client.post("/auth/logout")
+        invalid_token = self.client.post(
+            "/auth/logout",
+            headers={"Authorization": "Bearer invalid-token"},
+        )
+
+        self.assertEqual(401, missing_token.status_code)
+        self.assertEqual("Missing bearer token", missing_token.json()["detail"])
+        self.assertEqual(401, invalid_token.status_code)
+        self.assertEqual("Invalid token", invalid_token.json()["detail"])
+
+        registration = self._register("logout-user", "StrongPass123!", "logout@example.com")
+        self.assertEqual(200, registration.status_code)
+        token = registration.json()["token"]
+
+        active_logout = self.client.post(
+            "/auth/logout",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        self.assertEqual(200, active_logout.status_code)
+        self.assertEqual(
+            {"ok": True, "detail": "Bearer session acknowledged for client logout"},
+            active_logout.json(),
+        )
+
+        user = store.get_user(registration.json()["user"]["id"])
+        user["status"] = "banned"
+        banned_logout = self.client.post(
+            "/auth/logout",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        self.assertEqual(403, banned_logout.status_code)
+        self.assertEqual("User is banned", banned_logout.json()["detail"])
+
     def test_legacy_wechat_user_has_nullable_username_and_email_without_hash_leak(self) -> None:
         response = self.client.post(
             "/auth/wechat/mock",

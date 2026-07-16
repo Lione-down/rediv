@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { CircleCheck, CircleHelp, History, LoaderCircle, UserRound } from 'lucide-vue-next'
+import { CircleCheck, CircleHelp, History, LoaderCircle } from 'lucide-vue-next'
 import { darkTheme, NConfigProvider, NDrawer, NDrawerContent } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { v2CanvasNaiveTheme } from '../../assets/styles/v2-canvas-naive-theme'
 import CanvasAssetPanel from '../../components/canvas/CanvasAssetPanel.vue'
 import CanvasContextPanel from '../../components/canvas/CanvasContextPanel.vue'
@@ -10,6 +10,7 @@ import CanvasIdentityBar from '../../components/canvas/CanvasIdentityBar.vue'
 import CanvasRevisionPanel from '../../components/canvas/CanvasRevisionPanel.vue'
 import CanvasResultCompareTray from '../../components/canvas/CanvasResultCompareTray.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
+import AccountSessionMenu from '../../components/layout/account-session-menu.vue'
 import { resolveCanvasNodeContinuationTrigger } from '../../components/canvas/canvas-node-continuation-trigger'
 import { resolveGenerationResultVariants } from '../../modules/canvas/generation-lineage'
 import { useCanvasNodeActions } from '../../components/canvas/composables/use-canvas-node-actions'
@@ -405,10 +406,7 @@ onBeforeUnmount(() => {
             <component :is="syncIcon" :size="16" aria-hidden="true" />
             <span>{{ syncLabel }}</span>
           </button>
-          <RouterLink class="account-link" to="/app/space" :aria-label="`打开${accountName}`" :title="accountName">
-            <UserRound :size="17" aria-hidden="true" />
-            <span>{{ accountName }}</span>
-          </RouterLink>
+          <AccountSessionMenu :compact="isCompact" :display-name="accountName" />
         </div>
       </header>
 

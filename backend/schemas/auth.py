@@ -40,6 +40,11 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1)
 
 
+class LogoutResponse(BaseModel):
+    ok: bool
+    detail: str
+
+
 class RegistrationSettingsResponse(BaseModel):
     registration_mode: str
     wechat_login_enabled: bool

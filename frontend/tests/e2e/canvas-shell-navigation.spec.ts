@@ -355,7 +355,7 @@ test('stale reorder reloads recovery state and succeeds on explicit retry', asyn
 
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('button', { name: '向后移动当前画布' }).click()
-  await expect(page.getByRole('alert')).toContainText('画布排序保存失败，请重试。')
+  await expect(page.locator('.navigation-error')).toContainText('画布排序保存失败，请重试。')
   expect(state.requests.filter((request) => request.path.endsWith('/canvases')).length).toBeGreaterThan(1)
 
   await page.getByRole('button', { name: '向后移动当前画布' }).click()
@@ -384,7 +384,7 @@ test('mobile shell is rendered read-only and keeps accessible route controls', a
   await expect(page.getByRole('button', { name: '归档当前画布' })).toHaveCount(0)
 
   const backButton = page.getByRole('link', { name: '返回项目首页' })
-  const accountButton = page.getByRole('link', { name: '打开画布创作者' })
+  const accountButton = page.getByRole('button', { name: /账户菜单/ })
   for (const control of [backButton, accountButton]) {
     const box = await control.boundingBox()
     expect(box?.width).toBeGreaterThanOrEqual(40)

@@ -42,8 +42,10 @@ export function registerWithPassword(payload: RegisterPayload) {
   return request.post<AuthResponse>('/auth/register', payload)
 }
 
-export function logoutCurrentSession() {
-  return request.post<{ ok: boolean; detail: string }>('/auth/logout')
+export function logoutCurrentSession(token: string) {
+  return request.post<{ ok: boolean; detail: string }>('/auth/logout', undefined, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
 }
 
 export function fetchCurrentUser() {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { FolderPlus, LogIn, RefreshCcw, Shield, UserRound } from 'lucide-vue-next'
+import { FolderPlus, LogIn, RefreshCcw, Shield } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
+import AccountSessionMenu from '../../../../components/layout/account-session-menu.vue'
 
 defineProps<{
   isLoggedIn: boolean
@@ -26,10 +27,7 @@ const emit = defineEmits<{
     </RouterLink>
 
     <div v-if="isLoggedIn" class="route-actions">
-      <RouterLink class="account-label focus-ring" to="/app/space" aria-label="打开个人空间">
-        <UserRound :size="16" />
-        <span>{{ nickname || 'Creator' }}</span>
-      </RouterLink>
+      <AccountSessionMenu :display-name="nickname" />
       <RouterLink
         v-if="isAdmin"
         class="header-action focus-ring"
@@ -85,7 +83,6 @@ const emit = defineEmits<{
 
 .brand,
 .route-actions,
-.account-label,
 .header-action {
   display: inline-flex;
   align-items: center;
@@ -126,17 +123,12 @@ const emit = defineEmits<{
   gap: var(--space-2);
 }
 
-.account-label,
 .header-action {
   min-height: 40px;
   gap: 7px;
   border-radius: var(--radius-lg);
   padding: 0 var(--space-3);
   font-size: var(--font-size-body);
-}
-
-.account-label {
-  color: var(--text-secondary);
 }
 
 .header-action {
@@ -177,10 +169,6 @@ const emit = defineEmits<{
 }
 
 @media (hover: hover) {
-  .account-label:hover {
-    background: var(--bg-panel-subtle);
-  }
-
   .header-action:hover {
     background: var(--bg-panel-subtle);
   }
@@ -196,12 +184,10 @@ const emit = defineEmits<{
   }
 
   .brand__copy small,
-  .account-label span,
   .header-action span {
     display: none;
   }
 
-  .account-label,
   .header-action {
     width: 40px;
     padding: 0;

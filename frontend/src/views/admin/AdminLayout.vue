@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { Activity, Database, Gauge, ShieldCheck, Ticket, Users, Workflow } from 'lucide-vue-next'
+import AccountSessionMenu from '../../components/layout/account-session-menu.vue'
 
 const route = useRoute()
 
@@ -84,6 +85,8 @@ const activeLabel = computed(() => navItems.find((item) => item.match(route.path
           </span>
         </RouterLink>
       </nav>
+
+      <AccountSessionMenu full-width />
 
       <section class="sidebar-note" aria-label="当前上下文">
         <span class="note-label">当前模块</span>

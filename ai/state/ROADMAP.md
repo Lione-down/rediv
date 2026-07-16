@@ -1,6 +1,6 @@
 # Revid Product V2 / Phase 5 Direct Delivery Roadmap
 
-Last updated: 2026-07-15
+Last updated: 2026-07-16
 
 ## Product Outcome
 
@@ -68,6 +68,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 56 | T5-056 | Chained generation input lineage bridge | DONE - PASS | T5-055 |
 | 72 | T5-072 | Enterprise Canvas scenario certification and finite release closure | DONE - PASS | T5-071 |
 | 73 | T5-073 | Canvas authoring card hierarchy refinement | DONE - PASS | T5-072 |
+| 74 | T5-074 | Authenticated logout and global session exit | DONE - PASS | T5-073 |
 
 ## Task Boundaries
 
@@ -220,6 +221,8 @@ T5-071 is `DONE - PASS` for its offline implementation and browser boundary by e
 T5-072 is `DONE - PASS`. Current evidence certifies graph authoring, multi-node image/video workflows, dense ordering, recovery, responsive ownership, accessibility, live 200/300 performance, persistence, and security. The final release decision is PASS with real Agnes visual fidelity retained as an explicit Human-deferred unsupported boundary.
 
 T5-073 is `DONE - PASS`. Script, note, and generation authoring nodes now use one compact Revid-native header/body/status grammar while media/results stay intrinsic and media-first. Focused browser groups, responsive/zoom/editing/recipe/toolbar regressions, build, hygiene, and a fresh guarded live 200-node/300-connection run passed. `REPORT-T5-073.md` is authoritative evidence.
+
+T5-074 is `DONE - PASS`. All authenticated shells now expose one responsive account menu backed by an authenticated logout acknowledgement and immediate failure-safe browser teardown. Backend auth 13/13, frontend regression 12/12, build, keyboard/ARIA, desktop/375px visual, and hygiene gates passed. `REPORT-T5-074.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

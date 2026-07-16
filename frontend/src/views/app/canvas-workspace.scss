@@ -104,8 +104,7 @@
 }
 
 .sync-status,
-.revision-trigger,
-.account-link {
+.revision-trigger {
   display: inline-flex;
   min-height: var(--v2-control-min-size);
   align-items: center;
@@ -156,14 +155,12 @@
 }
 
 .sync-status:active,
-.revision-trigger:active,
-.account-link:active {
+.revision-trigger:active {
   transform: scale(var(--v2-press-scale));
 }
 
 .sync-status:focus-visible,
-.revision-trigger:focus-visible,
-.account-link:focus-visible {
+.revision-trigger:focus-visible {
   outline: 2px solid var(--v2-focus-ring);
   outline-offset: 2px;
 }
@@ -248,7 +245,6 @@
 }
 
 @media (hover: hover) {
-  .account-link:hover,
   .revision-trigger:hover,
   .sync-status.is-error:hover {
     color: var(--v2-text-primary);
@@ -261,12 +257,10 @@
     gap: var(--v2-space-2);
   }
 
-  .account-link span,
   .sync-status span {
     display: none;
   }
 
-  .account-link,
   .revision-trigger,
   .sync-status {
     width: var(--v2-control-min-size);
