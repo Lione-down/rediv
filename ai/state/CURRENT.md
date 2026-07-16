@@ -109,11 +109,11 @@ Last updated: 2026-07-17
 - T5-078 is now `DONE - PASS`: local and durable active generation work projects into stable collision-aware result-sized reservations, then hands successful reconciliation to the canonical result command at the exact predicted position without graph identity or runtime persistence. Focused 6/6, related 36/36, functional Chromium 354/354, backend 463 plus 78 subtests, a 4,841-module build, visual/hygiene gates, and fresh owned 200/300 evidence at 59.87 FPS passed. Final report: `ai/reports/REPORT-T5-078.md`.
 - T5-079 is now `DONE - PASS`: a RED containment guard measured four decoded image roots outside their surfaces, rail-local placement removed the scoped-selector leak, and focused 1/1 plus related 23/23 Chromium, a 4,841-module build, two visual inspections, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-079.md`.
 - T5-080 is now `DONE - PASS`: canonical visible geometry, forgiving screen-stable port targets, exact compatible landing, neutral aggregate batch continuation, group-as-one-unit movement, and active-only edge flow passed focused 61/61, functional Chromium 372/372, a 4,855-module build, four-viewport visual inspection, and guarded live 200/300 evidence at 59.92 FPS with 16.8ms frame p95. The local software-rendered mock 33.3ms scheduling bucket is classified without threshold weakening. Final report: `ai/reports/REPORT-T5-080.md`.
-- T5-081 is `DOING`: it projects the existing Canvas document into text/image/video review lanes and adds image-only semantic group metadata for exact order, ratio, grid, and numbering. Workflow remains the sole graph and generation execution surface; no backend, schema, provider, paid-call, or mobile-editing boundary changes.
+- T5-081 is `DOING`: its pure projection now derives deterministic text/image/video lane IDs and truthful draft/queued/running/succeeded/failed/unavailable states from existing graph, registry, runtime, and media contracts. Valid storyboard metadata owns exact child order; malformed metadata falls back without mutation. Projection 4/4, related 22/22, and a 4,855-module build pass. Workflow/Storyboard view and group mutation units remain.
 
 ## Exact Next Action
 
-Audit the existing Canvas registry, runtime/lineage, media, group, Workspace, Context Panel, store, and test-fixture contracts; then freeze and run the first pure Storyboard projection RED before production edits.
+Audit Workspace, Context Panel, selection/context ownership, compact drawer, generation execution boundaries, shell/keyboard fixtures, and Canvas tokens; then freeze and run the first Workflow/Storyboard browser RED before production edits.
 
 ## Blockers And Human Gates
 
