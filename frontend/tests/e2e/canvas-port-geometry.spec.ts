@@ -6,6 +6,13 @@ import {
   nodePortWorldAnchor,
 } from '../../src/components/canvas/canvas-geometry'
 import { canvasNodeVisualSize } from '../../src/components/canvas/canvas-node-presentation'
+import {
+  CANVAS_PORT_HIT_TARGET_MAX_PX,
+  CANVAS_PORT_HIT_TARGET_MIN_PX,
+  CANVAS_PORT_VISUAL_WORLD_SIZE,
+  resolveCanvasPortGeometry,
+  resolveCanvasPortHitWorldSize,
+} from '../../src/components/canvas/canvas-port-presentation'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
 
 const script: CanvasNode = {
@@ -38,6 +45,19 @@ test('registry ports expose distinct world anchors that match their rendered pos
   ])
   const scriptSize = canvasNodeVisualSize(script)
   expect(nodePortWorldAnchor(script, 'output', 'out')).toEqual({ x: 20 + scriptSize.width, y: 40 + scriptSize.height / 2 })
+})
+
+test('port visuals stay world-sized while the real hit target stays screen-stable', () => {
+  for (const zoom of [0.1, 0.25, 0.5, 1, 2, 8]) {
+    const hitWorldSize = resolveCanvasPortHitWorldSize(zoom)
+    const hitScreenSize = hitWorldSize * zoom
+    const geometry = resolveCanvasPortGeometry('output', { width: 320, height: 120 }, 0, 1, zoom)
+    expect(geometry.visual.size).toBe(CANVAS_PORT_VISUAL_WORLD_SIZE)
+    expect(geometry.hit.size).toBe(hitWorldSize)
+    expect(hitScreenSize).toBeGreaterThanOrEqual(CANVAS_PORT_HIT_TARGET_MIN_PX)
+    expect(hitScreenSize).toBeLessThanOrEqual(CANVAS_PORT_HIT_TARGET_MAX_PX)
+    expect(hitScreenSize).toBe(40)
+  }
 })
 
 test('persisted connections attach paths to the exact source and target registry ports', () => {

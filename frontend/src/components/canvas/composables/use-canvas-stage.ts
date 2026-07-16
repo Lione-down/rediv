@@ -268,7 +268,8 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   function handlePortPointerDown(nodeId: string, portId: string, direction: 'input' | 'output', event: LeaferPointerEvent) {
     focusCanvasStage()
     closeConnectionContinuation()
-    if (shouldStartPan(event.origin, false)) return startPan(event.origin)
+    if (shouldStartPan(event.origin)) return startPan(event.origin)
+    if (!event.origin || event.origin.button !== 0) return
     if (options.isReadOnly?.()) return
     const originNode = findNode(nodeId)
     if (!originNode || !isArrangeEligibleNode(originNode)) return

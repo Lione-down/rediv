@@ -10,6 +10,8 @@ import {
   type CanvasGenerationProgressVisuals,
 } from './canvas-generation-progress-visual'
 import { buildCanvasNodePresentation, canvasNodeVisualSize, isSupportedCanvasGroupNode } from './canvas-node-presentation'
+import { bindCanvasPortPointerTargets } from './canvas-port-interaction'
+import { resolveCanvasPortGeometry } from './canvas-port-presentation'
 import { planKeyedReconciliation } from './canvas-renderer-reconciliation'
 
 const POINTER_DOWN = 'pointer.down'
@@ -19,7 +21,7 @@ const DOUBLE_CLICK = 'double_click'
 
 interface NodeVisuals extends CanvasGenerationProgressVisuals {
   group: Group
-  ports: Array<{ id: string; direction: 'input' | 'output'; shape: Ellipse }>
+  ports: Array<{ id: string; direction: 'input' | 'output'; visual: Ellipse }>
   card: Rect
   mediaImage: LeaferImage
   contentText: Text
@@ -78,6 +80,7 @@ export interface CanvasRenderer {
 export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRenderer {
   const interactiveTargets = new WeakSet<object>()
   const nodeVisuals = new Map<string, NodeVisuals>()
+  const unbindPortPointerTargets = bindCanvasPortPointerTargets(options)
   const leafer = new Leafer({
     view: options.surface,
     width: Math.max(options.surface.clientWidth, 1),
@@ -224,11 +227,12 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     const ports = [...presentation.inputPorts, ...presentation.outputPorts].map((port) => {
       const siblings = port.direction === 'input' ? presentation.inputPorts : presentation.outputPorts
       const index = siblings.findIndex((candidate) => candidate.id === port.id)
-      const shape = new Ellipse({
-        x: port.direction === 'input' ? -8 : size.width - 8,
-        y: (size.height * (index + 1)) / (siblings.length + 1) - 8,
-        width: 16,
-        height: 16,
+      const geometry = resolveCanvasPortGeometry(port.direction, size, index, siblings.length, options.getViewport().zoom)
+      const visual = new Ellipse({
+        x: geometry.visual.x,
+        y: geometry.visual.y,
+        width: geometry.visual.size,
+        height: geometry.visual.size,
         fill: port.direction === 'input'
           ? options.cssVar('--canvas-port-idle-fill', 'rgba(255, 255, 255, 0.24)')
           : options.cssVar('--canvas-port-idle-fill', 'rgba(255, 255, 255, 0.24)'),
@@ -236,8 +240,9 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
         strokeWidth: port.direction === 'input' ? 1.5 : 2,
         opacity: state.isSelected ? 1 : 0.16,
         visible: !node.isLocked,
+        hittable: false,
       })
-      return { id: port.id, direction: port.direction, shape }
+      return { id: port.id, direction: port.direction, visual }
     })
     const imageMedia = presentation.media?.kind === 'image' ? presentation.media : null
     const mediaImage = new LeaferImage({
@@ -292,7 +297,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       : {}
     const lifecycleVisuals = generationProgressVisualTargets(progressVisuals)
 
-    group.add([card, mediaImage, ...ports.map((port) => port.shape), typeText, titleText, contentText, ...lifecycleVisuals])
+    group.add([card, mediaImage, ...ports.map((port) => port.visual), typeText, titleText, contentText, ...lifecycleVisuals])
     worldGroup.add(group)
     const visual: NodeVisuals = {
       group,
@@ -306,7 +311,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       state,
     }
     nodeVisuals.set(node.id, visual)
-    ;[group, card, mediaImage, ...ports.map((port) => port.shape), typeText, titleText, contentText, ...lifecycleVisuals].forEach((target) => {
+    ;[group, card, mediaImage, typeText, titleText, contentText, ...lifecycleVisuals].forEach((target) => {
       interactiveTargets.add(target)
     })
     ;(group as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
@@ -314,16 +319,10 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       (event) => options.onNodePointerDown(node.id, event),
     )
     const setPortsHovered = (isHovered: boolean) => {
-      for (const port of ports) port.shape.opacity = state.isSelected || isHovered ? 1 : 0.16
+      for (const port of ports) port.visual.opacity = state.isSelected || isHovered ? 1 : 0.16
     }
     ;(group as unknown as { on: (type: string, handler: () => void) => void }).on('pointer.enter', () => setPortsHovered(true))
     ;(group as unknown as { on: (type: string, handler: () => void) => void }).on('pointer.leave', () => setPortsHovered(false))
-    for (const port of ports) {
-      ;(port.shape as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
-        POINTER_DOWN,
-        (event) => options.onPortPointerDown(node.id, port.id, port.direction, event),
-      )
-    }
     return visual
   }
 
@@ -356,12 +355,8 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     visual.card.strokeWidth = nextState.isSelected ? 1.5 : 1
     visual.card.shadow = isGroup || isMedia ? undefined : hasEmphasis ? { x: 0, y: 10, blur: 28, color: nodeShadowColor(node) } : undefined
     for (const port of visual.ports) {
-      const siblings = visual.ports.filter((candidate) => candidate.direction === port.direction)
-      const index = siblings.findIndex((candidate) => candidate.id === port.id)
-      port.shape.visible = !node.isLocked
-      port.shape.x = port.direction === 'input' ? -8 : size.width - 8
-      port.shape.y = (size.height * (index + 1)) / (siblings.length + 1) - 8
-      port.shape.opacity = nextState.isSelected ? 1 : 0.16
+      port.visual.visible = !node.isLocked
+      port.visual.opacity = nextState.isSelected ? 1 : 0.16
     }
     const imageMedia = presentation.media?.kind === 'image' ? presentation.media : null
     visual.mediaImage.visible = false
@@ -448,11 +443,11 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
   )
 
   return {
-    destroy: () => leafer.destroy(),
+    destroy: () => { unbindPortPointerTargets(); leafer.destroy() },
     isInteractiveTarget: (target) => Boolean(target && interactiveTargets.has(target as object)),
     isPortTarget: (nodeId, target) => {
       const visual = nodeVisuals.get(nodeId)
-      return Boolean(visual?.ports.some((port) => target === port.shape))
+      return Boolean(visual?.ports.some((port) => target === port.visual))
     },
     resize,
     syncNodes,

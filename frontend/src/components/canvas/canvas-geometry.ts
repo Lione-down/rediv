@@ -265,7 +265,7 @@ export function minimapPointToWorld(point: Point, metrics: MinimapMetrics) {
 }
 
 export function minimapNodeStyle(node: CanvasNode, metrics: MinimapMetrics) {
-  const size = canvasNodeVisualSize(node)
+  const size = resolveCanvasNodeLayoutSize(node)
   return {
     left: `${metrics.offsetX + (node.x - metrics.minX) * metrics.scale}px`,
     top: `${metrics.offsetY + (node.y - metrics.minY) * metrics.scale}px`,

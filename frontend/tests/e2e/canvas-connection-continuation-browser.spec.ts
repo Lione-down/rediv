@@ -36,6 +36,21 @@ async function dragFromOutput(page: Page, state: ResourceMockState, target: { x:
   await page.mouse.up()
 }
 
+async function dragFromOutputOffset(
+  page: Page,
+  state: ResourceMockState,
+  startOffset: { x: number; y: number },
+  target: { x: number; y: number },
+) {
+  const anchor = nodeOutputAnchor(mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out')
+  const source = await surfacePoint(page, { x: anchor.x + startOffset.x, y: anchor.y + startOffset.y })
+  const destination = await surfacePoint(page, target)
+  await page.mouse.move(source.x, source.y)
+  await page.mouse.down()
+  await page.mouse.move(destination.x, destination.y, { steps: 8 })
+  await page.mouse.up()
+}
+
 async function beginOutputDrag(page: Page, state: ResourceMockState, target: { x: number; y: number }) {
   const source = await surfacePoint(page, nodeOutputAnchor(mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out'))
   const destination = await surfacePoint(page, target)
@@ -101,6 +116,87 @@ test('empty release offers typed continuation and commits one undoable graph ins
   await page.keyboard.press('Control+Shift+z')
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.length).toBe(4)
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(2)
+})
+
+test('output drag starts inside the forgiving hit target but outside the visible dot', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state)
+
+  await dragFromOutputOffset(page, state, { x: 14, y: 0 }, { x: 760, y: 620 })
+
+  await expect(page.getByRole('dialog', { name: '继续连接' })).toBeVisible()
+  expect(documentPatches(state)).toHaveLength(0)
+})
+
+test('output drag does not start just outside the forgiving hit target', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state)
+
+  await dragFromOutputOffset(page, state, { x: 26, y: 0 }, { x: 760, y: 620 })
+
+  await expect(page.getByRole('dialog', { name: '继续连接' })).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
+  expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(1)
+})
+
+test('non-primary port gestures retain pan and context-menu ownership', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state)
+  const canvas = state.canvases.find((candidate) => candidate.id === FIRST_CANVAS_ID)!
+  let source = await surfacePoint(page, nodeOutputAnchor(
+    mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out',
+  ))
+
+  await page.mouse.move(source.x, source.y)
+  await page.mouse.down({ button: 'middle' })
+  await page.mouse.move(source.x + 80, source.y + 40, { steps: 4 })
+  await page.mouse.up({ button: 'middle' })
+  await expect.poll(() => [canvas.viewport_x, canvas.viewport_y]).toEqual([80, 40])
+
+  source = await surfacePoint(page, nodeOutputAnchor(mappedNode(state, 'script-source'), {
+    x: canvas.viewport_x, y: canvas.viewport_y, zoom: canvas.viewport_zoom,
+  }, 'out'))
+  await page.mouse.click(source.x, source.y, { button: 'right' })
+  await page.keyboard.press('Escape')
+
+  await expect(page.getByRole('dialog', { name: '继续连接' })).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
+  expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(1)
+})
+
+test('Space plus primary port drag retains pan ownership', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state)
+  const canvas = state.canvases.find((candidate) => candidate.id === FIRST_CANVAS_ID)!
+  const source = await surfacePoint(page, nodeOutputAnchor(
+    mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out',
+  ))
+
+  await page.getByRole('region', { name: /Revid/ }).focus()
+  await page.keyboard.down('Space')
+  await page.mouse.move(source.x, source.y)
+  await page.mouse.down()
+  await page.mouse.move(source.x + 60, source.y + 30, { steps: 4 })
+  await page.mouse.up()
+  await page.keyboard.up('Space')
+
+  await expect.poll(() => [canvas.viewport_x, canvas.viewport_y]).toEqual([60, 30])
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
+  expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(1)
+})
+
+test('Escape cancels an active port draft before release', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state)
+  await beginOutputDrag(page, state, { x: 760, y: 620 })
+
+  await page.keyboard.press('Escape')
+  await page.mouse.up()
+
+  await expect(page.getByRole('dialog', { name: '继续连接' })).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
+  expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(1)
 })
 
 test('pointer cancellation never opens continuation or mutates the graph', async ({ page }) => {
