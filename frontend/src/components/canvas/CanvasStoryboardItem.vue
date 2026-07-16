@@ -6,8 +6,15 @@ import type { CanvasNode } from '../../types/canvas'
 import { buildCanvasNodePresentation } from './canvas-node-presentation'
 import CanvasNodeMedia from './CanvasNodeMedia.vue'
 
-const props = defineProps<{ item: CanvasStoryboardItem; node: CanvasNode }>()
-const emit = defineEmits<{ navigate: [direction: -1 | 1]; select: [nodeId: string] }>()
+const props = withDefaults(defineProps<{
+  canMoveEarlier?: boolean
+  canMoveLater?: boolean
+  canReorder?: boolean
+  item: CanvasStoryboardItem
+  node: CanvasNode
+  showNumber?: boolean
+}>(), { canMoveEarlier: false, canMoveLater: false, canReorder: false, showNumber: true })
+const emit = defineEmits<{ navigate: [direction: -1 | 1]; reorder: [direction: -1 | 1]; select: [nodeId: string] }>()
 const selectRef = ref<HTMLButtonElement | null>(null)
 const presentation = computed(() => buildCanvasNodePresentation(props.node))
 const statusLabels = {
@@ -39,6 +46,10 @@ defineExpose({ focus })
       <CanvasNodeMedia v-if="presentation.media" :media="presentation.media" />
       <component :is="laneIcons[item.lane]" v-else :size="24" />
     </div>
+    <div v-if="canReorder" class="storyboard-item__order-actions">
+      <button type="button" :disabled="!canMoveEarlier" :aria-label="`前移分镜 ${item.title}`" @click.stop="emit('reorder', -1)"><span aria-hidden="true">←</span></button>
+      <button type="button" :disabled="!canMoveLater" :aria-label="`后移分镜 ${item.title}`" @click.stop="emit('reorder', 1)"><span aria-hidden="true">→</span></button>
+    </div>
     <button
       ref="selectRef"
       type="button"
@@ -48,7 +59,8 @@ defineExpose({ focus })
       @keydown="handleKeydown"
     >
       <span class="storyboard-item__meta">
-        <strong>{{ sequence }}</strong>
+        <strong v-if="showNumber">{{ sequence }}</strong>
+        <strong v-else aria-label="分镜编号已隐藏">镜头</strong>
         <span :class="`is-${item.status}`">{{ statusLabels[item.status] }}</span>
       </span>
       <strong class="storyboard-item__title">{{ item.title }}</strong>

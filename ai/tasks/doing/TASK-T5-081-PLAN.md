@@ -1,6 +1,6 @@
 # TASK-T5-081 Plan
 
-- State: `DOING`
+- State: `BLOCKED`
 - Objective: deliver a Storyboard review and sequence workflow as a pure projection plus validated ordinary Canvas group commands, without forking graph, execution, history, autosave, or responsive ownership.
 
 ## Locked design direction

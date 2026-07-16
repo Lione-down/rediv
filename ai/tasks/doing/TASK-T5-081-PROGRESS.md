@@ -1,7 +1,7 @@
 # TASK-T5-081 Progress
 
-- Task state: `DOING`
-- Active unit: Unit 3, freeze validated image storyboard group membership, layout, and command contracts through browser RED.
+- Task state: `BLOCKED`
+- Active unit: Units 3-4 frontend work is complete; Canvas duplication metadata remapping is blocked by the plan's backend-behavior stop rule.
 
 ## Completed work
 
@@ -25,15 +25,21 @@
 - Added the explicit `allow-generation-execution` Context Panel boundary. Storyboard retains safe prompt/parameter editing and read-only lineage/comparison inspection, while generation, retry, recipe, branch, continuation, trace arrangement, and provider-input reorder controls are absent.
 - Verified zero document/viewport PATCH and zero generation POST for switching and review. The same selected node remains in the desktop Context Panel; 920px uses the existing context drawer; 375px remains review-only.
 - Passed Storyboard workflow 4/4, Context Panel/generation related regression 19/19, and a 4,866-module production build.
+- Completed strict 2-25 image-only storyboard group validation, exact metadata parsing, deterministic ratio-aware grid layout, typed create/settings/reorder/convert commands, and canonical `group/storyboard` registry support.
+- Workflow exposes `创建分镜组` only for an exact valid selection. Existing selection toolbar ownership now provides ratio, 1-5 columns, numbering, conversion, and child order controls; Storyboard items expose accessible earlier/later controls while 375px remains mutation-free.
+- Create, settings, order, conversion, and ungroup each use existing command history/autosave. Browser evidence proves one document PATCH per command, exact undo/redo and reload, numbering visibility, unchanged edge/provider-order metadata, child-position stability on convert/ungroup, and parent-first equal-delta whole-group movement.
+- Refactored shared validation into `storyboard-group.ts`, typed command creation into `storyboard-commands.ts`, and Stage coordination into a focused composable to keep command ownership bounded.
+- Passed focused Storyboard group/projection 9/9, related command/history/persistence/registry/presentation plus Storyboard matrix 50/50, and a 4,872-module production build.
+- Audited Canvas duplication and found an acceptance-blocking contract gap: `backend/controllers/canvases.py::duplicate_canvas()` remaps node parent IDs and edge endpoints but only deep-copies node content. A storyboard group's `ordered_child_ids` therefore retains source-Canvas child IDs and becomes invalid after duplication.
 
 ## Remaining work
 
-- Complete Units 3-4 storyboard group validation, commands, layout, order, history, persistence, conversion, and ungroup.
+- Obtain Human Owner authorization for one minimal existing-backend duplication remap so storyboard `ordered_child_ids` can follow `node_id_map`; add a focused RED and preserve all unrelated content keys.
 - Complete Unit 5 focused/related/full regression, build, visual, accessibility, hygiene, guarded live 200/300, REPORT, durable closure, commit, and push.
 
 ## Exact next action
 
-Audit group registry resolution, T5-080 group movement, command executor/history, ordinary group/ungroup behavior, selection toolbar controls, node layout, serializer, and duplication fixtures; then write and run the first failing 2-25 image storyboard group browser contract before production edits.
+After Human Owner authorization, write a focused backend duplication RED proving exact storyboard child-ID remapping while ordinary group content and project asset references remain unchanged; then implement the smallest controller-local remap and resume Unit 5.
 
 ## Files changed
 
@@ -56,6 +62,17 @@ Audit group registry resolution, T5-080 group movement, command executor/history
 - `frontend/src/views/app/CanvasWorkspace.vue`
 - `frontend/src/views/app/canvas-workspace.scss`
 - `frontend/tests/e2e/canvas-storyboard-workflow.spec.ts`
+- `frontend/src/components/canvas/CanvasSelectionToolbar.vue`
+- `frontend/src/components/canvas/CanvasStoryboardNumberLayer.vue`
+- `frontend/src/components/canvas/composables/use-canvas-storyboard-groups.ts`
+- `frontend/src/modules/canvas/canvas-command-executor.ts`
+- `frontend/src/modules/canvas/canvas-commands.ts`
+- `frontend/src/modules/canvas/mutations.ts`
+- `frontend/src/modules/canvas/node-registry.ts`
+- `frontend/src/modules/canvas/storyboard-commands.ts`
+- `frontend/src/modules/canvas/storyboard-group.ts`
+- `frontend/tests/e2e/canvas-storyboard-group-workflow.spec.ts`
+- `frontend/tests/e2e/canvas-storyboard-group.spec.ts`
 
 ## Commands and evidence
 
@@ -73,9 +90,16 @@ Audit group registry resolution, T5-080 group movement, command executor/history
 - Storyboard workflow final: `npx playwright test tests/e2e/canvas-storyboard-workflow.spec.ts --project=chromium`; PASS 4/4 across 1440, 920, and 375.
 - Unit 2 related matrix: Storyboard workflow, generation preflight/input order, visual asset recipes, and composer zoom; PASS 19/19.
 - Unit 2 production build: `npm run build`; PASS, 4,866 transformed modules.
+- Storyboard group RED 1: focused runner failed on the absent `storyboard-group` module, proving validation/layout/commands were missing.
+- Storyboard group RED 2: browser workflow failed on the absent `创建分镜组` action; numbering RED separately failed on zero `.storyboard-frame-number` elements.
+- Storyboard group final: pure group, browser workflow, and projection; PASS 9/9.
+- Units 3-4 related matrix: command contract/history/interactions, document persistence, registry, presentation, projection, view boundary, and group workflow; PASS 50/50.
+- Units 3-4 production build: `npm run build`; PASS, 4,872 transformed modules.
+- Duplication audit: `backend/controllers/canvases.py::duplicate_canvas()` builds `node_id_map`, remaps `parent_node_id` and connection endpoints, but assigns `content=deepcopy(source_node.content)` without remapping `ordered_child_ids`.
 
 ## Blockers and release conditions
 
-- None for activation or offline implementation.
+- Acceptance criterion 7 is blocked. Exact Canvas duplication requires remapping storyboard `ordered_child_ids` through the backend's private `node_id_map`; frontend repair cannot know the mapping and inferred repair is explicitly forbidden.
+- Release condition: Human Owner authorizes a minimal existing duplicate-controller behavior change, limited to validated `group/storyboard` version-1 content and covered by focused backend tests. No endpoint, schema, migration, secret, provider, or destructive operation is required.
 - Guarded live verification remains conditional on environment already supplied to the process; it must never be recovered by reading `.env`.
 - Paid/provider calls, real secret access, runtime migrations, destructive operations, and incompatible product/UX changes remain Human Owner gates.

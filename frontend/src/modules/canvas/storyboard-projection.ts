@@ -12,6 +12,7 @@ import type {
   CanvasStoryboardStatus,
   StoryboardGroupContent,
 } from './storyboard-types'
+import { readStoryboardGroupContent } from './storyboard-group'
 
 export type {
   CanvasStoryboardItem,
@@ -22,7 +23,6 @@ export type {
 } from './storyboard-types'
 
 const STORYBOARD_LANES: readonly CanvasStoryboardLane[] = ['text', 'image', 'video']
-const STORYBOARD_RATIOS = new Set(['16:9', '9:16', '1:1', '4:3'])
 
 interface ProjectionCandidate {
   anchorDocumentOrder: number
@@ -98,35 +98,6 @@ function resolveStatus(
   const hasMedia = media?.kind === 'image' || media?.kind === 'video' || hasLegacyMedia(node)
   if (!hasMedia) return 'unavailable'
   return status ?? 'succeeded'
-}
-
-function isCanonicalStoryboardImage(node: CanvasNode) {
-  if (node.isLocked || (node.type !== 'asset' && node.type !== 'result')) return false
-  return node.contentData?.subtype === 'image' &&
-    resolveNodeDefinition(node.type, node.contentData).kind === 'canonical'
-}
-
-function readStoryboardGroupContent(
-  group: CanvasNode,
-  children: readonly CanvasNode[],
-): StoryboardGroupContent | null {
-  const content = group.contentData
-  const orderedChildIds = content?.ordered_child_ids
-  if (
-    group.type !== 'group' || content?.subtype !== 'storyboard' ||
-    content.serialization_version !== 1 || content.storyboard_schema_version !== 1 ||
-    !STORYBOARD_RATIOS.has(String(content.aspect_ratio)) ||
-    !Number.isInteger(content.columns) || Number(content.columns) < 1 || Number(content.columns) > 5 ||
-    typeof content.show_numbers !== 'boolean' || !Array.isArray(orderedChildIds) ||
-    orderedChildIds.length < 2 || orderedChildIds.length > 25 || orderedChildIds.length !== children.length ||
-    orderedChildIds.some((id) => typeof id !== 'string') ||
-    new Set(orderedChildIds).size !== orderedChildIds.length ||
-    children.some((child) => !isCanonicalStoryboardImage(child))
-  ) return null
-
-  const childIds = new Set(children.map((child) => child.id))
-  if (orderedChildIds.some((id) => !childIds.has(id))) return null
-  return content as unknown as StoryboardGroupContent
 }
 
 function compareCandidates(left: ProjectionCandidate, right: ProjectionCandidate) {

@@ -4,10 +4,13 @@ import type { CanvasStoryboardItem, CanvasStoryboardLane } from '../../modules/c
 import type { CanvasNode } from '../../types/canvas'
 import CanvasStoryboardLaneComponent from './CanvasStoryboardLane.vue'
 
-const props = defineProps<{ items: readonly CanvasStoryboardItem[]; nodes: readonly CanvasNode[] }>()
-const emit = defineEmits<{ select: [nodeId: string] }>()
+const props = defineProps<{ items: readonly CanvasStoryboardItem[]; nodes: readonly CanvasNode[]; readonly: boolean }>()
+const emit = defineEmits<{ reorder: [groupId: string, nodeId: string, direction: -1 | 1]; select: [nodeId: string] }>()
 const lanes: readonly CanvasStoryboardLane[] = ['text', 'image', 'video']
 const nodesById = computed(() => new Map(props.nodes.map((node) => [node.id, node])))
+function forwardReorder(groupId: string, nodeId: string, direction: -1 | 1) {
+  emit('reorder', groupId, nodeId, direction)
+}
 </script>
 
 <template>
@@ -26,6 +29,8 @@ const nodesById = computed(() => new Map(props.nodes.map((node) => [node.id, nod
         :items="items"
         :lane="lane"
         :nodes-by-id="nodesById"
+        :readonly="readonly"
+        @reorder="forwardReorder"
         @select="emit('select', $event)"
       />
     </div>

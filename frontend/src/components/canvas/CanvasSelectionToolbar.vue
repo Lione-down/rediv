@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Copy, Group, Link2, LockKeyhole, LockKeyholeOpen, Trash2, Ungroup, WandSparkles, Workflow } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRight, Clapperboard, Copy, Group, Hash, Link2, LockKeyhole, LockKeyholeOpen, RefreshCcw, Trash2, Ungroup, WandSparkles, Workflow } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import type { StoryboardGroupSettings } from '../../modules/canvas/storyboard-group'
 import CanvasSelectionGenerationMenu from './CanvasSelectionGenerationMenu.vue'
 
 type CanvasArrangeMenuKey =
@@ -20,17 +21,29 @@ const props = defineProps<{
   canDelete: boolean
   canDuplicate: boolean
   canGroup: boolean
+  canCreateStoryboard: boolean
   canAlign: boolean
   canAutoArrange: boolean
   canDistribute: boolean
   canUngroup: boolean
   hasLocked: boolean
+  storyboardControls: {
+    groupId: string
+    nodeId: string | null
+    settings: StoryboardGroupSettings
+    canMoveEarlier: boolean
+    canMoveLater: boolean
+  } | null
 }>()
 
 const emit = defineEmits<{
   arrange: [action: CanvasArrangeMenuKey]
   duplicate: []
   group: []
+  createStoryboard: []
+  convertStoryboard: [groupId: string]
+  reorderStoryboard: [groupId: string, nodeId: string, direction: -1 | 1]
+  updateStoryboardSettings: [groupId: string, settings: StoryboardGroupSettings]
   ungroup: []
   connect: []
   compose: [mediaType: 'image' | 'video']
@@ -80,6 +93,14 @@ function handleReorderComposeSource(nodeId: string, direction: 'up' | 'down') {
   emit('reorderComposeSource', nodeId, direction)
 }
 
+function updateStoryboardSetting(updates: Partial<StoryboardGroupSettings>) {
+  if (!props.storyboardControls) return
+  emit('updateStoryboardSettings', props.storyboardControls.groupId, {
+    ...props.storyboardControls.settings,
+    ...updates,
+  })
+}
+
 function closeMenus() {
   isArrangeOpen.value = false
   isComposeOpen.value = false
@@ -113,6 +134,35 @@ onBeforeUnmount(() => {
 <template>
   <div ref="toolbarRef" class="selection-toolbar" role="toolbar" :aria-label="`${count} 个已选节点的操作`" @keydown.esc.stop="closeMenus">
     <span class="selection-count">已选 {{ count }}</span>
+    <button v-if="canCreateStoryboard" type="button" aria-label="创建分镜组" title="创建分镜组" @click="$emit('createStoryboard')">
+      <Clapperboard :size="16" aria-hidden="true" />
+    </button>
+    <div v-if="storyboardControls" class="storyboard-controls" aria-label="分镜组设置">
+      <label>
+        <span>比例</span>
+        <select aria-label="分镜比例" :value="storyboardControls.settings.aspect_ratio" @change="updateStoryboardSetting({ aspect_ratio: ($event.target as HTMLSelectElement).value as StoryboardGroupSettings['aspect_ratio'] })">
+          <option value="16:9">16:9</option><option value="9:16">9:16</option><option value="1:1">1:1</option><option value="4:3">4:3</option>
+        </select>
+      </label>
+      <label>
+        <span>列</span>
+        <select aria-label="分镜列数" :value="storyboardControls.settings.columns" @change="updateStoryboardSetting({ columns: Number(($event.target as HTMLSelectElement).value) as StoryboardGroupSettings['columns'] })">
+          <option v-for="column in 5" :key="column" :value="column">{{ column }}</option>
+        </select>
+      </label>
+      <button
+        type="button"
+        :aria-label="storyboardControls.settings.show_numbers ? '隐藏分镜编号' : '显示分镜编号'"
+        :title="storyboardControls.settings.show_numbers ? '隐藏分镜编号' : '显示分镜编号'"
+        :aria-pressed="storyboardControls.settings.show_numbers"
+        @click="updateStoryboardSetting({ show_numbers: !storyboardControls.settings.show_numbers })"
+      ><Hash :size="16" aria-hidden="true" /></button>
+      <template v-if="storyboardControls.nodeId">
+        <button type="button" :disabled="!storyboardControls.canMoveEarlier" :aria-label="`前移分镜 ${storyboardControls.nodeId}`" title="前移分镜" @click="$emit('reorderStoryboard', storyboardControls.groupId, storyboardControls.nodeId, -1)"><ArrowLeft :size="16" aria-hidden="true" /></button>
+        <button type="button" :disabled="!storyboardControls.canMoveLater" :aria-label="`后移分镜 ${storyboardControls.nodeId}`" title="后移分镜" @click="$emit('reorderStoryboard', storyboardControls.groupId, storyboardControls.nodeId, 1)"><ArrowRight :size="16" aria-hidden="true" /></button>
+      </template>
+      <button type="button" aria-label="转为普通组合" title="转为普通组合" @click="$emit('convertStoryboard', storyboardControls.groupId)"><RefreshCcw :size="16" aria-hidden="true" /></button>
+    </div>
     <div v-if="canCompose" class="compose-menu">
       <button
         type="button"
@@ -208,6 +258,10 @@ onBeforeUnmount(() => {
 }
 
 .arrange-menu, .compose-menu { position: relative; }
+.storyboard-controls { display: flex; align-items: center; gap: 4px; padding-right: 4px; border-right: 1px solid var(--border-subtle); }
+.storyboard-controls label { display: flex; align-items: center; gap: 4px; color: var(--text-secondary); font-size: 10px; }
+.storyboard-controls select { min-height: 30px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); background: var(--bg-panel-subtle); font: inherit; font-size: 11px; }
+.storyboard-controls select:focus-visible { outline: 2px solid var(--v2-focus-ring, var(--accent-select)); outline-offset: 2px; }
 .arrange-panel {
   position: absolute;
   top: var(--arrange-menu-top, calc(100% + 10px));
@@ -251,6 +305,7 @@ button {
 }
 
 button:active { transform: scale(var(--v2-press-scale, 0.96)); }
+button:disabled { cursor: not-allowed; opacity: 0.38; }
 button:focus-visible {
   outline: 2px solid var(--v2-focus-ring, var(--accent-select));
   outline-offset: 2px;

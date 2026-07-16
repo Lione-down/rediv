@@ -33,7 +33,23 @@ import {
   type UpdateGenerationParametersCommand,
   type UngroupNodesCommand,
 } from './canvas-commands'
+import {
+  createConvertStoryboardGroupCommand,
+  createCreateStoryboardGroupCommand,
+  createReorderStoryboardGroupCommand,
+  createUpdateStoryboardGroupCommand,
+  type ConvertStoryboardGroupCommand,
+  type CreateStoryboardGroupCommand,
+  type ReorderStoryboardGroupCommand,
+  type UpdateStoryboardGroupCommand,
+} from './storyboard-commands'
 import { resolveCanvasNodeLayoutRect } from './node-layout'
+import {
+  createStoryboardGroupContent,
+  resolveNewStoryboardGroupAnchor,
+  resolveStoryboardGroup,
+  resolveStoryboardGroupLayout,
+} from './storyboard-group'
 
 interface CanvasCommandExecutorOptions {
   getNodes: () => CanvasNode[]
@@ -45,6 +61,7 @@ interface CanvasCommandExecutorOptions {
   updateConnection: (connectionId: string, draft: CanvasConnectionDraft) => Promise<void>
   updateNodeParent: (nodeId: string, parentNodeId: string | null) => Promise<void>
   updateNodeLocked: (nodeId: string, locked: boolean) => Promise<void>
+  updateNodeState?: (nodeId: string, updates: Partial<Omit<CanvasNode, 'id'>>) => Promise<void>
   queueNodeMove: (nodeId: string, x: number, y: number) => void
   setSelection: (nodeIds: string[], primaryNodeId?: string) => void
   selectConnection: (connectionId: string) => void
@@ -199,6 +216,112 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     options.setSelection([group.id], group.id)
   }
 
+  function requireStoryboardNodeUpdates() {
+    if (!options.updateNodeState) throw new Error('Storyboard group editing is unavailable')
+    return options.updateNodeState
+  }
+
+  async function createStoryboardGroup(command: CreateStoryboardGroupCommand) {
+    const validated = createCreateStoryboardGroupCommand(options.getNodes(), command.nodeIds, command.settings)
+    if (!validated) return
+    const nodesById = new Map(options.getNodes().map((node) => [node.id, node]))
+    const children = validated.nodeIds.map((nodeId) => nodesById.get(nodeId)!)
+    const content = createStoryboardGroupContent(validated.nodeIds, validated.settings)
+    const layout = resolveStoryboardGroupLayout(children, content, resolveNewStoryboardGroupAnchor(children))
+    const updateNodeState = requireStoryboardNodeUpdates()
+    const groupCount = options.getNodes().filter((node) => node.type === 'group' && node.contentData?.subtype === 'storyboard').length
+    const groupDraft = createRegistryNodeDraft('group', 'storyboard', layout.group)
+    const group = await options.createNode({
+      ...groupDraft,
+      ...layout.group,
+      title: `分镜组 ${groupCount + 1}`,
+      contentData: { ...content },
+      zIndex: Math.min(...children.map((node) => node.zIndex ?? 0)) - 1,
+      parentNodeId: null,
+      isLocked: false,
+      isCollapsed: false,
+      status: 'idle',
+    })
+    const snapshots = new Map(children.map((child) => [child.id, {
+      x: child.x, y: child.y, parentNodeId: child.parentNodeId ?? null,
+    }]))
+    const updatedIds: string[] = []
+    try {
+      for (const child of children) {
+        const position = layout.childPositions.get(child.id)!
+        await updateNodeState(child.id, { ...position, parentNodeId: group.id })
+        updatedIds.push(child.id)
+      }
+    } catch (error) {
+      for (const nodeId of updatedIds.reverse()) await updateNodeState(nodeId, snapshots.get(nodeId)!).catch(() => undefined)
+      await options.deleteNode(group.id).catch(() => undefined)
+      throw error
+    }
+    options.setSelection([group.id], group.id)
+  }
+
+  async function applyStoryboardGroupLayout(
+    groupId: string,
+    content: ReturnType<typeof createStoryboardGroupContent>,
+  ) {
+    const resolved = resolveStoryboardGroup(options.getNodes(), groupId)
+    if (!resolved) return
+    const updateNodeState = requireStoryboardNodeUpdates()
+    const layout = resolveStoryboardGroupLayout(resolved.children, content, {
+      x: resolved.group.x,
+      y: resolved.group.y,
+    })
+    const groupSnapshot = {
+      x: resolved.group.x, y: resolved.group.y, width: resolved.group.width, height: resolved.group.height,
+      contentData: resolved.group.contentData ? structuredClone(toRaw(resolved.group.contentData)) : undefined,
+    }
+    const childSnapshots = new Map(resolved.children.map((child) => [child.id, { x: child.x, y: child.y }]))
+    const updatedIds: string[] = []
+    try {
+      await updateNodeState(groupId, { ...layout.group, contentData: { ...content } })
+      for (const child of resolved.children) {
+        await updateNodeState(child.id, layout.childPositions.get(child.id)!)
+        updatedIds.push(child.id)
+      }
+    } catch (error) {
+      for (const nodeId of updatedIds.reverse()) await updateNodeState(nodeId, childSnapshots.get(nodeId)!).catch(() => undefined)
+      await updateNodeState(groupId, groupSnapshot).catch(() => undefined)
+      throw error
+    }
+  }
+
+  async function updateStoryboardGroup(command: UpdateStoryboardGroupCommand) {
+    const validated = createUpdateStoryboardGroupCommand(options.getNodes(), command.groupId, command.settings)
+    if (!validated) return
+    const resolved = resolveStoryboardGroup(options.getNodes(), validated.groupId)!
+    await applyStoryboardGroupLayout(validated.groupId, createStoryboardGroupContent(
+      resolved.content.ordered_child_ids,
+      validated.settings,
+    ))
+  }
+
+  async function reorderStoryboardGroup(command: ReorderStoryboardGroupCommand) {
+    const validated = createReorderStoryboardGroupCommand(
+      options.getNodes(), command.groupId, command.nodeId, command.direction,
+    )
+    if (!validated) return
+    const resolved = resolveStoryboardGroup(options.getNodes(), validated.groupId)!
+    const orderedChildIds = [...resolved.content.ordered_child_ids]
+    const currentIndex = orderedChildIds.indexOf(validated.nodeId)
+    ;[orderedChildIds[currentIndex], orderedChildIds[currentIndex + validated.direction]] = [
+      orderedChildIds[currentIndex + validated.direction], orderedChildIds[currentIndex],
+    ]
+    await applyStoryboardGroupLayout(validated.groupId, createStoryboardGroupContent(orderedChildIds, resolved.content))
+  }
+
+  async function convertStoryboardGroup(command: ConvertStoryboardGroupCommand) {
+    const validated = createConvertStoryboardGroupCommand(options.getNodes(), command.groupId)
+    if (!validated) return
+    await requireStoryboardNodeUpdates()(validated.groupId, {
+      contentData: { subtype: 'group', serialization_version: 1 },
+    })
+  }
+
   async function ungroupNodes(command: UngroupNodesCommand) {
     const validated = createUngroupNodesCommand(
       options.getNodes(), command.groupIds, options.getConnections(),
@@ -318,6 +441,10 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'delete-selection') return deleteSelection(command)
     if (command.type === 'group-nodes') return groupNodes(command)
     if (command.type === 'ungroup-nodes') return ungroupNodes(command)
+    if (command.type === 'create-storyboard-group') return createStoryboardGroup(command)
+    if (command.type === 'update-storyboard-group') return updateStoryboardGroup(command)
+    if (command.type === 'reorder-storyboard-group') return reorderStoryboardGroup(command)
+    if (command.type === 'convert-storyboard-group') return convertStoryboardGroup(command)
     if (command.type === 'connect-nodes') return connectNodes(command)
     if (command.type === 'reconnect-connection') return reconnectConnection(command)
     if (command.type === 'arrange-nodes') return arrangeNodes(command)

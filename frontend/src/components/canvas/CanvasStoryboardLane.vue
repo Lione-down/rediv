@@ -10,8 +10,9 @@ const props = defineProps<{
   items: readonly CanvasStoryboardItem[]
   lane: CanvasStoryboardLane
   nodesById: ReadonlyMap<string, CanvasNode>
+  readonly: boolean
 }>()
-const emit = defineEmits<{ select: [nodeId: string] }>()
+const emit = defineEmits<{ reorder: [groupId: string, nodeId: string, direction: -1 | 1]; select: [nodeId: string] }>()
 const itemRefs = ref<Array<StoryboardItemHandle | null>>([])
 const laneLabels = { text: '文本镜头', image: '图片镜头', video: '视频镜头' } as const
 const laneDescriptions = {
@@ -34,6 +35,22 @@ function focusSibling(index: number, direction: -1 | 1) {
   if (!count) return
   itemRefs.value[(index + direction + count) % count]?.focus()
 }
+
+function groupOrderState(item: CanvasStoryboardItem) {
+  if (!item.groupId) return { canReorder: false, canMoveEarlier: false, canMoveLater: false }
+  const groupItems = laneItems.value.filter((candidate) => candidate.groupId === item.groupId)
+  const index = groupItems.findIndex((candidate) => candidate.nodeId === item.nodeId)
+  return {
+    canReorder: !props.readonly,
+    canMoveEarlier: index > 0,
+    canMoveLater: index >= 0 && index < groupItems.length - 1,
+  }
+}
+
+function showNumber(item: CanvasStoryboardItem) {
+  if (!item.groupId) return true
+  return props.nodesById.get(item.groupId)?.contentData?.show_numbers !== false
+}
 </script>
 
 <template>
@@ -52,7 +69,10 @@ function focusSibling(index: number, direction: -1 | 1) {
         :ref="(instance) => setItemRef(instance as StoryboardItemHandle | null, index)"
         :item="item"
         :node="node"
+        :show-number="showNumber(item)"
+        v-bind="groupOrderState(item)"
         @navigate="focusSibling(index, $event)"
+        @reorder="item.groupId && emit('reorder', item.groupId, item.nodeId, $event)"
         @select="emit('select', $event)"
       />
     </div>

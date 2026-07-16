@@ -141,7 +141,7 @@ const canonicalDefinitions: readonly NodeDefinition[] = [
   },
   {
     type: 'group', kind: 'canonical', label: '组合', icon: 'group',
-    subtypes: [{ id: 'group', label: '组合' }], defaultSubtype: 'group', ports: [],
+    subtypes: [{ id: 'group', label: '组合' }, { id: 'storyboard', label: '分镜组' }], defaultSubtype: 'group', ports: [],
     defaultSize: { width: 480, height: 320 },
     capabilities: capabilities({ canContainChildren: true }), serializationVersion: 1,
   },

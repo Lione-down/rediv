@@ -9,6 +9,7 @@ import CanvasConnectionTargetPorts from './CanvasConnectionTargetPorts.vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasNodeSurfaceLayer from './CanvasNodeSurfaceLayer.vue'
 import CanvasPendingGenerationLayer from './CanvasPendingGenerationLayer.vue'
+import CanvasStoryboardNumberLayer from './CanvasStoryboardNumberLayer.vue'
 import CanvasSelectionAggregate from './CanvasSelectionAggregate.vue'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
 import CanvasSelectionGenerationIntent from './CanvasSelectionGenerationIntent.vue'
@@ -39,6 +40,7 @@ import { createArrangeGenerationLineageCommand } from '../../modules/canvas/gene
 import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import type { GenerationResultProjection } from '../../modules/canvas/generation-result-projection'
+import { useCanvasStoryboardGroups } from './composables/use-canvas-storyboard-groups'
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; readonly?: boolean; resourcesOpen?: boolean
   generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>; pendingGenerationResults?: readonly GenerationResultProjection[]
@@ -145,6 +147,14 @@ const isStartingWorkflow = ref(false)
 const canvasGridStyle = computed(() => getCanvasGridStyle(canvasStore.viewport))
 const continuationTrigger = computed(() => resolveCanvasNodeContinuationTrigger(canvasStore.nodes, canvasStore.selectedNodeIds, props.readonly || props.contextOverlayOpen))
 const selectionGenerationIntent = computed(() => resolveSelectionGenerationIntent(canvasStore.selectedNodes))
+const {
+  canCreateStoryboardGroup,
+  storyboardControls,
+  convertStoryboardGroup,
+  createStoryboardGroup,
+  reorderStoryboardGroup,
+  updateStoryboardGroup,
+} = useCanvasStoryboardGroups()
 const selectionGenerationSources = computed(() => {
   const intent = selectionGenerationIntent.value
   if (!intent) return []
@@ -354,6 +364,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
   const nextIds = moveSelectionGenerationInput(canvasStore.selectedNodes, nodeId, direction)
   if (nextIds) canvasStore.setSelection(nextIds, canvasStore.selectedNode?.id ?? '')
 }
+
 </script>
 
 <template>
@@ -430,6 +441,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         @capture-frame="forwardCapturedVideoFrame"
         @media-metadata="adoptMediaAspectRatio"
       />
+      <CanvasStoryboardNumberLayer :nodes="canvasStore.nodes" :surface-node-rect-style="surfaceNodeRectStyle" />
 
       <CanvasSelectionGenerationIntent
         v-if="!readonly && canvasStore.selectedNodes.length >= 2"
@@ -517,14 +529,20 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :can-delete="canDeleteSelection"
         :can-duplicate="canDuplicateSelection"
         :can-group="canGroupSelection"
+        :can-create-storyboard="canCreateStoryboardGroup"
         :can-align="canAlignSelection"
         :can-auto-arrange="canAutoArrange && canvasStore.selectedNodes.length >= 2"
         :can-distribute="canDistributeSelection"
         :can-ungroup="canUngroupSelection"
         :has-locked="hasLockedSelection"
+        :storyboard-controls="storyboardControls"
         :style="selectionToolbarStyle"
         @duplicate="duplicateSelection('toolbar')"
         @group="groupSelection('toolbar')"
+        @create-storyboard="createStoryboardGroup"
+        @convert-storyboard="convertStoryboardGroup"
+        @reorder-storyboard="reorderStoryboardGroup"
+        @update-storyboard-settings="updateStoryboardGroup"
         @reorder-compose-source="reorderSelectionGenerationInput"
         @ungroup="ungroupSelection('toolbar')"
         @connect="connectSelection('toolbar')"

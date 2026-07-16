@@ -99,6 +99,11 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     return updateNodeState(nodeId, (node) => ({ ...node, isLocked: locked }))
   }
 
+  function updateNodeFields(nodeId: string, updates: Partial<Omit<CanvasNode, 'id'>>) {
+    const clonedUpdates = cloneGraphEntity(updates)
+    return updateNodeState(nodeId, (node) => ({ ...node, ...clonedUpdates }))
+  }
+
   async function createConnection(draft: CanvasConnectionDraft): Promise<CanvasConnection> {
     const duplicate = connections.value.find((connection) => (
       connection.from === draft.from && connection.to === draft.to &&
@@ -253,6 +258,7 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
     updateConnection,
     updateNodeParent,
     updateNodeLocked,
+    updateNodeState: updateNodeFields,
     queueNodeMove,
     setSelection,
     selectConnection,

@@ -93,6 +93,11 @@
 .storyboard-item__preview :deep(.canvas-node-media__capture),
 .storyboard-item__preview :deep(.canvas-video-keyframe-rail) { display: none; }
 
+.storyboard-item__order-actions { position: absolute; z-index: 2; top: 8px; right: 8px; display: flex; gap: 4px; }
+.storyboard-item__order-actions button { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); color: var(--v2-text-primary); background: var(--v2-surface-2); box-shadow: var(--v2-shadow-floating); font: inherit; cursor: pointer; }
+.storyboard-item__order-actions button:disabled { cursor: not-allowed; opacity: 0.38; }
+.storyboard-item__order-actions button:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
+
 .storyboard-item__select {
   display: grid;
   min-width: 0;

@@ -75,7 +75,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 78 | T5-078 | Pending output placement and result handoff | DONE - PASS | T5-077 |
 | 79 | T5-079 | Canvas media containment and keyframe rail isolation | DONE - PASS | T5-078 |
 | 80 | T5-080 | Canvas node and connection interaction usability | DONE - PASS | T5-079 |
-| 81 | T5-081 | Storyboard projection and image storyboard groups | DOING | T5-080 |
+| 81 | T5-081 | Storyboard projection and image storyboard groups | BLOCKED | T5-080 |
 
 ## Task Boundaries
 
@@ -243,7 +243,7 @@ T5-079 is `DONE - PASS`. A rendered containment regression first measured four d
 
 T5-080 is `DONE - PASS`. Shared visible geometry, 40 CSS px port acquisition, exact compatible landing, neutral aggregate continuation, group-unit movement, and reduced-motion-safe active-only edge flow passed focused 61/61, functional Chromium 372/372, a 4,855-module build, four-viewport visual review, hygiene, and the guarded live 200-node/300-connection boundary at 59.92 FPS and 16.8ms frame p95. The local software-rendered mock performance variance remains explicitly classified without threshold weakening. `REPORT-T5-080.md` is authoritative evidence.
 
-T5-081 is `DOING`. It derives text/image/video Storyboard review lanes from the existing Canvas document and persists image-only sequence metadata on ordinary group nodes. The view switch is presentation state, exact child order drives both Storyboard reading and Workflow grid layout, and all mutations remain typed Canvas commands with existing history/autosave. No second graph, backend/schema/provider change, paid execution, or mobile editing is permitted.
+T5-081 is `BLOCKED`. Its frontend projection, accessible view boundary, and typed image storyboard group workflow are implemented and verified, but Canvas duplication deep-copies `ordered_child_ids` after remapping graph IDs. Completion requires explicit Human authorization for one minimal existing-controller remap; no endpoint, schema, migration, provider, paid execution, or mobile editing change is proposed.
 
 ## Canvas First-Acceptance Gate
 

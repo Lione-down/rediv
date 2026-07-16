@@ -20,7 +20,7 @@ Last updated: 2026-07-17
 ## Active Delivery
 
 - Active implementation Task: `T5-081 - Storyboard projection and image storyboard groups`
-- State: `DOING`
+- State: `BLOCKED`
 - Task: `ai/tasks/todo/TASK-T5-081.md`
 - Plan: `ai/tasks/doing/TASK-T5-081-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-081-PROGRESS.md`
@@ -109,11 +109,11 @@ Last updated: 2026-07-17
 - T5-078 is now `DONE - PASS`: local and durable active generation work projects into stable collision-aware result-sized reservations, then hands successful reconciliation to the canonical result command at the exact predicted position without graph identity or runtime persistence. Focused 6/6, related 36/36, functional Chromium 354/354, backend 463 plus 78 subtests, a 4,841-module build, visual/hygiene gates, and fresh owned 200/300 evidence at 59.87 FPS passed. Final report: `ai/reports/REPORT-T5-078.md`.
 - T5-079 is now `DONE - PASS`: a RED containment guard measured four decoded image roots outside their surfaces, rail-local placement removed the scoped-selector leak, and focused 1/1 plus related 23/23 Chromium, a 4,841-module build, two visual inspections, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-079.md`.
 - T5-080 is now `DONE - PASS`: canonical visible geometry, forgiving screen-stable port targets, exact compatible landing, neutral aggregate batch continuation, group-as-one-unit movement, and active-only edge flow passed focused 61/61, functional Chromium 372/372, a 4,855-module build, four-viewport visual inspection, and guarded live 200/300 evidence at 59.92 FPS with 16.8ms frame p95. The local software-rendered mock 33.3ms scheduling bucket is classified without threshold weakening. Final report: `ai/reports/REPORT-T5-080.md`.
-- T5-081 is `DOING`: pure projection plus the Workflow/Storyboard presentation boundary are complete. The same route/document/store now exposes accessible text/image/video review lanes while retaining mounted Canvas state, selection, Context Panel, safe detail editing, and truthful runtime/media status. Storyboard removes generation/retry/recipe/branch/continuation/trace/input-order execution, and switching/review produces zero document/viewport/generation requests. Projection 4/4, Storyboard workflow 4/4, related generation/Context regression 19/19, and a 4,866-module build pass across 1440, 920, and 375. Validated group mutation/order/history units remain.
+- T5-081 is `BLOCKED` after completing its frontend projection, view boundary, and image storyboard group commands. Exact 2-25 validation, ratio/columns/numbering, create/reorder/settings/convert/ungroup, one-PATCH history/reload, unchanged edges/provider order, and whole-group movement pass focused 9/9 and related 50/50 with a 4,872-module build. Canvas duplication remains invalid because the existing backend remaps node/edge relations but deep-copies storyboard `ordered_child_ids` with source IDs. The locked plan forbids backend behavior change without renewed Human direction.
 
 ## Exact Next Action
 
-Audit registry/group movement, command/history, ordinary group/ungroup, selection toolbar, layout, serializer, and duplication paths; then freeze and run the first validated 2-25 image storyboard group browser RED before production edits.
+Obtain Human Owner authorization for a controller-local Canvas duplication remap of validated storyboard `ordered_child_ids`; then write the focused backend RED, implement the minimal remap, and resume final visual/full/live/hygiene closure.
 
 ## Blockers And Human Gates
 

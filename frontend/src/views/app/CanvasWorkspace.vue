@@ -28,6 +28,7 @@ import { createArrangeGenerationLineageCommand } from '../../modules/canvas/gene
 import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
 import type { VisualAssetRecipeId } from '../../modules/canvas/visual-asset-recipes'
 import { projectCanvasStoryboard } from '../../modules/canvas/storyboard-projection'
+import { createReorderStoryboardGroupCommand } from '../../modules/canvas/storyboard-commands'
 
 type MoveDirection = -1 | 1
 interface CanvasStageHandle { arrangeSelectedProvenanceTrace: () => boolean; closeTransientInteractions: () => void; fitSelectedProvenanceTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
@@ -212,6 +213,12 @@ function setViewMode(mode: CanvasViewMode) {
 
 function selectStoryboardNode(nodeId: string) {
   if (canvasDocumentStore.findNodeById(nodeId)) canvasDocumentStore.selectNode(nodeId)
+}
+
+function reorderStoryboardItem(groupId: string, nodeId: string, direction: -1 | 1) {
+  if (isReviewOnly.value) return
+  const command = createReorderStoryboardGroupCommand(canvasDocumentStore.nodes, groupId, nodeId, direction)
+  if (command) void canvasDocumentStore.dispatchCommand({ source: 'toolbar', command }).catch(() => undefined)
 }
 
 function selectComparedResult(nodeId: string) {
@@ -443,7 +450,7 @@ onBeforeUnmount(() => {
       <CanvasViewModeSwitch class="workspace-view-switch" :model-value="viewMode" @update:model-value="setViewMode" />
 
       <div v-if="viewMode === 'storyboard'" class="storyboard-shell">
-        <CanvasStoryboardView :items="storyboardItems" :nodes="canvasDocumentStore.nodes" @select="selectStoryboardNode" />
+        <CanvasStoryboardView :items="storyboardItems" :nodes="canvasDocumentStore.nodes" :readonly="isReviewOnly" @reorder="reorderStoryboardItem" @select="selectStoryboardNode" />
       </div>
 
       <CanvasRevisionPanel

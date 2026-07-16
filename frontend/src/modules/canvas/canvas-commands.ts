@@ -11,6 +11,12 @@ import {
   isNodeMutationSupported,
 } from './node-registry'
 import { resolveCanvasDragNodeIds } from './canvas-drag-resolution'
+import type {
+  ConvertStoryboardGroupCommand,
+  CreateStoryboardGroupCommand,
+  ReorderStoryboardGroupCommand,
+  UpdateStoryboardGroupCommand,
+} from './storyboard-commands'
 
 export { resolveCanvasDragNodeIds } from './canvas-drag-resolution'
 
@@ -117,6 +123,10 @@ export type CanvasCommand =
   | DeleteSelectionCommand
   | GroupNodesCommand
   | UngroupNodesCommand
+  | CreateStoryboardGroupCommand
+  | UpdateStoryboardGroupCommand
+  | ReorderStoryboardGroupCommand
+  | ConvertStoryboardGroupCommand
   | ConnectNodesCommand
   | ReconnectConnectionCommand
   | ArrangeNodesCommand
