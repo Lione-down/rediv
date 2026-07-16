@@ -37,4 +37,4 @@ function forwardReorder(groupId: string, nodeId: string, direction: -1 | 1) {
   </section>
 </template>
 
-<style scoped lang="scss" src="./canvas-storyboard.scss"></style>
+<style lang="scss" src="./canvas-storyboard.scss"></style>

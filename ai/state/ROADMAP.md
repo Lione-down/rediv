@@ -243,7 +243,7 @@ T5-079 is `DONE - PASS`. A rendered containment regression first measured four d
 
 T5-080 is `DONE - PASS`. Shared visible geometry, 40 CSS px port acquisition, exact compatible landing, neutral aggregate continuation, group-unit movement, and reduced-motion-safe active-only edge flow passed focused 61/61, functional Chromium 372/372, a 4,855-module build, four-viewport visual review, hygiene, and the guarded live 200-node/300-connection boundary at 59.92 FPS and 16.8ms frame p95. The local software-rendered mock performance variance remains explicitly classified without threshold weakening. `REPORT-T5-080.md` is authoritative evidence.
 
-T5-081 is `BLOCKED`. Its frontend projection, accessible view boundary, and typed image storyboard group workflow are implemented and verified, but Canvas duplication deep-copies `ordered_child_ids` after remapping graph IDs. Completion requires explicit Human authorization for one minimal existing-controller remap; no endpoint, schema, migration, provider, paid execution, or mobile editing change is proposed.
+T5-081 is `BLOCKED` only on Canvas duplication. Frontend projection, accessible view boundary, typed image storyboard groups, six-state/four-viewport visual and WCAG verification, functional Chromium 392/392, warning-free build, Deep hygiene review, and guarded live 200/300 all pass. Canvas duplication still deep-copies `ordered_child_ids` after remapping graph IDs. Completion requires explicit Human authorization for one minimal existing-controller remap; no endpoint, schema, migration, provider, paid execution, or mobile editing change is proposed.
 
 ## Canvas First-Acceptance Gate
 
