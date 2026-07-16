@@ -21,6 +21,7 @@ import CanvasGenerationProgress from './CanvasGenerationProgress.vue'
 
 const props = withDefaults(defineProps<{
   error?: string
+  allowGenerationExecution?: boolean
   canContinue?: boolean
   canArrangeTrace?: boolean
   canFitTrace?: boolean
@@ -40,6 +41,7 @@ const props = withDefaults(defineProps<{
   success?: string
 }>(), {
   error: '',
+  allowGenerationExecution: true,
   canContinue: false,
   canArrangeTrace: false,
   canFitTrace: false,
@@ -76,7 +78,7 @@ const emit = defineEmits<{
 const prompt = ref(props.node.content?.trim() || '')
 const visualRecipe = computed(() => resolveVisualAssetRecipe(props.node))
 const canGenerate = computed(() => Boolean(
-  props.mediaType && (visualRecipe.value || prompt.value.trim() || props.generationContext?.prompt) &&
+  props.allowGenerationExecution && props.mediaType && (visualRecipe.value || prompt.value.trim() || props.generationContext?.prompt) &&
   !props.generationContext?.parameterError && props.quota > 0 && !props.isGenerating,
 ))
 const generationLabel = computed(() => props.mediaType === 'video' ? '视频' : '图片')
@@ -222,7 +224,7 @@ function requestGeneration() {
         <ul>
           <li v-for="source in generationContext.textSources" :key="`text-${source.nodeId}`" :class="{ muted: !source.isIncluded }">
             <button type="button" class="context-node-link" :aria-label="`定位到画布：${source.title}`" @click="emit('locateNode', source.nodeId)"><Link2 :size="13" aria-hidden="true" /><span><strong>提示词 {{ source.order }} · {{ source.title }}</strong><small>{{ source.isIncluded ? '已合并文本' : '空内容，未使用' }}</small></span><ArrowRight :size="13" aria-hidden="true" /></button>
-            <span v-if="!readonly && !visualRecipe" class="input-order-actions">
+            <span v-if="!readonly && allowGenerationExecution && !visualRecipe" class="input-order-actions">
               <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'text', -1)" :aria-label="`上移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
               <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'text', 1)" :aria-label="`下移提示词 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
             </span>
@@ -237,7 +239,7 @@ function requestGeneration() {
               :title="`定位到上游生成：${mediaSourceLineage(source.connectionId)!.generationTitle} V${mediaSourceLineage(source.connectionId)!.variantOrder}`"
               @click="emit('locateNode', mediaSourceLineage(source.connectionId)!.generationNodeId)"
             ><GitBranch :size="14" aria-hidden="true" /></button>
-            <span v-if="!readonly && !visualRecipe" class="input-order-actions">
+            <span v-if="!readonly && allowGenerationExecution && !visualRecipe" class="input-order-actions">
               <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'media', -1)" :aria-label="`上移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, -1)"><ArrowUp :size="14" aria-hidden="true" /></button>
               <button type="button" :disabled="isGenerating || !canMoveInput(source.connectionId, 'media', 1)" :aria-label="`下移参考图 ${source.title}`" @click="emit('reorderInput', source.connectionId, 1)"><ArrowDown :size="14" aria-hidden="true" /></button>
             </span>
@@ -278,7 +280,7 @@ function requestGeneration() {
       </section>
 
       <button
-        v-if="!readonly"
+        v-if="!readonly && allowGenerationExecution"
         type="button"
         class="generate-button"
         :disabled="!canGenerate"
@@ -365,7 +367,7 @@ function requestGeneration() {
           比较同源结果
         </button>
       </section>
-      <details v-if="!readonly && canBranchResult" class="result-branch">
+      <details v-if="!readonly && allowGenerationExecution && canBranchResult" class="result-branch">
         <summary><span><GitBranch :size="14" aria-hidden="true" />以此结果继续</span><small>作为参考图</small></summary>
         <div>
           <button type="button" @click="emit('branchGeneration', 'image')"><Image :size="15" aria-hidden="true" /><span><strong>图片生成</strong><small>创建参考分支</small></span></button>

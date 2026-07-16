@@ -10,6 +10,8 @@ import CanvasIdentityBar from '../../components/canvas/CanvasIdentityBar.vue'
 import CanvasRevisionPanel from '../../components/canvas/CanvasRevisionPanel.vue'
 import CanvasResultCompareTray from '../../components/canvas/CanvasResultCompareTray.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
+import CanvasStoryboardView from '../../components/canvas/CanvasStoryboardView.vue'
+import CanvasViewModeSwitch, { type CanvasViewMode } from '../../components/canvas/CanvasViewModeSwitch.vue'
 import AccountSessionMenu from '../../components/layout/account-session-menu.vue'
 import { resolveCanvasNodeContinuationTrigger } from '../../components/canvas/canvas-node-continuation-trigger'
 import { resolveGenerationResultVariants } from '../../modules/canvas/generation-lineage'
@@ -25,9 +27,10 @@ import { useCanvasStore } from '../../store/canvas'
 import { createArrangeGenerationLineageCommand } from '../../modules/canvas/generation-lineage-arrangement'
 import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
 import type { VisualAssetRecipeId } from '../../modules/canvas/visual-asset-recipes'
+import { projectCanvasStoryboard } from '../../modules/canvas/storyboard-projection'
 
 type MoveDirection = -1 | 1
-interface CanvasStageHandle { arrangeSelectedProvenanceTrace: () => boolean; fitSelectedProvenanceTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
+interface CanvasStageHandle { arrangeSelectedProvenanceTrace: () => boolean; closeTransientInteractions: () => void; fitSelectedProvenanceTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -38,6 +41,7 @@ const canvasRevisionStore = useCanvasRevisionStore()
 useCanvasPersistenceLifecycle()
 const isReviewOnly = ref(false)
 const isCompact = ref(false)
+const viewMode = ref<CanvasViewMode>('workflow')
 const isRevisionPanelOpen = ref(false)
 const isResultCompareOpen = ref(false)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
@@ -125,6 +129,11 @@ const {
   updatePrompt,
   updateGenerationParameters,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
+const storyboardItems = computed(() => projectCanvasStoryboard({
+  nodes: canvasDocumentStore.nodes,
+  connections: canvasDocumentStore.connections,
+  runtimePresentations: generationRuntimePresentations.value,
+}))
 
 const canvasViewportInsets = computed(() => ({ top: 96, right: isCompact.value && isContextDrawerOpen.value ? 376 : 16, bottom: 96, left: 16 }))
 async function captureSelectedVideoFrame(nodeId: string, file: File, timeSeconds: number, aspectRatio: number) {
@@ -189,6 +198,21 @@ const compareTrayStyle = computed(() => ({ '--compare-left': isResourceOpen.valu
 function openResultComparison() { if (comparisonItems.value.length > 1) { isContextDrawerOpen.value = false; isResultCompareOpen.value = true } }
 
 function closeResultComparison() { isResultCompareOpen.value = false }
+
+function setViewMode(mode: CanvasViewMode) {
+  if (viewMode.value === mode) return
+  if (mode === 'storyboard') {
+    canvasStageRef.value?.closeTransientInteractions()
+    closeResources(false)
+    closeResultComparison()
+    isRevisionPanelOpen.value = false
+  }
+  viewMode.value = mode
+}
+
+function selectStoryboardNode(nodeId: string) {
+  if (canvasDocumentStore.findNodeById(nodeId)) canvasDocumentStore.selectNode(nodeId)
+}
 
 function selectComparedResult(nodeId: string) {
   isResultCompareOpen.value = false
@@ -310,6 +334,7 @@ function updateContextDrawer(show: boolean) {
 
 watch([projectId, canvasId], ([nextProjectId, nextCanvasId]) => {
   isResultCompareOpen.value = false
+  viewMode.value = 'workflow'
   void loadWorkspaceContext(nextProjectId, nextCanvasId)
 }, { immediate: true })
 
@@ -347,6 +372,7 @@ onBeforeUnmount(() => {
       class="v2-canvas-theme canvas-workspace"
       :class="{
         'is-review-only': isReviewOnly,
+        'is-storyboard-mode': viewMode === 'storyboard',
         'has-resource-panel': isResourceOpen && !isCompact,
         'has-context-panel': isDesktopContextOpen,
       }"
@@ -354,7 +380,7 @@ onBeforeUnmount(() => {
     >
       <a class="skip-link" href="#canvas-main">跳到画布内容</a>
 
-      <div class="canvas-layer" aria-hidden="false">
+      <div v-show="viewMode === 'workflow'" class="canvas-layer" :aria-hidden="viewMode !== 'workflow'">
         <CanvasStage
           ref="canvasStageRef"
           :action-error="visibleError"
@@ -414,6 +440,12 @@ onBeforeUnmount(() => {
         </div>
       </header>
 
+      <CanvasViewModeSwitch class="workspace-view-switch" :model-value="viewMode" @update:model-value="setViewMode" />
+
+      <div v-if="viewMode === 'storyboard'" class="storyboard-shell">
+        <CanvasStoryboardView :items="storyboardItems" :nodes="canvasDocumentStore.nodes" @select="selectStoryboardNode" />
+      </div>
+
       <CanvasRevisionPanel
         v-if="isRevisionPanelOpen"
         :project-id="projectId"
@@ -446,8 +478,9 @@ onBeforeUnmount(() => {
 
       <div v-if="selectedNode && isDesktopContextOpen" class="context-panel-shell">
         <CanvasContextPanel
-          :can-arrange-trace="canArrangeProvenanceTrace"
-          :can-fit-trace="canFitProvenanceTrace"
+          :allow-generation-execution="viewMode === 'workflow'"
+          :can-arrange-trace="viewMode === 'workflow' && canArrangeProvenanceTrace"
+          :can-fit-trace="viewMode === 'workflow' && canFitProvenanceTrace"
           :error="generationError"
           :is-generating="isGenerating"
           :latest-task="latestTask"
@@ -528,10 +561,11 @@ onBeforeUnmount(() => {
         <NDrawerContent body-content-style="height: 100%; padding: 0;">
           <div class="v2-canvas-theme drawer-theme">
             <CanvasContextPanel
+              :allow-generation-execution="viewMode === 'workflow'"
               v-if="selectedNode"
-              :can-arrange-trace="canArrangeProvenanceTrace"
-              :can-continue="Boolean(selectedContinuationTrigger)"
-              :can-fit-trace="canFitProvenanceTrace"
+              :can-arrange-trace="viewMode === 'workflow' && canArrangeProvenanceTrace"
+              :can-continue="viewMode === 'workflow' && Boolean(selectedContinuationTrigger)"
+              :can-fit-trace="viewMode === 'workflow' && canFitProvenanceTrace"
               :error="generationError"
               :is-generating="isGenerating"
               :latest-task="latestTask"

@@ -1,7 +1,7 @@
 # TASK-T5-081 Progress
 
 - Task state: `DOING`
-- Active unit: Unit 2, freeze the Workflow/Storyboard boundary and responsive review-lane browser RED matrix.
+- Active unit: Unit 3, freeze validated image storyboard group membership, layout, and command contracts through browser RED.
 
 ## Completed work
 
@@ -19,16 +19,21 @@
 - Valid storyboard metadata owns exact child order and group identity. Membership, version, ratio, columns, numbering, uniqueness, 2-25 count, unlocked canonical image children, and exact current children are all validated; malformed metadata falls back to normal geometry order without repair.
 - Projection order is deterministic by storyboard group anchor/order or node y/x/document order, resets order within each lane, deduplicates by iterating graph nodes once, and leaves node/connection inputs unchanged.
 - Passed projection 4/4, related registry/presentation/runtime matrix 22/22, and a 4,855-module production build.
+- Completed the route-scoped Workflow/Storyboard presentation boundary through strict browser RED-GREEN. The first RED matrix failed only on the absent accessible view tabs, proving the feature was not already reachable.
+- Added an accessible 40px Workflow/Storyboard tab switch with ArrowLeft/ArrowRight/Home/End ownership. CanvasStage remains mounted behind `v-show`, switching retains route, document, selection, Context Panel, viewport, history, and revision identity, and closes only resource/comparison/revision/transient Canvas overlays.
+- Added text, image, and video review lanes driven only by the pure projection and canonical node presentation/media helpers. Each lane has truthful counts and empty states; items expose stable T/I/V numbering, runtime/media status, focus rings, and wrapping previous/next keyboard navigation.
+- Added the explicit `allow-generation-execution` Context Panel boundary. Storyboard retains safe prompt/parameter editing and read-only lineage/comparison inspection, while generation, retry, recipe, branch, continuation, trace arrangement, and provider-input reorder controls are absent.
+- Verified zero document/viewport PATCH and zero generation POST for switching and review. The same selected node remains in the desktop Context Panel; 920px uses the existing context drawer; 375px remains review-only.
+- Passed Storyboard workflow 4/4, Context Panel/generation related regression 19/19, and a 4,866-module production build.
 
 ## Remaining work
 
-- Complete Unit 2 view boundary and responsive review lanes.
 - Complete Units 3-4 storyboard group validation, commands, layout, order, history, persistence, conversion, and ungroup.
 - Complete Unit 5 focused/related/full regression, build, visual, accessibility, hygiene, guarded live 200/300, REPORT, durable closure, commit, and push.
 
 ## Exact next action
 
-Audit `CanvasWorkspace.vue`, `CanvasContextPanel.vue`, selection/context ownership, compact drawer, generation action boundaries, shell/keyboard fixtures, and current SCSS tokens; then write and run the first failing Workflow/Storyboard browser test before production edits.
+Audit group registry resolution, T5-080 group movement, command executor/history, ordinary group/ungroup behavior, selection toolbar controls, node layout, serializer, and duplication fixtures; then write and run the first failing 2-25 image storyboard group browser contract before production edits.
 
 ## Files changed
 
@@ -40,6 +45,17 @@ Audit `CanvasWorkspace.vue`, `CanvasContextPanel.vue`, selection/context ownersh
 - `frontend/src/modules/canvas/storyboard-types.ts`
 - `frontend/src/modules/canvas/storyboard-projection.ts`
 - `frontend/tests/e2e/canvas-storyboard-projection.spec.ts`
+- `frontend/src/components/canvas/CanvasContextPanel.vue`
+- `frontend/src/components/canvas/CanvasStage.vue`
+- `frontend/src/components/canvas/CanvasStoryboardItem.vue`
+- `frontend/src/components/canvas/CanvasStoryboardLane.vue`
+- `frontend/src/components/canvas/CanvasStoryboardView.vue`
+- `frontend/src/components/canvas/CanvasViewModeSwitch.vue`
+- `frontend/src/components/canvas/canvas-storyboard.scss`
+- `frontend/src/components/canvas/composables/use-canvas-stage.ts`
+- `frontend/src/views/app/CanvasWorkspace.vue`
+- `frontend/src/views/app/canvas-workspace.scss`
+- `frontend/tests/e2e/canvas-storyboard-workflow.spec.ts`
 
 ## Commands and evidence
 
@@ -53,6 +69,10 @@ Audit `CanvasWorkspace.vue`, `CanvasContextPanel.vue`, selection/context ownersh
 - Projection final: `npx playwright test tests/e2e/canvas-storyboard-projection.spec.ts --project=chromium`; PASS 4/4.
 - Unit 1 related matrix: projection, registry, node presentation, and generation runtime feedback; PASS 22/22.
 - Unit 1 production build: `npm run build`; PASS, 4,855 transformed modules.
+- View boundary RED: `canvas-storyboard-workflow.spec.ts`; FAIL 3/3 on the absent `工作流`/`故事板` tabs, with the existing Workspace otherwise healthy.
+- Storyboard workflow final: `npx playwright test tests/e2e/canvas-storyboard-workflow.spec.ts --project=chromium`; PASS 4/4 across 1440, 920, and 375.
+- Unit 2 related matrix: Storyboard workflow, generation preflight/input order, visual asset recipes, and composer zoom; PASS 19/19.
+- Unit 2 production build: `npm run build`; PASS, 4,866 transformed modules.
 
 ## Blockers and release conditions
 

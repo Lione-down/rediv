@@ -495,6 +495,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     arrangeSelectionFromToolbar, autoArrange, toggleLockSelection,
     areEdgesVisible, fitGraph, fitNodes, fitSelection, isGridEnabled, isMinimapVisible, setZoomPercent,
     toggleEdges, toggleGrid, toggleMinimap, zoomIn, zoomOut, zoomPercent,
-    handleContextMenuSelect, updateContextMenuShow,
+    cancelActiveInteraction, handleContextMenuSelect, updateContextMenuShow,
   }
 }

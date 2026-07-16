@@ -61,6 +61,7 @@ function forwardCapturedVideoFrame(nodeId: string, file: File, timeSeconds: numb
 const {
   canvasStore,
   canvasSurfaceRef,
+  cancelActiveInteraction,
   centerNodeInViewport,
   connectionPaths,
   connectionTargetPorts,
@@ -333,7 +334,14 @@ function arrangeSelectedProvenanceTrace() {
   return true
 }
 
-defineExpose({ arrangeSelectedProvenanceTrace, fitSelectedProvenanceTrace, openSelectedContinuation, revealNode })
+function closeTransientInteractions() {
+  cancelActiveInteraction()
+  closeContextMenu()
+  closeGraphPanel()
+  updateNodeMenuOpen(false)
+}
+
+defineExpose({ arrangeSelectedProvenanceTrace, closeTransientInteractions, fitSelectedProvenanceTrace, openSelectedContinuation, revealNode })
 
 function commitNodeContent(nodeId: string, content: string) {
   void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)
