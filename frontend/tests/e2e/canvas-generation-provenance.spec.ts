@@ -315,7 +315,10 @@ test('excluded duplicate and missing media stay visible without entering request
   await expect(page.locator('.connection-line.provenance-excluded')).toHaveCount(2)
   await expect(page.locator('.connection-line.provenance-result')).toHaveCount(6)
   await expect(page.locator('.connection-flow[data-flow-reason="provenance"]')).toHaveCount(10)
-  await expect(page.locator('.connection-line.provenance-excluded + .connection-flow')).toHaveCount(0)
+  await expect(page.locator(
+    '.connection-flow[data-connection-id="edge-duplicate-media"], ' +
+    '.connection-flow[data-connection-id="edge-missing-media"]',
+  )).toHaveCount(0)
   const context = page.getByRole('region', { name: '已连接生成上下文' })
   await expect(context).toContainText('参考图 3 · 重复海岸参考')
   await expect(context).toContainText('重复资源，已合并')

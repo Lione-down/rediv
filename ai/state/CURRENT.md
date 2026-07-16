@@ -15,16 +15,14 @@ Last updated: 2026-07-17
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-079 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
+- Completed V2 Tasks: T5-001 through T5-080 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
 
 ## Active Delivery
 
-- Active implementation Task: `T5-080 - Canvas node and connection interaction usability`
-- State: `DOING`
-- Task: `ai/tasks/todo/TASK-T5-080.md`
-- Plan: `ai/tasks/doing/TASK-T5-080-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-080-PROGRESS.md`
-- Dependency baseline: `T5-079 - DONE - PASS`, report `ai/reports/REPORT-T5-079.md`
+- Active implementation Task: none
+- State: `IDLE`
+- Last completed Task: `T5-080 - Canvas node and connection interaction usability`
+- Report: `ai/reports/REPORT-T5-080.md`
 
 ## Current Verified Facts
 
@@ -108,11 +106,11 @@ Last updated: 2026-07-17
 - T5-077 is now `DONE - PASS`: guarded nullable progress fields, monotonic backend normalization, truthful provider/persisting/success semantics, and shared card/Inspector/history/Graph Access presentation passed full backend 463 plus 78 subtests, focused browser 4/4, a 4,837-module build, migration/hygiene gates, and fresh owned 200/300 evidence at 59.85 FPS. Final report: `ai/reports/REPORT-T5-077.md`.
 - T5-078 is now `DONE - PASS`: local and durable active generation work projects into stable collision-aware result-sized reservations, then hands successful reconciliation to the canonical result command at the exact predicted position without graph identity or runtime persistence. Focused 6/6, related 36/36, functional Chromium 354/354, backend 463 plus 78 subtests, a 4,841-module build, visual/hygiene gates, and fresh owned 200/300 evidence at 59.87 FPS passed. Final report: `ai/reports/REPORT-T5-078.md`.
 - T5-079 is now `DONE - PASS`: a RED containment guard measured four decoded image roots outside their surfaces, rail-local placement removed the scoped-selector leak, and focused 1/1 plus related 23/23 Chromium, a 4,841-module build, two visual inspections, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-079.md`.
-- T5-080 is `DOING`: canonical visible geometry, real screen-stable port targets, exact compatible landing, neutral aggregate continuation, group-as-one-unit movement, and active-only edge flow are GREEN. Draft, selected edge, and included selected-lineage paths alone receive three pointer-passive directional segments; 300 persisted active edges remain static until explicit selection, excluded provenance remains static, hidden idle edges do not suppress an active draft, and reduced motion uses static emphasis. Unit 7 passed effective 51/51 related Chromium coverage, a 4,855-module build, visual inspection, and the owned 200/300 gate at 57.37 FPS with 16.8 ms frame p95. Integrated Unit 8 closure remains.
+- T5-080 is now `DONE - PASS`: canonical visible geometry, forgiving screen-stable port targets, exact compatible landing, neutral aggregate batch continuation, group-as-one-unit movement, and active-only edge flow passed focused 61/61, functional Chromium 372/372, a 4,855-module build, four-viewport visual inspection, and guarded live 200/300 evidence at 59.92 FPS with 16.8ms frame p95. The local software-rendered mock 33.3ms scheduling bucket is classified without threshold weakening. Final report: `ai/reports/REPORT-T5-080.md`.
 
 ## Exact Next Action
 
-Commit and push the verified active-only connection-flow Unit, then run integrated Unit 8 regression, visual, hygiene, and guarded supervisor gates before closing T5-080.
+Keep the repository `IDLE` until the Human Owner selects the next bounded Task. T5-081 remains inactive.
 
 ## Blockers And Human Gates
 

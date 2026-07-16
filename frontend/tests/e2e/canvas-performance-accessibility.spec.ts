@@ -3,6 +3,7 @@ import { expect, test, type Browser, type Page, type Route } from '@playwright/t
 import { cpus, platform, release, totalmem } from 'node:os'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { GENERATION_CAPABILITIES } from './canvas-generation-parameters-fixture'
 
 const API_ORIGIN = 'http://localhost:8000'
 const APP_ORIGIN = 'http://127.0.0.1:9099'
@@ -110,6 +111,10 @@ async function installPerformanceApi(page: Page, state: PerformanceState) {
     if (method === 'GET' && path === '/projects') {
       return fulfillJson(route, { items: [{ id: 'project-performance', user_id: user.id, name: '性能验收项目', created_at: NOW }], total: 1 })
     }
+    if (method === 'GET' && path === '/assets') return fulfillJson(route, { items: [], total: 0, page: 1, page_size: 100 })
+    if (method === 'GET' && path === '/templates') return fulfillJson(route, { items: [], total: 0 })
+    if (method === 'GET' && path === '/api/generation-tasks') return fulfillJson(route, { items: [], total: 0, page: 1, page_size: 100 })
+    if (method === 'GET' && path === '/api/generation-capabilities') return fulfillJson(route, GENERATION_CAPABILITIES)
     if (method === 'GET' && path === '/api/projects/project-performance/canvases') {
       return fulfillJson(route, { items: canvases, order_revision: 0 })
     }
@@ -255,6 +260,8 @@ async function runInteractionProfile(page: Page) {
   await page.mouse.down()
   await page.mouse.move(point(340, 380).x, point(340, 380).y, { steps: 8 })
   await page.mouse.up()
+  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
+  await page.keyboard.press('Escape')
 
   const startedAt = Date.now()
   let direction = 1
@@ -309,11 +316,7 @@ test('200-node 300-connection Canvas passes focused interaction thresholds', asy
   await expect(page.locator('.connection-flow')).toHaveCount(0)
   await startInteractionTrace(page)
   await runInteractionProfile(page)
-  const interactionFlowCount = await page.locator('.connection-flow').count()
-  expect(interactionFlowCount).toBeLessThanOrEqual(1)
-  if (interactionFlowCount === 1) {
-    await expect(page.locator('.connection-flow')).toHaveAttribute('data-flow-reason', 'selected')
-  }
+  await expect(page.locator('.connection-flow')).toHaveCount(0)
   const trace = await page.evaluate(() => window.__canvasInteractionTrace?.stop())
   if (!trace) throw new Error('Interaction trace was not installed')
 

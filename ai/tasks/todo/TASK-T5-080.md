@@ -1,6 +1,6 @@
 # TASK-T5-080 - Canvas node and connection interaction usability
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Objective: make Canvas connection starting and landing, aggregate multi-selection continuation, normal-group movement, and active connection direction forgiving and deterministic without weakening typed compatibility, command/history, autosave, responsive, or performance guarantees.
 - Dependency: `T5-079 - DONE - PASS` at committed and pushed baseline `048a2f2393ddf3a20e728c77e3822708eccabcfb`.
 

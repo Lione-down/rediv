@@ -684,3 +684,11 @@ Evidence:
 - A parent-state `:global(...)` selector inside a scoped child SFC can compile into a rule that targets the parent element itself instead of the intended child descendant. Inspect the built CSS whenever an overlay placement rule unexpectedly moves its host surface.
 - Keep overlay placement state on the overlay root that owns `top` and `bottom`. Shared image/video media roots must not carry video-keyframe positioning classes.
 - Visual media tests need a DOM containment assertion, not only image counts and aspect ratios. A decoded image can satisfy both while its media root is visibly outside the canonical Canvas frame.
+
+## 2026-07-17 Canvas interaction geometry and active edge motion
+
+- Persisted node width and height are document data, not necessarily the rendered interaction surface. Grouping, hit testing, minimap centering, reveal, and generated-node placement must share one canonical visible-rect resolver.
+- A forgiving port target should be screen-space pointer geometry, not hundreds of transparent renderer leaves. Extra invisible leaves can materially degrade a dense 200-node/300-connection Canvas.
+- Connection landing must filter canonical typed compatibility before distance ranking. Geometry-first ranking can snap to the nearest port that the command layer must later reject.
+- Persisted `status: active` does not mean an edge should animate. Directional motion belongs only to a draft, explicit selection, or included provenance and should render in a separate pointer-passive layer proportional to active paths.
+- Performance evidence from a software-rendered mock browser can retain a 33.3ms scheduling bucket even when the guarded owned live boundary passes at 16.8ms p95. Preserve thresholds, report both environments, and use the owned live run for the applicable acceptance boundary.

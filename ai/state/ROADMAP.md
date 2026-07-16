@@ -74,7 +74,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 77 | T5-077 | Durable generation stage and percent progress | DONE - PASS | T5-076 |
 | 78 | T5-078 | Pending output placement and result handoff | DONE - PASS | T5-077 |
 | 79 | T5-079 | Canvas media containment and keyframe rail isolation | DONE - PASS | T5-078 |
-| 80 | T5-080 | Canvas node and connection interaction usability | DOING | T5-079 |
+| 80 | T5-080 | Canvas node and connection interaction usability | DONE - PASS | T5-079 |
 
 ## Task Boundaries
 
@@ -240,7 +240,7 @@ T5-078 is `DONE - PASS`. One shared collision-aware resolver now predicts local 
 
 T5-079 is `DONE - PASS`. A rendered containment regression first measured four decoded images outside their owning surfaces, then rail-local placement ownership removed the cross-component scoped-selector leak without changing Canvas geometry or media-first card design. Focused 1/1, related Chromium 23/23, build, visual, blast, and hygiene gates passed. `REPORT-T5-079.md` is authoritative evidence.
 
-T5-080 is `DOING`. It centralizes visible-node geometry for audited interaction consumers, separates quiet port visuals from forgiving screen-stable hit targets, ranks exact connection targets by canonical compatibility before distance, generalizes the multi-selection hull with an authoritative batch-continuation entry point, moves normal groups with their children through one command, and adds reduced-motion-safe active-only edge direction. Storyboard projection remains a separate, inactive follow-up and no backend, database, provider, or paid-call boundary changes.
+T5-080 is `DONE - PASS`. Shared visible geometry, 40 CSS px port acquisition, exact compatible landing, neutral aggregate continuation, group-unit movement, and reduced-motion-safe active-only edge flow passed focused 61/61, functional Chromium 372/372, a 4,855-module build, four-viewport visual review, hygiene, and the guarded live 200-node/300-connection boundary at 59.92 FPS and 16.8ms frame p95. The local software-rendered mock performance variance remains explicitly classified without threshold weakening. `REPORT-T5-080.md` is authoritative evidence. T5-081 remains inactive.
 
 ## Canvas First-Acceptance Gate
 

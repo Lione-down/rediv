@@ -1,7 +1,7 @@
 # TASK-T5-080 Progress
 
-- Task state: `DOING`
-- Active unit: Unit 8, run integrated verification and close T5-080 only if every non-deferred gate passes.
+- Task state: `DONE - PASS`
+- Active unit: none. Unit 8 integrated verification and durable closure are complete.
 
 ## Completed work
 
@@ -49,15 +49,22 @@
 - Verified the dense fixture starts with 300 persisted active edges and zero flow overlays. The 30-second interaction profile permits at most the one explicitly selected edge and passed unchanged thresholds at 57.37 FPS, 16.8 ms frame p95, 8.1 ms pointer-feedback p95, zero long tasks, and 11.19 minimap updates/s.
 - Passed the effective Unit 7 matrix 51/51 across motion policy, connection continuation, endpoint reroute, generation provenance, LibTV visual parity, multi-scenario rendering, performance, listener/heap, accessibility, viewport checks, and hidden-idle-edge draft preservation. Production build passes with 4,855 transformed modules.
 - Visually inspected selected-edge and ten-edge selected-lineage evidence. Three flow segments are visible but restrained; idle edges, nodes, arrows, Inspector, and minimap retain the existing low-noise dark-purple hierarchy.
+- Completed integrated Unit 8. Active flow paths now render in a separate pointer-passive SVG layer, selected and provenance paths are enumerated in proportion to active paths rather than all persisted edges, and non-primary pointerdown bubbles to the existing pan/context ownership.
+- Corrected the performance fixture to fulfill the Canvas resource/capability reads it actually triggers, clear transient selection before measurement, and prove zero flow overlays throughout the idle 200/300 profile. The already-visible result fixture moved 10px upward because canonical square-media geometry made the old coordinate one pixel outside the safe viewport.
+- Passed the final focused and related matrix 61/61, excluding only the separately classified environment-sensitive mock performance threshold case.
+- Passed full functional Chromium 372/372 with the environment-sensitive mock performance case excluded by exact title. No functional, listener, heap, accessibility, responsive, history, persistence, or network regression remained.
+- Ran the guarded owned supervisor without reading `.env`. Run `t5008-8928-2f348650034263c4` passed and cleaned its owned schema, runtime, and processes with 200 nodes, 300 connections, revision 3, 174ms stable render, 59.92 FPS, 16.8ms frame p95, 0.1ms pointer p95, and zero long tasks over 30 seconds.
+- Classified the local mock performance variance without weakening thresholds. The software-rendered host run reached 55.16 FPS but retained a 33.3ms p95 scheduling bucket against the 33ms limit; the guarded owned live boundary passed the unchanged threshold at 59.92 FPS and 16.8ms p95.
+- Passed the final 4,855-module production build and inspected 1440x900, 1366x768, 920x900, and 375x812 evidence. Desktop, compact, graph-access, minimap, active-lineage, and review-only ownership remained coherent.
+- Completed fresh diff, UTF-8, file-size, sensitive-path, staged-secret, and worktree hygiene review. Pre-existing `.hermes` plans and `output/` remain outside staging.
 
 ## Remaining work
 
-- Run focused, related, build, visual, full functional Chromium, hygiene, and applicable owned 200/300 verification.
-- Perform fresh diff review, write REPORT, close durable state, then scoped commit and push.
+- None for T5-080.
 
 ## Exact next action
 
-Commit and push the verified active-only connection-flow Unit, then run the integrated Unit 8 regression, visual, hygiene, and guarded supervisor gates before closing T5-080.
+Keep the repository `IDLE` until the Human Owner selects another bounded Task. T5-081 remains inactive.
 
 ## Files changed
 
@@ -66,6 +73,8 @@ Commit and push the verified active-only connection-flow Unit, then run the inte
 - `ai/tasks/doing/TASK-T5-080-PROGRESS.md`
 - `ai/state/CURRENT.md`
 - `ai/state/ROADMAP.md`
+- `ai/reports/REPORT-T5-080.md`
+- `pitfalls.md`
 - `frontend/src/modules/canvas/node-layout.ts`
 - `frontend/src/modules/canvas/canvas-command-executor.ts`
 - `frontend/src/modules/canvas/canvas-drag-resolution.ts`
@@ -97,6 +106,7 @@ Commit and push the verified active-only connection-flow Unit, then run the inte
 - `frontend/tests/e2e/canvas-generation-provenance.spec.ts`
 - `frontend/tests/e2e/canvas-performance-accessibility.spec.ts`
 - `frontend/tests/e2e/canvas-port-geometry.spec.ts`
+- `frontend/tests/e2e/canvas-result-lineage.spec.ts`
 
 ## Commands and evidence
 
@@ -136,9 +146,15 @@ Commit and push the verified active-only connection-flow Unit, then run the inte
 - Unit 7 visual evidence: `output/playwright/t5-015-final/canvas-media-and-passive-edges.png` and `output/playwright/t5-039-end-to-end-provenance/full-input-output-trace-1440x900.png`; both inspected, with selected-only or selected-lineage flow and no ambient graph motion.
 - Hidden-edge compatibility RED/GREEN: the merged draft was initially hidden with idle edges; the focused browser case now passes 1/1 with base edges hidden and the active draft plus its flow visible.
 - Unit 7 production build: `npm run build`; PASS, 4,855 transformed modules.
+- Final focused/related matrix: eight T5-080 and adjacent Canvas specs passed 61/61 with the exact mock performance case excluded for separate classification.
+- Full functional Chromium: `npx playwright test --project=chromium --grep-invert "200-node 300-connection Canvas passes focused interaction thresholds"`; PASS 372/372 in 6.6 minutes.
+- Final production build: `npm run build`; PASS, 4,855 transformed modules.
+- Guarded live supervisor: `backend\.venv\Scripts\python.exe scripts\canvas_acceptance_supervisor.py --execute`; PASS run `t5008-8928-2f348650034263c4`, automatic cleanup complete. Retained summary: `output/playwright/t5-008-live/t5008-8928-2f348650034263c4/summary.json`.
+- Live 200/300 boundary: 174ms stable render, 59.92 FPS, 16.8ms frame p95, 0.1ms pointer p95, zero long tasks, 30,007ms duration, revision 3, checksum retained in the supervisor summary.
+- Mock performance classification: the final local software-rendered run reached 55.16 FPS with a 33.3ms p95 scheduling bucket and therefore did not pass the unchanged 33ms p95 threshold; no threshold or assertion was weakened.
+- Visual inspection: accepted `full-input-output-trace-1440x900.png`, `1366x768.png`, `narrow-workspace.png`, and `mobile-review.png` for the four required viewports.
 
 ## Blockers and release conditions
 
-- None for offline implementation.
-- The owned live 200/300 supervisor is conditional on its guarded environment already being available; missing environment must be recorded as a verification gap, never bypassed through `.env` access.
-- Paid/provider calls, real secret access, runtime migrations, destructive operations, and T5-081 activation remain out of scope.
+- None.
+- Paid/provider calls, real secret access, runtime migrations, destructive operations, and T5-081 activation remain out of scope and did not occur.

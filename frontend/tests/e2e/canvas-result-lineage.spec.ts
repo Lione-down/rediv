@@ -244,7 +244,7 @@ test('comparison selection leaves an already-visible variant and zoom unchanged'
   const state = createMultiScenarioState()
   const visibleResult = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'result-square')!
   visibleResult.position_x = 820
-  visibleResult.position_y = 250
+  visibleResult.position_y = 240
   await openResourceWorkspace(page, state)
   const generation = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-compose')!
   await selectNode(page, String(generation.content.title))

@@ -1,6 +1,6 @@
 # TASK-T5-080 Plan
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Objective: close the audited Canvas interaction defects through strict RED-GREEN-REFACTOR units while preserving one authoritative graph, typed compatibility, command history, autosave, responsive ownership, and the 200/300 boundary.
 
 ## Locked design and engineering direction

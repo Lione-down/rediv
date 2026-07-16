@@ -53,16 +53,24 @@ const viewport = computed(() => normalizeViewport(canvasStore.viewport))
 const provenanceByConnectionId = computed(() => new Map(
   (props.provenance ?? []).map((entry) => [entry.connectionId, entry]),
 ))
-const connectionFlowById = computed(() => {
-  const result = new Map<string, CanvasConnectionMotionReason>()
-  for (const path of props.paths) {
-    const provenance = provenanceByConnectionId.value.get(path.id)
-    const reason = resolveCanvasConnectionMotion({
-      isIncluded: provenance?.isIncluded,
-      isProvenance: Boolean(provenance),
-      isSelected: canvasStore.selectedConnectionId === path.id,
-    })
-    if (reason) result.set(path.id, reason)
+const pathById = computed(() => new Map(props.paths.map((path) => [path.id, path])))
+const connectionFlowPaths = computed(() => {
+  const result: Array<CanvasConnectionPath & { reason: CanvasConnectionMotionReason }> = []
+  const seen = new Set<string>()
+  const append = (connectionId: string, reason: CanvasConnectionMotionReason | null) => {
+    const path = pathById.value.get(connectionId)
+    if (!path || !reason || seen.has(connectionId)) return
+    seen.add(connectionId)
+    result.push({ ...path, reason })
+  }
+
+  const selectedConnectionId = canvasStore.selectedConnectionId
+  append(selectedConnectionId, resolveCanvasConnectionMotion({ isSelected: Boolean(selectedConnectionId) }))
+  for (const provenance of props.provenance ?? []) {
+    append(provenance.connectionId, resolveCanvasConnectionMotion({
+      isIncluded: provenance.isIncluded,
+      isProvenance: true,
+    }))
   }
   return result
 })
@@ -155,6 +163,9 @@ function isSelectedResultProvenance(connectionId: string) {
 }
 
 function selectConnectionFromPointer(connectionId: string, event: PointerEvent) {
+  if (event.button !== 0) return
+  event.preventDefault()
+  event.stopPropagation()
   selectConnection(connectionId)
   ;(event.currentTarget as SVGElement | null)?.blur()
 }
@@ -276,57 +287,35 @@ onBeforeUnmount(stopReroute)
       </marker>
     </defs>
     <g :transform="`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`">
-      <g v-for="path in paths" v-show="visible" :key="path.id">
-        <path
-          class="connection-hit"
-          :d="path.path"
-          role="button"
-          tabindex="0"
-          :aria-label="connectionLabel(path.connection)"
-          @pointerdown.stop="selectConnectionFromPointer(path.id, $event)"
-          @keydown.enter.prevent="selectConnection(path.id)"
-          @keydown.space.prevent="selectConnection(path.id)"
-        />
-        <path
-          class="connection-line"
-          :class="{
-            active: path.active,
-            selected: canvasStore.selectedConnectionId === path.id,
-            provenance: provenanceByConnectionId.has(path.id),
-            'provenance-excluded': provenanceByConnectionId.get(path.id)?.isIncluded === false,
-            'provenance-result': provenanceByConnectionId.get(path.id)?.kind === 'result',
-            'provenance-selected-result': isSelectedResultProvenance(path.id),
-          }"
-          :d="path.path"
-          marker-end="url(#canvas-edge-arrow)"
-          vector-effect="non-scaling-stroke"
-        />
-        <path
-          v-if="connectionFlowById.get(path.id)"
-          class="connection-flow"
-          :class="`is-${connectionFlowById.get(path.id)}`"
-          :d="path.path"
-          :pathLength="CANVAS_CONNECTION_FLOW_PATH_LENGTH"
-          :stroke-dasharray="CANVAS_CONNECTION_FLOW_DASH_PATTERN"
-          :data-flow-reason="connectionFlowById.get(path.id)"
-          :data-flow-segments="CANVAS_CONNECTION_FLOW_SEGMENT_COUNT"
-          vector-effect="non-scaling-stroke"
-          aria-hidden="true"
-        />
+      <g v-show="visible">
+        <g v-for="path in paths" :key="path.id">
+          <path
+            class="connection-hit"
+            :d="path.path"
+            role="button"
+            tabindex="0"
+            :aria-label="connectionLabel(path.connection)"
+            @pointerdown="selectConnectionFromPointer(path.id, $event)"
+            @keydown.enter.prevent="selectConnection(path.id)"
+            @keydown.space.prevent="selectConnection(path.id)"
+          />
+          <path
+            class="connection-line"
+            :class="{
+              active: path.active,
+              selected: canvasStore.selectedConnectionId === path.id,
+              provenance: provenanceByConnectionId.has(path.id),
+              'provenance-excluded': provenanceByConnectionId.get(path.id)?.isIncluded === false,
+              'provenance-result': provenanceByConnectionId.get(path.id)?.kind === 'result',
+              'provenance-selected-result': isSelectedResultProvenance(path.id),
+            }"
+            :d="path.path"
+            marker-end="url(#canvas-edge-arrow)"
+            vector-effect="non-scaling-stroke"
+          />
+        </g>
       </g>
-      <template v-if="activeDraftPath">
-        <path class="draft" :d="activeDraftPath" vector-effect="non-scaling-stroke" />
-        <path
-          class="connection-flow is-draft"
-          :d="activeDraftPath"
-          :pathLength="CANVAS_CONNECTION_FLOW_PATH_LENGTH"
-          :stroke-dasharray="CANVAS_CONNECTION_FLOW_DASH_PATTERN"
-          data-flow-reason="draft"
-          :data-flow-segments="CANVAS_CONNECTION_FLOW_SEGMENT_COUNT"
-          vector-effect="non-scaling-stroke"
-          aria-hidden="true"
-        />
-      </template>
+      <path v-if="activeDraftPath" class="draft" :d="activeDraftPath" vector-effect="non-scaling-stroke" />
       <template v-if="visible && selectedPath && !readonly">
         <circle
           class="connection-handle is-source"
@@ -349,6 +338,38 @@ onBeforeUnmount(stopReroute)
           @pointerdown="startReroute(selectedPath, 'target', $event)"
         />
       </template>
+    </g>
+  </svg>
+  <svg
+    v-if="(visible && connectionFlowPaths.length > 0) || Boolean(activeDraftPath)"
+    class="connection-flow-layer"
+    :class="{ 'draft-layer': Boolean(activeDraftPath) }"
+    aria-hidden="true"
+  >
+    <g :transform="`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`">
+      <path
+        v-for="flow in visible ? connectionFlowPaths : []"
+        :key="flow.id"
+        class="connection-flow"
+        :class="`is-${flow.reason}`"
+        :d="flow.path"
+        :pathLength="CANVAS_CONNECTION_FLOW_PATH_LENGTH"
+        :stroke-dasharray="CANVAS_CONNECTION_FLOW_DASH_PATTERN"
+        :data-connection-id="flow.id"
+        :data-flow-reason="flow.reason"
+        :data-flow-segments="CANVAS_CONNECTION_FLOW_SEGMENT_COUNT"
+        vector-effect="non-scaling-stroke"
+      />
+      <path
+        v-if="activeDraftPath"
+        class="connection-flow is-draft"
+        :d="activeDraftPath"
+        :pathLength="CANVAS_CONNECTION_FLOW_PATH_LENGTH"
+        :stroke-dasharray="CANVAS_CONNECTION_FLOW_DASH_PATTERN"
+        data-flow-reason="draft"
+        :data-flow-segments="CANVAS_CONNECTION_FLOW_SEGMENT_COUNT"
+        vector-effect="non-scaling-stroke"
+      />
     </g>
   </svg>
   <svg
@@ -396,13 +417,14 @@ onBeforeUnmount(stopReroute)
 
 <style scoped lang="scss">
 .connection-layer { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.connection-flow-layer { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .connection-line, .draft { fill: none; stroke: var(--canvas-edge, var(--border-strong)); stroke-width: 1.6; pointer-events: none; }
 .connection-line.selected, .draft { stroke: var(--accent-select); stroke-width: 2.4; }
 .connection-line.provenance { stroke: var(--accent-select); stroke-width: 2.2; }
 .connection-line.provenance-excluded { stroke: var(--v2-text-muted); stroke-width: 1.6; stroke-dasharray: 3 5; }
 .connection-line.provenance-result { stroke: color-mix(in oklch, var(--accent-select) 58%, var(--border-strong)); stroke-width: 1.8; }
 .connection-line.provenance-selected-result { stroke: var(--accent-select); stroke-width: 2.6; }
-.connection-flow { fill: none; stroke: color-mix(in oklch, white 72%, var(--accent-select)); stroke-width: 2.8; stroke-linecap: round; pointer-events: none; animation: canvas-connection-flow 900ms linear infinite; }
+.connection-flow { fill: none; stroke: color-mix(in oklch, white 72%, var(--accent-select)); stroke-width: 2.8; stroke-linecap: round; pointer-events: none; animation: canvas-connection-flow 1200ms steps(9, end) infinite; }
 .connection-flow.is-provenance { stroke-width: 2.4; opacity: 0.82; }
 .connection-hit { fill: none; stroke: transparent; stroke-width: 16; outline: none; pointer-events: stroke; cursor: pointer; }
 .connection-hit:focus-visible { stroke: color-mix(in oklch, var(--accent-select) 18%, transparent); outline: none; }
