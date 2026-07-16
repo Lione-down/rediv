@@ -6,7 +6,7 @@ interface KeyframePreview {
   timeSeconds: number
 }
 
-const props = defineProps<{ currentTime: number; src: string }>()
+const props = withDefaults(defineProps<{ currentTime: number; placement?: 'above' | 'below'; src: string }>(), { placement: 'below' })
 const emit = defineEmits<{ seek: [timeSeconds: number] }>()
 const frames = ref<KeyframePreview[]>([])
 const state = ref<'loading' | 'ready' | 'error'>('loading')
@@ -105,7 +105,7 @@ onBeforeUnmount(cancelSampling)
 </script>
 
 <template>
-  <section class="video-keyframe-rail" aria-label="视频关键帧">
+  <section class="video-keyframe-rail" :class="{ 'is-above': placement === 'above' }" aria-label="视频关键帧">
     <header>
       <strong>关键帧</strong>
       <span v-if="state === 'ready'">5 帧</span>
@@ -133,7 +133,7 @@ onBeforeUnmount(cancelSampling)
 
 <style scoped lang="scss">
 .video-keyframe-rail { position: absolute; z-index: 4; top: calc(100% + 8px); left: 14px; display: grid; box-sizing: border-box; width: calc(100% - 14px); grid-template-columns: 38px minmax(0, 1fr); align-items: center; gap: 5px; padding: 5px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: color-mix(in oklch, var(--v2-surface-2) 94%, transparent); box-shadow: 0 12px 28px oklch(3% 0.01 292 / 0.32); backdrop-filter: blur(10px); pointer-events: auto; }
-:global(.canvas-node-media.is-keyframes-above) .video-keyframe-rail { top: auto; bottom: calc(100% + 8px); }
+.video-keyframe-rail.is-above { top: auto; bottom: calc(100% + 8px); }
 header { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 3px; font-size: 9px; line-height: 1; }
 header strong { color: var(--v2-text-primary); font-weight: 600; white-space: nowrap; }
 .video-keyframe-rail__frames, .video-keyframe-rail__placeholder { display: grid; min-width: 0; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; }

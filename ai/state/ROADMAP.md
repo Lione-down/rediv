@@ -73,6 +73,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 76 | T5-076 | Runtime generation visibility | DONE - PASS | T5-075 |
 | 77 | T5-077 | Durable generation stage and percent progress | DONE - PASS | T5-076 |
 | 78 | T5-078 | Pending output placement and result handoff | DONE - PASS | T5-077 |
+| 79 | T5-079 | Canvas media containment and keyframe rail isolation | DONE - PASS | T5-078 |
 
 ## Task Boundaries
 
@@ -235,6 +236,8 @@ T5-076 is `DONE - PASS`. It adds task-only polling, local/durable runtime presen
 T5-077 is `DONE - PASS`. It adds nullable constrained stage/percent fields, monotonic normalization, truthful provider/persisting/success semantics, and shared card/Inspector/Graph Access presentation without applying the migration to user/runtime data. `REPORT-T5-077.md` is authoritative evidence. T5-078 owns non-persistent pending output placement and exact terminal result handoff; neither Task may fabricate provider progress or persist transient UI artifacts into the Canvas graph.
 
 T5-078 is `DONE - PASS`. One shared collision-aware resolver now predicts local and durable active output reservations and the final canonical result position. The pointer-passive projection has no graph, minimap, Graph Access, event, selection, autosave, or history identity; focused 6/6, functional Chromium 354/354, backend 463 plus 78 subtests, build, visual, hygiene, and fresh 200/300 supervisor gates passed. `REPORT-T5-078.md` is authoritative evidence.
+
+T5-079 is `DONE - PASS`. A rendered containment regression first measured four decoded images outside their owning surfaces, then rail-local placement ownership removed the cross-component scoped-selector leak without changing Canvas geometry or media-first card design. Focused 1/1, related Chromium 23/23, build, visual, blast, and hygiene gates passed. `REPORT-T5-079.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

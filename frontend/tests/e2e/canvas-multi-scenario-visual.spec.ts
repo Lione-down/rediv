@@ -52,6 +52,25 @@ test('mixed image, video, lifecycle, and unavailable states render together', as
   )
   expect(ratios).toEqual(expect.arrayContaining([1.78, 1, 0.56]))
 
+  const escapedImageMedia = await page.locator('.canvas-node-surface.is-media').evaluateAll((surfaces) => surfaces.flatMap((surface) => {
+    const media = surface.querySelector<HTMLElement>(':scope > .canvas-node-media')
+    const image = media?.querySelector<HTMLImageElement>('img')
+    if (!media || !image || image.naturalWidth <= 0) return []
+    const surfaceRect = surface.getBoundingClientRect()
+    const mediaRect = media.getBoundingClientRect()
+    const tolerance = 1
+    const isContained = mediaRect.left >= surfaceRect.left - tolerance &&
+      mediaRect.top >= surfaceRect.top - tolerance &&
+      mediaRect.right <= surfaceRect.right + tolerance &&
+      mediaRect.bottom <= surfaceRect.bottom + tolerance
+    return isContained ? [] : [{
+      label: media.getAttribute('aria-label'),
+      offsetX: Math.round(mediaRect.left - surfaceRect.left),
+      offsetY: Math.round(mediaRect.top - surfaceRect.top),
+    }]
+  }))
+  expect(escapedImageMedia).toEqual([])
+
   const videoState = await video.evaluate(async (video: HTMLVideoElement) => {
     video.muted = true
     await video.play()

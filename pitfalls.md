@@ -678,3 +678,9 @@ Evidence:
 - Overlay collision costs are not interchangeable. Other-node visible content is hard occupancy; selected-node composer and keyframe surfaces are secondary constraints; proximity decides only after both overlap classes.
 - Rebuild frontend `dist` before preview-backed Playwright. Source-import unit tests can pass while the browser still executes an older bundle and appears to omit a newly added request field.
 - A provider HTTP 503 before a result URL is availability evidence only. It cannot validate or reject prompt fidelity, reference compatibility, medium preservation, or identity consistency; retain redacted metadata and stop at the authorized call limit.
+
+## 2026-07-16 Scoped child-overlay selectors
+
+- A parent-state `:global(...)` selector inside a scoped child SFC can compile into a rule that targets the parent element itself instead of the intended child descendant. Inspect the built CSS whenever an overlay placement rule unexpectedly moves its host surface.
+- Keep overlay placement state on the overlay root that owns `top` and `bottom`. Shared image/video media roots must not carry video-keyframe positioning classes.
+- Visual media tests need a DOM containment assertion, not only image counts and aspect ratios. A decoded image can satisfy both while its media root is visibly outside the canonical Canvas frame.

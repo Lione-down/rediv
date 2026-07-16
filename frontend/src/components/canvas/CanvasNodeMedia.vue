@@ -89,7 +89,7 @@ onMounted(() => window.addEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseForPeerPla
 onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseForPeerPlayback))
 </script>
 <template>
-  <div class="canvas-node-media" :class="{ 'is-keyframes-above': keyframeRailPlacement === 'above' }" :aria-label="media.label">
+  <div class="canvas-node-media" :aria-label="media.label">
     <div class="canvas-node-media__viewport">
       <span v-if="media.kind === 'placeholder'" class="canvas-node-media__message">{{ media.label }}</span>
       <template v-else>
@@ -103,7 +103,7 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
         <span v-if="captureError" class="canvas-node-media__capture-error" role="alert">{{ captureError }}</span>
       </template>
     </div>
-    <CanvasVideoKeyframeRail v-if="media.kind === 'video' && canReadVideoFrames && state === 'ready'" :current-time="currentTime" :src="media.url" @seek="seekToFrame" />
+    <CanvasVideoKeyframeRail v-if="media.kind === 'video' && canReadVideoFrames && state === 'ready'" :current-time="currentTime" :placement="keyframeRailPlacement" :src="media.url" @seek="seekToFrame" />
   </div>
 </template>
 
