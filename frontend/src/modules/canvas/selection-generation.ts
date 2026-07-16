@@ -9,6 +9,7 @@ import {
   getAuthoringConnectionPorts,
   isNodeMutationSupported,
 } from './node-registry'
+import { resolveCanvasNodeLayoutRect } from './node-layout'
 
 export type SelectionGenerationMediaType = 'image' | 'video'
 export type SelectionVideoMode = VideoReferenceMode
@@ -35,9 +36,10 @@ function uniqueSelection(nodes: readonly CanvasNode[]) {
 }
 
 function generationPosition(nodes: readonly CanvasNode[]) {
-  const right = Math.max(...nodes.map((node) => node.x + node.width))
-  const top = Math.min(...nodes.map((node) => node.y))
-  const bottom = Math.max(...nodes.map((node) => node.y + node.height))
+  const rects = nodes.map(resolveCanvasNodeLayoutRect)
+  const right = Math.max(...rects.map((rect) => rect.left + rect.width))
+  const top = Math.min(...rects.map((rect) => rect.top))
+  const bottom = Math.max(...rects.map((rect) => rect.top + rect.height))
   return { x: right + 96, y: (top + bottom - 220) / 2 }
 }
 

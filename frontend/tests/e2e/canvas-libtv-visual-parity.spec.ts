@@ -85,6 +85,49 @@ test('16:9, 1:1, and 9:16 media remain recognizable without stretching', async (
   }
 })
 
+test('portrait media context menu resolves its complete visible surface', async ({ page }) => {
+  const state = createResourceMockState()
+  const result = state.documents['canvas-first'].nodes.find((node) => node.id === 'result-existing')!
+  Object.assign(result.content as Record<string, unknown>, {
+    url: 'https://media.revid.test/portrait.png', width: 180, height: 320,
+  })
+  await openResourceWorkspace(page, state)
+  const image = page.getByRole('img', { name: '图片结果' })
+  await expect(image).toBeVisible()
+  const surface = image.locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " canvas-node-surface ")]')
+  const box = await surface.boundingBox()
+  if (!box) throw new Error('Portrait media surface is unavailable')
+
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height - 12, { button: 'right' })
+
+  await expect(page.getByText('复制节点', { exact: true })).toBeVisible()
+  await expect(page.getByText('新建脚本节点', { exact: true })).toHaveCount(0)
+})
+
+test('minimap centers portrait media from canonical visible bounds', async ({ page }) => {
+  const state = createResourceMockState()
+  const result = state.documents['canvas-first'].nodes.find((node) => node.id === 'result-existing')!
+  Object.assign(result.content as Record<string, unknown>, {
+    url: 'https://media.revid.test/portrait.png', width: 180, height: 320,
+  })
+  await openResourceWorkspace(page, state)
+
+  await page.getByRole('button', { name: '定位到 历史图片生成结果' }).click()
+
+  const image = page.getByRole('img', { name: '图片结果' })
+  const surface = image.locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " canvas-node-surface ")]')
+  const [canvasBox, surfaceBox] = await Promise.all([
+    page.locator('.canvas-surface').boundingBox(),
+    surface.boundingBox(),
+  ])
+  if (!canvasBox || !surfaceBox) throw new Error('Canvas or portrait media surface is unavailable')
+  const canvasCenter = { x: canvasBox.x + canvasBox.width / 2, y: canvasBox.y + canvasBox.height / 2 }
+  const surfaceCenter = { x: surfaceBox.x + surfaceBox.width / 2, y: surfaceBox.y + surfaceBox.height / 2 }
+
+  expect(Math.abs(surfaceCenter.x - canvasCenter.x)).toBeLessThanOrEqual(2)
+  expect(Math.abs(surfaceCenter.y - canvasCenter.y)).toBeLessThanOrEqual(2)
+})
+
 test('DOM media and composer scale from the shared world geometry at 10%, 100%, and 200%', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)

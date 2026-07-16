@@ -1,6 +1,9 @@
 import { isNodeGroupContainer, resolveNodeDefinition, type NodePortDefinition } from '../../modules/canvas/node-registry'
+import {
+  resolveCanvasNodeLayoutSize,
+  resolveCanvasNodeMediaLayoutAspectRatio,
+} from '../../modules/canvas/node-layout'
 import type { CanvasNode } from '../../types/canvas'
-import { resolveCanvasAuthoringCardPresentation } from './canvas-authoring-card-presentation'
 
 export type CanvasNodeMediaPresentation =
   | { kind: 'image'; url: string; label: string; aspectRatio: number | null }
@@ -46,7 +49,7 @@ function getMediaPresentation(node: CanvasNode): CanvasNodeMediaPresentation | n
   const label = subtype === 'image' ? `图片${role}` : subtype === 'video' ? `视频${role}` : '音频素材'
   const previewUrl = readString(node.contentData, 'preview_url') ?? readString(node.contentData, 'thumbnail_url')
   const assetUrl = readString(node.contentData, 'url')
-  const aspectRatio = readAspectRatio(node.contentData)
+  const aspectRatio = resolveCanvasNodeMediaLayoutAspectRatio(node) ?? readAspectRatio(node.contentData)
   if (subtype === 'image' && assetUrl) return { kind: 'image', url: assetUrl, label, aspectRatio }
   if (subtype === 'video' && assetUrl) return { kind: 'video', url: assetUrl, poster: previewUrl ?? undefined, label, aspectRatio }
   if (previewUrl) return { kind: 'image', url: previewUrl, label, aspectRatio }
@@ -72,13 +75,5 @@ export function buildCanvasNodePresentation(node: CanvasNode): CanvasNodePresent
 }
 
 export function canvasNodeVisualSize(node: CanvasNode) {
-  const authoringCard = resolveCanvasAuthoringCardPresentation(node)
-  if (authoringCard) return { width: node.width, height: authoringCard.visualHeight }
-  const presentation = buildCanvasNodePresentation(node)
-  const ratio = presentation.media?.kind !== 'placeholder' ? presentation.media?.aspectRatio : null
-  if (!ratio) return { width: node.width, height: node.height }
-  const longEdge = Math.max(node.width, Math.min(node.height, node.width))
-  return ratio >= 1
-    ? { width: longEdge, height: longEdge / ratio }
-    : { width: longEdge * ratio, height: longEdge }
+  return resolveCanvasNodeLayoutSize(node)
 }

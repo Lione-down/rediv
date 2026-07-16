@@ -7,6 +7,7 @@ import {
   type CanvasDistribution,
   type CanvasNodePosition,
 } from '../../../modules/canvas/canvas-commands'
+import { isPointInsideCanvasNodeLayout, resolveCanvasNodeLayoutCenter } from '../../../modules/canvas/node-layout'
 import {
   buildConnectionPath, clampZoom, minimapPointToWorld,
   nodeInputAnchor as getNodeInputAnchor, nodeOutputAnchor as getNodeOutputAnchor,
@@ -159,10 +160,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     const orderedNodes = [...canvasStore.nodes].sort((left, right) => (
       Number(left.type !== 'group') - Number(right.type !== 'group')
     ))
-    return orderedNodes.reverse().find((node) => (
-      point.x >= node.x && point.x <= node.x + node.width &&
-      point.y >= node.y && point.y <= node.y + node.height
-    )) ?? null
+    return orderedNodes.reverse().find((node) => isPointInsideCanvasNodeLayout(node, point)) ?? null
   }
   function nodePortAnchor(nodeId: string, portId: string, direction: 'input' | 'output') {
     const node = findNode(nodeId)
@@ -173,9 +171,10 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     const node = findNode(nodeId)
     if (!node) return
     const viewport = getViewport()
+    const center = resolveCanvasNodeLayoutCenter(node)
     updateViewport({
-      x: surfaceViewportSize.value.width / 2 - (node.x + node.width / 2) * viewport.zoom,
-      y: surfaceViewportSize.value.height / 2 - (node.y + node.height / 2) * viewport.zoom,
+      x: surfaceViewportSize.value.width / 2 - center.x * viewport.zoom,
+      y: surfaceViewportSize.value.height / 2 - center.y * viewport.zoom,
     })
   }
   function focusCanvasStage() { stageRef.value?.focus({ preventScroll: true }) }

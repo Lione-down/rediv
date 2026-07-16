@@ -453,3 +453,48 @@ test('group, ungroup, and connect commands validate and execute deterministic gr
   expect(connections).toEqual([expect.objectContaining({ from: 'node-a', to: 'node-b' })])
   expect(createConnectNodesCommand(nodes, connections, 'node-a', 'node-b')).toBeNull()
 })
+
+test('group command encloses canonical visible media bounds', async () => {
+  const nodes: CanvasNode[] = [
+    { id: 'node-a', type: 'script', title: 'A', x: 100, y: 80, width: 240, height: 140 },
+    {
+      id: 'node-b', type: 'asset', title: 'Portrait', x: 420, y: 180, width: 200, height: 160,
+      contentData: {
+        subtype: 'image', serialization_version: 1, url: '/uploads/portrait.png', aspect_ratio: 0.5,
+      },
+    },
+  ]
+  let createdGroup: CanvasNode | null = null
+  const executor = createCanvasCommandExecutor({
+    getNodes: () => nodes,
+    getConnections: () => [],
+    createNode: async (draft) => {
+      createdGroup = { id: 'group-visible-bounds', ...draft }
+      nodes.push(createdGroup)
+      return createdGroup
+    },
+    createConnection: async () => { throw new Error('not used') },
+    updateNodeParent: async (nodeId, parentNodeId) => {
+      const target = nodes.find((node) => node.id === nodeId)
+      if (target) target.parentNodeId = parentNodeId
+    },
+    updateNodeLocked: async () => undefined,
+    deleteNode: async () => undefined,
+    deleteConnection: async () => undefined,
+    queueNodeMove: () => undefined,
+    setSelection: () => undefined,
+    selectConnection: () => undefined,
+  })
+
+  await executor.executeCommand({
+    source: 'toolbar',
+    command: createGroupNodesCommand(nodes, ['node-a', 'node-b'])!,
+  })
+
+  expect(createdGroup).toEqual(expect.objectContaining({
+    x: 76,
+    y: 56,
+    width: 468,
+    height: 348,
+  }))
+})

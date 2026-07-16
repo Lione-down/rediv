@@ -1,4 +1,5 @@
 import { resolveNodeDefinition } from '../../modules/canvas/node-registry'
+import { resolveCanvasAuthoringCardVisualHeight } from '../../modules/canvas/node-layout'
 import { resolveVisualAssetRecipe } from '../../modules/canvas/visual-asset-recipes'
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import type { CanvasNode, CanvasNodeStatus } from '../../types/canvas'
@@ -74,9 +75,8 @@ export function resolveCanvasAuthoringCardPresentation(
         }
       : lifecycleFor(node.status)
     : null
-  const visualHeight = kind === 'generation'
-    ? 128
-    : Math.min(node.height, (node.content ?? '').trim().length > 80 ? 150 : 120)
+  const visualHeight = resolveCanvasAuthoringCardVisualHeight(node)
+  if (visualHeight === null) return null
   const statusHeight = lifecycle ? STATUS_HEIGHT : 0
   const bodyHeight = visualHeight - HEADER_HEIGHT - statusHeight
   const emptyLabel = kind === 'note' ? '暂无备注' : kind === 'generation' ? '等待生成内容' : '暂无脚本内容'

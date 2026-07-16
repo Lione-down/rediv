@@ -32,6 +32,7 @@ import {
   type UpdateGenerationParametersCommand,
   type UngroupNodesCommand,
 } from './canvas-commands'
+import { resolveCanvasNodeLayoutRect } from './node-layout'
 
 interface CanvasCommandExecutorOptions {
   getNodes: () => CanvasNode[]
@@ -154,11 +155,12 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (!validated) return
     const selectedIds = new Set(validated.nodeIds)
     const targets = options.getNodes().filter((node) => selectedIds.has(node.id))
+    const targetRects = targets.map(resolveCanvasNodeLayoutRect)
     const padding = validated.padding
-    const left = Math.min(...targets.map((node) => node.x))
-    const top = Math.min(...targets.map((node) => node.y))
-    const right = Math.max(...targets.map((node) => node.x + node.width))
-    const bottom = Math.max(...targets.map((node) => node.y + node.height))
+    const left = Math.min(...targetRects.map((rect) => rect.left))
+    const top = Math.min(...targetRects.map((rect) => rect.top))
+    const right = Math.max(...targetRects.map((rect) => rect.left + rect.width))
+    const bottom = Math.max(...targetRects.map((rect) => rect.top + rect.height))
     const groupCount = options.getNodes().filter(isNodeGroupContainer).length
     const groupDraft = createRegistryNodeDraft('group', 'group', { x: left - padding, y: top - padding })
     const group = await options.createNode({

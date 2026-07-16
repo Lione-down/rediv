@@ -73,6 +73,24 @@ test('pure composition creates one ordered request-ready generation fragment', (
     .toMatchObject({ nodes: [{ contentData: { subtype: 'video' } }], connections: [{ targetPort: 'media' }, { targetPort: 'media' }] })
 })
 
+test('pure composition places generation from canonical visible source bounds', () => {
+  const sources: CanvasNode[] = [
+    sourceNode('script-a', 'script', { text: 'Portrait study', x: 100, y: 80 }),
+    {
+      id: 'asset-a', type: 'asset', title: 'Portrait', x: 420, y: 180, width: 200, height: 160,
+      contentData: {
+        subtype: 'image', serialization_version: 1, asset_id: 'asset-a',
+        url: '/uploads/portrait.png', aspect_ratio: 0.5,
+      },
+    },
+  ]
+  let id = 0
+
+  const command = createSelectionGenerationCommand(sources, 'image', () => `visible-${id++}`)
+
+  expect(command?.nodes[0]).toMatchObject({ x: 616, y: 120 })
+})
+
 test('selected node projection preserves explicit selection order before composition', () => {
   const documentNodes = [
     sourceNode('script-a', 'script'),
