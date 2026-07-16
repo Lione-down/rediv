@@ -29,6 +29,7 @@ export interface GenerationTask {
   result_asset_id: string | null
   error_code: string | null
   error_message: string | null
+  request_parameters?: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }

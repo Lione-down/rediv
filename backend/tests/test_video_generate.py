@@ -123,20 +123,52 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         with patch.object(backend_main, "_agnes", single_provider):
             single_response = self.client.post(
                 "/api/video-generate",
-                json=self._payload("Animate one frame", image_ids=[source_a["id"]]),
+                json=self._payload(
+                    "Animate one frame",
+                    image_ids=[source_a["id"]],
+                    reference_mode="image-to-video",
+                    duration_seconds=10,
+                ),
                 headers=self._auth_headers(self.user["id"]),
             )
         self.assertEqual(200, single_response.status_code)
         self.assertEqual(
-            {"image": "https://example.com/source-a.png", "mode": "img2vid"},
+            {
+                "image": "https://example.com/source-a.png",
+                "mode": "img2vid",
+                "width": 1152,
+                "height": 768,
+                "num_frames": 241,
+                "frame_rate": 24,
+            },
             single_provider.generate_calls[0]["kwargs"],
+        )
+        self.assertEqual(
+            {
+                "contract_version": 1,
+                "media_type": "video",
+                "model": "agnes-video-v2.0",
+                "reference_mode": "image-to-video",
+                "duration_seconds": 10,
+                "num_frames": 241,
+                "frame_rate": 24,
+                "width": 1152,
+                "height": 768,
+                "image_ids": [source_a["id"]],
+            },
+            single_response.json()["generation_task"]["request_parameters"],
         )
 
         multiple_provider = _FakeAgnesProvider()
         with patch.object(backend_main, "_agnes", multiple_provider):
             multiple_response = self.client.post(
                 "/api/video-generate",
-                json=self._payload("Connect keyframes", image_ids=[source_a["id"], source_b["id"]]),
+                json=self._payload(
+                    "Connect keyframes",
+                    image_ids=[source_a["id"], source_b["id"]],
+                    reference_mode="keyframes",
+                    duration_seconds=18,
+                ),
                 headers=self._auth_headers(self.user["id"]),
             )
         self.assertEqual(200, multiple_response.status_code)
@@ -144,6 +176,10 @@ class VideoGenerateApiTestCase(unittest.TestCase):
             {
                 "extra_images": ["https://example.com/source-a.png", "https://example.com/source-b.png"],
                 "mode": "keyframes",
+                "width": 1152,
+                "height": 768,
+                "num_frames": 441,
+                "frame_rate": 24,
             },
             multiple_provider.generate_calls[0]["kwargs"],
         )
@@ -276,7 +312,14 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(403, response.status_code)
         self.assertEqual("Insufficient video quota", response.json()["detail"])
 
-    def _payload(self, prompt: str, *, image_ids: list[str] | None = None) -> dict:
+    def _payload(
+        self,
+        prompt: str,
+        *,
+        image_ids: list[str] | None = None,
+        reference_mode: str | None = None,
+        duration_seconds: int | None = None,
+    ) -> dict:
         payload = {
             "project_id": self.project["id"],
             "origin_canvas_id": self.canvas_id,
@@ -285,6 +328,10 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         }
         if image_ids is not None:
             payload["image_ids"] = image_ids
+        if reference_mode is not None:
+            payload["reference_mode"] = reference_mode
+        if duration_seconds is not None:
+            payload["duration_seconds"] = duration_seconds
         return payload
 
     def _register_user(self, openid: str):

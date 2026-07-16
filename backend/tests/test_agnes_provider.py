@@ -47,7 +47,18 @@ class AgnesProviderImageContractTestCase(unittest.IsolatedAsyncioTestCase):
         )
         self.assertNotIn("image", payload)
 
-    async def _capture_image_payload(self, image: list[str] | None = None) -> dict:
+    async def test_ratio_is_sent_only_when_explicitly_supplied(self) -> None:
+        payload = await self._capture_image_payload(size="1K", ratio="16:9")
+
+        self.assertEqual("1K", payload["size"])
+        self.assertEqual("16:9", payload["ratio"])
+
+    async def _capture_image_payload(
+        self,
+        image: list[str] | None = None,
+        size: str = "1024x768",
+        ratio: str | None = None,
+    ) -> dict:
         captured: list[dict] = []
 
         async def handler(request: httpx.Request) -> httpx.Response:
@@ -66,8 +77,9 @@ class AgnesProviderImageContractTestCase(unittest.IsolatedAsyncioTestCase):
         await provider.generate_image(
             model="agnes-image-2.1-flash",
             prompt="Create a cinematic landscape",
-            size="1024x768",
+            size=size,
             image=image,
+            ratio=ratio,
         )
 
         self.assertEqual(1, len(captured))

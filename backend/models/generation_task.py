@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, utc_now
@@ -53,6 +53,11 @@ class GenerationTask(Base):
     provider: Mapped[str] = mapped_column(String(64), nullable=False, default="agnes", comment="Provider name")
     model: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="Provider model name")
     provider_request_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True, comment="Provider request or task ID")
+    request_parameters: Mapped[dict | None] = mapped_column(
+        JSON,
+        nullable=True,
+        comment="Immutable sanitized generation request parameters",
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True, comment="Task status: queued/running/succeeded/failed/timed_out")
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="Task duration in milliseconds")
     result_asset_id: Mapped[str | None] = mapped_column(

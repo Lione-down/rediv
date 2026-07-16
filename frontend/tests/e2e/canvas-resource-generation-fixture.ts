@@ -2,6 +2,10 @@ import { Buffer } from 'node:buffer'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, type Page, type Route } from '@playwright/test'
+import {
+  createMockGenerationRequestParameters,
+  GENERATION_CAPABILITIES,
+} from './canvas-generation-parameters-fixture'
 
 export const API_ORIGIN = 'http://localhost:8000'
 export const APP_ORIGIN = 'http://127.0.0.1:9099'
@@ -40,6 +44,7 @@ interface CanvasDocument {
 
 export interface ResourceMockState {
   assets: Array<Record<string, unknown>>
+  capabilitiesOutcome: 'success' | 'failure'
   capturedFrames: Record<string, Buffer>
   canvases: CanvasRecord[]
   documents: Record<string, CanvasDocument>
@@ -164,6 +169,7 @@ export function createResourceMockState(): ResourceMockState {
       { id: 'asset-audio', user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: null, type: 'audio', url: null, content_text: '海浪环境声', source: 'upload', source_model: null, source_task_id: null, status: 'active', created_at: NOW, updated_at: NOW },
       { id: 'asset-generated', user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: 'generation-cover', type: 'image', url: 'https://media.revid.test/generated.png', content_text: null, source: 'generation', source_model: 'mock-image-v1', source_task_id: 'task-existing-success', status: 'active', created_at: NOW, updated_at: NOW },
     ],
+    capabilitiesOutcome: 'success',
     capturedFrames: {},
     canvases: [canvas(FIRST_CANVAS_ID, '画布 1', 0), canvas(SECOND_CANVAS_ID, '分镜', 1)],
     documents: { [FIRST_CANVAS_ID]: firstDocument, [SECOND_CANVAS_ID]: secondDocument },
@@ -316,13 +322,24 @@ function instantiateTemplate(state: ResourceMockState, canvasId: string) {
   }
 }
 
-function generationResponse(state: ResourceMockState, canvasId: string, nodeId: string, mediaType: 'image' | 'video') {
+function generationResponse(
+  state: ResourceMockState,
+  canvasId: string,
+  nodeId: string,
+  mediaType: 'image' | 'video',
+  requestBody: Record<string, unknown>,
+) {
   state.generationCount += 1
   const suffix = state.generationCount === 1 ? '' : `-${state.generationCount}`
   const taskId = `task-success${suffix}`
   const assetId = `asset-success${suffix}`
   const model = `mock-${mediaType}-v1`
-  const task = generationTask({ id: taskId, origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType, model, status: 'succeeded', result_asset_id: assetId, provider_request_id: `request-success${suffix}` })
+  const requestParameters = createMockGenerationRequestParameters(mediaType, requestBody)
+  const task = generationTask({
+    id: taskId, origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType,
+    model, status: 'succeeded', result_asset_id: assetId,
+    provider_request_id: `request-success${suffix}`, request_parameters: requestParameters,
+  })
   const asset = { id: assetId, user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: canvasId, canvas_node_id: nodeId, type: mediaType, url: `https://media.revid.test/success${suffix}.${mediaType === 'video' ? 'mp4' : 'png'}`, content_text: null, source: 'generation', source_model: model, source_task_id: taskId, status: 'active', created_at: NOW, updated_at: NOW }
   state.tasks = [task, ...state.tasks.filter((item) => item.id !== task.id)]
   state.assets = [asset, ...state.assets.filter((item) => item.id !== asset.id)]
@@ -430,6 +447,11 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       if (url.searchParams.get('project_id') !== PROJECT_ID) return fulfillJson(route, { detail: 'project_id required' }, 400)
       return fulfillJson(route, { items: state.tasks, total: state.tasks.length, page: 1, page_size: 100 })
     }
+    if (method === 'GET' && path === '/api/generation-capabilities') {
+      return state.capabilitiesOutcome === 'success'
+        ? fulfillJson(route, GENERATION_CAPABILITIES)
+        : fulfillJson(route, { detail: 'mock capability unavailable' }, 503)
+    }
     const instantiateMatch = path.match(new RegExp(`^/api/projects/${PROJECT_ID}/canvases/([^/]+)/templates/template-storyboard/instantiate$`))
     if (method === 'POST' && instantiateMatch) {
       await state.templateInstantiationGate
@@ -443,7 +465,9 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       const mediaType = path === '/api/video-generate' ? 'video' : 'image'
       state.events.push(`generation-requested:${nodeId}`)
       await state.generationGate
-      if (state.generationOutcome === 'success') return fulfillJson(route, generationResponse(state, canvasId, nodeId, mediaType))
+      if (state.generationOutcome === 'success') {
+        return fulfillJson(route, generationResponse(state, canvasId, nodeId, mediaType, body ?? {}))
+      }
       const failedTask = generationTask({ id: 'task-failure', origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType, model: `mock-${mediaType}-v1`, status: 'failed', result_asset_id: null, provider_request_id: null, error_code: 'provider_error', error_message: 'mock provider unavailable' })
       state.tasks = [failedTask, ...state.tasks.filter((item) => item.id !== failedTask.id)]
       return fulfillJson(route, { detail: 'mock provider unavailable' }, 503)

@@ -105,7 +105,7 @@ test('selection intent reports exact counts and video semantics', () => {
     ],
   })
   expect(resolveSelectionGenerationIntent([...scripts, images[0]])).toMatchObject({
-    textCount: 2, imageCount: 1, assetImageCount: 1, resultCount: 0, videoMode: 'img2vid',
+    textCount: 2, imageCount: 1, assetImageCount: 1, resultCount: 0, videoMode: 'image-to-video',
   })
   expect(resolveSelectionGenerationIntent([...scripts, ...images])).toMatchObject({
     textCount: 2, imageCount: 2, assetImageCount: 2, resultCount: 0, videoMode: 'keyframes',

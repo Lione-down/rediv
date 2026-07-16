@@ -15,7 +15,7 @@ const props = defineProps<{
   composeResultCount: number
   composeSources: Array<{ nodeId: string; role: string; title: string; canMoveUp: boolean; canMoveDown: boolean }>
   composeTextCount: number
-  composeVideoMode: 'text-to-video' | 'img2vid' | 'keyframes'
+  composeVideoMode: 'text-to-video' | 'image-to-video' | 'keyframes'
   canDelete: boolean
   canDuplicate: boolean
   canGroup: boolean
@@ -121,7 +121,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeydown)
           <ImageIcon :size="15" aria-hidden="true" /><span><strong>图片生成</strong><small>{{ composeResultCount ? '历史结果融合' : composeImageCount ? '多输入融合' : '纯文本生成' }}</small></span>
         </button>
         <button type="button" class="compose-action" role="menuitem" @click="handleCompose('video')">
-          <Video :size="15" aria-hidden="true" /><span><strong>视频生成</strong><small>{{ composeVideoMode === 'text-to-video' ? '文生视频' : composeVideoMode === 'img2vid' ? '图生视频' : '有序关键帧' }}</small></span>
+          <Video :size="15" aria-hidden="true" /><span><strong>视频生成</strong><small>{{ composeVideoMode === 'text-to-video' ? '文生视频' : composeVideoMode === 'image-to-video' ? '图生视频' : '有序关键帧' }}</small></span>
         </button>
       </div>
     </div>

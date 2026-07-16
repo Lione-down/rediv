@@ -1,6 +1,7 @@
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import { createCanvasEntityId } from './canvas-autosave'
 import type { InsertGraphCommand } from './canvas-commands'
+import type { GenerationNodeParameters, VideoReferenceMode } from './generation-parameters'
 import { resolveGenerationContext } from './generation-context'
 import { findFirstUnoccupiedPosition } from './graph-placement'
 import {
@@ -10,7 +11,7 @@ import {
 } from './node-registry'
 
 export type SelectionGenerationMediaType = 'image' | 'video'
-export type SelectionVideoMode = 'text-to-video' | 'img2vid' | 'keyframes'
+export type SelectionVideoMode = VideoReferenceMode
 
 export interface SelectionGenerationIntent {
   assetImageCount: number
@@ -86,6 +87,26 @@ export function createSelectionGenerationCommand(
   if (context.provenance.length !== selectedNodes.length || context.provenance.some((item) => !item.isIncluded)) {
     return null
   }
+  if (mediaType === 'video') {
+    const referenceMode: VideoReferenceMode = context.imageIds.length === 0
+      ? 'text-to-video'
+      : context.imageIds.length === 1 ? 'image-to-video' : 'keyframes'
+    const primaryReferenceNodeId = referenceMode === 'image-to-video'
+      ? context.mediaSources.find((source) => source.state === 'included')?.nodeId
+      : undefined
+    const parameters: GenerationNodeParameters = {
+      schema_version: 1,
+      video: {
+        duration_seconds: 5,
+        reference_mode: referenceMode,
+        ...(primaryReferenceNodeId ? { primary_reference_node_id: primaryReferenceNodeId } : {}),
+      },
+    }
+    generationNode.contentData = {
+      ...generationNode.contentData,
+      generation_parameters: parameters,
+    }
+  }
   return { type: 'insert-graph', nodes: [generationNode], connections }
 }
 
@@ -139,6 +160,6 @@ export function resolveSelectionGenerationIntent(
     })),
     resultCount,
     textCount,
-    videoMode: imageCount === 0 ? 'text-to-video' : imageCount === 1 ? 'img2vid' : 'keyframes',
+    videoMode: imageCount === 0 ? 'text-to-video' : imageCount === 1 ? 'image-to-video' : 'keyframes',
   }
 }

@@ -88,6 +88,7 @@ class AgnesProvider:
         return_base64: bool = False,
         image: list[str] | None = None,
         response_format: str = "url",
+        ratio: str | None = None,
     ) -> dict:
         """文生图 / 图生图。
 
@@ -107,6 +108,8 @@ class AgnesProvider:
             "prompt": prompt,
             "size": size,
         }
+        if ratio is not None:
+            payload["ratio"] = ratio
         if return_base64:
             payload["return_base64"] = True
 

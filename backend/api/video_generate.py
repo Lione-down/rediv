@@ -7,6 +7,7 @@ from api.generation_common import map_generation_error
 from controllers import generation_transactions as generation_controller
 from core.agnes_provider import normalize_provider_status
 from core.generation_provider import GenerationProvider, get_generation_provider
+from core.generation_parameter_contract import VIDEO_MODEL, normalize_video_parameters
 from core.generation_results import (
     ProviderResultError,
     validate_https_url,
@@ -22,7 +23,7 @@ from core.security import current_user
 from schemas.generation import VideoGenerateRequest, VideoGenerateResponse
 
 
-MODEL_NAME = "agnes-video-v2.0"
+MODEL_NAME = VIDEO_MODEL
 POLL_INTERVAL_SECONDS = 5
 MAX_POLL_ATTEMPTS = 120
 
@@ -168,6 +169,11 @@ async def video_generate(
     user=Depends(current_user),
     provider: GenerationProvider = Depends(get_generation_provider),
 ):
+    normalized_parameters = normalize_video_parameters(
+        reference_mode=payload.reference_mode,
+        duration_seconds=payload.duration_seconds,
+        image_ids=payload.image_ids,
+    )
     try:
         task, input_images = generation_controller.start_video_generation_task(
             user_id=user["id"],
@@ -177,6 +183,7 @@ async def video_generate(
             origin_canvas_id=payload.origin_canvas_id,
             canvas_node_id=payload.canvas_node_id,
             image_ids=payload.image_ids,
+            request_parameters=normalized_parameters.request_parameters,
         )
     except generation_controller.GenerationTransactionError as error:
         raise map_generation_error(error) from error
@@ -184,11 +191,22 @@ async def video_generate(
     provider_request_id: str | None = None
 
     try:
-        generation_options = {}
-        if input_images and len(input_images) == 1:
+        generation_options = {
+            "width": normalized_parameters.width,
+            "height": normalized_parameters.height,
+            "num_frames": normalized_parameters.num_frames,
+            "frame_rate": normalized_parameters.frame_rate,
+        }
+        if normalized_parameters.reference_mode == "image-to-video" and input_images:
             generation_options = {"image": input_images[0], "mode": "img2vid"}
-        elif input_images:
-            generation_options = {"extra_images": input_images, "mode": "keyframes"}
+            generation_options.update({
+                "width": normalized_parameters.width,
+                "height": normalized_parameters.height,
+                "num_frames": normalized_parameters.num_frames,
+                "frame_rate": normalized_parameters.frame_rate,
+            })
+        elif normalized_parameters.reference_mode == "keyframes" and input_images:
+            generation_options.update({"extra_images": input_images, "mode": "keyframes"})
         create_response = await provider.generate_video(
             model=MODEL_NAME,
             prompt=payload.prompt,

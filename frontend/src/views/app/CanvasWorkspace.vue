@@ -121,6 +121,7 @@ const {
   generate,
   generateRecipe,
   updatePrompt,
+  updateGenerationParameters,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
 
 const canvasViewportInsets = computed(() => ({ top: 96, right: isCompact.value && isContextDrawerOpen.value ? 376 : 16, bottom: 96, left: 16 }))
@@ -469,6 +470,7 @@ onBeforeUnmount(() => {
           @reorder-input="reorderGenerationInput"
           @retry-recipe="generateRecipe"
           @update-prompt="updatePrompt"
+          @update-parameters="updateGenerationParameters"
         />
       </div>
 
@@ -552,6 +554,7 @@ onBeforeUnmount(() => {
               @reorder-input="reorderGenerationInput"
               @retry-recipe="generateRecipe"
               @update-prompt="updatePrompt"
+              @update-parameters="updateGenerationParameters"
             />
           </div>
         </NDrawerContent>

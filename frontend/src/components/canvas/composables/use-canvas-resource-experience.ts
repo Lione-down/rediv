@@ -1,11 +1,8 @@
 import { isAxiosError } from 'axios'
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref, watch, type ComputedRef, type Ref } from 'vue'
-import { request } from '../../../api/request'
-import { requestCanvasGeneration } from '../../../modules/canvas/generation-service'
-import { resolveGenerationContext } from '../../../modules/canvas/generation-context'
+import { resolveGenerationRequestContext } from '../../../modules/canvas/generation-parameters'
 import { resolveResultLineage } from '../../../modules/canvas/generation-lineage'
 import { getGenerationMediaType } from '../../../modules/canvas/node-registry'
-import { resolveVisualAssetRecipe, type VisualAssetRecipeId, type VisualAssetRecipeVersion } from '../../../modules/canvas/visual-asset-recipes'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import {
   createAssetInsertCommand,
@@ -22,20 +19,14 @@ import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
 import { createVideoFrameCaptureAction } from './use-video-frame-capture'
+import { useGenerationCapabilities } from './use-generation-capabilities'
+import { useCanvasGenerationActions } from './use-canvas-generation-actions'
 
 interface CanvasResourceExperienceOptions {
   canvasId: ComputedRef<string>
   isCompact: Ref<boolean>
   isReviewOnly: Ref<boolean>
   projectId: ComputedRef<string>
-}
-
-interface GenerationRequestContext {
-  authToken: string
-  canvasId: string
-  mediaType: 'image' | 'video'
-  nodeId: string
-  projectId: string
 }
 
 function errorMessage(error: unknown) {
@@ -101,6 +92,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const generationError = ref('')
   const generationSuccess = ref('')
   const foregroundResultNodeId = ref('')
+  const { generationCapabilities, generationCapabilitiesError } = useGenerationCapabilities()
   const captureVideoFrame = createVideoFrameCaptureAction({
     actionError, canvasId: options.canvasId, canvasStore, formatError: errorMessage,
     isReviewOnly: options.isReviewOnly, isUploading, projectId: options.projectId, resourceStore,
@@ -150,7 +142,13 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   ))
   const selectedGenerationContext = computed(() => (
     selectedNode.value && selectedMediaType.value
-      ? resolveGenerationContext(selectedNode.value, canvasStore.nodes, canvasStore.connections)
+      ? resolveGenerationRequestContext(
+          selectedNode.value,
+          selectedMediaType.value,
+          canvasStore.nodes,
+          canvasStore.connections,
+          generationCapabilities.value,
+        )
       : null
   ))
   const selectedResultLineage = computed(() => (
@@ -168,6 +166,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
       : null
   })
   const visibleError = computed(() => actionError.value || resourceStore.error)
+  const visibleGenerationError = computed(() => generationError.value || generationCapabilitiesError.value)
   const isDesktopContextOpen = computed(() => (
     !options.isCompact.value && Boolean(selectedNode.value)
   ))
@@ -286,12 +285,6 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     }
   }
 
-  function isExactGenerationContext(context: GenerationRequestContext) {
-    return authStore.token === context.authToken &&
-      canvasStore.activeProjectId === context.projectId &&
-      canvasStore.activeCanvasId === context.canvasId
-  }
-
   async function reconcileCurrentResources() {
     const projectId = canvasStore.activeProjectId
     const canvasId = canvasStore.activeCanvasId
@@ -353,101 +346,21 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     return result
   }
 
-  async function executeGeneration(
-    sourceNode: CanvasNode,
-    mediaType: 'image' | 'video',
-    requestContext: { prompt?: string; imageIds?: string[]; recipeId?: VisualAssetRecipeId; recipeVersion?: VisualAssetRecipeVersion },
-    promptToPersist?: string,
-  ) {
-    if (options.isReviewOnly.value || isGenerating.value) return
-    const context: GenerationRequestContext = {
-      authToken: authStore.token,
-      projectId: options.projectId.value,
-      canvasId: options.canvasId.value,
-      nodeId: sourceNode.id,
-      mediaType,
-    }
-    if (authStore.quotas[mediaType] < 1) {
-      generationError.value = `${mediaType} quota 不足，当前生成已阻止。`
-      return
-    }
-    generationError.value = ''
-    generationSuccess.value = ''
-    isGenerating.value = true
-    try {
-      if (promptToPersist !== undefined) await canvasStore.setNodeContent(sourceNode.id, promptToPersist)
-      await canvasStore.setNodeGenerationState(sourceNode.id, 'running')
-      await canvasStore.flushPendingPersistence()
-      const response = await requestCanvasGeneration({
-        mediaType,
-        projectId: context.projectId,
-        originCanvasId: context.canvasId,
-        canvasNodeId: context.nodeId,
-        ...requestContext,
-      }, authStore, request)
-      if (!response.asset) throw new Error('生成已完成，但响应缺少结果资产。')
-      resourceStore.upsertAsset(response.asset)
-      resourceStore.upsertTask(response.generation_task)
-      await queueResourceReconciliation()
-      if (isExactGenerationContext(context)) {
-        foregroundResultNodeId.value = canvasStore.nodes.find((node) => (
-          node.type === 'result' && node.contentData?.source_task_id === response.generation_task.id
-        ))?.id ?? ''
-        const recipe = resolveVisualAssetRecipe(sourceNode)
-        generationSuccess.value = `${recipe?.title ?? (mediaType === 'video' ? '视频' : '图片')}生成已完成，结果已写入项目资源。`
-      }
-    } catch (error) {
-      const isCurrentAuthSession = authStore.token === context.authToken
-      if (isCurrentAuthSession) {
-        await resourceStore.refreshIfCurrent(context.projectId).catch(() => undefined)
-        const reconciled = await queueResourceReconciliation().catch(() => 0)
-        if (isExactGenerationContext(context)) {
-          generationError.value = reconciled
-            ? errorMessage(error)
-            : '生成请求连接已中断，正在根据任务记录核对结果；请稍后刷新项目资源。'
-          if (!reconciled) scheduleResourcePolling(true)
-        }
-      }
-    } finally {
-      isGenerating.value = false
-    }
-  }
-
-  async function generate(prompt: string) {
-    const sourceNode = selectedNode.value
-    const mediaType = selectedMediaType.value
-    if (!sourceNode || !mediaType || resolveVisualAssetRecipe(sourceNode)) return
-    const generationContext = resolveGenerationContext(
-      { ...sourceNode, content: prompt }, canvasStore.nodes, canvasStore.connections,
-    )
-    if (!generationContext.prompt) {
-      generationError.value = '请填写提示词或连接至少一个有内容的脚本节点。'
-      return
-    }
-    await executeGeneration(sourceNode, mediaType, {
-      prompt: generationContext.prompt, imageIds: generationContext.imageIds,
-    }, prompt)
-  }
-
-  async function generateRecipe(recipeId: VisualAssetRecipeId) {
-    const sourceNode = selectedNode.value
-    const recipe = sourceNode ? resolveVisualAssetRecipe(sourceNode) : null
-    if (!sourceNode || selectedMediaType.value !== 'image' || recipe?.id !== recipeId) return
-    const generationContext = resolveGenerationContext(sourceNode, canvasStore.nodes, canvasStore.connections)
-    if (generationContext.imageIds.length !== 1) {
-      generationError.value = '视觉资产配方需要且仅支持 1 张有效参考图。'
-      return
-    }
-    await executeGeneration(sourceNode, 'image', {
-      recipeId, recipeVersion: recipe.version, imageIds: generationContext.imageIds,
-    })
-  }
-
-  function updatePrompt(prompt: string) {
-    if (!options.isReviewOnly.value && selectedNode.value) {
-      void canvasStore.setNodeContent(selectedNode.value.id, prompt)
-    }
-  }
+  const { generate, generateRecipe, updatePrompt, updateGenerationParameters } = useCanvasGenerationActions({
+    canvasId: options.canvasId,
+    projectId: options.projectId,
+    isReviewOnly: options.isReviewOnly,
+    selectedNode,
+    selectedMediaType,
+    generationCapabilities,
+    isGenerating,
+    generationError,
+    generationSuccess,
+    foregroundResultNodeId,
+    formatError: errorMessage,
+    queueResourceReconciliation,
+    scheduleResourcePolling,
+  })
 
   function closeContext() {
     isContextDrawerOpen.value = false
@@ -511,7 +424,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     selectedQuota,
     latestTask,
     visibleError,
-    generationError,
+    generationError: visibleGenerationError,
     generationSuccess,
     foregroundResultNodeId,
     openResources,
@@ -528,5 +441,6 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     generate,
     generateRecipe,
     updatePrompt,
+    updateGenerationParameters,
   }
 }

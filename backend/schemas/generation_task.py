@@ -17,6 +17,7 @@ class GenerationTaskItem(BaseModel):
     provider: str
     model: str | None = None
     provider_request_id: str | None = None
+    request_parameters: dict | None = None
     status: GenerationTaskStatus
     duration_ms: int | None = None
     result_asset_id: str | None = None

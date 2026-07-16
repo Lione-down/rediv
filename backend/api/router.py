@@ -8,6 +8,7 @@ from api import (
     canvas_documents,
     canvas_nodes,
     canvases,
+    generation_capabilities,
     generation_tasks,
     health,
     image_generate,
@@ -29,6 +30,7 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(canvas_documents.router)
     app.include_router(canvas_nodes.router)
     app.include_router(canvas_connections.router)
+    app.include_router(generation_capabilities.router)
     app.include_router(generation_tasks.router)
     app.include_router(templates.router)
     app.include_router(templates.canvas_router)

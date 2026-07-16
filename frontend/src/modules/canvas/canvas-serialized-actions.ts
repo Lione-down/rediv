@@ -1,5 +1,6 @@
 import type { CanvasNode } from '../../types/canvas'
 import type { CanvasCommandEnvelope } from './canvas-commands'
+import type { GenerationNodeParameters } from './generation-parameters'
 import type { PersistedGenerationStatus } from './node-registry'
 import type { CanvasDocumentPatchResponse } from './types'
 
@@ -136,6 +137,13 @@ export function createCanvasSerializedActions(options: CanvasSerializedActionsOp
     return run(() => options.applyNodeContent(nodeId, content))
   }
 
+  function setNodeGenerationParameters(nodeId: string, parameters: GenerationNodeParameters) {
+    return options.runSerialized(({ execute }) => execute({
+      source: 'toolbar',
+      command: { type: 'update-generation-parameters', nodeId, parameters },
+    }))
+  }
+
   function setNodeGenerationState(
     nodeId: string,
     status: PersistedGenerationStatus,
@@ -157,6 +165,7 @@ export function createCanvasSerializedActions(options: CanvasSerializedActionsOp
     reconcileGeneration,
     setNodeStatus,
     setNodeContent,
+    setNodeGenerationParameters,
     setNodeGenerationState,
   }
 }

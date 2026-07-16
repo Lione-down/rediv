@@ -14,7 +14,9 @@ export interface ConnectedTextContext {
   order: number
 }
 
-export type ConnectedMediaState = 'included' | 'missing-asset' | 'unsupported-media' | 'duplicate' | 'limit'
+export type ConnectedMediaState =
+  | 'included' | 'missing-asset' | 'unsupported-media' | 'duplicate' | 'limit'
+  | 'reference-mode-excluded'
 
 export interface ConnectedMediaContext {
   connectionId: string

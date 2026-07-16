@@ -2,6 +2,7 @@ import type { Asset } from '../../types/asset'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import { createCanvasEntityId } from './canvas-autosave'
 import type { InsertGraphCommand } from './canvas-commands'
+import type { GenerationNodeParameters } from './generation-parameters'
 import { findFirstUnoccupiedPosition } from './graph-placement'
 import { createRegistryNodeDraft, getAuthoringConnectionPorts, getDefaultConnectionPorts, isNodeMutationSupported } from './node-registry'
 import type { GenerationTask } from './project-resource-types'
@@ -33,6 +34,20 @@ export function createResultGenerationBranchCommand(
   })
   const position = findFirstUnoccupiedPosition(draft, draft, existingNodes, [sourceNode.id])
   const generationNode: CanvasNode = { id: createCanvasEntityId(), ...draft, ...position }
+  if (mediaType === 'video') {
+    const parameters: GenerationNodeParameters = {
+      schema_version: 1,
+      video: {
+        duration_seconds: 5,
+        reference_mode: 'image-to-video',
+        primary_reference_node_id: sourceNode.id,
+      },
+    }
+    generationNode.contentData = {
+      ...generationNode.contentData,
+      generation_parameters: parameters,
+    }
+  }
   const ports = getAuthoringConnectionPorts(sourceNode, generationNode, 'out', 'media')
   if (!ports) return null
   return {

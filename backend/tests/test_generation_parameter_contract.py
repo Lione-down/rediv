@@ -1,0 +1,175 @@
+from __future__ import annotations
+
+import sys
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from core.generation_parameter_contract import (
+    GenerationParameterError,
+    build_generation_capabilities,
+    normalize_image_parameters,
+    normalize_video_parameters,
+)
+
+
+class GenerationParameterContractTestCase(unittest.TestCase):
+    def test_capability_document_has_exact_backend_owned_values(self) -> None:
+        self.assertEqual(
+            {
+                "contract_version": 1,
+                "image": {
+                    "model": "agnes-image-2.1-flash",
+                    "size": "1K",
+                    "aspect_ratios": ["1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9"],
+                    "default_aspect_ratio": "4:3",
+                },
+                "video": {
+                    "model": "agnes-video-v2.0",
+                    "width": 1152,
+                    "height": 768,
+                    "reference_modes": ["text-to-video", "image-to-video", "keyframes"],
+                    "default_duration_seconds": 5,
+                    "min_keyframes": 2,
+                    "max_keyframes": 8,
+                    "duration_presets": [
+                        {"duration_seconds": 3, "num_frames": 81, "frame_rate": 24},
+                        {"duration_seconds": 5, "num_frames": 121, "frame_rate": 24},
+                        {"duration_seconds": 10, "num_frames": 241, "frame_rate": 24},
+                        {"duration_seconds": 18, "num_frames": 441, "frame_rate": 24},
+                    ],
+                },
+            },
+            build_generation_capabilities(),
+        )
+
+    def test_ordinary_image_defaults_to_revid_ratio_and_rejects_unknown_values(self) -> None:
+        normalized = normalize_image_parameters(aspect_ratio=None, image_ids=["asset-a"])
+
+        self.assertEqual("1K", normalized.provider_size)
+        self.assertEqual("4:3", normalized.provider_ratio)
+        self.assertEqual(
+            {
+                "contract_version": 1,
+                "media_type": "image",
+                "model": "agnes-image-2.1-flash",
+                "size": "1K",
+                "aspect_ratio": "4:3",
+                "image_ids": ["asset-a"],
+            },
+            normalized.request_parameters,
+        )
+
+        with self.assertRaisesRegex(GenerationParameterError, "unsupported image aspect ratio"):
+            normalize_image_parameters(aspect_ratio="5:4", image_ids=[])
+
+    def test_recipe_image_is_fixed_and_never_accepts_an_aspect_ratio_override(self) -> None:
+        normalized = normalize_image_parameters(
+            aspect_ratio=None,
+            image_ids=["asset-reference"],
+            recipe_id="character-sheet",
+            recipe_version=2,
+            recipe_size="1024x768",
+        )
+
+        self.assertEqual("1024x768", normalized.provider_size)
+        self.assertIsNone(normalized.provider_ratio)
+        self.assertEqual(
+            {
+                "contract_version": 1,
+                "media_type": "image",
+                "model": "agnes-image-2.1-flash",
+                "size": "1024x768",
+                "aspect_ratio": "4:3",
+                "image_ids": ["asset-reference"],
+                "generation_recipe_id": "character-sheet",
+                "generation_recipe_version": 2,
+            },
+            normalized.request_parameters,
+        )
+
+        with self.assertRaisesRegex(GenerationParameterError, "recipe controls output size"):
+            normalize_image_parameters(
+                aspect_ratio="4:3",
+                image_ids=["asset-reference"],
+                recipe_id="character-sheet",
+                recipe_version=2,
+                recipe_size="1024x768",
+            )
+
+    def test_video_modes_validate_exact_reference_counts_and_duration_mapping(self) -> None:
+        text = normalize_video_parameters(
+            reference_mode="text-to-video",
+            duration_seconds=3,
+            image_ids=[],
+        )
+        single = normalize_video_parameters(
+            reference_mode="image-to-video",
+            duration_seconds=10,
+            image_ids=["asset-a"],
+        )
+        keyframes = normalize_video_parameters(
+            reference_mode="keyframes",
+            duration_seconds=18,
+            image_ids=["asset-a", "asset-b"],
+        )
+
+        self.assertEqual((81, 24), (text.num_frames, text.frame_rate))
+        self.assertEqual((241, 24), (single.num_frames, single.frame_rate))
+        self.assertEqual((441, 24), (keyframes.num_frames, keyframes.frame_rate))
+        self.assertEqual(
+            {
+                "contract_version": 1,
+                "media_type": "video",
+                "model": "agnes-video-v2.0",
+                "reference_mode": "keyframes",
+                "duration_seconds": 18,
+                "num_frames": 441,
+                "frame_rate": 24,
+                "width": 1152,
+                "height": 768,
+                "image_ids": ["asset-a", "asset-b"],
+            },
+            keyframes.request_parameters,
+        )
+
+        invalid_cases = [
+            ("text-to-video", 5, ["asset-a"], "requires zero"),
+            ("image-to-video", 5, [], "requires exactly one"),
+            ("image-to-video", 5, ["asset-a", "asset-b"], "requires exactly one"),
+            ("keyframes", 5, ["asset-a"], "requires 2 to 8"),
+            ("keyframes", 5, [f"asset-{index}" for index in range(9)], "requires 2 to 8"),
+            ("unsupported", 5, [], "unsupported video reference mode"),
+            ("text-to-video", 7, [], "unsupported video duration"),
+        ]
+        for mode, duration, image_ids, message in invalid_cases:
+            with self.subTest(mode=mode, duration=duration, image_ids=image_ids):
+                with self.assertRaisesRegex(GenerationParameterError, message):
+                    normalize_video_parameters(
+                        reference_mode=mode,
+                        duration_seconds=duration,
+                        image_ids=image_ids,
+                    )
+
+    def test_legacy_video_omission_keeps_count_mapping_only_at_backend_boundary(self) -> None:
+        self.assertEqual(
+            "text-to-video",
+            normalize_video_parameters(reference_mode=None, duration_seconds=None, image_ids=[]).reference_mode,
+        )
+        self.assertEqual(
+            "image-to-video",
+            normalize_video_parameters(reference_mode=None, duration_seconds=None, image_ids=["asset-a"]).reference_mode,
+        )
+        self.assertEqual(
+            "keyframes",
+            normalize_video_parameters(
+                reference_mode=None,
+                duration_seconds=None,
+                image_ids=["asset-a", "asset-b"],
+            ).reference_mode,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

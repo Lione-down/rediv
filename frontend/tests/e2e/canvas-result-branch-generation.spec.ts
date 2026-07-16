@@ -130,6 +130,7 @@ test('two-origin generated keyframes create a durable playable video result', as
   await openResourceWorkspace(page, state)
   await selectNode(page, '双源关键帧视频')
   const editor = page.locator('.generation-editor')
+  await editor.getByRole('radio', { name: '关键帧' }).click()
   const context = editor.getByRole('region', { name: '已连接生成上下文' })
   await context.getByText('检查最终生成请求').click()
   const requestPreview = page.getByRole('region', { name: '有序媒体请求' })
@@ -152,6 +153,8 @@ test('two-origin generated keyframes create a durable playable video result', as
     canvas_node_id: 'generation-two-origin-merge',
     prompt: '从远景海岸平滑推进到人物近景，保持低饱和电影感。',
     image_ids: ['asset-second-origin', 'asset-generated'],
+    reference_mode: 'keyframes',
+    duration_seconds: 5,
   })
   expect(state.quotas.video).toBe(initialQuota - 1)
 
@@ -285,6 +288,8 @@ test('image result branches into a request-ready video workflow and playable res
     canvas_node_id: generationNode.id,
     prompt: 'Animate the coastal still with a slow push-in',
     image_ids: ['asset-generated'],
+    reference_mode: 'image-to-video',
+    duration_seconds: 5,
   })
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.filter((item) => (
     (item.content as Record<string, unknown>).source_task_id === 'task-success'
@@ -369,6 +374,7 @@ test('920px result branch disclosure and generation drawer stay in bounds', asyn
     canvas_node_id: expect.any(String),
     prompt: '保留海岸构图，增强远处雾气层次。',
     image_ids: ['asset-generated'],
+    aspect_ratio: '4:3',
   })
 })
 

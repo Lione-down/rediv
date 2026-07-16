@@ -15,14 +15,14 @@ Last updated: 2026-07-16
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-074 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
+- Completed V2 Tasks: T5-001 through T5-075 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
 
 ## Active Delivery
 
-- Active implementation Task: `IDLE`
+- Active implementation Task: `None`
 - State: `IDLE`
-- Last completed Task: `T5-074 - Authenticated logout and global session exit`
-- Report: `ai/reports/REPORT-T5-074.md`
+- Last completed Task: `T5-075 - Provider-backed generation parameters and reference intent`
+- Report: `ai/reports/REPORT-T5-075.md`
 
 ## Current Verified Facts
 
@@ -30,7 +30,7 @@ Last updated: 2026-07-16
 - T5-007 Unit E adds responsive project resource and contextual generation controls, registry-backed asset/template insertion, durable success/failure result presentation, desktop/narrow keyboard behavior, and a strict 375px browse/review-only boundary.
 - Local upload handling now uses bounded JSON/multipart bodies, provisional cross-process reservation slots, per-user/global active and scan limits, same-volume staging, idle/total deadlines, cancellation-safe disk lifecycle, real decodable media fixtures, and bounded CPU/memory validation.
 - T5-007 final evidence passed 384 backend tests plus 56 subtests, 134 upload/security tests plus 48 subtests, 117 Chromium tests, a 4,761-module build, four accepted viewport inspections, and independent frontend/security review at 0 HIGH / 0 MEDIUM / 0 LOW.
-- Repository Alembic head is `c9d0e1f2a3b4`; no user/runtime migration occurred.
+- Repository Alembic head is `d0e1f2a3b4c5`; no user/runtime migration occurred.
 - Browser offline and prior 200-node/300-connection performance evidence remains classified as mock-browser evidence; T5-008 additionally records the final local-MySQL live run.
 - T5-008 classified all 97 acceptance checkboxes and closed its live harness, persistence, performance, visual, accessibility, and security evidence gates.
 - Unit A pure gates now include missing/unreachable/missing-Alembic/wrong-dialect/revision-mismatch runtime checks; the owned harness also requires an exact run-scoped backend health identity and preview build marker.
@@ -101,10 +101,11 @@ Last updated: 2026-07-16
 - T5-070 is now `DONE - PASS`: new generation-reference authoring accepts only image asset/result sources the provider can consume, while historical video edges remain visible as excluded provenance. Focused 29/29, cross-surface 85/85, build, visual, multi-image order, and zero-unintended-mutation gates passed. Final report: `ai/reports/REPORT-T5-070.md`.
 - T5-073 is now `DONE - PASS`: canonical script, note, and generation nodes share a compact clean-room authoring hierarchy with bounded content, one lifecycle expression, coherent selected editing, unchanged media-first results, and fresh live 200-node/300-connection evidence. Final report: `ai/reports/REPORT-T5-073.md`.
 - T5-074 is now `DONE - PASS`: authenticated logout acknowledgement, immediate failure-safe local teardown, and one accessible responsive account menu cover Home, Workspace, Space, Canvas, and Admin. Backend auth 13/13, frontend regression 12/12, a 4,824-module build, desktop/375px visual checks, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-074.md`.
+- T5-075 is now `DONE - PASS`: backend-owned capability normalization, explicit image ratio and video duration/reference intent, typed preference persistence, exact provider payloads, and immutable sanitized task snapshots passed backend 40 plus 14 subtests, browser 31/31, build, responsive visual, migration, and hygiene gates. Final report: `ai/reports/REPORT-T5-075.md`.
 
 ## Exact Next Action
 
-Keep the authenticated session-exit boundary stable. Create a separate Task for persistent token revocation, refresh tokens, device sessions, or all-device logout.
+After the T5-075 commit is pushed and the owned baseline is clean, activate T5-076 for task-only polling and runtime generation visibility.
 
 ## Blockers And Human Gates
 

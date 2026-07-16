@@ -39,6 +39,7 @@ def _task_to_dict(task: GenerationTask) -> dict:
         "provider": task.provider,
         "model": task.model,
         "provider_request_id": task.provider_request_id,
+        "request_parameters": task.request_parameters,
         "status": task.status,
         "duration_ms": task.duration_ms,
         "result_asset_id": task.result_asset_id,

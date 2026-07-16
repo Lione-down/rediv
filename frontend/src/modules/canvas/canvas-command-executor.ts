@@ -4,7 +4,9 @@ import type { CanvasConnectionDraft, CanvasNodeDraft } from './persistence'
 import { isEdgeInsertionCommandValid, type InsertNodeIntoConnectionCommand } from './edge-insertion'
 import {
   createRegistryNodeDraft,
+  getPersistedGenerationStatus,
   isNodeGroupContainer,
+  isNodeMutationSupported,
 } from './node-registry'
 import {
   canDeleteCanvasNode,
@@ -27,6 +29,7 @@ import {
   type ReconnectConnectionCommand,
   type ReorderGenerationInputCommand,
   type SetNodesLockedCommand,
+  type UpdateGenerationParametersCommand,
   type UngroupNodesCommand,
 } from './canvas-commands'
 
@@ -48,6 +51,7 @@ interface CanvasCommandExecutorOptions {
     node: CanvasNode, upstream: CanvasConnection, downstream: CanvasConnection,
   ) => Promise<void> | void
   reorderGenerationInput?: (command: ReorderGenerationInputCommand) => Promise<void> | void
+  updateGenerationParameters?: (command: UpdateGenerationParametersCommand) => Promise<void> | void
 }
 
 function cloneNodeDraft(node: CanvasNode, offset: { x: number; y: number }): CanvasNodeDraft {
@@ -282,6 +286,18 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     await options.reorderGenerationInput(command)
   }
 
+  async function updateGenerationParameters(command: UpdateGenerationParametersCommand) {
+    if (!options.updateGenerationParameters) throw new Error('Generation parameter editing is unavailable')
+    const target = options.getNodes().find((node) => node.id === command.nodeId)
+    const status = target ? getPersistedGenerationStatus(target.contentData ?? {}) : null
+    if (
+      !target || target.type !== 'generation' || target.isLocked || !isNodeMutationSupported(target) ||
+      status === 'queued' || status === 'running'
+    ) return
+    if (JSON.stringify(target.contentData?.generation_parameters) === JSON.stringify(command.parameters)) return
+    await options.updateGenerationParameters(command)
+  }
+
   async function executeCommand(envelope: CanvasCommandEnvelope) {
     const { command } = envelope
     if (command.type === 'move-nodes') return moveNodes(command)
@@ -295,6 +311,7 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'set-nodes-locked') return setNodesLocked(command)
     if (command.type === 'insert-graph') return insertGraph(command)
     if (command.type === 'reorder-generation-input') return reorderGenerationInput(command)
+    if (command.type === 'update-generation-parameters') return updateGenerationParameters(command)
     return insertNodeIntoConnection(command)
   }
 

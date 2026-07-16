@@ -145,6 +145,74 @@ class GenerationProviderValidationTestCase(unittest.TestCase):
         self.assertEqual([], provider.image_calls)
         self.assertEqual(0, self._task_count())
 
+    def test_generation_capabilities_require_authentication_and_are_backend_owned(self) -> None:
+        unauthenticated = self.client.get("/api/generation-capabilities")
+        authenticated = self.client.get(
+            "/api/generation-capabilities",
+            headers=self.headers,
+        )
+
+        self.assertEqual(401, unauthenticated.status_code)
+        self.assertEqual(200, authenticated.status_code)
+        payload = authenticated.json()
+        self.assertEqual(1, payload["contract_version"])
+        self.assertEqual("4:3", payload["image"]["default_aspect_ratio"])
+        self.assertEqual([81, 121, 241, 441], [item["num_frames"] for item in payload["video"]["duration_presets"]])
+
+    def test_invalid_parameter_combinations_fail_before_task_quota_or_provider_mutation(self) -> None:
+        source = store.create_asset(
+            self.user["id"],
+            "image",
+            "https://example.com/source.png",
+            None,
+            project_id=self.project["id"],
+            origin_canvas_id=self.canvas_id,
+        )
+        original_image_quota = self._database_quota("image")
+        original_video_quota = self._database_quota("video")
+        cases = [
+            (
+                "/api/image-generate",
+                {**self._payload("Unknown ratio"), "aspect_ratio": "5:4"},
+            ),
+            (
+                "/api/image-generate",
+                {
+                    **self._payload(""),
+                    "prompt": None,
+                    "image_ids": [source["id"]],
+                    "generation_recipe_id": "character-sheet",
+                    "generation_recipe_version": 2,
+                    "aspect_ratio": "4:3",
+                },
+            ),
+            (
+                "/api/video-generate",
+                {
+                    **self._payload("Invalid keyframes"),
+                    "image_ids": [source["id"]],
+                    "reference_mode": "keyframes",
+                    "duration_seconds": 5,
+                },
+            ),
+            (
+                "/api/video-generate",
+                {
+                    **self._payload("Invalid duration"),
+                    "reference_mode": "text-to-video",
+                    "duration_seconds": 7,
+                },
+            ),
+        ]
+        for path, payload in cases:
+            with self.subTest(path=path, payload=payload):
+                response = self.client.post(path, json=payload, headers=self.headers)
+                self.assertEqual(422, response.status_code)
+
+        self.assertEqual(0, self._task_count())
+        self.assertEqual(original_image_quota, self._database_quota("image"))
+        self.assertEqual(original_video_quota, self._database_quota("video"))
+
     def test_frozen_guard_runs_before_input_asset_resolution(self) -> None:
         store.get_user(self.user["id"])["generation_status"] = "frozen"
         provider = _Provider(image_response={"data": [{"url": "https://example.com/out.png"}]})

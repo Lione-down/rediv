@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, CircleCheck, Columns2, Focus, GitBranch, Image, Info, Link2, LoaderCircle, Play, Sparkles, Video, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
-import type { ResolvedGenerationContext } from '../../modules/canvas/generation-context'
+import {
+  formatGenerationRequestParameters,
+  type GenerationNodeParameters,
+  type ResolvedGenerationRequestContext,
+} from '../../modules/canvas/generation-parameters'
 import type { ResolvedResultLineage } from '../../modules/canvas/generation-lineage'
 import type { ProjectGenerationTask } from '../../modules/canvas/project-resource-types'
 import { resolveGenerationRunHistory } from '../../modules/canvas/generation-run-history'
@@ -11,13 +15,14 @@ import type { CanvasNode } from '../../types/canvas'
 import { formatCapturedFrameTime, resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
 import type { GenerationInputLineageBridge } from '../../modules/canvas/generation-input-lineage'
 import { resolveVisualAssetRecipe, VISUAL_ASSET_RECIPES, type VisualAssetRecipeId } from '../../modules/canvas/visual-asset-recipes'
+import CanvasGenerationParameterControls from './CanvasGenerationParameterControls.vue'
 
 const props = withDefaults(defineProps<{
   error?: string
   canContinue?: boolean
   canArrangeTrace?: boolean
   canFitTrace?: boolean
-  generationContext?: ResolvedGenerationContext | null
+  generationContext?: ResolvedGenerationRequestContext | null
   generationInputLineage?: GenerationInputLineageBridge[]
   generationTasks?: ProjectGenerationTask[]
   isGenerating?: boolean
@@ -61,6 +66,7 @@ const emit = defineEmits<{
   generate: [prompt: string]
   reorderInput: [connectionId: string, direction: -1 | 1]
   updatePrompt: [prompt: string]
+  updateParameters: [parameters: GenerationNodeParameters]
   retryRecipe: [recipeId: VisualAssetRecipeId]
   visualRecipe: [recipeId: VisualAssetRecipeId]
 }>()
@@ -69,7 +75,7 @@ const prompt = ref(props.node.content?.trim() || '')
 const visualRecipe = computed(() => resolveVisualAssetRecipe(props.node))
 const canGenerate = computed(() => Boolean(
   props.mediaType && (visualRecipe.value || prompt.value.trim() || props.generationContext?.prompt) &&
-  props.quota > 0 && !props.isGenerating,
+  !props.generationContext?.parameterError && props.quota > 0 && !props.isGenerating,
 ))
 const generationLabel = computed(() => props.mediaType === 'video' ? '视频' : '图片')
 const connectedInputCount = computed(() => (
@@ -97,6 +103,7 @@ const mediaStateLabel = {
   'unsupported-media': '仅支持图片，未使用',
   duplicate: '重复资源，已合并',
   limit: '超出 8 张上限，未使用',
+  'reference-mode-excluded': '当前参考模式未使用',
 } as const
 const runStatusLabel = {
   queued: '排队中',
@@ -119,9 +126,14 @@ const statusLabel = computed(() => {
 function mediaRequestRole(requestOrder: number | null) {
   const order = requestOrder ?? 0
   if (props.mediaType === 'image') return `参考图 R${order}`
-  if (includedMediaSources.value.length === 1) return '图生视频参考 R1'
+  if (props.generationContext?.referenceMode === 'image-to-video') return '图生视频参考 R1'
   return `视频关键帧 R${order}`
 }
+
+const resultTaskParameters = computed(() => {
+  const task = props.generationTasks.find((candidate) => candidate.id === props.resultLineage?.taskId)
+  return formatGenerationRequestParameters(task?.request_parameters)
+})
 
 function mediaSourceState(connectionId: string, state: keyof typeof mediaStateLabel) {
   const bridge = inputLineageByConnectionId.value.get(connectionId)
@@ -194,8 +206,15 @@ function requestGeneration() {
         <textarea :value="prompt" rows="6" maxlength="4000" aria-label="生成提示词" :disabled="isGenerating" @input="updatePrompt"></textarea>
       </label>
       <div v-else class="review-prompt"><span>生成提示词</span><p>{{ prompt || '未填写提示词' }}</p></div>
+      <CanvasGenerationParameterControls
+        v-if="generationContext"
+        :context="generationContext"
+        :disabled="isGenerating"
+        :readonly="readonly"
+        @update-parameters="emit('updateParameters', $event)"
+      />
 
-      <section v-if="generationContext && (generationContext.textSources.length || generationContext.mediaSources.length)" class="connected-context" aria-label="已连接生成上下文">
+      <section v-if="generationContext" class="connected-context" aria-label="已连接生成上下文">
         <div class="context-summary"><span><Link2 :size="14" aria-hidden="true" />已连接上下文</span><strong>{{ connectedInputCount }} 项已使用</strong></div>
         <ul>
           <li v-for="source in generationContext.textSources" :key="`text-${source.nodeId}`" :class="{ muted: !source.isIncluded }">
@@ -225,6 +244,10 @@ function requestGeneration() {
         <details v-if="!visualRecipe" class="request-preflight">
           <summary>检查最终生成请求</summary>
           <div class="request-preflight__body">
+            <section v-if="generationContext.parameterSummary.length" aria-label="最终生成参数">
+              <div class="request-preflight__heading"><span>最终参数</span><strong>{{ generationContext.parameterSummary.length }} 项</strong></div>
+              <ul><li v-for="item in generationContext.parameterSummary" :key="item"><strong>{{ item }}</strong></li></ul>
+            </section>
             <section aria-label="最终合并提示词">
               <div class="request-preflight__heading"><span>最终 prompt</span><strong>{{ generationContext.prompt.length }} 字符</strong></div>
               <pre>{{ generationContext.prompt || '没有可发送的 prompt' }}</pre>
@@ -284,6 +307,7 @@ function requestGeneration() {
             <div>
               <strong>Run {{ run.sequence }} · {{ runStatusLabel[run.task.status] }}</strong>
               <small>{{ run.task.model || run.task.provider }} · {{ runTiming(run.task) }}</small>
+              <small v-if="formatGenerationRequestParameters(run.task.request_parameters)">{{ formatGenerationRequestParameters(run.task.request_parameters) }}</small>
               <p v-if="run.task.error_message">{{ run.task.error_message }}</p>
               <button
                 v-if="run.resultNodeId"
@@ -322,6 +346,7 @@ function requestGeneration() {
           <div><dt>来源节点</dt><dd><button type="button" class="lineage-node-link" :aria-label="`定位到画布：${resultLineage.generationTitle}`" @click="emit('locateNode', resultLineage.generationNodeId)">{{ resultLineage.generationTitle }}<ArrowRight :size="13" aria-hidden="true" /></button></dd></div>
           <div v-if="resultLineage.taskId"><dt>任务</dt><dd>{{ resultLineage.taskId }}</dd></div>
           <div v-if="resultLineage.model"><dt>模型</dt><dd>{{ resultLineage.model }}</dd></div>
+          <div v-if="resultTaskParameters"><dt>生成参数</dt><dd>{{ resultTaskParameters }}</dd></div>
           <div><dt>输入</dt><dd>{{ resultLineage.inputProvenance.filter((item) => item.isIncluded).length }} 项</dd></div>
         </dl>
         <button

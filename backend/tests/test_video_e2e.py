@@ -108,6 +108,10 @@ class VideoGenerationE2ETestCase(unittest.TestCase):
         mock_agnes.generate_video.assert_awaited_once_with(
             model="agnes-video-v2.0",
             prompt="Create a high-energy product teaser",
+            width=1152,
+            height=768,
+            num_frames=121,
+            frame_rate=24,
         )
         self.assertEqual(2, mock_agnes.poll_video_result.await_count)
         mock_agnes.poll_video_result.assert_awaited_with("video-task-1")

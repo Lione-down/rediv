@@ -119,6 +119,19 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         self.assertEqual(task.id, ledger.related_task_id)
         self.assertEqual(-1, ledger.change_amount)
         self.assertEqual(original_quota - 1, self._database_quota("image"))
+        self.assertEqual(
+            {
+                "contract_version": 1,
+                "media_type": "image",
+                "model": "agnes-image-2.1-flash",
+                "size": "1K",
+                "aspect_ratio": "4:3",
+                "image_ids": [],
+            },
+            task.request_parameters,
+        )
+        self.assertEqual(task.request_parameters, payload["generation_task"]["request_parameters"])
+        self.assertEqual({"size": "1K", "ratio": "4:3"}, provider.calls[0]["kwargs"])
 
         assets = self.client.get(
             "/assets",

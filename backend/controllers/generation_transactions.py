@@ -104,7 +104,7 @@ def _start_generation_task(
     project_id: str,
     origin_canvas_id: str | None,
     canvas_node_id: str | None,
-    image_ids: list[str] | None,
+    image_ids: list[str] | None, request_parameters: dict | None,
 ) -> tuple[dict, list[str] | None]:
     try:
         with get_session() as session:
@@ -149,6 +149,7 @@ def _start_generation_task(
                 provider=provider,
                 model=model,
                 provider_request_id=None,
+                request_parameters=request_parameters,
                 status="running",
                 duration_ms=None,
                 result_asset_id=None,
@@ -189,6 +190,7 @@ def start_generation_task(
         origin_canvas_id=origin_canvas_id,
         canvas_node_id=canvas_node_id,
         image_ids=None,
+        request_parameters=None,
     )
     return task
 
@@ -201,7 +203,7 @@ def start_image_generation_task(
     project_id: str,
     origin_canvas_id: str | None,
     canvas_node_id: str | None,
-    image_ids: list[str] | None,
+    image_ids: list[str] | None, request_parameters: dict,
 ) -> tuple[dict, list[str] | None]:
     return _start_generation_task(
         user_id=user_id,
@@ -212,6 +214,7 @@ def start_image_generation_task(
         origin_canvas_id=origin_canvas_id,
         canvas_node_id=canvas_node_id,
         image_ids=image_ids,
+        request_parameters=request_parameters,
     )
 
 
@@ -223,7 +226,7 @@ def start_video_generation_task(
     project_id: str,
     origin_canvas_id: str | None,
     canvas_node_id: str | None,
-    image_ids: list[str] | None,
+    image_ids: list[str] | None, request_parameters: dict,
 ) -> tuple[dict, list[str] | None]:
     return _start_generation_task(
         user_id=user_id,
@@ -234,6 +237,7 @@ def start_video_generation_task(
         origin_canvas_id=origin_canvas_id,
         canvas_node_id=canvas_node_id,
         image_ids=image_ids,
+        request_parameters=request_parameters,
     )
 
 

@@ -1,5 +1,6 @@
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import type { InsertNodeIntoConnectionCommand } from './edge-insertion'
+import type { GenerationNodeParameters } from './generation-parameters'
 import {
   reorderGenerationInputConnections,
   type GenerationInputDirection,
@@ -101,6 +102,12 @@ export interface ReorderGenerationInputCommand {
   direction: GenerationInputDirection
 }
 
+export interface UpdateGenerationParametersCommand {
+  type: 'update-generation-parameters'
+  nodeId: string
+  parameters: GenerationNodeParameters
+}
+
 export type CanvasCommand =
   | MoveNodesCommand
   | DuplicateNodesCommand
@@ -113,6 +120,7 @@ export type CanvasCommand =
   | SetNodesLockedCommand
   | InsertGraphCommand
   | ReorderGenerationInputCommand
+  | UpdateGenerationParametersCommand
   | InsertNodeIntoConnectionCommand
 
 export interface CanvasCommandEnvelope {

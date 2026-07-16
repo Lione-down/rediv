@@ -69,6 +69,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 72 | T5-072 | Enterprise Canvas scenario certification and finite release closure | DONE - PASS | T5-071 |
 | 73 | T5-073 | Canvas authoring card hierarchy refinement | DONE - PASS | T5-072 |
 | 74 | T5-074 | Authenticated logout and global session exit | DONE - PASS | T5-073 |
+| 75 | T5-075 | Provider-backed generation parameters and reference intent | DONE - PASS | T5-074 |
 
 ## Task Boundaries
 
@@ -223,6 +224,8 @@ T5-072 is `DONE - PASS`. Current evidence certifies graph authoring, multi-node 
 T5-073 is `DONE - PASS`. Script, note, and generation authoring nodes now use one compact Revid-native header/body/status grammar while media/results stay intrinsic and media-first. Focused browser groups, responsive/zoom/editing/recipe/toolbar regressions, build, hygiene, and a fresh guarded live 200-node/300-connection run passed. `REPORT-T5-073.md` is authoritative evidence.
 
 T5-074 is `DONE - PASS`. All authenticated shells now expose one responsive account menu backed by an authenticated logout acknowledgement and immediate failure-safe browser teardown. Backend auth 13/13, frontend regression 12/12, build, keyboard/ARIA, desktop/375px visual, and hygiene gates passed. `REPORT-T5-074.md` is authoritative evidence.
+
+T5-075 is `DONE - PASS`. It adds a backend-owned generation capability/normalization contract, explicit image ratio and video reference/duration intent, typed Canvas preference persistence, and immutable sanitized `generation_tasks.request_parameters` snapshots. It preserves recipe-fixed `4:3`, canonical generation/result lineage, and the no-paid-call/no-runtime-migration boundaries. T5-076 may activate only after this verified scope is committed and pushed.
 
 ## Canvas First-Acceptance Gate
 

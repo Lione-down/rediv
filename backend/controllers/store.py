@@ -1178,6 +1178,7 @@ class DatabaseStore:
             "provider": task.provider,
             "model": task.model,
             "provider_request_id": task.provider_request_id,
+            "request_parameters": task.request_parameters,
             "status": task.status,
             "duration_ms": task.duration_ms,
             "result_asset_id": task.result_asset_id,
@@ -1627,6 +1628,7 @@ class DatabaseStore:
         origin_canvas_id: str | None = None,
         canvas_node_id: str | None = None,
         provider_request_id: str | None = None,
+        request_parameters: dict | None = None,
         status: str = "queued",
     ) -> dict:
         timestamp = now_utc()
@@ -1648,6 +1650,7 @@ class DatabaseStore:
                 provider=provider,
                 model=model,
                 provider_request_id=provider_request_id,
+                request_parameters=request_parameters,
                 status=status,
                 created_at=timestamp,
                 updated_at=timestamp,
