@@ -108,11 +108,11 @@ Last updated: 2026-07-17
 - T5-077 is now `DONE - PASS`: guarded nullable progress fields, monotonic backend normalization, truthful provider/persisting/success semantics, and shared card/Inspector/history/Graph Access presentation passed full backend 463 plus 78 subtests, focused browser 4/4, a 4,837-module build, migration/hygiene gates, and fresh owned 200/300 evidence at 59.85 FPS. Final report: `ai/reports/REPORT-T5-077.md`.
 - T5-078 is now `DONE - PASS`: local and durable active generation work projects into stable collision-aware result-sized reservations, then hands successful reconciliation to the canonical result command at the exact predicted position without graph identity or runtime persistence. Focused 6/6, related 36/36, functional Chromium 354/354, backend 463 plus 78 subtests, a 4,841-module build, visual/hygiene gates, and fresh owned 200/300 evidence at 59.87 FPS passed. Final report: `ai/reports/REPORT-T5-078.md`.
 - T5-079 is now `DONE - PASS`: a RED containment guard measured four decoded image roots outside their surfaces, rail-local placement removed the scoped-selector leak, and focused 1/1 plus related 23/23 Chromium, a 4,841-module build, two visual inspections, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-079.md`.
-- T5-080 is `DOING`: canonical visible geometry and real screen-stable port targets are GREEN. Exact typed compatibility now filters before stable distance ranking for both new connections and endpoint reroute; draft paths snap to one exact eligible anchor and only that port receives feedback. Unit 4 passed 19/19 related interaction tests, 9/9 target/workflow tests, an extracted-overlay recheck, and a 4,847-module build. Neutral aggregate continuation, group movement, and active-only edge feedback remain.
+- T5-080 is `DOING`: canonical visible geometry, real screen-stable port targets, exact compatible landing, and neutral aggregate continuation are GREEN. Every editable multi-selection now receives a neutral hull; only canonical selection-generation intent exposes the 40px aggregate trigger, exact source counts, and shared image/video preflight. Both aggregate and toolbar dispatch the same existing `insert-graph` command. Unit 5 passed 25/25 related Chromium tests, Escape/outside-click recheck 1/1, and a 4,853-module build. Group movement and active-only edge feedback remain.
 
 ## Exact Next Action
 
-Commit and push the verified compatible-target Unit, then freeze neutral aggregate hull visibility and invalid-selection behavior before changing selection presentation.
+Commit and push the verified neutral aggregate Unit, then freeze the normal-group preview/commit delta mismatch before changing drag resolution.
 
 ## Blockers And Human Gates
 

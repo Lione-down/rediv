@@ -1,7 +1,7 @@
 # TASK-T5-080 Progress
 
 - Task state: `DOING`
-- Active unit: Unit 5, generalize the neutral aggregate hull and batch continuation entry point.
+- Active unit: Unit 6, move normal groups and supported descendants as one graph unit.
 
 ## Completed work
 
@@ -28,17 +28,23 @@
 - Snapped the active draft path to the exact eligible anchor and added pointer-passive exact-port feedback. In the overlapping browser case only `generation-cover:prompt` is marked, `result-existing:in` remains unavailable, and the committed edge uses the exact compatible port.
 - Kept `use-canvas-stage.ts` at 500 lines by extracting compatible-target and snapped-draft policy into `canvas-connection-target.ts`.
 - Passed Unit 4 target, continuation, and reroute matrix 19/19, target/workflow focused matrix 9/9, and the extracted-overlay 1/1 recheck. The final production build passes with 4,847 transformed modules.
+- Completed the neutral aggregate and batch-continuation Unit through browser-first RED-GREEN-REFACTOR. The three frozen RED cases failed only because the neutral `.selection-aggregate-hull` and its right-center continuation trigger did not exist.
+- Renamed the composition-only presentation contract to a neutral aggregate hull and now render `已选 N 个节点` for every editable multi-selection. Invalid selections keep the truthful hull but expose neither T/R intent markers nor either batch trigger; readonly 375px review remains passive.
+- Extracted `CanvasSelectionAggregate.vue` and one shared `CanvasSelectionGenerationMenu.vue`. The aggregate exposes one accessible 40px `+` trigger only when `resolveSelectionGenerationIntent` returns a canonical intent, while the toolbar reuses the same menu instead of retaining a second preflight implementation.
+- The aggregate preflight reports exact source, text, reference, and result-reference counts plus the canonical video mode. Escape restores trigger focus, outside pointerdown closes the menu, and source order stays owned by the existing selection-order command.
+- Both aggregate and toolbar actions reuse `composeGenerationSelection`, which dispatches the existing `createSelectionGenerationCommand` `insert-graph` result unchanged. The aggregate browser case creates one generation node and N typed edges through one document PATCH; existing history/output coverage remains GREEN.
+- Passed the complete Unit 5 selection-generation, output, command-history, and LibTV visual parity matrix 25/25, the Escape/outside-click recheck 1/1, and a 4,853-module production build.
 
 ## Remaining work
 
-- Add and run focused RED evidence for neutral aggregate selection, batch continuation, group movement, and active-only edge motion.
-- Implement Units 5-7 through strict RED-GREEN-REFACTOR cycles.
+- Add and run focused RED evidence for group movement and active-only edge motion.
+- Implement Units 6-7 through strict RED-GREEN-REFACTOR cycles.
 - Run focused, related, build, visual, full functional Chromium, hygiene, and applicable owned 200/300 verification.
 - Perform fresh diff review, write REPORT, close durable state, then scoped commit and push.
 
 ## Exact next action
 
-Commit and push the verified compatible-target Unit, then freeze neutral hull visibility for valid and invalid editable multi-selections before changing aggregate presentation.
+Commit and push the verified neutral aggregate Unit, then freeze the normal-group pointer preview/commit delta mismatch before changing drag resolution.
 
 ## Files changed
 
@@ -57,11 +63,15 @@ Commit and push the verified compatible-target Unit, then freeze neutral hull vi
 - `frontend/src/components/canvas/canvas-stage.scss`
 - `frontend/src/components/canvas/CanvasConnectionLayer.vue`
 - `frontend/src/components/canvas/CanvasConnectionTargetPorts.vue`
+- `frontend/src/components/canvas/CanvasSelectionAggregate.vue`
+- `frontend/src/components/canvas/CanvasSelectionGenerationMenu.vue`
+- `frontend/src/components/canvas/CanvasSelectionToolbar.vue`
 - `frontend/src/components/canvas/CanvasStage.vue`
 - `frontend/src/components/canvas/canvas-port-interaction.ts`
 - `frontend/src/components/canvas/canvas-port-presentation.ts`
 - `frontend/src/components/canvas/canvas-renderer.ts`
 - `frontend/src/components/canvas/composables/use-canvas-stage.ts`
+- `frontend/src/components/canvas/composables/use-canvas-stage-presentation.ts`
 - `frontend/src/components/canvas/composables/use-canvas-connection-presentation.ts`
 - `frontend/tests/e2e/canvas-command-contract.spec.ts`
 - `frontend/tests/e2e/canvas-selection-generation.spec.ts`
@@ -90,6 +100,10 @@ Commit and push the verified compatible-target Unit, then freeze neutral hull vi
 - Compatible-target GREEN: exact resolver plus node-workflow matrix passed 9/9; full target, forward/reverse continuation, and reroute matrix passed 19/19.
 - Exact feedback/snap browser evidence: overlapping drop showed only `generation-cover:prompt`, omitted `result-existing:in`, snapped the draft SVG path to the compatible anchor, and committed the matching typed edge.
 - Unit 4 production build after exact-port overlay extraction: `npm run build`; PASS, 4,847 transformed modules.
+- Aggregate RED: three focused browser cases failed only on the absent `.selection-aggregate-hull`; valid selection had no right-center batch trigger and invalid editable selection had no neutral hull.
+- Aggregate GREEN: valid and invalid desktop hull behavior plus 375px readonly behavior passed 3/3; direct Escape focus restoration and outside-pointer cancellation passed 1/1.
+- Unit 5 related matrix: `npx playwright test tests/e2e/canvas-selection-generation.spec.ts tests/e2e/canvas-selection-generation-output.spec.ts tests/e2e/canvas-command-history.spec.ts tests/e2e/canvas-libtv-visual-parity.spec.ts --project=chromium`; PASS 25/25.
+- Unit 5 production build: `npm run build`; PASS, 4,853 transformed modules.
 
 ## Blockers and release conditions
 

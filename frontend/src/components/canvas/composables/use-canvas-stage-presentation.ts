@@ -42,7 +42,7 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
       bottom: Math.max(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top + rect.height }, viewport).y)),
     }
   })
-  const selectionCompositionHullStyle = computed(() => {
+  const selectionAggregateHullStyle = computed(() => {
     const bounds = selectionSurfaceBounds.value
     if (options.isReadOnly() || canvasStore.selectedNodes.length < 2 || !bounds) return null
     const gutter = 12
@@ -181,7 +181,7 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     return '生成失败'
   }
   return {
-    nodeAppearances, nodePositions, selectionCompositionHullStyle, selectionToolbarStyle, stageNotice, statusBadgeStyle,
+    nodeAppearances, nodePositions, selectionAggregateHullStyle, selectionToolbarStyle, stageNotice, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, surfaceNodeRectStyle,
   }
 }

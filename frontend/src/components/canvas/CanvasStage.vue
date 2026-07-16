@@ -9,6 +9,7 @@ import CanvasConnectionTargetPorts from './CanvasConnectionTargetPorts.vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasNodeSurfaceLayer from './CanvasNodeSurfaceLayer.vue'
 import CanvasPendingGenerationLayer from './CanvasPendingGenerationLayer.vue'
+import CanvasSelectionAggregate from './CanvasSelectionAggregate.vue'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
 import CanvasSelectionGenerationIntent from './CanvasSelectionGenerationIntent.vue'
 import CanvasToolDock from './CanvasToolDock.vue'
@@ -90,7 +91,7 @@ const {
   marqueeStyle,
   viewportCursor,
   retryProjectLoad,
-  selectionCompositionHullStyle,
+  selectionAggregateHullStyle,
   selectionToolbarStyle,
   deleteSelection,
   duplicateSelection,
@@ -430,14 +431,15 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :surface-node-rect-style="surfaceNodeRectStyle"
       />
 
-      <div
-        v-if="selectionCompositionHullStyle && canComposeGenerationSelection && !readonly && !contextOverlayOpen"
-        class="selection-composition-hull"
-        :style="selectionCompositionHullStyle"
-        aria-hidden="true"
-      >
-        <span>待合并 · {{ canvasStore.selectedNodeIds.length }}</span>
-      </div>
+      <CanvasSelectionAggregate
+        v-if="selectionAggregateHullStyle && !readonly && !contextOverlayOpen"
+        :count="canvasStore.selectedNodeIds.length"
+        :intent="selectionGenerationIntent"
+        :sources="selectionGenerationSources"
+        :style="selectionAggregateHullStyle"
+        @compose="composeAndReveal"
+        @reorder-source="reorderSelectionGenerationInput"
+      />
 
       <div
         v-if="capturedFrameSourceNode"

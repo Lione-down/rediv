@@ -146,7 +146,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     updateViewport,
   })
   const {
-    nodeAppearances, nodePositions, selectionCompositionHullStyle, selectionToolbarStyle, stageNotice, statusBadgeStyle,
+    nodeAppearances, nodePositions, selectionAggregateHullStyle, selectionToolbarStyle, stageNotice, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, surfaceNodeRectStyle,
   } = useCanvasStagePresentation({
     canvasStore,
@@ -487,7 +487,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     handleMinimapPointerDown, minimapNodeStyle, minimapNodes, minimapRef,
     minimapViewportStyle, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
-    viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu, selectionCompositionHullStyle, selectionToolbarStyle,
+    viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu, selectionAggregateHullStyle, selectionToolbarStyle,
     canComposeGenerationSelection, canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection, closeGraphPanel, commandFeedback, composeGenerationSelection, connectSelection,
     canAlignSelection, canAutoArrange, canDeleteSelection, canDistributeSelection, hasLockedSelection,
     createNodeFromMenu, deleteSelection, duplicateSelection, groupSelection, isGraphPanelOpen, isNodeMenuOpen,

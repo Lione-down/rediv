@@ -294,16 +294,25 @@ test('compact desktop keeps the compose menu in bounds and creates image generat
   await page.mouse.up()
   await expect(page.getByRole('toolbar', { name: '2 个已选节点的操作' })).toBeVisible()
   await expect(page.locator('.selection-generation-intent span')).toHaveText(['T1', 'T2'])
-  const compactHull = page.locator('.selection-composition-hull')
-  await expect(compactHull).toContainText('待合并 · 2')
+  const compactHull = page.locator('.selection-aggregate-hull')
+  await expect(compactHull).toContainText('已选 2 个节点')
   const compactHullBox = await compactHull.boundingBox()
   expect(compactHullBox).not.toBeNull()
   expect(compactHullBox!.x).toBeGreaterThanOrEqual(surfaceBox!.x)
   expect(compactHullBox!.x + compactHullBox!.width).toBeLessThanOrEqual(surfaceBox!.x + surfaceBox!.width)
   await mkdir(hullEvidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(hullEvidenceDirectory, 'compose-ready-hull-920x900.png'), fullPage: true })
-  await page.getByRole('button', { name: '合并所选节点为生成任务' }).click()
+  const aggregateTrigger = compactHull.getByRole('button', { name: '从 2 个已选节点批量生成' })
+  await aggregateTrigger.click()
   const menu = page.getByRole('menu', { name: '选择生成任务类型' })
+  await expect(menu.getByText('2 个来源 · 2 提示词 · 0 参考图 · 0 结果引用')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(menu).toHaveCount(0)
+  await expect(aggregateTrigger).toBeFocused()
+  await aggregateTrigger.click()
+  await page.locator('body').dispatchEvent('pointerdown')
+  await expect(menu).toHaveCount(0)
+  await aggregateTrigger.click()
   await expect(menu.getByRole('list', { name: '有序生成输入' }).getByRole('listitem')).toHaveText([
     'T1主体描述', 'T2光线描述：霓虹反射与潮湿路面连续变化',
   ])
@@ -320,7 +329,7 @@ test('compact desktop keeps the compose menu in bounds and creates image generat
   expect(documentPatches(state)[0].body?.connection_upserts).toHaveLength(2)
 })
 
-test('compose-ready sources share one passive aggregate hull through zoom', async ({ page }) => {
+test('compose-ready sources share one neutral aggregate hull through zoom', async ({ page }) => {
   const state = createResourceMockState()
   const sources = [
     sourceNode('hull-script-left', 'script', { title: '主体描述', text: '雨夜街道中的人物', x: 100, y: 180 }),
@@ -332,9 +341,9 @@ test('compose-ready sources share one passive aggregate hull through zoom', asyn
   await surface.click({ position: { x: 180, y: 260 } })
   await surface.click({ position: { x: 580, y: 300 }, modifiers: ['Control'] })
 
-  const hull = page.locator('.selection-composition-hull')
+  const hull = page.locator('.selection-aggregate-hull')
   await expect(hull).toHaveCount(1)
-  await expect(hull).toContainText('待合并 · 2')
+  await expect(hull).toContainText('已选 2 个节点')
   await expect(hull).toHaveCSS('pointer-events', 'none')
   const assertContainment = async () => {
     const hullBox = await hull.boundingBox()
@@ -350,7 +359,7 @@ test('compose-ready sources share one passive aggregate hull through zoom', asyn
     return hullBox!
   }
   const initialBox = await assertContainment()
-  const hullLabelBox = await hull.locator('span').boundingBox()
+  const hullLabelBox = await hull.locator('.selection-aggregate-label').boundingBox()
   const roleLabelBoxes = await page.locator('.selection-generation-intent span').evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().toJSON()))
   expect(hullLabelBox).not.toBeNull()
   for (const box of roleLabelBoxes) {
@@ -444,7 +453,7 @@ test('dense ten-node preflight keeps actions fixed while eight references scroll
   ])
 })
 
-test('invalid desktop and readonly mobile selections expose no composition mutation', async ({ page }) => {
+test('invalid desktop selection keeps a neutral hull without composition mutation and readonly mobile stays passive', async ({ page }) => {
   const state = createResourceMockState()
   const sources = [
     sourceNode('script-valid', 'script', { title: '有效脚本', text: '海岸镜头', x: 80, y: 100 }),
@@ -456,13 +465,15 @@ test('invalid desktop and readonly mobile selections expose no composition mutat
   await surface.click({ position: { x: 180, y: 200 } })
   await surface.click({ position: { x: 560, y: 180 }, modifiers: ['Control'] })
   await expect(page.getByRole('button', { name: '合并所选节点为生成任务' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '从 2 个已选节点批量生成' })).toHaveCount(0)
   await expect(page.locator('.selection-generation-intent')).toHaveCount(0)
-  await expect(page.locator('.selection-composition-hull')).toHaveCount(0)
+  await expect(page.locator('.selection-aggregate-hull')).toContainText('已选 2 个节点')
   expect(documentPatches(state)).toHaveLength(0)
 
   await openResourceWorkspace(page, state, { width: 375, height: 812 })
   await expect(page.locator('.selection-toolbar')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '合并所选节点为生成任务' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '从 2 个已选节点批量生成' })).toHaveCount(0)
   await expect(page.locator('.selection-generation-intent')).toHaveCount(0)
-  await expect(page.locator('.selection-composition-hull')).toHaveCount(0)
+  await expect(page.locator('.selection-aggregate-hull')).toHaveCount(0)
 })
