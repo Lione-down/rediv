@@ -1,6 +1,6 @@
 # Revid Product V2 / Phase 5 Direct Delivery Roadmap
 
-Last updated: 2026-07-16
+Last updated: 2026-07-17
 
 ## Product Outcome
 
@@ -74,6 +74,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 77 | T5-077 | Durable generation stage and percent progress | DONE - PASS | T5-076 |
 | 78 | T5-078 | Pending output placement and result handoff | DONE - PASS | T5-077 |
 | 79 | T5-079 | Canvas media containment and keyframe rail isolation | DONE - PASS | T5-078 |
+| 80 | T5-080 | Canvas node and connection interaction usability | DOING | T5-079 |
 
 ## Task Boundaries
 
@@ -238,6 +239,8 @@ T5-077 is `DONE - PASS`. It adds nullable constrained stage/percent fields, mono
 T5-078 is `DONE - PASS`. One shared collision-aware resolver now predicts local and durable active output reservations and the final canonical result position. The pointer-passive projection has no graph, minimap, Graph Access, event, selection, autosave, or history identity; focused 6/6, functional Chromium 354/354, backend 463 plus 78 subtests, build, visual, hygiene, and fresh 200/300 supervisor gates passed. `REPORT-T5-078.md` is authoritative evidence.
 
 T5-079 is `DONE - PASS`. A rendered containment regression first measured four decoded images outside their owning surfaces, then rail-local placement ownership removed the cross-component scoped-selector leak without changing Canvas geometry or media-first card design. Focused 1/1, related Chromium 23/23, build, visual, blast, and hygiene gates passed. `REPORT-T5-079.md` is authoritative evidence.
+
+T5-080 is `DOING`. It centralizes visible-node geometry for audited interaction consumers, separates quiet port visuals from forgiving screen-stable hit targets, ranks exact connection targets by canonical compatibility before distance, generalizes the multi-selection hull with an authoritative batch-continuation entry point, moves normal groups with their children through one command, and adds reduced-motion-safe active-only edge direction. Storyboard projection remains a separate, inactive follow-up and no backend, database, provider, or paid-call boundary changes.
 
 ## Canvas First-Acceptance Gate
 

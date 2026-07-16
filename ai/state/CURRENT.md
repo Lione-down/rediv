@@ -1,6 +1,6 @@
 # Revid Current Project State
 
-Last updated: 2026-07-16
+Last updated: 2026-07-17
 
 ## Delivery Mode
 
@@ -19,10 +19,12 @@ Last updated: 2026-07-16
 
 ## Active Delivery
 
-- Active implementation Task: none
-- State: `IDLE`
-- Last completed Task: `T5-079 - Canvas media containment and keyframe rail isolation`
-- Report: `ai/reports/REPORT-T5-079.md`
+- Active implementation Task: `T5-080 - Canvas node and connection interaction usability`
+- State: `DOING`
+- Task: `ai/tasks/todo/TASK-T5-080.md`
+- Plan: `ai/tasks/doing/TASK-T5-080-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-080-PROGRESS.md`
+- Dependency baseline: `T5-079 - DONE - PASS`, report `ai/reports/REPORT-T5-079.md`
 
 ## Current Verified Facts
 
@@ -106,10 +108,11 @@ Last updated: 2026-07-16
 - T5-077 is now `DONE - PASS`: guarded nullable progress fields, monotonic backend normalization, truthful provider/persisting/success semantics, and shared card/Inspector/history/Graph Access presentation passed full backend 463 plus 78 subtests, focused browser 4/4, a 4,837-module build, migration/hygiene gates, and fresh owned 200/300 evidence at 59.85 FPS. Final report: `ai/reports/REPORT-T5-077.md`.
 - T5-078 is now `DONE - PASS`: local and durable active generation work projects into stable collision-aware result-sized reservations, then hands successful reconciliation to the canonical result command at the exact predicted position without graph identity or runtime persistence. Focused 6/6, related 36/36, functional Chromium 354/354, backend 463 plus 78 subtests, a 4,841-module build, visual/hygiene gates, and fresh owned 200/300 evidence at 59.87 FPS passed. Final report: `ai/reports/REPORT-T5-078.md`.
 - T5-079 is now `DONE - PASS`: a RED containment guard measured four decoded image roots outside their surfaces, rail-local placement removed the scoped-selector leak, and focused 1/1 plus related 23/23 Chromium, a 4,841-module build, two visual inspections, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-079.md`.
+- T5-080 is `DOING`: source audit confirms the planned connection hit-target, compatibility ranking, canonical visible-geometry, neutral aggregate selection, group movement, and active-only edge feedback boundaries remain current. No backend, provider, schema, paid-call, secret-access, or Storyboard/T5-081 work is included.
 
 ## Exact Next Action
 
-Keep the repository `IDLE` until the Human Owner selects the next bounded Task.
+Freeze and run the first focused RED cases for canonical visible node geometry and six-zoom real port hit-target sizing, then implement the smallest GREEN unit without expanding the existing oversized orchestration surfaces.
 
 ## Blockers And Human Gates
 
