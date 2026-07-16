@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 GenerationTaskStatus = Literal["queued", "running", "succeeded", "failed", "timed_out"]
 GenerationTaskMediaType = Literal["text", "image", "video"]
+GenerationTaskProgressStage = Literal["queued", "provider", "persisting"]
 
 
 class GenerationTaskItem(BaseModel):
@@ -18,6 +19,8 @@ class GenerationTaskItem(BaseModel):
     model: str | None = None
     provider_request_id: str | None = None
     request_parameters: dict | None = None
+    progress_percent: float | None = None
+    progress_stage: GenerationTaskProgressStage | None = None
     status: GenerationTaskStatus
     duration_ms: int | None = None
     result_asset_id: str | None = None

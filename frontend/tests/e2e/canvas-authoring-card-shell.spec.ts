@@ -44,6 +44,7 @@ test('authoring card slots remain bounded and derive from one visual size', () =
     header: { x: 0, y: 0, width: 320, height: 40 },
     body: { x: 0, y: 40, width: 320, height: 80 },
     status: null,
+    progress: null,
   })
 
   const generation = resolveCanvasAuthoringCardPresentation(node({
@@ -57,6 +58,7 @@ test('authoring card slots remain bounded and derive from one visual size', () =
     header: { x: 0, y: 0, width: 340, height: 40 },
     body: { x: 0, y: 40, width: 340, height: 58 },
     status: { x: 0, y: 98, width: 340, height: 30 },
+    progress: { x: 0, y: 125, width: 340, height: 3 },
   })
 })
 
@@ -72,7 +74,7 @@ test('long content, empty states, locks, and lifecycle remain honest and bounded
   expect(empty.bodyPreview).toBe('暂无备注')
 
   const failed = resolveCanvasAuthoringCardPresentation(node({ type: 'generation', status: 'warning', contentData: { subtype: 'video', serialization_version: 1 } }))!
-  expect(failed.lifecycle).toEqual({ tone: 'danger', label: '生成失败' })
+  expect(failed.lifecycle).toMatchObject({ tone: 'danger', label: '生成失败' })
 })
 
 test('recipe cards expose public recipe identity without leaking internal prompt fields', () => {

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.generation_common import map_generation_error
 from controllers import generation_transactions as generation_controller
-from core.agnes_provider import normalize_provider_status
+from core.agnes_provider import extract_provider_progress_percent, normalize_provider_status
 from core.generation_provider import GenerationProvider, get_generation_provider
 from core.generation_parameter_contract import VIDEO_MODEL, normalize_video_parameters
 from core.generation_results import (
@@ -99,6 +99,12 @@ async def _poll_video_url(
 
         poll_status = response.get("status")
         normalized_status = normalize_provider_status(poll_status if isinstance(poll_status, str) else None)
+        progress_percent = extract_provider_progress_percent(response)
+        if progress_percent is not None:
+            generation_controller.update_generation_task_state(
+                generation_task_id,
+                progress_percent=progress_percent,
+            )
         if normalized_status == "succeeded":
             video_url = _extract_video_url(response)
             if video_url is None:
@@ -114,6 +120,12 @@ async def _poll_video_url(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Agnes video generation failed",
                 )
+            generation_controller.update_generation_task_state(
+                generation_task_id,
+                progress_stage="persisting",
+                duration_ms=elapsed_ms(started_at),
+                provider_request_id=video_id,
+            )
             return video_url
         if normalized_status == "failed":
             generation_controller.fail_generation_task(
@@ -191,6 +203,9 @@ async def video_generate(
     provider_request_id: str | None = None
 
     try:
+        generation_controller.update_generation_task_state(
+            task["id"], status="running", progress_stage="provider"
+        )
         generation_options = {
             "width": normalized_parameters.width,
             "height": normalized_parameters.height,

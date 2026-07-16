@@ -3,6 +3,12 @@ import type { CanvasNode } from '../../types/canvas'
 import type { ViewportState } from './canvas-geometry'
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import { resolveCanvasAuthoringCardPresentation } from './canvas-authoring-card-presentation'
+import {
+  createCanvasGenerationProgressVisuals,
+  generationProgressVisualTargets,
+  updateCanvasGenerationProgressVisuals,
+  type CanvasGenerationProgressVisuals,
+} from './canvas-generation-progress-visual'
 import { buildCanvasNodePresentation, canvasNodeVisualSize, isSupportedCanvasGroupNode } from './canvas-node-presentation'
 import { planKeyedReconciliation } from './canvas-renderer-reconciliation'
 
@@ -11,13 +17,12 @@ const compactNodeTitle = (title: string) => title.length > 28 ? `${title.slice(0
 const POINTER_MENU = 'pointer.menu'
 const DOUBLE_CLICK = 'double_click'
 
-interface NodeVisuals {
+interface NodeVisuals extends CanvasGenerationProgressVisuals {
   group: Group
   ports: Array<{ id: string; direction: 'input' | 'output'; shape: Ellipse }>
   card: Rect
   mediaImage: LeaferImage
   contentText: Text
-  statusText?: Text
   titleText: Text
   typeText: Text
   state: NodeVisualState
@@ -91,7 +96,16 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       : ''
     return {
       authoringKey: authoringCard
-        ? [authoringCard.kind, authoringCard.title, authoringCard.bodyPreview, authoringCard.isLocked, authoringCard.lifecycle?.label ?? ''].join('|')
+        ? [
+            authoringCard.kind,
+            authoringCard.title,
+            authoringCard.bodyPreview,
+            authoringCard.isLocked,
+            authoringCard.lifecycle?.label ?? '',
+            authoringCard.lifecycle?.tone ?? '',
+            authoringCard.lifecycle?.progressPercent ?? 'indeterminate',
+            authoringCard.lifecycle?.isIndeterminate ?? false,
+          ].join('|')
         : '',
       hasAuthoringLifecycle: Boolean(authoringCard?.lifecycle),
       content: presentation.media?.kind === 'placeholder'
@@ -273,20 +287,12 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       height: authoringCard ? Math.max(18, authoringCard.slots.body.height - 20) : Math.max(22, size.height - 70),
       textOverflow: 'hide',
     })
-    const statusText = authoringCard?.lifecycle ? new Text({
-      x: 16,
-      y: (authoringCard?.slots.status?.y ?? size.height) + 8,
-      text: authoringCard?.lifecycle?.label ?? '',
-      fill: authoringCard?.lifecycle?.tone === 'danger'
-        ? options.cssVar('--danger', 'oklch(66% 0.19 24)')
-        : authoringCard?.lifecycle?.tone === 'success'
-          ? options.cssVar('--success', 'oklch(72% 0.14 145)')
-          : options.cssVar('--warning', 'oklch(70% 0.13 78)'),
-      fontSize: 11,
-      fontWeight: '600',
-    }) : undefined
+    const progressVisuals = authoringCard?.lifecycle
+      ? createCanvasGenerationProgressVisuals(authoringCard, size.width, options.cssVar)
+      : {}
+    const lifecycleVisuals = generationProgressVisualTargets(progressVisuals)
 
-    group.add([card, mediaImage, ...ports.map((port) => port.shape), typeText, titleText, contentText, ...(statusText ? [statusText] : [])])
+    group.add([card, mediaImage, ...ports.map((port) => port.shape), typeText, titleText, contentText, ...lifecycleVisuals])
     worldGroup.add(group)
     const visual: NodeVisuals = {
       group,
@@ -294,13 +300,13 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       card,
       mediaImage,
       contentText,
-      statusText,
+      ...progressVisuals,
       titleText,
       typeText,
       state,
     }
     nodeVisuals.set(node.id, visual)
-    ;[group, card, mediaImage, ...ports.map((port) => port.shape), typeText, titleText, contentText, ...(statusText ? [statusText] : [])].forEach((target) => {
+    ;[group, card, mediaImage, ...ports.map((port) => port.shape), typeText, titleText, contentText, ...lifecycleVisuals].forEach((target) => {
       interactiveTargets.add(target)
     })
     ;(group as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
@@ -381,13 +387,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       ? options.cssVar('--danger', 'oklch(66% 0.19 24)')
       : options.cssVar('--text-secondary', 'oklch(46% 0.018 245)')
     if (visual.statusText && authoringCard?.lifecycle) {
-      visual.statusText.y = authoringCard.slots.status!.y + 8
-      visual.statusText.text = authoringCard.lifecycle.label
-      visual.statusText.fill = authoringCard.lifecycle.tone === 'danger'
-        ? options.cssVar('--danger', 'oklch(66% 0.19 24)')
-        : authoringCard.lifecycle.tone === 'success'
-          ? options.cssVar('--success', 'oklch(72% 0.14 145)')
-          : options.cssVar('--warning', 'oklch(70% 0.13 78)')
+      updateCanvasGenerationProgressVisuals(visual, authoringCard, size.width, options.cssVar)
     }
     visual.state = nextState
   }

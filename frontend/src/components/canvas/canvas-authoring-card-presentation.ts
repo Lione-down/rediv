@@ -20,11 +20,17 @@ export interface CanvasAuthoringCardPresentation {
   title: string
   bodyPreview: string
   isLocked: boolean
-  lifecycle: { tone: CanvasAuthoringCardTone; label: string } | null
+  lifecycle: {
+    tone: CanvasAuthoringCardTone
+    label: string
+    progressPercent: number | null
+    isIndeterminate: boolean
+  } | null
   slots: {
     header: CanvasAuthoringCardSlot
     body: CanvasAuthoringCardSlot
     status: CanvasAuthoringCardSlot | null
+    progress: CanvasAuthoringCardSlot | null
   }
   visualHeight: number
 }
@@ -40,9 +46,9 @@ function bounded(value: string, limit: number) {
 }
 
 function lifecycleFor(status: CanvasNodeStatus | undefined) {
-  if (status === 'running') return { tone: 'progress', label: '运行中' } as const
-  if (status === 'success') return { tone: 'success', label: '已完成' } as const
-  if (status === 'warning') return { tone: 'danger', label: '生成失败' } as const
+  if (status === 'running') return { tone: 'progress', label: '运行中', progressPercent: null, isIndeterminate: true } as const
+  if (status === 'success') return { tone: 'success', label: '已完成', progressPercent: 100, isIndeterminate: false } as const
+  if (status === 'warning') return { tone: 'danger', label: '生成失败', progressPercent: null, isIndeterminate: false } as const
   return null
 }
 
@@ -60,7 +66,12 @@ export function resolveCanvasAuthoringCardPresentation(
     : node.type === 'note' ? 'note' : 'generation'
   const lifecycle = kind === 'generation'
     ? generationRuntime
-      ? { tone: generationRuntime.tone, label: generationRuntime.label }
+      ? {
+          tone: generationRuntime.tone,
+          label: generationRuntime.label,
+          progressPercent: generationRuntime.progressPercent,
+          isIndeterminate: generationRuntime.isIndeterminate,
+        }
       : lifecycleFor(node.status)
     : null
   const visualHeight = kind === 'generation'
@@ -84,6 +95,9 @@ export function resolveCanvasAuthoringCardPresentation(
       body: { x: 0, y: HEADER_HEIGHT, width: node.width, height: bodyHeight },
       status: lifecycle
         ? { x: 0, y: HEADER_HEIGHT + bodyHeight, width: node.width, height: STATUS_HEIGHT }
+        : null,
+      progress: lifecycle
+        ? { x: 0, y: visualHeight - 3, width: node.width, height: 3 }
         : null,
     },
     visualHeight,

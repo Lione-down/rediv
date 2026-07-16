@@ -13,6 +13,7 @@ export type GenerationTaskStatus =
   | 'timed_out'
 
 export type GenerationTaskMediaType = 'text' | 'image' | 'video'
+export type GenerationTaskProgressStage = 'queued' | 'provider' | 'persisting'
 
 export interface GenerationTask {
   id: string
@@ -24,6 +25,8 @@ export interface GenerationTask {
   provider: string
   model: string | null
   provider_request_id: string | null
+  progress_percent?: number | null
+  progress_stage?: GenerationTaskProgressStage | null
   status: GenerationTaskStatus
   duration_ms: number | null
   result_asset_id: string | null

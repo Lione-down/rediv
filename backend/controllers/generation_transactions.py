@@ -6,12 +6,26 @@ from uuid import uuid4
 from sqlalchemy import select
 
 from controllers import quotas as quota_controller
+from controllers.generation_errors import (
+    GenerationForbiddenError,
+    GenerationFrozenError,
+    GenerationPersistenceError,
+    GenerationQuotaError,
+    GenerationScopeNotFoundError,
+    GenerationTaskStateError,
+    GenerationTransactionError,
+    GenerationValidationError,
+)
 from controllers.generation_records import (
     asset_to_dict as _asset_to_dict,
     ledger_to_dict as _ledger_to_dict,
     quota_to_dict as _quota_to_dict,
     sync_task_cache as _sync_task_cache,
     task_to_dict as _task_to_dict,
+)
+from controllers.generation_progress import (
+    apply_generation_task_state_updates,
+    validate_generation_task_state_updates,
 )
 from controllers.generation_reservations import ACTIVE_TASK_STATUSES, lock_active_reservations
 from controllers.resource_scope import resolve_database_resource_scope
@@ -21,40 +35,6 @@ from models.base import get_session, utc_now
 from models.generation_task import GenerationTask
 from models.quota import Quota, QuotaLedger
 from models.user import User
-
-
-class GenerationTransactionError(Exception):
-    pass
-
-
-class GenerationScopeNotFoundError(GenerationTransactionError):
-    pass
-
-
-class GenerationForbiddenError(GenerationTransactionError):
-    pass
-
-
-class GenerationFrozenError(GenerationTransactionError):
-    pass
-
-
-class GenerationQuotaError(GenerationTransactionError):
-    def __init__(self, quota_type: str) -> None:
-        self.quota_type = quota_type
-        super().__init__(f"Insufficient {quota_type} quota")
-
-
-class GenerationValidationError(GenerationTransactionError):
-    pass
-
-
-class GenerationPersistenceError(GenerationTransactionError):
-    pass
-
-
-class GenerationTaskStateError(GenerationTransactionError):
-    pass
 
 
 def _map_scope_error(error: KeyError | PermissionError) -> GenerationTransactionError:
@@ -150,6 +130,8 @@ def _start_generation_task(
                 model=model,
                 provider_request_id=None,
                 request_parameters=request_parameters,
+                progress_percent=None,
+                progress_stage="queued" if media_type in {"image", "video"} else None,
                 status="running",
                 duration_ms=None,
                 result_asset_id=None,
@@ -242,6 +224,7 @@ def start_video_generation_task(
 
 
 def update_generation_task_state(task_id: str, **fields) -> dict:
+    validate_generation_task_state_updates(fields, GenerationTaskStateError)
     with get_session() as session:
         task = session.scalar(
             select(GenerationTask).where(GenerationTask.id == task_id).with_for_update()
@@ -249,10 +232,9 @@ def update_generation_task_state(task_id: str, **fields) -> dict:
         if task is None:
             raise GenerationScopeNotFoundError("Generation task not found")
         if task.status in ACTIVE_TASK_STATUSES:
-            if fields.get("status", "running") not in ACTIVE_TASK_STATUSES:
+            if fields.get("status", task.status) not in ACTIVE_TASK_STATUSES:
                 raise GenerationTaskStateError("Running task updates cannot set a terminal state")
-            for key, value in fields.items():
-                setattr(task, key, value)
+            apply_generation_task_state_updates(task, fields)
             task.updated_at = utc_now()
         session.flush()
         task_payload = _task_to_dict(task)
@@ -452,6 +434,7 @@ def complete_generation_task(
                         timestamp=timestamp,
                     )
                     task.status = "succeeded"
+                    task.progress_percent = 100
                     task.duration_ms = duration_ms
                     task.provider_request_id = provider_request_id
                     task.result_asset_id = asset.id

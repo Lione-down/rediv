@@ -113,6 +113,10 @@ test('recipe generation transport sends identifier and reference without client 
           id: 'task-recipe', user_id: 'user-recipe', project_id: 'project-recipe', origin_canvas_id: 'canvas-recipe',
           canvas_node_id: 'node-recipe', media_type: 'image', provider: 'mock', model: 'mock-image-v1',
           provider_request_id: 'request-recipe', status: 'succeeded', duration_ms: 10, result_asset_id: 'asset-recipe',
+          request_parameters: {
+            contract_version: 1, media_type: 'image', generation_recipe_id: 'character-sheet',
+            generation_recipe_version: 2, aspect_ratio: '4:3', image_ids: ['asset-reference'],
+          },
           error_code: null, error_message: null, created_at: '2026-07-15T12:00:00Z', updated_at: '2026-07-15T12:00:00Z',
         },
         quotas, quota_revision: 1,

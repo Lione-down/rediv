@@ -19,10 +19,16 @@ function createQuotaStore(quotas: QuotaBalance, quotaRevision = -1) {
 }
 
 function scopedTask(mediaType: 'text' | 'image' | 'video', id: string) {
+  const requestParameters = mediaType === 'text'
+    ? null
+    : mediaType === 'image'
+      ? { contract_version: 1, media_type: 'image', aspect_ratio: '4:3', image_ids: [] }
+      : { contract_version: 1, media_type: 'video', reference_mode: 'text-to-video', duration_seconds: 5, image_ids: [] }
   return {
     id, user_id: 'user-service', project_id: 'project-service',
     origin_canvas_id: 'canvas-service', canvas_node_id: 'node-service', media_type: mediaType,
     provider: 'mock', model: `mock-${mediaType}-v1`, provider_request_id: `request-${id}`,
+    request_parameters: requestParameters,
     status: 'succeeded' as const, duration_ms: 12, result_asset_id: `asset-${id}`,
     error_code: null, error_message: null, created_at: '2026-07-14T08:00:00Z',
     updated_at: '2026-07-14T08:00:00Z',
@@ -68,6 +74,8 @@ test('generation service posts complete Canvas context and replaces quotas for e
       originCanvasId: 'canvas-service',
       canvasNodeId: 'node-service',
       prompt: `${mediaType} prompt`,
+      ...(mediaType === 'image' ? { aspectRatio: '4:3' } : {}),
+      ...(mediaType === 'video' ? { referenceMode: 'text-to-video' as const, durationSeconds: 5 } : {}),
     }, quotaStore, transport)
 
     expect(response.asset?.id).toBe(`asset-task-${calls.length}`)
@@ -86,7 +94,7 @@ test('generation service posts complete Canvas context and replaces quotas for e
       path: '/api/image-generate',
       payload: {
         project_id: 'project-service', origin_canvas_id: 'canvas-service',
-        canvas_node_id: 'node-service', prompt: 'image prompt',
+        canvas_node_id: 'node-service', prompt: 'image prompt', aspect_ratio: '4:3',
       },
     },
     {
@@ -94,6 +102,7 @@ test('generation service posts complete Canvas context and replaces quotas for e
       payload: {
         project_id: 'project-service', origin_canvas_id: 'canvas-service',
         canvas_node_id: 'node-service', prompt: 'video prompt',
+        reference_mode: 'text-to-video', duration_seconds: 5,
       },
     },
   ])
@@ -114,7 +123,7 @@ test('generation requests opt out of the shared fifteen-second transport timeout
       }
     },
   }
-  await requestCanvasGeneration({ mediaType: 'image', projectId: 'project-service', originCanvasId: 'canvas-service', canvasNodeId: 'node-service', prompt: 'slow prompt' }, createQuotaStore({ text: 2, image: 2, video: 2 }), transport)
+  await requestCanvasGeneration({ mediaType: 'image', projectId: 'project-service', originCanvasId: 'canvas-service', canvasNodeId: 'node-service', prompt: 'slow prompt', aspectRatio: '4:3' }, createQuotaStore({ text: 2, image: 2, video: 2 }), transport)
   expect(timeout).toBe(0)
 })
 
@@ -168,6 +177,7 @@ test('generation service ignores an older authoritative quota response that arri
     originCanvasId: 'canvas-service',
     canvasNodeId: 'node-service',
     prompt: 'concurrent prompt',
+    aspectRatio: '4:3',
   }
 
   const olderRequest = requestCanvasGeneration(context, quotaStore, transport)
@@ -319,17 +329,19 @@ test('auth session reset allows a lower revision from the next user', async () =
 
 test('both workspace views delegate provider requests and quota updates to the Canvas service', async () => {
   const sourceRoot = resolve(process.cwd(), 'src')
-  const [canvasWorkspace, resourceExperience, legacyWorkspace] = await Promise.all([
+  const [canvasWorkspace, resourceExperience, generationActions, legacyWorkspace] = await Promise.all([
     readFile(resolve(sourceRoot, 'views/app/CanvasWorkspace.vue'), 'utf8'),
     readFile(resolve(sourceRoot, 'components/canvas/composables/use-canvas-resource-experience.ts'), 'utf8'),
+    readFile(resolve(sourceRoot, 'components/canvas/composables/use-canvas-generation-actions.ts'), 'utf8'),
     readFile(resolve(sourceRoot, 'views/app/Workspace.vue'), 'utf8'),
   ])
 
   expect(canvasWorkspace).toContain("from '../../components/canvas/composables/use-canvas-resource-experience'")
-  for (const source of [resourceExperience, legacyWorkspace]) {
+  expect(resourceExperience).toContain("from './use-canvas-generation-actions'")
+  for (const source of [generationActions, legacyWorkspace]) {
     expect(source).toMatch(/from ['"](?:\.\.\/)+modules\/canvas\/generation-service['"]/)
   }
-  for (const source of [canvasWorkspace, resourceExperience, legacyWorkspace]) {
+  for (const source of [canvasWorkspace, resourceExperience, generationActions, legacyWorkspace]) {
     expect(source).not.toMatch(/request\.post\(['"]\/api\/(?:text|image|video)-generate/)
     expect(source).not.toMatch(/authStore\.quotas\s*=\s*\{[\s\S]*?authStore\.quotas\[[^\]]+\]\s*-\s*1/)
   }

@@ -71,7 +71,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 74 | T5-074 | Authenticated logout and global session exit | DONE - PASS | T5-073 |
 | 75 | T5-075 | Provider-backed generation parameters and reference intent | DONE - PASS | T5-074 |
 | 76 | T5-076 | Runtime generation visibility | DONE - PASS | T5-075 |
-| 77 | T5-077 | Durable generation stage and percent progress | TODO | T5-076 |
+| 77 | T5-077 | Durable generation stage and percent progress | DONE - PASS | T5-076 |
 | 78 | T5-078 | Pending output placement and result handoff | TODO | T5-077 |
 
 ## Task Boundaries
@@ -232,7 +232,7 @@ T5-075 is `DONE - PASS`. It adds a backend-owned generation capability/normaliza
 
 T5-076 is `DONE - PASS`. It adds task-only polling, local/durable runtime presentation for generation cards and Inspector, reload recovery, graceful poll failure, and targeted renderer updates with zero active-tick graph/history/selection/camera mutation. `REPORT-T5-076.md` is authoritative evidence.
 
-T5-077 may add backend-owned durable stage/percent only after T5-076 is committed and pushed. T5-078 owns non-persistent pending output placement and exact terminal result handoff; neither Task may fabricate provider progress or persist transient UI artifacts into the Canvas graph.
+T5-077 is `DONE - PASS`. It adds nullable constrained stage/percent fields, monotonic normalization, truthful provider/persisting/success semantics, and shared card/Inspector/Graph Access presentation without applying the migration to user/runtime data. `REPORT-T5-077.md` is authoritative evidence. T5-078 owns non-persistent pending output placement and exact terminal result handoff; neither Task may fabricate provider progress or persist transient UI artifacts into the Canvas graph.
 
 ## Canvas First-Acceptance Gate
 

@@ -275,6 +275,14 @@ class GenerationTransactionConcurrencyTestCase(unittest.TestCase):
                 origin_canvas_id=self.canvas_id,
                 canvas_node_id=self.node["id"],
                 image_ids=[source_asset["id"]],
+                request_parameters={
+                    "contract_version": 1,
+                    "media_type": "image",
+                    "model": "agnes-image-2.1-flash",
+                    "size": "1K",
+                    "aspect_ratio": "4:3",
+                    "image_ids": [source_asset["id"]],
+                },
             )
             self.assertTrue(tasks_locked.wait(timeout=5))
             delete_future = delete_pool.submit(

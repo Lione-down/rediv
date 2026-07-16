@@ -78,7 +78,7 @@ class ProjectAssetServicesTestCase(unittest.TestCase):
 
         self.client.close()
         restart = self.mysql_database.restart_runtime()
-        self.assertEqual("c9d0e1f2a3b4", restart["current"])
+        self.assertEqual("e1f2a3b4c5d6", restart["current"])
         from database import close_db
         from main import app as production_app
         from settings.config import settings

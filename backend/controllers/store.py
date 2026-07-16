@@ -1179,6 +1179,8 @@ class DatabaseStore:
             "model": task.model,
             "provider_request_id": task.provider_request_id,
             "request_parameters": task.request_parameters,
+            "progress_percent": task.progress_percent,
+            "progress_stage": task.progress_stage,
             "status": task.status,
             "duration_ms": task.duration_ms,
             "result_asset_id": task.result_asset_id,

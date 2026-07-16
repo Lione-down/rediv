@@ -3,6 +3,7 @@ import type { AxiosAdapter, AxiosResponse } from 'axios'
 import { createPinia, setActivePinia } from 'pinia'
 import { computed, ref } from 'vue'
 import { request } from '../../src/api/request'
+import { GENERATION_CAPABILITIES } from './canvas-generation-parameters-fixture'
 
 const originalAdapter = request.defaults.adapter
 const NOW = '2026-07-14T08:00:00Z'
@@ -116,6 +117,9 @@ test('late generation failure cannot restore an old project resource scope or le
   let rejectGeneration!: () => void
   let generationStarted = false
   const adapter: AxiosAdapter = async (config) => {
+    if (config.method === 'get' && config.url === '/api/generation-capabilities') {
+      return response(config, GENERATION_CAPABILITIES)
+    }
     if (config.method === 'post' && config.url === '/api/image-generate') {
       generationStarted = true
       return new Promise<AxiosResponse>((_resolve, reject) => {

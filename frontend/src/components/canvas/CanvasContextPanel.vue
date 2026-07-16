@@ -14,9 +14,10 @@ import { useCanvasStore } from '../../store/canvas'
 import type { CanvasNode } from '../../types/canvas'
 import { formatCapturedFrameTime, resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
 import type { GenerationInputLineageBridge } from '../../modules/canvas/generation-input-lineage'
-import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
+import { resolveGenerationTaskProgressSummary, type GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import { resolveVisualAssetRecipe, VISUAL_ASSET_RECIPES, type VisualAssetRecipeId } from '../../modules/canvas/visual-asset-recipes'
 import CanvasGenerationParameterControls from './CanvasGenerationParameterControls.vue'
+import CanvasGenerationProgress from './CanvasGenerationProgress.vue'
 
 const props = withDefaults(defineProps<{
   error?: string
@@ -57,7 +58,6 @@ const props = withDefaults(defineProps<{
 })
 
 const canvasStore = useCanvasStore()
-
 const emit = defineEmits<{
   branchGeneration: [mediaType: ResultBranchMediaType]
   arrangeTrace: []
@@ -73,7 +73,6 @@ const emit = defineEmits<{
   retryRecipe: [recipeId: VisualAssetRecipeId]
   visualRecipe: [recipeId: VisualAssetRecipeId]
 }>()
-
 const prompt = ref(props.node.content?.trim() || '')
 const visualRecipe = computed(() => resolveVisualAssetRecipe(props.node))
 const canGenerate = computed(() => Boolean(
@@ -297,6 +296,7 @@ function requestGeneration() {
         <span>{{ statusLabel }}</span>
         <small v-if="latestTask">{{ latestTask.id }}</small>
       </p>
+      <CanvasGenerationProgress :runtime-presentation="runtimePresentation" :task="latestTask" />
       <section v-if="outputVariantCount > 1" class="output-variant-summary" aria-label="生成输出版本">
         <div><span>生成结果</span><strong>{{ outputVariantCount }} 个版本</strong></div>
         <button type="button" class="compare-results-button" :aria-label="`比较 ${outputVariantCount} 个生成结果`" @click="emit('compareResults')">
@@ -311,6 +311,7 @@ function requestGeneration() {
             <div>
               <strong>Run {{ run.sequence }} · {{ runStatusLabel[run.task.status] }}</strong>
               <small>{{ run.task.model || run.task.provider }} · {{ runTiming(run.task) }}</small>
+              <small v-if="resolveGenerationTaskProgressSummary(run.task)">{{ resolveGenerationTaskProgressSummary(run.task) }}</small>
               <small v-if="formatGenerationRequestParameters(run.task.request_parameters)">{{ formatGenerationRequestParameters(run.task.request_parameters) }}</small>
               <p v-if="run.task.error_message">{{ run.task.error_message }}</p>
               <button

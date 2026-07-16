@@ -6,10 +6,17 @@ import { useCanvasStore } from '../../store/canvas'
 import type { CanvasNode } from '../../types/canvas'
 import { buildCanvasNodePresentation } from './canvas-node-presentation'
 import { useCanvasCommandInteractions } from './composables/use-canvas-command-interactions'
+import {
+  formatGenerationProgressPercent,
+  type GenerationRuntimePresentation,
+} from '../../modules/canvas/generation-runtime-presentation'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
+  generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>
   readonly: boolean
-}>()
+}>(), {
+  generationRuntimePresentations: () => new Map(),
+})
 
 const emit = defineEmits<{
   close: []
@@ -43,6 +50,13 @@ function connectionLabel(from: string, to: string) {
 
 function nodeTypeLabel(node: CanvasNode) {
   return buildCanvasNodePresentation(node).typeLabel
+}
+
+function nodeRuntimeLabel(nodeId: string) {
+  const runtime = props.generationRuntimePresentations.get(nodeId)
+  if (!runtime) return null
+  const percent = formatGenerationProgressPercent(runtime.progressPercent)
+  return `${runtime.label}${percent ? ` · ${percent}` : runtime.isIndeterminate ? ' · 百分比未提供' : ''}`
 }
 
 function selectAndLocateNode(nodeId: string) {
@@ -121,7 +135,7 @@ onMounted(() => {
             <LocateFixed :size="15" aria-hidden="true" />
             <span>
               <strong>{{ node.title }}</strong>
-              <small><LockKeyhole v-if="node.isLocked" :size="12" aria-hidden="true" />{{ node.isLocked ? '已锁定 · ' : '' }}{{ nodeTypeLabel(node) }}</small>
+              <small><LockKeyhole v-if="node.isLocked" :size="12" aria-hidden="true" />{{ node.isLocked ? '已锁定 · ' : '' }}{{ nodeTypeLabel(node) }}<template v-if="nodeRuntimeLabel(node.id)"> · {{ nodeRuntimeLabel(node.id) }}</template></small>
             </span>
           </button>
           <button

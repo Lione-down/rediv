@@ -132,6 +132,7 @@ test('composed image request materializes one durable linked result', async ({ p
     canvas_node_id: generationNode.id,
     prompt: '【Scene】\nGolden coast at dusk\n\n【Camera】\nSlow lateral tracking shot',
     image_ids: ['asset-reference', 'asset-character'],
+    aspect_ratio: '4:3',
   })
   await expect.poll(() => resultNodes(state, 'task-success').length).toBe(1)
   const result = resultNodes(state, 'task-success')[0]

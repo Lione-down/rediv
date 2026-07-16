@@ -15,6 +15,7 @@ import main as backend_main
 from api import video_generate as video_generate_module
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
+from core.agnes_provider import extract_provider_progress_percent
 from core.security import create_token
 from models.asset import Asset
 from tests.mysql_test_database import MySQLTestDatabase
@@ -76,8 +77,8 @@ class VideoGenerateApiTestCase(unittest.TestCase):
     def test_video_generate_success_creates_video_asset_and_deducts_quota(self) -> None:
         fake_provider = _FakeAgnesProvider(
             poll_responses=[
-                {"status": "processing"},
-                {"status": "completed", "url": "https://example.com/generated-video.mp4"},
+                {"status": "processing", "progress": 47},
+                {"status": "completed", "progress_percent": 83, "url": "https://example.com/generated-video.mp4"},
             ],
         )
         original_quota = store.quotas[self.user["id"]]["video"]
@@ -102,6 +103,8 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("video-1", payload["generation_task"]["provider_request_id"])
         self.assertEqual(payload["asset"]["id"], payload["generation_task"]["result_asset_id"])
         self.assertEqual("video", payload["generation_task"]["media_type"])
+        self.assertEqual(100, payload["generation_task"]["progress_percent"])
+        self.assertEqual("persisting", payload["generation_task"]["progress_stage"])
         self.assertEqual(self.project["id"], payload["asset"]["project_id"])
         self.assertEqual(self.canvas_id, payload["asset"]["origin_canvas_id"])
         self.assertEqual(original_quota - 1, payload["quotas"]["video"])
@@ -109,6 +112,21 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("agnes-video-v2.0", fake_provider.generate_calls[0]["model"])
         self.assertEqual("Create a dramatic cinematic shot", fake_provider.generate_calls[0]["prompt"])
         self.assertEqual(["video-1", "video-1"], fake_provider.poll_calls)
+
+    def test_provider_progress_extraction_accepts_only_finite_bounded_numbers(self) -> None:
+        self.assertEqual(12, extract_provider_progress_percent({"progress": 12}))
+        self.assertEqual(47.5, extract_provider_progress_percent({"data": {"progress_percent": 47.5}}))
+        for response in (
+            {},
+            {"progress": None},
+            {"progress": "83"},
+            {"progress": True},
+            {"progress": -1},
+            {"progress": 101},
+            {"progress": float("nan")},
+            {"progress": float("inf")},
+        ):
+            self.assertIsNone(extract_provider_progress_percent(response))
 
     def test_video_generate_maps_one_and_multiple_owned_images_to_provider_modes(self) -> None:
         source_a = store.create_asset(
@@ -247,7 +265,14 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("failed", tasks[0]["status"])
 
     def test_video_generate_timeout_does_not_deduct_quota(self) -> None:
-        fake_provider = _FakeAgnesProvider(poll_responses=[{"status": "processing"}] * video_generate_module.MAX_POLL_ATTEMPTS)
+        fake_provider = _FakeAgnesProvider(
+            poll_responses=[
+                {"status": "processing", "progress": 12},
+                {"status": "processing", "progress": 47},
+                {"status": "processing", "progress": 30},
+                *([{"status": "processing"}] * (video_generate_module.MAX_POLL_ATTEMPTS - 3)),
+            ],
+        )
         original_quota = store.quotas[self.user["id"]]["video"]
 
         with patch.object(backend_main, "_agnes", fake_provider):
@@ -265,6 +290,8 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(1, total)
         self.assertEqual("timed_out", tasks[0]["status"])
         self.assertEqual("timeout", tasks[0]["error_code"])
+        self.assertEqual(47, tasks[0]["progress_percent"])
+        self.assertEqual("provider", tasks[0]["progress_stage"])
 
     def test_video_generate_asset_failure_is_not_charged(self) -> None:
         fake_provider = _FakeAgnesProvider()

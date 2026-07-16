@@ -108,6 +108,7 @@ test('two generated results remix into ordered playable video keyframes', async 
   expect(state.requests.find((request) => request.path === '/api/video-generate')?.body).toEqual({
     project_id: PROJECT_ID, origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: generation.id,
     prompt: '【镜头约束】\n保持人物一致，镜头缓慢推进。', image_ids: ['asset-result-a', 'asset-result-b'],
+    reference_mode: 'keyframes', duration_seconds: 5,
   })
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.filter((item) => (
     (item.content as Record<string, unknown>).source_task_id === 'task-success'
@@ -134,6 +135,7 @@ test('two generated results remix into an image with exact reference identity', 
   expect(state.requests.find((request) => request.path === '/api/image-generate')?.body).toEqual({
     project_id: PROJECT_ID, origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: generation.id,
     prompt: '【镜头约束】\n保持人物一致，镜头缓慢推进。', image_ids: ['asset-result-a', 'asset-result-b'],
+    aspect_ratio: '4:3',
   })
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.some((item) => (
     (item.content as Record<string, unknown>).source_task_id === 'task-success'

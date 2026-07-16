@@ -10,6 +10,7 @@ import type {
   ProjectTemplate,
   ProjectResourceTab,
 } from '../../modules/canvas/project-resource-types'
+import { resolveGenerationTaskProgressSummary } from '../../modules/canvas/generation-runtime-presentation'
 
 const props = withDefaults(defineProps<{
   activeTab: ProjectResourceTab
@@ -83,6 +84,7 @@ function taskStatusLabel(status: ProjectGenerationTask['status']) {
   if (status === 'running') return '生成中'
   return '排队中'
 }
+
 
 function setActiveTab(tab: ProjectResourceTab, focus = false) {
   emit('update:activeTab', tab)
@@ -249,7 +251,7 @@ onBeforeUnmount(stopResize)
       <ol v-else class="resource-list task-list">
         <li v-for="task in tasks" :key="task.id" :class="`is-${task.status}`">
           <component :is="task.status === 'running' ? LoaderCircle : History" :size="18" :class="{ 'is-spinning': task.status === 'running' }" aria-hidden="true" />
-          <div class="resource-copy"><strong>{{ task.id }}</strong><span>{{ task.media_type }} · {{ taskStatusLabel(task.status) }}</span><small v-if="task.error_message">{{ task.error_message }}</small></div>
+          <div class="resource-copy"><strong>{{ task.id }}</strong><span>{{ task.media_type }} · {{ taskStatusLabel(task.status) }}<template v-if="resolveGenerationTaskProgressSummary(task)"> · {{ resolveGenerationTaskProgressSummary(task) }}</template></span><small v-if="task.error_message">{{ task.error_message }}</small></div>
         </li>
       </ol>
     </section>

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text
+from sqlalchemy import JSON, CheckConstraint, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, utc_now
@@ -27,6 +27,14 @@ class GenerationTask(Base):
             "(origin_canvas_id IS NULL OR project_id IS NOT NULL) "
             "AND (canvas_node_id IS NULL OR origin_canvas_id IS NOT NULL)",
             name="ck_generation_tasks_origin_scope",
+        ),
+        CheckConstraint(
+            "progress_percent IS NULL OR (progress_percent >= 0 AND progress_percent <= 100)",
+            name="ck_generation_tasks_progress_percent",
+        ),
+        CheckConstraint(
+            "progress_stage IS NULL OR progress_stage IN ('queued', 'provider', 'persisting')",
+            name="ck_generation_tasks_progress_stage",
         ),
         Index("ix_generation_tasks_origin_canvas_id", "origin_canvas_id"),
         Index("ix_generation_tasks_project_status_created", "project_id", "status", "created_at"),
@@ -57,6 +65,16 @@ class GenerationTask(Base):
         JSON,
         nullable=True,
         comment="Immutable sanitized generation request parameters",
+    )
+    progress_percent: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+        comment="Last valid provider progress percentage",
+    )
+    progress_stage: Mapped[str | None] = mapped_column(
+        String(32),
+        nullable=True,
+        comment="Durable progress stage: queued/provider/persisting",
     )
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True, comment="Task status: queued/running/succeeded/failed/timed_out")
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="Task duration in milliseconds")

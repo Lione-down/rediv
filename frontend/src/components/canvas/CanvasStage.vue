@@ -579,6 +579,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
     </button>
     <CanvasGraphAccessPanel
       v-if="isGraphPanelOpen"
+      :generation-runtime-presentations="generationRuntimePresentations"
       :readonly="readonly"
       @close="closeGraphAccessPanel"
       @locate-node="selectAndLocateNode"

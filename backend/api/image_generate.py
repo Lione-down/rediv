@@ -63,6 +63,9 @@ async def image_generate(
     provider_request_id: str | None = None
 
     try:
+        generation_controller.update_generation_task_state(
+            task["id"], status="running", progress_stage="provider"
+        )
         provider_parameters = {"size": normalized_parameters.provider_size}
         if normalized_parameters.provider_ratio is not None:
             provider_parameters["ratio"] = normalized_parameters.provider_ratio
@@ -75,6 +78,9 @@ async def image_generate(
         image_url = extract_image_url(response)
         provider_request_id = validate_optional_provider_identifier(
             extract_provider_request_id(response, "id", "request_id")
+        )
+        generation_controller.update_generation_task_state(
+            task["id"], progress_stage="persisting"
         )
     except asyncio.CancelledError:
         generation_controller.fail_generation_task(

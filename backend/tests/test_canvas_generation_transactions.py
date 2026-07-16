@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import main as backend_main
 from api.router import include_routers
+from controllers import generation_transactions as generation_controller
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token
 from models.asset import Asset
@@ -131,6 +132,8 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
             task.request_parameters,
         )
         self.assertEqual(task.request_parameters, payload["generation_task"]["request_parameters"])
+        self.assertEqual(100, payload["generation_task"]["progress_percent"])
+        self.assertEqual("persisting", payload["generation_task"]["progress_stage"])
         self.assertEqual({"size": "1K", "ratio": "4:3"}, provider.calls[0]["kwargs"])
 
         assets = self.client.get(
@@ -145,6 +148,87 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         )
         self.assertEqual([asset.id], [item["id"] for item in assets.json()["items"]])
         self.assertEqual([task.id], [item["id"] for item in tasks.json()["items"]])
+
+    def test_durable_progress_is_monotonic_and_success_reaches_100(self) -> None:
+        task, _input_images = generation_controller.start_image_generation_task(
+            user_id=self.user["id"],
+            provider="agnes",
+            model="agnes-image-2.1-flash",
+            project_id=self.project["id"],
+            origin_canvas_id=self.canvas_id,
+            canvas_node_id=self.node["id"],
+            image_ids=None,
+            request_parameters={"contract_version": 1, "media_type": "image"},
+        )
+        self.assertIsNone(task["progress_percent"])
+        self.assertEqual("queued", task["progress_stage"])
+
+        first = generation_controller.update_generation_task_state(
+            task["id"], status="running", progress_stage="provider", progress_percent=12,
+        )
+        self.assertEqual(12, first["progress_percent"])
+        self.assertEqual("provider", first["progress_stage"])
+        advanced = generation_controller.update_generation_task_state(task["id"], progress_percent=47)
+        self.assertEqual(47, advanced["progress_percent"])
+        self.assertEqual(
+            47,
+            generation_controller.update_generation_task_state(task["id"], progress_percent=30)["progress_percent"],
+        )
+        self.assertEqual(
+            47,
+            generation_controller.update_generation_task_state(task["id"], progress_percent=None)["progress_percent"],
+        )
+        with self.assertRaises(generation_controller.GenerationTaskStateError):
+            generation_controller.update_generation_task_state(task["id"], progress_percent=True)
+        with self.assertRaises(generation_controller.GenerationTaskStateError):
+            generation_controller.update_generation_task_state(task["id"], progress_percent=101)
+
+        generation_controller.update_generation_task_state(task["id"], progress_stage="persisting")
+        result = generation_controller.complete_generation_task(
+            task["id"],
+            asset_type="image",
+            url="https://example.com/progress-result.png",
+            content_text=None,
+            source_model="agnes-image-2.1-flash",
+            duration_ms=100,
+            provider_request_id="progress-provider-request",
+        )
+        self.assertEqual("succeeded", result["generation_task"]["status"])
+        self.assertEqual(100, result["generation_task"]["progress_percent"])
+        self.assertEqual("persisting", result["generation_task"]["progress_stage"])
+
+    def test_failure_preserves_last_valid_progress_without_result_or_charge(self) -> None:
+        original_quota = self._database_quota("image")
+        task, _input_images = generation_controller.start_image_generation_task(
+            user_id=self.user["id"],
+            provider="agnes",
+            model="agnes-image-2.1-flash",
+            project_id=self.project["id"],
+            origin_canvas_id=self.canvas_id,
+            canvas_node_id=self.node["id"],
+            image_ids=None,
+            request_parameters={"contract_version": 1, "media_type": "image"},
+        )
+        generation_controller.update_generation_task_state(
+            task["id"], status="running", progress_stage="provider", progress_percent=47,
+        )
+
+        failed = generation_controller.fail_generation_task(
+            task["id"],
+            status="timed_out",
+            duration_ms=500,
+            provider_request_id="progress-timeout",
+            error_code="timeout",
+            error_message="Provider timed out",
+        )
+
+        self.assertEqual("timed_out", failed["status"])
+        self.assertEqual(47, failed["progress_percent"])
+        self.assertEqual("provider", failed["progress_stage"])
+        self.assertIsNone(failed["result_asset_id"])
+        self.assertEqual(original_quota, self._database_quota("image"))
+        with get_session() as session:
+            self.assertEqual([], self._generation_ledger(session))
 
     def test_provider_failure_records_scoped_task_without_asset_charge_or_refund(self) -> None:
         provider = _FakeImageProvider(error=RuntimeError("provider unavailable"))
@@ -172,6 +256,8 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         self.assertEqual(1, len(tasks))
         self.assertEqual("failed", tasks[0].status)
         self.assertEqual("provider_error", tasks[0].error_code)
+        self.assertEqual("provider", tasks[0].progress_stage)
+        self.assertIsNone(tasks[0].progress_percent)
         self.assertEqual(self.project["id"], tasks[0].project_id)
         self.assertEqual(self.canvas_id, tasks[0].origin_canvas_id)
         self.assertEqual([], assets)
@@ -210,6 +296,8 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
 
         self.assertEqual("failed", task.status)
         self.assertEqual("asset_persistence_error", task.error_code)
+        self.assertEqual("persisting", task.progress_stage)
+        self.assertIsNone(task.progress_percent)
         self.assertIsNone(task.result_asset_id)
         self.assertEqual([], assets)
         self.assertEqual([], ledger)
