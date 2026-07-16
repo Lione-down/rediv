@@ -393,14 +393,12 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
       :style="canvasGridStyle"
     >
       <CanvasConnectionLayer
+        :draft-path="temporaryConnectionPath"
         :paths="connectionPaths"
         :provenance="generationProvenance"
         :readonly="readonly"
         :visible="areEdgesVisible"
       />
-      <svg v-if="temporaryConnectionPath" class="connection-layer draft-layer" aria-hidden="true">
-        <path class="draft" :d="temporaryConnectionPath" />
-      </svg>
       <CanvasPendingGenerationLayer :projections="pendingGenerationResults" :viewport="canvasStore.viewport" />
       <CanvasConnectionContinuation
         v-if="connectionContinuation"

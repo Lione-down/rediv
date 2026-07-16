@@ -13,6 +13,13 @@ import {
 import CanvasEdgeInsertionMenu from './CanvasEdgeInsertionMenu.vue'
 import { resolveCanvasConnectionPresentation } from './canvas-connection-presentation'
 import { resolveCanvasEdgeIdentityPlacement } from './canvas-edge-identity-placement'
+import {
+  CANVAS_CONNECTION_FLOW_DASH_PATTERN,
+  CANVAS_CONNECTION_FLOW_PATH_LENGTH,
+  CANVAS_CONNECTION_FLOW_SEGMENT_COUNT,
+  resolveCanvasConnectionMotion,
+  type CanvasConnectionMotionReason,
+} from './canvas-connection-motion'
 
 export interface CanvasConnectionPath {
   active?: boolean
@@ -24,6 +31,7 @@ export interface CanvasConnectionPath {
 }
 
 const props = defineProps<{
+  draftPath?: string
   paths: CanvasConnectionPath[]
   provenance?: CanvasGenerationProvenance[]
   readonly: boolean
@@ -45,6 +53,19 @@ const viewport = computed(() => normalizeViewport(canvasStore.viewport))
 const provenanceByConnectionId = computed(() => new Map(
   (props.provenance ?? []).map((entry) => [entry.connectionId, entry]),
 ))
+const connectionFlowById = computed(() => {
+  const result = new Map<string, CanvasConnectionMotionReason>()
+  for (const path of props.paths) {
+    const provenance = provenanceByConnectionId.value.get(path.id)
+    const reason = resolveCanvasConnectionMotion({
+      isIncluded: provenance?.isIncluded,
+      isProvenance: Boolean(provenance),
+      isSelected: canvasStore.selectedConnectionId === path.id,
+    })
+    if (reason) result.set(path.id, reason)
+  }
+  return result
+})
 const selectedPath = computed(() => props.paths.find(
   (path) => path.id === canvasStore.selectedConnectionId,
 ) ?? null)
@@ -99,7 +120,7 @@ const insertionMenuStyle = computed(() => {
     top: `${Math.max(12, Math.min(context.surface.y + 16, height - 300))}px`,
   }
 })
-const draftPath = computed(() => {
+const rerouteDraftPath = computed(() => {
   const draft = rerouteDraft.value
   if (!draft) return ''
   const path = props.paths.find((candidate) => candidate.id === draft.connection.id)
@@ -108,6 +129,7 @@ const draftPath = computed(() => {
     ? buildConnectionPath(draft.current, path.target)
     : buildConnectionPath(path.source, draft.current)
 })
+const activeDraftPath = computed(() => rerouteDraftPath.value || props.draftPath || '')
 
 function selectConnection(connectionId: string) {
   isInsertionMenuOpen.value = false
@@ -240,14 +262,21 @@ onBeforeUnmount(stopReroute)
 </script>
 
 <template>
-  <svg v-show="visible" ref="layerRef" class="connection-layer" role="group" aria-label="画布连线">
+  <svg
+    v-show="visible || Boolean(activeDraftPath)"
+    ref="layerRef"
+    class="connection-layer"
+    :class="{ 'draft-layer': Boolean(activeDraftPath) }"
+    role="group"
+    aria-label="画布连线"
+  >
     <defs>
       <marker id="canvas-edge-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
         <path d="M 0 0 L 10 5 L 0 10 z" class="connection-arrow" />
       </marker>
     </defs>
     <g :transform="`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`">
-      <g v-for="path in paths" :key="path.id">
+      <g v-for="path in paths" v-show="visible" :key="path.id">
         <path
           class="connection-hit"
           :d="path.path"
@@ -272,9 +301,33 @@ onBeforeUnmount(stopReroute)
           marker-end="url(#canvas-edge-arrow)"
           vector-effect="non-scaling-stroke"
         />
+        <path
+          v-if="connectionFlowById.get(path.id)"
+          class="connection-flow"
+          :class="`is-${connectionFlowById.get(path.id)}`"
+          :d="path.path"
+          :pathLength="CANVAS_CONNECTION_FLOW_PATH_LENGTH"
+          :stroke-dasharray="CANVAS_CONNECTION_FLOW_DASH_PATTERN"
+          :data-flow-reason="connectionFlowById.get(path.id)"
+          :data-flow-segments="CANVAS_CONNECTION_FLOW_SEGMENT_COUNT"
+          vector-effect="non-scaling-stroke"
+          aria-hidden="true"
+        />
       </g>
-      <path v-if="draftPath" class="draft" :d="draftPath" vector-effect="non-scaling-stroke" />
-      <template v-if="selectedPath && !readonly">
+      <template v-if="activeDraftPath">
+        <path class="draft" :d="activeDraftPath" vector-effect="non-scaling-stroke" />
+        <path
+          class="connection-flow is-draft"
+          :d="activeDraftPath"
+          :pathLength="CANVAS_CONNECTION_FLOW_PATH_LENGTH"
+          :stroke-dasharray="CANVAS_CONNECTION_FLOW_DASH_PATTERN"
+          data-flow-reason="draft"
+          :data-flow-segments="CANVAS_CONNECTION_FLOW_SEGMENT_COUNT"
+          vector-effect="non-scaling-stroke"
+          aria-hidden="true"
+        />
+      </template>
+      <template v-if="visible && selectedPath && !readonly">
         <circle
           class="connection-handle is-source"
           :cx="selectedPath.source.x"
@@ -349,6 +402,8 @@ onBeforeUnmount(stopReroute)
 .connection-line.provenance-excluded { stroke: var(--v2-text-muted); stroke-width: 1.6; stroke-dasharray: 3 5; }
 .connection-line.provenance-result { stroke: color-mix(in oklch, var(--accent-select) 58%, var(--border-strong)); stroke-width: 1.8; }
 .connection-line.provenance-selected-result { stroke: var(--accent-select); stroke-width: 2.6; }
+.connection-flow { fill: none; stroke: color-mix(in oklch, white 72%, var(--accent-select)); stroke-width: 2.8; stroke-linecap: round; pointer-events: none; animation: canvas-connection-flow 900ms linear infinite; }
+.connection-flow.is-provenance { stroke-width: 2.4; opacity: 0.82; }
 .connection-hit { fill: none; stroke: transparent; stroke-width: 16; outline: none; pointer-events: stroke; cursor: pointer; }
 .connection-hit:focus-visible { stroke: color-mix(in oklch, var(--accent-select) 18%, transparent); outline: none; }
 .connection-arrow { fill: var(--border-strong); pointer-events: none; }
@@ -366,6 +421,7 @@ onBeforeUnmount(stopReroute)
 .edge-insertion-trigger:active { transform: scale(0.96); }
 .edge-insertion-trigger:focus-visible { outline: 2px solid var(--v2-focus-ring, var(--accent-select)); outline-offset: 2px; }
 @media (hover: hover) { .edge-insertion-trigger:hover { color: white; background: var(--accent-select); } }
+@keyframes canvas-connection-flow { to { stroke-dashoffset: -0.333333; } }
 @keyframes edge-identity-in { from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
-@media (prefers-reduced-motion: reduce) { .connection-line, .connection-handle, .edge-insertion-trigger { transition: none; } .selected-edge-identity { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .connection-line, .connection-handle, .edge-insertion-trigger { transition: none; } .connection-flow, .selected-edge-identity { animation: none; } .connection-flow { stroke-dashoffset: 0; opacity: 0.78; } }
 </style>

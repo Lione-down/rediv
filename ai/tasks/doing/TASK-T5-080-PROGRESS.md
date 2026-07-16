@@ -1,7 +1,7 @@
 # TASK-T5-080 Progress
 
 - Task state: `DOING`
-- Active unit: Unit 7, add restrained active-only connection flow with reduced-motion fallback.
+- Active unit: Unit 8, run integrated verification and close T5-080 only if every non-deferred gate passes.
 
 ## Completed work
 
@@ -42,17 +42,22 @@
 - Extracted the pure tree policy after GREEN so `canvas-commands.ts` is 453 lines, the new resolver is 61 lines, and `use-canvas-stage.ts` remains exactly 500 lines.
 - Added and visually inspected clean desktop evidence at `output/playwright/t5-080-group-drag/group-and-children-moved.png`; group hull, children, toolbar, Inspector, minimap, and external edge agree on the moved state without mock-resource errors.
 - Passed the final Unit 6 command contract, interaction, history, persistence, and arrangement matrix 32/32 plus a 4,854-module production build.
+- Completed active-only connection flow through strict RED-GREEN-REFACTOR. The pure RED failed on the absent motion resolver; browser REDs then failed only because draft, selected-edge, and selected-lineage flow paths did not exist.
+- Added one pure `canvas-connection-motion.ts` policy. Persisted `status: active` is intentionally not a motion input; only draft, explicit edge selection, and included provenance resolve to flow, while excluded provenance and unrelated idle edges remain static.
+- Reused the authoritative connection path as one pointer-passive SVG duplicate with normalized `pathLength=1` and exactly three bounded directional dash segments. Base paths, arrow markers, keyboard/pointer hit paths, graph identity, history, and persistence remain unchanged.
+- Moved the temporary new-connection draft into `CanvasConnectionLayer` so new connection and endpoint reroute drafts share the same transformed presentation and reduced-motion fallback. One scoped dash-offset animation drives normal motion; `prefers-reduced-motion` retains static three-segment emphasis. Hiding idle edges still leaves an active draft visible without exposing base edges.
+- Verified the dense fixture starts with 300 persisted active edges and zero flow overlays. The 30-second interaction profile permits at most the one explicitly selected edge and passed unchanged thresholds at 57.37 FPS, 16.8 ms frame p95, 8.1 ms pointer-feedback p95, zero long tasks, and 11.19 minimap updates/s.
+- Passed the effective Unit 7 matrix 51/51 across motion policy, connection continuation, endpoint reroute, generation provenance, LibTV visual parity, multi-scenario rendering, performance, listener/heap, accessibility, viewport checks, and hidden-idle-edge draft preservation. Production build passes with 4,855 transformed modules.
+- Visually inspected selected-edge and ten-edge selected-lineage evidence. Three flow segments are visible but restrained; idle edges, nodes, arrows, Inspector, and minimap retain the existing low-noise dark-purple hierarchy.
 
 ## Remaining work
 
-- Add and run focused RED evidence for active-only edge motion.
-- Implement Unit 7 through strict RED-GREEN-REFACTOR.
 - Run focused, related, build, visual, full functional Chromium, hygiene, and applicable owned 200/300 verification.
 - Perform fresh diff review, write REPORT, close durable state, then scoped commit and push.
 
 ## Exact next action
 
-Commit and push the verified group-movement Unit, then freeze draft, selected, provenance, idle, and reduced-motion edge-flow behavior before changing connection presentation.
+Commit and push the verified active-only connection-flow Unit, then run the integrated Unit 8 regression, visual, hygiene, and guarded supervisor gates before closing T5-080.
 
 ## Files changed
 
@@ -69,6 +74,7 @@ Commit and push the verified group-movement Unit, then freeze draft, selected, p
 - `frontend/src/components/canvas/canvas-node-presentation.ts`
 - `frontend/src/components/canvas/canvas-geometry.ts`
 - `frontend/src/components/canvas/canvas-connection-target.ts`
+- `frontend/src/components/canvas/canvas-connection-motion.ts`
 - `frontend/src/components/canvas/canvas-stage.scss`
 - `frontend/src/components/canvas/CanvasConnectionLayer.vue`
 - `frontend/src/components/canvas/CanvasConnectionTargetPorts.vue`
@@ -87,6 +93,9 @@ Commit and push the verified group-movement Unit, then freeze draft, selected, p
 - `frontend/tests/e2e/canvas-libtv-visual-parity.spec.ts`
 - `frontend/tests/e2e/canvas-connection-continuation-browser.spec.ts`
 - `frontend/tests/e2e/canvas-connection-target.spec.ts`
+- `frontend/tests/e2e/canvas-connection-motion.spec.ts`
+- `frontend/tests/e2e/canvas-generation-provenance.spec.ts`
+- `frontend/tests/e2e/canvas-performance-accessibility.spec.ts`
 - `frontend/tests/e2e/canvas-port-geometry.spec.ts`
 
 ## Commands and evidence
@@ -119,6 +128,14 @@ Commit and push the verified group-movement Unit, then freeze draft, selected, p
 - Unit 6 visual evidence: `output/playwright/t5-080-group-drag/group-and-children-moved.png`; inspected at 1366x768 with no mock error toast or ownership drift.
 - Unit 6 production build after extraction: `npm run build`; PASS, 4,854 transformed modules.
 - Unit 6 hygiene: `git diff --check`; PASS. `canvas-commands.ts` 453 lines, `canvas-drag-resolution.ts` 61 lines, `use-canvas-stage.ts` 500 lines.
+- Flow RED: the focused policy import failed because `canvas-connection-motion.ts` did not exist; rebuilt browser cases then lacked every expected `.connection-flow` for draft, selected edge, and selected lineage.
+- Flow focused GREEN: pure normalized-segment policy plus draft, selected, included-provenance, excluded-provenance, idle, pointer-passive, and reduced-motion assertions passed 6/6 after rebuilding the preview bundle.
+- Unit 7 related matrix: continuation, reroute, provenance, visual parity, multi-scenario, performance/accessibility, and motion policy produced 48/50 in the combined run; the two failures were corrected test assumptions, and both exact cases passed independently without a production-code change, for effective 50/50 coverage.
+- Motion environment diagnosis: the shared resource fixture intentionally forces reduced motion, so the normal-motion case now switches to `no-preference` after fixture setup; the dedicated accessibility case still verifies `animation-name: none` and pointer-passive static emphasis under reduce.
+- Dense performance evidence: `output/playwright/t5-005-unit-e/performance-metrics.json`; PASS at 200 nodes/300 connections, 368 ms stable render, 57.37 FPS, 16.8 ms frame p95, 8.1 ms pointer-feedback p95, zero long tasks, and 11.19 minimap updates/s.
+- Unit 7 visual evidence: `output/playwright/t5-015-final/canvas-media-and-passive-edges.png` and `output/playwright/t5-039-end-to-end-provenance/full-input-output-trace-1440x900.png`; both inspected, with selected-only or selected-lineage flow and no ambient graph motion.
+- Hidden-edge compatibility RED/GREEN: the merged draft was initially hidden with idle edges; the focused browser case now passes 1/1 with base edges hidden and the active draft plus its flow visible.
+- Unit 7 production build: `npm run build`; PASS, 4,855 transformed modules.
 
 ## Blockers and release conditions
 

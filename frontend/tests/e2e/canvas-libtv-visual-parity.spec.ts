@@ -30,6 +30,7 @@ test('result media has one visible surface, keeps its ratio, and visible edges s
   delete (result.content as Record<string, unknown>).width
   delete (result.content as Record<string, unknown>).height
   await openResourceWorkspace(page, state)
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
   const image = page.getByRole('img', { name: '图片结果' })
   await expect(image).toBeVisible()
   const dimensions = await image.evaluate((element: HTMLImageElement) => {
@@ -51,9 +52,17 @@ test('result media has one visible surface, keeps its ratio, and visible edges s
   await expect(page.getByRole('img', { name: '图片结果' })).toHaveCount(1)
   await expect(page.locator('.connection-hit')).toHaveCSS('pointer-events', 'stroke')
   await expect(page.locator('.connection-layer')).toHaveCSS('pointer-events', 'none')
+  await expect(page.locator('.connection-flow')).toHaveCount(0)
   const activeEdge = page.locator('.connection-line.active').first()
   await expect(activeEdge).toHaveCSS('pointer-events', 'none')
   await expect(activeEdge).toHaveCSS('stroke-dasharray', 'none')
+  await page.locator('.connection-hit').first().focus()
+  await page.keyboard.press('Enter')
+  const selectedFlow = page.locator('.connection-flow[data-flow-reason="selected"]')
+  await expect(selectedFlow).toHaveCount(1)
+  await expect(selectedFlow).toBeVisible()
+  await expect(selectedFlow).toHaveCSS('animation-name', /canvas-connection-flow/)
+  await expect(selectedFlow).toHaveCSS('pointer-events', 'none')
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'canvas-media-and-passive-edges.png'), fullPage: true })
 })

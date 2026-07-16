@@ -305,8 +305,15 @@ test('200-node 300-connection Canvas passes focused interaction thresholds', asy
   test.setTimeout(90_000)
   const state: PerformanceState = { nodeCount: 200, connectionCount: 300, requests: [] }
   const stableRenderMs = await openCanvas(page, state)
+  await expect(page.locator('.connection-line.active')).toHaveCount(300)
+  await expect(page.locator('.connection-flow')).toHaveCount(0)
   await startInteractionTrace(page)
   await runInteractionProfile(page)
+  const interactionFlowCount = await page.locator('.connection-flow').count()
+  expect(interactionFlowCount).toBeLessThanOrEqual(1)
+  if (interactionFlowCount === 1) {
+    await expect(page.locator('.connection-flow')).toHaveAttribute('data-flow-reason', 'selected')
+  }
   const trace = await page.evaluate(() => window.__canvasInteractionTrace?.stop())
   if (!trace) throw new Error('Interaction trace was not installed')
 
@@ -387,6 +394,11 @@ test('Canvas accessibility and required viewport matrix remain usable', async ({
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await dialog.getByRole('button', { name: /查看连线 性能节点 001 到 性能节点 002/ }).click()
   await expect(dialog.getByRole('button', { name: /查看连线 性能节点 001 到 性能节点 002/ })).toHaveAttribute('aria-pressed', 'true')
+  const reducedMotionFlow = page.locator('.connection-flow[data-flow-reason="selected"]')
+  await expect(reducedMotionFlow).toHaveCount(1)
+  await expect(reducedMotionFlow).toHaveAttribute('data-flow-segments', '3')
+  await expect(reducedMotionFlow).toHaveCSS('animation-name', 'none')
+  await expect(reducedMotionFlow).toHaveCSS('pointer-events', 'none')
   await expect(page.locator('.canvas-workspace')).toHaveCSS('--v2-duration-fast', '0s')
 
   await page.evaluate(() => { document.documentElement.style.zoom = '200%' })

@@ -67,6 +67,7 @@ async function selectNode(page: import('@playwright/test').Page, title: string) 
 test('selected multi-input generation shows ordered source and edge provenance', async ({ page }) => {
   const state = createMultiScenarioState()
   await openResourceWorkspace(page, state)
+  await expect(page.locator('.connection-flow')).toHaveCount(0)
   await selectNode(page, '合并四路上下文生成')
 
   const markers = page.locator('.generation-source-provenance')
@@ -79,6 +80,9 @@ test('selected multi-input generation shows ordered source and edge provenance',
   await expect(page.locator('.connection-line.provenance-excluded')).toHaveCount(0)
   await expect(page.locator('.connection-line.provenance-result')).toHaveCount(6)
   await expect(page.locator('.connection-line.provenance-selected-result')).toHaveCount(0)
+  await expect(page.locator('.connection-flow[data-flow-reason="provenance"]')).toHaveCount(10)
+  await expect(page.locator('.connection-flow').first()).toHaveAttribute('data-flow-segments', '3')
+  await expect(page.locator('.connection-flow').first()).toHaveCSS('pointer-events', 'none')
   await expect(page.locator('.result-lineage-node')).toHaveCount(6)
   await expect(page.getByRole('button', {
     name: '选择连线：合并四路上下文生成 到 宽银幕主镜头，结果变体 1，生成结果',
@@ -107,6 +111,7 @@ test('selected multi-input generation shows ordered source and edge provenance',
   await expect(markers).toHaveCount(0)
   await expect(page.locator('.result-lineage-node')).toHaveCount(0)
   await expect(page.locator('.connection-line.provenance')).toHaveCount(0)
+  await expect(page.locator('.connection-flow')).toHaveCount(0)
 })
 
 test('explicit trace fit keeps the selected generation and mutates only one desktop viewport', async ({ page }) => {
@@ -309,6 +314,8 @@ test('excluded duplicate and missing media stay visible without entering request
   await expect(page.locator('.generation-source-provenance.is-excluded').filter({ hasText: 'R×' })).toHaveCount(2)
   await expect(page.locator('.connection-line.provenance-excluded')).toHaveCount(2)
   await expect(page.locator('.connection-line.provenance-result')).toHaveCount(6)
+  await expect(page.locator('.connection-flow[data-flow-reason="provenance"]')).toHaveCount(10)
+  await expect(page.locator('.connection-line.provenance-excluded + .connection-flow')).toHaveCount(0)
   const context = page.getByRole('region', { name: '已连接生成上下文' })
   await expect(context).toContainText('参考图 3 · 重复海岸参考')
   await expect(context).toContainText('重复资源，已合并')

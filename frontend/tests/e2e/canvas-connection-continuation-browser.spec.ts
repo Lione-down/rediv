@@ -199,6 +199,23 @@ test('Escape cancels an active port draft before release', async ({ page }) => {
   expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(1)
 })
 
+test('active draft stays visible while idle edges are hidden', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state)
+  const viewToolbar = page.getByRole('toolbar', { name: '画布视图控制' })
+  await viewToolbar.getByLabel('打开视图选项').click()
+  await viewToolbar.getByLabel('隐藏连线').click()
+  await expect(page.locator('.connection-line')).toBeHidden()
+
+  await beginOutputDrag(page, state, { x: 760, y: 620 })
+
+  await expect(page.locator('.draft-layer .draft')).toBeVisible()
+  await expect(page.locator('.draft-layer .connection-flow[data-flow-reason="draft"]')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.mouse.up()
+  expect(documentPatches(state)).toHaveLength(0)
+})
+
 test('pointer cancellation never opens continuation or mutates the graph', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
@@ -243,6 +260,12 @@ test('direct drop skips a nearer incompatible port for the exact compatible targ
   await expect(page.locator('.connection-target-port[data-node-id="result-existing"][data-port-id="in"]')).toHaveCount(0)
   const sourceAnchor = nodeOutputAnchor(mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out')
   await expect(page.locator('.draft-layer .draft')).toHaveAttribute('d', buildConnectionPath(sourceAnchor, generationAnchor))
+  const draftFlow = page.locator('.draft-layer .connection-flow[data-flow-reason="draft"]')
+  await expect(draftFlow).toHaveCount(1)
+  await expect(draftFlow).toHaveAttribute('pathLength', '1')
+  await expect(draftFlow).toHaveAttribute('stroke-dasharray', '0.08 0.253333')
+  await expect(draftFlow).toHaveAttribute('data-flow-segments', '3')
+  await expect(draftFlow).toHaveCSS('pointer-events', 'none')
   await page.mouse.up()
 
   await expect(page.getByRole('dialog', { name: '继续连接' })).toHaveCount(0)
