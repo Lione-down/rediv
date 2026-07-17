@@ -1,7 +1,12 @@
 # TASK-T5-081 Plan
 
-- State: `BLOCKED`
-- Objective: deliver a Storyboard review and sequence workflow as a pure projection plus validated ordinary Canvas group commands, without forking graph, execution, history, autosave, or responsive ownership.
+- State: `DONE - PASS`
+- Objective: deliver a Storyboard review and sequence workflow as a pure projection plus validated ordinary Canvas group commands, without forking graph, execution, history, autosave, or responsive ownership; preserve duplication through the single Human-authorized existing-controller metadata-ID remap.
+
+## Human authorization addendum
+
+- On 2026-07-17, the Human Owner authorized changing only `backend/controllers/canvases.py::duplicate_canvas()` so validated `group/storyboard` version-1 `ordered_child_ids` follow the existing duplicate `node_id_map`, plus focused backend tests.
+- This exception permits no new endpoint, schema, migration, provider behavior, secret access, paid call, destructive operation, or user-data change. Future, malformed, unsupported, ordinary, and unrelated content must remain unchanged.
 
 ## Locked design direction
 
@@ -72,6 +77,6 @@ Success gate: code, tests, evidence, durable state, commit, and `origin/main` ag
 
 ## Stop rules
 
-- Stop and document a blocker if the work requires a second graph/store, backend/schema/provider behavior, paid execution, secret access, destructive data work, mobile editing, or an incompatible persisted contract.
+- Stop and document a blocker if the work requires a second graph/store, backend endpoint/schema/provider behavior beyond the authorized duplicate metadata-ID remap, paid execution, secret access, destructive data work, mobile editing, or an incompatible persisted contract.
 - Stop and re-plan if switching cannot remain revision/history/viewport neutral, metadata cannot fail closed, or one order cannot own both reading and layout.
 - Preserve pre-existing untracked `.hermes` plans and `output/`; never stage them.

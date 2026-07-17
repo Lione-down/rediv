@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from uuid import uuid4
 
@@ -92,6 +93,66 @@ class CanvasDuplicationApiTestCase(unittest.TestCase):
         self.assertEqual("project-asset-1", child.content["asset_id"])
         self.assertEqual("project-asset-1", connection.metadata_["asset_id"])
         self.assertEqual(1, project.canvas_order_revision)
+
+    def test_duplicate_remaps_valid_storyboard_ordered_child_ids(self) -> None:
+        source = self._seed_storyboard_group("valid-storyboard", variant="valid")
+
+        response = self.client.post(
+            f"{self.path}/{self.source_canvas_id}/duplicate",
+            json={"base_order_revision": 0},
+            headers=self.headers,
+        )
+
+        self.assertEqual(201, response.status_code)
+        duplicate_id = response.json()["item"]["id"]
+        with get_session() as session:
+            duplicate_nodes = session.scalars(
+                select(CanvasNode).where(CanvasNode.canvas_id == duplicate_id)
+            ).all()
+            source_group = session.get(CanvasNode, source["group_id"])
+
+        duplicate_by_key = {node.content["key"]: node for node in duplicate_nodes}
+        duplicate_group = duplicate_by_key["valid-storyboard"]
+        self.assertEqual(
+            [
+                duplicate_by_key["valid-storyboard-child-b"].id,
+                duplicate_by_key["valid-storyboard-child-a"].id,
+            ],
+            duplicate_group.content["ordered_child_ids"],
+        )
+        self.assertEqual(source["ordered_child_ids"], source_group.content["ordered_child_ids"])
+        self.assertEqual({"preserve": "valid-storyboard"}, duplicate_group.content["custom"])
+        self.assertEqual("project-asset-storyboard-a", duplicate_by_key["valid-storyboard-child-a"].content["asset_id"])
+        self.assertEqual("project-asset-storyboard-b", duplicate_by_key["valid-storyboard-child-b"].content["asset_id"])
+
+    def test_duplicate_leaves_future_and_malformed_storyboard_content_unchanged(self) -> None:
+        future = self._seed_storyboard_group("future-storyboard", variant="future")
+        malformed = self._seed_storyboard_group("malformed-storyboard", variant="malformed")
+        unsupported_child = self._seed_storyboard_group(
+            "unsupported-child-storyboard",
+            variant="unsupported-child",
+        )
+
+        response = self.client.post(
+            f"{self.path}/{self.source_canvas_id}/duplicate",
+            json={"base_order_revision": 0},
+            headers=self.headers,
+        )
+
+        self.assertEqual(201, response.status_code)
+        duplicate_id = response.json()["item"]["id"]
+        with get_session() as session:
+            duplicate_nodes = session.scalars(
+                select(CanvasNode).where(CanvasNode.canvas_id == duplicate_id)
+            ).all()
+
+        duplicate_by_key = {node.content["key"]: node for node in duplicate_nodes}
+        self.assertEqual(future["content"], duplicate_by_key["future-storyboard"].content)
+        self.assertEqual(malformed["content"], duplicate_by_key["malformed-storyboard"].content)
+        self.assertEqual(
+            unsupported_child["content"],
+            duplicate_by_key["unsupported-child-storyboard"].content,
+        )
 
     def test_duplicate_defaults_name_and_requires_authentication_and_ownership(self) -> None:
         unauthenticated = self.client.post(
@@ -215,6 +276,99 @@ class CanvasDuplicationApiTestCase(unittest.TestCase):
             )
             session.commit()
         return {group_id, child_id, connection_id}
+
+    def _seed_storyboard_group(self, key: str, *, variant: str) -> dict[str, object]:
+        group_id = str(uuid4())
+        child_a_id = str(uuid4())
+        child_b_id = str(uuid4())
+        ordered_child_ids = [child_b_id, child_a_id]
+        content = {
+            "key": key,
+            "title": key,
+            "subtype": "storyboard",
+            "serialization_version": 1,
+            "storyboard_schema_version": 2 if variant == "future" else 1,
+            "aspect_ratio": "16:9",
+            "columns": 2,
+            "show_numbers": True,
+            "ordered_child_ids": ordered_child_ids,
+            "custom": {"preserve": key},
+        }
+        if variant == "malformed":
+            content["ordered_child_ids"] = [child_a_id, "missing-child"]
+        child_b_content = {
+            "key": f"{key}-child-b",
+            "subtype": "image",
+            "serialization_version": 2 if variant == "unsupported-child" else 1,
+            "asset_id": "project-asset-storyboard-b",
+        }
+
+        with get_session() as session:
+            session.add(
+                CanvasNode(
+                    id=group_id,
+                    project_id=self.project["id"],
+                    canvas_id=self.source_canvas_id,
+                    node_type="group",
+                    content=content,
+                    position_x=100,
+                    position_y=100,
+                    width=720,
+                    height=320,
+                    z_index=1,
+                    is_locked=False,
+                    is_collapsed=False,
+                    status="active",
+                )
+            )
+            session.flush()
+            session.add_all(
+                [
+                    CanvasNode(
+                        id=child_a_id,
+                        project_id=self.project["id"],
+                        canvas_id=self.source_canvas_id,
+                        node_type="asset",
+                        content={
+                            "key": f"{key}-child-a",
+                            "subtype": "image",
+                            "serialization_version": 1,
+                            "asset_id": "project-asset-storyboard-a",
+                        },
+                        position_x=140,
+                        position_y=180,
+                        width=300,
+                        height=180,
+                        z_index=2,
+                        parent_node_id=group_id,
+                        is_locked=False,
+                        is_collapsed=False,
+                        status="active",
+                    ),
+                    CanvasNode(
+                        id=child_b_id,
+                        project_id=self.project["id"],
+                        canvas_id=self.source_canvas_id,
+                        node_type="result",
+                        content=child_b_content,
+                        position_x=460,
+                        position_y=180,
+                        width=300,
+                        height=180,
+                        z_index=2,
+                        parent_node_id=group_id,
+                        is_locked=False,
+                        is_collapsed=False,
+                        status="active",
+                    ),
+                ]
+            )
+            session.commit()
+        return {
+            "group_id": group_id,
+            "ordered_child_ids": ordered_child_ids,
+            "content": deepcopy(content),
+        }
 
     def _graph_counts(self) -> tuple[int, int, int, int]:
         with get_session() as session:

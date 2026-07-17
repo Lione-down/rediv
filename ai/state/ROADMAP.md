@@ -75,7 +75,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 78 | T5-078 | Pending output placement and result handoff | DONE - PASS | T5-077 |
 | 79 | T5-079 | Canvas media containment and keyframe rail isolation | DONE - PASS | T5-078 |
 | 80 | T5-080 | Canvas node and connection interaction usability | DONE - PASS | T5-079 |
-| 81 | T5-081 | Storyboard projection and image storyboard groups | BLOCKED | T5-080 |
+| 81 | T5-081 | Storyboard projection and image storyboard groups | DONE - PASS | T5-080 |
 
 ## Task Boundaries
 
@@ -243,7 +243,7 @@ T5-079 is `DONE - PASS`. A rendered containment regression first measured four d
 
 T5-080 is `DONE - PASS`. Shared visible geometry, 40 CSS px port acquisition, exact compatible landing, neutral aggregate continuation, group-unit movement, and reduced-motion-safe active-only edge flow passed focused 61/61, functional Chromium 372/372, a 4,855-module build, four-viewport visual review, hygiene, and the guarded live 200-node/300-connection boundary at 59.92 FPS and 16.8ms frame p95. The local software-rendered mock performance variance remains explicitly classified without threshold weakening. `REPORT-T5-080.md` is authoritative evidence.
 
-T5-081 is `BLOCKED` only on Canvas duplication. Frontend projection, accessible view boundary, typed image storyboard groups, six-state/four-viewport visual and WCAG verification, functional Chromium 392/392, warning-free build, Deep hygiene review, and guarded live 200/300 all pass. Canvas duplication still deep-copies `ordered_child_ids` after remapping graph IDs. Completion requires explicit Human authorization for one minimal existing-controller remap; no endpoint, schema, migration, provider, paid execution, or mobile editing change is proposed.
+T5-081 is `DONE - PASS`. Pure Storyboard projection, accessible revision-neutral view switching, exact 2-25 image storyboard groups, shared order/layout, conversion/ungroup, whole-group movement, and fail-closed Canvas duplication passed visual/accessibility 6/6, functional Chromium 392/392, a 4,872-module build, backend 465 tests plus 78 subtests, hygiene, and guarded live 200/300 evidence at 59.94 FPS. `REPORT-T5-081.md` is authoritative evidence.
 
 ## Canvas First-Acceptance Gate
 

@@ -1,7 +1,7 @@
 # TASK-T5-081 Progress
 
-- Task state: `BLOCKED`
-- Active unit: Unit 5 frontend, visual, full-regression, live, and hygiene verification is complete; Canvas duplication metadata remapping is blocked by the plan's backend-behavior stop rule.
+- Task state: `DONE - PASS`
+- Active unit: none. Unit 5 integrated verification, authorized duplication remap, and durable closure are complete.
 
 ## Completed work
 
@@ -38,15 +38,20 @@
 - Full functional Chromium passed 392/392. The final production build passed with 4,872 transformed modules and no Lightning CSS warnings.
 - The guarded owned live supervisor passed pre/post-restart 200-node/300-connection persistence with checksum `d63025b9136424e2eb611a1c262275a2156fe7d5b1f1c13751b545b40d87aa45`, stable render 170 ms, 59.97 FPS, 16.7 ms frame p95, 0.1 ms pointer p95, and zero long tasks. Retained summary: `output/playwright/t5-008-live/t5008-32448-9fd13d416980ba39/summary.json`.
 - Deep release-readiness review found no additional frontend correctness, security, performance, accessibility, or request-boundary defects. Diff/UTF-8/sensitive-path/staged-secret checks pass; no new source file exceeds 500 lines, and the touched oversized Vue coordinators were already over the guideline at the T5-080 baseline.
+- Human Owner explicitly authorized changing only `backend/controllers/canvases.py::duplicate_canvas()` to remap validated `group/storyboard` v1 `ordered_child_ids`, plus focused backend tests. Endpoint, schema, migration, provider, secret, and user-data scope remain unchanged.
+- Added focused backend duplication REDs. The first proved valid storyboard groups retained source child IDs; the second proved unsupported child serialization was incorrectly accepted by the initial validator.
+- Added a controller-local fail-closed content copier. It deep-copies every node, validates exact version-1 storyboard metadata and canonical unlocked image children, and changes only `ordered_child_ids` through the existing `node_id_map`.
+- Valid storyboard duplicates now preserve exact order with duplicate child IDs. Source content, custom keys, project asset references, ordinary groups, future metadata, malformed membership, and unsupported children remain unchanged.
+- Final backend verification passed duplication 6/6, related multi-Canvas/document/metadata/duplication 27/27, and full backend 465 tests plus 78 subtests. Final functional Chromium rerun passed 392/392, the production build passed with 4,872 modules, and guarded live 200/300 evidence passed.
+- Fresh architecture, security, performance, adversarial, diff, UTF-8, file-size, sensitive-path, secret-pattern, port, and exact-scope review found no unresolved issue.
 
 ## Remaining work
 
-- Obtain Human Owner authorization for one minimal existing-backend duplication remap so storyboard `ordered_child_ids` can follow `node_id_map`; add a focused RED and preserve all unrelated content keys.
-- After that remap, run focused backend duplication tests plus the duplication browser case, then write REPORT, close durable state, commit, and push.
+None within T5-081.
 
 ## Exact next action
 
-After Human Owner authorization, write a focused backend duplication RED proving exact storyboard child-ID remapping while ordinary group content and project asset references remain unchanged; then implement the smallest controller-local remap and finish duplication-specific closure.
+Keep the repository `IDLE` until the Human Owner selects the next bounded Task.
 
 ## Files changed
 
@@ -81,6 +86,9 @@ After Human Owner authorization, write a focused backend duplication RED proving
 - `frontend/tests/e2e/canvas-storyboard-group-workflow.spec.ts`
 - `frontend/tests/e2e/canvas-storyboard-group.spec.ts`
 - `frontend/tests/e2e/canvas-storyboard-visual.spec.ts`
+- `backend/controllers/canvases.py`
+- `backend/tests/test_canvas_duplication_api.py`
+- `ai/reports/REPORT-T5-081.md`
 
 ## Commands and evidence
 
@@ -107,15 +115,22 @@ After Human Owner authorization, write a focused backend duplication RED proving
 - Visual styling RED: `npx playwright test tests/e2e/canvas-storyboard-visual.spec.ts --project=chromium --grep "mixed pending"`; FAIL because `.storyboard-lane__header` computed to `display: block` instead of `flex`.
 - Visual styling GREEN: rebuilt the production bundle after moving Storyboard BEM descendant ownership out of the parent Vue scope; the same computed-style gate passed.
 - Final visual/accessibility matrix: `npx playwright test tests/e2e/canvas-storyboard-visual.spec.ts --project=chromium`; PASS 6/6 with exact viewport screenshots, geometry JSON, zero page-level overflow, and zero serious/critical axe violations.
-- Full functional regression: `npx playwright test --project=chromium`; PASS 392/392 in 7.3 minutes.
+- Final full functional regression: `npx playwright test --project=chromium --reporter=dot`; PASS 392/392 in 7.4 minutes.
 - Final production build: `npm run build`; PASS, 4,872 transformed modules, no CSS minifier warning.
 - Guarded live preflight: `backend/.venv/Scripts/python.exe scripts/canvas_acceptance_supervisor.py`; PASS with owned `revid_test_*` schema and free 8765/9765 ports.
-- Guarded live lifecycle: the same supervisor with `--execute`; PASS in 57.3 seconds with 200/300 restart persistence and retained summary `output/playwright/t5-008-live/t5008-32448-9fd13d416980ba39/summary.json`.
-- Deep review and hygiene: scoped/task-range `git diff --check`, UTF-8 replacement-character scan, file growth, Storyboard selector ownership, request guards, reduced motion, sensitive tracking, staged secret, owned ports, and exact worktree scope all passed.
+- Guarded live lifecycle: the same supervisor with `--execute`; PASS with 200/300 restart persistence, 169 ms stable render, 59.94 FPS, 16.8 ms frame p95, 0.1 ms pointer p95, zero long tasks, and retained summary `output/playwright/t5-008-live/t5008-17544-ecbd87abf9c762cd/summary.json`.
+- Duplication RED 1: valid storyboard focused case failed because duplicate `ordered_child_ids` still held source UUIDs.
+- Duplication GREEN 1: valid storyboard focused case passed after the minimal remap.
+- Duplication RED 2: future/malformed fail-closed case failed when a result child used unsupported serialization version 2.
+- Duplication final: `backend/.venv/Scripts/python.exe -m pytest backend/tests/test_canvas_duplication_api.py -q`; PASS 6/6.
+- Related backend matrix: multi-Canvas foundation, metadata, document, and duplication; PASS 27/27.
+- Final backend regression: `backend/.venv/Scripts/python.exe -m pytest backend/tests -q`; PASS 465 tests plus 78 subtests in 373.07 seconds.
+- Python compile: `backend/.venv/Scripts/python.exe -m py_compile backend/controllers/canvases.py backend/tests/test_canvas_duplication_api.py`; PASS.
+- Deep review and hygiene: scoped/task-range `git diff --check`, strict UTF-8 replacement-character scan, file growth, Storyboard validator parity, request guards, sensitive tracking, secret-pattern scan, owned ports, and exact worktree scope all passed.
 
 ## Blockers and release conditions
 
-- Acceptance criterion 7 is blocked. Exact Canvas duplication requires remapping storyboard `ordered_child_ids` through the backend's private `node_id_map`; frontend repair cannot know the mapping and inferred repair is explicitly forbidden.
-- Release condition: Human Owner authorizes a minimal existing duplicate-controller behavior change, limited to validated `group/storyboard` version-1 content and covered by focused backend tests. No endpoint, schema, migration, secret, provider, or destructive operation is required.
+- No T5-081 blocker remains; all twelve acceptance criteria pass.
+- The completed backend scope is limited to validated `group/storyboard` version-1 content and focused backend tests. No endpoint, schema, migration, secret, provider, or destructive operation changed.
 - Guarded live verification passed using environment already supplied to the process; no `.env` was opened or recovered.
 - Paid/provider calls, real secret access, runtime migrations, destructive operations, and incompatible product/UX changes remain Human Owner gates.

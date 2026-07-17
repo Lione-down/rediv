@@ -1,6 +1,6 @@
 # TASK-T5-081 - Storyboard projection and image storyboard groups
 
-- State: `BLOCKED`
+- State: `DONE - PASS`
 - Objective: project the current Canvas document into truthful text, image, and video Storyboard review lanes, then add durable image-only storyboard groups whose order, ratio, grid, and numbering remain ordinary Canvas graph metadata.
 - Dependency: `T5-080 - DONE - PASS` at committed and pushed baseline `408c5f2a6fe940fb4567c8b97b008ff7bd1d2c3b`.
 

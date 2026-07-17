@@ -44,6 +44,62 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+def _duplicate_node_content(
+    source_node: CanvasNode,
+    children: list[CanvasNode],
+    node_id_map: dict[str, str],
+) -> dict:
+    content = deepcopy(source_node.content)
+    ordered_child_ids = content.get("ordered_child_ids") if isinstance(content, dict) else None
+    is_storyboard_v1 = (
+        source_node.node_type == "group"
+        and isinstance(content, dict)
+        and content.get("subtype") == "storyboard"
+        and type(content.get("serialization_version")) is int
+        and content["serialization_version"] == 1
+        and type(content.get("storyboard_schema_version")) is int
+        and content["storyboard_schema_version"] == 1
+        and content.get("aspect_ratio") in {"16:9", "9:16", "1:1", "4:3"}
+        and type(content.get("columns")) is int
+        and 1 <= content["columns"] <= 5
+        and type(content.get("show_numbers")) is bool
+        and isinstance(ordered_child_ids, list)
+        and 2 <= len(ordered_child_ids) <= 25
+        and all(type(child_id) is str for child_id in ordered_child_ids)
+        and len(set(ordered_child_ids)) == len(ordered_child_ids)
+    )
+    if not is_storyboard_v1:
+        return content
+
+    children_by_id = {child.id: child for child in children}
+    has_exact_image_children = (
+        len(children_by_id) == len(ordered_child_ids)
+        and set(children_by_id) == set(ordered_child_ids)
+        and all(
+            child.node_type in {"asset", "result"}
+            and isinstance(child.content, dict)
+            and child.content.get("subtype") == "image"
+            and (
+                (
+                    type(child.content.get("serialization_version")) is int
+                    and child.content["serialization_version"] == 1
+                )
+                or (
+                    child.node_type == "asset"
+                    and "serialization_version" not in child.content
+                )
+            )
+            and not child.is_locked
+            for child in children
+        )
+    )
+    if not has_exact_image_children:
+        return content
+
+    content["ordered_child_ids"] = [node_id_map[child_id] for child_id in ordered_child_ids]
+    return content
+
+
 def _datetime_to_iso(value: datetime | None) -> str | None:
     if value is None:
         return None
@@ -208,6 +264,10 @@ def duplicate_canvas(
         session.flush()
 
         node_id_map = {node.id: str(uuid4()) for node in source_nodes}
+        children_by_parent_id: dict[str, list[CanvasNode]] = {}
+        for node in source_nodes:
+            if node.parent_node_id is not None:
+                children_by_parent_id.setdefault(node.parent_node_id, []).append(node)
         duplicated_nodes: dict[str, CanvasNode] = {}
         for source_node in source_nodes:
             duplicated_node = CanvasNode(
@@ -215,7 +275,11 @@ def duplicate_canvas(
                 project_id=project_id,
                 canvas_id=duplicate.id,
                 node_type=source_node.node_type,
-                content=deepcopy(source_node.content),
+                content=_duplicate_node_content(
+                    source_node,
+                    children_by_parent_id.get(source_node.id, []),
+                    node_id_map,
+                ),
                 position_x=source_node.position_x,
                 position_y=source_node.position_y,
                 width=source_node.width,

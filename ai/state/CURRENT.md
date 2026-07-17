@@ -15,16 +15,14 @@ Last updated: 2026-07-17
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-080 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
+- Completed V2 Tasks: T5-001 through T5-081 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
 
 ## Active Delivery
 
-- Active implementation Task: `T5-081 - Storyboard projection and image storyboard groups`
-- State: `BLOCKED`
-- Task: `ai/tasks/todo/TASK-T5-081.md`
-- Plan: `ai/tasks/doing/TASK-T5-081-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-081-PROGRESS.md`
-- Dependency baseline: `T5-080 - DONE - PASS`, report `ai/reports/REPORT-T5-080.md`
+- Active implementation Task: none
+- State: `IDLE`
+- Last completed Task: `T5-081 - Storyboard projection and image storyboard groups`
+- Report: `ai/reports/REPORT-T5-081.md`
 
 ## Current Verified Facts
 
@@ -109,11 +107,11 @@ Last updated: 2026-07-17
 - T5-078 is now `DONE - PASS`: local and durable active generation work projects into stable collision-aware result-sized reservations, then hands successful reconciliation to the canonical result command at the exact predicted position without graph identity or runtime persistence. Focused 6/6, related 36/36, functional Chromium 354/354, backend 463 plus 78 subtests, a 4,841-module build, visual/hygiene gates, and fresh owned 200/300 evidence at 59.87 FPS passed. Final report: `ai/reports/REPORT-T5-078.md`.
 - T5-079 is now `DONE - PASS`: a RED containment guard measured four decoded image roots outside their surfaces, rail-local placement removed the scoped-selector leak, and focused 1/1 plus related 23/23 Chromium, a 4,841-module build, two visual inspections, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-079.md`.
 - T5-080 is now `DONE - PASS`: canonical visible geometry, forgiving screen-stable port targets, exact compatible landing, neutral aggregate batch continuation, group-as-one-unit movement, and active-only edge flow passed focused 61/61, functional Chromium 372/372, a 4,855-module build, four-viewport visual inspection, and guarded live 200/300 evidence at 59.92 FPS with 16.8ms frame p95. The local software-rendered mock 33.3ms scheduling bucket is classified without threshold weakening. Final report: `ai/reports/REPORT-T5-080.md`.
-- T5-081 is `BLOCKED` only on Canvas duplication. Its frontend projection, view boundary, exact 2-25 group workflow, ratio/columns/numbering, create/reorder/settings/convert/ungroup, one-PATCH history/reload, unchanged edges/provider order, and whole-group movement are implemented. A visual computed-style RED exposed and fixed parent-scoped descendant CSS loss. Final evidence passes Storyboard visual/accessibility 6/6, functional Chromium 392/392, a warning-free 4,872-module build, Deep hygiene review, and guarded live 200/300 at 59.97 FPS with 16.7 ms frame p95 and zero long tasks. The existing backend still remaps node/edge relations but deep-copies storyboard `ordered_child_ids` with source IDs; the locked plan forbids that backend behavior change without renewed Human direction.
+- T5-081 is now `DONE - PASS`: pure Storyboard projection, accessible revision-neutral view switching, exact 2-25 image storyboard groups, shared ordering/layout, conversion/ungroup, and whole-group movement passed visual/accessibility 6/6, functional Chromium 392/392, a warning-free 4,872-module build, backend 465 tests plus 78 subtests, and guarded live 200/300 evidence at 59.94 FPS. Canvas duplication now remaps only validated version-1 storyboard `ordered_child_ids` while future, malformed, unsupported, ordinary, and unrelated content remains unchanged. Final report: `ai/reports/REPORT-T5-081.md`.
 
 ## Exact Next Action
 
-Obtain Human Owner authorization for a controller-local Canvas duplication remap of validated storyboard `ordered_child_ids`; then write the focused backend RED, implement the minimal remap, run duplication-specific verification, and close T5-081.
+Keep the repository `IDLE` until the Human Owner selects the next bounded Task.
 
 ## Blockers And Human Gates
 
