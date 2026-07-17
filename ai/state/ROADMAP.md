@@ -80,7 +80,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 83 | T5-083 | Versioned script-to-shot schema and atomic script/shot/generation/storyboard graph creation | DONE - PASS | T5-082 |
 | 84 | T5-084 | Professional Storyboard recipes for grid, character, and scene views | DONE - PASS | T5-083 |
 | 85 | T5-085 | Image expansion, inpaint, erase, cutout, upscale, region, and fusion contracts | DONE - PASS | T5-084 |
-| 86 | T5-086 | Shot angle, framing, focus, lighting, and time controls | TODO | T5-085 |
+| 86 | T5-086 | Shot angle, framing, focus, lighting, and time controls | DOING | T5-085 |
 | 87 | T5-087 | Workflow templates, dry-run, dependency execution, cancel/resume, and quota estimate | TODO | T5-086 |
 | 88 | T5-088 | Video trim, concat, preview, export, and FFmpeg/backend contract decision | TODO | T5-087 |
 | 89 | T5-089 | Audio generation and audio-driven video with fail-closed capability/quota/task contracts | TODO | T5-088 |
@@ -264,11 +264,11 @@ T5-083 is `DONE - PASS`. Strict backend/frontend shot schema v1, a deterministic
 
 T5-084 is `DONE - PASS`. Six strict Revid-owned version-1 presets now reuse the existing T5-083 mock shot contract, one atomic Storyboard graph command, and the T5-065 visual recipe lifecycle. Exact 4/9/16/25 topology, current project-owned image eligibility, prompt secrecy, failure/retry, Storyboard/history/persistence, responsive accessibility, functional Chromium 443/443, product backend 474 plus 93 subtests, a 4,886-module build, and guarded live 200/300 at 59.87485 FPS passed. No real/paid provider, database change, or UI redesign was introduced. `REPORT-T5-084.md` is authoritative evidence.
 
-T5-085 is `DOING` as the only active implementation Task. It adds downstream-only image-operation branches, strict source-normalized region/mask/request contracts, and a backward-aware backend capability v2 boundary. Production remains local-region-only with zero provider operations; full provider-operation behavior is mock-verified and no real or paid call is authorized.
+T5-085 is `DONE - PASS`. It adds downstream-only image-operation branches, strict source-normalized region/mask/request contracts, and a backward-aware backend capability v2 boundary. Production remains local-region-only with zero provider operations; full provider-operation behavior is mock-verified and no real or paid call is authorized.
 
-T5-086 remains `TODO` until T5-085 closes. It will extend the existing generation contract with shot angle, framing, focus, lighting, and forward/backward time controls while retaining provider capability truthfulness.
+T5-086 is `DONE - PASS`. It adds a backward-aware generation capability v3 with strict Revid-owned shot angle, framing, focus, lighting, and time-direction contracts. Production truthfully advertises zero executable controls and rejects crafted requests before task/quota/asset/provider mutation; mock-only evidence proves exact snapshots, drift safety, Context Panel persistence, 375px review-only behavior, and existing Canvas lifecycle preservation. Full backend passed 482 plus 116 subtests, build passed 4,893 modules, full Chromium passed 462/462, and the guarded 200/300 run passed at 56.56 FPS / 16.8ms p95. `REPORT-T5-086.md` is authoritative evidence.
 
-T5-087 remains `TODO` until T5-086 closes. It will add versioned workflow templates, dry-run/preflight, dependency order, batch execution, cancel/resume, and quota estimates without automatically triggering paid work.
+T5-087 is now the next eligible `TODO`. It will add versioned workflow templates, dry-run/preflight, dependency order, batch execution, cancel/resume, and quota estimates without automatically triggering paid work.
 
 T5-088 remains `TODO` until T5-087 closes. It will independently decide and implement the bounded video trim, concat, preview, export, FFmpeg, and backend task contract without assuming a destructive or irreversible backend design.
 

@@ -4,9 +4,14 @@ from dataclasses import dataclass
 from typing import Any
 
 from core.image_operation_contract import build_image_operation_capabilities
+from core.shot_control_contract import (
+    ShotControlContractError,
+    build_shot_control_capabilities,
+    normalize_shot_controls,
+)
 
 
-CAPABILITY_CONTRACT_VERSION = 2
+CAPABILITY_CONTRACT_VERSION = 3
 CONTRACT_VERSION = 1
 IMAGE_MODEL = "agnes-image-2.1-flash"
 IMAGE_SIZE = "1K"
@@ -54,6 +59,7 @@ def build_generation_capabilities() -> dict[str, Any]:
             "aspect_ratios": list(IMAGE_ASPECT_RATIOS),
             "default_aspect_ratio": IMAGE_DEFAULT_ASPECT_RATIO,
             "operations": build_image_operation_capabilities(),
+            "shot_controls": build_shot_control_capabilities("image"),
         },
         "video": {
             "model": VIDEO_MODEL,
@@ -71,6 +77,7 @@ def build_generation_capabilities() -> dict[str, Any]:
                 }
                 for duration_seconds, num_frames in VIDEO_DURATION_FRAMES.items()
             ],
+            "shot_controls": build_shot_control_capabilities("video"),
         },
     }
 
@@ -82,9 +89,13 @@ def normalize_image_parameters(
     recipe_id: str | None = None,
     recipe_version: int | None = None,
     recipe_size: str | None = None,
+    shot_controls: object = None,
+    provider_shot_controls: tuple[str, ...] = (),
 ) -> NormalizedImageParameters:
     ordered_image_ids = list(dict.fromkeys(image_ids or []))
     if recipe_id is not None:
+        if shot_controls is not None:
+            raise GenerationParameterError("generation recipe cannot use shot controls")
         if aspect_ratio is not None:
             raise GenerationParameterError("generation recipe controls output size")
         if recipe_version is None or recipe_size is None:
@@ -108,17 +119,30 @@ def normalize_image_parameters(
     effective_ratio = IMAGE_DEFAULT_ASPECT_RATIO if aspect_ratio is None else aspect_ratio
     if effective_ratio not in IMAGE_ASPECT_RATIOS:
         raise GenerationParameterError("unsupported image aspect ratio")
+    try:
+        normalized_shot_controls = normalize_shot_controls(
+            shot_controls,
+            media_type="image",
+            reference_mode=None,
+            image_ids=ordered_image_ids,
+            provider_shot_controls=provider_shot_controls,
+        )
+    except ShotControlContractError as error:
+        raise GenerationParameterError(str(error)) from error
+    request_parameters = {
+        "contract_version": CONTRACT_VERSION,
+        "media_type": "image",
+        "model": IMAGE_MODEL,
+        "size": IMAGE_SIZE,
+        "aspect_ratio": effective_ratio,
+        "image_ids": ordered_image_ids,
+    }
+    if normalized_shot_controls is not None:
+        request_parameters["shot_controls"] = normalized_shot_controls
     return NormalizedImageParameters(
         provider_size=IMAGE_SIZE,
         provider_ratio=effective_ratio,
-        request_parameters={
-            "contract_version": CONTRACT_VERSION,
-            "media_type": "image",
-            "model": IMAGE_MODEL,
-            "size": IMAGE_SIZE,
-            "aspect_ratio": effective_ratio,
-            "image_ids": ordered_image_ids,
-        },
+        request_parameters=request_parameters,
     )
 
 
@@ -127,6 +151,8 @@ def normalize_video_parameters(
     reference_mode: str | None,
     duration_seconds: int | None,
     image_ids: list[str] | None,
+    shot_controls: object = None,
+    provider_shot_controls: tuple[str, ...] = (),
 ) -> NormalizedVideoParameters:
     ordered_image_ids = list(dict.fromkeys(image_ids or []))
     effective_duration = (
@@ -156,6 +182,17 @@ def normalize_video_parameters(
     ):
         raise GenerationParameterError("keyframes requires 2 to 8 image references")
 
+    try:
+        normalized_shot_controls = normalize_shot_controls(
+            shot_controls,
+            media_type="video",
+            reference_mode=effective_mode,
+            image_ids=ordered_image_ids,
+            provider_shot_controls=provider_shot_controls,
+        )
+    except ShotControlContractError as error:
+        raise GenerationParameterError(str(error)) from error
+
     request_parameters = {
         "contract_version": CONTRACT_VERSION,
         "media_type": "video",
@@ -168,6 +205,8 @@ def normalize_video_parameters(
         "height": VIDEO_HEIGHT,
         "image_ids": ordered_image_ids,
     }
+    if normalized_shot_controls is not None:
+        request_parameters["shot_controls"] = normalized_shot_controls
     return NormalizedVideoParameters(
         reference_mode=effective_mode,
         duration_seconds=effective_duration,

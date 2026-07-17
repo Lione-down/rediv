@@ -38,6 +38,7 @@ class ImageGenerateRequest(ScopedGenerationRequest):
     generation_recipe_id: ImageGenerationRecipeId | None = None
     generation_recipe_version: int | None = Field(default=None, ge=1)
     image_operation: dict[str, Any] | None = None
+    shot_controls: dict[str, Any] | None = None
 
     @field_validator("image_ids")
     @classmethod
@@ -49,6 +50,8 @@ class ImageGenerateRequest(ScopedGenerationRequest):
         if self.image_operation is not None:
             if self.generation_recipe_id is not None or self.generation_recipe_version is not None:
                 raise ValueError("image operation cannot use a generation recipe")
+            if self.shot_controls is not None:
+                raise ValueError("image operation cannot use shot controls")
             normalize_image_operation(
                 self.image_operation,
                 image_ids=self.image_ids,
@@ -57,6 +60,7 @@ class ImageGenerateRequest(ScopedGenerationRequest):
             normalize_image_parameters(
                 aspect_ratio=self.aspect_ratio,
                 image_ids=self.image_ids,
+                shot_controls=self.shot_controls,
             )
             return self
         if self.generation_recipe_id is None:
@@ -67,10 +71,13 @@ class ImageGenerateRequest(ScopedGenerationRequest):
             normalize_image_parameters(
                 aspect_ratio=self.aspect_ratio,
                 image_ids=self.image_ids,
+                shot_controls=self.shot_controls,
             )
             return self
         if self.prompt is not None:
             raise ValueError("prompt cannot override a generation recipe")
+        if self.shot_controls is not None:
+            raise ValueError("generation recipe cannot use shot controls")
         if not self.image_ids or len(self.image_ids) != 1:
             raise ValueError("generation recipe requires exactly one image reference")
         recipe = resolve_image_generation_recipe(
@@ -91,6 +98,7 @@ class VideoGenerateRequest(ScopedGenerationRequest):
     image_ids: list[ResourceId] | None = Field(default=None, max_length=8)
     reference_mode: str | None = Field(default=None, max_length=32)
     duration_seconds: int | None = None
+    shot_controls: dict[str, Any] | None = None
 
     @field_validator("image_ids")
     @classmethod
@@ -105,6 +113,7 @@ class VideoGenerateRequest(ScopedGenerationRequest):
             reference_mode=self.reference_mode,
             duration_seconds=self.duration_seconds,
             image_ids=self.image_ids,
+            shot_controls=self.shot_controls,
         )
         return self
 

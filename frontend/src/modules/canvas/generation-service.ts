@@ -3,6 +3,7 @@ import type { QuotaBalance } from '../../types/auth'
 import { IMAGE_OPERATIONS, type ImageOperationContract } from './image-operations'
 import type { GenerationTask } from './project-resource-types'
 import { parseGenerationCapabilities, type GenerationCapabilities, type VideoReferenceMode } from './generation-parameters'
+import type { ShotControls } from './shot-controls'
 import type { VisualAssetRecipeId, VisualAssetRecipeVersion } from './visual-asset-recipes'
 
 export type GenerationMediaType = keyof QuotaBalance
@@ -20,6 +21,7 @@ export interface CanvasGenerationContext {
   recipeId?: VisualAssetRecipeId
   recipeVersion?: VisualAssetRecipeVersion
   imageOperation?: ImageOperationContract
+  shotControls?: ShotControls
 }
 
 export interface CanvasGenerationResponse {
@@ -120,6 +122,13 @@ function assertGenerationRequestParameters(context: CanvasGenerationContext, tas
     } else if (parameters.image_operation !== undefined) {
       throw new Error('Generation response parameter snapshot mismatch')
     }
+    if (context.shotControls) {
+      if (JSON.stringify(parameters.shot_controls) !== JSON.stringify(context.shotControls)) {
+        throw new Error('Generation response parameter snapshot mismatch')
+      }
+    } else if (parameters.shot_controls !== undefined) {
+      throw new Error('Generation response parameter snapshot mismatch')
+    }
     return
   }
   if (
@@ -127,6 +136,13 @@ function assertGenerationRequestParameters(context: CanvasGenerationContext, tas
     parameters.reference_mode !== context.referenceMode ||
     parameters.duration_seconds !== context.durationSeconds
   ) throw new Error('Generation response parameter snapshot mismatch')
+  if (context.shotControls) {
+    if (JSON.stringify(parameters.shot_controls) !== JSON.stringify(context.shotControls)) {
+      throw new Error('Generation response parameter snapshot mismatch')
+    }
+  } else if (parameters.shot_controls !== undefined) {
+    throw new Error('Generation response parameter snapshot mismatch')
+  }
 }
 
 export async function loadGenerationCapabilities(transport: GenerationCapabilityTransport) {
@@ -146,6 +162,10 @@ export async function requestCanvasGeneration(
   if (context.imageOperation && (
     context.mediaType !== 'image' || !operationDefinition || operationDefinition.execution !== 'provider'
   )) throw new Error('Invalid image operation request')
+  if (context.shotControls && (
+    (context.mediaType === 'image' && (context.recipeId || context.imageOperation)) ||
+    context.mediaType === 'text'
+  )) throw new Error('Invalid shot control request')
   if (context.recipeId && (
     context.mediaType !== 'image' || context.prompt !== undefined || context.imageIds?.length !== 1 ||
     context.aspectRatio !== undefined || context.imageOperation !== undefined
@@ -172,6 +192,7 @@ export async function requestCanvasGeneration(
       ...(context.recipeId ? { generation_recipe_id: context.recipeId } : {}),
       ...(context.recipeVersion ? { generation_recipe_version: context.recipeVersion } : {}),
       ...(context.imageOperation ? { image_operation: context.imageOperation } : {}),
+      ...(context.shotControls ? { shot_controls: context.shotControls } : {}),
     },
     { timeout: 0 },
   )

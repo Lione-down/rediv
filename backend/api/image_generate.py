@@ -45,6 +45,7 @@ async def image_generate(
         recipe_id=recipe.id if recipe else None,
         recipe_version=recipe.version if recipe else None,
         recipe_size=recipe.output_size if recipe else None,
+        shot_controls=payload.shot_controls,
     )
     try:
         task, input_images = generation_controller.start_image_generation_task(

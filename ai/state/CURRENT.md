@@ -15,21 +15,24 @@ Last updated: 2026-07-18
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-085 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
+- Completed V2 Tasks: T5-001 through T5-086 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
 
 ## Active Delivery
 
-- Active implementation Task: none during T5-085 commit/push closure.
-- Last completed Task: `T5-085 - Versioned image-operation branches and fail-closed capability contracts`
-- Report: `ai/reports/REPORT-T5-085.md`
-- Task: `ai/tasks/todo/TASK-T5-085.md`
-- Plan: `ai/tasks/doing/TASK-T5-085-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-085-PROGRESS.md`
-- Next eligible Task: `T5-086 - Shot angle, framing, focus, lighting, and time controls`
+- Active implementation Task: none
+- State: `IDLE`
+- Last completed Task: `T5-086 - Capability-gated shot direction controls`
+- Report: `ai/reports/REPORT-T5-086.md`
+- Task: `ai/tasks/todo/TASK-T5-086.md`
+- Plan: `ai/tasks/doing/TASK-T5-086-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-086-PROGRESS.md`
+- Next eligible Task: `T5-087 - Workflow templates and safe batch orchestration`.
 
 ## Current Verified Facts
 
 - T5-085 is `DONE - PASS`: production capabilities are authenticated capability v2 and honestly expose only local `region`; all provider image operations fail closed before task/quota/asset/provider mutation. The existing Slash Palette now creates exact downstream-only operation branches for expand, inpaint, erase, cutout, upscale, region, and ordered fusion through the existing Canvas command/history/autosave/task lifecycle. Focused operation Chromium passed 15/15, full product backend passed 479 plus 112 subtests, production build passed 4,892 modules, and manual Inspector evidence is retained at `output/playwright/t5-085/image-operation-upscale-1440x900.png`. The full functional Chromium matrix passed 458/459; its only non-passing software-rendered 200/300 mock FPS title is classified without threshold change, consistent with the existing guarded T5-084 live performance baseline and no Canvas hot-path diff.
+
+- T5-086 is `DONE - PASS`: authenticated capability v3 adds strict Revid-owned nested shot controls while production advertises zero executable controls. Crafting a shot-control request fails before task/quota/asset/provider mutation; browser mocks prove static image controls, image-to-video time advance/rewind gating, exact task snapshots, capability drift, history/autosave/reload, duplicate preservation, scoped axe, and 375px review-only behavior. Full backend passed 482 plus 116 subtests, build passed 4,893 modules, and full Chromium passed 462/462. The guarded 200/300 metrics passed at 56.56 FPS and 16.8ms p95 without threshold changes. Report: `ai/reports/REPORT-T5-086.md`.
 
 - T5-004 through T5-007 now provide the complete pre-certification Canvas product: full-screen multi-Canvas routing, persistent Leafer world, deterministic command model, autosave/recovery/revisions, canonical node registry, project-shared resources, versioned templates, durable generation tasks/results, and backend-authoritative quota snapshots.
 - T5-007 Unit E adds responsive project resource and contextual generation controls, registry-backed asset/template insertion, durable success/failure result presentation, desktop/narrow keyboard behavior, and a strict 375px browse/review-only boundary.

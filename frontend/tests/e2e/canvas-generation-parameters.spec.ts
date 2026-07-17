@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -19,6 +20,7 @@ import {
 import { GENERATION_CAPABILITIES } from './canvas-generation-parameters-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-075-generation-parameters')
+const shotEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-086-shot-controls')
 const capabilities = parseGenerationCapabilities(GENERATION_CAPABILITIES)
 
 function generationNode(mediaType: 'image' | 'video', parameters?: unknown): CanvasNode {
@@ -57,7 +59,10 @@ test('capability parsing, legacy defaults, and stale values fail closed', () => 
   ])
   expect(capabilities.video.duration_presets.map((item) => [item.duration_seconds, item.num_frames, item.frame_rate]))
     .toEqual([[3, 81, 24], [5, 121, 24], [10, 241, 24], [18, 441, 24]])
-  expect(() => parseGenerationCapabilities({ ...GENERATION_CAPABILITIES, contract_version: 3 })).toThrow(
+  expect(capabilities.contract_version).toBe(3)
+  expect(capabilities.image.shotControls?.provider_controls).toEqual(['angle', 'framing', 'focus', 'lighting'])
+  expect(capabilities.video.shotControls?.supported_controls).toEqual(['angle', 'framing', 'focus', 'lighting', 'temporal'])
+  expect(() => parseGenerationCapabilities({ ...GENERATION_CAPABILITIES, contract_version: 4 })).toThrow(
     'capability contract 无效',
   )
 
@@ -81,6 +86,65 @@ test('capability parsing, legacy defaults, and stale values fail closed', () => 
   expect(resolveGenerationRequestContext(recipe, 'image', [recipe], [], capabilities)).toMatchObject({
     isRecipe: true, aspectRatio: '4:3', parameters: null, parameterSummary: ['配方固定 4:3', '输出 1024×768'],
   })
+})
+
+test('shot-control capabilities and node contracts reject drift and preserve exact compatible intent', () => {
+  const staticControls = {
+    contract_version: 1,
+    angle: 'high-angle', framing: 'wide', focus: 'shallow', lighting: 'dramatic', temporal: 'hold',
+  }
+  const image = generationNode('image', {
+    schema_version: 1,
+    image: { aspect_ratio: '16:9', shot_controls: staticControls },
+  })
+  expect(resolveGenerationRequestContext(image, 'image', [image], [], capabilities)).toMatchObject({
+    parameterError: '', shotControls: staticControls,
+    parameters: { schema_version: 1, image: { aspect_ratio: '16:9', shot_controls: staticControls } },
+  })
+  const withdrawnImageCapabilities = parseGenerationCapabilities({
+    ...GENERATION_CAPABILITIES,
+    image: {
+      ...GENERATION_CAPABILITIES.image,
+      shot_controls: {
+        ...GENERATION_CAPABILITIES.image.shot_controls,
+        supported_controls: ['framing', 'focus', 'lighting'],
+        provider_controls: ['framing', 'focus', 'lighting'],
+      },
+    },
+  })
+  expect(resolveGenerationRequestContext(image, 'image', [image], [], withdrawnImageCapabilities).parameterError)
+    .toContain('不支持此镜头控制')
+
+  const video = generationNode('video', {
+    schema_version: 1,
+    video: {
+      duration_seconds: 5, reference_mode: 'image-to-video', primary_reference_node_id: 'reference-a',
+      shot_controls: { ...staticControls, angle: 'low-angle', temporal: 'advance' },
+    },
+  })
+  const reference = referenceNode('reference-a')
+  expect(resolveGenerationRequestContext(video, 'video', [video, reference], [
+    mediaConnection('shot-reference', reference.id, video.id, 1),
+  ], capabilities)).toMatchObject({
+    parameterError: '',
+    shotControls: { ...staticControls, angle: 'low-angle', temporal: 'advance' },
+  })
+
+  const invalidTemporal = generationNode('video', {
+    schema_version: 1,
+    video: {
+      duration_seconds: 5, reference_mode: 'text-to-video',
+      shot_controls: { ...staticControls, temporal: 'rewind' },
+    },
+  })
+  expect(resolveGenerationRequestContext(invalidTemporal, 'video', [invalidTemporal], [], capabilities).parameterError)
+    .toContain('图生视频')
+
+  for (const malformed of [
+    { ...GENERATION_CAPABILITIES, image: { ...GENERATION_CAPABILITIES.image, shot_controls: { ...GENERATION_CAPABILITIES.image.shot_controls, supported_controls: ['angle', 'angle'] } } },
+    { ...GENERATION_CAPABILITIES, video: { ...GENERATION_CAPABILITIES.video, shot_controls: { ...GENERATION_CAPABILITIES.video.shot_controls, provider_controls: ['angle'] } } },
+    { ...GENERATION_CAPABILITIES, image: { ...GENERATION_CAPABILITIES.image, shot_controls: { ...GENERATION_CAPABILITIES.image.shot_controls, defaults: { ...GENERATION_CAPABILITIES.image.shot_controls.defaults, angle: 'low-angle' } } } },
+  ]) expect(() => parseGenerationCapabilities(malformed)).toThrow('capability contract 无效')
 })
 
 test('video resolver requires explicit multi-reference intent and preserves exact exclusions', () => {
@@ -198,6 +262,98 @@ test('image ratio persists through one-command undo redo reload and matches requ
   await page.screenshot({ path: resolve(evidenceDirectory, 'image-ratio-preflight-1440x900.png'), fullPage: true })
 })
 
+test('shot controls persist as one reversible parameter command and reach the exact mock snapshot', async ({ page }) => {
+  const state = createResourceMockState()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '封面生成')
+  const controls = page.getByRole('region', { name: '生成参数' })
+  await expect(controls.getByLabel('镜头角度')).toHaveValue('eye-level')
+  await controls.getByLabel('镜头角度').selectOption('high-angle')
+  await expect.poll(() => documentPatches(state).length).toBe(1)
+  const savedParameters = () => {
+    const generation = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')!
+    return (generation.content as Record<string, unknown>).generation_parameters
+  }
+  const expectedControls = {
+    contract_version: 1,
+    angle: 'high-angle', framing: 'medium', focus: 'deep', lighting: 'natural', temporal: 'hold',
+  }
+  expect(savedParameters()).toEqual({
+    schema_version: 1,
+    image: { aspect_ratio: '4:3', shot_controls: expectedControls },
+  })
+
+  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
+  await page.keyboard.press('Control+z')
+  await expect.poll(() => documentPatches(state).length).toBe(2)
+  expect(savedParameters()).toBeUndefined()
+  await page.keyboard.press('Control+Shift+z')
+  await expect.poll(() => documentPatches(state).length).toBe(3)
+  expect(savedParameters()).toEqual({
+    schema_version: 1,
+    image: { aspect_ratio: '4:3', shot_controls: expectedControls },
+  })
+
+  await page.reload()
+  await selectNode(page, '封面生成')
+  await expect(page.getByLabel('镜头角度')).toHaveValue('high-angle')
+  await page.getByRole('button', { name: '开始图片生成' }).click()
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/image-generate').length).toBe(1)
+  expect(state.requests.find((item) => item.path === '/api/image-generate')?.body).toEqual(expect.objectContaining({
+    shot_controls: expectedControls,
+  }))
+  const accessibility = await new AxeBuilder({ page }).include('.context-panel').analyze()
+  expect(accessibility.violations.filter((violation) => (
+    violation.impact === 'serious' || violation.impact === 'critical'
+  ))).toEqual([])
+  await mkdir(shotEvidenceDirectory, { recursive: true })
+  await page.locator('.context-panel').screenshot({ path: resolve(shotEvidenceDirectory, 'shot-controls-1440x900.png') })
+})
+
+test('time advance is available only on a single-reference image-to-video branch and reaches its snapshot', async ({ page }) => {
+  const state = createResourceMockState()
+  const document = state.documents[FIRST_CANVAS_ID]
+  const source = document.nodes.find((node) => node.id === 'result-existing')!
+  const video = structuredClone(document.nodes.find((node) => node.id === 'generation-cover')!)
+  video.id = 'generation-shot-video'
+  video.position_x = 980
+  video.position_y = 420
+  video.content = {
+    title: '时间镜头视频', subtype: 'video', serialization_version: 1, text: '从静帧前推到下一瞬间。', generation_status: 'idle',
+  }
+  document.nodes.push(video)
+  document.connections.push({
+    ...structuredClone(document.connections[0]),
+    id: 'connection-shot-video-reference', source_node_id: source.id, target_node_id: video.id,
+    source_port: 'out', target_port: 'media', metadata: { input_order: 1 },
+  })
+
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '时间镜头视频')
+  const controls = page.getByRole('region', { name: '生成参数' })
+  await expect(controls.getByLabel('时间方向')).toBeEnabled()
+  await controls.getByLabel('时间方向').selectOption('advance')
+  await expect.poll(() => documentPatches(state).length).toBe(1)
+  const expectedControls = {
+    contract_version: 1,
+    angle: 'eye-level', framing: 'medium', focus: 'deep', lighting: 'natural', temporal: 'advance',
+  }
+  const savedVideo = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === video.id)!
+  expect((savedVideo.content as Record<string, unknown>).generation_parameters).toEqual({
+    schema_version: 1,
+    video: {
+      duration_seconds: 5, reference_mode: 'image-to-video', primary_reference_node_id: 'result-existing',
+      shot_controls: expectedControls,
+    },
+  })
+  await page.getByRole('button', { name: '开始视频生成' }).click()
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/video-generate').length).toBe(1)
+  expect(state.requests.find((item) => item.path === '/api/video-generate')?.body).toEqual(expect.objectContaining({
+    reference_mode: 'image-to-video', image_ids: ['asset-generated'], shot_controls: expectedControls,
+  }))
+})
+
 test('multi-reference video stays blocked until keyframes and duration are explicitly selected', async ({ page }) => {
   const state = createResourceMockState()
   addTwoOriginMerge(state)
@@ -215,6 +371,10 @@ test('multi-reference video stays blocked until keyframes and duration are expli
   const controls = page.getByRole('region', { name: '生成参数' })
   await controls.getByRole('radio', { name: '关键帧' }).click()
   await expect.poll(() => documentPatches(state).length).toBe(1)
+  await expect.poll(() => {
+    const content = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'generation-two-origin-merge')?.content
+    return (content as Record<string, unknown>).generation_parameters
+  }).toEqual({ schema_version: 1, video: { duration_seconds: 5, reference_mode: 'keyframes' } })
   await controls.getByRole('radio', { name: '10s' }).click()
   await expect.poll(() => documentPatches(state).length).toBe(2)
   await page.getByText('检查最终生成请求').click()
@@ -237,12 +397,22 @@ test('readonly parameters remain reviewable and offline capability loading block
   const generation = readonlyState.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')!
   generation.content = {
     ...(generation.content as Record<string, unknown>),
-    generation_parameters: { schema_version: 1, image: { aspect_ratio: '3:4' } },
+    generation_parameters: {
+      schema_version: 1,
+      image: {
+        aspect_ratio: '3:4',
+        shot_controls: {
+          contract_version: 1,
+          angle: 'high-angle', framing: 'medium', focus: 'deep', lighting: 'natural', temporal: 'hold',
+        },
+      },
+    },
   }
   await openResourceWorkspace(page, readonlyState, { width: 375, height: 812 })
   await selectNode(page, '封面生成')
   const controls = page.getByRole('region', { name: '生成参数' })
   await expect(controls).toContainText('比例 3:4')
+  await expect(controls).toContainText('镜头角度 俯视')
   await expect(controls.getByRole('radio')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '开始图片生成' })).toHaveCount(0)
   await expect.poll(async () => {

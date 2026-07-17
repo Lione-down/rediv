@@ -155,10 +155,12 @@ class GenerationProviderValidationTestCase(unittest.TestCase):
         self.assertEqual(401, unauthenticated.status_code)
         self.assertEqual(200, authenticated.status_code)
         payload = authenticated.json()
-        self.assertEqual(2, payload["contract_version"])
+        self.assertEqual(3, payload["contract_version"])
         self.assertEqual("4:3", payload["image"]["default_aspect_ratio"])
         self.assertEqual(["region"], payload["image"]["operations"]["supported_operations"])
         self.assertEqual([], payload["image"]["operations"]["provider_operations"])
+        self.assertEqual([], payload["image"]["shot_controls"]["supported_controls"])
+        self.assertEqual([], payload["video"]["shot_controls"]["provider_controls"])
         self.assertEqual([81, 121, 241, 441], [item["num_frames"] for item in payload["video"]["duration_presets"]])
 
     def test_unsupported_image_operation_fails_before_task_quota_or_provider_mutation(self) -> None:
@@ -188,6 +190,29 @@ class GenerationProviderValidationTestCase(unittest.TestCase):
                     "feather": 0,
                     "invert": False,
                 },
+            },
+        }
+
+        with patch.object(backend_main, "_agnes", provider):
+            response = self.client.post("/api/image-generate", json=payload, headers=self.headers)
+
+        self.assertEqual(422, response.status_code)
+        self.assertEqual([], provider.image_calls)
+        self.assertEqual(0, self._task_count())
+        self.assertEqual(original_quota, self._database_quota("image"))
+
+    def test_crafted_shot_controls_fail_before_task_quota_or_provider_mutation(self) -> None:
+        provider = _Provider(image_response={"data": [{"url": "https://example.com/out.png"}]})
+        original_quota = self._database_quota("image")
+        payload = {
+            **self._payload("A wide exterior shot"),
+            "shot_controls": {
+                "contract_version": 1,
+                "angle": "high-angle",
+                "framing": "wide",
+                "focus": "deep",
+                "lighting": "natural",
+                "temporal": "hold",
             },
         }
 
@@ -241,6 +266,23 @@ class GenerationProviderValidationTestCase(unittest.TestCase):
                     **self._payload("Invalid duration"),
                     "reference_mode": "text-to-video",
                     "duration_seconds": 7,
+                },
+            ),
+            (
+                "/api/video-generate",
+                {
+                    **self._payload("Do not execute crafted shot direction"),
+                    "image_ids": [source["id"]],
+                    "reference_mode": "image-to-video",
+                    "duration_seconds": 5,
+                    "shot_controls": {
+                        "contract_version": 1,
+                        "angle": "low-angle",
+                        "framing": "medium",
+                        "focus": "deep",
+                        "lighting": "natural",
+                        "temporal": "advance",
+                    },
                 },
             ),
         ]

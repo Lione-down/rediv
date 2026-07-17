@@ -13,17 +13,25 @@ import {
   type ImageOperationCapabilities,
   type ProviderImageOperationId,
 } from './image-operations'
+import {
+  formatShotControls,
+  parseShotControlCapabilities,
+  parseShotControls,
+  type ShotControlCapabilities,
+  type ShotControls,
+} from './shot-controls'
 
 export type VideoReferenceMode = 'text-to-video' | 'image-to-video' | 'keyframes'
 
 export interface GenerationCapabilities {
-  contract_version: 1 | 2
+  contract_version: 1 | 2 | 3
   image: {
     model: string
     size: string
     aspect_ratios: string[]
     default_aspect_ratio: string
     operations: ImageOperationCapabilities | null
+    shotControls: ShotControlCapabilities | null
   }
   video: {
     model: string
@@ -38,17 +46,22 @@ export interface GenerationCapabilities {
       num_frames: number
       frame_rate: number
     }>
+    shotControls: ShotControlCapabilities | null
   }
 }
 
 export type GenerationNodeParameters =
-  | { schema_version: 1; image: { aspect_ratio: string; operation?: ImageOperationContract } }
+  | {
+      schema_version: 1
+      image: { aspect_ratio: string; operation?: ImageOperationContract; shot_controls?: ShotControls }
+    }
   | {
       schema_version: 1
       video: {
         duration_seconds: number
         reference_mode: VideoReferenceMode
         primary_reference_node_id?: string
+        shot_controls?: ShotControls
       }
     }
 
@@ -61,6 +74,8 @@ export interface ResolvedGenerationRequestContext extends ResolvedGenerationCont
   aspectRatio?: string
   durationSeconds?: number
   imageOperation?: ImageOperationContract
+  shotControls?: ShotControls
+  shotControlCapabilities?: ShotControlCapabilities
   referenceMode?: VideoReferenceMode
   primaryReferenceNodeId?: string
   parameterSummary: string[]
@@ -83,7 +98,7 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 export function parseGenerationCapabilities(value: unknown): GenerationCapabilities {
-  if (!isRecord(value) || ![1, 2].includes(Number(value.contract_version)) || !isRecord(value.image) || !isRecord(value.video)) {
+  if (!isRecord(value) || ![1, 2, 3].includes(Number(value.contract_version)) || !isRecord(value.image) || !isRecord(value.video)) {
     throw new Error('生成参数 capability contract 无效。')
   }
   const image = value.image
@@ -92,6 +107,8 @@ export function parseGenerationCapabilities(value: unknown): GenerationCapabilit
   const modes = video.reference_modes
   const presets = video.duration_presets
   let operations: ImageOperationCapabilities | null = null
+  let imageShotControls: ShotControlCapabilities | null = null
+  let videoShotControls: ShotControlCapabilities | null = null
   if (
     !isNonEmptyString(image.model) || !isNonEmptyString(image.size) ||
     !Array.isArray(ratios) || !ratios.length || ratios.some((item) => !isNonEmptyString(item)) ||
@@ -106,8 +123,16 @@ export function parseGenerationCapabilities(value: unknown): GenerationCapabilit
     video.min_keyframes > video.max_keyframes || !Array.isArray(presets) || !presets.length
   ) throw new Error('生成参数 capability contract 无效。')
   try {
-    if (value.contract_version === 2) operations = parseImageOperationCapabilities(image.operations)
-    else if (image.operations !== undefined) throw new Error('legacy capability cannot declare operations')
+    if (value.contract_version === 2) {
+      operations = parseImageOperationCapabilities(image.operations)
+      if (image.shot_controls !== undefined || video.shot_controls !== undefined) throw new Error('legacy capability cannot declare shot controls')
+    } else if (value.contract_version === 3) {
+      operations = parseImageOperationCapabilities(image.operations)
+      imageShotControls = parseShotControlCapabilities(image.shot_controls, 'image')
+      videoShotControls = parseShotControlCapabilities(video.shot_controls, 'video')
+    } else if (image.operations !== undefined || image.shot_controls !== undefined || video.shot_controls !== undefined) {
+      throw new Error('legacy capability cannot declare extensions')
+    }
   } catch {
     throw new Error('生成参数 capability contract 无效。')
   }
@@ -130,13 +155,14 @@ export function parseGenerationCapabilities(value: unknown): GenerationCapabilit
   ) throw new Error('生成参数 capability contract 无效。')
 
   return {
-    contract_version: value.contract_version as 1 | 2,
+    contract_version: value.contract_version as 1 | 2 | 3,
     image: {
       model: image.model,
       size: image.size,
       aspect_ratios: [...ratios],
       default_aspect_ratio: image.default_aspect_ratio,
       operations,
+      shotControls: imageShotControls,
     },
     video: {
       model: video.model,
@@ -147,6 +173,7 @@ export function parseGenerationCapabilities(value: unknown): GenerationCapabilit
       min_keyframes: video.min_keyframes,
       max_keyframes: video.max_keyframes,
       duration_presets: normalizedPresets,
+      shotControls: videoShotControls,
     },
   }
 }
@@ -272,9 +299,26 @@ export function resolveGenerationRequestContext(
         return failedContext(base, mediaType, capabilities, '图片操作的有效参考图与分支 contract 不一致，当前请求已阻止。')
       }
     }
+    let shotControls: ShotControls | undefined
+    if (isRecord(image) && image.shot_controls !== undefined) {
+      if (imageOperation || !capabilities.image.shotControls) {
+        return failedContext(base, mediaType, capabilities, '节点保存的镜头控制不受当前 capability 支持，请重新选择。')
+      }
+      try {
+        shotControls = parseShotControls(
+          image.shot_controls, capabilities.image.shotControls, 'image', null, base.imageIds,
+        )
+      } catch (error) {
+        return failedContext(base, mediaType, capabilities, (error as Error).message)
+      }
+    }
     const parameters: GenerationNodeParameters = {
       schema_version: 1,
-      image: { aspect_ratio: aspectRatio, ...(imageOperation ? { operation: imageOperation } : {}) },
+      image: {
+        aspect_ratio: aspectRatio,
+        ...(imageOperation ? { operation: imageOperation } : {}),
+        ...(shotControls ? { shot_controls: shotControls } : {}),
+      },
     }
     return {
       ...base,
@@ -285,8 +329,11 @@ export function resolveGenerationRequestContext(
       parameters,
       aspectRatio,
       imageOperation,
+      shotControls,
+      shotControlCapabilities: capabilities.image.shotControls ?? undefined,
       parameterSummary: [
         ...(imageOperation ? [`操作 ${IMAGE_OPERATIONS[imageOperation.id].title}`] : []),
+        ...formatShotControls(shotControls),
         `比例 ${aspectRatio}`,
         `规格 ${capabilities.image.size}`,
       ],
@@ -342,6 +389,19 @@ export function resolveGenerationRequestContext(
     selectedNodeIds = new Set(validSources.map((source) => source.nodeId))
   }
   const selected = applyMediaSelection(base, selectedNodeIds)
+  let shotControls: ShotControls | undefined
+  if (isRecord(video) && video.shot_controls !== undefined) {
+    if (!capabilities.video.shotControls) {
+      return failedContext(base, mediaType, capabilities, '节点保存的镜头控制不受当前 capability 支持，请重新选择。')
+    }
+    try {
+      shotControls = parseShotControls(
+        video.shot_controls, capabilities.video.shotControls, 'video', referenceMode, selected.imageIds,
+      )
+    } catch (error) {
+      return failedContext(base, mediaType, capabilities, (error as Error).message)
+    }
+  }
   const framePreset = capabilities.video.duration_presets.find((preset) => (
     preset.duration_seconds === durationSeconds
   ))!
@@ -351,6 +411,7 @@ export function resolveGenerationRequestContext(
       duration_seconds: durationSeconds,
       reference_mode: referenceMode,
       ...(primaryReferenceNodeId ? { primary_reference_node_id: primaryReferenceNodeId } : {}),
+      ...(shotControls ? { shot_controls: shotControls } : {}),
     },
   }
   return {
@@ -364,11 +425,14 @@ export function resolveGenerationRequestContext(
     durationSeconds,
     referenceMode,
     primaryReferenceNodeId,
+    shotControls,
+    shotControlCapabilities: capabilities.video.shotControls ?? undefined,
     parameterSummary: [
       `模式 ${referenceMode}`,
       `时长 ${durationSeconds}s`,
       `${framePreset.num_frames} 帧 @ ${framePreset.frame_rate}fps`,
       `${capabilities.video.width}×${capabilities.video.height}`,
+      ...formatShotControls(shotControls),
     ],
   }
 }

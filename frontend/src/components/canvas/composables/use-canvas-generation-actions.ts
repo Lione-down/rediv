@@ -11,6 +11,7 @@ import {
   type GenerationNodeParameters,
 } from '../../../modules/canvas/generation-parameters'
 import { resolveVisualAssetRecipe, type VisualAssetRecipeId } from '../../../modules/canvas/visual-asset-recipes'
+import type { ShotControls } from '../../../modules/canvas/shot-controls'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
@@ -51,6 +52,7 @@ interface GenerationExecutionOptions {
   recipeId?: VisualAssetRecipeId
   recipeVersion?: 1 | 2
   imageOperation?: ImageOperationContract
+  shotControls?: ShotControls
   parameters?: GenerationNodeParameters | null
 }
 
@@ -109,6 +111,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
         recipeId: requestContext.recipeId,
         recipeVersion: requestContext.recipeVersion,
         imageOperation: requestContext.imageOperation,
+        shotControls: requestContext.shotControls,
       }, authStore, request)
       if (!response.asset) throw new Error('生成已完成，但响应缺少结果资产。')
       resourceStore.upsertAsset(response.asset)
@@ -167,6 +170,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
       referenceMode: context.referenceMode,
       durationSeconds: context.durationSeconds,
       imageOperation: operation,
+      shotControls: context.shotControls,
       parameters: context.parameters,
     }, operation && !IMAGE_OPERATIONS[operation.id].requiresPrompt ? undefined : prompt)
   }

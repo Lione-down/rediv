@@ -334,6 +334,15 @@ test('duplicate command copies selected nodes and only their internal connection
       id: 'node-a', type: 'generation', title: 'A', x: 10, y: 20, width: 240, height: 140,
       contentData: {
         subtype: 'image', serialization_version: 1, nested: { value: 1 },
+        generation_parameters: {
+          schema_version: 1,
+          image: {
+            aspect_ratio: '4:3',
+            shot_controls: {
+              contract_version: 1, angle: 'high-angle', framing: 'medium', focus: 'deep', lighting: 'natural', temporal: 'hold',
+            },
+          },
+        },
         generation_status: 'succeeded', generation_task_id: 'task-old',
         result_materialized_task_id: 'task-old',
       },
@@ -381,6 +390,15 @@ test('duplicate command copies selected nodes and only their internal connection
   expect(selection).toEqual(['copy-3', 'copy-4'])
   expect(nodes[3].contentData).toEqual({
     subtype: 'image', serialization_version: 1, nested: { value: 1 },
+    generation_parameters: {
+      schema_version: 1,
+      image: {
+        aspect_ratio: '4:3',
+        shot_controls: {
+          contract_version: 1, angle: 'high-angle', framing: 'medium', focus: 'deep', lighting: 'natural', temporal: 'hold',
+        },
+      },
+    },
   })
 })
 

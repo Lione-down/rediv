@@ -185,6 +185,7 @@ async def video_generate(
         reference_mode=payload.reference_mode,
         duration_seconds=payload.duration_seconds,
         image_ids=payload.image_ids,
+        shot_controls=payload.shot_controls,
     )
     try:
         task, input_images = generation_controller.start_video_generation_task(

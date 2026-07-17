@@ -1,5 +1,9 @@
+const SHOT_CONTROL_DEFAULTS = {
+  angle: 'eye-level', framing: 'medium', focus: 'deep', lighting: 'natural', temporal: 'hold',
+} as const
+
 export const GENERATION_CAPABILITIES = {
-  contract_version: 2,
+  contract_version: 3,
   image: {
     model: 'agnes-image-2.1-flash', size: '1K',
     aspect_ratios: ['1:1', '3:4', '4:3', '16:9', '9:16', '2:3', '3:2', '21:9'],
@@ -12,6 +16,12 @@ export const GENERATION_CAPABILITIES = {
       max_fusion_images: 8,
       upscale_factors: [2, 4],
     },
+    shot_controls: {
+      contract_version: 1,
+      supported_controls: ['angle', 'framing', 'focus', 'lighting'],
+      provider_controls: ['angle', 'framing', 'focus', 'lighting'],
+      defaults: SHOT_CONTROL_DEFAULTS,
+    },
   },
   video: {
     model: 'agnes-video-v2.0', width: 1152, height: 768,
@@ -23,6 +33,12 @@ export const GENERATION_CAPABILITIES = {
       { duration_seconds: 10, num_frames: 241, frame_rate: 24 },
       { duration_seconds: 18, num_frames: 441, frame_rate: 24 },
     ],
+    shot_controls: {
+      contract_version: 1,
+      supported_controls: ['angle', 'framing', 'focus', 'lighting', 'temporal'],
+      provider_controls: ['angle', 'framing', 'focus', 'lighting', 'temporal'],
+      defaults: SHOT_CONTROL_DEFAULTS,
+    },
   },
 } as const
 
@@ -42,6 +58,7 @@ export function createMockGenerationRequestParameters(
         generation_recipe_version: requestBody.generation_recipe_version,
       } : {}),
       ...(requestBody.image_operation ? { image_operation: requestBody.image_operation } : {}),
+      ...(requestBody.shot_controls ? { shot_controls: requestBody.shot_controls } : {}),
     }
   }
   const durationSeconds = Number(requestBody.duration_seconds ?? 5)
@@ -54,5 +71,6 @@ export function createMockGenerationRequestParameters(
     num_frames: framePreset?.num_frames, frame_rate: framePreset?.frame_rate,
     width: GENERATION_CAPABILITIES.video.width, height: GENERATION_CAPABILITIES.video.height,
     image_ids: imageIds,
+    ...(requestBody.shot_controls ? { shot_controls: requestBody.shot_controls } : {}),
   }
 }

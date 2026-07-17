@@ -6,6 +6,12 @@ import type {
   VideoReferenceMode,
 } from '../../modules/canvas/generation-parameters'
 import CanvasImageOperationControls from './CanvasImageOperationControls.vue'
+import {
+  createShotControls,
+  SHOT_CONTROL_DEFINITIONS,
+  type ShotControlId,
+  type ShotControls,
+} from '../../modules/canvas/shot-controls'
 
 const props = defineProps<{
   context: ResolvedGenerationRequestContext
@@ -25,13 +31,17 @@ const selectedDuration = computed(() => (
 ))
 const selectedMode = computed(() => props.context.referenceMode ?? '')
 const selectedPrimaryNodeId = computed(() => props.context.primaryReferenceNodeId ?? '')
+const activeShotControls = computed(() => (
+  props.context.shotControlCapabilities?.supported_controls.map((control) => SHOT_CONTROL_DEFINITIONS[control]) ?? []
+))
 
-function updateImage(aspectRatio: string) {
+function updateImage(aspectRatio: string, shotControls: ShotControls | undefined) {
   emit('updateParameters', {
     schema_version: 1,
     image: {
       aspect_ratio: aspectRatio,
       ...(props.context.imageOperation ? { operation: props.context.imageOperation } : {}),
+      ...(shotControls ? { shot_controls: shotControls } : {}),
     },
   })
 }
@@ -40,6 +50,7 @@ function updateVideo(change: {
   durationSeconds?: number
   referenceMode?: VideoReferenceMode
   primaryReferenceNodeId?: string
+  shotControls?: ShotControls
 }) {
   const referenceMode = change.referenceMode ?? props.context.referenceMode ?? (
     validMediaSources.value.length ? 'image-to-video' : 'text-to-video'
@@ -47,14 +58,38 @@ function updateVideo(change: {
   const primaryReferenceNodeId = referenceMode === 'image-to-video'
     ? change.primaryReferenceNodeId ?? props.context.primaryReferenceNodeId ?? validMediaSources.value[0]?.nodeId
     : undefined
+  const hasShotControlsChange = Object.prototype.hasOwnProperty.call(change, 'shotControls')
+  let shotControls: ShotControls | undefined = hasShotControlsChange
+    ? change.shotControls
+    : props.context.shotControls
+  if (referenceMode !== 'image-to-video' && shotControls && shotControls.temporal !== 'hold') {
+    shotControls = { ...shotControls, temporal: 'hold' } as ShotControls
+  }
   emit('updateParameters', {
     schema_version: 1,
     video: {
       duration_seconds: change.durationSeconds ?? selectedDuration.value,
       reference_mode: referenceMode,
       ...(primaryReferenceNodeId ? { primary_reference_node_id: primaryReferenceNodeId } : {}),
+      ...(shotControls ? { shot_controls: shotControls } : {}),
     },
   })
+}
+
+function updateShotControl(control: ShotControlId, event: Event) {
+  const value = (event.target as HTMLSelectElement).value
+  const shotControls = createShotControls(props.context.shotControls, control, value)
+  if (props.context.mediaType === 'image') {
+    updateImage(props.context.aspectRatio ?? props.context.capabilities?.image.default_aspect_ratio ?? '4:3', shotControls)
+    return
+  }
+  updateVideo({ shotControls })
+}
+
+function isShotControlDisabled(control: ShotControlId) {
+  return Boolean(props.disabled) || (
+    control === 'temporal' && props.context.mediaType === 'video' && selectedMode.value !== 'image-to-video'
+  )
 }
 </script>
 
@@ -82,7 +117,7 @@ function updateVideo(change: {
               name="generation-aspect-ratio"
               :checked="context.aspectRatio === ratio"
               :value="ratio"
-              @change="updateImage(ratio)"
+              @change="updateImage(ratio, context.shotControls)"
             />
             <span>{{ ratio }}</span>
           </label>
@@ -151,6 +186,28 @@ function updateVideo(change: {
         {{ context.capabilities.video.model }} · {{ context.capabilities.video.width }}×{{ context.capabilities.video.height }}
       </p>
     </template>
+    <fieldset
+      v-if="!readonly && !context.isRecipe && !context.parameterError && !context.imageOperation && activeShotControls.length"
+      :disabled="disabled"
+    >
+      <legend>镜头控制</legend>
+      <div class="generation-parameters__shot-controls">
+        <label v-for="definition in activeShotControls" :key="definition.id" :class="{ disabled: isShotControlDisabled(definition.id) }">
+          <span class="generation-parameters__shot-label">{{ definition.title }}</span>
+          <select
+            :aria-label="definition.title"
+            :disabled="isShotControlDisabled(definition.id)"
+            :value="context.shotControls?.[definition.id] ?? context.shotControlCapabilities?.defaults[definition.id]"
+            @change="updateShotControl(definition.id, $event)"
+          >
+            <option v-for="choice in definition.values" :key="choice.value" :value="choice.value">{{ choice.label }}</option>
+          </select>
+        </label>
+      </div>
+      <p v-if="context.mediaType === 'video' && selectedMode !== 'image-to-video'" class="generation-parameters__hint">
+        时间前推/后推仅适用于单参考图的图生视频。
+      </p>
+    </fieldset>
     <CanvasImageOperationControls
       v-if="context.imageOperation"
       :context="context"
@@ -170,6 +227,11 @@ legend { margin-bottom: 6px; color: var(--v2-text-secondary); font-size: 10px; }
 .generation-parameters__choices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
 .generation-parameters__choices.is-mode { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .generation-parameters__choices.is-primary { grid-template-columns: 1fr; }
+.generation-parameters__shot-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.generation-parameters__shot-controls label { display: grid; min-height: 0; gap: 4px; place-items: stretch; }
+.generation-parameters__shot-label { min-height: 0; padding: 0; border: 0; color: var(--v2-text-secondary); background: transparent; font-size: 10px; text-align: left; white-space: normal; }
+.generation-parameters__shot-controls select { width: 100%; min-height: 34px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); color: var(--v2-text-primary); background: var(--v2-surface-2); font: inherit; font-size: 11px; }
+.generation-parameters__shot-controls select:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 label { position: relative; display: grid; min-width: 0; min-height: 40px; place-items: center; cursor: pointer; }
 label input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 label span { display: grid; width: 100%; min-height: 40px; place-items: center; padding: 5px; overflow: hidden; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: var(--v2-surface-2); font-size: 10px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }

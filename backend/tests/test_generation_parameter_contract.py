@@ -12,6 +12,7 @@ from core.generation_parameter_contract import (
     normalize_image_parameters,
     normalize_video_parameters,
 )
+from core.shot_control_contract import build_shot_control_capabilities
 from core.image_operation_contract import (
     ImageOperationContractError,
     build_image_operation_capabilities,
@@ -23,13 +24,14 @@ class GenerationParameterContractTestCase(unittest.TestCase):
     def test_capability_document_has_exact_backend_owned_values(self) -> None:
         self.assertEqual(
             {
-                "contract_version": 2,
+                "contract_version": 3,
                 "image": {
                     "model": "agnes-image-2.1-flash",
                     "size": "1K",
                     "aspect_ratios": ["1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9"],
                     "default_aspect_ratio": "4:3",
                     "operations": build_image_operation_capabilities(),
+                    "shot_controls": build_shot_control_capabilities("image"),
                 },
                 "video": {
                     "model": "agnes-video-v2.0",
@@ -45,6 +47,7 @@ class GenerationParameterContractTestCase(unittest.TestCase):
                         {"duration_seconds": 10, "num_frames": 241, "frame_rate": 24},
                         {"duration_seconds": 18, "num_frames": 441, "frame_rate": 24},
                     ],
+                    "shot_controls": build_shot_control_capabilities("video"),
                 },
             },
             build_generation_capabilities(),
@@ -180,6 +183,75 @@ class GenerationParameterContractTestCase(unittest.TestCase):
 
         with self.assertRaisesRegex(GenerationParameterError, "unsupported image aspect ratio"):
             normalize_image_parameters(aspect_ratio="5:4", image_ids=[])
+
+    def test_mock_shot_controls_are_exactly_snapshotted_and_production_fails_closed(self) -> None:
+        image_controls = {
+            "contract_version": 1,
+            "angle": "high-angle",
+            "framing": "wide",
+            "focus": "shallow",
+            "lighting": "dramatic",
+            "temporal": "hold",
+        }
+        video_controls = {
+            "contract_version": 1,
+            "angle": "low-angle",
+            "framing": "close-up",
+            "focus": "shallow",
+            "lighting": "soft",
+            "temporal": "advance",
+        }
+
+        image = normalize_image_parameters(
+            aspect_ratio="16:9",
+            image_ids=["asset-a"],
+            shot_controls=image_controls,
+            provider_shot_controls=("angle", "framing", "focus", "lighting"),
+        )
+        self.assertEqual(image_controls, image.request_parameters["shot_controls"])
+        video = normalize_video_parameters(
+            reference_mode="image-to-video",
+            duration_seconds=5,
+            image_ids=["asset-a"],
+            shot_controls=video_controls,
+            provider_shot_controls=("angle", "framing", "focus", "lighting", "temporal"),
+        )
+        self.assertEqual(video_controls, video.request_parameters["shot_controls"])
+
+        with self.assertRaisesRegex(GenerationParameterError, "unsupported shot controls"):
+            normalize_image_parameters(
+                aspect_ratio="16:9",
+                image_ids=["asset-a"],
+                shot_controls=image_controls,
+            )
+
+    def test_shot_control_temporal_and_contract_shape_fail_closed(self) -> None:
+        controls = {
+            "contract_version": 1,
+            "angle": "eye-level",
+            "framing": "medium",
+            "focus": "deep",
+            "lighting": "natural",
+            "temporal": "rewind",
+        }
+        provider_controls = ("angle", "framing", "focus", "lighting", "temporal")
+        for reference_mode, image_ids, message in [
+            ("text-to-video", [], "image-to-video"),
+            ("keyframes", ["asset-a", "asset-b"], "image-to-video"),
+            ("image-to-video", ["asset-a"], "fields"),
+        ]:
+            value = {**controls}
+            if message == "fields":
+                value["extra"] = True
+            with self.subTest(reference_mode=reference_mode, message=message):
+                with self.assertRaisesRegex(GenerationParameterError, message):
+                    normalize_video_parameters(
+                        reference_mode=reference_mode,
+                        duration_seconds=5,
+                        image_ids=image_ids,
+                        shot_controls=value,
+                        provider_shot_controls=provider_controls,
+                    )
 
     def test_recipe_image_is_fixed_and_never_accepts_an_aspect_ratio_override(self) -> None:
         normalized = normalize_image_parameters(
