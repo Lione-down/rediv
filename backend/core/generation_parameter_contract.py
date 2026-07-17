@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from core.audio_generation_contract import build_audio_generation_capabilities
 from core.image_operation_contract import build_image_operation_capabilities
 from core.shot_control_contract import (
     ShotControlContractError,
@@ -11,7 +12,7 @@ from core.shot_control_contract import (
 )
 
 
-CAPABILITY_CONTRACT_VERSION = 3
+CAPABILITY_CONTRACT_VERSION = 4
 CONTRACT_VERSION = 1
 IMAGE_MODEL = "agnes-image-2.1-flash"
 IMAGE_SIZE = "1K"
@@ -79,6 +80,7 @@ def build_generation_capabilities() -> dict[str, Any]:
             ],
             "shot_controls": build_shot_control_capabilities("video"),
         },
+        "audio": build_audio_generation_capabilities(),
     }
 
 

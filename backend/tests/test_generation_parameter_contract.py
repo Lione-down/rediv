@@ -12,6 +12,7 @@ from core.generation_parameter_contract import (
     normalize_image_parameters,
     normalize_video_parameters,
 )
+from core.audio_generation_contract import build_audio_generation_capabilities
 from core.shot_control_contract import build_shot_control_capabilities
 from core.image_operation_contract import (
     ImageOperationContractError,
@@ -24,7 +25,7 @@ class GenerationParameterContractTestCase(unittest.TestCase):
     def test_capability_document_has_exact_backend_owned_values(self) -> None:
         self.assertEqual(
             {
-                "contract_version": 3,
+                "contract_version": 4,
                 "image": {
                     "model": "agnes-image-2.1-flash",
                     "size": "1K",
@@ -49,6 +50,7 @@ class GenerationParameterContractTestCase(unittest.TestCase):
                     ],
                     "shot_controls": build_shot_control_capabilities("video"),
                 },
+                "audio": build_audio_generation_capabilities(),
             },
             build_generation_capabilities(),
         )

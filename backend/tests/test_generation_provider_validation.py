@@ -155,13 +155,17 @@ class GenerationProviderValidationTestCase(unittest.TestCase):
         self.assertEqual(401, unauthenticated.status_code)
         self.assertEqual(200, authenticated.status_code)
         payload = authenticated.json()
-        self.assertEqual(3, payload["contract_version"])
+        self.assertEqual(4, payload["contract_version"])
         self.assertEqual("4:3", payload["image"]["default_aspect_ratio"])
         self.assertEqual(["region"], payload["image"]["operations"]["supported_operations"])
         self.assertEqual([], payload["image"]["operations"]["provider_operations"])
         self.assertEqual([], payload["image"]["shot_controls"]["supported_controls"])
         self.assertEqual([], payload["video"]["shot_controls"]["provider_controls"])
         self.assertEqual([81, 121, 241, 441], [item["num_frames"] for item in payload["video"]["duration_presets"]])
+        self.assertEqual("unavailable", payload["audio"]["execution_mode"])
+        self.assertEqual([], payload["audio"]["generation_modes"])
+        self.assertFalse(payload["audio"]["quota"]["available"])
+        self.assertFalse(payload["audio"]["task"]["available"])
 
     def test_unsupported_image_operation_fails_before_task_quota_or_provider_mutation(self) -> None:
         source = store.create_asset(

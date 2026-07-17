@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   Clapperboard,
+  AudioLines,
   CornerDownLeft,
   FileText,
   Grid2X2,
@@ -36,6 +37,7 @@ function actionIcon(action: ResolvedProfessionalCanvasAction) {
   if (action.intent.type === 'create-shot-graph' || action.intent.type === 'create-storyboard-recipe') return Clapperboard
   if (action.intent.type === 'create-image-operation') return ImagePlus
   if (action.intent.type === 'open-workflow-batch') return ListChecks
+  if (action.intent.type === 'open-audio-generation-preflight') return AudioLines
   if (action.intent.type === 'open-video-edit-preflight') return Video
   if (action.intent.type === 'split-image-grid') return Grid2X2
   if (action.intent.nodeType === 'script') return FileText
@@ -49,6 +51,7 @@ function actionCategory(action: ResolvedProfessionalCanvasAction) {
   if (action.category === 'image-operation') return '专业图片操作'
   if (action.category === 'storyboard') return '故事板配方'
   if (action.category === 'workflow') return '批处理'
+  if (action.category === 'audio') return '音频工作流'
   if (action.category === 'video') return '视频编辑'
   return action.category === 'script' ? '脚本规划' : '画布创建'
 }

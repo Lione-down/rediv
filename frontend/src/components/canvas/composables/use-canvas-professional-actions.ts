@@ -16,6 +16,7 @@ interface CanvasProfessionalActionsOptions {
   createShotGraph?: () => Promise<unknown>
   createImageOperation?: (operationId: string, operationVersion: number) => Promise<unknown>
   createStoryboardRecipe?: (recipeId: string, recipeVersion: number) => Promise<unknown>
+  openAudioGenerationPreflight?: () => void
   openWorkflowBatch?: () => void
   openVideoEditPreflight?: () => void
   getInsertionPoint: () => { x: number; y: number }
@@ -63,6 +64,7 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
     .filter((action) => action.intent.type !== 'create-shot-graph' || Boolean(options.createShotGraph))
     .filter((action) => action.intent.type !== 'create-image-operation' || Boolean(options.createImageOperation))
     .filter((action) => action.intent.type !== 'create-storyboard-recipe' || Boolean(options.createStoryboardRecipe))
+    .filter((action) => action.intent.type !== 'open-audio-generation-preflight' || Boolean(options.openAudioGenerationPreflight))
     .filter((action) => action.intent.type !== 'open-workflow-batch' || Boolean(options.openWorkflowBatch))
     .filter((action) => action.intent.type !== 'open-video-edit-preflight' || Boolean(options.openVideoEditPreflight))
     .filter((action) => action.intent.type !== 'split-image-grid' || Boolean(options.splitImageGrid)))
@@ -154,6 +156,15 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
         return
       }
       options.openWorkflowBatch()
+      close()
+      return
+    }
+    if (action.intent.type === 'open-audio-generation-preflight') {
+      if (!options.openAudioGenerationPreflight) {
+        error.value = '音频生成预检当前不可用。'
+        return
+      }
+      options.openAudioGenerationPreflight()
       close()
       return
     }

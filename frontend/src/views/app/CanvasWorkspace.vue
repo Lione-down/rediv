@@ -44,6 +44,7 @@ const canvasDocumentStore = useCanvasStore()
 const canvasRevisionStore = useCanvasRevisionStore()
 const CanvasWorkflowBatchOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasWorkflowBatchOverlay.vue'))
 const CanvasVideoEditPreflightOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasVideoEditPreflightOverlay.vue'))
+const CanvasAudioGenerationPreflightOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasAudioGenerationPreflightOverlay.vue'))
 useCanvasPersistenceLifecycle()
 const isReviewOnly = ref(false)
 const isCompact = ref(false)
@@ -52,6 +53,7 @@ const isRevisionPanelOpen = ref(false)
 const isResultCompareOpen = ref(false)
 const workflowBatchOpen = ref(false)
 const videoEditPreflightOpen = ref(false)
+const audioGenerationPreflightOpen = ref(false)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
 const canvasStageRef = ref<CanvasStageHandle | null>(null)
 let revisionPanelOpener: HTMLElement | null = null
@@ -166,9 +168,15 @@ function openVideoEditPreflight() {
 function closeVideoEditPreflight() {
   videoEditPreflightOpen.value = false
 }
+function openAudioGenerationPreflight() {
+  audioGenerationPreflightOpen.value = true
+}
+function closeAudioGenerationPreflight() {
+  audioGenerationPreflightOpen.value = false
+}
 const professionalActionsBlocked = computed(() => (
   isRevisionPanelOpen.value || isResultCompareOpen.value || isResourceOpen.value ||
-  isContextDrawerOpen.value || workflowBatchOpen.value || videoEditPreflightOpen.value || viewMode.value !== 'workflow'
+  isContextDrawerOpen.value || workflowBatchOpen.value || videoEditPreflightOpen.value || audioGenerationPreflightOpen.value || viewMode.value !== 'workflow'
 ))
 const {
   actions: professionalActions,
@@ -190,6 +198,7 @@ const {
   isBusy: () => isUploading.value || isGenerating.value,
   isReadOnly: () => isReviewOnly.value || canvasRevisionStore.restoringRevision !== null,
   isWorkflowView: () => viewMode.value === 'workflow',
+  openAudioGenerationPreflight,
   projectId,
   openWorkflowBatch,
   openVideoEditPreflight,
@@ -492,6 +501,16 @@ onBeforeUnmount(() => {
         :is-review-only="isReviewOnly"
         :project-id="projectId"
         @close="closeVideoEditPreflight"
+      />
+
+      <CanvasAudioGenerationPreflightOverlay
+        v-if="audioGenerationPreflightOpen"
+        :assets="resourceStore.assets"
+        :capabilities="generationCapabilities"
+        :canvas-id="canvasId"
+        :is-review-only="isReviewOnly"
+        :project-id="projectId"
+        @close="closeAudioGenerationPreflight"
       />
 
       <header class="route-chrome" aria-label="Canvas route controls">

@@ -15,18 +15,17 @@ Last updated: 2026-07-18
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-088 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision).
+- Completed V2 Tasks: T5-001 through T5-089 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision).
 
 ## Active Delivery
 
-- Active implementation Task: none
-- State: `IDLE`
-- Last completed Task: `T5-088 - Video trim, concat, preview, export, and FFmpeg/backend contract decision`
-- Report: `ai/reports/REPORT-T5-088.md`
-- Task: `ai/tasks/todo/TASK-T5-088.md`
-- Plan: `ai/tasks/doing/TASK-T5-088-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-088-PROGRESS.md`
-- Exact next action: commit/push the reviewed T5-088 closure, verify the pushed baseline, then activate `T5-089 - Audio generation and audio-driven video with fail-closed capability/quota/task contracts`.
+- Active implementation Task: none; T5-089 is awaiting its exact scoped commit/push.
+- State: `VERIFYING`
+- Last completed Task: `T5-089 - Audio generation and audio-driven video with fail-closed capability/quota/task contracts` (`ai/reports/REPORT-T5-089.md`)
+- Task: `ai/tasks/todo/TASK-T5-089.md`
+- Plan: `ai/tasks/doing/TASK-T5-089-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-089-PROGRESS.md`
+- Exact next action: exact-stage, commit, and push T5-089-owned files; verify the pushed HEAD, then activate T5-090 as the sole implementation Task.
 
 ## Current Verified Facts
 
@@ -37,6 +36,8 @@ Last updated: 2026-07-18
 - T5-087 is `DONE - PASS`: a Revid-owned frontend v1 Workflow Template now preflights active-Canvas image/video generation nodes with deterministic dependencies, conservative existing quota-unit estimates, strict stale/malformed/cyclic/foreign fail-closed handling, and explicit session-local mock start/cancel/paused-recovery/resume. It never calls a provider or creates task/asset/quota/Canvas mutation. The async overlay preserves the normal Canvas hot path; focused final Chromium passed 14/14, build passed 4,900 modules, and final functional Chromium passed 466/466. The separately guarded SwiftShader 200/300 mock title retained its exact non-passing metric without threshold change and is classified with the retained live baseline in `REPORT-T5-087.md`.
 
 - T5-088 is `DONE - PASS`: a Revid-owned frontend v1 video-edit preflight validates selected Canvas-local project video sources, explicit trim bounds and concat order, native source/sequence preview, an initial dialog focus/Escape path, and an honest blocked export boundary. Existing generation tasks are not misused for editing and no media is processed. The fresh post-review build passed 4,907 modules; focused Chromium passed 11/11, related Canvas/video passed 54/54, and final functional Chromium passed 471/471 in 8.7 minutes. The separate SwiftShader-only 200/300 title measured 50.72477779708455 FPS / 33.400000000001455ms p95 against unchanged limits with no hardware acceleration; its two companion tests passed and it is classified in `REPORT-T5-088.md`.
+
+- T5-089 is `DONE - PASS`: backend capability v4 has one exact production-unavailable audio v1 section; backward-aware frontend parsing plus strict selected-source preflight validates script/audio/video/project/user/URL scope; synthetic mock-only proof has zero provider/quota/task/asset/output authority; and the accessible desktop Slash Palette panel preserves 375px review-only and zero Canvas/history/autosave mutation. Focused backend passed 22, focused Chromium 21/21, adjacent Chromium 71/71, repaired Storyboard 15/15, final functional Chromium 466/466, project-asset services 9, and final build 4,914 modules. The separately guarded 200/300 title remained unmodified and ran under SwiftShader/no hardware acceleration at 52.001311281480724 FPS / 33.399999999999636ms p95 versus unchanged 55/33 limits; stable render/pointer/long-task/minimap metrics and the companion functional performance/accessibility titles passed. This is transparently classified in `REPORT-T5-089.md`, not a threshold change. The unrelated existing AnyIO upload-worker import failure remains documented without a production workaround.
 
 - T5-004 through T5-007 now provide the complete pre-certification Canvas product: full-screen multi-Canvas routing, persistent Leafer world, deterministic command model, autosave/recovery/revisions, canonical node registry, project-shared resources, versioned templates, durable generation tasks/results, and backend-authoritative quota snapshots.
 - T5-007 Unit E adds responsive project resource and contextual generation controls, registry-backed asset/template insertion, durable success/failure result presentation, desktop/narrow keyboard behavior, and a strict 375px browse/review-only boundary.

@@ -16,7 +16,7 @@ import {
 } from './image-operations'
 
 export type { ImageGridOutputCount } from './image-grid-split'
-export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation' | 'workflow' | 'video'
+export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation' | 'workflow' | 'video' | 'audio'
 export type ProfessionalCanvasActionIntent =
   | { type: 'create-node'; nodeType: CanonicalNodeType; subtype: string }
   | { type: 'create-shot-graph' }
@@ -24,6 +24,7 @@ export type ProfessionalCanvasActionIntent =
   | { type: 'create-image-operation'; operationId: ImageOperationId; operationVersion: 1 }
   | { type: 'open-workflow-batch'; templateId: 'canvas-generation-batch'; templateVersion: 1 }
   | { type: 'open-video-edit-preflight'; templateId: 'video-edit-preflight'; templateVersion: 1 }
+  | { type: 'open-audio-generation-preflight'; templateId: 'audio-generation-preflight'; templateVersion: 1 }
   | { type: 'split-image-grid'; outputCount: ImageGridOutputCount }
 
 export interface ProfessionalCanvasActionDefinition {
@@ -134,6 +135,14 @@ export const PROFESSIONAL_CANVAS_ACTIONS = [
     description: '检查当前视频素材的裁剪、序列预览和导出边界。',
     keywords: ['视频', '裁剪', '拼接', '预览', '导出', 'trim', 'concat', 'preview', 'export'],
     intent: { type: 'open-video-edit-preflight', templateId: 'video-edit-preflight', templateVersion: 1 },
+  },
+  {
+    id: 'audio.generation-preflight',
+    category: 'audio',
+    title: '音频生成与驱动视频预检',
+    description: '检查脚本音频或音频驱动视频的 provider、quota 和任务边界。',
+    keywords: ['音频', '旁白', '声音', '音乐', '驱动视频', 'audio', 'speech', 'music', 'sound', 'preflight'],
+    intent: { type: 'open-audio-generation-preflight', templateId: 'audio-generation-preflight', templateVersion: 1 },
   },
   ...STORYBOARD_RECIPE_ACTIONS,
   ...IMAGE_OPERATION_ACTIONS,
@@ -246,6 +255,15 @@ function resolveEligibility(
           asset.type === 'video' && asset.status === 'active' && asset.url === url)
     })
     if (!eligible) return { eligible: false, reason: '请选择当前项目中可用的视频素材或结果节点。' }
+  }
+  if (action.intent.type === 'open-audio-generation-preflight') {
+    const hasPrompt = Boolean(resolveShotSchemaSource(context))
+    const mediaTypes = context.selectedNodes.map((node) => node.contentData?.subtype)
+    const hasAudioDrivenVideo = context.selectedNodes.length === 2 &&
+      mediaTypes.includes('audio') && mediaTypes.includes('video') && context.selectedNodes.every((node) => !node.isLocked)
+    if (!hasPrompt && !hasAudioDrivenVideo) {
+      return { eligible: false, reason: '请选择一条可用脚本，或一条音频和一条视频素材。' }
+    }
   }
   if (action.intent.type === 'create-storyboard-recipe') {
     const recipe = resolveStoryboardRecipe(action.intent.recipeId, action.intent.recipeVersion)

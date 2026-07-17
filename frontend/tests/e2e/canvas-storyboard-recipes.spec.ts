@@ -221,7 +221,7 @@ test('script Storyboard recipe Palette stays bounded, reduced-motion safe, acces
   await page.keyboard.press('/')
   const palette = page.getByRole('dialog', { name: '专业操作' })
   await expect(palette).toBeVisible()
-  await expect(palette.getByRole('option')).toHaveCount(9)
+  await expect(palette.getByRole('option')).toHaveCount(10)
   await expect(palette.getByRole('option').first()).toHaveCSS('transition-duration', '0s')
   const box = await palette.boundingBox()
   expect(box).not.toBeNull()
