@@ -20,7 +20,7 @@ import { useCanvasNodeActions } from '../../components/canvas/composables/use-ca
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
 import { useCanvasProfessionalActions } from '../../components/canvas/composables/use-canvas-professional-actions'
 import { useCanvasResourceExperience } from '../../components/canvas/composables/use-canvas-resource-experience'
-import { useCanvasShotSchema } from '../../components/canvas/composables/use-canvas-shot-schema'
+import { useCanvasStoryboardRecipes } from '../../components/canvas/composables/use-canvas-storyboard-recipes'
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
 import { useCanvasRevisionStore } from '../../modules/canvas/canvas-revision-store'
 import { canvasRouteLocation, normalizeRouteIdentifier } from '../../modules/canvas/metadata'
@@ -29,7 +29,6 @@ import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
 import { createArrangeGenerationLineageCommand } from '../../modules/canvas/generation-lineage-arrangement'
 import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
-import type { VisualAssetRecipeId } from '../../modules/canvas/visual-asset-recipes'
 import { projectCanvasStoryboard } from '../../modules/canvas/storyboard-projection'
 import { createReorderStoryboardGroupCommand } from '../../modules/canvas/storyboard-commands'
 
@@ -135,7 +134,15 @@ const {
   updatePrompt,
   updateGenerationParameters,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
-const { createShotGraph } = useCanvasShotSchema({ projectId, canvasId })
+const { branchFromResult, branchVisualRecipe, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode, revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId) })
+const { createShotGraph, createStoryboardRecipe, createVisualAssetRecipe } = useCanvasStoryboardRecipes({
+  assets: () => resourceStore.assets,
+  branchVisualRecipe,
+  canvasId,
+  generateVisualRecipe: generateRecipe,
+  projectId,
+  userId: () => authStore.user?.id ?? '',
+})
 const professionalActionsBlocked = computed(() => (
   isRevisionPanelOpen.value || isResultCompareOpen.value || isResourceOpen.value ||
   isContextDrawerOpen.value || viewMode.value !== 'workflow'
@@ -152,9 +159,10 @@ const {
   assets: () => resourceStore.assets,
   canvasId,
   createShotGraph,
+  createStoryboardRecipe,
   getInsertionPoint,
   isBlocked: () => professionalActionsBlocked.value,
-  isBusy: isUploading,
+  isBusy: () => isUploading.value || isGenerating.value,
   isReadOnly: () => isReviewOnly.value || canvasRevisionStore.restoringRevision !== null,
   isWorkflowView: () => viewMode.value === 'workflow',
   projectId,
@@ -257,14 +265,6 @@ function selectComparedResult(nodeId: string) {
   canvasDocumentStore.selectNode(nodeId)
   void nextTick(() => canvasStageRef.value?.revealNode(nodeId))
 }
-const { branchFromResult, branchVisualRecipe, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode, revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId) })
-async function createVisualAssetRecipe(recipeId: VisualAssetRecipeId) {
-  const nodeId = await branchVisualRecipe(recipeId)
-  if (!nodeId) return
-  await nextTick()
-  await generateRecipe(recipeId)
-}
-
 function updateResponsiveBoundaries() {
   isReviewOnly.value = reviewMediaQuery?.matches ?? false
   isCompact.value = compactMediaQuery?.matches ?? false

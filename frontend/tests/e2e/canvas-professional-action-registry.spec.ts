@@ -96,6 +96,12 @@ test('professional action definitions keep stable category and intent order', ()
     ['canvas.create-image-generation', 'create', { type: 'create-node', nodeType: 'generation', subtype: 'image' }],
     ['canvas.create-video-generation', 'create', { type: 'create-node', nodeType: 'generation', subtype: 'video' }],
     ['script.create-shot-graph', 'script', { type: 'create-shot-graph' }],
+    ['storyboard.plot-board-4', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'plot-board-4', recipeVersion: 1 }],
+    ['storyboard.shot-board-9', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'shot-board-9', recipeVersion: 1 }],
+    ['storyboard.shot-board-16', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'shot-board-16', recipeVersion: 1 }],
+    ['storyboard.shot-board-25', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'shot-board-25', recipeVersion: 1 }],
+    ['storyboard.character-turnaround', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'character-turnaround', recipeVersion: 1 }],
+    ['storyboard.scene-reference-views', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'scene-reference-views', recipeVersion: 1 }],
     ['image.split-4', 'image', { type: 'split-image-grid', outputCount: 4 }],
     ['image.split-9', 'image', { type: 'split-image-grid', outputCount: 9 }],
     ['image.split-16', 'image', { type: 'split-image-grid', outputCount: 16 }],
@@ -111,10 +117,14 @@ test('registry resolution is deterministic, searchable, and fail closed for unkn
     'canvas.create-script', 'canvas.create-note', 'canvas.create-image-generation', 'canvas.create-video-generation',
     'image.split-4', 'image.split-9', 'image.split-16', 'image.split-25',
   ])
-  expect(resolveProfessionalCanvasActions(selectedContext, '九宫格').map((action) => action.id)).toEqual(['image.split-9'])
+  expect(resolveProfessionalCanvasActions(selectedContext, '九宫格')
+    .filter((action) => action.eligibility.eligible).map((action) => action.id)).toEqual(['image.split-9'])
   expect(resolveProfessionalCanvasActions(selectedContext, 'video node').map((action) => action.id)).toEqual(['canvas.create-video-generation'])
   expect(resolveProfessionalCanvasActions(selectedContext, '25 split').map((action) => action.id)).toEqual(['image.split-25'])
-  expect(resolveProfessionalCanvasActions(context({ selectedNodes: [scriptNode()] }), 'shot storyboard').map((action) => action.id)).toEqual(['script.create-shot-graph'])
+  expect(resolveProfessionalCanvasActions(context({ selectedNodes: [scriptNode()] }), 'shot storyboard')
+    .filter((action) => action.eligibility.eligible).map((action) => action.id)).toEqual([
+      'script.create-shot-graph', 'storyboard.shot-board-9', 'storyboard.shot-board-16', 'storyboard.shot-board-25',
+    ])
   expect(resolveProfessionalCanvasAction(selectedContext, 'missing.action')).toBeNull()
 })
 

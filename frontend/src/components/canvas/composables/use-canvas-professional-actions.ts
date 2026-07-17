@@ -1,4 +1,4 @@
-import { computed, nextTick, ref, type ComputedRef, type Ref } from 'vue'
+import { computed, nextTick, ref, type ComputedRef } from 'vue'
 import { createProfessionalNodeInsertCommand } from '../../../modules/canvas/professional-action-commands'
 import {
   resolveProfessionalCanvasAction,
@@ -13,9 +13,10 @@ interface CanvasProfessionalActionsOptions {
   assets: () => readonly Asset[]
   canvasId: ComputedRef<string>
   createShotGraph?: () => Promise<unknown>
+  createStoryboardRecipe?: (recipeId: string, recipeVersion: number) => Promise<unknown>
   getInsertionPoint: () => { x: number; y: number }
   isBlocked: () => boolean
-  isBusy: Ref<boolean>
+  isBusy: () => boolean
   isReadOnly: () => boolean
   isWorkflowView: () => boolean
   projectId: ComputedRef<string>
@@ -42,7 +43,7 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
         canvasStore.activeProjectId === projectId &&
         canvasStore.activeCanvasId === canvasId
       ),
-      isBusy: options.isBusy.value || isExecuting.value,
+      isBusy: options.isBusy() || isExecuting.value,
       isReadOnly: options.isReadOnly(),
       isWorkflowView: options.isWorkflowView(),
       projectId,
@@ -54,6 +55,7 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
   const actions = computed(() => resolveProfessionalCanvasActions(context(), query.value)
     .filter((action) => action.eligibility.eligible)
     .filter((action) => action.intent.type !== 'create-shot-graph' || Boolean(options.createShotGraph))
+    .filter((action) => action.intent.type !== 'create-storyboard-recipe' || Boolean(options.createStoryboardRecipe))
     .filter((action) => action.intent.type !== 'split-image-grid' || Boolean(options.splitImageGrid)))
 
   function restoreFocus() {
@@ -100,6 +102,22 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
         close()
       } catch (executionError) {
         error.value = executionError instanceof Error ? executionError.message : '脚本分镜创建失败，请重试。'
+      } finally {
+        isExecuting.value = false
+      }
+      return
+    }
+    if (action.intent.type === 'create-storyboard-recipe') {
+      if (!options.createStoryboardRecipe) {
+        error.value = '故事板配方当前不可用。'
+        return
+      }
+      isExecuting.value = true
+      try {
+        await options.createStoryboardRecipe(action.intent.recipeId, action.intent.recipeVersion)
+        close()
+      } catch (executionError) {
+        error.value = executionError instanceof Error ? executionError.message : '故事板配方创建失败，请重试。'
       } finally {
         isExecuting.value = false
       }

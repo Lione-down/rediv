@@ -15,18 +15,18 @@ Last updated: 2026-07-17
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-083 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
+- Completed V2 Tasks: T5-001 through T5-084 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Last completed Task: `T5-083 - Strict versioned shot schema and atomic script-to-storyboard graph`
-- Report: `ai/reports/REPORT-T5-083.md`
-- Task: `ai/tasks/todo/TASK-T5-083.md`
-- Plan: `ai/tasks/doing/TASK-T5-083-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-083-PROGRESS.md`
-- Next eligible Task: `T5-084 - Professional Storyboard recipes`
+- Last completed Task: `T5-084 - Professional Storyboard recipe registry and presets`
+- Report: `ai/reports/REPORT-T5-084.md`
+- Task: `ai/tasks/todo/TASK-T5-084.md`
+- Plan: `ai/tasks/doing/TASK-T5-084-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-084-PROGRESS.md`
+- Next eligible Task: `T5-085 - Image editing branches and capability contracts`
 
 ## Current Verified Facts
 
@@ -115,10 +115,12 @@ Last updated: 2026-07-17
 - T5-082 is now `DONE - PASS`: pure professional actions, Canvas-owned Slash Palette, and source-preserving 4/9/16/25 project-image split passed focused 21/21, functional Chromium 412/412, a 4,880-module build, visual/accessibility review, atomic undo/redo/reload, and guarded live 200/300 at 59.89 FPS. The unchanged software-rendered mock FPS case remains explicitly red at 52.32/51.86 FPS while the applicable owned live boundary passes without threshold weakening. Final report: `ai/reports/REPORT-T5-082.md`.
 - T5-083 is `DONE - PASS`: strict backend/frontend shot schema v1, an authenticated deterministic mock-only endpoint, one exact script-to-prompt/image-generation/Storyboard graph command, stable shot identity with independent Storyboard order, and fail-closed responsive execution passed focused backend 15 plus 15 subtests, focused frontend 29/29, full backend 474 plus 93 subtests, functional Chromium 428/428, and a 4,884-module build.
 - The final guarded owned run `t5008-28648-985a035f36a0dca6` passed 200 nodes / 300 connections at 59.89 FPS, 16.7 ms frame p95, 0.1 ms pointer p95, 205 ms stable render, and zero long tasks. Owned services/schema/runtime were cleaned, normal `dist` restored, and ports 8765/9765/9099 are closed. Final report: `ai/reports/REPORT-T5-083.md`.
+- T5-084 is `DONE - PASS`: six strict Revid-owned Storyboard presets compose the existing mock shot-plan and visual recipe lifecycles. Exact 4/9/16/25 topology, project asset ownership, busy/stale fail-closed behavior, Storyboard/history/persistence, responsive accessibility, functional Chromium 443/443, product backend 474 plus 93 subtests, a 4,886-module build, and guarded live 200/300 evidence passed. Final report: `ai/reports/REPORT-T5-084.md`.
+- The T5-084 guarded run `t5008-36804-5eb1decc55a322f1` passed at 59.87485 FPS, 16.7 ms frame p95, 0.1 ms pointer p95, 177 ms stable render, and zero long tasks. Owned services were cleaned and ports 8765/9765/9099 are closed. The repository-root check has one explicitly classified external retired-Hermes runtime incompatibility; no Revid product backend test failed.
 
 ## Exact Next Action
 
-Activate T5-084 only in a new bounded run after re-reading the required source-of-truth documents and repeating Git preflight; then create/refresh its Task, PLAN, and PROGRESS before business-code edits.
+In a separate run, re-read the required state documents and activate T5-085 as the only `DOING` Task, then create/refresh its Task, PLAN, and PROGRESS before business-code edits.
 
 ## Blockers And Human Gates
 

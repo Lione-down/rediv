@@ -2,12 +2,19 @@ import type { Asset } from '../../types/asset'
 import type { CanvasNode } from '../../types/canvas'
 import type { ImageGridOutputCount } from './image-grid-split'
 import { resolveNodeDefinition, type CanonicalNodeType } from './node-registry'
+import {
+  STORYBOARD_RECIPES,
+  resolveStoryboardRecipe,
+  resolveStoryboardRecipeSource,
+  type StoryboardRecipeId,
+} from './storyboard-recipe-registry'
 
 export type { ImageGridOutputCount } from './image-grid-split'
-export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image'
+export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard'
 export type ProfessionalCanvasActionIntent =
   | { type: 'create-node'; nodeType: CanonicalNodeType; subtype: string }
   | { type: 'create-shot-graph' }
+  | { type: 'create-storyboard-recipe'; recipeId: StoryboardRecipeId; recipeVersion: 1 }
   | { type: 'split-image-grid'; outputCount: ImageGridOutputCount }
 
 export interface ProfessionalCanvasActionDefinition {
@@ -34,6 +41,19 @@ export interface ProfessionalCanvasActionContext {
 export interface ResolvedProfessionalCanvasAction extends ProfessionalCanvasActionDefinition {
   eligibility: { eligible: boolean; reason?: string }
 }
+
+const STORYBOARD_RECIPE_ACTIONS = Object.values(STORYBOARD_RECIPES).map((recipe) => ({
+  id: `storyboard.${recipe.id}`,
+  category: 'storyboard' as const,
+  title: recipe.title,
+  description: recipe.description,
+  keywords: recipe.keywords,
+  intent: {
+    type: 'create-storyboard-recipe' as const,
+    recipeId: recipe.id,
+    recipeVersion: recipe.version,
+  },
+})) satisfies readonly ProfessionalCanvasActionDefinition[]
 
 export const PROFESSIONAL_CANVAS_ACTIONS = [
   {
@@ -76,6 +96,7 @@ export const PROFESSIONAL_CANVAS_ACTIONS = [
     keywords: ['脚本', '镜头', '分镜', 'shot', 'script', 'storyboard', 'plan'],
     intent: { type: 'create-shot-graph' },
   },
+  ...STORYBOARD_RECIPE_ACTIONS,
   {
     id: 'image.split-4',
     category: 'image',
@@ -170,6 +191,12 @@ function resolveEligibility(
   if (action.intent.type === 'create-shot-graph' && !resolveShotSchemaSource(context)) {
     return { eligible: false, reason: '请选择一个可用的脚本节点。' }
   }
+  if (action.intent.type === 'create-storyboard-recipe') {
+    const recipe = resolveStoryboardRecipe(action.intent.recipeId, action.intent.recipeVersion)
+    if (!recipe || !resolveStoryboardRecipeSource(recipe, context)) {
+      return { eligible: false, reason: '当前选择不支持该故事板配方。' }
+    }
+  }
   return { eligible: true }
 }
 
@@ -189,7 +216,9 @@ function actionSearchText(action: ProfessionalCanvasActionDefinition) {
       ? `${action.intent.nodeType} ${action.intent.subtype}`
       : action.intent.type === 'split-image-grid'
         ? String(action.intent.outputCount)
-        : 'script shot storyboard',
+        : action.intent.type === 'create-storyboard-recipe'
+          ? `${action.intent.recipeId} storyboard recipe`
+          : 'script shot storyboard',
   ].join(' ').normalize('NFKC').toLocaleLowerCase()
 }
 

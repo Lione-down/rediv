@@ -42,7 +42,7 @@ export function useCanvasShotSchema(options: CanvasShotSchemaOptions) {
     } satisfies ProfessionalCanvasActionContext)
   }
 
-  async function createShotGraph() {
+  async function createShotGraph(requestedShotCount?: number) {
     const projectId = options.projectId.value
     const canvasId = options.canvasId.value
     const source = currentSource()
@@ -54,6 +54,7 @@ export function useCanvasShotSchema(options: CanvasShotSchemaOptions) {
       canvasId,
       sourceScriptNodeId: sourceSnapshot.id,
       script,
+      requestedShotCount,
     })
     const current = currentSource()
     if (

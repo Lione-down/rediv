@@ -141,7 +141,8 @@ export function createResourceMockState(): ResourceMockState {
       }, 580),
       node('result-existing', 'result', '历史图片生成结果', {
         subtype: 'image', serialization_version: 1, asset_id: 'asset-generated',
-        source_task_id: 'task-existing-success', url: 'https://media.revid.test/generated.png', width: 320, height: 180,
+        project_id: PROJECT_ID, source_task_id: 'task-existing-success',
+        url: 'https://media.revid.test/generated.png', width: 320, height: 180,
       }, 980),
     ],
     connections: [{
@@ -377,10 +378,22 @@ function shotSchemaResponse(
   canvasId: string,
   requestBody: Record<string, unknown>,
 ) {
-  const shots = [
-    { shot_id: 'shot-01', index: 1, title: '镜头 01', narrative: '人物走入黄昏海岸。', image_prompt: '人物走入黄昏海岸。' },
-    { shot_id: 'shot-02', index: 2, title: '镜头 02', narrative: '海浪在人物身后翻涌。', image_prompt: '海浪在人物身后翻涌。' },
-  ]
+  const requestedShotCount = Number(requestBody.requested_shot_count ?? 2)
+  const shotCount = Number.isSafeInteger(requestedShotCount) && requestedShotCount >= 2 && requestedShotCount <= 25
+    ? requestedShotCount
+    : 2
+  const narratives = ['人物走入黄昏海岸。', '海浪在人物身后翻涌。']
+  const shots = Array.from({ length: shotCount }, (_, offset) => {
+    const index = offset + 1
+    const narrative = narratives[offset % narratives.length]
+    return {
+      shot_id: `shot-${String(index).padStart(2, '0')}`,
+      index,
+      title: `镜头 ${String(index).padStart(2, '0')}`,
+      narrative,
+      image_prompt: narrative,
+    }
+  })
   return {
     contract_version: 1,
     schema_id: 'revid.shot-sequence',
