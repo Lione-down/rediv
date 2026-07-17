@@ -12,6 +12,7 @@ import type { Asset } from '../../../types/asset'
 interface CanvasProfessionalActionsOptions {
   assets: () => readonly Asset[]
   canvasId: ComputedRef<string>
+  createShotGraph?: () => Promise<unknown>
   getInsertionPoint: () => { x: number; y: number }
   isBlocked: () => boolean
   isBusy: Ref<boolean>
@@ -52,6 +53,7 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
 
   const actions = computed(() => resolveProfessionalCanvasActions(context(), query.value)
     .filter((action) => action.eligibility.eligible)
+    .filter((action) => action.intent.type !== 'create-shot-graph' || Boolean(options.createShotGraph))
     .filter((action) => action.intent.type !== 'split-image-grid' || Boolean(options.splitImageGrid)))
 
   function restoreFocus() {
@@ -85,6 +87,22 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
     const action = resolveProfessionalCanvasAction(context(), actionId)
     if (!action?.eligibility.eligible) {
       error.value = action?.eligibility.reason ?? '该操作当前不可用。'
+      return
+    }
+    if (action.intent.type === 'create-shot-graph') {
+      if (!options.createShotGraph) {
+        error.value = '脚本分镜能力当前不可用。'
+        return
+      }
+      isExecuting.value = true
+      try {
+        await options.createShotGraph()
+        close()
+      } catch (executionError) {
+        error.value = executionError instanceof Error ? executionError.message : '脚本分镜创建失败，请重试。'
+      } finally {
+        isExecuting.value = false
+      }
       return
     }
     if (action.intent.type === 'split-image-grid') {

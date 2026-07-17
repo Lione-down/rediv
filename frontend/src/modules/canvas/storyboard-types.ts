@@ -25,7 +25,7 @@ export interface CanvasStoryboardProjectionInput {
   runtimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>
 }
 
-export interface StoryboardGroupContent {
+export interface ImageStoryboardGroupContent {
   subtype: 'storyboard'
   serialization_version: 1
   storyboard_schema_version: 1
@@ -34,3 +34,17 @@ export interface StoryboardGroupContent {
   show_numbers: boolean
   ordered_child_ids: string[]
 }
+
+export interface ShotStoryboardGroupContent {
+  subtype: 'storyboard'
+  serialization_version: 1
+  storyboard_schema_version: 2
+  storyboard_kind: 'shot-plan'
+  shot_schema_version: 1
+  aspect_ratio: '16:9' | '9:16' | '1:1' | '4:3'
+  columns: 1 | 2 | 3 | 4 | 5
+  show_numbers: boolean
+  ordered_child_ids: string[]
+}
+
+export type StoryboardGroupContent = ImageStoryboardGroupContent | ShotStoryboardGroupContent

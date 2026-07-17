@@ -13,6 +13,7 @@ from api import (
     health,
     image_generate,
     projects,
+    shot_schemas,
     templates,
     text_generate,
     video_generate,
@@ -32,6 +33,7 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(canvas_connections.router)
     app.include_router(generation_capabilities.router)
     app.include_router(generation_tasks.router)
+    app.include_router(shot_schemas.router)
     app.include_router(templates.router)
     app.include_router(templates.canvas_router)
     app.include_router(text_generate.router)

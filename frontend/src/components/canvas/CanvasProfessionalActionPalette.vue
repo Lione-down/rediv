@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  Clapperboard,
   CornerDownLeft,
   FileText,
   Grid2X2,
@@ -31,6 +32,7 @@ const activeDescendant = computed(() => activeAction.value
   : undefined)
 
 function actionIcon(action: ResolvedProfessionalCanvasAction) {
+  if (action.intent.type === 'create-shot-graph') return Clapperboard
   if (action.intent.type === 'split-image-grid') return Grid2X2
   if (action.intent.nodeType === 'script') return FileText
   if (action.intent.nodeType === 'note') return StickyNote
@@ -39,7 +41,8 @@ function actionIcon(action: ResolvedProfessionalCanvasAction) {
 }
 
 function actionCategory(action: ResolvedProfessionalCanvasAction) {
-  return action.category === 'image' ? '图片处理' : '画布创建'
+  if (action.category === 'image') return '图片处理'
+  return action.category === 'script' ? '脚本规划' : '画布创建'
 }
 
 function setActiveIndex(index: number) {

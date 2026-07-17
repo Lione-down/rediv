@@ -4,6 +4,7 @@ import {
   resolveProfessionalCanvasAction,
   resolveProfessionalCanvasActions,
   resolveProjectImageSplitTarget,
+  resolveShotSchemaSource,
   type ProfessionalCanvasActionContext,
 } from '../../src/modules/canvas/professional-action-registry'
 import type { Asset } from '../../src/types/asset'
@@ -54,6 +55,25 @@ function imageNode(overrides: Partial<CanvasNode> = {}): CanvasNode {
   }
 }
 
+function scriptNode(overrides: Partial<CanvasNode> = {}): CanvasNode {
+  return {
+    id: 'script-source',
+    type: 'script',
+    title: '故事脚本',
+    x: 160,
+    y: 140,
+    width: 320,
+    height: 200,
+    content: '人物走入黄昏海岸。海浪在身后翻涌。',
+    contentData: {
+      subtype: 'script',
+      serialization_version: 1,
+      text: '人物走入黄昏海岸。海浪在身后翻涌。',
+    },
+    ...overrides,
+  }
+}
+
 function context(overrides: Partial<ProfessionalCanvasActionContext> = {}): ProfessionalCanvasActionContext {
   return {
     assets: [imageAsset()],
@@ -75,6 +95,7 @@ test('professional action definitions keep stable category and intent order', ()
     ['canvas.create-note', 'create', { type: 'create-node', nodeType: 'note', subtype: 'annotation' }],
     ['canvas.create-image-generation', 'create', { type: 'create-node', nodeType: 'generation', subtype: 'image' }],
     ['canvas.create-video-generation', 'create', { type: 'create-node', nodeType: 'generation', subtype: 'video' }],
+    ['script.create-shot-graph', 'script', { type: 'create-shot-graph' }],
     ['image.split-4', 'image', { type: 'split-image-grid', outputCount: 4 }],
     ['image.split-9', 'image', { type: 'split-image-grid', outputCount: 9 }],
     ['image.split-16', 'image', { type: 'split-image-grid', outputCount: 16 }],
@@ -86,13 +107,40 @@ test('registry resolution is deterministic, searchable, and fail closed for unkn
   const first = resolveProfessionalCanvasActions(selectedContext)
   const second = resolveProfessionalCanvasActions(selectedContext)
   expect(second).toEqual(first)
-  expect(first.filter((action) => action.eligibility.eligible).map((action) => action.id)).toEqual(
-    PROFESSIONAL_CANVAS_ACTIONS.map((action) => action.id),
-  )
+  expect(first.filter((action) => action.eligibility.eligible).map((action) => action.id)).toEqual([
+    'canvas.create-script', 'canvas.create-note', 'canvas.create-image-generation', 'canvas.create-video-generation',
+    'image.split-4', 'image.split-9', 'image.split-16', 'image.split-25',
+  ])
   expect(resolveProfessionalCanvasActions(selectedContext, '九宫格').map((action) => action.id)).toEqual(['image.split-9'])
   expect(resolveProfessionalCanvasActions(selectedContext, 'video node').map((action) => action.id)).toEqual(['canvas.create-video-generation'])
   expect(resolveProfessionalCanvasActions(selectedContext, '25 split').map((action) => action.id)).toEqual(['image.split-25'])
+  expect(resolveProfessionalCanvasActions(context({ selectedNodes: [scriptNode()] }), 'shot storyboard').map((action) => action.id)).toEqual(['script.create-shot-graph'])
   expect(resolveProfessionalCanvasAction(selectedContext, 'missing.action')).toBeNull()
+})
+
+test('shot graph source accepts only one exact bounded canonical script', () => {
+  const valid = context({ selectedNodes: [scriptNode()] })
+  expect(resolveShotSchemaSource(valid)).toEqual(scriptNode())
+  expect(resolveProfessionalCanvasAction(valid, 'script.create-shot-graph')?.eligibility).toEqual({ eligible: true })
+
+  const invalid = [
+    context({ selectedNodes: [] }),
+    context({ selectedNodes: [scriptNode(), scriptNode({ id: 'script-b' })] }),
+    context({ selectedNodes: [scriptNode({ isLocked: true })] }),
+    context({ selectedNodes: [scriptNode({ parentNodeId: 'group-a' })] }),
+    context({ selectedNodes: [scriptNode({ type: 'note' })] }),
+    context({ selectedNodes: [scriptNode({ contentData: { subtype: 'prompt', serialization_version: 1, text: '画面' } })] }),
+    context({ selectedNodes: [scriptNode({ contentData: { subtype: 'script', serialization_version: 2, text: '画面' } })] }),
+    context({ selectedNodes: [scriptNode({ content: '', contentData: { subtype: 'script', serialization_version: 1, text: '' } })] }),
+    context({ selectedNodes: [scriptNode({ content: 'x'.repeat(12001), contentData: { subtype: 'script', serialization_version: 1, text: 'x'.repeat(12001) } })] }),
+  ]
+  for (const candidate of invalid) {
+    expect(resolveShotSchemaSource(candidate)).toBeNull()
+    expect(resolveProfessionalCanvasAction(candidate, 'script.create-shot-graph')?.eligibility).toEqual({
+      eligible: false,
+      reason: '请选择一个可用的脚本节点。',
+    })
+  }
 })
 
 test('image split target accepts only one canonical active uploaded project image', () => {
@@ -138,8 +186,11 @@ test('eligibility rejects readonly, non-workflow, unavailable, busy, and stale c
   }
 
   const withoutImage = resolveProfessionalCanvasActions(context())
-  expect(withoutImage.slice(0, 4).every((action) => action.eligibility.eligible)).toBe(true)
-  expect(withoutImage.slice(4).every((action) => (
+  expect(withoutImage.filter((action) => action.category === 'create').every((action) => action.eligibility.eligible)).toBe(true)
+  expect(withoutImage.find((action) => action.id === 'script.create-shot-graph')?.eligibility).toEqual({
+    eligible: false, reason: '请选择一个可用的脚本节点。',
+  })
+  expect(withoutImage.filter((action) => action.category === 'image').every((action) => (
     !action.eligibility.eligible && action.eligibility.reason === '请选择一个可用的项目上传图片。'
   ))).toBe(true)
 })

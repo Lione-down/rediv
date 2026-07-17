@@ -53,6 +53,9 @@ export interface ResourceMockState {
   generationCount: number
   generationOutcome: 'success' | 'failure'
   requests: MockRequest[]
+  shotSchemaCount: number
+  shotSchemaGate: Promise<void> | null
+  shotSchemaOutcome: 'success' | 'failure' | 'malformed'
   taskListOutcome: 'success' | 'failure'
   tasks: Array<Record<string, unknown>>
   templateInstantiationGate: Promise<void> | null
@@ -180,6 +183,9 @@ export function createResourceMockState(): ResourceMockState {
     generationCount: 0,
     generationOutcome: 'success',
     requests: [],
+    shotSchemaCount: 0,
+    shotSchemaGate: null,
+    shotSchemaOutcome: 'success',
     taskListOutcome: 'success',
     tasks: [
       generationTask({}),
@@ -366,6 +372,29 @@ function generationResponse(
   return { asset, generation_task: task, quotas: state.quotas, quota_revision: state.quotaRevision }
 }
 
+function shotSchemaResponse(
+  state: ResourceMockState,
+  canvasId: string,
+  requestBody: Record<string, unknown>,
+) {
+  const shots = [
+    { shot_id: 'shot-01', index: 1, title: '镜头 01', narrative: '人物走入黄昏海岸。', image_prompt: '人物走入黄昏海岸。' },
+    { shot_id: 'shot-02', index: 2, title: '镜头 02', narrative: '海浪在人物身后翻涌。', image_prompt: '海浪在人物身后翻涌。' },
+  ]
+  return {
+    contract_version: 1,
+    schema_id: 'revid.shot-sequence',
+    provider: state.shotSchemaOutcome === 'malformed' ? 'agnes' : 'mock',
+    model: 'revid-shot-mock-v1',
+    project_id: PROJECT_ID,
+    canvas_id: canvasId,
+    source_script_node_id: requestBody.source_script_node_id,
+    aspect_ratio: '16:9',
+    shot_count: shots.length,
+    shots,
+  }
+}
+
 export async function installResourceMockApi(page: Page, state: ResourceMockState) {
   await page.route('https://media.revid.test/**', (route) => {
     const pathname = new URL(route.request().url()).pathname
@@ -477,6 +506,16 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       return state.capabilitiesOutcome === 'success'
         ? fulfillJson(route, GENERATION_CAPABILITIES)
         : fulfillJson(route, { detail: 'mock capability unavailable' }, 503)
+    }
+    const shotSchemaMatch = path.match(new RegExp(`^/api/projects/${PROJECT_ID}/canvases/([^/]+)/shot-schema$`))
+    if (method === 'POST' && shotSchemaMatch) {
+      state.shotSchemaCount += 1
+      state.events.push(`shot-schema-requested:${shotSchemaMatch[1]}`)
+      await state.shotSchemaGate
+      if (state.shotSchemaOutcome === 'failure') {
+        return fulfillJson(route, { detail: 'mock shot provider unavailable' }, 503)
+      }
+      return fulfillJson(route, shotSchemaResponse(state, shotSchemaMatch[1], body ?? {}))
     }
     const instantiateMatch = path.match(new RegExp(`^/api/projects/${PROJECT_ID}/canvases/([^/]+)/templates/template-storyboard/instantiate$`))
     if (method === 'POST' && instantiateMatch) {

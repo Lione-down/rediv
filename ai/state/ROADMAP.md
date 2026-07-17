@@ -76,8 +76,8 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 79 | T5-079 | Canvas media containment and keyframe rail isolation | DONE - PASS | T5-078 |
 | 80 | T5-080 | Canvas node and connection interaction usability | DONE - PASS | T5-079 |
 | 81 | T5-081 | Storyboard projection and image storyboard groups | DONE - PASS | T5-080 |
-| 82 | T5-082 | Professional action registry, Slash Palette, and 4/9/16/25 project-image grid split | DOING | T5-081 |
-| 83 | T5-083 | Versioned script-to-shot schema and atomic script/shot/generation/storyboard graph creation | TODO | T5-082 |
+| 82 | T5-082 | Professional action registry, Slash Palette, and 4/9/16/25 project-image grid split | DONE - PASS | T5-081 |
+| 83 | T5-083 | Versioned script-to-shot schema and atomic script/shot/generation/storyboard graph creation | DONE - PASS | T5-082 |
 | 84 | T5-084 | Professional Storyboard recipes for grid, character, and scene views | TODO | T5-083 |
 | 85 | T5-085 | Image expansion, inpaint, erase, cutout, upscale, region, and fusion contracts | TODO | T5-084 |
 | 86 | T5-086 | Shot angle, framing, focus, lighting, and time controls | TODO | T5-085 |
@@ -260,9 +260,9 @@ Only one Task in this sequence may be active at a time. The program reproduces p
 
 T5-082 is `DONE - PASS`. A pure professional action registry, Canvas-owned accessible Slash Palette, and source-preserving 4/9/16/25 split now reuse existing project uploads and one atomic `insert-graph`. Focused 21/21, functional Chromium 412/412, a 4,880-module build, visual/accessibility review, exact history/persistence, and guarded live 200/300 at 59.89 FPS passed. The software-rendered mock FPS variance remains explicitly classified without threshold weakening. `REPORT-T5-082.md` is authoritative evidence.
 
-T5-083 remains `TODO` until T5-082 is committed and pushed. It will add a strict versioned shot schema and one atomic script/shot/generation/storyboard graph creation path with mock-provider acceptance first.
+T5-083 is `DONE - PASS`. Strict backend/frontend shot schema v1, a deterministic authenticated mock-only endpoint, one atomic `2N+1` node / `2N` typed-edge graph, stable shot identity with independent Storyboard order, exact duplication remap, zero-mutation failure/context drift, history/reload, responsive accessibility, backend 474 plus 93 subtests, functional Chromium 428/428, a 4,884-module build, and guarded live 200/300 at 59.89 FPS passed. No automatic/paid generation, database change, or UI redesign was introduced. `REPORT-T5-083.md` is authoritative evidence.
 
-T5-084 remains `TODO` until T5-083 closes. It will add professional Storyboard recipes for four-frame plot boards, 9/16/25 multi-shot boards, character turnarounds, and scene multi-view using the existing recipe registry and Storyboard projection.
+T5-084 remains `TODO` and is the next eligible Task. It will add professional Storyboard recipes for four-frame plot boards, 9/16/25 multi-shot boards, character turnarounds, and scene multi-view using the existing recipe registry and Storyboard projection.
 
 T5-085 remains `TODO` until T5-084 closes. It will add downstream-only result branches for expand, inpaint, erase, cutout, upscale, region marking, and multi-image fusion with explicit mask/region contracts and fail-closed capability detection.
 

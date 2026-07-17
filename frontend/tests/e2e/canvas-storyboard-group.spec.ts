@@ -11,7 +11,9 @@ import {
 } from '../../src/modules/canvas/storyboard-commands'
 import {
   DEFAULT_STORYBOARD_GROUP_SETTINGS,
+  createShotStoryboardGroupContent,
   readStoryboardGroupContent,
+  resolveStoryboardGroup,
   resolveStoryboardGroupLayout,
 } from '../../src/modules/canvas/storyboard-group'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
@@ -161,4 +163,58 @@ test('typed storyboard commands atomically create, update, reorder, and convert 
   expect(group.contentData).toEqual({ subtype: 'group', serialization_version: 1 })
   expect(nodes.filter((node) => node.parentNodeId === group.id).map((node) => [node.id, node.x, node.y])).toEqual(childPositions)
   expect(connections.map((connection) => connection.id)).toEqual(['edge-a-b'])
+})
+
+test('shot-plan Storyboard settings and reorder preserve schema v2 identity', async () => {
+  const groupId = 'shot-plan'
+  const generation = (id: string, index: number): CanvasNode => ({
+    id, type: 'generation', title: `镜头 ${index}`, x: index * 380, y: 280, width: 340, height: 220,
+    parentNodeId: groupId,
+    contentData: {
+      subtype: 'image', serialization_version: 1, shot_schema_version: 1,
+      shot_id: `shot-${String(index).padStart(2, '0')}`, shot_index: index, shot_title: `镜头 ${index}`,
+    },
+  })
+  const children = [generation('generation-a', 1), generation('generation-b', 2)]
+  const group: CanvasNode = {
+    id: groupId, type: 'group', title: '分镜计划', x: 100, y: 240, width: 780, height: 400,
+    contentData: createShotStoryboardGroupContent(children.map((node) => node.id)),
+  }
+  const nodes = [...children, group]
+  const executor = createCanvasCommandExecutor({
+    getNodes: () => nodes,
+    getConnections: () => [],
+    createNode: async () => { throw new Error('not expected') },
+    createConnection: async () => { throw new Error('not expected') },
+    deleteNode: async () => undefined,
+    deleteConnection: async () => undefined,
+    updateConnection: async () => undefined,
+    updateNodeParent: async () => undefined,
+    updateNodeLocked: async () => undefined,
+    updateNodeState: async (nodeId, updates) => Object.assign(nodes.find((node) => node.id === nodeId)!, structuredClone(updates)),
+    queueNodeMove: () => undefined,
+    setSelection: () => undefined,
+    selectConnection: () => undefined,
+  })
+
+  await executor.executeCommand({
+    source: 'toolbar',
+    command: createUpdateStoryboardGroupCommand(nodes, groupId, {
+      aspect_ratio: '1:1', columns: 1, show_numbers: false,
+    })!,
+  })
+  expect(group.contentData).toMatchObject({
+    storyboard_schema_version: 2, storyboard_kind: 'shot-plan', shot_schema_version: 1,
+    aspect_ratio: '1:1', columns: 1, show_numbers: false,
+  })
+
+  await executor.executeCommand({
+    source: 'toolbar',
+    command: createReorderStoryboardGroupCommand(nodes, groupId, 'generation-b', -1)!,
+  })
+  expect(group.contentData).toMatchObject({
+    storyboard_schema_version: 2, storyboard_kind: 'shot-plan', shot_schema_version: 1,
+    ordered_child_ids: ['generation-b', 'generation-a'],
+  })
+  expect(resolveStoryboardGroup(nodes, groupId)).not.toBeNull()
 })

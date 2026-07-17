@@ -46,6 +46,7 @@ import {
 import { resolveCanvasNodeLayoutRect } from './node-layout'
 import {
   createStoryboardGroupContent,
+  updateStoryboardGroupContent,
   resolveNewStoryboardGroupAnchor,
   resolveStoryboardGroup,
   resolveStoryboardGroupLayout,
@@ -262,7 +263,7 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
 
   async function applyStoryboardGroupLayout(
     groupId: string,
-    content: ReturnType<typeof createStoryboardGroupContent>,
+    content: ReturnType<typeof createStoryboardGroupContent> | ReturnType<typeof updateStoryboardGroupContent>,
   ) {
     const resolved = resolveStoryboardGroup(options.getNodes(), groupId)
     if (!resolved) return
@@ -294,9 +295,8 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     const validated = createUpdateStoryboardGroupCommand(options.getNodes(), command.groupId, command.settings)
     if (!validated) return
     const resolved = resolveStoryboardGroup(options.getNodes(), validated.groupId)!
-    await applyStoryboardGroupLayout(validated.groupId, createStoryboardGroupContent(
-      resolved.content.ordered_child_ids,
-      validated.settings,
+    await applyStoryboardGroupLayout(validated.groupId, updateStoryboardGroupContent(
+      resolved.content, resolved.content.ordered_child_ids, validated.settings,
     ))
   }
 
@@ -311,7 +311,9 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     ;[orderedChildIds[currentIndex], orderedChildIds[currentIndex + validated.direction]] = [
       orderedChildIds[currentIndex + validated.direction], orderedChildIds[currentIndex],
     ]
-    await applyStoryboardGroupLayout(validated.groupId, createStoryboardGroupContent(orderedChildIds, resolved.content))
+    await applyStoryboardGroupLayout(validated.groupId, updateStoryboardGroupContent(
+      resolved.content, orderedChildIds, resolved.content,
+    ))
   }
 
   async function convertStoryboardGroup(command: ConvertStoryboardGroupCommand) {

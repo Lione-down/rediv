@@ -20,6 +20,7 @@ import { useCanvasNodeActions } from '../../components/canvas/composables/use-ca
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
 import { useCanvasProfessionalActions } from '../../components/canvas/composables/use-canvas-professional-actions'
 import { useCanvasResourceExperience } from '../../components/canvas/composables/use-canvas-resource-experience'
+import { useCanvasShotSchema } from '../../components/canvas/composables/use-canvas-shot-schema'
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
 import { useCanvasRevisionStore } from '../../modules/canvas/canvas-revision-store'
 import { canvasRouteLocation, normalizeRouteIdentifier } from '../../modules/canvas/metadata'
@@ -134,6 +135,7 @@ const {
   updatePrompt,
   updateGenerationParameters,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
+const { createShotGraph } = useCanvasShotSchema({ projectId, canvasId })
 const professionalActionsBlocked = computed(() => (
   isRevisionPanelOpen.value || isResultCompareOpen.value || isResourceOpen.value ||
   isContextDrawerOpen.value || viewMode.value !== 'workflow'
@@ -149,6 +151,7 @@ const {
 } = useCanvasProfessionalActions({
   assets: () => resourceStore.assets,
   canvasId,
+  createShotGraph,
   getInsertionPoint,
   isBlocked: () => professionalActionsBlocked.value,
   isBusy: isUploading,
@@ -365,6 +368,10 @@ function updateResourceDrawer(show: boolean) {
 
 function updateContextDrawer(show: boolean) {
   if (!show) closeContext()
+}
+
+function dismissContextDrawer() {
+  isContextDrawerOpen.value = false
 }
 
 watch([projectId, canvasId], ([nextProjectId, nextCanvasId]) => {
@@ -631,7 +638,7 @@ onBeforeUnmount(() => {
               @branch-generation="branchFromResult"
               @visual-recipe="createVisualAssetRecipe"
               @arrange-trace="arrangeTraceFromContextDrawer"
-              @close="closeContext"
+              @close="dismissContextDrawer"
               @continue-node="continueFromContextDrawer"
               @compare-results="openResultComparison"
               @fit-trace="fitTraceFromContextDrawer"

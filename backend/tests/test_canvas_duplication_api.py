@@ -287,7 +287,7 @@ class CanvasDuplicationApiTestCase(unittest.TestCase):
             "title": key,
             "subtype": "storyboard",
             "serialization_version": 1,
-            "storyboard_schema_version": 2 if variant == "future" else 1,
+            "storyboard_schema_version": 3 if variant == "future" else 1,
             "aspect_ratio": "16:9",
             "columns": 2,
             "show_numbers": True,

@@ -55,26 +55,90 @@ export function createStoryboardGroupContent(
   }
 }
 
+export function createShotStoryboardGroupContent(
+  orderedChildIds: readonly string[],
+  settings: StoryboardGroupSettings = DEFAULT_STORYBOARD_GROUP_SETTINGS,
+): StoryboardGroupContent {
+  return {
+    subtype: 'storyboard',
+    serialization_version: 1,
+    storyboard_schema_version: 2,
+    storyboard_kind: 'shot-plan',
+    shot_schema_version: 1,
+    aspect_ratio: settings.aspect_ratio,
+    columns: settings.columns,
+    show_numbers: settings.show_numbers,
+    ordered_child_ids: [...orderedChildIds],
+  }
+}
+
+export function updateStoryboardGroupContent(
+  content: StoryboardGroupContent,
+  orderedChildIds: readonly string[],
+  settings: StoryboardGroupSettings,
+): StoryboardGroupContent {
+  return {
+    ...content,
+    aspect_ratio: settings.aspect_ratio,
+    columns: settings.columns,
+    show_numbers: settings.show_numbers,
+    ordered_child_ids: [...orderedChildIds],
+  }
+}
+
+function hasCommonStoryboardContent(content: Record<string, unknown> | undefined) {
+  const orderedChildIds = content?.ordered_child_ids
+  return content?.subtype === 'storyboard' && content.serialization_version === 1 &&
+    STORYBOARD_ASPECT_RATIOS.includes(content.aspect_ratio as StoryboardGroupContent['aspect_ratio']) &&
+    Number.isInteger(content.columns) && Number(content.columns) >= 1 && Number(content.columns) <= 5 &&
+    typeof content.show_numbers === 'boolean' && Array.isArray(orderedChildIds) &&
+    orderedChildIds.length >= 2 && orderedChildIds.length <= 25 &&
+    orderedChildIds.every((id) => typeof id === 'string' && Boolean(id)) &&
+    new Set(orderedChildIds).size === orderedChildIds.length
+}
+
+function shotStoryboardGenerationIndex(node: CanvasNode) {
+  const content = node.contentData
+  const index = content?.shot_index
+  if (
+    !node.isLocked && node.type === 'generation' && content?.subtype === 'image' &&
+    resolveNodeDefinition(node.type, content).kind === 'canonical' &&
+    content.shot_schema_version === 1 && Number.isInteger(index) && Number(index) >= 1 && Number(index) <= 25 &&
+    content.shot_id === `shot-${String(index).padStart(2, '0')}` &&
+    typeof content.shot_title === 'string' && Boolean(content.shot_title.trim()) &&
+    content.shot_title.length <= 80
+  ) return Number(index)
+  return null
+}
+
 export function readStoryboardGroupContent(
   group: CanvasNode,
   children: readonly CanvasNode[],
 ): StoryboardGroupContent | null {
   const content = group.contentData
-  const orderedChildIds = content?.ordered_child_ids
-  if (
-    group.type !== 'group' || content?.subtype !== 'storyboard' ||
-    content.serialization_version !== 1 || content.storyboard_schema_version !== 1 ||
-    !STORYBOARD_ASPECT_RATIOS.includes(content.aspect_ratio as StoryboardGroupContent['aspect_ratio']) ||
-    !Number.isInteger(content.columns) || Number(content.columns) < 1 || Number(content.columns) > 5 ||
-    typeof content.show_numbers !== 'boolean' || !Array.isArray(orderedChildIds) ||
-    orderedChildIds.length < 2 || orderedChildIds.length > 25 || orderedChildIds.length !== children.length ||
-    orderedChildIds.some((id) => typeof id !== 'string') ||
-    new Set(orderedChildIds).size !== orderedChildIds.length ||
-    children.some((child) => child.parentNodeId !== group.id || !isStoryboardImageNode(child))
-  ) return null
+  if (group.type !== 'group' || !hasCommonStoryboardContent(content)) return null
+  const orderedChildIds = content!.ordered_child_ids as string[]
+  if (orderedChildIds.length !== children.length) return null
 
   const childIds = new Set(children.map((child) => child.id))
   if (orderedChildIds.some((id) => !childIds.has(id))) return null
+
+  if (content!.storyboard_schema_version === 1) {
+    if (children.some((child) => child.parentNodeId !== group.id || !isStoryboardImageNode(child))) return null
+  } else if (
+    content!.storyboard_schema_version === 2 && content!.storyboard_kind === 'shot-plan' &&
+    content!.shot_schema_version === 1
+  ) {
+    const childrenById = new Map(children.map((child) => [child.id, child]))
+    const shotIndices = orderedChildIds.map((id) => {
+      const child = childrenById.get(id)
+      return !child || child.parentNodeId !== group.id ? null : shotStoryboardGenerationIndex(child)
+    })
+    if (
+      shotIndices.some((index) => index === null) || new Set(shotIndices).size !== shotIndices.length ||
+      !Array.from({ length: shotIndices.length }, (_, offset) => offset + 1).every((index) => shotIndices.includes(index))
+    ) return null
+  } else return null
   return content as unknown as StoryboardGroupContent
 }
 

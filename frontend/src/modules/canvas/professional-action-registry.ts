@@ -4,9 +4,10 @@ import type { ImageGridOutputCount } from './image-grid-split'
 import { resolveNodeDefinition, type CanonicalNodeType } from './node-registry'
 
 export type { ImageGridOutputCount } from './image-grid-split'
-export type ProfessionalCanvasActionCategory = 'create' | 'image'
+export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image'
 export type ProfessionalCanvasActionIntent =
   | { type: 'create-node'; nodeType: CanonicalNodeType; subtype: string }
+  | { type: 'create-shot-graph' }
   | { type: 'split-image-grid'; outputCount: ImageGridOutputCount }
 
 export interface ProfessionalCanvasActionDefinition {
@@ -68,6 +69,14 @@ export const PROFESSIONAL_CANVAS_ACTIONS = [
     intent: { type: 'create-node', nodeType: 'generation', subtype: 'video' },
   },
   {
+    id: 'script.create-shot-graph',
+    category: 'script',
+    title: '从脚本创建分镜计划',
+    description: '用本地 mock 解析脚本并创建镜头生成图。',
+    keywords: ['脚本', '镜头', '分镜', 'shot', 'script', 'storyboard', 'plan'],
+    intent: { type: 'create-shot-graph' },
+  },
+  {
     id: 'image.split-4',
     category: 'image',
     title: '拆分为四宫格',
@@ -126,6 +135,20 @@ export function resolveProjectImageSplitTarget(context: ProfessionalCanvasAction
   return { asset, node }
 }
 
+export function resolveShotSchemaSource(context: ProfessionalCanvasActionContext) {
+  if (context.selectedNodes.length !== 1) return null
+  const node = context.selectedNodes[0]
+  const definition = resolveNodeDefinition(node.type, node.contentData)
+  const textValue = node.content ?? node.contentData?.text
+  const text = typeof textValue === 'string' ? textValue.trim() : ''
+  if (
+    node.type !== 'script' || definition.kind !== 'canonical' ||
+    node.contentData?.subtype !== 'script' || node.isLocked || node.parentNodeId ||
+    !text || text.length > 12000
+  ) return null
+  return node
+}
+
 function baseIneligibility(context: ProfessionalCanvasActionContext) {
   if (!context.projectId.trim() || !context.canvasId.trim() || !context.canvasReady) return '画布尚未就绪。'
   if (!context.userId.trim()) return '登录状态不可用。'
@@ -144,6 +167,9 @@ function resolveEligibility(
   if (action.intent.type === 'split-image-grid' && !resolveProjectImageSplitTarget(context)) {
     return { eligible: false, reason: '请选择一个可用的项目上传图片。' }
   }
+  if (action.intent.type === 'create-shot-graph' && !resolveShotSchemaSource(context)) {
+    return { eligible: false, reason: '请选择一个可用的脚本节点。' }
+  }
   return { eligible: true }
 }
 
@@ -161,7 +187,9 @@ function actionSearchText(action: ProfessionalCanvasActionDefinition) {
     action.intent.type,
     action.intent.type === 'create-node'
       ? `${action.intent.nodeType} ${action.intent.subtype}`
-      : String(action.intent.outputCount),
+      : action.intent.type === 'split-image-grid'
+        ? String(action.intent.outputCount)
+        : 'script shot storyboard',
   ].join(' ').normalize('NFKC').toLocaleLowerCase()
 }
 
