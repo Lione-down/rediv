@@ -43,6 +43,7 @@ const canvasListStore = useCanvasListStore()
 const canvasDocumentStore = useCanvasStore()
 const canvasRevisionStore = useCanvasRevisionStore()
 const CanvasWorkflowBatchOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasWorkflowBatchOverlay.vue'))
+const CanvasVideoEditPreflightOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasVideoEditPreflightOverlay.vue'))
 useCanvasPersistenceLifecycle()
 const isReviewOnly = ref(false)
 const isCompact = ref(false)
@@ -50,6 +51,7 @@ const viewMode = ref<CanvasViewMode>('workflow')
 const isRevisionPanelOpen = ref(false)
 const isResultCompareOpen = ref(false)
 const workflowBatchOpen = ref(false)
+const videoEditPreflightOpen = ref(false)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
 const canvasStageRef = ref<CanvasStageHandle | null>(null)
 let revisionPanelOpener: HTMLElement | null = null
@@ -158,9 +160,15 @@ function openWorkflowBatch() {
 function closeWorkflowBatch() {
   workflowBatchOpen.value = false
 }
+function openVideoEditPreflight() {
+  videoEditPreflightOpen.value = true
+}
+function closeVideoEditPreflight() {
+  videoEditPreflightOpen.value = false
+}
 const professionalActionsBlocked = computed(() => (
   isRevisionPanelOpen.value || isResultCompareOpen.value || isResourceOpen.value ||
-  isContextDrawerOpen.value || workflowBatchOpen.value || viewMode.value !== 'workflow'
+  isContextDrawerOpen.value || workflowBatchOpen.value || videoEditPreflightOpen.value || viewMode.value !== 'workflow'
 ))
 const {
   actions: professionalActions,
@@ -184,6 +192,7 @@ const {
   isWorkflowView: () => viewMode.value === 'workflow',
   projectId,
   openWorkflowBatch,
+  openVideoEditPreflight,
   splitImageGrid,
   userId: () => authStore.user?.id ?? '',
 })
@@ -474,6 +483,15 @@ onBeforeUnmount(() => {
         :is-review-only="isReviewOnly"
         :project-id="projectId"
         @close="closeWorkflowBatch"
+      />
+
+      <CanvasVideoEditPreflightOverlay
+        v-if="videoEditPreflightOpen"
+        :assets="resourceStore.assets"
+        :canvas-id="canvasId"
+        :is-review-only="isReviewOnly"
+        :project-id="projectId"
+        @close="closeVideoEditPreflight"
       />
 
       <header class="route-chrome" aria-label="Canvas route controls">

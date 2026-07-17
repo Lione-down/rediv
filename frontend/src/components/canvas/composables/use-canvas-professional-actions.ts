@@ -17,6 +17,7 @@ interface CanvasProfessionalActionsOptions {
   createImageOperation?: (operationId: string, operationVersion: number) => Promise<unknown>
   createStoryboardRecipe?: (recipeId: string, recipeVersion: number) => Promise<unknown>
   openWorkflowBatch?: () => void
+  openVideoEditPreflight?: () => void
   getInsertionPoint: () => { x: number; y: number }
   imageOperationCapabilities?: () => ImageOperationCapabilities | null
   isBlocked: () => boolean
@@ -63,6 +64,7 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
     .filter((action) => action.intent.type !== 'create-image-operation' || Boolean(options.createImageOperation))
     .filter((action) => action.intent.type !== 'create-storyboard-recipe' || Boolean(options.createStoryboardRecipe))
     .filter((action) => action.intent.type !== 'open-workflow-batch' || Boolean(options.openWorkflowBatch))
+    .filter((action) => action.intent.type !== 'open-video-edit-preflight' || Boolean(options.openVideoEditPreflight))
     .filter((action) => action.intent.type !== 'split-image-grid' || Boolean(options.splitImageGrid)))
 
   function restoreFocus() {
@@ -152,6 +154,15 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
         return
       }
       options.openWorkflowBatch()
+      close()
+      return
+    }
+    if (action.intent.type === 'open-video-edit-preflight') {
+      if (!options.openVideoEditPreflight) {
+        error.value = '视频编辑预检当前不可用。'
+        return
+      }
+      options.openVideoEditPreflight()
       close()
       return
     }

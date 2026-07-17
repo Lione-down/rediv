@@ -15,18 +15,18 @@ Last updated: 2026-07-18
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-087 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
+- Completed V2 Tasks: T5-001 through T5-088 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision).
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Last completed Task: `T5-087 - Workflow templates and safe batch orchestration`
-- Report: `ai/reports/REPORT-T5-087.md`
-- Task: `ai/tasks/todo/TASK-T5-087.md`
-- Plan: `ai/tasks/doing/TASK-T5-087-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-087-PROGRESS.md`
-- Next eligible Task: `T5-088 - Video trim, concat, preview, export, and FFmpeg/backend contract decision`.
+- Last completed Task: `T5-088 - Video trim, concat, preview, export, and FFmpeg/backend contract decision`
+- Report: `ai/reports/REPORT-T5-088.md`
+- Task: `ai/tasks/todo/TASK-T5-088.md`
+- Plan: `ai/tasks/doing/TASK-T5-088-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-088-PROGRESS.md`
+- Exact next action: commit/push the reviewed T5-088 closure, verify the pushed baseline, then activate `T5-089 - Audio generation and audio-driven video with fail-closed capability/quota/task contracts`.
 
 ## Current Verified Facts
 
@@ -35,6 +35,8 @@ Last updated: 2026-07-18
 - T5-086 is `DONE - PASS`: authenticated capability v3 adds strict Revid-owned nested shot controls while production advertises zero executable controls. Crafting a shot-control request fails before task/quota/asset/provider mutation; browser mocks prove static image controls, image-to-video time advance/rewind gating, exact task snapshots, capability drift, history/autosave/reload, duplicate preservation, scoped axe, and 375px review-only behavior. Full backend passed 482 plus 116 subtests, build passed 4,893 modules, and full Chromium passed 462/462. The guarded 200/300 metrics passed at 56.56 FPS and 16.8ms p95 without threshold changes. Report: `ai/reports/REPORT-T5-086.md`.
 
 - T5-087 is `DONE - PASS`: a Revid-owned frontend v1 Workflow Template now preflights active-Canvas image/video generation nodes with deterministic dependencies, conservative existing quota-unit estimates, strict stale/malformed/cyclic/foreign fail-closed handling, and explicit session-local mock start/cancel/paused-recovery/resume. It never calls a provider or creates task/asset/quota/Canvas mutation. The async overlay preserves the normal Canvas hot path; focused final Chromium passed 14/14, build passed 4,900 modules, and final functional Chromium passed 466/466. The separately guarded SwiftShader 200/300 mock title retained its exact non-passing metric without threshold change and is classified with the retained live baseline in `REPORT-T5-087.md`.
+
+- T5-088 is `DONE - PASS`: a Revid-owned frontend v1 video-edit preflight validates selected Canvas-local project video sources, explicit trim bounds and concat order, native source/sequence preview, an initial dialog focus/Escape path, and an honest blocked export boundary. Existing generation tasks are not misused for editing and no media is processed. The fresh post-review build passed 4,907 modules; focused Chromium passed 11/11, related Canvas/video passed 54/54, and final functional Chromium passed 471/471 in 8.7 minutes. The separate SwiftShader-only 200/300 title measured 50.72477779708455 FPS / 33.400000000001455ms p95 against unchanged limits with no hardware acceleration; its two companion tests passed and it is classified in `REPORT-T5-088.md`.
 
 - T5-004 through T5-007 now provide the complete pre-certification Canvas product: full-screen multi-Canvas routing, persistent Leafer world, deterministic command model, autosave/recovery/revisions, canonical node registry, project-shared resources, versioned templates, durable generation tasks/results, and backend-authoritative quota snapshots.
 - T5-007 Unit E adds responsive project resource and contextual generation controls, registry-backed asset/template insertion, durable success/failure result presentation, desktop/narrow keyboard behavior, and a strict 375px browse/review-only boundary.

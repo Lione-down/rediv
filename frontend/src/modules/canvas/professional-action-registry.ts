@@ -16,13 +16,14 @@ import {
 } from './image-operations'
 
 export type { ImageGridOutputCount } from './image-grid-split'
-export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation' | 'workflow'
+export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation' | 'workflow' | 'video'
 export type ProfessionalCanvasActionIntent =
   | { type: 'create-node'; nodeType: CanonicalNodeType; subtype: string }
   | { type: 'create-shot-graph' }
   | { type: 'create-storyboard-recipe'; recipeId: StoryboardRecipeId; recipeVersion: 1 }
   | { type: 'create-image-operation'; operationId: ImageOperationId; operationVersion: 1 }
   | { type: 'open-workflow-batch'; templateId: 'canvas-generation-batch'; templateVersion: 1 }
+  | { type: 'open-video-edit-preflight'; templateId: 'video-edit-preflight'; templateVersion: 1 }
   | { type: 'split-image-grid'; outputCount: ImageGridOutputCount }
 
 export interface ProfessionalCanvasActionDefinition {
@@ -126,6 +127,14 @@ export const PROFESSIONAL_CANVAS_ACTIONS = [
     keywords: ['批处理', '工作流', '预检', '依赖', 'quota', 'batch', 'workflow', 'preflight'],
     intent: { type: 'open-workflow-batch', templateId: 'canvas-generation-batch', templateVersion: 1 },
   },
+  {
+    id: 'video.edit-preflight',
+    category: 'video',
+    title: '视频裁剪与拼接预检',
+    description: '检查当前视频素材的裁剪、序列预览和导出边界。',
+    keywords: ['视频', '裁剪', '拼接', '预览', '导出', 'trim', 'concat', 'preview', 'export'],
+    intent: { type: 'open-video-edit-preflight', templateId: 'video-edit-preflight', templateVersion: 1 },
+  },
   ...STORYBOARD_RECIPE_ACTIONS,
   ...IMAGE_OPERATION_ACTIONS,
   {
@@ -226,6 +235,18 @@ function resolveEligibility(
     node.type === 'generation' && !node.isLocked &&
     (node.contentData?.subtype === 'image' || node.contentData?.subtype === 'video')
   ))) return { eligible: false, reason: '请选择至少一个可用的图片或视频生成节点。' }
+  if (action.intent.type === 'open-video-edit-preflight') {
+    const eligible = context.selectedNodes.length > 0 && context.selectedNodes.every((node) => {
+      const assetId = readString(node.contentData?.asset_id)
+      const url = readString(node.contentData?.url)
+      const asset = assetId ? context.assets.find((candidate) => candidate.id === assetId) : null
+      return !node.isLocked && (node.type === 'asset' || node.type === 'result') &&
+        node.contentData?.subtype === 'video' && node.contentData?.project_id === context.projectId &&
+        Boolean(url) && Boolean(asset && asset.user_id === context.userId && asset.project_id === context.projectId &&
+          asset.type === 'video' && asset.status === 'active' && asset.url === url)
+    })
+    if (!eligible) return { eligible: false, reason: '请选择当前项目中可用的视频素材或结果节点。' }
+  }
   if (action.intent.type === 'create-storyboard-recipe') {
     const recipe = resolveStoryboardRecipe(action.intent.recipeId, action.intent.recipeVersion)
     if (!recipe || !resolveStoryboardRecipeSource(recipe, context)) {
@@ -267,6 +288,8 @@ function actionSearchText(action: ProfessionalCanvasActionDefinition) {
             ? `${action.intent.operationId} image operation edit`
           : action.intent.type === 'open-workflow-batch'
             ? `${action.intent.templateId} batch workflow preflight`
+          : action.intent.type === 'open-video-edit-preflight'
+            ? `${action.intent.templateId} video trim concat preview export`
           : 'script shot storyboard',
   ].join(' ').normalize('NFKC').toLocaleLowerCase()
 }

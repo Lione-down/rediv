@@ -82,7 +82,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 85 | T5-085 | Image expansion, inpaint, erase, cutout, upscale, region, and fusion contracts | DONE - PASS | T5-084 |
 | 86 | T5-086 | Shot angle, framing, focus, lighting, and time controls | DONE - PASS | T5-085 |
 | 87 | T5-087 | Workflow templates, dry-run, dependency execution, cancel/resume, and quota estimate | DONE - PASS | T5-086 |
-| 88 | T5-088 | Video trim, concat, preview, export, and FFmpeg/backend contract decision | TODO | T5-087 |
+| 88 | T5-088 | Video trim, concat, preview, export, and FFmpeg/backend contract decision | DONE - PASS | T5-087 |
 | 89 | T5-089 | Audio generation and audio-driven video with fail-closed capability/quota/task contracts | TODO | T5-088 |
 | 90 | T5-090 | Revid Agent/Skill interface over native auth, project, canvas, and generation contracts | TODO | T5-089 |
 
@@ -270,7 +270,7 @@ T5-086 is `DONE - PASS`. It adds a backward-aware generation capability v3 with 
 
 T5-087 is `DONE - PASS`. It adds a Revid-owned v1 Workflow Template/preflight/mock lifecycle for selected active-Canvas image/video generation nodes, with deterministic dependencies, conservative quota-unit estimates, strict fail-closed scope/capability/graph checks, and explicit mock-only cancellation/recovery. Final focused Chromium passed 14/14, build passed 4,900 modules, and final functional Chromium passed 466/466. The independently retained SwiftShader 200/300 mock performance title missed unchanged 55 FPS/33ms thresholds but is transparently classified as an environment-sensitive exception with no Canvas hot-path diff; `REPORT-T5-087.md` is authoritative evidence.
 
-T5-088 remains `TODO` until T5-087 closes. It will independently decide and implement the bounded video trim, concat, preview, export, FFmpeg, and backend task contract without assuming a destructive or irreversible backend design.
+T5-088 is `DONE - PASS`. It adds Revid-owned video-edit preflight v1 for explicit active-Canvas trim/concat source scope, native preview intent, deterministic initial dialog focus/Escape close, and a truthful `backend_export_unavailable` boundary. FFmpeg/FFprobe discovery found local tools but no Revid worker/API/task/output contract, so no execution is claimed or attempted. The fresh post-review build passed 4,907 modules; focused Chromium passed 11/11, related video/Canvas regression passed 54/54, and final functional Chromium passed 471/471 in 8.7 minutes. The independently retained SwiftShader 200/300 mock title measured 50.72477779708455 FPS / 33.400000000001455ms p95 against unchanged limits with no hardware acceleration; its two companion tests passed and it remains transparently classified as an environment-sensitive exception with no Canvas hot-path diff. `REPORT-T5-088.md` is authoritative evidence. T5-089 may activate only after the pushed T5-088 baseline is verified.
 
 T5-089 remains `TODO` until T5-088 closes. It will add audio generation and audio-driven video only through fail-closed provider, quota, and task capabilities, with mock/contract scope completed before any Human-gated real provider work.
 

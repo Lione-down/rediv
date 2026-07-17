@@ -112,6 +112,7 @@ test('professional action definitions keep stable category and intent order', ()
     ['canvas.create-video-generation', 'create', { type: 'create-node', nodeType: 'generation', subtype: 'video' }],
     ['script.create-shot-graph', 'script', { type: 'create-shot-graph' }],
     ['workflow.canvas-generation-batch', 'workflow', { type: 'open-workflow-batch', templateId: 'canvas-generation-batch', templateVersion: 1 }],
+    ['video.edit-preflight', 'video', { type: 'open-video-edit-preflight', templateId: 'video-edit-preflight', templateVersion: 1 }],
     ['storyboard.plot-board-4', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'plot-board-4', recipeVersion: 1 }],
     ['storyboard.shot-board-9', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'shot-board-9', recipeVersion: 1 }],
     ['storyboard.shot-board-16', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'shot-board-16', recipeVersion: 1 }],
@@ -149,6 +150,18 @@ test('workflow batch preflight action requires an editable canonical generation 
       reason: '请选择至少一个可用的图片或视频生成节点。',
     })
   }
+})
+
+test('video edit preflight action requires an editable project-owned video source', () => {
+  const video = generationNode({
+    id: 'video-result', type: 'result', contentData: { subtype: 'video', serialization_version: 1, asset_id: 'asset-image', project_id: PROJECT_ID, url: 'https://cdn.example.com/image.png' },
+  })
+  const assets = [{ ...imageAsset(), id: 'asset-image', type: 'video' as const, url: 'https://cdn.example.com/image.png' }]
+  const valid = context({ assets, selectedNodes: [video] })
+  expect(resolveProfessionalCanvasAction(valid, 'video.edit-preflight')?.eligibility).toEqual({ eligible: true })
+  expect(resolveProfessionalCanvasAction(context({ selectedNodes: [video] }), 'video.edit-preflight')?.eligibility).toEqual({
+    eligible: false, reason: '请选择当前项目中可用的视频素材或结果节点。',
+  })
 })
 test('registry resolution is deterministic, searchable, and fail closed for unknown actions', () => {
   const selectedContext = context({ selectedNodes: [imageNode()] })
