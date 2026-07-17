@@ -16,6 +16,7 @@ interface CanvasProfessionalActionsOptions {
   createShotGraph?: () => Promise<unknown>
   createImageOperation?: (operationId: string, operationVersion: number) => Promise<unknown>
   createStoryboardRecipe?: (recipeId: string, recipeVersion: number) => Promise<unknown>
+  openWorkflowBatch?: () => void
   getInsertionPoint: () => { x: number; y: number }
   imageOperationCapabilities?: () => ImageOperationCapabilities | null
   isBlocked: () => boolean
@@ -61,6 +62,7 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
     .filter((action) => action.intent.type !== 'create-shot-graph' || Boolean(options.createShotGraph))
     .filter((action) => action.intent.type !== 'create-image-operation' || Boolean(options.createImageOperation))
     .filter((action) => action.intent.type !== 'create-storyboard-recipe' || Boolean(options.createStoryboardRecipe))
+    .filter((action) => action.intent.type !== 'open-workflow-batch' || Boolean(options.openWorkflowBatch))
     .filter((action) => action.intent.type !== 'split-image-grid' || Boolean(options.splitImageGrid)))
 
   function restoreFocus() {
@@ -142,6 +144,15 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
       } finally {
         isExecuting.value = false
       }
+      return
+    }
+    if (action.intent.type === 'open-workflow-batch') {
+      if (!options.openWorkflowBatch) {
+        error.value = '批处理预检当前不可用。'
+        return
+      }
+      options.openWorkflowBatch()
+      close()
       return
     }
     if (action.intent.type === 'split-image-grid') {

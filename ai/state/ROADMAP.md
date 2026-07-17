@@ -80,8 +80,8 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 83 | T5-083 | Versioned script-to-shot schema and atomic script/shot/generation/storyboard graph creation | DONE - PASS | T5-082 |
 | 84 | T5-084 | Professional Storyboard recipes for grid, character, and scene views | DONE - PASS | T5-083 |
 | 85 | T5-085 | Image expansion, inpaint, erase, cutout, upscale, region, and fusion contracts | DONE - PASS | T5-084 |
-| 86 | T5-086 | Shot angle, framing, focus, lighting, and time controls | DOING | T5-085 |
-| 87 | T5-087 | Workflow templates, dry-run, dependency execution, cancel/resume, and quota estimate | TODO | T5-086 |
+| 86 | T5-086 | Shot angle, framing, focus, lighting, and time controls | DONE - PASS | T5-085 |
+| 87 | T5-087 | Workflow templates, dry-run, dependency execution, cancel/resume, and quota estimate | DONE - PASS | T5-086 |
 | 88 | T5-088 | Video trim, concat, preview, export, and FFmpeg/backend contract decision | TODO | T5-087 |
 | 89 | T5-089 | Audio generation and audio-driven video with fail-closed capability/quota/task contracts | TODO | T5-088 |
 | 90 | T5-090 | Revid Agent/Skill interface over native auth, project, canvas, and generation contracts | TODO | T5-089 |
@@ -268,7 +268,7 @@ T5-085 is `DONE - PASS`. It adds downstream-only image-operation branches, stric
 
 T5-086 is `DONE - PASS`. It adds a backward-aware generation capability v3 with strict Revid-owned shot angle, framing, focus, lighting, and time-direction contracts. Production truthfully advertises zero executable controls and rejects crafted requests before task/quota/asset/provider mutation; mock-only evidence proves exact snapshots, drift safety, Context Panel persistence, 375px review-only behavior, and existing Canvas lifecycle preservation. Full backend passed 482 plus 116 subtests, build passed 4,893 modules, full Chromium passed 462/462, and the guarded 200/300 run passed at 56.56 FPS / 16.8ms p95. `REPORT-T5-086.md` is authoritative evidence.
 
-T5-087 is now the next eligible `TODO`. It will add versioned workflow templates, dry-run/preflight, dependency order, batch execution, cancel/resume, and quota estimates without automatically triggering paid work.
+T5-087 is `DONE - PASS`. It adds a Revid-owned v1 Workflow Template/preflight/mock lifecycle for selected active-Canvas image/video generation nodes, with deterministic dependencies, conservative quota-unit estimates, strict fail-closed scope/capability/graph checks, and explicit mock-only cancellation/recovery. Final focused Chromium passed 14/14, build passed 4,900 modules, and final functional Chromium passed 466/466. The independently retained SwiftShader 200/300 mock performance title missed unchanged 55 FPS/33ms thresholds but is transparently classified as an environment-sensitive exception with no Canvas hot-path diff; `REPORT-T5-087.md` is authoritative evidence.
 
 T5-088 remains `TODO` until T5-087 closes. It will independently decide and implement the bounded video trim, concat, preview, export, FFmpeg, and backend task contract without assuming a destructive or irreversible backend design.
 

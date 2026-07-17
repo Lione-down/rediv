@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CircleCheck, CircleHelp, History, LoaderCircle } from 'lucide-vue-next'
 import { darkTheme, NConfigProvider, NDrawer, NDrawerContent } from 'naive-ui'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { v2CanvasNaiveTheme } from '../../assets/styles/v2-canvas-naive-theme'
 import CanvasAssetPanel from '../../components/canvas/CanvasAssetPanel.vue'
@@ -42,12 +42,14 @@ const projectStore = useProjectStore()
 const canvasListStore = useCanvasListStore()
 const canvasDocumentStore = useCanvasStore()
 const canvasRevisionStore = useCanvasRevisionStore()
+const CanvasWorkflowBatchOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasWorkflowBatchOverlay.vue'))
 useCanvasPersistenceLifecycle()
 const isReviewOnly = ref(false)
 const isCompact = ref(false)
 const viewMode = ref<CanvasViewMode>('workflow')
 const isRevisionPanelOpen = ref(false)
 const isResultCompareOpen = ref(false)
+const workflowBatchOpen = ref(false)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
 const canvasStageRef = ref<CanvasStageHandle | null>(null)
 let revisionPanelOpener: HTMLElement | null = null
@@ -150,9 +152,15 @@ const { createImageOperation } = useCanvasImageOperations({
   revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId),
   userId: () => authStore.user?.id ?? '',
 })
+function openWorkflowBatch() {
+  workflowBatchOpen.value = true
+}
+function closeWorkflowBatch() {
+  workflowBatchOpen.value = false
+}
 const professionalActionsBlocked = computed(() => (
   isRevisionPanelOpen.value || isResultCompareOpen.value || isResourceOpen.value ||
-  isContextDrawerOpen.value || viewMode.value !== 'workflow'
+  isContextDrawerOpen.value || workflowBatchOpen.value || viewMode.value !== 'workflow'
 ))
 const {
   actions: professionalActions,
@@ -175,6 +183,7 @@ const {
   isReadOnly: () => isReviewOnly.value || canvasRevisionStore.restoringRevision !== null,
   isWorkflowView: () => viewMode.value === 'workflow',
   projectId,
+  openWorkflowBatch,
   splitImageGrid,
   userId: () => authStore.user?.id ?? '',
 })
@@ -456,6 +465,15 @@ onBeforeUnmount(() => {
         @close="closeProfessionalActions"
         @select="executeProfessionalAction"
         @update:query="professionalActionQuery = $event"
+      />
+
+      <CanvasWorkflowBatchOverlay
+        v-if="workflowBatchOpen"
+        :canvas-id="canvasId"
+        :capabilities="generationCapabilities"
+        :is-review-only="isReviewOnly"
+        :project-id="projectId"
+        @close="closeWorkflowBatch"
       />
 
       <header class="route-chrome" aria-label="Canvas route controls">

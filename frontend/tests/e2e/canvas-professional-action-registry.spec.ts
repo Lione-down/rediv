@@ -74,6 +74,21 @@ function scriptNode(overrides: Partial<CanvasNode> = {}): CanvasNode {
   }
 }
 
+function generationNode(overrides: Partial<CanvasNode> = {}): CanvasNode {
+  return {
+    id: 'generation-image',
+    type: 'generation',
+    title: '图片生成',
+    x: 360,
+    y: 140,
+    width: 320,
+    height: 200,
+    content: '黄昏城市天际线',
+    contentData: { subtype: 'image', serialization_version: 1 },
+    ...overrides,
+  }
+}
+
 function context(overrides: Partial<ProfessionalCanvasActionContext> = {}): ProfessionalCanvasActionContext {
   return {
     assets: [imageAsset()],
@@ -96,6 +111,7 @@ test('professional action definitions keep stable category and intent order', ()
     ['canvas.create-image-generation', 'create', { type: 'create-node', nodeType: 'generation', subtype: 'image' }],
     ['canvas.create-video-generation', 'create', { type: 'create-node', nodeType: 'generation', subtype: 'video' }],
     ['script.create-shot-graph', 'script', { type: 'create-shot-graph' }],
+    ['workflow.canvas-generation-batch', 'workflow', { type: 'open-workflow-batch', templateId: 'canvas-generation-batch', templateVersion: 1 }],
     ['storyboard.plot-board-4', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'plot-board-4', recipeVersion: 1 }],
     ['storyboard.shot-board-9', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'shot-board-9', recipeVersion: 1 }],
     ['storyboard.shot-board-16', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'shot-board-16', recipeVersion: 1 }],
@@ -114,6 +130,25 @@ test('professional action definitions keep stable category and intent order', ()
     ['image.split-16', 'image', { type: 'split-image-grid', outputCount: 16 }],
     ['image.split-25', 'image', { type: 'split-image-grid', outputCount: 25 }],
   ])
+})
+
+test('workflow batch preflight action requires an editable canonical generation selection', () => {
+  const valid = context({ selectedNodes: [generationNode()] })
+  expect(resolveProfessionalCanvasAction(valid, 'workflow.canvas-generation-batch')?.eligibility).toEqual({ eligible: true })
+  expect(resolveProfessionalCanvasActions(valid, 'batch preflight').map((action) => action.id)).toEqual([
+    'workflow.canvas-generation-batch',
+  ])
+
+  for (const invalid of [
+    context(),
+    context({ selectedNodes: [generationNode({ isLocked: true })] }),
+    context({ selectedNodes: [generationNode({ contentData: { subtype: 'audio', serialization_version: 1 } })] }),
+  ]) {
+    expect(resolveProfessionalCanvasAction(invalid, 'workflow.canvas-generation-batch')?.eligibility).toEqual({
+      eligible: false,
+      reason: '请选择至少一个可用的图片或视频生成节点。',
+    })
+  }
 })
 test('registry resolution is deterministic, searchable, and fail closed for unknown actions', () => {
   const selectedContext = context({ selectedNodes: [imageNode()] })

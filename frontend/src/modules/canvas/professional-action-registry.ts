@@ -16,12 +16,13 @@ import {
 } from './image-operations'
 
 export type { ImageGridOutputCount } from './image-grid-split'
-export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation'
+export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation' | 'workflow'
 export type ProfessionalCanvasActionIntent =
   | { type: 'create-node'; nodeType: CanonicalNodeType; subtype: string }
   | { type: 'create-shot-graph' }
   | { type: 'create-storyboard-recipe'; recipeId: StoryboardRecipeId; recipeVersion: 1 }
   | { type: 'create-image-operation'; operationId: ImageOperationId; operationVersion: 1 }
+  | { type: 'open-workflow-batch'; templateId: 'canvas-generation-batch'; templateVersion: 1 }
   | { type: 'split-image-grid'; outputCount: ImageGridOutputCount }
 
 export interface ProfessionalCanvasActionDefinition {
@@ -116,6 +117,14 @@ export const PROFESSIONAL_CANVAS_ACTIONS = [
     description: '用本地 mock 解析脚本并创建镜头生成图。',
     keywords: ['脚本', '镜头', '分镜', 'shot', 'script', 'storyboard', 'plan'],
     intent: { type: 'create-shot-graph' },
+  },
+  {
+    id: 'workflow.canvas-generation-batch',
+    category: 'workflow',
+    title: '批处理预检',
+    description: '检查当前选择的生成节点依赖与 quota 单位。',
+    keywords: ['批处理', '工作流', '预检', '依赖', 'quota', 'batch', 'workflow', 'preflight'],
+    intent: { type: 'open-workflow-batch', templateId: 'canvas-generation-batch', templateVersion: 1 },
   },
   ...STORYBOARD_RECIPE_ACTIONS,
   ...IMAGE_OPERATION_ACTIONS,
@@ -213,6 +222,10 @@ function resolveEligibility(
   if (action.intent.type === 'create-shot-graph' && !resolveShotSchemaSource(context)) {
     return { eligible: false, reason: '请选择一个可用的脚本节点。' }
   }
+  if (action.intent.type === 'open-workflow-batch' && !context.selectedNodes.some((node) => (
+    node.type === 'generation' && !node.isLocked &&
+    (node.contentData?.subtype === 'image' || node.contentData?.subtype === 'video')
+  ))) return { eligible: false, reason: '请选择至少一个可用的图片或视频生成节点。' }
   if (action.intent.type === 'create-storyboard-recipe') {
     const recipe = resolveStoryboardRecipe(action.intent.recipeId, action.intent.recipeVersion)
     if (!recipe || !resolveStoryboardRecipeSource(recipe, context)) {
@@ -252,6 +265,8 @@ function actionSearchText(action: ProfessionalCanvasActionDefinition) {
           ? `${action.intent.recipeId} storyboard recipe`
           : action.intent.type === 'create-image-operation'
             ? `${action.intent.operationId} image operation edit`
+          : action.intent.type === 'open-workflow-batch'
+            ? `${action.intent.templateId} batch workflow preflight`
           : 'script shot storyboard',
   ].join(' ').normalize('NFKC').toLocaleLowerCase()
 }
