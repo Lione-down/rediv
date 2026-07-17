@@ -2,6 +2,7 @@
 import {
   Clapperboard,
   AudioLines,
+  Bot,
   CornerDownLeft,
   FileText,
   Grid2X2,
@@ -38,6 +39,7 @@ function actionIcon(action: ResolvedProfessionalCanvasAction) {
   if (action.intent.type === 'create-image-operation') return ImagePlus
   if (action.intent.type === 'open-workflow-batch') return ListChecks
   if (action.intent.type === 'open-audio-generation-preflight') return AudioLines
+  if (action.intent.type === 'open-agent-skill-preflight') return Bot
   if (action.intent.type === 'open-video-edit-preflight') return Video
   if (action.intent.type === 'split-image-grid') return Grid2X2
   if (action.intent.nodeType === 'script') return FileText
@@ -47,6 +49,7 @@ function actionIcon(action: ResolvedProfessionalCanvasAction) {
 }
 
 function actionCategory(action: ResolvedProfessionalCanvasAction) {
+  if (action.category === 'agent-skill') return 'Agent/Skill'
   if (action.category === 'image') return '图片处理'
   if (action.category === 'image-operation') return '专业图片操作'
   if (action.category === 'storyboard') return '故事板配方'

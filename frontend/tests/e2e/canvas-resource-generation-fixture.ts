@@ -520,6 +520,39 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
         ? fulfillJson(route, GENERATION_CAPABILITIES)
         : fulfillJson(route, { detail: 'mock capability unavailable' }, 503)
     }
+    const agentSkillMatch = path.match(new RegExp(`^/api/projects/${PROJECT_ID}/canvases/([^/]+)/agent-skills(?:/(preflight))?$`))
+    if (agentSkillMatch && method === 'GET' && !agentSkillMatch[2]) {
+      return fulfillJson(route, {
+        contract_version: 1,
+        execution_modes: ['mock-only', 'unavailable'],
+        skills: [{
+          id: 'revid.canvas-context', version: 1, execution_mode: 'mock-only',
+          intent: 'canvas-context', requires_acknowledgement: false,
+        }],
+        provider: { available: false }, quota: { available: false }, task: { available: false },
+      })
+    }
+    if (agentSkillMatch && method === 'POST' && agentSkillMatch[2] === 'preflight') {
+      const selectedNodeIds = Array.isArray(body?.selected_node_ids) ? body.selected_node_ids : []
+      return fulfillJson(route, {
+        contract_version: 1,
+        skill: {
+          id: 'revid.canvas-context', version: 1, execution_mode: 'mock-only',
+          intent: 'canvas-context', requires_acknowledgement: false,
+        },
+        project_id: PROJECT_ID,
+        canvas_id: agentSkillMatch[1],
+        sources: selectedNodeIds.map((nodeId) => ({
+          node_id: nodeId,
+          role: 'canvas-node',
+          node_type: nodeId === 'script-source' ? 'script' : 'generation',
+          subtype: nodeId === 'script-source' ? 'script' : 'image',
+        })),
+        execution_mode: 'mock-only',
+        requires_acknowledgement: false,
+        provider: { available: false }, quota: { available: false }, task: { available: false },
+      })
+    }
     const shotSchemaMatch = path.match(new RegExp(`^/api/projects/${PROJECT_ID}/canvases/([^/]+)/shot-schema$`))
     if (method === 'POST' && shotSchemaMatch) {
       state.shotSchemaCount += 1

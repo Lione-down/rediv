@@ -16,7 +16,7 @@ import {
 } from './image-operations'
 
 export type { ImageGridOutputCount } from './image-grid-split'
-export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation' | 'workflow' | 'video' | 'audio'
+export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation' | 'workflow' | 'video' | 'audio' | 'agent-skill'
 export type ProfessionalCanvasActionIntent =
   | { type: 'create-node'; nodeType: CanonicalNodeType; subtype: string }
   | { type: 'create-shot-graph' }
@@ -25,6 +25,7 @@ export type ProfessionalCanvasActionIntent =
   | { type: 'open-workflow-batch'; templateId: 'canvas-generation-batch'; templateVersion: 1 }
   | { type: 'open-video-edit-preflight'; templateId: 'video-edit-preflight'; templateVersion: 1 }
   | { type: 'open-audio-generation-preflight'; templateId: 'audio-generation-preflight'; templateVersion: 1 }
+  | { type: 'open-agent-skill-preflight'; skillId: 'revid.canvas-context'; skillVersion: 1 }
   | { type: 'split-image-grid'; outputCount: ImageGridOutputCount }
 
 export interface ProfessionalCanvasActionDefinition {
@@ -143,6 +144,14 @@ export const PROFESSIONAL_CANVAS_ACTIONS = [
     description: '检查脚本音频或音频驱动视频的 provider、quota 和任务边界。',
     keywords: ['音频', '旁白', '声音', '音乐', '驱动视频', 'audio', 'speech', 'music', 'sound', 'preflight'],
     intent: { type: 'open-audio-generation-preflight', templateId: 'audio-generation-preflight', templateVersion: 1 },
+  },
+  {
+    id: 'agent-skill.canvas-context',
+    category: 'agent-skill',
+    title: 'Agent Canvas context preflight',
+    description: 'Inspect the current Canvas selection through Revid’s mock-only Agent/Skill contract.',
+    keywords: ['agent', 'skill', 'context', 'canvas', 'mock', 'preflight', '上下文', '预检'],
+    intent: { type: 'open-agent-skill-preflight', skillId: 'revid.canvas-context', skillVersion: 1 },
   },
   ...STORYBOARD_RECIPE_ACTIONS,
   ...IMAGE_OPERATION_ACTIONS,
@@ -265,6 +274,11 @@ function resolveEligibility(
       return { eligible: false, reason: '请选择一条可用脚本，或一条音频和一条视频素材。' }
     }
   }
+  if (action.intent.type === 'open-agent-skill-preflight') {
+    const eligible = context.selectedNodes.length >= 1 && context.selectedNodes.length <= 25 &&
+      context.selectedNodes.every((node) => Boolean(readString(node.id)) && !node.isLocked)
+    if (!eligible) return { eligible: false, reason: '请选择 1 至 25 个当前画布可用节点。' }
+  }
   if (action.intent.type === 'create-storyboard-recipe') {
     const recipe = resolveStoryboardRecipe(action.intent.recipeId, action.intent.recipeVersion)
     if (!recipe || !resolveStoryboardRecipeSource(recipe, context)) {
@@ -308,7 +322,9 @@ function actionSearchText(action: ProfessionalCanvasActionDefinition) {
             ? `${action.intent.templateId} batch workflow preflight`
           : action.intent.type === 'open-video-edit-preflight'
             ? `${action.intent.templateId} video trim concat preview export`
-          : 'script shot storyboard',
+          : action.intent.type === 'open-agent-skill-preflight'
+            ? `${action.intent.skillId} agent skill canvas context mock preflight`
+            : 'script shot storyboard',
   ].join(' ').normalize('NFKC').toLocaleLowerCase()
 }
 

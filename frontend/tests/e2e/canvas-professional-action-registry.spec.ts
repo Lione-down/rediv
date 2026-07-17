@@ -114,6 +114,7 @@ test('professional action definitions keep stable category and intent order', ()
     ['workflow.canvas-generation-batch', 'workflow', { type: 'open-workflow-batch', templateId: 'canvas-generation-batch', templateVersion: 1 }],
     ['video.edit-preflight', 'video', { type: 'open-video-edit-preflight', templateId: 'video-edit-preflight', templateVersion: 1 }],
     ['audio.generation-preflight', 'audio', { type: 'open-audio-generation-preflight', templateId: 'audio-generation-preflight', templateVersion: 1 }],
+    ['agent-skill.canvas-context', 'agent-skill', { type: 'open-agent-skill-preflight', skillId: 'revid.canvas-context', skillVersion: 1 }],
     ['storyboard.plot-board-4', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'plot-board-4', recipeVersion: 1 }],
     ['storyboard.shot-board-9', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'shot-board-9', recipeVersion: 1 }],
     ['storyboard.shot-board-16', 'storyboard', { type: 'create-storyboard-recipe', recipeId: 'shot-board-16', recipeVersion: 1 }],
@@ -172,6 +173,21 @@ test('audio preflight action requires one bounded script or paired audio/video s
     eligible: false, reason: '请选择一条可用脚本，或一条音频和一条视频素材。',
   })
 })
+
+test('Agent/Skill context preflight requires a bounded editable current-Canvas selection', () => {
+  const valid = context({ selectedNodes: [scriptNode()] })
+  expect(resolveProfessionalCanvasAction(valid, 'agent-skill.canvas-context')?.eligibility).toEqual({ eligible: true })
+  for (const invalid of [
+    context(),
+    context({ selectedNodes: [scriptNode({ isLocked: true })] }),
+    context({ selectedNodes: Array.from({ length: 26 }, (_, index) => scriptNode({ id: `script-${index}` })) }),
+    context({ selectedNodes: [scriptNode({ id: '' })] }),
+  ]) {
+    expect(resolveProfessionalCanvasAction(invalid, 'agent-skill.canvas-context')?.eligibility).toEqual({
+      eligible: false, reason: '请选择 1 至 25 个当前画布可用节点。',
+    })
+  }
+})
 test('registry resolution is deterministic, searchable, and fail closed for unknown actions', () => {
   const selectedContext = context({ selectedNodes: [imageNode()] })
   const first = resolveProfessionalCanvasActions(selectedContext)
@@ -179,6 +195,7 @@ test('registry resolution is deterministic, searchable, and fail closed for unkn
   expect(second).toEqual(first)
   expect(first.filter((action) => action.eligibility.eligible).map((action) => action.id)).toEqual([
     'canvas.create-script', 'canvas.create-note', 'canvas.create-image-generation', 'canvas.create-video-generation',
+    'agent-skill.canvas-context',
     'image.split-4', 'image.split-9', 'image.split-16', 'image.split-25',
   ])
   expect(resolveProfessionalCanvasActions(selectedContext, '九宫格')

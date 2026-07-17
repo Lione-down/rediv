@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from api import (
     admin,
+    agent_skills,
     assets,
     auth,
     canvas_connections,
@@ -31,6 +32,7 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(canvas_documents.router)
     app.include_router(canvas_nodes.router)
     app.include_router(canvas_connections.router)
+    app.include_router(agent_skills.router)
     app.include_router(generation_capabilities.router)
     app.include_router(generation_tasks.router)
     app.include_router(shot_schemas.router)

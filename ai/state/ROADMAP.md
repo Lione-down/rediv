@@ -84,7 +84,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 87 | T5-087 | Workflow templates, dry-run, dependency execution, cancel/resume, and quota estimate | DONE - PASS | T5-086 |
 | 88 | T5-088 | Video trim, concat, preview, export, and FFmpeg/backend contract decision | DONE - PASS | T5-087 |
 | 89 | T5-089 | Audio generation and audio-driven video with fail-closed capability/quota/task contracts | DONE - PASS | T5-088 |
-| 90 | T5-090 | Revid Agent/Skill interface over native auth, project, canvas, and generation contracts | TODO | T5-089 |
+| 90 | T5-090 | Revid Agent/Skill interface over native auth, project, canvas, and generation contracts | DONE - PASS | T5-089 |
 
 ## Task Boundaries
 
@@ -274,7 +274,7 @@ T5-088 is `DONE - PASS`. It adds Revid-owned video-edit preflight v1 for explici
 
 T5-089 is `DONE - PASS`. It adds backend capability v4 with exact production-unavailable audio v1 plus backward-aware frontend parsing, strict selected-source preflight, synthetic mock-only contract proof, and an accessible non-mutating Slash Palette panel. Production stops before Canvas/history/autosave, quota, task, asset, or provider mutation; no endpoint, migration, provider call, paid action, or real media processing was added. Focused backend passed 22 tests, focused Chromium passed 21/21, adjacent Chromium regression 71/71, isolated project-asset services 9, repaired Storyboard 15/15, final functional Chromium 466/466, and build 4,914 modules. The independently retained SwiftShader/no-hardware 200/300 title measured 52.001311281480724 FPS / 33.399999999999636ms p95 against unchanged 55/33 limits while its other metrics and companion functional performance/accessibility titles passed; this environment-sensitive exception is classified without threshold weakening in `REPORT-T5-089.md`. The unrelated existing AnyIO upload-security worker import failure remains documented without a production workaround. Any durable provider work remains a Human-gated separate contract. T5-090 may activate only after the scoped T5-089 commit/push is verified.
 
-T5-090 remains `TODO` until T5-089 closes. It will expose a Revid-owned Agent/Skill interface that reuses Revid auth, project, Canvas, and generation contracts and does not copy LibTV skill source.
+T5-090 is `DONE - PASS`. Its closed v1 contains exactly one Revid-built `revid.canvas-context` version 1 manifest and models only mock-only/unavailable execution. Existing current-user plus Canvas ownership and current Canvas document lookup scope discovery/preflight; strict bounded source validation returns deterministic id/type/subtype context, while no execute endpoint, provider, quota, task, asset, Canvas, history, autosave, or durable output authority exists. The desktop Palette overlay is accessible and explicit about its mock-only boundary; 375px remains review-only. Backend focused passed 8/8, focused frontend passed 14/14 plus Agent UI 2/2 and Storyboard 15/15, build passed 4,921 modules, final functional Chromium passed 472/472, and an isolated 200/300 title passed at 57.519 FPS / 16.8ms p95 under SwiftShader/no hardware acceleration. The original combined-matrix 49.54 FPS observation is retained in `REPORT-T5-090.md` without threshold change. No arbitrary/imported/remote Skill code executes. T5-091 remains inactive and may only reuse this delivered interface after T5-090 commit/push.
 
 ## Canvas First-Acceptance Gate
 

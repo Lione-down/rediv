@@ -16,6 +16,7 @@ interface CanvasProfessionalActionsOptions {
   createShotGraph?: () => Promise<unknown>
   createImageOperation?: (operationId: string, operationVersion: number) => Promise<unknown>
   createStoryboardRecipe?: (recipeId: string, recipeVersion: number) => Promise<unknown>
+  openAgentSkillPreflight?: () => void
   openAudioGenerationPreflight?: () => void
   openWorkflowBatch?: () => void
   openVideoEditPreflight?: () => void
@@ -64,6 +65,7 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
     .filter((action) => action.intent.type !== 'create-shot-graph' || Boolean(options.createShotGraph))
     .filter((action) => action.intent.type !== 'create-image-operation' || Boolean(options.createImageOperation))
     .filter((action) => action.intent.type !== 'create-storyboard-recipe' || Boolean(options.createStoryboardRecipe))
+    .filter((action) => action.intent.type !== 'open-agent-skill-preflight' || Boolean(options.openAgentSkillPreflight))
     .filter((action) => action.intent.type !== 'open-audio-generation-preflight' || Boolean(options.openAudioGenerationPreflight))
     .filter((action) => action.intent.type !== 'open-workflow-batch' || Boolean(options.openWorkflowBatch))
     .filter((action) => action.intent.type !== 'open-video-edit-preflight' || Boolean(options.openVideoEditPreflight))
@@ -165,6 +167,15 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
         return
       }
       options.openAudioGenerationPreflight()
+      close()
+      return
+    }
+    if (action.intent.type === 'open-agent-skill-preflight') {
+      if (!options.openAgentSkillPreflight) {
+        error.value = 'Agent/Skill context preflight is unavailable.'
+        return
+      }
+      options.openAgentSkillPreflight()
       close()
       return
     }

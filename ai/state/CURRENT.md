@@ -15,17 +15,17 @@ Last updated: 2026-07-18
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-089 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision).
+- Completed V2 Tasks: T5-001 through T5-090 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision).
 
 ## Active Delivery
 
-- Active implementation Task: none; T5-089 is awaiting its exact scoped commit/push.
-- State: `VERIFYING`
-- Last completed Task: `T5-089 - Audio generation and audio-driven video with fail-closed capability/quota/task contracts` (`ai/reports/REPORT-T5-089.md`)
-- Task: `ai/tasks/todo/TASK-T5-089.md`
-- Plan: `ai/tasks/doing/TASK-T5-089-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-089-PROGRESS.md`
-- Exact next action: exact-stage, commit, and push T5-089-owned files; verify the pushed HEAD, then activate T5-090 as the sole implementation Task.
+- Active implementation Task: none; T5-090 delivery closeout is pending exact-stage commit/push.
+- State: `CLOSEOUT`
+- Last completed Task: `T5-090 - Revid Agent/Skill interface over native auth, project, canvas, and generation contracts` (`ai/reports/REPORT-T5-090.md`) on local baseline `dc576fb72473c56dacbf16323730ce9d6c77b29e`.
+- Task: `ai/tasks/todo/TASK-T5-090.md`
+- Plan: `ai/tasks/doing/TASK-T5-090-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-090-PROGRESS.md`
+- Exact next action: exact-stage the completed T5-090-owned diff, perform final staged hygiene review, commit, and push; keep T5-091 inactive until that succeeds.
 
 ## Current Verified Facts
 
@@ -38,6 +38,8 @@ Last updated: 2026-07-18
 - T5-088 is `DONE - PASS`: a Revid-owned frontend v1 video-edit preflight validates selected Canvas-local project video sources, explicit trim bounds and concat order, native source/sequence preview, an initial dialog focus/Escape path, and an honest blocked export boundary. Existing generation tasks are not misused for editing and no media is processed. The fresh post-review build passed 4,907 modules; focused Chromium passed 11/11, related Canvas/video passed 54/54, and final functional Chromium passed 471/471 in 8.7 minutes. The separate SwiftShader-only 200/300 title measured 50.72477779708455 FPS / 33.400000000001455ms p95 against unchanged limits with no hardware acceleration; its two companion tests passed and it is classified in `REPORT-T5-088.md`.
 
 - T5-089 is `DONE - PASS`: backend capability v4 has one exact production-unavailable audio v1 section; backward-aware frontend parsing plus strict selected-source preflight validates script/audio/video/project/user/URL scope; synthetic mock-only proof has zero provider/quota/task/asset/output authority; and the accessible desktop Slash Palette panel preserves 375px review-only and zero Canvas/history/autosave mutation. Focused backend passed 22, focused Chromium 21/21, adjacent Chromium 71/71, repaired Storyboard 15/15, final functional Chromium 466/466, project-asset services 9, and final build 4,914 modules. The separately guarded 200/300 title remained unmodified and ran under SwiftShader/no hardware acceleration at 52.001311281480724 FPS / 33.399999999999636ms p95 versus unchanged 55/33 limits; stable render/pointer/long-task/minimap metrics and the companion functional performance/accessibility titles passed. This is transparently classified in `REPORT-T5-089.md`, not a threshold change. The unrelated existing AnyIO upload-worker import failure remains documented without a production workaround.
+
+- T5-090 is `DONE - PASS`: Revid-owned v1 contains exactly `revid.canvas-context` v1, a closed mock-only/unavailable manifest contract, authenticated current-user/project/Canvas discovery and canonical source preflight, no execute endpoint, and no provider/quota/task/asset/Canvas authority. Strict frontend parsing and the desktop Palette overlay display only a mock-only context inspection; 375px remains review-only. Focused backend passed 8/8, focused browser passed 14/14 plus Agent UI 2/2 and Storyboard 15/15, build passed 4,921 modules, and final functional Chromium passed 472/472 with the isolated 200/300 title passing at 57.519 FPS / 16.8ms p95 under SwiftShader/no hardware acceleration. The first combined matrix's 49.54 FPS is transparently classified without threshold change. Report: `ai/reports/REPORT-T5-090.md`. T5-091 remains inactive and can only reuse this exact interface with a future explicit acknowledgement/native handoff contract.
 
 - T5-004 through T5-007 now provide the complete pre-certification Canvas product: full-screen multi-Canvas routing, persistent Leafer world, deterministic command model, autosave/recovery/revisions, canonical node registry, project-shared resources, versioned templates, durable generation tasks/results, and backend-authoritative quota snapshots.
 - T5-007 Unit E adds responsive project resource and contextual generation controls, registry-backed asset/template insertion, durable success/failure result presentation, desktop/narrow keyboard behavior, and a strict 375px browse/review-only boundary.
