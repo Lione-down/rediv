@@ -42,17 +42,18 @@ import type { GenerationRuntimePresentation } from '../../modules/canvas/generat
 import type { GenerationResultProjection } from '../../modules/canvas/generation-result-projection'
 import { useCanvasStoryboardGroups } from './composables/use-canvas-storyboard-groups'
 const props = withDefaults(defineProps<{
-  actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; readonly?: boolean; resourcesOpen?: boolean
+  actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; professionalActionsBlocked?: boolean; readonly?: boolean; resourcesOpen?: boolean
   generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>; pendingGenerationResults?: readonly GenerationResultProjection[]
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
-  actionError: '', capturePending: false, contextOverlayOpen: false, readonly: false, resourcesOpen: false,
+  actionError: '', capturePending: false, contextOverlayOpen: false, professionalActionsBlocked: false, readonly: false, resourcesOpen: false,
   generationRuntimePresentations: () => new Map(), pendingGenerationResults: () => [],
   viewportInsets: () => ({}),
 })
 const emit = defineEmits<{
   captureVideoFrame: [nodeId: string, file: File, timeSeconds: number, aspectRatio: number]
   openResources: [opener: HTMLElement]
+  openProfessionalActions: [opener: HTMLElement]
 }>()
 const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
 function restoreGraphPanelTriggerFocus() {
@@ -138,8 +139,10 @@ const {
 } = useCanvasStage({
   getGenerationRuntimePresentations: () => props.generationRuntimePresentations,
   getViewportInsets: () => props.viewportInsets,
+  isProfessionalActionsBlocked: () => props.professionalActionsBlocked,
   isReadOnly: () => props.readonly,
   onGraphPanelClosed: restoreGraphPanelTriggerFocus,
+  onOpenProfessionalActions: (opener) => emit('openProfessionalActions', opener),
 })
 
 const dismissedEmptyCanvasIds = ref<ReadonlySet<string>>(new Set())
@@ -373,7 +376,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
     class="workspace-stage"
     aria-label="Revid 无限画布工作区"
     :aria-description="readonly ? '只读审阅模式' : '可编辑画布'"
-    aria-keyshortcuts="Tab Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+L Meta+L Control+0 Meta+0 Control++ Meta++ Control+- Meta+- Alt+Shift+F Delete Backspace Escape ?"
+    aria-keyshortcuts="/ Tab Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+L Meta+L Control+0 Meta+0 Control++ Meta++ Control+- Meta+- Alt+Shift+F Delete Backspace Escape ?"
     tabindex="0"
   >
     <p

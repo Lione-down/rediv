@@ -692,3 +692,9 @@ Evidence:
 - Connection landing must filter canonical typed compatibility before distance ranking. Geometry-first ranking can snap to the nearest port that the command layer must later reject.
 - Persisted `status: active` does not mean an edge should animate. Directional motion belongs only to a draft, explicit selection, or included provenance and should render in a separate pointer-passive layer proportional to active paths.
 - Performance evidence from a software-rendered mock browser can retain a 33.3ms scheduling bucket even when the guarded owned live boundary passes at 16.8ms p95. Preserve thresholds, report both environments, and use the owned live run for the applicable acceptance boundary.
+
+## 2026-07-17 Professional action and image grid split
+
+- The guarded live supervisor builds `frontend/dist` with its owned loopback API origin. After the supervisor cleans up, rebuild the ordinary frontend bundle before running preview-backed mock Chromium regression or the suite will target the closed live port and fail through login redirects and request timeouts.
+- Shared upload fixtures must preserve existing failure fingerprints. Add a separate deterministic failure mode for a new multi-upload flow instead of replacing an error string already asserted by another feature.
+- Autosave sorts persisted node upserts by entity ID. Durable grid order belongs in explicit one-based index and row/column metadata, not the server document array order.

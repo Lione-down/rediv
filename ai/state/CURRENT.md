@@ -15,14 +15,18 @@ Last updated: 2026-07-17
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-081 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
+- Completed V2 Tasks: T5-001 through T5-082 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision)
 
 ## Active Delivery
 
 - Active implementation Task: none
 - State: `IDLE`
-- Last completed Task: `T5-081 - Storyboard projection and image storyboard groups`
-- Report: `ai/reports/REPORT-T5-081.md`
+- Last completed Task: `T5-082 - Professional action registry, Slash Palette, and image grid split`
+- Task: `ai/tasks/todo/TASK-T5-082.md`
+- Plan: `ai/tasks/doing/TASK-T5-082-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-082-PROGRESS.md`
+- Report: `ai/reports/REPORT-T5-082.md`
+- Next eligible Task: `T5-083 - Strict versioned shot schema and atomic script-to-storyboard graph`
 
 ## Current Verified Facts
 
@@ -108,10 +112,13 @@ Last updated: 2026-07-17
 - T5-079 is now `DONE - PASS`: a RED containment guard measured four decoded image roots outside their surfaces, rail-local placement removed the scoped-selector leak, and focused 1/1 plus related 23/23 Chromium, a 4,841-module build, two visual inspections, and hygiene gates passed. Final report: `ai/reports/REPORT-T5-079.md`.
 - T5-080 is now `DONE - PASS`: canonical visible geometry, forgiving screen-stable port targets, exact compatible landing, neutral aggregate batch continuation, group-as-one-unit movement, and active-only edge flow passed focused 61/61, functional Chromium 372/372, a 4,855-module build, four-viewport visual inspection, and guarded live 200/300 evidence at 59.92 FPS with 16.8ms frame p95. The local software-rendered mock 33.3ms scheduling bucket is classified without threshold weakening. Final report: `ai/reports/REPORT-T5-080.md`.
 - T5-081 is now `DONE - PASS`: pure Storyboard projection, accessible revision-neutral view switching, exact 2-25 image storyboard groups, shared ordering/layout, conversion/ungroup, and whole-group movement passed visual/accessibility 6/6, functional Chromium 392/392, a warning-free 4,872-module build, backend 465 tests plus 78 subtests, and guarded live 200/300 evidence at 59.94 FPS. Canvas duplication now remaps only validated version-1 storyboard `ordered_child_ids` while future, malformed, unsupported, ordinary, and unrelated content remains unchanged. Final report: `ai/reports/REPORT-T5-081.md`.
+- T5-082 is now `DONE - PASS`: pure professional actions, Canvas-owned Slash Palette, and source-preserving 4/9/16/25 project-image split passed focused 21/21, functional Chromium 412/412, a 4,880-module build, visual/accessibility review, atomic undo/redo/reload, and guarded live 200/300 at 59.89 FPS. The unchanged software-rendered mock FPS case remains explicitly red at 52.32/51.86 FPS while the applicable owned live boundary passes without threshold weakening. Final report: `ai/reports/REPORT-T5-082.md`.
+- T5-082 is the only active Task. Its clean baseline is `0201f86919dd60cf3dd1b61fd8af1fa29d8cc773`; activation changes are documentation-only, and existing untracked `.hermes/plans` plus `output/` remain outside ownership.
+- T5-082 owns a frontend-only professional action registry, keyboard-safe Slash Palette, and exact 4/9/16/25 project-image grid split through existing asset upload and one atomic `insert-graph` command. It forbids source overwrite, new schema/endpoint/library, provider execution, and UI redesign.
 
 ## Exact Next Action
 
-Keep the repository `IDLE` until the Human Owner selects the next bounded Task.
+Complete the read-only action/asset/command/keyboard/coordinator audit, refresh the exact T5-082 integration plan, and write the first focused failing registry test before production code.
 
 ## Blockers And Human Gates
 

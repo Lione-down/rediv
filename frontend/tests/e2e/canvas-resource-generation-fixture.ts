@@ -58,6 +58,7 @@ export interface ResourceMockState {
   templateInstantiationGate: Promise<void> | null
   templates: Array<Record<string, unknown>>
   uploads: Array<{ byteLength: number; contentType: string; payload: string }>
+  uploadFailureAt: number | null
   uploadOutcome: 'success' | 'failure'
   uploadGate: Promise<void> | null
   quotas: { text: number; image: number; video: number }
@@ -187,11 +188,26 @@ export function createResourceMockState(): ResourceMockState {
     templateInstantiationGate: null,
     templates: [{ id: 'template-storyboard', name: '分镜起步流程', user_id: 'user-resource', node_count: 2, created_at: NOW, node_data: graphData.nodes, schema_version: 1, graph_data: graphData }],
     uploads: [],
+    uploadFailureAt: null,
     uploadOutcome: 'success',
     uploadGate: null,
     quotas: { text: 5, image: 4, video: 2 },
     quotaRevision: 7,
   }
+}
+
+export function addProjectImageNode(
+  state: ResourceMockState,
+  assetId = 'asset-reference',
+  nodeId = 'asset-reference-node',
+) {
+  const asset = state.assets.find((candidate) => candidate.id === assetId)
+  if (!asset?.url) throw new Error(`Mock image asset ${assetId} is unavailable.`)
+  state.documents[FIRST_CANVAS_ID].nodes.push(node(nodeId, 'asset', '项目参考图', {
+    subtype: 'image', serialization_version: 1, asset_id: asset.id,
+    project_id: asset.project_id, origin_canvas_id: asset.origin_canvas_id, url: asset.url,
+  }, 1380))
+  return state.documents[FIRST_CANVAS_ID].nodes.at(-1)!
 }
 
 export function addEarlierVariant(state: ResourceMockState) {
@@ -427,7 +443,12 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       const buffer = request.postDataBuffer() ?? Buffer.alloc(0)
       state.uploads.push({ byteLength: buffer.byteLength, contentType: request.headers()['content-type'] ?? '', payload: buffer.toString('latin1') })
       await state.uploadGate
-      if (state.uploadOutcome === 'failure') return fulfillJson(route, { detail: 'mock frame upload rejected' }, 503)
+      if (state.uploadOutcome === 'failure') {
+        return fulfillJson(route, { detail: 'mock frame upload rejected' }, 503)
+      }
+      if (state.uploadFailureAt === state.uploads.length) {
+        return fulfillJson(route, { detail: 'mock image upload rejected' }, 503)
+      }
       const pngStart = buffer.indexOf(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
       const pngEndMarker = Buffer.from([0, 0, 0, 0, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82])
       const pngEnd = buffer.indexOf(pngEndMarker, pngStart)
@@ -435,10 +456,12 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       const assetSequence = state.uploads.length
       const capturedPath = `/captured-frame-${assetSequence}.png`
       state.capturedFrames[capturedPath] = buffer.subarray(pngStart, pngEnd + pngEndMarker.length)
+      const isGridCrop = buffer.includes(Buffer.from('revid-grid-'))
       const asset = {
         id: `asset-captured-frame-${assetSequence}`, user_id: 'user-resource', project_id: PROJECT_ID,
         origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: null, type: 'image',
-        url: `https://media.revid.test${capturedPath}`, content_text: '视频截取帧', source: 'upload',
+        url: `https://media.revid.test${capturedPath}`,
+        content_text: isGridCrop ? '本地图片切片' : '视频截取帧', source: 'upload',
         source_model: null, source_task_id: null, status: 'active', created_at: NOW, updated_at: NOW,
       }
       state.assets.unshift(asset)

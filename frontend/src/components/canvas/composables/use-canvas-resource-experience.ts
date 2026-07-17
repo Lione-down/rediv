@@ -19,6 +19,7 @@ import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
 import { createVideoFrameCaptureAction } from './use-video-frame-capture'
+import { createCanvasImageGridSplitAction } from './use-canvas-image-grid-split'
 import { useGenerationCapabilities } from './use-generation-capabilities'
 import { useCanvasGenerationActions } from './use-canvas-generation-actions'
 import { useCanvasGenerationRuntime } from './use-canvas-generation-runtime'
@@ -95,6 +96,10 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const foregroundResultNodeId = ref('')
   const { generationCapabilities, generationCapabilitiesError } = useGenerationCapabilities()
   const captureVideoFrame = createVideoFrameCaptureAction({
+    actionError, canvasId: options.canvasId, canvasStore, formatError: errorMessage,
+    isReviewOnly: options.isReviewOnly, isUploading, projectId: options.projectId, resourceStore,
+  })
+  const splitImageGrid = createCanvasImageGridSplitAction({
     actionError, canvasId: options.canvasId, canvasStore, formatError: errorMessage,
     isReviewOnly: options.isReviewOnly, isUploading, projectId: options.projectId, resourceStore,
   })
@@ -407,9 +412,11 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     closeContext,
     selectNodeForCanvasLocation,
     setPanelWidth,
+    getInsertionPoint: insertionPoint,
     insertAsset,
     uploadAsset,
     captureVideoFrame,
+    splitImageGrid,
     captureTemplate,
     instantiateTemplate,
     generate,

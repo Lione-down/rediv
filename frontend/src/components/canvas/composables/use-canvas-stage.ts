@@ -31,7 +31,14 @@ interface DraftConnectionState { originNodeId: string; originPort: string; direc
 interface MarqueeState { pointerId: number | null; start: Point; current: Point; additive: boolean }
 interface NativePointerLikeEvent extends MouseEvent { pointerId?: number }
 interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLikeEvent }
-interface CanvasStageOptions { getGenerationRuntimePresentations?: GenerationRuntimePresentationGetter; getViewportInsets?: () => Partial<ViewportInsets>; isReadOnly?: () => boolean; onGraphPanelClosed?: () => void }
+interface CanvasStageOptions {
+  getGenerationRuntimePresentations?: GenerationRuntimePresentationGetter
+  getViewportInsets?: () => Partial<ViewportInsets>
+  isProfessionalActionsBlocked?: () => boolean
+  isReadOnly?: () => boolean
+  onGraphPanelClosed?: () => void
+  onOpenProfessionalActions?: (opener: HTMLElement) => void
+}
 export function useCanvasStage(options: CanvasStageOptions = {}) {
   const canvasStore = useCanvasStore()
   const stageRef = ref<HTMLElement | null>(null)
@@ -403,12 +410,17 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     unbindWindowPointerListeners()
     return wasActive
   }
+  function isInteractionActive() {
+    return Boolean(dragState || panState || draftConnection.value || marquee.value || connectionContinuation.value)
+  }
   const { handleWindowKeyDown, handleWindowKeyUp } = useCanvasStageKeyboard({
     stageRef,
     isSpacePressed,
     isGraphPanelOpen,
     isNodeMenuOpen,
     isReadOnly: () => options.isReadOnly?.() ?? false,
+    isInteractionActive,
+    isProfessionalActionsBlocked: () => options.isProfessionalActionsBlocked?.() ?? false,
     isContextMenuOpen: () => contextMenu.value.show,
     selectedConnectionId: () => canvasStore.selectedConnectionId,
     cancelActiveInteraction,
@@ -418,6 +430,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     closeGraphPanel, onGraphPanelClosed: () => options.onGraphPanelClosed?.(),
     closeNodeMenu,
     openNodeMenu,
+    openProfessionalActions: (opener) => options.onOpenProfessionalActions?.(opener),
     toggleGraphPanel,
     handleViewKeyDown,
     handleCommandKeyDown,

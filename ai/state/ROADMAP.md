@@ -76,6 +76,15 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 79 | T5-079 | Canvas media containment and keyframe rail isolation | DONE - PASS | T5-078 |
 | 80 | T5-080 | Canvas node and connection interaction usability | DONE - PASS | T5-079 |
 | 81 | T5-081 | Storyboard projection and image storyboard groups | DONE - PASS | T5-080 |
+| 82 | T5-082 | Professional action registry, Slash Palette, and 4/9/16/25 project-image grid split | DOING | T5-081 |
+| 83 | T5-083 | Versioned script-to-shot schema and atomic script/shot/generation/storyboard graph creation | TODO | T5-082 |
+| 84 | T5-084 | Professional Storyboard recipes for grid, character, and scene views | TODO | T5-083 |
+| 85 | T5-085 | Image expansion, inpaint, erase, cutout, upscale, region, and fusion contracts | TODO | T5-084 |
+| 86 | T5-086 | Shot angle, framing, focus, lighting, and time controls | TODO | T5-085 |
+| 87 | T5-087 | Workflow templates, dry-run, dependency execution, cancel/resume, and quota estimate | TODO | T5-086 |
+| 88 | T5-088 | Video trim, concat, preview, export, and FFmpeg/backend contract decision | TODO | T5-087 |
+| 89 | T5-089 | Audio generation and audio-driven video with fail-closed capability/quota/task contracts | TODO | T5-088 |
+| 90 | T5-090 | Revid Agent/Skill interface over native auth, project, canvas, and generation contracts | TODO | T5-089 |
 
 ## Task Boundaries
 
@@ -244,6 +253,28 @@ T5-079 is `DONE - PASS`. A rendered containment regression first measured four d
 T5-080 is `DONE - PASS`. Shared visible geometry, 40 CSS px port acquisition, exact compatible landing, neutral aggregate continuation, group-unit movement, and reduced-motion-safe active-only edge flow passed focused 61/61, functional Chromium 372/372, a 4,855-module build, four-viewport visual review, hygiene, and the guarded live 200-node/300-connection boundary at 59.92 FPS and 16.8ms frame p95. The local software-rendered mock performance variance remains explicitly classified without threshold weakening. `REPORT-T5-080.md` is authoritative evidence.
 
 T5-081 is `DONE - PASS`. Pure Storyboard projection, accessible revision-neutral view switching, exact 2-25 image storyboard groups, shared order/layout, conversion/ungroup, whole-group movement, and fail-closed Canvas duplication passed visual/accessibility 6/6, functional Chromium 392/392, a 4,872-module build, backend 465 tests plus 78 subtests, hygiene, and guarded live 200/300 evidence at 59.94 FPS. `REPORT-T5-081.md` is authoritative evidence.
+
+### T5-082 through T5-090 clean-room professional workflow program
+
+Only one Task in this sequence may be active at a time. The program reproduces publicly observable capabilities and interaction patterns without copying LibTV private source, branding, icons, copy, prompts, or visual assets. Revid's existing graphite-black/violet UI, Leafer Canvas, typed ports, bidirectional connections, reroute, groups, result branching, Storyboard projection, native auth/project/canvas/generation contracts, and responsive boundaries remain authoritative.
+
+T5-082 is `DONE - PASS`. A pure professional action registry, Canvas-owned accessible Slash Palette, and source-preserving 4/9/16/25 split now reuse existing project uploads and one atomic `insert-graph`. Focused 21/21, functional Chromium 412/412, a 4,880-module build, visual/accessibility review, exact history/persistence, and guarded live 200/300 at 59.89 FPS passed. The software-rendered mock FPS variance remains explicitly classified without threshold weakening. `REPORT-T5-082.md` is authoritative evidence.
+
+T5-083 remains `TODO` until T5-082 is committed and pushed. It will add a strict versioned shot schema and one atomic script/shot/generation/storyboard graph creation path with mock-provider acceptance first.
+
+T5-084 remains `TODO` until T5-083 closes. It will add professional Storyboard recipes for four-frame plot boards, 9/16/25 multi-shot boards, character turnarounds, and scene multi-view using the existing recipe registry and Storyboard projection.
+
+T5-085 remains `TODO` until T5-084 closes. It will add downstream-only result branches for expand, inpaint, erase, cutout, upscale, region marking, and multi-image fusion with explicit mask/region contracts and fail-closed capability detection.
+
+T5-086 remains `TODO` until T5-085 closes. It will extend the existing generation contract with shot angle, framing, focus, lighting, and forward/backward time controls while retaining provider capability truthfulness.
+
+T5-087 remains `TODO` until T5-086 closes. It will add versioned workflow templates, dry-run/preflight, dependency order, batch execution, cancel/resume, and quota estimates without automatically triggering paid work.
+
+T5-088 remains `TODO` until T5-087 closes. It will independently decide and implement the bounded video trim, concat, preview, export, FFmpeg, and backend task contract without assuming a destructive or irreversible backend design.
+
+T5-089 remains `TODO` until T5-088 closes. It will add audio generation and audio-driven video only through fail-closed provider, quota, and task capabilities, with mock/contract scope completed before any Human-gated real provider work.
+
+T5-090 remains `TODO` until T5-089 closes. It will expose a Revid-owned Agent/Skill interface that reuses Revid auth, project, Canvas, and generation contracts and does not copy LibTV skill source.
 
 ## Canvas First-Acceptance Gate
 

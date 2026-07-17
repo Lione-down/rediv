@@ -7,6 +7,7 @@ import { v2CanvasNaiveTheme } from '../../assets/styles/v2-canvas-naive-theme'
 import CanvasAssetPanel from '../../components/canvas/CanvasAssetPanel.vue'
 import CanvasContextPanel from '../../components/canvas/CanvasContextPanel.vue'
 import CanvasIdentityBar from '../../components/canvas/CanvasIdentityBar.vue'
+import CanvasProfessionalActionPalette from '../../components/canvas/CanvasProfessionalActionPalette.vue'
 import CanvasRevisionPanel from '../../components/canvas/CanvasRevisionPanel.vue'
 import CanvasResultCompareTray from '../../components/canvas/CanvasResultCompareTray.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
@@ -17,6 +18,7 @@ import { resolveCanvasNodeContinuationTrigger } from '../../components/canvas/ca
 import { resolveGenerationResultVariants } from '../../modules/canvas/generation-lineage'
 import { useCanvasNodeActions } from '../../components/canvas/composables/use-canvas-node-actions'
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
+import { useCanvasProfessionalActions } from '../../components/canvas/composables/use-canvas-professional-actions'
 import { useCanvasResourceExperience } from '../../components/canvas/composables/use-canvas-resource-experience'
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
 import { useCanvasRevisionStore } from '../../modules/canvas/canvas-revision-store'
@@ -120,9 +122,11 @@ const {
   closeContext,
   selectNodeForCanvasLocation,
   setPanelWidth,
+  getInsertionPoint,
   insertAsset,
   uploadAsset,
   captureVideoFrame,
+  splitImageGrid,
   captureTemplate,
   instantiateTemplate,
   generate,
@@ -130,6 +134,30 @@ const {
   updatePrompt,
   updateGenerationParameters,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
+const professionalActionsBlocked = computed(() => (
+  isRevisionPanelOpen.value || isResultCompareOpen.value || isResourceOpen.value ||
+  isContextDrawerOpen.value || viewMode.value !== 'workflow'
+))
+const {
+  actions: professionalActions,
+  close: closeProfessionalActions,
+  error: professionalActionError,
+  execute: executeProfessionalAction,
+  isOpen: professionalActionsOpen,
+  open: openProfessionalActions,
+  query: professionalActionQuery,
+} = useCanvasProfessionalActions({
+  assets: () => resourceStore.assets,
+  canvasId,
+  getInsertionPoint,
+  isBlocked: () => professionalActionsBlocked.value,
+  isBusy: isUploading,
+  isReadOnly: () => isReviewOnly.value || canvasRevisionStore.restoringRevision !== null,
+  isWorkflowView: () => viewMode.value === 'workflow',
+  projectId,
+  splitImageGrid,
+  userId: () => authStore.user?.id ?? '',
+})
 const storyboardItems = computed(() => projectCanvasStoryboard({
   nodes: canvasDocumentStore.nodes,
   connections: canvasDocumentStore.connections,
@@ -394,13 +422,25 @@ onBeforeUnmount(() => {
           :capture-pending="isUploading"
           :readonly="isReviewOnly || canvasRevisionStore.restoringRevision !== null"
           :context-overlay-open="isContextDrawerOpen && isCompact"
+          :professional-actions-blocked="professionalActionsOpen || professionalActionsBlocked"
           :generation-runtime-presentations="generationRuntimePresentations" :pending-generation-results="pendingGenerationResults"
           :resources-open="isResourceOpen"
           :viewport-insets="canvasViewportInsets"
           @open-resources="openResources"
+          @open-professional-actions="openProfessionalActions"
           @capture-video-frame="captureSelectedVideoFrame"
         />
       </div>
+
+      <CanvasProfessionalActionPalette
+        v-if="professionalActionsOpen"
+        :actions="professionalActions"
+        :error="professionalActionError"
+        :query="professionalActionQuery"
+        @close="closeProfessionalActions"
+        @select="executeProfessionalAction"
+        @update:query="professionalActionQuery = $event"
+      />
 
       <header class="route-chrome" aria-label="Canvas route controls">
         <CanvasIdentityBar

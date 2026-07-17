@@ -7,6 +7,8 @@ interface CanvasStageKeyboardOptions {
   isGraphPanelOpen: Ref<boolean>
   isNodeMenuOpen: Ref<boolean>
   isReadOnly: () => boolean
+  isInteractionActive: () => boolean
+  isProfessionalActionsBlocked: () => boolean
   isContextMenuOpen: () => boolean
   selectedConnectionId: () => string
   cancelActiveInteraction: () => boolean
@@ -17,6 +19,7 @@ interface CanvasStageKeyboardOptions {
   onGraphPanelClosed: () => void
   closeNodeMenu: () => void
   openNodeMenu: () => void
+  openProfessionalActions: (opener: HTMLElement) => void
   toggleGraphPanel: () => void
   handleViewKeyDown: (event: KeyboardEvent) => boolean
   handleCommandKeyDown: (event: KeyboardEvent) => boolean
@@ -79,6 +82,15 @@ export function useCanvasStageKeyboard(options: CanvasStageKeyboardOptions) {
     ) {
       event.preventDefault()
       options.openNodeMenu()
+      return
+    }
+    if (
+      event.key === '/' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey &&
+      !event.isComposing && isCanvasPanShortcutTarget(event.target) && !options.isReadOnly() &&
+      !options.isProfessionalActionsBlocked() && !options.isInteractionActive() && options.stageRef.value
+    ) {
+      event.preventDefault()
+      options.openProfessionalActions(options.stageRef.value)
       return
     }
     if (event.key === '?' || (event.key === '/' && event.shiftKey)) {
