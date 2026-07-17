@@ -57,7 +57,7 @@ test('capability parsing, legacy defaults, and stale values fail closed', () => 
   ])
   expect(capabilities.video.duration_presets.map((item) => [item.duration_seconds, item.num_frames, item.frame_rate]))
     .toEqual([[3, 81, 24], [5, 121, 24], [10, 241, 24], [18, 441, 24]])
-  expect(() => parseGenerationCapabilities({ ...GENERATION_CAPABILITIES, contract_version: 2 })).toThrow(
+  expect(() => parseGenerationCapabilities({ ...GENERATION_CAPABILITIES, contract_version: 3 })).toThrow(
     'capability contract 无效',
   )
 

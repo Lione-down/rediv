@@ -19,6 +19,7 @@ import { resolveGenerationResultVariants } from '../../modules/canvas/generation
 import { useCanvasNodeActions } from '../../components/canvas/composables/use-canvas-node-actions'
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
 import { useCanvasProfessionalActions } from '../../components/canvas/composables/use-canvas-professional-actions'
+import { useCanvasImageOperations } from '../../components/canvas/composables/use-canvas-image-operations'
 import { useCanvasResourceExperience } from '../../components/canvas/composables/use-canvas-resource-experience'
 import { useCanvasStoryboardRecipes } from '../../components/canvas/composables/use-canvas-storyboard-recipes'
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
@@ -104,6 +105,7 @@ const {
   isDesktopContextOpen,
   isUploading,
   isGenerating,
+  generationCapabilities,
   selectedNode,
   selectedMediaType,
   selectedGenerationContext,
@@ -143,6 +145,11 @@ const { createShotGraph, createStoryboardRecipe, createVisualAssetRecipe } = use
   projectId,
   userId: () => authStore.user?.id ?? '',
 })
+const { createImageOperation } = useCanvasImageOperations({
+  assets: () => resourceStore.assets, canvasId, generationCapabilities, projectId,
+  revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId),
+  userId: () => authStore.user?.id ?? '',
+})
 const professionalActionsBlocked = computed(() => (
   isRevisionPanelOpen.value || isResultCompareOpen.value || isResourceOpen.value ||
   isContextDrawerOpen.value || viewMode.value !== 'workflow'
@@ -159,8 +166,10 @@ const {
   assets: () => resourceStore.assets,
   canvasId,
   createShotGraph,
+  createImageOperation,
   createStoryboardRecipe,
   getInsertionPoint,
+  imageOperationCapabilities: () => generationCapabilities.value?.image.operations ?? null,
   isBlocked: () => professionalActionsBlocked.value,
   isBusy: () => isUploading.value || isGenerating.value,
   isReadOnly: () => isReviewOnly.value || canvasRevisionStore.restoringRevision !== null,

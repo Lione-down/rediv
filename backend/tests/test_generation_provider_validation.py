@@ -155,9 +155,49 @@ class GenerationProviderValidationTestCase(unittest.TestCase):
         self.assertEqual(401, unauthenticated.status_code)
         self.assertEqual(200, authenticated.status_code)
         payload = authenticated.json()
-        self.assertEqual(1, payload["contract_version"])
+        self.assertEqual(2, payload["contract_version"])
         self.assertEqual("4:3", payload["image"]["default_aspect_ratio"])
+        self.assertEqual(["region"], payload["image"]["operations"]["supported_operations"])
+        self.assertEqual([], payload["image"]["operations"]["provider_operations"])
         self.assertEqual([81, 121, 241, 441], [item["num_frames"] for item in payload["video"]["duration_presets"]])
+
+    def test_unsupported_image_operation_fails_before_task_quota_or_provider_mutation(self) -> None:
+        source = store.create_asset(
+            self.user["id"], "image", "https://example.com/source.png", None,
+            project_id=self.project["id"], origin_canvas_id=self.canvas_id,
+        )
+        provider = _Provider(image_response={"data": [{"url": "https://example.com/out.png"}]})
+        original_quota = self._database_quota("image")
+        payload = {
+            **self._payload("Replace the selected object"),
+            "image_ids": [source["id"]],
+            "image_operation": {
+                "contract_version": 1,
+                "id": "inpaint",
+                "region": {
+                    "contract_version": 1,
+                    "coordinate_space": "source-normalized",
+                    "x": 0.2,
+                    "y": 0.2,
+                    "width": 0.5,
+                    "height": 0.5,
+                },
+                "mask": {
+                    "contract_version": 1,
+                    "kind": "region",
+                    "feather": 0,
+                    "invert": False,
+                },
+            },
+        }
+
+        with patch.object(backend_main, "_agnes", provider):
+            response = self.client.post("/api/image-generate", json=payload, headers=self.headers)
+
+        self.assertEqual(422, response.status_code)
+        self.assertEqual([], provider.image_calls)
+        self.assertEqual(0, self._task_count())
+        self.assertEqual(original_quota, self._database_quota("image"))
 
     def test_invalid_parameter_combinations_fail_before_task_quota_or_provider_mutation(self) -> None:
         source = store.create_asset(

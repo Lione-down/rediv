@@ -5,16 +5,25 @@ import {
   type ResolvedGenerationContext,
 } from './generation-context'
 import { resolveVisualAssetRecipe } from './visual-asset-recipes'
+import {
+  IMAGE_OPERATIONS,
+  parseImageOperationCapabilities,
+  parseImageOperationContract,
+  type ImageOperationContract,
+  type ImageOperationCapabilities,
+  type ProviderImageOperationId,
+} from './image-operations'
 
 export type VideoReferenceMode = 'text-to-video' | 'image-to-video' | 'keyframes'
 
 export interface GenerationCapabilities {
-  contract_version: 1
+  contract_version: 1 | 2
   image: {
     model: string
     size: string
     aspect_ratios: string[]
     default_aspect_ratio: string
+    operations: ImageOperationCapabilities | null
   }
   video: {
     model: string
@@ -33,7 +42,7 @@ export interface GenerationCapabilities {
 }
 
 export type GenerationNodeParameters =
-  | { schema_version: 1; image: { aspect_ratio: string } }
+  | { schema_version: 1; image: { aspect_ratio: string; operation?: ImageOperationContract } }
   | {
       schema_version: 1
       video: {
@@ -51,6 +60,7 @@ export interface ResolvedGenerationRequestContext extends ResolvedGenerationCont
   parameters: GenerationNodeParameters | null
   aspectRatio?: string
   durationSeconds?: number
+  imageOperation?: ImageOperationContract
   referenceMode?: VideoReferenceMode
   primaryReferenceNodeId?: string
   parameterSummary: string[]
@@ -73,7 +83,7 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 export function parseGenerationCapabilities(value: unknown): GenerationCapabilities {
-  if (!isRecord(value) || value.contract_version !== 1 || !isRecord(value.image) || !isRecord(value.video)) {
+  if (!isRecord(value) || ![1, 2].includes(Number(value.contract_version)) || !isRecord(value.image) || !isRecord(value.video)) {
     throw new Error('生成参数 capability contract 无效。')
   }
   const image = value.image
@@ -81,6 +91,7 @@ export function parseGenerationCapabilities(value: unknown): GenerationCapabilit
   const ratios = image.aspect_ratios
   const modes = video.reference_modes
   const presets = video.duration_presets
+  let operations: ImageOperationCapabilities | null = null
   if (
     !isNonEmptyString(image.model) || !isNonEmptyString(image.size) ||
     !Array.isArray(ratios) || !ratios.length || ratios.some((item) => !isNonEmptyString(item)) ||
@@ -94,6 +105,12 @@ export function parseGenerationCapabilities(value: unknown): GenerationCapabilit
     !isPositiveInteger(video.min_keyframes) || !isPositiveInteger(video.max_keyframes) ||
     video.min_keyframes > video.max_keyframes || !Array.isArray(presets) || !presets.length
   ) throw new Error('生成参数 capability contract 无效。')
+  try {
+    if (value.contract_version === 2) operations = parseImageOperationCapabilities(image.operations)
+    else if (image.operations !== undefined) throw new Error('legacy capability cannot declare operations')
+  } catch {
+    throw new Error('生成参数 capability contract 无效。')
+  }
 
   const normalizedPresets = presets.map((preset) => {
     if (
@@ -113,12 +130,13 @@ export function parseGenerationCapabilities(value: unknown): GenerationCapabilit
   ) throw new Error('生成参数 capability contract 无效。')
 
   return {
-    contract_version: 1,
+    contract_version: value.contract_version as 1 | 2,
     image: {
       model: image.model,
       size: image.size,
       aspect_ratios: [...ratios],
       default_aspect_ratio: image.default_aspect_ratio,
+      operations,
     },
     video: {
       model: video.model,
@@ -225,15 +243,53 @@ export function resolveGenerationRequestContext(
     if (!capabilities.image.aspect_ratios.includes(aspectRatio)) {
       return failedContext(base, mediaType, capabilities, '节点保存的图片比例不受当前 capability 支持，请重新选择。')
     }
+    let imageOperation: ImageOperationContract | undefined
+    if (isRecord(image) && image.operation !== undefined) {
+      const operationCapabilities = capabilities.image.operations
+      if (!operationCapabilities) {
+        return failedContext(base, mediaType, capabilities, '当前 capability 不支持图片操作，请重新创建分支。')
+      }
+      try {
+        imageOperation = parseImageOperationContract(image.operation, operationCapabilities)
+      } catch {
+        return failedContext(base, mediaType, capabilities, '节点保存的图片操作参数无效，请重新创建分支。')
+      }
+      const definition = IMAGE_OPERATIONS[imageOperation.id]
+      if (
+        definition.execution === 'provider' &&
+        !operationCapabilities.provider_operations.includes(imageOperation.id as ProviderImageOperationId)
+      ) {
+        return failedContext(base, mediaType, capabilities, '当前 capability 不支持此图片操作，当前请求已阻止。')
+      }
+      const maximumSources = imageOperation.id === 'fusion'
+        ? Math.min(definition.sourceCount[1], operationCapabilities.max_fusion_images)
+        : definition.sourceCount[1]
+      if (
+        base.imageIds.length < definition.sourceCount[0] ||
+        base.imageIds.length > maximumSources ||
+        new Set(base.imageIds).size !== base.imageIds.length
+      ) {
+        return failedContext(base, mediaType, capabilities, '图片操作的有效参考图与分支 contract 不一致，当前请求已阻止。')
+      }
+    }
+    const parameters: GenerationNodeParameters = {
+      schema_version: 1,
+      image: { aspect_ratio: aspectRatio, ...(imageOperation ? { operation: imageOperation } : {}) },
+    }
     return {
       ...base,
       capabilities,
       mediaType,
       isRecipe: false,
       parameterError: '',
-      parameters: { schema_version: 1, image: { aspect_ratio: aspectRatio } },
+      parameters,
       aspectRatio,
-      parameterSummary: [`比例 ${aspectRatio}`, `规格 ${capabilities.image.size}`],
+      imageOperation,
+      parameterSummary: [
+        ...(imageOperation ? [`操作 ${IMAGE_OPERATIONS[imageOperation.id].title}`] : []),
+        `比例 ${aspectRatio}`,
+        `规格 ${capabilities.image.size}`,
+      ],
     }
   }
 

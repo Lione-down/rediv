@@ -125,6 +125,83 @@ class CanvasDuplicationApiTestCase(unittest.TestCase):
         self.assertEqual("project-asset-storyboard-a", duplicate_by_key["valid-storyboard-child-a"].content["asset_id"])
         self.assertEqual("project-asset-storyboard-b", duplicate_by_key["valid-storyboard-child-b"].content["asset_id"])
 
+    def test_duplicate_preserves_versioned_image_operation_contract_unchanged(self) -> None:
+        generation_id = str(uuid4())
+        operation = {
+            "contract_version": 1,
+            "id": "inpaint",
+            "region": {
+                "contract_version": 1,
+                "coordinate_space": "source-normalized",
+                "x": 0.25,
+                "y": 0.25,
+                "width": 0.5,
+                "height": 0.5,
+            },
+            "mask": {
+                "contract_version": 1,
+                "kind": "region",
+                "feather": 0.1,
+                "invert": True,
+            },
+        }
+        content = {
+            "key": "image-operation-generation",
+            "title": "局部重绘",
+            "subtype": "image",
+            "serialization_version": 1,
+            "generation_parameters": {
+                "schema_version": 1,
+                "image": {"aspect_ratio": "4:3", "operation": operation},
+            },
+        }
+        with get_session() as session:
+            session.add(
+                CanvasNode(
+                    id=generation_id,
+                    project_id=self.project["id"],
+                    canvas_id=self.source_canvas_id,
+                    node_type="generation",
+                    content=deepcopy(content),
+                    position_x=780,
+                    position_y=220,
+                    width=340,
+                    height=220,
+                    z_index=4,
+                    is_locked=False,
+                    is_collapsed=False,
+                    status="idle",
+                )
+            )
+            session.commit()
+
+        response = self.client.post(
+            f"{self.path}/{self.source_canvas_id}/duplicate",
+            json={"base_order_revision": 0},
+            headers=self.headers,
+        )
+
+        self.assertEqual(201, response.status_code)
+        duplicate_id = response.json()["item"]["id"]
+        with get_session() as session:
+            source = session.get(CanvasNode, generation_id)
+            duplicate = next(
+                (
+                    node
+                    for node in session.scalars(
+                        select(CanvasNode).where(CanvasNode.canvas_id == duplicate_id)
+                    ).all()
+                    if node.content.get("key") == "image-operation-generation"
+                ),
+                None,
+            )
+
+        self.assertIsNotNone(source)
+        self.assertIsNotNone(duplicate)
+        self.assertNotEqual(generation_id, duplicate.id)
+        self.assertEqual(content, source.content)
+        self.assertEqual(content, duplicate.content)
+
     def test_duplicate_leaves_future_and_malformed_storyboard_content_unchanged(self) -> None:
         future = self._seed_storyboard_group("future-storyboard", variant="future")
         malformed = self._seed_storyboard_group("malformed-storyboard", variant="malformed")

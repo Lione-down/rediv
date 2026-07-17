@@ -33,6 +33,7 @@ const activeDescendant = computed(() => activeAction.value
 
 function actionIcon(action: ResolvedProfessionalCanvasAction) {
   if (action.intent.type === 'create-shot-graph' || action.intent.type === 'create-storyboard-recipe') return Clapperboard
+  if (action.intent.type === 'create-image-operation') return ImagePlus
   if (action.intent.type === 'split-image-grid') return Grid2X2
   if (action.intent.nodeType === 'script') return FileText
   if (action.intent.nodeType === 'note') return StickyNote
@@ -42,6 +43,7 @@ function actionIcon(action: ResolvedProfessionalCanvasAction) {
 
 function actionCategory(action: ResolvedProfessionalCanvasAction) {
   if (action.category === 'image') return '图片处理'
+  if (action.category === 'image-operation') return '专业图片操作'
   if (action.category === 'storyboard') return '故事板配方'
   return action.category === 'script' ? '脚本规划' : '画布创建'
 }

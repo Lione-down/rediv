@@ -16,6 +16,7 @@ import { formatCapturedFrameTime, resolveCapturedFrameProvenance } from '../../m
 import type { GenerationInputLineageBridge } from '../../modules/canvas/generation-input-lineage'
 import { resolveGenerationTaskProgressSummary, type GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import { resolveVisualAssetRecipe, VISUAL_ASSET_RECIPES, type VisualAssetRecipeId } from '../../modules/canvas/visual-asset-recipes'
+import { IMAGE_OPERATIONS } from '../../modules/canvas/image-operations'
 import CanvasGenerationParameterControls from './CanvasGenerationParameterControls.vue'
 import CanvasGenerationProgress from './CanvasGenerationProgress.vue'
 
@@ -68,7 +69,7 @@ const emit = defineEmits<{
   continueNode: []
   fitTrace: []
   locateNode: [nodeId: string]
-  generate: [prompt: string]
+  generate: [prompt?: string]
   reorderInput: [connectionId: string, direction: -1 | 1]
   updatePrompt: [prompt: string]
   updateParameters: [parameters: GenerationNodeParameters]
@@ -77,8 +78,15 @@ const emit = defineEmits<{
 }>()
 const prompt = ref(props.node.content?.trim() || '')
 const visualRecipe = computed(() => resolveVisualAssetRecipe(props.node))
+const imageOperation = computed(() => props.generationContext?.imageOperation ?? null)
+const isLocalImageOperation = computed(() => imageOperation.value?.id === 'region')
+const operationRequiresPrompt = computed(() => imageOperation.value
+  ? IMAGE_OPERATIONS[imageOperation.value.id].requiresPrompt
+  : true)
+const usesPrompt = computed(() => !imageOperation.value || operationRequiresPrompt.value)
 const canGenerate = computed(() => Boolean(
-  props.allowGenerationExecution && props.mediaType && (visualRecipe.value || prompt.value.trim() || props.generationContext?.prompt) &&
+  props.allowGenerationExecution && !isLocalImageOperation.value && props.mediaType &&
+  (visualRecipe.value || !usesPrompt.value || prompt.value.trim() || props.generationContext?.prompt) &&
   !props.generationContext?.parameterError && props.quota > 0 && !props.isGenerating,
 ))
 const generationLabel = computed(() => props.mediaType === 'video' ? '视频' : '图片')
@@ -188,7 +196,7 @@ function updatePrompt(event: Event) {
 function requestGeneration() {
   if (!canGenerate.value) return
   if (visualRecipe.value) emit('retryRecipe', visualRecipe.value.id)
-  else emit('generate', prompt.value.trim())
+  else emit('generate', usesPrompt.value ? prompt.value.trim() : undefined)
 }
 </script>
 
@@ -206,11 +214,13 @@ function requestGeneration() {
         <strong>{{ visualRecipe.title }}</strong>
         <p>{{ visualRecipe.description }}。保持参考中的身份、造型与视觉风格，由你检查结果后决定是否重试。</p>
       </section>
-      <label v-else-if="!readonly" class="prompt-field">
+      <label v-else-if="!readonly && usesPrompt" class="prompt-field">
         <span>生成提示词</span>
         <textarea :value="prompt" rows="6" maxlength="4000" aria-label="生成提示词" :disabled="isGenerating" @input="updatePrompt"></textarea>
       </label>
-      <div v-else class="review-prompt"><span>生成提示词</span><p>{{ prompt || '未填写提示词' }}</p></div>
+      <div v-else-if="readonly && usesPrompt" class="review-prompt"><span>生成提示词</span><p>{{ prompt || '未填写提示词' }}</p></div>
+      <p v-else-if="isLocalImageOperation" class="generation-operation-note" role="status">区域标记只保存到画布，不会创建生成任务。</p>
+      <p v-else class="generation-operation-note">此图片操作不需要 prompt，将使用已连接的媒体输入。</p>
       <CanvasGenerationParameterControls
         v-if="generationContext"
         :context="generationContext"
@@ -245,7 +255,7 @@ function requestGeneration() {
             </span>
           </li>
         </ul>
-        <p v-if="!visualRecipe">最终提示词 {{ generationContext.prompt.length }} / 4000 字符</p>
+        <p v-if="!visualRecipe && usesPrompt">最终提示词 {{ generationContext.prompt.length }} / 4000 字符</p>
         <details v-if="!visualRecipe" class="request-preflight">
           <summary>检查最终生成请求</summary>
           <div class="request-preflight__body">
@@ -253,7 +263,7 @@ function requestGeneration() {
               <div class="request-preflight__heading"><span>最终参数</span><strong>{{ generationContext.parameterSummary.length }} 项</strong></div>
               <ul><li v-for="item in generationContext.parameterSummary" :key="item"><strong>{{ item }}</strong></li></ul>
             </section>
-            <section aria-label="最终合并提示词">
+            <section v-if="usesPrompt" aria-label="最终合并提示词">
               <div class="request-preflight__heading"><span>最终 prompt</span><strong>{{ generationContext.prompt.length }} 字符</strong></div>
               <pre>{{ generationContext.prompt || '没有可发送的 prompt' }}</pre>
             </section>
@@ -280,7 +290,7 @@ function requestGeneration() {
       </section>
 
       <button
-        v-if="!readonly && allowGenerationExecution"
+        v-if="!readonly && allowGenerationExecution && !isLocalImageOperation"
         type="button"
         class="generate-button"
         :disabled="!canGenerate"
@@ -417,6 +427,7 @@ button:disabled { opacity: .42; cursor: not-allowed; }
 .recipe-summary { display: grid; gap: 6px; margin-bottom: 14px; padding: 11px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
 .recipe-summary span, .recipe-summary p { color: var(--v2-text-secondary); font-size: 11px; }
 .recipe-summary p { margin: 0; line-height: 1.55; }
+.generation-operation-note { margin: 0; padding: 10px; border: 1px solid color-mix(in srgb, var(--v2-accent) 32%, var(--v2-border-subtle)); border-radius: var(--v2-radius-md); color: var(--v2-accent); background: color-mix(in srgb, var(--v2-accent) 8%, var(--v2-surface-1)); font-size: 11px; line-height: 1.55; }
 .prompt-field, .review-prompt { display: grid; gap: 7px; color: var(--v2-text-secondary); font-size: 11px; }
 textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-md); color: var(--v2-text-primary); background: var(--v2-canvas); font: inherit; line-height: 1.6; }
 .connected-context { margin-top: 12px; padding: 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }

@@ -5,6 +5,7 @@ import type {
   ResolvedGenerationRequestContext,
   VideoReferenceMode,
 } from '../../modules/canvas/generation-parameters'
+import CanvasImageOperationControls from './CanvasImageOperationControls.vue'
 
 const props = defineProps<{
   context: ResolvedGenerationRequestContext
@@ -26,7 +27,13 @@ const selectedMode = computed(() => props.context.referenceMode ?? '')
 const selectedPrimaryNodeId = computed(() => props.context.primaryReferenceNodeId ?? '')
 
 function updateImage(aspectRatio: string) {
-  emit('updateParameters', { schema_version: 1, image: { aspect_ratio: aspectRatio } })
+  emit('updateParameters', {
+    schema_version: 1,
+    image: {
+      aspect_ratio: aspectRatio,
+      ...(props.context.imageOperation ? { operation: props.context.imageOperation } : {}),
+    },
+  })
 }
 
 function updateVideo(change: {
@@ -144,6 +151,13 @@ function updateVideo(change: {
         {{ context.capabilities.video.model }} · {{ context.capabilities.video.width }}×{{ context.capabilities.video.height }}
       </p>
     </template>
+    <CanvasImageOperationControls
+      v-if="context.imageOperation"
+      :context="context"
+      :disabled="disabled"
+      :readonly="readonly"
+      @update-parameters="emit('updateParameters', $event)"
+    />
   </section>
 </template>
 

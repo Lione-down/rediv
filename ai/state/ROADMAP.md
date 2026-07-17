@@ -79,7 +79,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 82 | T5-082 | Professional action registry, Slash Palette, and 4/9/16/25 project-image grid split | DONE - PASS | T5-081 |
 | 83 | T5-083 | Versioned script-to-shot schema and atomic script/shot/generation/storyboard graph creation | DONE - PASS | T5-082 |
 | 84 | T5-084 | Professional Storyboard recipes for grid, character, and scene views | DONE - PASS | T5-083 |
-| 85 | T5-085 | Image expansion, inpaint, erase, cutout, upscale, region, and fusion contracts | TODO | T5-084 |
+| 85 | T5-085 | Image expansion, inpaint, erase, cutout, upscale, region, and fusion contracts | DONE - PASS | T5-084 |
 | 86 | T5-086 | Shot angle, framing, focus, lighting, and time controls | TODO | T5-085 |
 | 87 | T5-087 | Workflow templates, dry-run, dependency execution, cancel/resume, and quota estimate | TODO | T5-086 |
 | 88 | T5-088 | Video trim, concat, preview, export, and FFmpeg/backend contract decision | TODO | T5-087 |
@@ -264,7 +264,7 @@ T5-083 is `DONE - PASS`. Strict backend/frontend shot schema v1, a deterministic
 
 T5-084 is `DONE - PASS`. Six strict Revid-owned version-1 presets now reuse the existing T5-083 mock shot contract, one atomic Storyboard graph command, and the T5-065 visual recipe lifecycle. Exact 4/9/16/25 topology, current project-owned image eligibility, prompt secrecy, failure/retry, Storyboard/history/persistence, responsive accessibility, functional Chromium 443/443, product backend 474 plus 93 subtests, a 4,886-module build, and guarded live 200/300 at 59.87485 FPS passed. No real/paid provider, database change, or UI redesign was introduced. `REPORT-T5-084.md` is authoritative evidence.
 
-T5-085 is the next eligible `TODO` Task. It will add downstream-only result branches for expand, inpaint, erase, cutout, upscale, region marking, and multi-image fusion with explicit mask/region contracts and fail-closed capability detection.
+T5-085 is `DOING` as the only active implementation Task. It adds downstream-only image-operation branches, strict source-normalized region/mask/request contracts, and a backward-aware backend capability v2 boundary. Production remains local-region-only with zero provider operations; full provider-operation behavior is mock-verified and no real or paid call is authorized.
 
 T5-086 remains `TODO` until T5-085 closes. It will extend the existing generation contract with shot angle, framing, focus, lighting, and forward/backward time controls while retaining provider capability truthfulness.
 

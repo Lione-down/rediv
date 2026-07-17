@@ -8,13 +8,20 @@ import {
   resolveStoryboardRecipeSource,
   type StoryboardRecipeId,
 } from './storyboard-recipe-registry'
+import {
+  IMAGE_OPERATIONS,
+  resolveImageOperationSources,
+  type ImageOperationCapabilities,
+  type ImageOperationId,
+} from './image-operations'
 
 export type { ImageGridOutputCount } from './image-grid-split'
-export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard'
+export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation'
 export type ProfessionalCanvasActionIntent =
   | { type: 'create-node'; nodeType: CanonicalNodeType; subtype: string }
   | { type: 'create-shot-graph' }
   | { type: 'create-storyboard-recipe'; recipeId: StoryboardRecipeId; recipeVersion: 1 }
+  | { type: 'create-image-operation'; operationId: ImageOperationId; operationVersion: 1 }
   | { type: 'split-image-grid'; outputCount: ImageGridOutputCount }
 
 export interface ProfessionalCanvasActionDefinition {
@@ -30,6 +37,7 @@ export interface ProfessionalCanvasActionContext {
   assets: readonly Asset[]
   canvasId: string
   canvasReady: boolean
+  imageOperationCapabilities?: ImageOperationCapabilities | null
   isBusy: boolean
   isReadOnly: boolean
   isWorkflowView: boolean
@@ -52,6 +60,19 @@ const STORYBOARD_RECIPE_ACTIONS = Object.values(STORYBOARD_RECIPES).map((recipe)
     type: 'create-storyboard-recipe' as const,
     recipeId: recipe.id,
     recipeVersion: recipe.version,
+  },
+})) satisfies readonly ProfessionalCanvasActionDefinition[]
+
+const IMAGE_OPERATION_ACTIONS = Object.values(IMAGE_OPERATIONS).map((operation) => ({
+  id: `image-operation.${operation.id}`,
+  category: 'image-operation' as const,
+  title: operation.actionLabel,
+  description: operation.description,
+  keywords: operation.keywords,
+  intent: {
+    type: 'create-image-operation' as const,
+    operationId: operation.id,
+    operationVersion: operation.version,
   },
 })) satisfies readonly ProfessionalCanvasActionDefinition[]
 
@@ -97,6 +118,7 @@ export const PROFESSIONAL_CANVAS_ACTIONS = [
     intent: { type: 'create-shot-graph' },
   },
   ...STORYBOARD_RECIPE_ACTIONS,
+  ...IMAGE_OPERATION_ACTIONS,
   {
     id: 'image.split-4',
     category: 'image',
@@ -197,6 +219,16 @@ function resolveEligibility(
       return { eligible: false, reason: '当前选择不支持该故事板配方。' }
     }
   }
+  if (action.intent.type === 'create-image-operation') {
+    const operation = IMAGE_OPERATIONS[action.intent.operationId]
+    if (!operation || action.intent.operationVersion !== operation.version || !resolveImageOperationSources(operation, {
+      assets: context.assets,
+      capabilities: context.imageOperationCapabilities ?? null,
+      projectId: context.projectId,
+      selectedNodes: context.selectedNodes,
+      userId: context.userId,
+    })) return { eligible: false, reason: '当前选择或 capability 不支持该图片操作。' }
+  }
   return { eligible: true }
 }
 
@@ -218,6 +250,8 @@ function actionSearchText(action: ProfessionalCanvasActionDefinition) {
         ? String(action.intent.outputCount)
         : action.intent.type === 'create-storyboard-recipe'
           ? `${action.intent.recipeId} storyboard recipe`
+          : action.intent.type === 'create-image-operation'
+            ? `${action.intent.operationId} image operation edit`
           : 'script shot storyboard',
   ].join(' ').normalize('NFKC').toLocaleLowerCase()
 }

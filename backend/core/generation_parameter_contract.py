@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from core.image_operation_contract import build_image_operation_capabilities
 
+
+CAPABILITY_CONTRACT_VERSION = 2
 CONTRACT_VERSION = 1
 IMAGE_MODEL = "agnes-image-2.1-flash"
 IMAGE_SIZE = "1K"
@@ -44,12 +47,13 @@ class NormalizedVideoParameters:
 
 def build_generation_capabilities() -> dict[str, Any]:
     return {
-        "contract_version": CONTRACT_VERSION,
+        "contract_version": CAPABILITY_CONTRACT_VERSION,
         "image": {
             "model": IMAGE_MODEL,
             "size": IMAGE_SIZE,
             "aspect_ratios": list(IMAGE_ASPECT_RATIOS),
             "default_aspect_ratio": IMAGE_DEFAULT_ASPECT_RATIO,
+            "operations": build_image_operation_capabilities(),
         },
         "video": {
             "model": VIDEO_MODEL,

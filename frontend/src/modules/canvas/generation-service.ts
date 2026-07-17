@@ -1,5 +1,6 @@
 import type { Asset } from '../../types/asset'
 import type { QuotaBalance } from '../../types/auth'
+import { IMAGE_OPERATIONS, type ImageOperationContract } from './image-operations'
 import type { GenerationTask } from './project-resource-types'
 import { parseGenerationCapabilities, type GenerationCapabilities, type VideoReferenceMode } from './generation-parameters'
 import type { VisualAssetRecipeId, VisualAssetRecipeVersion } from './visual-asset-recipes'
@@ -18,6 +19,7 @@ export interface CanvasGenerationContext {
   durationSeconds?: number
   recipeId?: VisualAssetRecipeId
   recipeVersion?: VisualAssetRecipeVersion
+  imageOperation?: ImageOperationContract
 }
 
 export interface CanvasGenerationResponse {
@@ -111,6 +113,13 @@ function assertGenerationRequestParameters(context: CanvasGenerationContext, tas
     if (!context.aspectRatio || parameters.aspect_ratio !== context.aspectRatio) {
       throw new Error('Generation response parameter snapshot mismatch')
     }
+    if (context.imageOperation) {
+      if (JSON.stringify(parameters.image_operation) !== JSON.stringify(context.imageOperation)) {
+        throw new Error('Generation response parameter snapshot mismatch')
+      }
+    } else if (parameters.image_operation !== undefined) {
+      throw new Error('Generation response parameter snapshot mismatch')
+    }
     return
   }
   if (
@@ -130,12 +139,24 @@ export async function requestCanvasGeneration(
   quotaStore: GenerationQuotaStore,
   transport: GenerationTransport,
 ) {
+  const prompt = context.prompt?.trim()
+  const operationDefinition = context.imageOperation
+    ? IMAGE_OPERATIONS[context.imageOperation.id]
+    : null
+  if (context.imageOperation && (
+    context.mediaType !== 'image' || !operationDefinition || operationDefinition.execution !== 'provider'
+  )) throw new Error('Invalid image operation request')
   if (context.recipeId && (
     context.mediaType !== 'image' || context.prompt !== undefined || context.imageIds?.length !== 1 ||
-    context.aspectRatio !== undefined
+    context.aspectRatio !== undefined || context.imageOperation !== undefined
   )) throw new Error('Invalid visual asset recipe request')
   if (Boolean(context.recipeId) !== Boolean(context.recipeVersion)) throw new Error('Invalid visual asset recipe request')
-  if (!context.recipeId && !context.prompt) throw new Error('Generation prompt is required')
+  if (!context.recipeId && !prompt && (!operationDefinition || operationDefinition.requiresPrompt)) {
+    throw new Error('Generation prompt is required')
+  }
+  if (operationDefinition?.requiresPrompt !== undefined && operationDefinition.requiresPrompt !== Boolean(prompt)) {
+    throw new Error('Invalid image operation prompt')
+  }
   const authSessionToken = quotaStore.token
   const response = await transport.post<CanvasGenerationResponse>(
     GENERATION_ROUTES[context.mediaType],
@@ -143,13 +164,14 @@ export async function requestCanvasGeneration(
       project_id: context.projectId,
       origin_canvas_id: context.originCanvasId,
       canvas_node_id: context.canvasNodeId ?? null,
-      ...(context.prompt ? { prompt: context.prompt } : {}),
+      ...(prompt ? { prompt } : {}),
       ...(context.imageIds?.length ? { image_ids: context.imageIds } : {}),
       ...(context.aspectRatio ? { aspect_ratio: context.aspectRatio } : {}),
       ...(context.referenceMode ? { reference_mode: context.referenceMode } : {}),
       ...(context.durationSeconds ? { duration_seconds: context.durationSeconds } : {}),
       ...(context.recipeId ? { generation_recipe_id: context.recipeId } : {}),
       ...(context.recipeVersion ? { generation_recipe_version: context.recipeVersion } : {}),
+      ...(context.imageOperation ? { image_operation: context.imageOperation } : {}),
     },
     { timeout: 0 },
   )

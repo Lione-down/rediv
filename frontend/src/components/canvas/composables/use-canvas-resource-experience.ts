@@ -393,6 +393,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     isDesktopContextOpen,
     isUploading,
     isGenerating,
+    generationCapabilities,
     selectedNode,
     selectedMediaType,
     selectedGenerationContext,

@@ -8,13 +8,16 @@ import {
 } from '../../../modules/canvas/professional-action-registry'
 import { useCanvasStore } from '../../../store/canvas'
 import type { Asset } from '../../../types/asset'
+import type { ImageOperationCapabilities } from '../../../modules/canvas/image-operations'
 
 interface CanvasProfessionalActionsOptions {
   assets: () => readonly Asset[]
   canvasId: ComputedRef<string>
   createShotGraph?: () => Promise<unknown>
+  createImageOperation?: (operationId: string, operationVersion: number) => Promise<unknown>
   createStoryboardRecipe?: (recipeId: string, recipeVersion: number) => Promise<unknown>
   getInsertionPoint: () => { x: number; y: number }
+  imageOperationCapabilities?: () => ImageOperationCapabilities | null
   isBlocked: () => boolean
   isBusy: () => boolean
   isReadOnly: () => boolean
@@ -43,6 +46,7 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
         canvasStore.activeProjectId === projectId &&
         canvasStore.activeCanvasId === canvasId
       ),
+      imageOperationCapabilities: options.imageOperationCapabilities?.() ?? null,
       isBusy: options.isBusy() || isExecuting.value,
       isReadOnly: options.isReadOnly(),
       isWorkflowView: options.isWorkflowView(),
@@ -55,6 +59,7 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
   const actions = computed(() => resolveProfessionalCanvasActions(context(), query.value)
     .filter((action) => action.eligibility.eligible)
     .filter((action) => action.intent.type !== 'create-shot-graph' || Boolean(options.createShotGraph))
+    .filter((action) => action.intent.type !== 'create-image-operation' || Boolean(options.createImageOperation))
     .filter((action) => action.intent.type !== 'create-storyboard-recipe' || Boolean(options.createStoryboardRecipe))
     .filter((action) => action.intent.type !== 'split-image-grid' || Boolean(options.splitImageGrid)))
 
@@ -118,6 +123,22 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
         close()
       } catch (executionError) {
         error.value = executionError instanceof Error ? executionError.message : '故事板配方创建失败，请重试。'
+      } finally {
+        isExecuting.value = false
+      }
+      return
+    }
+    if (action.intent.type === 'create-image-operation') {
+      if (!options.createImageOperation) {
+        error.value = '图片操作能力当前不可用。'
+        return
+      }
+      isExecuting.value = true
+      try {
+        await options.createImageOperation(action.intent.operationId, action.intent.operationVersion)
+        close()
+      } catch (executionError) {
+        error.value = executionError instanceof Error ? executionError.message : '图片操作分支创建失败，请重试。'
       } finally {
         isExecuting.value = false
       }

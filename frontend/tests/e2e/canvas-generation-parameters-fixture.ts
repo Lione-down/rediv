@@ -1,9 +1,17 @@
 export const GENERATION_CAPABILITIES = {
-  contract_version: 1,
+  contract_version: 2,
   image: {
     model: 'agnes-image-2.1-flash', size: '1K',
     aspect_ratios: ['1:1', '3:4', '4:3', '16:9', '9:16', '2:3', '3:2', '21:9'],
     default_aspect_ratio: '4:3',
+    operations: {
+      contract_version: 1,
+      supported_operations: ['expand', 'inpaint', 'erase', 'cutout', 'upscale', 'region', 'fusion'],
+      provider_operations: ['expand', 'inpaint', 'erase', 'cutout', 'upscale', 'fusion'],
+      region_coordinate_space: 'source-normalized',
+      max_fusion_images: 8,
+      upscale_factors: [2, 4],
+    },
   },
   video: {
     model: 'agnes-video-v2.0', width: 1152, height: 768,
@@ -33,6 +41,7 @@ export function createMockGenerationRequestParameters(
         generation_recipe_id: requestBody.generation_recipe_id,
         generation_recipe_version: requestBody.generation_recipe_version,
       } : {}),
+      ...(requestBody.image_operation ? { image_operation: requestBody.image_operation } : {}),
     }
   }
   const durationSeconds = Number(requestBody.duration_seconds ?? 5)

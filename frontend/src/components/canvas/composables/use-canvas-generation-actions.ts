@@ -2,6 +2,10 @@ import type { ComputedRef, Ref } from 'vue'
 import { request } from '../../../api/request'
 import { requestCanvasGeneration } from '../../../modules/canvas/generation-service'
 import {
+  IMAGE_OPERATIONS,
+  type ImageOperationContract,
+} from '../../../modules/canvas/image-operations'
+import {
   resolveGenerationRequestContext,
   type GenerationCapabilities,
   type GenerationNodeParameters,
@@ -46,6 +50,7 @@ interface GenerationExecutionOptions {
   durationSeconds?: number
   recipeId?: VisualAssetRecipeId
   recipeVersion?: 1 | 2
+  imageOperation?: ImageOperationContract
   parameters?: GenerationNodeParameters | null
 }
 
@@ -103,6 +108,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
         durationSeconds: requestContext.durationSeconds,
         recipeId: requestContext.recipeId,
         recipeVersion: requestContext.recipeVersion,
+        imageOperation: requestContext.imageOperation,
       }, authStore, request)
       if (!response.asset) throw new Error('生成已完成，但响应缺少结果资产。')
       resourceStore.upsertAsset(response.asset)
@@ -133,19 +139,24 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
     }
   }
 
-  async function generate(prompt: string) {
+  async function generate(prompt?: string) {
     const sourceNode = options.selectedNode.value
     const mediaType = options.selectedMediaType.value
     if (!sourceNode || !mediaType || resolveVisualAssetRecipe(sourceNode)) return
     const context = resolveGenerationRequestContext(
-      { ...sourceNode, content: prompt }, mediaType,
+      { ...sourceNode, content: prompt ?? sourceNode.content }, mediaType,
       canvasStore.nodes, canvasStore.connections, options.generationCapabilities.value,
     )
     if (context.parameterError) {
       options.generationError.value = context.parameterError
       return
     }
-    if (!context.prompt) {
+    const operation = context.imageOperation
+    if (operation?.id === 'region') {
+      options.generationError.value = '区域标记只保存到画布，不会创建生成任务。'
+      return
+    }
+    if ((!operation || IMAGE_OPERATIONS[operation.id].requiresPrompt) && !context.prompt) {
       options.generationError.value = '请填写提示词或连接至少一个有内容的脚本节点。'
       return
     }
@@ -155,8 +166,9 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
       aspectRatio: context.aspectRatio,
       referenceMode: context.referenceMode,
       durationSeconds: context.durationSeconds,
+      imageOperation: operation,
       parameters: context.parameters,
-    }, prompt)
+    }, operation && !IMAGE_OPERATIONS[operation.id].requiresPrompt ? undefined : prompt)
   }
 
   async function generateRecipe(recipeId: VisualAssetRecipeId) {

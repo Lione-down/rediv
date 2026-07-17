@@ -12,18 +12,24 @@ from core.generation_parameter_contract import (
     normalize_image_parameters,
     normalize_video_parameters,
 )
+from core.image_operation_contract import (
+    ImageOperationContractError,
+    build_image_operation_capabilities,
+    normalize_image_operation,
+)
 
 
 class GenerationParameterContractTestCase(unittest.TestCase):
     def test_capability_document_has_exact_backend_owned_values(self) -> None:
         self.assertEqual(
             {
-                "contract_version": 1,
+                "contract_version": 2,
                 "image": {
                     "model": "agnes-image-2.1-flash",
                     "size": "1K",
                     "aspect_ratios": ["1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9"],
                     "default_aspect_ratio": "4:3",
+                    "operations": build_image_operation_capabilities(),
                 },
                 "video": {
                     "model": "agnes-video-v2.0",
@@ -43,6 +49,117 @@ class GenerationParameterContractTestCase(unittest.TestCase):
             },
             build_generation_capabilities(),
         )
+
+    def test_image_operation_capabilities_are_versioned_and_provider_honest(self) -> None:
+        self.assertEqual(
+            {
+                "contract_version": 1,
+                "supported_operations": ["region"],
+                "provider_operations": [],
+                "region_coordinate_space": "source-normalized",
+                "max_fusion_images": 8,
+                "upscale_factors": [2, 4],
+            },
+            build_image_operation_capabilities(),
+        )
+
+    def test_inpaint_normalizes_exact_source_region_and_mask(self) -> None:
+        operation = {
+            "contract_version": 1,
+            "id": "inpaint",
+            "region": {
+                "contract_version": 1,
+                "coordinate_space": "source-normalized",
+                "x": 0.2,
+                "y": 0.25,
+                "width": 0.5,
+                "height": 0.4,
+            },
+            "mask": {
+                "contract_version": 1,
+                "kind": "region",
+                "feather": 0.1,
+                "invert": False,
+            },
+        }
+
+        normalized = normalize_image_operation(
+            operation,
+            image_ids=["asset-a"],
+            prompt="Replace the selected object",
+            provider_operations=("inpaint",),
+        )
+
+        self.assertEqual(operation, normalized)
+
+    def test_operation_specific_shape_prompt_and_source_rules_fail_closed(self) -> None:
+        region = {
+            "contract_version": 1,
+            "coordinate_space": "source-normalized",
+            "x": 0.25,
+            "y": 0.25,
+            "width": 0.5,
+            "height": 0.5,
+        }
+        mask = {"contract_version": 1, "kind": "region", "feather": 0, "invert": False}
+        valid = [
+            (
+                {
+                    "contract_version": 1,
+                    "id": "expand",
+                    "expansion": {
+                        "contract_version": 1,
+                        "top": 0.25,
+                        "right": 0,
+                        "bottom": 0,
+                        "left": 0.25,
+                    },
+                },
+                ["asset-a"],
+                "Extend the environment",
+            ),
+            ({"contract_version": 1, "id": "erase", "region": region, "mask": mask}, ["asset-a"], None),
+            ({"contract_version": 1, "id": "cutout"}, ["asset-a"], None),
+            ({"contract_version": 1, "id": "upscale", "upscale_factor": 4}, ["asset-a"], None),
+            ({"contract_version": 1, "id": "fusion"}, ["asset-a", "asset-b"], "Fuse both images"),
+        ]
+        for operation, image_ids, prompt in valid:
+            with self.subTest(operation=operation["id"]):
+                self.assertEqual(
+                    operation,
+                    normalize_image_operation(
+                        operation,
+                        image_ids=image_ids,
+                        prompt=prompt,
+                        provider_operations=(operation["id"],),
+                    ),
+                )
+
+        invalid = [
+            ({"contract_version": 2, "id": "cutout"}, ["asset-a"], None, ("cutout",), "version"),
+            ({"contract_version": 1, "id": "unknown"}, ["asset-a"], None, ("unknown",), "unknown"),
+            ({"contract_version": 1, "id": "region", "region": region}, ["asset-a"], None, (), "local-only"),
+            ({"contract_version": 1, "id": "cutout", "region": region}, ["asset-a"], None, ("cutout",), "fields"),
+            ({"contract_version": 1, "id": "upscale", "upscale_factor": 3}, ["asset-a"], None, ("upscale",), "factor"),
+            ({"contract_version": 1, "id": "fusion"}, ["asset-a"], "Fuse", ("fusion",), "2 to 8"),
+            ({"contract_version": 1, "id": "fusion"}, ["asset-a", "asset-a"], "Fuse", ("fusion",), "unique"),
+            ({"contract_version": 1, "id": "expand", "expansion": {"contract_version": 1, "top": 0, "right": 0, "bottom": 0, "left": 0}}, ["asset-a"], "Extend", ("expand",), "positive"),
+            ({"contract_version": 1, "id": "inpaint", "region": {**region, "x": 0.75}, "mask": mask}, ["asset-a"], "Replace", ("inpaint",), "bounds"),
+            ({"contract_version": 1, "id": "inpaint", "region": region}, ["asset-a"], "Replace", ("inpaint",), "mask"),
+            ({"contract_version": 1, "id": "inpaint", "region": region, "mask": mask}, ["asset-a"], None, ("inpaint",), "prompt"),
+            ({"contract_version": 1, "id": "erase", "region": region, "mask": mask, "extra": True}, ["asset-a"], None, ("erase",), "fields"),
+            ({"contract_version": 1, "id": "erase", "region": region, "mask": {**mask, "feather": 1.1}}, ["asset-a"], None, ("erase",), "feather"),
+            ({"contract_version": 1, "id": "cutout"}, ["asset-a"], None, (), "unsupported"),
+        ]
+        for operation, image_ids, prompt, provider_operations, message in invalid:
+            with self.subTest(operation=operation, message=message):
+                with self.assertRaisesRegex(ImageOperationContractError, message):
+                    normalize_image_operation(
+                        operation,
+                        image_ids=image_ids,
+                        prompt=prompt,
+                        provider_operations=provider_operations,
+                    )
 
     def test_ordinary_image_defaults_to_revid_ratio_and_rejects_unknown_values(self) -> None:
         normalized = normalize_image_parameters(aspect_ratio=None, image_ids=["asset-a"])

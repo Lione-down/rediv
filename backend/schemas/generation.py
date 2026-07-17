@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
@@ -10,6 +10,7 @@ from core.generation_parameter_contract import (
     normalize_image_parameters,
     normalize_video_parameters,
 )
+from core.image_operation_contract import normalize_image_operation
 from core.image_generation_recipes import ImageGenerationRecipeId, resolve_image_generation_recipe
 
 
@@ -36,6 +37,7 @@ class ImageGenerateRequest(ScopedGenerationRequest):
     aspect_ratio: str | None = Field(default=None, max_length=10)
     generation_recipe_id: ImageGenerationRecipeId | None = None
     generation_recipe_version: int | None = Field(default=None, ge=1)
+    image_operation: dict[str, Any] | None = None
 
     @field_validator("image_ids")
     @classmethod
@@ -44,6 +46,19 @@ class ImageGenerateRequest(ScopedGenerationRequest):
 
     @model_validator(mode="after")
     def validate_prompt_or_recipe(self):
+        if self.image_operation is not None:
+            if self.generation_recipe_id is not None or self.generation_recipe_version is not None:
+                raise ValueError("image operation cannot use a generation recipe")
+            normalize_image_operation(
+                self.image_operation,
+                image_ids=self.image_ids,
+                prompt=self.prompt,
+            )
+            normalize_image_parameters(
+                aspect_ratio=self.aspect_ratio,
+                image_ids=self.image_ids,
+            )
+            return self
         if self.generation_recipe_id is None:
             if self.generation_recipe_version is not None:
                 raise ValueError("generation recipe version requires a generation recipe")
