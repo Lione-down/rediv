@@ -48,4 +48,5 @@
 ## Completion evidence
 
 - `ai/reports/REPORT-T5-090.md` records the closed v1 manifest, authenticated Canvas scope, fail-closed source validation, no-execute boundary, Palette evidence, and final regression results.
+- Delivery commit `1aad57189497353c5e54a60ac8b87b6fa9677d7a` is pushed to `origin/main`.
 - T5-091 remains inactive. It may reuse only this Revid-owned contract and must obtain a future Task-owned acknowledgement/native handoff before any durable generation execution.

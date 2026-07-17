@@ -2,6 +2,7 @@
 
 - Status: `DONE - PASS`
 - Baseline: T5-089 pushed at `dc576fb72473c56dacbf16323730ce9d6c77b29e`
+- Delivery commit: `1aad57189497353c5e54a60ac8b87b6fa9677d7a` pushed to `origin/main`
 - Scope: a Revid-owned Agent/Skill v1 interface only; no provider execution, external runtime, migration, secret, paid call, or UI redesign.
 
 ## Delivered

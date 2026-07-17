@@ -19,13 +19,13 @@ Last updated: 2026-07-18
 
 ## Active Delivery
 
-- Active implementation Task: none; T5-090 delivery closeout is pending exact-stage commit/push.
-- State: `CLOSEOUT`
-- Last completed Task: `T5-090 - Revid Agent/Skill interface over native auth, project, canvas, and generation contracts` (`ai/reports/REPORT-T5-090.md`) on local baseline `dc576fb72473c56dacbf16323730ce9d6c77b29e`.
+- Active implementation Task: none; T5-090 is committed and pushed, and T5-091 remains inactive.
+- State: `IDLE`
+- Last completed Task: `T5-090 - Revid Agent/Skill interface over native auth, project, canvas, and generation contracts` (`ai/reports/REPORT-T5-090.md`) at pushed `1aad57189497353c5e54a60ac8b87b6fa9677d7a`.
 - Task: `ai/tasks/todo/TASK-T5-090.md`
 - Plan: `ai/tasks/doing/TASK-T5-090-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-090-PROGRESS.md`
-- Exact next action: exact-stage the completed T5-090-owned diff, perform final staged hygiene review, commit, and push; keep T5-091 inactive until that succeeds.
+- Exact next action: Human Owner may activate T5-091 as the sole implementation Task; it must reuse T5-090's exact contract and retain its future native-handoff acknowledgement gate.
 
 ## Current Verified Facts
 

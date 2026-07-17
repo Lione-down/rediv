@@ -23,11 +23,11 @@
 
 ## Remaining work
 
-- None for T5-090. Exact staging, commit, and push remain the delivery closeout step.
+- None for T5-090. The exact scoped commit and `origin/main` push completed at `1aad57189497353c5e54a60ac8b87b6fa9677d7a`.
 
 ## Exact next action
 
-Stage only T5-090-owned files, review the staged diff for secrets/unrelated files, commit and push. Do not activate T5-091 in this Task.
+Do not activate T5-091 in this completed Task. A future run may activate T5-091 as the sole implementation Task after reading its dependency contract.
 
 ## Files changed
 
