@@ -25,7 +25,8 @@ Last updated: 2026-07-18
 - Task: `ai/tasks/todo/TASK-T5-091.md`
 - Plan: `ai/tasks/doing/TASK-T5-091-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-091-PROGRESS.md`
-- Exact next action: await Human Owner selection of the next bounded implementation Task; do not activate a second Task implicitly.
+- Planned next Task: `T5-092 - Same-Canvas concurrent generation and Agnes admission control` (`ai/tasks/todo/TASK-T5-092.md`), state `TODO` and not active.
+- Exact next action: Human Owner may activate T5-092 as the sole implementation Task; activation must create or refresh its PLAN/PROGRESS and lock idempotency plus cross-process admission before business-code edits.
 
 ## Current Verified Facts
 

@@ -1,6 +1,6 @@
 # Revid Product V2 / Phase 5 Direct Delivery Roadmap
 
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 
 ## Product Outcome
 
@@ -86,6 +86,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 89 | T5-089 | Audio generation and audio-driven video with fail-closed capability/quota/task contracts | DONE - PASS | T5-088 |
 | 90 | T5-090 | Revid Agent/Skill interface over native auth, project, canvas, and generation contracts | DONE - PASS | T5-089 |
 | 91 | T5-091 | Revid native cinematic Skills, structured references, deterministic generation optimization, billing acknowledgement, and stale lineage | DONE - PASS | T5-090 |
+| 92 | T5-092 | Same-Canvas concurrent image/video generation, request idempotency, and bounded Agnes admission control | TODO | T5-091 |
 
 ## Task Boundaries
 
@@ -278,6 +279,8 @@ T5-089 is `DONE - PASS`. It adds backend capability v4 with exact production-una
 T5-090 is `DONE - PASS`. Its closed v1 contains exactly one Revid-built `revid.canvas-context` version 1 manifest and models only mock-only/unavailable execution. Existing current-user plus Canvas ownership and current Canvas document lookup scope discovery/preflight; strict bounded source validation returns deterministic id/type/subtype context, while no execute endpoint, provider, quota, task, asset, Canvas, history, autosave, or durable output authority exists. The desktop Palette overlay is accessible and explicit about its mock-only boundary; 375px remains review-only. Backend focused passed 8/8, focused frontend passed 14/14 plus Agent UI 2/2 and Storyboard 15/15, build passed 4,921 modules, final functional Chromium passed 472/472, and an isolated 200/300 title passed at 57.519 FPS / 16.8ms p95 under SwiftShader/no hardware acceleration. The original combined-matrix 49.54 FPS observation is retained in `REPORT-T5-090.md` without threshold change. No arbitrary/imported/remote Skill code executes; T5-091 subsequently reused this exact boundary and is now closed below.
 
 T5-091 is `DONE - PASS`. It extends T5-090 backward-compatibly with exactly three Revid-owned cinematic Skill manifests, structured Canvas-local mentions, deterministic inspectable native text/image/video handoffs, user-owned backend-catalog provider/model selection, server-authoritative billing acknowledgement, strict shot schema v2, duplication-safe references, and non-destructive stale lineage. Full backend passed 512 tests plus 116 subtests, final functional Chromium passed 496/496, production build passed 4,926 modules, focused cinematic Chromium passed 8/8, and the unchanged 200/300 title passed at 56.35185107977278 FPS / 16.8ms p95. Delivery `1f3077c9208a0a7590d1ab549e89210a49d0b923` is pushed; no arbitrary/remote Skill runtime, automatic retry/model routing, paid call, secret access, user/runtime migration, or real-provider fidelity claim was introduced. Report: `ai/reports/REPORT-T5-091.md`.
+
+T5-092 is `TODO` and inactive. It will replace Canvas-wide generation blocking with node/task-scoped concurrent image/video execution, add strict client request idempotency, and enforce backend-owned global/per-user/per-media Agnes admission across processes. Capacity overflow must fail before mutation with an honest busy response unless a separately approved durable scheduler exists. T5-091 handoff, billing acknowledgement, quota/task/result authority, pending placement, responsive boundaries, and real-provider Human gates remain unchanged.
 
 ## Canvas First-Acceptance Gate
 
