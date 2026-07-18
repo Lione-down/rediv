@@ -7,6 +7,7 @@ from sqlalchemy import select
 
 from controllers import quotas as quota_controller
 from controllers.generation_errors import (
+    GenerationDeterministicFailureError,
     GenerationForbiddenError,
     GenerationFrozenError,
     GenerationIdempotencyConflictError,

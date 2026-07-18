@@ -110,6 +110,8 @@ test('professional action definitions keep stable category and intent order', ()
     ['canvas.create-note', 'create', { type: 'create-node', nodeType: 'note', subtype: 'annotation' }],
     ['canvas.create-image-generation', 'create', { type: 'create-node', nodeType: 'generation', subtype: 'image' }],
     ['canvas.create-video-generation', 'create', { type: 'create-node', nodeType: 'generation', subtype: 'video' }],
+    ['script.generate-draft', 'script', { type: 'open-script-authoring', intent: 'script_draft' }],
+    ['script.refine', 'script', { type: 'open-script-authoring', intent: 'script_refine' }],
     ['script.create-shot-graph', 'script', { type: 'create-shot-graph' }],
     ['script.create-cinematic-shot-graph', 'script', { type: 'create-cinematic-shot-graph', skillId: 'revid.cinema-script', skillVersion: 1 }],
     ['workflow.canvas-generation-batch', 'workflow', { type: 'open-workflow-batch', templateId: 'canvas-generation-batch', templateVersion: 1 }],
@@ -153,6 +155,15 @@ test('workflow batch preflight action requires an editable canonical generation 
       reason: '请选择至少一个可用的图片或视频生成节点。',
     })
   }
+})
+
+test('script authoring actions require one exact editable script and refine requires content', () => {
+  const populated = context({ selectedNodes: [scriptNode()] })
+  const blank = context({ selectedNodes: [scriptNode({ content: '', contentData: { subtype: 'script', serialization_version: 1, text: '' } })] })
+  expect(resolveProfessionalCanvasAction(populated, 'script.generate-draft')?.eligibility).toEqual({ eligible: true })
+  expect(resolveProfessionalCanvasAction(populated, 'script.refine')?.eligibility).toEqual({ eligible: true })
+  expect(resolveProfessionalCanvasAction(blank, 'script.generate-draft')?.eligibility).toEqual({ eligible: true })
+  expect(resolveProfessionalCanvasAction(blank, 'script.refine')?.eligibility.eligible).toBe(false)
 })
 
 test('video edit preflight action requires an editable project-owned video source', () => {
@@ -207,6 +218,10 @@ test('registry resolution is deterministic, searchable, and fail closed for unkn
     .filter((action) => action.eligibility.eligible).map((action) => action.id)).toEqual([
       'script.create-shot-graph', 'script.create-cinematic-shot-graph', 'audio.generation-preflight',
       'storyboard.shot-board-9', 'storyboard.shot-board-16', 'storyboard.shot-board-25',
+    ])
+  expect(resolveProfessionalCanvasActions(context({ selectedNodes: [scriptNode()] }), 'agnes script')
+    .filter((action) => action.eligibility.eligible).map((action) => action.id)).toEqual([
+      'script.generate-draft', 'script.refine', 'script.create-cinematic-shot-graph',
     ])
   expect(resolveProfessionalCanvasAction(selectedContext, 'missing.action')).toBeNull()
 })

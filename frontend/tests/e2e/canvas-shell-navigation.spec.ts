@@ -252,26 +252,27 @@ test('Tab opens the canonical node menu and creates a registry-backed asset node
 
   const menu = page.getByRole('menu', { name: '添加节点' })
   await expect(menu).toBeVisible()
-  await expect(menu.getByRole('menuitem')).toHaveCount(6)
-  await expect(menu.getByRole('menuitem', { name: '添加素材节点' })).toBeVisible()
-  await expect(menu.getByRole('menuitem', { name: /文本节点|图片节点/ })).toHaveCount(0)
+  await expect(menu.getByRole('menuitem')).toHaveCount(7)
+  await expect(menu.getByRole('menuitem', { name: '添加音频节点' })).toBeVisible()
   await page.screenshot({ path: '../output/playwright/t5-007-unit-a-node-menu-1440x900.png' })
 
-  await menu.getByRole('menuitem', { name: '添加素材节点' }).click()
+  await menu.getByRole('menuitem', { name: '添加音频节点' }).click()
   await expect.poll(() => state.requests.find((request) => (
     request.method === 'PATCH' && request.path.endsWith('/document') &&
     ((request.body as Record<string, unknown>).node_upserts as Array<Record<string, unknown>>)
       .some((item) => item.node_type === 'asset')
   ))).toBeTruthy()
-  const created = getCanvasDocument(state, 'canvas-first').nodes.find((item) => item.node_type === 'asset')
+  const created = getCanvasDocument(state, 'canvas-first').nodes.find((item) => (
+    item.node_type === 'asset' && item.content.subtype === 'audio'
+  ))
   expect(created).toEqual(expect.objectContaining({ width: 320, height: 240 }))
-  expect(created?.content).toEqual(expect.objectContaining({ subtype: 'image', serialization_version: 1 }))
+  expect(created?.content).toEqual(expect.objectContaining({ subtype: 'audio', serialization_version: 1 }))
 
   await expect(menu).toHaveCount(0)
   await expect(addNodeButton).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(menu).toHaveCount(0)
-  await expect(page.getByRole('button', { name: '打开画布内容与快捷键' })).toBeFocused()
+  await expect(page.getByRole('button', { name: '打开项目资源' })).toBeFocused()
 })
 
 test('normal Canvas switches preserve independent undo stacks without cross-Canvas replay', async ({ page }) => {

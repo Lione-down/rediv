@@ -15,6 +15,7 @@ import main as backend_main
 from api import video_generate as video_generate_module
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
+from core.agnes_contract import AgnesProviderError
 from core.agnes_provider import extract_provider_progress_percent
 from core.security import create_token
 from models.asset import Asset
@@ -245,6 +246,41 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(1, total)
         self.assertEqual("failed", tasks[0]["status"])
         self.assertEqual("provider_error", tasks[0]["error_code"])
+
+    def test_video_provider_400_is_actionable_and_keeps_safe_correlation(self) -> None:
+        provider_error = AgnesProviderError(
+            status_code=400,
+            code="invalid_request",
+            safe_message="image URL is not publicly accessible",
+            request_id="request-video-400",
+            retryable=False,
+        )
+        fake_provider = _FakeAgnesProvider(create_error=provider_error)
+        original_quota = store.quotas[self.user["id"]]["video"]
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/video-generate",
+                json=self._payload("Reject invalid video input"),
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(422, response.status_code)
+        self.assertEqual(
+            {
+                "code": "invalid_request",
+                "message": "image URL is not publicly accessible",
+                "provider_request_id": "request-video-400",
+                "retryable": False,
+            },
+            response.json()["detail"],
+        )
+        self.assertEqual(original_quota, store.quotas[self.user["id"]]["video"])
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="video")
+        self.assertEqual(1, total)
+        self.assertEqual("invalid_request", tasks[0]["error_code"])
+        self.assertEqual("request-video-400", tasks[0]["provider_request_id"])
+        self.assertEqual("image URL is not publicly accessible", tasks[0]["error_message"])
 
     def test_video_generate_poll_failure_does_not_deduct_quota(self) -> None:
         fake_provider = _FakeAgnesProvider(poll_error=RuntimeError("poll failed"))

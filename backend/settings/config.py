@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     agnes_admission_video_limit: int = Field(default=1, gt=0, le=32)
     agnes_admission_lease_seconds: int = Field(default=900, ge=60, le=86_400)
     agnes_admission_retry_after_seconds: int = Field(default=5, ge=1, le=300)
+    agnes_deterministic_failure_guard_seconds: int = Field(default=300, ge=1, le=3_600)
     agnes_http_connect_timeout_seconds: float = Field(default=10, gt=0, le=120)
     agnes_http_pool_timeout_seconds: float = Field(default=2, gt=0, le=60)
     agnes_http_read_timeout_seconds: float = Field(default=300, gt=0, le=3_600)
@@ -66,6 +67,7 @@ class Settings(BaseSettings):
     asset_upload_validation_concurrency: int = Field(default=4, gt=0, le=32)
     asset_upload_idle_timeout_seconds: float = Field(default=30, gt=0, le=3600)
     asset_upload_total_timeout_seconds: float = Field(default=600, gt=0, le=3600)
+    agnes_reference_image_max_bytes: int = Field(default=20 * 1024 * 1024, gt=0, le=100 * 1024 * 1024)
     storage_s3_bucket: str = ""
     storage_s3_endpoint: str = ""
     storage_s3_region: str = "us-east-1"

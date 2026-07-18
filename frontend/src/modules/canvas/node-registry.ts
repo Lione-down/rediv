@@ -83,7 +83,10 @@ const canonicalDefinitions: readonly NodeDefinition[] = [
     type: 'script', kind: 'canonical', label: '脚本', icon: 'file-text',
     subtypes: [{ id: 'script', label: '脚本' }, { id: 'prompt', label: '提示词' }],
     defaultSubtype: 'script',
-    ports: [{ id: 'out', direction: 'output', dataType: 'text' }],
+    ports: [
+      { id: 'in', direction: 'input', dataType: 'text', accepts: ['text'] },
+      { id: 'out', direction: 'output', dataType: 'text' },
+    ],
     defaultSize: { width: 320, height: 200 },
     capabilities: capabilities({ canEditContent: true, canContinueFromSelection: true }), serializationVersion: 1,
   },

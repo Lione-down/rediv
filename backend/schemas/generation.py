@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, UUID4, field_validator, model_validator
 
@@ -150,8 +150,14 @@ class TextGenerateRequest(BaseModel):
     project_id: ResourceId
     origin_canvas_id: ResourceId | None = None
     canvas_node_id: ResourceId
-    prompt: str = Field(..., min_length=1)
+    prompt: str | None = Field(default=None, min_length=1, max_length=12_000)
     cinematic_handoff: CinematicGenerationHandoff | None = None
+    intent: Literal["freeform", "script_draft", "script_refine"] = "freeform"
+    brief: str | None = Field(default=None, min_length=1, max_length=4_000)
+    source_text: str | None = Field(default=None, min_length=1, max_length=12_000)
+    instruction: str | None = Field(default=None, min_length=1, max_length=4_000)
+    locale: Literal["zh-CN", "en-US"] = "zh-CN"
+    canvas_revision: int | None = Field(default=None, ge=0)
 
     @model_validator(mode="before")
     @classmethod
@@ -160,6 +166,26 @@ class TextGenerateRequest(BaseModel):
             value = {**value, "canvas_node_id": value["node_id"]}
             value.pop("node_id", None)
         return value
+
+    @model_validator(mode="after")
+    def validate_intent_contract(self):
+        structured_values = (self.brief, self.source_text, self.instruction, self.canvas_revision)
+        if self.intent == "freeform":
+            if not self.prompt:
+                raise ValueError("prompt is required for freeform text generation")
+            if any(value is not None for value in structured_values):
+                raise ValueError("freeform text generation cannot use script authoring fields")
+            return self
+        if self.prompt is not None or self.cinematic_handoff is not None:
+            raise ValueError("script authoring cannot use prompt or cinematic handoff")
+        if self.origin_canvas_id is None or self.canvas_revision is None:
+            raise ValueError("script authoring requires Canvas scope and revision")
+        if self.intent == "script_draft":
+            if not self.brief or self.source_text is not None or self.instruction is not None:
+                raise ValueError("script draft requires only a brief")
+        elif not self.source_text or not self.instruction or self.brief is not None:
+            raise ValueError("script refine requires source text and instruction")
+        return self
 
 
 class GenerationResponseBase(BaseModel):
@@ -171,6 +197,7 @@ class GenerationResponseBase(BaseModel):
 
 class TextGenerateResponse(GenerationResponseBase):
     content: str
+    script_authoring: dict[str, Any] | None = None
 
 
 class ImageGenerateResponse(GenerationResponseBase):

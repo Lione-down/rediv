@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from core.agent_skill_contract import AgentSkillContractError, resolve_agent_skill_manifest
+from core.agnes_contract import AGNES_CONTRACT, AgnesContract
 from core.cinematic_constraint_envelope import build_cinematic_constraint_envelope
 
 
@@ -35,7 +36,7 @@ _CANONICAL_SUBTYPES = {
     "group": {"group", "storyboard"},
 }
 
-_PROVIDER_CATALOG = {
+_PROVIDER_CATALOG_TEMPLATE = {
     "contract_version": CINEMATIC_SKILL_CONTRACT_VERSION,
     "providers": [
         {
@@ -45,7 +46,6 @@ _PROVIDER_CATALOG = {
             "requires_acknowledgement": False,
             "models": [
                 {
-                    "id": "agnes-2.0-flash",
                     "media_type": "text",
                     "user_selectable": True,
                     "automatic_routing": False,
@@ -57,7 +57,6 @@ _PROVIDER_CATALOG = {
                     "supported_controls": ["shot-count", "aspect-ratio"],
                 },
                 {
-                    "id": "agnes-image-2.1-flash",
                     "media_type": "image",
                     "user_selectable": True,
                     "automatic_routing": False,
@@ -69,7 +68,6 @@ _PROVIDER_CATALOG = {
                     "supported_controls": ["aspect-ratio", "shot-controls"],
                 },
                 {
-                    "id": "agnes-video-v2.0",
                     "media_type": "video",
                     "user_selectable": True,
                     "automatic_routing": False,
@@ -97,8 +95,13 @@ def _bounded_string(value: object, maximum: int, label: str) -> str:
     return value.strip()
 
 
-def build_cinematic_skill_capabilities() -> dict[str, Any]:
-    return deepcopy(_PROVIDER_CATALOG)
+def build_cinematic_skill_capabilities(
+    *, agnes_contract: AgnesContract = AGNES_CONTRACT,
+) -> dict[str, Any]:
+    catalog = deepcopy(_PROVIDER_CATALOG_TEMPLATE)
+    for model in catalog["providers"][0]["models"]:
+        model["id"] = agnes_contract.media[model["media_type"]].model
+    return catalog
 
 
 def build_cinematic_source_index(canvas_nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -164,7 +167,7 @@ def _validate_node(node: dict[str, Any] | None) -> dict[str, Any]:
 
 
 def _resolve_model(provider_id: str, model_id: str, media_type: str) -> tuple[dict[str, Any], dict[str, Any]]:
-    for provider in _PROVIDER_CATALOG["providers"]:
+    for provider in build_cinematic_skill_capabilities()["providers"]:
         if provider["id"] != provider_id:
             continue
         for model in provider["models"]:

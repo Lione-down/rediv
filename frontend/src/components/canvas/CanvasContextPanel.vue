@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, CircleCheck, Columns2, Focus, GitBranch, Image, Info, Link2, LoaderCircle, Play, Sparkles, Video, X } from 'lucide-vue-next'
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, CircleAlert, CircleCheck, Columns2, Focus, GitBranch, Image, Info, Link2, LoaderCircle, Play, Sparkles, Video, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import {
   formatGenerationRequestParameters,
@@ -22,6 +22,9 @@ import CanvasGenerationProgress from './CanvasGenerationProgress.vue'
 import CanvasCinematicSkillControls from './CanvasCinematicSkillControls.vue'
 import { loadCinematicSkillSources } from '../../modules/canvas/cinematic-skills'
 import { request } from '../../api/request'
+import CanvasScriptGenerationControls from './CanvasScriptGenerationControls.vue'
+import type { ScriptAuthoringCapabilities, ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
+import type { ScriptGenerationSubmission } from './composables/use-canvas-script-generation'
 
 const props = withDefaults(defineProps<{
   error?: string
@@ -45,6 +48,12 @@ const props = withDefaults(defineProps<{
   resultLineage?: ResolvedResultLineage | null
   runtimePresentation?: GenerationRuntimePresentation | null
   success?: string
+  scriptAuthoringActive?: boolean
+  scriptAuthoringCapability?: ScriptAuthoringCapabilities | null
+  scriptAuthoringError?: string
+  scriptAuthoringIntent?: ScriptAuthoringIntent | null
+  scriptAuthoringSuccess?: string
+  scriptQuota?: number
 }>(), {
   error: '',
   allowGenerationExecution: true,
@@ -65,6 +74,12 @@ const props = withDefaults(defineProps<{
   resultLineage: null,
   runtimePresentation: null,
   success: '',
+  scriptAuthoringActive: false,
+  scriptAuthoringCapability: null,
+  scriptAuthoringError: '',
+  scriptAuthoringIntent: null,
+  scriptAuthoringSuccess: '',
+  scriptQuota: 0,
 })
 
 const canvasStore = useCanvasStore()
@@ -82,6 +97,8 @@ const emit = defineEmits<{
   updateParameters: [parameters: GenerationNodeParameters]
   retryRecipe: [recipeId: VisualAssetRecipeId]
   visualRecipe: [recipeId: VisualAssetRecipeId]
+  cancelScriptAuthoring: []
+  generateScript: [submission: ScriptGenerationSubmission]
 }>()
 const prompt = ref(props.node.content?.trim() || '')
 const visualRecipe = computed(() => resolveVisualAssetRecipe(props.node))
@@ -263,6 +280,19 @@ function requestGeneration() {
       <div><Sparkles v-if="mediaType" :size="18" aria-hidden="true" /><Info v-else :size="18" aria-hidden="true" /><span><strong>{{ node.title }}</strong><small>{{ node.type }} · {{ String(node.contentData?.subtype || node.type) }}</small></span></div>
       <div class="header-actions"><button v-if="canArrangeTrace" type="button" aria-label="整理完整生成链路" title="整理完整生成链路" @click="emit('arrangeTrace')"><Columns2 :size="17" aria-hidden="true" /></button><button v-if="canFitTrace" type="button" aria-label="适配完整生成链路" title="适配完整生成链路" @click="emit('fitTrace')"><Focus :size="17" aria-hidden="true" /></button><button v-if="canContinue" type="button" aria-label="继续此节点" title="继续此节点" @click="emit('continueNode')"><GitBranch :size="17" aria-hidden="true" /></button><button type="button" aria-label="关闭节点详情" title="关闭节点详情" @click="emit('close')"><X :size="18" aria-hidden="true" /></button></div>
     </header>
+    <CanvasScriptGenerationControls
+      v-if="node.type === 'script' && node.contentData?.subtype === 'script'"
+      :active="scriptAuthoringActive"
+      :capability="scriptAuthoringCapability"
+      :error="scriptAuthoringError"
+      :initial-intent="scriptAuthoringIntent"
+      :node="node"
+      :quota="scriptQuota"
+      :readonly="readonly"
+      :success="scriptAuthoringSuccess"
+      @cancel="emit('cancelScriptAuthoring')"
+      @generate="emit('generateScript', $event)"
+    />
     <section v-if="staleScriptLineage?.isStale" class="stale-lineage" role="status" aria-label="旧来源版本">
       <CircleAlert :size="15" aria-hidden="true" />
       <span>此分镜或生成节点基于旧脚本版本；历史结果保留，刷新必须由你显式执行。</span>
@@ -365,6 +395,12 @@ function requestGeneration() {
           </div>
         </details>
       </section>
+
+      <div v-if="generationContext && !isLocalImageOperation" class="generation-submit-summary" role="group" aria-label="生成提交摘要">
+        <span><strong>输出</strong>1 个</span>
+        <span><strong>成本</strong>估算不可用</span>
+        <span v-if="mediaType === 'video'"><strong>音频</strong>暂不可用</span>
+      </div>
 
       <button
         v-if="!readonly && allowGenerationExecution && !isLocalImageOperation"
@@ -505,6 +541,9 @@ button:disabled { opacity: .42; cursor: not-allowed; }
 .recipe-summary span, .recipe-summary p { color: var(--v2-text-secondary); font-size: 11px; }
 .recipe-summary p { margin: 0; line-height: 1.55; }
 .generation-operation-note { margin: 0; padding: 10px; border: 1px solid color-mix(in srgb, var(--v2-accent) 32%, var(--v2-border-subtle)); border-radius: var(--v2-radius-md); color: var(--v2-accent); background: color-mix(in srgb, var(--v2-accent) 8%, var(--v2-surface-1)); font-size: 11px; line-height: 1.55; }
+.generation-submit-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.generation-submit-summary span { display: inline-flex; min-height: 28px; align-items: center; gap: 5px; padding: 0 8px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: var(--v2-surface-1); font-size: 10px; }
+.generation-submit-summary strong { color: var(--v2-text-primary); font-weight: 600; }
 .prompt-field, .review-prompt { display: grid; gap: 7px; color: var(--v2-text-secondary); font-size: 11px; }
 textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-md); color: var(--v2-text-primary); background: var(--v2-canvas); font: inherit; line-height: 1.6; }
 .connected-context { margin-top: 12px; padding: 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }

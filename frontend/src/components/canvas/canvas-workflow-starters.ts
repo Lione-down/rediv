@@ -8,20 +8,21 @@ import {
 } from '../../modules/canvas/node-registry'
 import type { Point } from './canvas-geometry'
 
-export type WorkflowStarterId = 'script' | 'image' | 'video' | 'storyboard'
+export type WorkflowStarterId = 'script' | 'character' | 'first-frame' | 'audio-video'
 
 export interface WorkflowStarter {
   id: WorkflowStarterId
   title: string
   detail: string
   marker: string
+  isAvailable: boolean
 }
 
 export const WORKFLOW_STARTERS: readonly WorkflowStarter[] = [
-  { id: 'script', title: '脚本起步', detail: '从故事结构开始', marker: '文案' },
-  { id: 'image', title: '图片生成', detail: '提示词连接图片任务', marker: '图片' },
-  { id: 'video', title: '视频生成', detail: '脚本连接视频任务', marker: '视频' },
-  { id: 'storyboard', title: '分镜规划', detail: '并排整理脚本与场记', marker: '分镜' },
+  { id: 'script', title: '故事脚本', detail: '从故事结构开始', marker: '脚本', isAvailable: true },
+  { id: 'character', title: '角色多视图', detail: '角色设定连接图片任务', marker: '角色', isAvailable: true },
+  { id: 'first-frame', title: '首帧视频', detail: '首帧连接视频任务', marker: '首帧', isAvailable: true },
+  { id: 'audio-video', title: '音频驱动视频', detail: '当前 provider 暂不可用', marker: '音频', isAvailable: false },
 ]
 
 function createNode(
@@ -51,35 +52,34 @@ function connect(source: CanvasNode, target: CanvasNode): CanvasConnection {
 export function createWorkflowStarterCommand(
   starterId: WorkflowStarterId,
   anchor: Point,
-): InsertGraphCommand {
+  brief = '',
+): InsertGraphCommand | null {
+  const normalizedBrief = brief.trim().slice(0, 4000)
+  const applyBrief = (node: CanvasNode) => normalizedBrief
+    ? { ...node, content: normalizedBrief, contentData: { ...node.contentData, text: normalizedBrief } }
+    : node
+  if (starterId === 'audio-video') return null
   if (starterId === 'script') {
     return {
       type: 'insert-graph',
-      nodes: [createNode('script', 'script', { x: anchor.x - 160, y: anchor.y - 100 }, '故事脚本')],
+      nodes: [applyBrief(createNode('script', 'script', { x: anchor.x - 160, y: anchor.y - 100 }, '故事脚本'))],
       connections: [],
     }
   }
 
-  if (starterId === 'storyboard') {
+  const prompt = applyBrief(createNode('script', 'prompt', { x: anchor.x - 360, y: anchor.y - 100 }))
+  const image = createNode('generation', 'image', { x: anchor.x, y: anchor.y - 110 }, starterId === 'character' ? '角色多视图' : '首帧图')
+  if (starterId === 'first-frame') {
+    const video = createNode('generation', 'video', { x: anchor.x + 440, y: anchor.y - 110 }, '首帧视频')
     return {
       type: 'insert-graph',
-      nodes: [
-        createNode('script', 'script', { x: anchor.x - 340, y: anchor.y - 100 }, '分镜脚本'),
-        createNode('note', 'annotation', { x: anchor.x + 40, y: anchor.y - 90 }, '分镜场记'),
-      ],
-      connections: [],
+      nodes: [prompt, image, video],
+      connections: [connect(prompt, image), connect(prompt, video)],
     }
   }
-
-  const prompt = createNode('script', 'prompt', { x: anchor.x - 360, y: anchor.y - 100 })
-  const generation = createNode(
-    'generation',
-    starterId,
-    { x: anchor.x, y: anchor.y - 110 },
-  )
   return {
     type: 'insert-graph',
-    nodes: [prompt, generation],
-    connections: [connect(prompt, generation)],
+    nodes: [prompt, image],
+    connections: [connect(prompt, image)],
   }
 }

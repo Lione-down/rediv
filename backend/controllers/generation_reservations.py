@@ -5,6 +5,7 @@ from datetime import timedelta
 from sqlalchemy import select
 
 from controllers.generation_errors import (
+    GenerationDeterministicFailureError,
     GenerationIdempotencyConflictError,
     GenerationProviderBusyError,
     GenerationRequestInProgressError,
@@ -17,6 +18,7 @@ from settings.config import settings
 
 
 ACTIVE_TASK_STATUSES = ("queued", "running")
+DETERMINISTIC_FAILURE_CODES = ("invalid_request", "unsupported_parameter", "provider_rejected")
 
 def _reservation_lease() -> timedelta:
     return timedelta(seconds=settings.agnes_admission_lease_seconds)
@@ -95,6 +97,31 @@ def admit_generation_request(
         if existing.status == "succeeded":
             return existing
         raise GenerationRequestTerminalError(existing.id, existing.status)
+
+    deterministic_cutoff = timestamp - timedelta(
+        seconds=settings.agnes_deterministic_failure_guard_seconds
+    )
+    deterministic_failure = session.scalar(
+        select(GenerationTask)
+        .where(
+            GenerationTask.user_id == user_id,
+            GenerationTask.media_type == media_type,
+            GenerationTask.project_id == project_id,
+            GenerationTask.origin_canvas_id == origin_canvas_id,
+            GenerationTask.canvas_node_id == canvas_node_id,
+            GenerationTask.request_fingerprint == request_fingerprint,
+            GenerationTask.status == "failed",
+            GenerationTask.error_code.in_(DETERMINISTIC_FAILURE_CODES),
+            GenerationTask.updated_at >= deterministic_cutoff,
+        )
+        .order_by(GenerationTask.updated_at.desc())
+        .with_for_update()
+    )
+    if deterministic_failure is not None:
+        raise GenerationDeterministicFailureError(
+            deterministic_failure.id,
+            deterministic_failure.error_code,
+        )
 
     active_tasks = list(
         session.scalars(

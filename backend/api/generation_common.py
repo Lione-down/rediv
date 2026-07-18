@@ -14,6 +14,16 @@ from core.generation_request_idempotency import generation_request_fingerprint
 
 
 def map_generation_error(error: generation_controller.GenerationTransactionError) -> HTTPException:
+    if isinstance(error, generation_controller.GenerationDeterministicFailureError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "generation_input_unchanged_after_rejection",
+                "task_id": error.task_id,
+                "error_code": error.error_code,
+                "message": "请先修改有效输入或参数，再重新提交。",
+            },
+        )
     if isinstance(error, generation_controller.GenerationProviderBusyError):
         return HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

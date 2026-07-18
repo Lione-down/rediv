@@ -107,6 +107,83 @@ class TextGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(200, task_response.status_code)
         self.assertEqual(payload["asset"]["id"], task_response.json()["result_asset_id"])
 
+    def test_script_draft_uses_backend_template_and_persists_lineage(self) -> None:
+        source = store.create_node(
+            self.project["id"], self.user["id"], "script",
+            {"subtype": "script", "serialization_version": 1, "text": ""},
+            420, 200, 320, 200,
+        )
+        fake_provider = _FakeAgnesProvider(
+            response={"id": "request-script-draft", "choices": [{"message": {"content": "第一场：雨夜车站。"}}]},
+        )
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/text-generate",
+                json={
+                    "project_id": self.project["id"],
+                    "origin_canvas_id": source["canvas_id"],
+                    "canvas_node_id": source["id"],
+                    "intent": "script_draft",
+                    "brief": "一名摄影师在雨夜寻找失踪的胶卷。",
+                    "locale": "zh-CN",
+                    "canvas_revision": 0,
+                },
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(200, response.status_code)
+        payload = response.json()
+        self.assertEqual("第一场：雨夜车站。", payload["content"])
+        self.assertEqual("script_draft", payload["script_authoring"]["intent"])
+        self.assertEqual(source["id"], payload["script_authoring"]["source_node_id"])
+        self.assertEqual("agnes-2.0-flash", payload["script_authoring"]["source_model"])
+        self.assertEqual(payload["generation_task"]["id"], payload["script_authoring"]["source_task_id"])
+        self.assertEqual("system", fake_provider.calls[0]["messages"][0]["role"])
+        self.assertIn("editable script", fake_provider.calls[0]["messages"][0]["content"])
+        self.assertNotEqual("一名摄影师在雨夜寻找失踪的胶卷。", fake_provider.calls[0]["messages"][0]["content"])
+
+        task = self.client.get(
+            f"/api/generation-tasks/{payload['generation_task']['id']}",
+            headers=self._auth_headers(self.user["id"]),
+        ).json()
+        snapshot = task["request_parameters"]["script_authoring"]
+        self.assertEqual("script_draft", snapshot["intent"])
+        self.assertEqual(source["id"], snapshot["source_node_id"])
+        self.assertEqual(0, snapshot["canvas_revision"])
+        self.assertRegex(snapshot["brief_digest"], r"^[a-f0-9]{64}$")
+        self.assertNotIn("brief", snapshot)
+
+    def test_script_refine_rejects_stale_source_before_task_or_provider(self) -> None:
+        source = store.create_node(
+            self.project["id"], self.user["id"], "script",
+            {"subtype": "script", "serialization_version": 1, "text": "Current script"},
+            420, 200, 320, 200,
+        )
+        fake_provider = _FakeAgnesProvider()
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/text-generate",
+                json={
+                    "project_id": self.project["id"],
+                    "origin_canvas_id": source["canvas_id"],
+                    "canvas_node_id": source["id"],
+                    "intent": "script_refine",
+                    "source_text": "Stale script",
+                    "instruction": "Improve pacing",
+                    "locale": "en-US",
+                    "canvas_revision": 0,
+                },
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(409, response.status_code)
+        self.assertEqual("script_source_stale", response.json()["detail"]["code"])
+        self.assertEqual([], fake_provider.calls)
+        _, total = store.list_generation_tasks(self.user["id"], media_type="text")
+        self.assertEqual(0, total)
+
     def test_text_generate_failure_does_not_deduct_quota(self) -> None:
         fake_provider = _FakeAgnesProvider(error=RuntimeError("provider failed"))
         original_quota = store.quotas[self.user["id"]]["text"]

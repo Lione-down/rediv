@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from uuid import uuid4
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -14,8 +16,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import main as backend_main
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
+from core.agnes_contract import AgnesProviderError
 from core.security import create_token
 from models.asset import Asset
+from settings.config import settings
 from tests.mysql_test_database import MySQLTestDatabase
 
 
@@ -108,6 +112,31 @@ class ImageGenerateApiTestCase(unittest.TestCase):
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(["https://example.com/source-image.png"], fake_provider.calls[0]["image"])
+
+    def test_image_generate_converts_owned_local_upload_to_data_uri(self) -> None:
+        fake_provider = _FakeAgnesProvider()
+        original_storage_root = settings.storage_local_root
+        with tempfile.TemporaryDirectory() as temp_dir:
+            settings.storage_local_root = str(Path(temp_dir) / "storage")
+            self.addCleanup(setattr, settings, "storage_local_root", original_storage_root)
+            filename = f"{uuid4()}.png"
+            upload_dir = Path(settings.storage_local_root) / "uploads" / self.user["id"]
+            upload_dir.mkdir(parents=True)
+            (upload_dir / filename).write_bytes(b"\x89PNG\r\n\x1a\n")
+            source_asset = store.create_asset(
+                self.user["id"], "image", f"/uploads/{self.user['id']}/{filename}", None,
+                project_id=self.project["id"], origin_canvas_id=self.canvas_id, source="upload",
+            )
+
+            with patch.object(backend_main, "_agnes", fake_provider):
+                response = self.client.post(
+                    "/api/image-generate",
+                    json=self._payload("Restyle local frame", image_ids=[source_asset["id"]]),
+                    headers=self._auth_headers(self.user["id"]),
+                )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(["data:image/png;base64,iVBORw0KGgo="], fake_provider.calls[0]["image"])
 
     def test_character_sheet_recipe_uses_backend_prompt_one_reference_and_landscape_size(self) -> None:
         fake_provider = _FakeAgnesProvider()
@@ -240,6 +269,41 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(1, total)
         self.assertEqual("failed", tasks[0]["status"])
         self.assertEqual("provider_error", tasks[0]["error_code"])
+
+    def test_image_provider_400_is_actionable_and_keeps_safe_correlation(self) -> None:
+        provider_error = AgnesProviderError(
+            status_code=400,
+            code="unsupported_parameter",
+            safe_message="ratio is unsupported",
+            request_id="request-image-400",
+            retryable=False,
+        )
+        fake_provider = _FakeAgnesProvider(error=provider_error)
+        original_quota = store.quotas[self.user["id"]]["image"]
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/image-generate",
+                json=self._payload("Reject unsupported image parameter"),
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(422, response.status_code)
+        self.assertEqual(
+            {
+                "code": "unsupported_parameter",
+                "message": "ratio is unsupported",
+                "provider_request_id": "request-image-400",
+                "retryable": False,
+            },
+            response.json()["detail"],
+        )
+        self.assertEqual(original_quota, store.quotas[self.user["id"]]["image"])
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="image")
+        self.assertEqual(1, total)
+        self.assertEqual("unsupported_parameter", tasks[0]["error_code"])
+        self.assertEqual("request-image-400", tasks[0]["provider_request_id"])
+        self.assertEqual("ratio is unsupported", tasks[0]["error_message"])
 
     def test_image_generate_asset_failure_is_not_charged(self) -> None:
         fake_provider = _FakeAgnesProvider()

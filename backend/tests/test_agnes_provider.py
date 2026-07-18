@@ -10,7 +10,8 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from core.agnes_provider import AgnesProvider
+from core.agnes_contract import AgnesProviderError
+from core.agnes_provider import AgnesProvider, AgnesProviderResponseError
 from core.generation_task_utils import (
     error_code_for_exception,
     provider_failure_http_status,
@@ -20,6 +21,50 @@ from settings.config import settings
 
 
 class AgnesProviderImageContractTestCase(unittest.IsolatedAsyncioTestCase):
+    async def test_provider_400_raises_safe_actionable_error(self) -> None:
+        async def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                400,
+                request=request,
+                headers={"x-request-id": "provider-request-1"},
+                json={
+                    "error": {
+                        "code": "unsupported_parameter",
+                        "message": "ratio is unsupported; Bearer secret-token",
+                    },
+                    "prompt": "must-not-survive",
+                },
+            )
+
+        provider = await self._provider_with_handler(handler)
+
+        with self.assertRaises(AgnesProviderError) as raised:
+            await provider.generate_image(
+                model="agnes-image-2.1-flash",
+                prompt="private prompt",
+                size="1K",
+                ratio="4:3",
+            )
+
+        self.assertEqual("unsupported_parameter", raised.exception.code)
+        self.assertEqual("provider-request-1", raised.exception.request_id)
+        self.assertNotIn("secret-token", str(raised.exception))
+        self.assertNotIn("private prompt", str(raised.exception))
+        self.assertNotIn("must-not-survive", str(raised.exception))
+
+    async def test_malformed_success_response_fails_before_route_parsing(self) -> None:
+        async def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, request=request, json=[{"unexpected": True}])
+
+        provider = await self._provider_with_handler(handler)
+
+        with self.assertRaisesRegex(AgnesProviderResponseError, "JSON object"):
+            await provider.generate_image(
+                model="agnes-image-2.1-flash",
+                prompt="image prompt",
+                size="1K",
+            )
+
     async def test_provider_rate_limit_keeps_safe_bounded_retry_metadata(self) -> None:
         request = httpx.Request("POST", "https://provider.test/v1/images/generations")
         response = httpx.Response(429, request=request, headers={"Retry-After": "17"})
@@ -29,6 +74,21 @@ class AgnesProviderImageContractTestCase(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("provider_rate_limited", error_code)
         self.assertEqual(429, provider_failure_http_status(error_code))
         self.assertEqual(17, safe_retry_after_seconds(raised.exception))
+
+    async def test_typed_provider_errors_map_to_stable_task_and_http_codes(self) -> None:
+        request = httpx.Request("POST", "https://provider.test/v1/images/generations")
+        response = httpx.Response(
+            400,
+            request=request,
+            json={"error": {"code": "unsupported_parameter", "message": "ratio is unsupported"}},
+        )
+        error = AgnesProviderError.from_response(response)
+
+        error_code = error_code_for_exception(error)
+
+        self.assertEqual("unsupported_parameter", error_code)
+        self.assertEqual(422, provider_failure_http_status(error_code))
+        self.assertIsNone(safe_retry_after_seconds(error))
 
     async def test_client_pool_and_timeouts_follow_backend_admission_settings(self) -> None:
         with patch("core.agnes_provider.httpx.AsyncClient") as client:
@@ -93,13 +153,7 @@ class AgnesProviderImageContractTestCase(unittest.IsolatedAsyncioTestCase):
             captured.append(json.loads(request.content))
             return httpx.Response(200, json={"data": [{"url": "https://example.com/result.png"}]})
 
-        provider = AgnesProvider(api_key="test-only-key")
-        await provider._client.aclose()
-        provider._client = httpx.AsyncClient(
-            base_url=provider.base_url,
-            transport=httpx.MockTransport(handler),
-        )
-        self.addAsyncCleanup(provider.close)
+        provider = await self._provider_with_handler(handler)
 
         await provider.generate_image(
             model="agnes-image-2.1-flash",
@@ -111,3 +165,13 @@ class AgnesProviderImageContractTestCase(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(1, len(captured))
         return captured[0]
+
+    async def _provider_with_handler(self, handler) -> AgnesProvider:
+        provider = AgnesProvider(api_key="test-only-key")
+        await provider._client.aclose()
+        provider._client = httpx.AsyncClient(
+            base_url=provider.base_url,
+            transport=httpx.MockTransport(handler),
+        )
+        self.addAsyncCleanup(provider.close)
+        return provider

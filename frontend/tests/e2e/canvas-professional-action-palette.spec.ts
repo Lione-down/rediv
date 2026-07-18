@@ -83,15 +83,18 @@ test('Slash ownership excludes editable, IME, Graph Access, and open drawer cont
 
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
+  await expect(page.locator('.n-drawer:visible')).toBeVisible()
+  await page.getByRole('button', { name: '关闭节点详情' }).click()
   const editor = page.locator('textarea.canvas-node-editor')
   await expect(editor).toBeVisible()
   const originalValue = await editor.inputValue()
   await editor.fill(`${originalValue}/`)
-  await editor.dispatchEvent('keydown', { key: '/', code: 'Slash', bubbles: true })
-  await expect(editor).toHaveValue(`${originalValue}/`)
-  await expect(page.getByRole('dialog', { name: '专业操作' })).toHaveCount(0)
-  await page.keyboard.press('Escape')
+  await editor.blur()
   await expect.poll(() => documentPatches(state).length).toBe(1)
+  await expect(editor).toHaveValue(`${originalValue}/`)
+  await editor.focus()
+  await editor.dispatchEvent('keydown', { key: '/', code: 'Slash', bubbles: true })
+  await expect(page.getByRole('dialog', { name: '专业操作' })).toHaveCount(0)
   const patchCountAfterEdit = documentPatches(state).length
 
   await stage.focus()

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from core.agnes_contract import AGNES_CONTRACT, AgnesContract
 from core.audio_generation_contract import build_audio_generation_capabilities
 from core.image_operation_contract import build_image_operation_capabilities
 from core.shot_control_contract import (
@@ -10,15 +11,16 @@ from core.shot_control_contract import (
     build_shot_control_capabilities,
     normalize_shot_controls,
 )
+from core.script_authoring_contract import build_script_authoring_capabilities
 
 
-CAPABILITY_CONTRACT_VERSION = 4
+CAPABILITY_CONTRACT_VERSION = 5
 CONTRACT_VERSION = 1
-IMAGE_MODEL = "agnes-image-2.1-flash"
+IMAGE_MODEL = AGNES_CONTRACT.media["image"].model
 IMAGE_SIZE = "1K"
 IMAGE_ASPECT_RATIOS = ("1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9")
 IMAGE_DEFAULT_ASPECT_RATIO = "4:3"
-VIDEO_MODEL = "agnes-video-v2.0"
+VIDEO_MODEL = AGNES_CONTRACT.media["video"].model
 VIDEO_WIDTH = 1152
 VIDEO_HEIGHT = 768
 VIDEO_FRAME_RATE = 24
@@ -51,11 +53,12 @@ class NormalizedVideoParameters:
     request_parameters: dict[str, Any]
 
 
-def build_generation_capabilities() -> dict[str, Any]:
+def build_generation_capabilities(*, agnes_contract: AgnesContract = AGNES_CONTRACT) -> dict[str, Any]:
     return {
         "contract_version": CAPABILITY_CONTRACT_VERSION,
+        "text": build_script_authoring_capabilities(model=agnes_contract.media["text"].model),
         "image": {
-            "model": IMAGE_MODEL,
+            "model": agnes_contract.media["image"].model,
             "size": IMAGE_SIZE,
             "aspect_ratios": list(IMAGE_ASPECT_RATIOS),
             "default_aspect_ratio": IMAGE_DEFAULT_ASPECT_RATIO,
@@ -63,7 +66,7 @@ def build_generation_capabilities() -> dict[str, Any]:
             "shot_controls": build_shot_control_capabilities("image"),
         },
         "video": {
-            "model": VIDEO_MODEL,
+            "model": agnes_contract.media["video"].model,
             "width": VIDEO_WIDTH,
             "height": VIDEO_HEIGHT,
             "reference_modes": list(VIDEO_REFERENCE_MODES),

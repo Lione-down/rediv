@@ -19,13 +19,15 @@ from core.image_operation_contract import (
     build_image_operation_capabilities,
     normalize_image_operation,
 )
+from core.script_authoring_contract import build_script_authoring_capabilities
 
 
 class GenerationParameterContractTestCase(unittest.TestCase):
     def test_capability_document_has_exact_backend_owned_values(self) -> None:
         self.assertEqual(
             {
-                "contract_version": 4,
+                "contract_version": 5,
+                "text": build_script_authoring_capabilities(model="agnes-2.0-flash"),
                 "image": {
                     "model": "agnes-image-2.1-flash",
                     "size": "1K",

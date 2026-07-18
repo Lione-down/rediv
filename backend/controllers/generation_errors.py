@@ -52,6 +52,13 @@ class GenerationRequestTerminalError(GenerationTransactionError):
         super().__init__(f'Generation request is already terminal with status "{task_status}"')
 
 
+class GenerationDeterministicFailureError(GenerationTransactionError):
+    def __init__(self, task_id: str, error_code: str) -> None:
+        self.task_id = task_id
+        self.error_code = error_code
+        super().__init__("Generation input is unchanged after a deterministic provider rejection")
+
+
 class GenerationProviderBusyError(GenerationTransactionError):
     def __init__(self, retry_after_seconds: int) -> None:
         self.retry_after_seconds = retry_after_seconds

@@ -6,6 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.generation_common import fingerprint_generation_request, map_generation_error, resolve_cinematic_generation_handoff
 from controllers import generation_transactions as generation_controller
+from controllers import canvas_documents as document_controller
+from controllers.canvases import CanvasDomainError
+from api.canvases import map_canvas_domain_error
+from core.agnes_contract import TEXT_CONTRACT
 from core.generation_provider import GenerationProvider, get_generation_provider
 from core.generation_results import (
     ProviderResultError,
@@ -16,19 +20,86 @@ from core.generation_task_utils import (
     elapsed_ms,
     error_code_for_exception,
     extract_provider_request_id,
+    provider_error_message,
+    provider_failure_detail,
     provider_failure_http_status,
+    provider_request_id_for_exception,
     safe_retry_after_seconds,
     sanitize_error_message,
     status_for_error_code,
 )
 from core.security import current_user
+from core.script_authoring_contract import (
+    ScriptAuthoringOutputError,
+    build_script_authoring_messages,
+    script_authoring_snapshot,
+    validate_script_authoring_output,
+)
 from schemas.generation import TextGenerateRequest, TextGenerateResponse
 from schemas.shot_schema import CinematicShotSchemaDocument
 
 
-MODEL_NAME = "agnes-2.0-flash"
+MODEL_NAME = TEXT_CONTRACT.model
 
 router = APIRouter(prefix="/api", tags=["text-generate"])
+
+
+def _script_authoring_lineage(snapshot: dict, *, task_id: str) -> dict:
+    return {
+        "contract_version": 1,
+        "intent": snapshot["intent"],
+        "locale": snapshot["locale"],
+        "source_node_id": snapshot["source_node_id"],
+        "source_task_id": task_id,
+        "source_model": MODEL_NAME,
+        "canvas_revision": snapshot["canvas_revision"],
+    }
+
+
+def _resolve_script_authoring_snapshot(payload: TextGenerateRequest, user_id: str) -> dict | None:
+    if payload.intent == "freeform":
+        return None
+    try:
+        document = document_controller.get_document(
+            payload.project_id,
+            payload.origin_canvas_id,
+            user_id,
+        )
+    except CanvasDomainError as error:
+        raise map_canvas_domain_error(error) from error
+    source = next((node for node in document["nodes"] if node["id"] == payload.canvas_node_id), None)
+    content = source.get("content") if isinstance(source, dict) else None
+    if (
+        not isinstance(content, dict)
+        or source["node_type"] != "script"
+        or source["is_locked"]
+        or source["parent_node_id"] is not None
+        or content.get("subtype") != "script"
+        or content.get("serialization_version") != 1
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "script_source_unavailable", "message": "Script source is no longer eligible"},
+        )
+    current_text = content.get("text", "")
+    if not isinstance(current_text, str):
+        current_text = ""
+    if document["revision"] != payload.canvas_revision or (
+        payload.intent == "script_refine" and current_text.strip() != payload.source_text
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "script_source_stale", "message": "Script source changed before submission"},
+        )
+    return script_authoring_snapshot(
+        intent=payload.intent,
+        locale=payload.locale,
+        source_node_id=payload.canvas_node_id,
+        canvas_revision=payload.canvas_revision,
+        brief=payload.brief,
+        source_text=payload.source_text,
+        instruction=payload.instruction,
+    )
 
 
 @router.post("/text-generate", response_model=TextGenerateResponse)
@@ -37,6 +108,7 @@ async def text_generate(
     user=Depends(current_user),
     provider: GenerationProvider = Depends(get_generation_provider),
 ):
+    authoring_snapshot = _resolve_script_authoring_snapshot(payload, user["id"])
     cinematic_handoff = resolve_cinematic_generation_handoff(
         payload.cinematic_handoff,
         user_id=user["id"],
@@ -59,7 +131,7 @@ async def text_generate(
     try:
         request_parameters = (
             {"cinematic_skill": cinematic_handoff["request_snapshot"]}
-            if cinematic_handoff else None
+            if cinematic_handoff else {"script_authoring": authoring_snapshot} if authoring_snapshot else None
         )
         start = generation_controller.start_generation_request(
             user_id=user["id"],
@@ -88,17 +160,37 @@ async def text_generate(
     except generation_controller.GenerationTransactionError as error:
         raise map_generation_error(error) from error
     if start.is_replay:
-        return {"content": start.replay_outcome["asset"]["content_text"], **start.replay_outcome}
+        replay_lineage = (
+            _script_authoring_lineage(authoring_snapshot, task_id=start.replay_outcome["generation_task"]["id"])
+            if authoring_snapshot else None
+        )
+        return {
+            "content": start.replay_outcome["asset"]["content_text"],
+            "script_authoring": replay_lineage,
+            **start.replay_outcome,
+        }
     task = start.task
     started_at = time.perf_counter()
     provider_request_id: str | None = None
 
     try:
+        messages = (
+            build_script_authoring_messages(
+                intent=payload.intent,
+                locale=payload.locale,
+                brief=payload.brief,
+                source_text=payload.source_text,
+                instruction=payload.instruction,
+            )
+            if authoring_snapshot else [{"role": "user", "content": payload.prompt}]
+        )
         response = await provider.chat(
             model=MODEL_NAME,
-            messages=[{"role": "user", "content": payload.prompt}],
+            messages=messages,
         )
         generated_text = extract_text_content(response)
+        if authoring_snapshot:
+            generated_text = validate_script_authoring_output(generated_text)
         if payload.cinematic_handoff:
             shot_document = CinematicShotSchemaDocument.model_validate_json(generated_text)
             reference_revisions = {
@@ -125,9 +217,10 @@ async def text_generate(
         )
         raise
     except Exception as exc:
+        provider_request_id = provider_request_id_for_exception(exc) or provider_request_id
         error_code = (
             "provider_result_invalid"
-            if isinstance(exc, ProviderResultError)
+            if isinstance(exc, ProviderResultError | ScriptAuthoringOutputError)
             else error_code_for_exception(exc)
         )
         generation_controller.fail_generation_task(
@@ -136,14 +229,14 @@ async def text_generate(
             duration_ms=elapsed_ms(started_at),
             provider_request_id=provider_request_id,
             error_code=error_code,
-            error_message=sanitize_error_message(exc),
+            error_message=provider_error_message(exc),
         )
         if isinstance(exc, HTTPException):
             raise
         retry_after = safe_retry_after_seconds(exc)
         raise HTTPException(
             status_code=provider_failure_http_status(error_code),
-            detail="Agnes text generation failed",
+            detail=provider_failure_detail(exc, "text"),
             headers={"Retry-After": str(retry_after)} if retry_after is not None else None,
         ) from exc
 
@@ -169,4 +262,11 @@ async def text_generate(
         raise map_generation_error(error) from error
     except generation_controller.GenerationTransactionError as error:
         raise map_generation_error(error) from error
-    return {"content": generated_text, **result}
+    return {
+        "content": generated_text,
+        "script_authoring": (
+            _script_authoring_lineage(authoring_snapshot, task_id=task["id"])
+            if authoring_snapshot else None
+        ),
+        **result,
+    }

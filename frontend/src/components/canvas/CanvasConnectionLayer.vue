@@ -50,6 +50,9 @@ const layerRef = ref<SVGSVGElement | null>(null)
 const rerouteDraft = ref<RerouteDraft | null>(null)
 const isInsertionMenuOpen = ref(false)
 const viewport = computed(() => normalizeViewport(canvasStore.viewport))
+const isOverview = computed(() => viewport.value.zoom <= 0.36)
+const isDeepOverview = computed(() => viewport.value.zoom <= 0.17)
+const edgeMarkerSize = computed(() => isDeepOverview.value ? 4 : isOverview.value ? 5 : 7)
 const provenanceByConnectionId = computed(() => new Map(
   (props.provenance ?? []).map((entry) => [entry.connectionId, entry]),
 ))
@@ -277,12 +280,12 @@ onBeforeUnmount(stopReroute)
     v-show="visible || Boolean(activeDraftPath)"
     ref="layerRef"
     class="connection-layer"
-    :class="{ 'draft-layer': Boolean(activeDraftPath) }"
+    :class="{ 'draft-layer': Boolean(activeDraftPath), 'is-overview': isOverview, 'is-deep-overview': isDeepOverview }"
     role="group"
     aria-label="画布连线"
   >
     <defs>
-      <marker id="canvas-edge-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <marker id="canvas-edge-arrow" viewBox="0 0 10 10" refX="9" refY="5" :markerWidth="edgeMarkerSize" :markerHeight="edgeMarkerSize" orient="auto">
         <path d="M 0 0 L 10 5 L 0 10 z" class="connection-arrow" />
       </marker>
     </defs>
@@ -419,6 +422,10 @@ onBeforeUnmount(stopReroute)
 .connection-layer { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .connection-flow-layer { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .connection-line, .draft { fill: none; stroke: var(--canvas-edge, var(--border-strong)); stroke-width: 1.6; pointer-events: none; }
+.connection-layer.is-overview .connection-line:not(.selected):not(.provenance) { stroke-width: 1.2; opacity: 0.58; }
+.connection-layer.is-deep-overview .connection-line:not(.selected):not(.provenance) { stroke-width: 1; opacity: 0.42; }
+.connection-layer.is-overview .connection-arrow { opacity: 0.68; }
+.connection-layer.is-deep-overview .connection-arrow { opacity: 0.52; }
 .connection-line.selected, .draft { stroke: var(--accent-select); stroke-width: 2.4; }
 .connection-line.provenance { stroke: var(--accent-select); stroke-width: 2.2; }
 .connection-line.provenance-excluded { stroke: var(--v2-text-muted); stroke-width: 1.6; stroke-dasharray: 3 5; }

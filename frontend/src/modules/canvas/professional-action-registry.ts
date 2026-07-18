@@ -14,12 +14,14 @@ import {
   type ImageOperationCapabilities,
   type ImageOperationId,
 } from './image-operations'
+import { resolveScriptAuthoringEligibility, type ScriptAuthoringIntent } from './script-authoring'
 
 export type { ImageGridOutputCount } from './image-grid-split'
 export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation' | 'workflow' | 'video' | 'audio' | 'agent-skill'
 export type ProfessionalCanvasActionIntent =
   | { type: 'create-node'; nodeType: CanonicalNodeType; subtype: string }
   | { type: 'create-shot-graph' }
+  | { type: 'open-script-authoring'; intent: ScriptAuthoringIntent }
   | { type: 'create-cinematic-shot-graph'; skillId: 'revid.cinema-script'; skillVersion: 1 }
   | { type: 'create-storyboard-recipe'; recipeId: StoryboardRecipeId; recipeVersion: 1 }
   | { type: 'create-image-operation'; operationId: ImageOperationId; operationVersion: 1 }
@@ -53,6 +55,14 @@ export interface ProfessionalCanvasActionContext {
 
 export interface ResolvedProfessionalCanvasAction extends ProfessionalCanvasActionDefinition {
   eligibility: { eligible: boolean; reason?: string }
+}
+
+export interface OwnedMediaActionTarget {
+  assetId: string
+  kind: 'image' | 'video'
+  nodeId: string
+  title: string
+  url: string
 }
 
 const STORYBOARD_RECIPE_ACTIONS = Object.values(STORYBOARD_RECIPES).map((recipe) => ({
@@ -113,6 +123,22 @@ export const PROFESSIONAL_CANVAS_ACTIONS = [
     description: '创建一个视频生成任务节点。',
     keywords: ['视频', '生成', 'video', 'generation', 'generate', 'node'],
     intent: { type: 'create-node', nodeType: 'generation', subtype: 'video' },
+  },
+  {
+    id: 'script.generate-draft',
+    category: 'script',
+    title: 'Agnes：从创意生成脚本',
+    description: '使用 Agnes 2.0 Flash 生成新的可编辑脚本，不自动创建分镜或媒体。',
+    keywords: ['agnes', '脚本', '创意', '生成', 'draft', 'script', 'write'],
+    intent: { type: 'open-script-authoring', intent: 'script_draft' },
+  },
+  {
+    id: 'script.refine',
+    category: 'script',
+    title: 'Agnes：优化当前脚本',
+    description: '使用 Agnes 2.0 Flash 基于当前精确脚本文本生成优化版本。',
+    keywords: ['agnes', '脚本', '优化', '改写', 'refine', 'script', 'rewrite'],
+    intent: { type: 'open-script-authoring', intent: 'script_refine' },
   },
   {
     id: 'script.create-shot-graph',
@@ -202,6 +228,29 @@ function readString(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+export function resolveOwnedMediaActionTarget(
+  context: Pick<ProfessionalCanvasActionContext, 'assets' | 'projectId' | 'selectedNodes' | 'userId'>,
+): OwnedMediaActionTarget | null {
+  if (context.selectedNodes.length !== 1) return null
+  const node = context.selectedNodes[0]
+  const definition = resolveNodeDefinition(node.type, node.contentData)
+  const kind = node.contentData?.subtype
+  if (
+    definition.kind !== 'canonical' || (node.type !== 'asset' && node.type !== 'result') ||
+    (kind !== 'image' && kind !== 'video') || node.isLocked || node.parentNodeId
+  ) return null
+  const assetId = readString(node.contentData?.asset_id)
+  const nodeProjectId = readString(node.contentData?.project_id)
+  const url = readString(node.contentData?.url)
+  if (!assetId || nodeProjectId !== context.projectId || !url) return null
+  const asset = context.assets.find((candidate) => candidate.id === assetId)
+  if (
+    !asset || asset.user_id !== context.userId || asset.project_id !== context.projectId ||
+    asset.type !== kind || asset.status !== 'active' || asset.url !== url
+  ) return null
+  return { assetId, kind, nodeId: node.id, title: node.title, url }
+}
+
 export function resolveProjectImageSplitTarget(context: ProfessionalCanvasActionContext) {
   if (context.selectedNodes.length !== 1) return null
   const node = context.selectedNodes[0]
@@ -257,6 +306,16 @@ function resolveEligibility(
   }
   if ((action.intent.type === 'create-shot-graph' || action.intent.type === 'create-cinematic-shot-graph') && !resolveShotSchemaSource(context)) {
     return { eligible: false, reason: '请选择一个可用的脚本节点。' }
+  }
+  if (action.intent.type === 'open-script-authoring') {
+    const eligibility = resolveScriptAuthoringEligibility({
+      canvasReady: context.canvasReady,
+      intent: action.intent.intent,
+      isReadOnly: context.isReadOnly,
+      isReviewOnly: context.isReadOnly,
+      selectedNodes: context.selectedNodes,
+    })
+    if (!eligibility.eligible) return { eligible: false, reason: eligibility.reason }
   }
   if (action.intent.type === 'open-workflow-batch' && !context.selectedNodes.some((node) => (
     node.type === 'generation' && !node.isLocked &&
@@ -333,6 +392,8 @@ function actionSearchText(action: ProfessionalCanvasActionDefinition) {
             ? `${action.intent.templateId} video trim concat preview export`
           : action.intent.type === 'open-agent-skill-preflight'
             ? `${action.intent.skillId} agent skill canvas context mock preflight`
+            : action.intent.type === 'open-script-authoring'
+              ? `${action.intent.intent} agnes script authoring`
             : action.intent.type === 'create-cinematic-shot-graph'
               ? `${action.intent.skillId} cinematic script shot storyboard`
               : 'script shot storyboard',

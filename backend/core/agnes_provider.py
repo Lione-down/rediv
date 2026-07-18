@@ -15,9 +15,24 @@ from typing import Any, AsyncIterator
 
 import httpx
 
+from core.agnes_contract import (
+    AGNES_CONTRACT,
+    IMAGE_CONTRACT,
+    TEXT_CONTRACT,
+    VIDEO_CONTRACT,
+    AgnesProviderError,
+    build_image_request,
+    build_text_request,
+    build_video_poll_request,
+    build_video_request,
+)
 from settings.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+class AgnesProviderResponseError(RuntimeError):
+    pass
 
 PROVIDER_STATUS_MAP = {
     "queued": "queued",
@@ -68,9 +83,9 @@ def extract_provider_progress_percent(response: object) -> float | None:
 class AgnesProvider:
     """Agnes AI 多模态模型统一入口。"""
 
-    def __init__(self, api_key: str, base_url: str = "https://apihub.agnes-ai.com"):
+    def __init__(self, api_key: str, base_url: str | None = None):
         self.api_key = api_key
-        self.base_url = base_url.rstrip("/")
+        self.base_url = (base_url or AGNES_CONTRACT.base_url).rstrip("/")
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
             limits=httpx.Limits(
@@ -86,7 +101,25 @@ class AgnesProvider:
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         )
 
-    async def chat(self, model: str, messages: list[dict], **kwargs: Any) -> dict:
+    @staticmethod
+    def _response_json(response: httpx.Response) -> dict[str, Any]:
+        if response.is_error:
+            raise AgnesProviderError.from_response(response)
+        try:
+            payload = response.json()
+        except (ValueError, UnicodeDecodeError) as error:
+            raise AgnesProviderResponseError("Provider returned malformed JSON") from error
+        if not isinstance(payload, dict):
+            raise AgnesProviderResponseError("Provider response must be a JSON object")
+        return payload
+
+    async def chat(
+        self,
+        model: str,
+        messages: list[dict],
+        *,
+        temperature: float | None = None,
+    ) -> dict:
         """文本生成 / 图片理解 / 工具调用。
 
         Args:
@@ -97,17 +130,32 @@ class AgnesProvider:
         Returns:
             完整的 ChatCompletion 响应 dict
         """
-        payload = {"model": model, "messages": messages, **kwargs}
-        resp = await self._client.post("/v1/chat/completions", json=payload)
-        resp.raise_for_status()
-        return resp.json()
+        payload = build_text_request(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+        )
+        resp = await self._client.post(TEXT_CONTRACT.submit_path, json=payload)
+        return self._response_json(resp)
 
-    async def chat_stream(self, model: str, messages: list[dict], **kwargs: Any) -> AsyncIterator[str]:
+    async def chat_stream(
+        self,
+        model: str,
+        messages: list[dict],
+        *,
+        temperature: float | None = None,
+    ) -> AsyncIterator[str]:
         """流式文本生成，yield SSE 行。"""
-        kwargs["stream"] = True
-        payload = {"model": model, "messages": messages, **kwargs}
-        async with self._client.stream("POST", "/v1/chat/completions", json=payload) as resp:
-            resp.raise_for_status()
+        payload = build_text_request(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            stream=True,
+        )
+        async with self._client.stream("POST", TEXT_CONTRACT.submit_path, json=payload) as resp:
+            if resp.is_error:
+                await resp.aread()
+                raise AgnesProviderError.from_response(resp)
             async for line in resp.aiter_lines():
                 if line.startswith("data: "):
                     yield line[6:]
@@ -116,7 +164,7 @@ class AgnesProvider:
         self,
         prompt: str,
         size: str = "1024x768",
-        model: str = "agnes-image-2.1-flash",
+        model: str = IMAGE_CONTRACT.model,
         return_base64: bool = False,
         image: list[str] | None = None,
         response_format: str = "url",
@@ -135,29 +183,23 @@ class AgnesProvider:
         Returns:
             图片生成响应 dict，URL 在 data[0].url，Base64 在 data[0].b64_json
         """
-        payload: dict[str, Any] = {
-            "model": model,
-            "prompt": prompt,
-            "size": size,
-        }
-        if ratio is not None:
-            payload["ratio"] = ratio
-        if return_base64:
-            payload["return_base64"] = True
+        payload = build_image_request(
+            model=model,
+            prompt=prompt,
+            size=size,
+            ratio=ratio,
+            images=image,
+            return_base64=return_base64,
+            response_format=response_format,
+        )
 
-        extra_body: dict[str, Any] = {"response_format": response_format}
-        if image is not None:
-            extra_body["image"] = image
-        payload["extra_body"] = extra_body
-
-        resp = await self._client.post("/v1/images/generations", json=payload)
-        resp.raise_for_status()
-        return resp.json()
+        resp = await self._client.post(IMAGE_CONTRACT.submit_path, json=payload)
+        return self._response_json(resp)
 
     async def generate_video(
         self,
         prompt: str,
-        model: str = "agnes-video-v2.0",
+        model: str = VIDEO_CONTRACT.model,
         image: str | None = None,
         extra_images: list[str] | None = None,
         mode: str = "ti2vid",
@@ -183,29 +225,21 @@ class AgnesProvider:
         Returns:
             任务创建响应，包含 task_id 和 video_id
         """
-        payload: dict[str, Any] = {
-            "model": model,
-            "prompt": prompt,
-            "height": height,
-            "width": width,
-            "num_frames": num_frames,
-            "frame_rate": frame_rate,
-        }
+        payload = build_video_request(
+            model=model,
+            prompt=prompt,
+            image=image,
+            extra_images=extra_images,
+            mode=mode,
+            width=width,
+            height=height,
+            num_frames=num_frames,
+            frame_rate=frame_rate,
+            negative_prompt=negative_prompt,
+        )
 
-        if mode == "img2vid" and image:
-            payload["image"] = image
-        elif mode == "keyframes" and extra_images:
-            payload["extra_body"] = {
-                "image": extra_images,
-                "mode": "keyframes",
-            }
-
-        if negative_prompt:
-            payload["negative_prompt"] = negative_prompt
-
-        resp = await self._client.post("/v1/videos", json=payload)
-        resp.raise_for_status()
-        return resp.json()
+        resp = await self._client.post(VIDEO_CONTRACT.submit_path, json=payload)
+        return self._response_json(resp)
 
     async def poll_video_result(self, video_id: str) -> dict:
         """查询视频生成结果（推荐方式：使用 video_id）。
@@ -216,9 +250,9 @@ class AgnesProvider:
         Returns:
             任务状态响应，status 为 "completed" 时 url 可用
         """
-        resp = await self._client.get("/agnesapi", params={"video_id": video_id})
-        resp.raise_for_status()
-        return resp.json()
+        path, params = build_video_poll_request(video_id)
+        resp = await self._client.get(path, params=params)
+        return self._response_json(resp)
 
     async def close(self):
         """关闭 HTTP 客户端。"""

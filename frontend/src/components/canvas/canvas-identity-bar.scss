@@ -1,9 +1,11 @@
 .identity-cluster {
   display: flex;
+  box-sizing: border-box;
+  max-height: 52px;
   align-items: center;
   gap: var(--v2-space-2);
   min-width: 0;
-  padding: var(--v2-space-2);
+  padding: 4px;
   border: 1px solid var(--v2-border-subtle);
   border-radius: var(--v2-radius-md);
   background: var(--v2-surface-1);
@@ -70,12 +72,15 @@ button:disabled {
 }
 
 .identity-copy {
+  display: flex;
   min-width: 0;
+  align-items: center;
+  gap: var(--v2-space-2);
 }
 
 .project-name {
-  display: block;
-  max-width: 280px;
+  display: inline-block;
+  max-width: 220px;
   overflow: hidden;
   color: var(--v2-text-muted);
   font-size: var(--v2-font-size-caption);
@@ -99,7 +104,7 @@ button:disabled {
 }
 
 .canvas-switcher strong {
-  max-width: 300px;
+  max-width: 220px;
   overflow: hidden;
   font-size: var(--v2-font-size-title);
   font-weight: var(--v2-font-weight-semibold);
@@ -391,14 +396,14 @@ button:disabled {
 
 @media (max-width: 767px) {
   .identity-cluster {
-    max-width: calc(100vw - 32px);
+    max-width: calc(100vw - 132px);
   }
 
   .project-name {
-    max-width: 180px;
+    display: none;
   }
 
   .canvas-switcher strong {
-    max-width: 190px;
+    max-width: 112px;
   }
 }

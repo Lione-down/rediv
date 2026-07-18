@@ -1,4 +1,5 @@
 import {
+  AudioLines,
   CircleHelp,
   FileText,
   Group,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-vue-next'
 
 const canvasNodeIcons = {
+  'audio-lines': AudioLines,
   'file-text': FileText,
   'sticky-note': StickyNote,
   image: Image,

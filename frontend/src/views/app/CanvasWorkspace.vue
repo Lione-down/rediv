@@ -20,6 +20,7 @@ import { useCanvasNodeActions } from '../../components/canvas/composables/use-ca
 import { useCanvasPersistenceLifecycle } from '../../components/canvas/composables/use-canvas-persistence-lifecycle'
 import { useCanvasProfessionalActions } from '../../components/canvas/composables/use-canvas-professional-actions'
 import { useCanvasImageOperations } from '../../components/canvas/composables/use-canvas-image-operations'
+import { useCanvasScriptGeneration } from '../../components/canvas/composables/use-canvas-script-generation'
 import { useCanvasResourceExperience } from '../../components/canvas/composables/use-canvas-resource-experience'
 import { useCanvasStoryboardRecipes } from '../../components/canvas/composables/use-canvas-storyboard-recipes'
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
@@ -32,6 +33,8 @@ import { createArrangeGenerationLineageCommand } from '../../modules/canvas/gene
 import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
 import { projectCanvasStoryboard } from '../../modules/canvas/storyboard-projection'
 import { createReorderStoryboardGroupCommand } from '../../modules/canvas/storyboard-commands'
+import { resolveOwnedMediaActionTarget } from '../../modules/canvas/professional-action-registry'
+import type { ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
 
 type MoveDirection = -1 | 1
 interface CanvasStageHandle { arrangeSelectedProvenanceTrace: () => boolean; closeTransientInteractions: () => void; fitSelectedProvenanceTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
@@ -56,6 +59,7 @@ const workflowBatchOpen = ref(false)
 const videoEditPreflightOpen = ref(false)
 const audioGenerationPreflightOpen = ref(false)
 const agentSkillPreflightOpen = ref(false)
+const scriptAuthoringIntent = ref<ScriptAuthoringIntent | null>(null)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
 const canvasStageRef = ref<CanvasStageHandle | null>(null)
 let revisionPanelOpener: HTMLElement | null = null
@@ -144,6 +148,12 @@ const {
   updatePrompt,
   updateGenerationParameters,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
+const scriptGeneration = useCanvasScriptGeneration({
+  canvasId,
+  generationCapabilities,
+  isReviewOnly,
+  projectId,
+})
 const { branchFromResult, branchVisualRecipe, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode, revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId) })
 const { createCinematicShotGraph, createShotGraph, createStoryboardRecipe, createVisualAssetRecipe } = useCanvasStoryboardRecipes({
   assets: () => resourceStore.assets,
@@ -182,12 +192,18 @@ function openAgentSkillPreflight() {
 function closeAgentSkillPreflight() {
   agentSkillPreflightOpen.value = false
 }
+function openScriptAuthoring(intent: ScriptAuthoringIntent) {
+  scriptAuthoringIntent.value = null
+  if (isCompact.value) isContextDrawerOpen.value = true
+  void nextTick(() => { scriptAuthoringIntent.value = intent })
+}
 const professionalActionsBlocked = computed(() => (
   isRevisionPanelOpen.value || isResultCompareOpen.value || isResourceOpen.value ||
   isContextDrawerOpen.value || workflowBatchOpen.value || videoEditPreflightOpen.value || audioGenerationPreflightOpen.value || agentSkillPreflightOpen.value || viewMode.value !== 'workflow'
 ))
 const {
   actions: professionalActions,
+  availableActionIds: professionalActionIds,
   close: closeProfessionalActions,
   error: professionalActionError,
   execute: executeProfessionalAction,
@@ -209,12 +225,29 @@ const {
   isWorkflowView: () => viewMode.value === 'workflow',
   openAgentSkillPreflight,
   openAudioGenerationPreflight,
+  openScriptAuthoring,
   projectId,
   openWorkflowBatch,
   openVideoEditPreflight,
   splitImageGrid,
   userId: () => authStore.user?.id ?? '',
 })
+const EMPTY_PROFESSIONAL_ACTION_IDS: readonly string[] = Object.freeze([])
+const mediaActionTarget = computed(() => {
+  const selectedNodeIds = canvasDocumentStore.selectedNodeIds
+  const selectedNode = selectedNodeIds.length === 1
+    ? canvasDocumentStore.findNodeById(selectedNodeIds[0])
+    : null
+  return resolveOwnedMediaActionTarget({
+    assets: resourceStore.assets,
+    projectId: projectId.value,
+    selectedNodes: selectedNode ? [selectedNode] : [],
+    userId: authStore.user?.id ?? '',
+  })
+})
+const mediaProfessionalActionIds = computed(() => (
+  mediaActionTarget.value ? professionalActionIds.value : EMPTY_PROFESSIONAL_ACTION_IDS
+))
 const storyboardItems = computed(() => projectCanvasStoryboard({
   nodes: canvasDocumentStore.nodes,
   connections: canvasDocumentStore.connections,
@@ -382,8 +415,8 @@ async function retryCanvasState(event?: MouseEvent) {
   await Promise.allSettled(operations)
 }
 
-function openRevisionPanel(event?: Event) {
-  const opener = event?.currentTarget
+function openRevisionPanel(event?: Event | HTMLElement) {
+  const opener = event instanceof HTMLElement ? event : event?.currentTarget
   if (!isRevisionPanelOpen.value) {
     revisionPanelOpener = opener instanceof HTMLElement ? opener : null
   }
@@ -476,11 +509,14 @@ onBeforeUnmount(() => {
           :readonly="isReviewOnly || canvasRevisionStore.restoringRevision !== null"
           :context-overlay-open="isContextDrawerOpen && isCompact"
           :professional-actions-blocked="professionalActionsOpen || professionalActionsBlocked"
+          :professional-action-ids="mediaProfessionalActionIds"
+          :media-action-target="mediaActionTarget"
           :generation-runtime-presentations="generationRuntimePresentations" :pending-generation-results="pendingGenerationResults"
           :resources-open="isResourceOpen"
           :viewport-insets="canvasViewportInsets"
           @open-resources="openResources"
           @open-professional-actions="openProfessionalActions"
+          @open-revisions="openRevisionPanel"
           @capture-video-frame="captureSelectedVideoFrame"
         />
       </div>
@@ -634,6 +670,14 @@ onBeforeUnmount(() => {
           :quota="selectedQuota"
           :readonly="isReviewOnly"
           :success="generationSuccess"
+          :script-authoring-active="scriptGeneration.active.value"
+          :script-authoring-capability="scriptGeneration.capability.value"
+          :script-authoring-error="scriptGeneration.error.value"
+          :script-authoring-intent="scriptAuthoringIntent"
+          :script-authoring-success="scriptGeneration.success.value"
+          :script-quota="authStore.quotas.text"
+          @cancel-script-authoring="scriptGeneration.cancel"
+          @generate-script="scriptGeneration.generate"
           @branch-generation="branchFromResult"
           @visual-recipe="createVisualAssetRecipe"
           @arrange-trace="canvasStageRef?.arrangeSelectedProvenanceTrace()"
@@ -721,6 +765,14 @@ onBeforeUnmount(() => {
               :quota="selectedQuota"
               :readonly="isReviewOnly"
               :success="generationSuccess"
+              :script-authoring-active="scriptGeneration.active.value"
+              :script-authoring-capability="scriptGeneration.capability.value"
+              :script-authoring-error="scriptGeneration.error.value"
+              :script-authoring-intent="scriptAuthoringIntent"
+              :script-authoring-success="scriptGeneration.success.value"
+              :script-quota="authStore.quotas.text"
+              @cancel-script-authoring="scriptGeneration.cancel"
+              @generate-script="scriptGeneration.generate"
               @branch-generation="branchFromResult"
               @visual-recipe="createVisualAssetRecipe"
               @arrange-trace="arrangeTraceFromContextDrawer"

@@ -82,13 +82,16 @@ test('empty release offers typed continuation and commits one undoable graph ins
 
   const chooser = page.getByRole('dialog', { name: '继续连接' })
   await expect(chooser).toBeVisible()
-  await expect(chooser.getByRole('menuitem')).toHaveCount(2)
+  await expect(chooser.getByRole('menuitem')).toHaveCount(5)
+  await expect(chooser.getByRole('menuitem', { name: /^脚本 / })).toBeVisible()
+  await expect(chooser.getByRole('menuitem', { name: /^文本 / })).toBeVisible()
+  await expect(chooser.getByRole('menuitem', { name: /音频/ })).toHaveAttribute('aria-disabled', 'true')
   await expect(chooser.getByRole('menuitem', { name: /图片生成/ })).toBeVisible()
   await expect(chooser.getByRole('menuitem', { name: /视频生成/ })).toBeVisible()
   expect(state.documents[FIRST_CANVAS_ID].nodes).toHaveLength(3)
   expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(1)
 
-  await page.getByRole('button', { name: '打开修订历史' }).click()
+  await page.getByRole('button', { name: '打开修订历史', exact: true }).click()
   await expect(chooser).toHaveCount(0)
   expect(documentPatches(state)).toHaveLength(0)
 
@@ -116,6 +119,39 @@ test('empty release offers typed continuation and commits one undoable graph ins
   await page.keyboard.press('Control+Shift+z')
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.length).toBe(4)
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(2)
+})
+
+test('foreground continuation keeps a five-category menu near its source at overview zoom', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state)
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
+
+  const zoom = page.getByLabel('缩放百分比')
+  for (const percent of [100, 36, 17]) {
+    await zoom.fill(String(percent))
+    await zoom.press('Enter')
+    const trigger = page.getByRole('button', { name: '继续此节点' })
+    await trigger.click()
+    const chooser = page.getByRole('dialog', { name: '继续连接' })
+    await expect(chooser.getByRole('menuitem')).toHaveCount(5)
+    await expect(chooser.getByRole('menuitem', { name: /音频/ })).toHaveAttribute('aria-disabled', 'true')
+    const [stageBox, triggerBox, chooserBox] = await Promise.all([
+      page.getByRole('region', { name: 'Revid 无限画布工作区' }).boundingBox(),
+      trigger.boundingBox(),
+      chooser.boundingBox(),
+    ])
+    if (!stageBox || !triggerBox || !chooserBox) throw new Error('Continuation geometry is unavailable')
+    expect(chooserBox.x).toBeGreaterThanOrEqual(stageBox.x + 12)
+    expect(chooserBox.x + chooserBox.width).toBeLessThanOrEqual(stageBox.x + stageBox.width - 12)
+    const horizontalGap = Math.max(
+      chooserBox.x - (triggerBox.x + triggerBox.width),
+      triggerBox.x - (chooserBox.x + chooserBox.width),
+      0,
+    )
+    expect(horizontalGap).toBeLessThanOrEqual(24)
+    await page.keyboard.press('Escape')
+  }
 })
 
 test('output drag starts inside the forgiving hit target but outside the visible dot', async ({ page }) => {
@@ -314,12 +350,12 @@ test('empty input release creates one compatible upstream node and edge atomical
   const chooser = page.getByRole('dialog', { name: '继续连接' })
   await expect(chooser).toContainText('创建上游')
   await expect(chooser.getByRole('menuitem')).toHaveCount(2)
-  await expect(chooser.getByRole('menuitem', { name: /提示词/ })).toBeVisible()
+  await expect(chooser.getByRole('menuitem', { name: /文本/ }).first()).toBeVisible()
   expect(documentPatches(state)).toHaveLength(0)
   await mkdir(upstreamEvidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(upstreamEvidenceDirectory, 'upstream-continuation-1440x900.png'), fullPage: true })
 
-  await chooser.getByRole('menuitem', { name: /提示词/ }).click()
+  await chooser.getByRole('menuitem', { name: /文本/ }).first().click()
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.length).toBe(4)
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(2)
   await expect.poll(() => documentPatches(state).length).toBe(1)

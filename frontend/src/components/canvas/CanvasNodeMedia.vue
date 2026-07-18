@@ -4,22 +4,24 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { CanvasNodeMediaPresentation } from './canvas-node-presentation'
 import CanvasVideoKeyframeRail from './CanvasVideoKeyframeRail.vue'
 const CANVAS_VIDEO_PLAY_EVENT = 'revid:canvas-video-play'
-const props = withDefaults(defineProps<{ media: CanvasNodeMediaPresentation; canCaptureFrame?: boolean; capturePending?: boolean; keyframeRailPlacement?: 'above' | 'below' }>(), { canCaptureFrame: false, capturePending: false, keyframeRailPlacement: 'below' })
-const emit = defineEmits<{ captureFrame: [file: File, timeSeconds: number, aspectRatio: number]; metadata: [aspectRatio: number] }>()
+const props = withDefaults(defineProps<{ media: CanvasNodeMediaPresentation; canCaptureFrame?: boolean; canRequestUpload?: boolean; capturePending?: boolean; isSelected?: boolean; keyframeRailPlacement?: 'above' | 'below' }>(), { canCaptureFrame: false, canRequestUpload: false, capturePending: false, isSelected: false, keyframeRailPlacement: 'below' })
+const emit = defineEmits<{ captureFrame: [file: File, timeSeconds: number, aspectRatio: number]; metadata: [aspectRatio: number]; requestUpload: [opener: HTMLElement] }>()
 const state = ref<'loading' | 'ready' | 'error'>('loading')
 const captureError = ref('')
 const isCapturing = ref(false)
 const videoRef = ref<HTMLVideoElement | null>(null)
 const currentTime = ref(0)
+const resolutionLabel = ref('')
 const videoLoadMode = ref<'canvas-readable' | 'playback-only'>('canvas-readable')
 const canReadVideoFrames = computed(() => videoLoadMode.value === 'canvas-readable' && props.canCaptureFrame)
 watch(() => props.media.kind === 'placeholder' ? props.media.kind : `${props.media.kind}:${props.media.url}`, () => {
   state.value = 'loading'
   captureError.value = ''
+  resolutionLabel.value = ''
   videoLoadMode.value = 'canvas-readable'
 })
-function imageLoaded(event: Event) { const image = event.currentTarget as HTMLImageElement; state.value = image.naturalWidth > 0 && image.naturalHeight > 0 ? 'ready' : 'error'; if (state.value === 'ready') emit('metadata', image.naturalWidth / image.naturalHeight) }
-function videoLoaded(event: Event) { const video = event.currentTarget as HTMLVideoElement; state.value = video.videoWidth > 0 && video.videoHeight > 0 ? 'ready' : 'error'; currentTime.value = video.currentTime; if (state.value === 'ready') emit('metadata', video.videoWidth / video.videoHeight) }
+function imageLoaded(event: Event) { const image = event.currentTarget as HTMLImageElement; state.value = image.naturalWidth > 0 && image.naturalHeight > 0 ? 'ready' : 'error'; if (state.value === 'ready') { resolutionLabel.value = `${image.naturalWidth} × ${image.naturalHeight}`; emit('metadata', image.naturalWidth / image.naturalHeight) } }
+function videoLoaded(event: Event) { const video = event.currentTarget as HTMLVideoElement; state.value = video.videoWidth > 0 && video.videoHeight > 0 ? 'ready' : 'error'; currentTime.value = video.currentTime; if (state.value === 'ready') { resolutionLabel.value = `${video.videoWidth} × ${video.videoHeight}`; emit('metadata', video.videoWidth / video.videoHeight) } }
 function syncCurrentTime(event: Event) { currentTime.value = (event.currentTarget as HTMLVideoElement).currentTime }
 function claimVideoPlayback(event: Event) {
   const video = event.currentTarget as HTMLVideoElement
@@ -90,6 +92,28 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
 </script>
 <template>
   <div class="canvas-node-media" :aria-label="media.label">
+    <div v-if="media.kind === 'placeholder' && canRequestUpload && isSelected" class="canvas-node-media__recovery" role="toolbar" aria-label="空媒体恢复操作">
+      <button
+        type="button"
+        aria-label="为当前媒体上传素材"
+        @click.stop="event => emit('requestUpload', event.currentTarget as HTMLElement)"
+        @pointerdown.stop
+      >
+        上传素材
+      </button>
+      <button type="button" aria-label="生成原图" title="生成原图（需要可用媒体来源）" disabled>生成原图</button>
+      <button type="button" aria-label="高清修复" title="高清修复（需要可用媒体来源）" disabled>高清修复</button>
+    </div>
+    <button
+      v-else-if="media.kind === 'placeholder' && canRequestUpload"
+      type="button"
+      class="canvas-node-media__upload"
+      aria-label="为当前媒体上传素材"
+      @click.stop="event => emit('requestUpload', event.currentTarget as HTMLElement)"
+      @pointerdown.stop
+    >
+      上传素材
+    </button>
     <div class="canvas-node-media__viewport">
       <span v-if="media.kind === 'placeholder'" class="canvas-node-media__message">{{ media.label }}</span>
       <template v-else>
@@ -101,6 +125,7 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
           <Camera :size="14" aria-hidden="true" />{{ isCapturing || capturePending ? '正在截取' : '截取当前帧' }}
         </button>
         <span v-if="captureError" class="canvas-node-media__capture-error" role="alert">{{ captureError }}</span>
+        <span v-if="state === 'ready' && resolutionLabel" class="canvas-node-media__metadata" aria-label="媒体分辨率">{{ resolutionLabel }}</span>
       </template>
     </div>
     <CanvasVideoKeyframeRail v-if="media.kind === 'video' && canReadVideoFrames && state === 'ready'" :current-time="currentTime" :placement="keyframeRailPlacement" :src="media.url" @seek="seekToFrame" />
@@ -118,7 +143,7 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
   pointer-events: none;
 }
 
-.canvas-node-media__viewport { position: relative; display: grid; width: 100%; height: 100%; place-items: center; overflow: hidden; border-radius: inherit; background: var(--v2-surface-1); }
+.canvas-node-media__viewport { position: relative; display: grid; box-sizing: border-box; width: 100%; height: 100%; place-items: center; overflow: hidden; border: 1px solid var(--v2-border-subtle); border-radius: inherit; background: var(--v2-surface-1); }
 
 .canvas-node-media__viewport img,
 .canvas-node-media__viewport video {
@@ -131,11 +156,20 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
 }
 
 .canvas-node-media__viewport video { pointer-events: auto; }
+.canvas-node-media__upload { position: absolute; z-index: 3; right: 0; bottom: calc(100% + 8px); min-height: 32px; padding: 0 10px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); color: var(--v2-text-primary); background: var(--v2-surface-2); box-shadow: var(--v2-shadow-floating); font: inherit; font-size: 11px; pointer-events: auto; cursor: pointer; }
+.canvas-node-media__upload:hover { border-color: var(--v2-accent); color: var(--v2-accent-hover); }
+.canvas-node-media__upload:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
+.canvas-node-media__recovery { position: absolute; z-index: 3; top: calc(100% + 8px); left: 0; display: flex; width: max-content; gap: 4px; padding: 5px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); background: var(--v2-surface-2); box-shadow: var(--v2-shadow-floating); pointer-events: auto; }
+.canvas-node-media__recovery button { min-height: 30px; padding: 0 9px; border: 0; border-radius: var(--v2-radius-xs); color: var(--v2-text-primary); background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
+.canvas-node-media__recovery button:hover:not(:disabled) { color: var(--v2-accent-hover); background: var(--v2-accent-soft); }
+.canvas-node-media__recovery button:disabled { color: var(--v2-text-muted); cursor: not-allowed; opacity: 0.48; }
+.canvas-node-media__recovery button:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 1px; }
 .canvas-node-media__capture { position: absolute; z-index: 2; top: 8px; right: 8px; display: inline-flex; min-height: 30px; align-items: center; gap: 5px; padding: 0 9px; border: 1px solid color-mix(in oklch, var(--accent-select) 54%, var(--v2-border-standard)); border-radius: var(--radius-pill); color: var(--v2-text-primary); background: color-mix(in oklch, var(--v2-surface-1) 88%, transparent); box-shadow: 0 8px 20px oklch(3% 0.01 292 / 0.3); font: inherit; font-size: 11px; white-space: nowrap; backdrop-filter: blur(10px); pointer-events: auto; cursor: pointer; }
 .canvas-node-media__capture:hover { border-color: var(--accent-select); background: var(--v2-surface-2); }
 .canvas-node-media__capture:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 .canvas-node-media__capture:disabled { cursor: wait; opacity: 0.72; }
 .canvas-node-media__capture-error { position: absolute; z-index: 2; top: 46px; right: 8px; max-width: calc(100% - 16px); padding: 6px 8px; border-radius: var(--v2-radius-sm); color: var(--v2-danger); background: var(--v2-surface-2); font-size: 11px; }
+.canvas-node-media__metadata { position: absolute; z-index: 2; right: 8px; bottom: 8px; min-height: 20px; padding: 0 7px; border: 1px solid var(--v2-border-subtle); border-radius: var(--radius-pill); color: var(--v2-text-secondary); background: color-mix(in oklch, var(--v2-surface-1) 84%, transparent); font-size: 10px; font-variant-numeric: tabular-nums; line-height: 18px; white-space: nowrap; backdrop-filter: blur(8px); }
 .canvas-node-media__message { position: absolute; z-index: 1; padding: calc(8px * var(--canvas-surface-zoom, 1)) calc(12px * var(--canvas-surface-zoom, 1)); border-radius: calc(var(--v2-radius-sm) * var(--canvas-surface-zoom, 1)); color: var(--v2-text-secondary); background: var(--v2-surface-2); font-size: calc(12px * var(--canvas-surface-zoom, 1)); }
 .canvas-node-media__message.is-error { color: var(--v2-danger); }
 </style>

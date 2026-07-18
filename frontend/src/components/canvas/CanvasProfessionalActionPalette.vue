@@ -35,6 +35,7 @@ const activeDescendant = computed(() => activeAction.value
   : undefined)
 
 function actionIcon(action: ResolvedProfessionalCanvasAction) {
+  if (action.intent.type === 'open-script-authoring') return FileText
   if (action.intent.type === 'create-shot-graph' || action.intent.type === 'create-cinematic-shot-graph' || action.intent.type === 'create-storyboard-recipe') return Clapperboard
   if (action.intent.type === 'create-image-operation') return ImagePlus
   if (action.intent.type === 'open-workflow-batch') return ListChecks
@@ -42,9 +43,9 @@ function actionIcon(action: ResolvedProfessionalCanvasAction) {
   if (action.intent.type === 'open-agent-skill-preflight') return Bot
   if (action.intent.type === 'open-video-edit-preflight') return Video
   if (action.intent.type === 'split-image-grid') return Grid2X2
-  if (action.intent.nodeType === 'script') return FileText
-  if (action.intent.nodeType === 'note') return StickyNote
-  if (action.intent.subtype === 'video') return Video
+  if (action.intent.type === 'create-node' && action.intent.nodeType === 'script') return FileText
+  if (action.intent.type === 'create-node' && action.intent.nodeType === 'note') return StickyNote
+  if (action.intent.type === 'create-node' && action.intent.subtype === 'video') return Video
   return ImagePlus
 }
 

@@ -24,11 +24,16 @@ import {
   parseAudioGenerationCapabilities,
   type AudioGenerationCapabilities,
 } from './audio-generation'
+import {
+  parseScriptAuthoringCapabilities,
+  type ScriptAuthoringCapabilities,
+} from './script-authoring'
 
 export type VideoReferenceMode = 'text-to-video' | 'image-to-video' | 'keyframes'
 
 export interface GenerationCapabilities {
-  contract_version: 1 | 2 | 3 | 4
+  contract_version: 1 | 2 | 3 | 4 | 5
+  text: ScriptAuthoringCapabilities | null
   image: {
     model: string
     size: string
@@ -103,7 +108,7 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 export function parseGenerationCapabilities(value: unknown): GenerationCapabilities {
-  if (!isRecord(value) || ![1, 2, 3, 4].includes(Number(value.contract_version)) || !isRecord(value.image) || !isRecord(value.video)) {
+  if (!isRecord(value) || ![1, 2, 3, 4, 5].includes(Number(value.contract_version)) || !isRecord(value.image) || !isRecord(value.video)) {
     throw new Error('生成参数 capability contract 无效。')
   }
   const image = value.image
@@ -115,6 +120,7 @@ export function parseGenerationCapabilities(value: unknown): GenerationCapabilit
   let imageShotControls: ShotControlCapabilities | null = null
   let videoShotControls: ShotControlCapabilities | null = null
   let audio: AudioGenerationCapabilities | null = null
+  let text: ScriptAuthoringCapabilities | null = null
   if (
     !isNonEmptyString(image.model) || !isNonEmptyString(image.size) ||
     !Array.isArray(ratios) || !ratios.length || ratios.some((item) => !isNonEmptyString(item)) ||
@@ -132,12 +138,14 @@ export function parseGenerationCapabilities(value: unknown): GenerationCapabilit
     if (value.contract_version === 2) {
       operations = parseImageOperationCapabilities(image.operations)
       if (image.shot_controls !== undefined || video.shot_controls !== undefined) throw new Error('legacy capability cannot declare shot controls')
-    } else if (value.contract_version === 3 || value.contract_version === 4) {
+    } else if (value.contract_version === 3 || value.contract_version === 4 || value.contract_version === 5) {
       operations = parseImageOperationCapabilities(image.operations)
       imageShotControls = parseShotControlCapabilities(image.shot_controls, 'image')
       videoShotControls = parseShotControlCapabilities(video.shot_controls, 'video')
-      if (value.contract_version === 4) audio = parseAudioGenerationCapabilities(value.audio)
-    } else if (image.operations !== undefined || image.shot_controls !== undefined || video.shot_controls !== undefined || value.audio !== undefined) {
+      if (value.contract_version === 4 || value.contract_version === 5) audio = parseAudioGenerationCapabilities(value.audio)
+      if (value.contract_version === 5) text = parseScriptAuthoringCapabilities(value.text)
+      else if (value.text !== undefined) throw new Error('legacy capability cannot declare script authoring')
+    } else if (image.operations !== undefined || image.shot_controls !== undefined || video.shot_controls !== undefined || value.audio !== undefined || value.text !== undefined) {
       throw new Error('legacy capability cannot declare extensions')
     }
   } catch {
@@ -162,7 +170,8 @@ export function parseGenerationCapabilities(value: unknown): GenerationCapabilit
   ) throw new Error('生成参数 capability contract 无效。')
 
   return {
-    contract_version: value.contract_version as 1 | 2 | 3 | 4,
+    contract_version: value.contract_version as 1 | 2 | 3 | 4 | 5,
+    text,
     image: {
       model: image.model,
       size: image.size,

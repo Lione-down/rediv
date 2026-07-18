@@ -1,84 +1,78 @@
-# Agnes Provider 集成说明
+# Agnes Provider Integration
 
-## 1. 架构
+## Contract source
 
-```
-backend/
-├── main.py                 # FastAPI 入口，创建 AgnesProvider 单例
-├── settings/
-│   └── config.py           # Settings 包含 Agnes 配置
-├── core/
-│   └── agnes_provider.py   # Agnes AI 多模态模型统一入口
-└── api/
-    └── routers/
-        ├── text.py         # 文本生成 / 图片理解 / 工具调用
-        ├── image.py        # 文生图 / 图生图
-        └── video.py        # 文生视频 / 图生视频 / 多图视频
-```
+The backend owns the Agnes transport contract. Frontend code consumes Revid capabilities and never constructs provider payloads.
 
-## 2. 模型映射
+Current contract facts were checked on 2026-07-18 against the official Agnes documentation and model catalog:
 
-| Revid 用途 | Agnes 模型 | Endpoint |
-|-----------|-----------|----------|
-| 脚本/Prompt/分镜生成 | `agnes-2.0-flash` | `/v1/chat/completions` |
-| 封面/角色/场景素材 | `agnes-image-2.1-flash` | `/v1/images/generations` |
-| 视频生成 | `agnes-video-v2.0` | `/v1/videos` (异步) |
+- text: `agnes-2.0-flash`, `POST /v1/chat/completions`;
+- image: `agnes-image-2.1-flash`, `POST /v1/images/generations`;
+- video submit: `agnes-video-v2.0`, `POST /v1/videos`;
+- video poll: `GET /agnesapi?video_id=...`.
 
-## 3. 使用方式
+Sources:
 
-在 Router 中注入：
+- https://agnes-ai.com/doc/agnes-20-flash
+- https://agnes-ai.com/doc/agnes-image-21-flash
+- https://agnes-ai.com/doc/agnes-video-v20
+- https://github.com/AgnesAI-Labs/AgnesAI-Models/blob/main/MODEL_CATALOG.md
 
-```python
-from main import get_agnes
+`core/agnes_contract.py` is the single resolved source for base URL, model IDs, endpoint paths, request adapters, and safe provider error classification. Settings may override the catalog values, and both the provider and capability APIs consume the same resolved contract.
 
-@router.post("/generate")
-async def generate_text(prompt: str):
-    agnes = get_agnes()
-    result = await agnes.chat(
-        model=settings.agnes_model_text,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return {"content": result["choices"][0]["message"]["content"]}
-```
+## Request adapters
 
-## 4. 视频任务流程
+Each media type has an allowlisted adapter:
 
-```
-1. POST /v1/videos → 返回 {task_id, video_id}
-2. 轮询 GET /agnesapi?video_id=xxx (每 5s)
-3. status="completed" → 取 video_url
-4. status="failed" → 返还额度
-```
+- text accepts model, messages, temperature, and stream;
+- image accepts prompt, `size`, aspect ratio, and optional reference images under `extra_body.image`;
+- video accepts prompt, dimensions, frames, frame rate, mode, and the documented single-image or keyframe forms;
+- video polling accepts only the documented `video_id` query parameter.
 
-## 5. Mock 模式
+Arbitrary frontend/provider passthrough is not supported.
 
-开发阶段，Agnes Provider 可降级为 Mock：
-- 文本：返回预设回复
-- 图片：返回随机占位图 URL
-- 视频：模拟异步任务，3s 后返回完成
+## Image references
 
-```python
-# settings.config
-wechat_mock_enabled: bool = True  # 控制 Mock 开关
+Agnes accepts public URLs or Data URIs. Revid validates references before provider submission:
 
-# 未来可扩展：
-agnes_mock_enabled: bool = True  # 控制 Agnes Mock
-```
+- absolute public HTTPS URLs without credentials are preserved;
+- an owned canonical `/uploads/{user_id}/{uuid}.{ext}` reference is resolved under the configured local storage root and encoded as a bounded Data URI;
+- cross-user, traversal, symlink, missing, unsupported, private-network, and oversized references fail before any provider call;
+- Data URI payloads must never be logged or persisted in task error metadata.
 
-## 6. 额度扣减时机
+The default local reference limit is 20 MiB and is controlled by `agnes_reference_image_max_bytes`.
 
-| 操作 | 扣减时机 | 返还条件 |
-|------|---------|---------|
-| 文本生成 | 请求发出前预扣 | 超时/失败 |
-| 图片生成 | 请求发出前预扣 | 超时/失败 |
-| 视频生成 | 任务创建前预扣 | 任务失败/超时 |
+## Safe provider errors
 
-## 7. 待实现
+Provider failures are converted to `AgnesProviderError`. Only bounded, allowlisted metadata is retained:
 
-- [ ] 创建 `api/routers/text.py` — 文本生成接口
-- [ ] 创建 `api/routers/image.py` — 图片生成接口
-- [ ] 创建 `api/routers/video.py` — 视频生成接口
-- [ ] 实现额度预扣和返还逻辑
-- [ ] 实现 Mock Provider 降级
-- [ ] 实现视频任务轮询中间件
-- [ ] 实现 Agnes 回调通知（可选）
+- stable code;
+- safe message;
+- provider request/correlation ID when supplied;
+- retryability;
+- bounded retry delay when supplied.
+
+Authorization headers, API keys, raw request bodies, prompts, and base64 payloads are redacted. Current stable codes are:
+
+| Code | HTTP class | Retry |
+| --- | --- | --- |
+| `invalid_request` | 400/422 | no |
+| `unsupported_parameter` | 400/422 | no |
+| `provider_rejected` | 400/422 | no |
+| `rate_limited` | 429 | yes |
+| `provider_unavailable` | 503 | yes |
+| `timeout` | 504 | yes |
+
+Repeated submissions with the same effective fingerprint after a deterministic provider rejection are blocked for the configured guard window until the user changes effective input or parameters. Transient failures remain manually retryable.
+
+## Task and quota behavior
+
+- generation admission, idempotency, and quota reservation occur before provider work;
+- a failure keeps a durable failed task with only safe error metadata;
+- failed or stale work does not create an asset or consume quota;
+- video polling uses the same typed error and task-state rules as submission;
+- malformed success payloads fail closed as provider response errors.
+
+## Verification boundary
+
+Unit, mock-route, disposable-MySQL, and browser-fixture evidence do not prove the real Agnes account or provider is healthy. A real text/image/video smoke requires explicit Human authorization for the exact call class and must not expose credentials or paid payload content.

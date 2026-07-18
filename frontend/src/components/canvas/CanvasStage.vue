@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { NDropdown } from 'naive-ui'
-import { Keyboard } from 'lucide-vue-next'
+import { History, Keyboard, WandSparkles } from 'lucide-vue-next'
 import { computed, nextTick, ref, type ComponentPublicInstance } from 'vue'
 import CanvasEmptyGuide from './CanvasEmptyGuide.vue'
 import CanvasConnectionContinuation from './CanvasConnectionContinuation.vue'
 import CanvasConnectionLayer from './CanvasConnectionLayer.vue'
 import CanvasConnectionTargetPorts from './CanvasConnectionTargetPorts.vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
+import CanvasMediaToolbar from './CanvasMediaToolbar.vue'
 import CanvasNodeSurfaceLayer from './CanvasNodeSurfaceLayer.vue'
 import CanvasPendingGenerationLayer from './CanvasPendingGenerationLayer.vue'
 import CanvasStoryboardNumberLayer from './CanvasStoryboardNumberLayer.vue'
@@ -15,6 +16,7 @@ import CanvasSelectionToolbar from './CanvasSelectionToolbar.vue'
 import CanvasSelectionGenerationIntent from './CanvasSelectionGenerationIntent.vue'
 import CanvasToolDock from './CanvasToolDock.vue'
 import CanvasViewControls from './CanvasViewControls.vue'
+import CanvasZoomControls from './CanvasZoomControls.vue'
 import { getCanvasGridStyle } from './canvas-grid-presentation'
 import {
   createWorkflowStarterCommand,
@@ -40,20 +42,24 @@ import { createArrangeGenerationLineageCommand } from '../../modules/canvas/gene
 import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import type { GenerationResultProjection } from '../../modules/canvas/generation-result-projection'
+import type { OwnedMediaActionTarget } from '../../modules/canvas/professional-action-registry'
 import { useCanvasStoryboardGroups } from './composables/use-canvas-storyboard-groups'
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; professionalActionsBlocked?: boolean; readonly?: boolean; resourcesOpen?: boolean
   generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>; pendingGenerationResults?: readonly GenerationResultProjection[]
+  mediaActionTarget?: OwnedMediaActionTarget | null; professionalActionIds?: readonly string[]
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
   actionError: '', capturePending: false, contextOverlayOpen: false, professionalActionsBlocked: false, readonly: false, resourcesOpen: false,
   generationRuntimePresentations: () => new Map(), pendingGenerationResults: () => [],
+  mediaActionTarget: null, professionalActionIds: () => [],
   viewportInsets: () => ({}),
 })
 const emit = defineEmits<{
   captureVideoFrame: [nodeId: string, file: File, timeSeconds: number, aspectRatio: number]
   openResources: [opener: HTMLElement]
-  openProfessionalActions: [opener: HTMLElement]
+  openProfessionalActions: [opener: HTMLElement, query?: string]
+  openRevisions: [opener: HTMLElement]
 }>()
 const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
 function restoreGraphPanelTriggerFocus() {
@@ -146,8 +152,18 @@ const {
 })
 
 const dismissedEmptyCanvasIds = ref<ReadonlySet<string>>(new Set())
+const emptyMinimapRequestedCanvasIds = ref<ReadonlySet<string>>(new Set())
 const isStartingWorkflow = ref(false)
 const canvasGridStyle = computed(() => getCanvasGridStyle(canvasStore.viewport))
+const mediaToolbarStyle = computed(() => {
+  const target = props.mediaActionTarget
+  if (
+    !target || props.readonly || props.contextOverlayOpen ||
+    canvasStore.selectedNodeIds.length !== 1 || canvasStore.selectedNodeIds[0] !== target.nodeId
+  ) return null
+  const node = canvasStore.findNodeById(target.nodeId)
+  return node ? { ...surfaceNodeRectStyle(node), height: '0px' } : null
+})
 const continuationTrigger = computed(() => resolveCanvasNodeContinuationTrigger(canvasStore.nodes, canvasStore.selectedNodeIds, props.readonly || props.contextOverlayOpen))
 const selectionGenerationIntent = computed(() => resolveSelectionGenerationIntent(canvasStore.selectedNodes))
 const {
@@ -179,6 +195,17 @@ const selectedResultLineage = computed(() => {
   if (canvasStore.selectedNodeIds.length !== 1 || !canvasStore.selectedNode) return null
   return resolveResultLineage(canvasStore.selectedNode, canvasStore.nodes, canvasStore.connections)
 })
+const selectedVersionStack = computed(() => {
+  const lineage = selectedResultLineage.value
+  const node = canvasStore.selectedNode
+  return lineage && node && lineage.variants.length > 1 && node.type === 'result' &&
+    (node.contentData?.subtype === 'image' || node.contentData?.subtype === 'video')
+    ? { count: lineage.variants.length, node }
+    : null
+})
+const selectedVersionStackStyle = computed(() => selectedVersionStack.value
+  ? surfaceNodeRectStyle(selectedVersionStack.value.node)
+  : null)
 const selectedGenerationVariants = computed(() => {
   if (canvasStore.selectedNodeIds.length !== 1 || !canvasStore.selectedNode) return []
   return resolveGenerationResultVariants(canvasStore.selectedNode, canvasStore.nodes, canvasStore.connections)
@@ -230,6 +257,46 @@ const isEmptyGuideVisible = computed(() => (
   canvasStore.nodes.length === 0 &&
   !dismissedEmptyCanvasIds.value.has(canvasStore.activeCanvasId)
 ))
+const isVisibleMinimap = computed(() => (
+  isMinimapVisible.value && (
+    canvasStore.nodes.length > 0 ||
+    emptyMinimapRequestedCanvasIds.value.has(canvasStore.activeCanvasId)
+  )
+))
+
+function toggleVisibleMinimap() {
+  if (canvasStore.nodes.length > 0) {
+    toggleMinimap()
+    return
+  }
+  const canvasId = canvasStore.activeCanvasId
+  if (!canvasId) return
+  const next = new Set(emptyMinimapRequestedCanvasIds.value)
+  if (isVisibleMinimap.value) next.delete(canvasId)
+  else {
+    if (!isMinimapVisible.value) toggleMinimap()
+    next.add(canvasId)
+  }
+  emptyMinimapRequestedCanvasIds.value = next
+}
+
+function openProfessionalActionsFromRail(event: MouseEvent) {
+  if (event.currentTarget instanceof HTMLElement) emit('openProfessionalActions', event.currentTarget)
+}
+
+function openProfessionalActionFromMedia(opener: HTMLElement, actionId: string) {
+  emit('openProfessionalActions', opener, actionId)
+}
+
+function fullscreenSelectedMedia() {
+  const target = props.mediaActionTarget
+  const surface = target
+    ? Array.from(canvasSurfaceRef.value?.querySelectorAll<HTMLElement>('.canvas-node-surface[data-node-id]') ?? [])
+      .find((candidate) => candidate.dataset.nodeId === target.nodeId)
+    : null
+  const viewport = surface?.querySelector<HTMLElement>('.canvas-node-media__viewport')
+  if (viewport?.requestFullscreen) void viewport.requestFullscreen().catch(() => undefined)
+}
 
 function workflowAnchor() {
   const surface = canvasSurfaceRef.value
@@ -240,13 +307,15 @@ function workflowAnchor() {
   )
 }
 
-async function startWorkflow(starterId: WorkflowStarterId) {
+async function startWorkflow(starterId: WorkflowStarterId, brief = '') {
   if (props.readonly || isStartingWorkflow.value || canvasStore.nodes.length) return
+  const command = createWorkflowStarterCommand(starterId, workflowAnchor(), brief)
+  if (!command) return
   isStartingWorkflow.value = true
   try {
     await canvasStore.dispatchCommand({
       source: 'toolbar',
-      command: createWorkflowStarterCommand(starterId, workflowAnchor()),
+      command,
     })
     await nextTick()
     stageRef.value?.focus({ preventScroll: true })
@@ -406,6 +475,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
       :busy="isStartingWorkflow"
       :readonly="readonly"
       @dismiss="keepCanvasBlank"
+      @open-resources="emit('openResources', $event)"
       @start="startWorkflow"
     />
     <div
@@ -422,6 +492,12 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :visible="areEdgesVisible"
       />
       <CanvasPendingGenerationLayer :projections="pendingGenerationResults" :viewport="canvasStore.viewport" />
+      <div
+        v-if="selectedVersionStack && selectedVersionStackStyle"
+        class="canvas-media-version-stack"
+        :aria-label="`${selectedVersionStack.count} 个生成结果版本`"
+        :style="selectedVersionStackStyle"
+      />
       <CanvasConnectionContinuation
         v-if="connectionContinuation"
         :options="connectionContinuation.options"
@@ -443,6 +519,15 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         @continue-node="openNodeContinuation"
         @capture-frame="forwardCapturedVideoFrame"
         @media-metadata="adoptMediaAspectRatio"
+        @request-upload="emit('openResources', $event)"
+      />
+      <CanvasMediaToolbar
+        v-if="mediaToolbarStyle && mediaActionTarget"
+        :available-action-ids="professionalActionIds"
+        :style="mediaToolbarStyle"
+        :target="mediaActionTarget"
+        @fullscreen="fullscreenSelectedMedia"
+        @open-action="openProfessionalActionFromMedia"
       />
       <CanvasStoryboardNumberLayer :nodes="canvasStore.nodes" :surface-node-rect-style="surfaceNodeRectStyle" />
 
@@ -555,7 +640,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         @delete="deleteSelection('toolbar')"
       />
 
-      <div v-if="isMinimapVisible" :ref="setMinimapRef" class="minimap" aria-label="小地图" @pointerdown.stop="handleMinimapPointerDown">
+      <div v-if="isVisibleMinimap" :ref="setMinimapRef" class="minimap" aria-label="小地图" @pointerdown.stop="handleMinimapPointerDown">
         <div v-memo="[minimapNodes, canvasStore.selectedNodeIds, minimapViewportStyle]" class="minimap-content">
           <button
             v-for="node in minimapNodes"
@@ -572,43 +657,71 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         </div>
       </div>
     </div>
-    <CanvasViewControls
-      :are-edges-visible="areEdgesVisible"
-      :can-auto-arrange="canAutoArrange"
-      :can-fit-selection="canvasStore.selectedNodes.length > 0"
-      :is-grid-enabled="isGridEnabled"
-      :is-minimap-visible="isMinimapVisible"
-      :readonly="readonly"
-      :resources-open="resourcesOpen"
-      :zoom-percent="zoomPercent"
-      @auto-arrange="autoArrange('toolbar')"
-      @fit-graph="fitGraph"
-      @fit-selection="fitSelection"
-      @set-zoom="setZoomPercent"
-      @toggle-resources="emit('openResources', $event)"
-      @toggle-edges="toggleEdges"
-      @toggle-grid="toggleGrid"
-      @toggle-minimap="toggleMinimap"
-      @zoom-in="zoomIn"
-      @zoom-out="zoomOut"
-    />
-    <CanvasToolDock
-      v-if="!readonly"
-      :open="isNodeMenuOpen"
-      @select="createNodeFromMenu"
-      @update:open="updateNodeMenuOpen"
-    />
-    <button
-      ref="graphPanelTriggerRef"
-      class="graph-access-trigger"
-      type="button"
-      aria-label="打开画布内容与快捷键"
-      title="画布内容与快捷键 (?)"
-      :aria-expanded="isGraphPanelOpen"
-      @click="toggleGraphPanel"
-    >
-      <Keyboard :size="17" aria-hidden="true" />
-    </button>
+    <div class="canvas-navigation-controls" role="toolbar" aria-label="画布视图控制">
+      <div class="canvas-action-rail" role="toolbar" aria-label="画布主要操作">
+        <CanvasToolDock
+          v-if="!readonly"
+          :open="isNodeMenuOpen"
+          @open-resources="emit('openResources', $event)"
+          @select="createNodeFromMenu"
+          @update:open="updateNodeMenuOpen"
+        />
+        <CanvasViewControls
+          :are-edges-visible="areEdgesVisible"
+          :can-auto-arrange="canAutoArrange"
+          :can-fit-selection="canvasStore.selectedNodes.length > 0"
+          :is-grid-enabled="isGridEnabled"
+          :is-minimap-visible="isVisibleMinimap"
+          :readonly="readonly"
+          :resources-open="resourcesOpen"
+          @auto-arrange="autoArrange('toolbar')"
+          @fit-graph="fitGraph"
+          @fit-selection="fitSelection"
+          @toggle-resources="emit('openResources', $event)"
+          @toggle-edges="toggleEdges"
+          @toggle-grid="toggleGrid"
+          @toggle-minimap="toggleVisibleMinimap"
+        />
+        <button
+          v-if="!readonly"
+          class="professional-actions-trigger"
+          type="button"
+          aria-label="打开专业创作指令"
+          title="专业创作指令 (/)"
+          :disabled="professionalActionsBlocked"
+          @click="openProfessionalActionsFromRail"
+        >
+          <WandSparkles :size="17" aria-hidden="true" />
+        </button>
+        <button
+          v-if="!readonly"
+          class="graph-access-trigger"
+          type="button"
+          aria-label="从画布操作打开修订历史"
+          title="修订历史"
+          @click="event => emit('openRevisions', event.currentTarget as HTMLElement)"
+        >
+          <History :size="17" aria-hidden="true" />
+        </button>
+        <button
+          ref="graphPanelTriggerRef"
+          class="graph-access-trigger"
+          type="button"
+          aria-label="打开画布内容与快捷键"
+          title="画布内容与快捷键 (?)"
+          :aria-expanded="isGraphPanelOpen"
+          @click="toggleGraphPanel"
+        >
+          <Keyboard :size="17" aria-hidden="true" />
+        </button>
+      </div>
+      <CanvasZoomControls
+        :zoom-percent="zoomPercent"
+        @set-zoom="setZoomPercent"
+        @zoom-in="zoomIn"
+        @zoom-out="zoomOut"
+      />
+    </div>
     <CanvasGraphAccessPanel
       v-if="isGraphPanelOpen"
       :generation-runtime-presentations="generationRuntimePresentations"

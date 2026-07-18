@@ -17,7 +17,10 @@ from core.generation_results import (
 from core.generation_task_utils import (
     elapsed_ms,
     error_code_for_exception,
+    provider_error_message,
+    provider_failure_detail,
     provider_failure_http_status,
+    provider_request_id_for_exception,
     safe_retry_after_seconds,
     sanitize_error_message,
     status_for_error_code,
@@ -86,19 +89,20 @@ async def _poll_video_url(
             )
             raise
         except Exception as exc:
+            provider_request_id = provider_request_id_for_exception(exc) or video_id
             error_code = error_code_for_exception(exc)
             generation_controller.fail_generation_task(
                 generation_task_id,
                 status=status_for_error_code(error_code),
                 duration_ms=elapsed_ms(started_at),
-                provider_request_id=video_id,
+                provider_request_id=provider_request_id,
                 error_code=error_code,
-                error_message=sanitize_error_message(exc),
+                error_message=provider_error_message(exc),
             )
             retry_after = safe_retry_after_seconds(exc)
             raise HTTPException(
                 status_code=provider_failure_http_status(error_code),
-                detail="Agnes video generation failed",
+                detail=provider_failure_detail(exc, "video"),
                 headers={"Retry-After": str(retry_after)} if retry_after is not None else None,
             ) from exc
 
@@ -305,6 +309,7 @@ async def video_generate(
         )
         raise
     except Exception as exc:
+        provider_request_id = provider_request_id_for_exception(exc) or provider_request_id
         error_code = (
             "provider_result_invalid"
             if isinstance(exc, ProviderResultError)
@@ -316,12 +321,12 @@ async def video_generate(
             duration_ms=elapsed_ms(started_at),
             provider_request_id=provider_request_id,
             error_code=error_code,
-            error_message=sanitize_error_message(exc),
+            error_message=provider_error_message(exc),
         )
         retry_after = safe_retry_after_seconds(exc)
         raise HTTPException(
             status_code=provider_failure_http_status(error_code),
-            detail="Agnes video generation failed",
+            detail=provider_failure_detail(exc, "video"),
             headers={"Retry-After": str(retry_after)} if retry_after is not None else None,
         ) from exc
 

@@ -9,6 +9,7 @@ import {
 import { useCanvasStore } from '../../../store/canvas'
 import type { Asset } from '../../../types/asset'
 import type { ImageOperationCapabilities } from '../../../modules/canvas/image-operations'
+import type { ScriptAuthoringIntent } from '../../../modules/canvas/script-authoring'
 
 interface CanvasProfessionalActionsOptions {
   assets: () => readonly Asset[]
@@ -19,6 +20,7 @@ interface CanvasProfessionalActionsOptions {
   createStoryboardRecipe?: (recipeId: string, recipeVersion: number) => Promise<unknown>
   openAgentSkillPreflight?: () => void
   openAudioGenerationPreflight?: () => void
+  openScriptAuthoring?: (intent: ScriptAuthoringIntent) => void
   openWorkflowBatch?: () => void
   openVideoEditPreflight?: () => void
   getInsertionPoint: () => { x: number; y: number }
@@ -61,17 +63,23 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
     }
   }
 
-  const actions = computed(() => resolveProfessionalCanvasActions(context(), query.value)
-    .filter((action) => action.eligibility.eligible)
-    .filter((action) => action.intent.type !== 'create-shot-graph' || Boolean(options.createShotGraph))
-    .filter((action) => action.intent.type !== 'create-cinematic-shot-graph' || Boolean(options.createCinematicShotGraph))
-    .filter((action) => action.intent.type !== 'create-image-operation' || Boolean(options.createImageOperation))
-    .filter((action) => action.intent.type !== 'create-storyboard-recipe' || Boolean(options.createStoryboardRecipe))
-    .filter((action) => action.intent.type !== 'open-agent-skill-preflight' || Boolean(options.openAgentSkillPreflight))
-    .filter((action) => action.intent.type !== 'open-audio-generation-preflight' || Boolean(options.openAudioGenerationPreflight))
-    .filter((action) => action.intent.type !== 'open-workflow-batch' || Boolean(options.openWorkflowBatch))
-    .filter((action) => action.intent.type !== 'open-video-edit-preflight' || Boolean(options.openVideoEditPreflight))
-    .filter((action) => action.intent.type !== 'split-image-grid' || Boolean(options.splitImageGrid)))
+  function supportedActions(nextQuery = '') {
+    return resolveProfessionalCanvasActions(context(), nextQuery)
+      .filter((action) => action.eligibility.eligible)
+      .filter((action) => action.intent.type !== 'create-shot-graph' || Boolean(options.createShotGraph))
+      .filter((action) => action.intent.type !== 'create-cinematic-shot-graph' || Boolean(options.createCinematicShotGraph))
+      .filter((action) => action.intent.type !== 'create-image-operation' || Boolean(options.createImageOperation))
+      .filter((action) => action.intent.type !== 'create-storyboard-recipe' || Boolean(options.createStoryboardRecipe))
+      .filter((action) => action.intent.type !== 'open-agent-skill-preflight' || Boolean(options.openAgentSkillPreflight))
+      .filter((action) => action.intent.type !== 'open-audio-generation-preflight' || Boolean(options.openAudioGenerationPreflight))
+      .filter((action) => action.intent.type !== 'open-script-authoring' || Boolean(options.openScriptAuthoring))
+      .filter((action) => action.intent.type !== 'open-workflow-batch' || Boolean(options.openWorkflowBatch))
+      .filter((action) => action.intent.type !== 'open-video-edit-preflight' || Boolean(options.openVideoEditPreflight))
+      .filter((action) => action.intent.type !== 'split-image-grid' || Boolean(options.splitImageGrid))
+  }
+
+  const actions = computed(() => supportedActions(query.value))
+  const availableActionIds = computed(() => supportedActions().map((action) => action.id))
 
   function restoreFocus() {
     const target = opener?.isConnected
@@ -89,11 +97,11 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
     restoreFocus()
   }
 
-  function open(nextOpener: HTMLElement) {
+  function open(nextOpener: HTMLElement, initialQuery = '') {
     if (isOpen.value || options.isBlocked()) return
-    query.value = ''
+    query.value = initialQuery
     error.value = ''
-    if (!resolveProfessionalCanvasActions(context()).some((action) => action.eligibility.eligible)) return
+    if (!supportedActions(initialQuery).length) return
     opener = nextOpener
     isOpen.value = true
   }
@@ -120,6 +128,15 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
       } finally {
         isExecuting.value = false
       }
+      return
+    }
+    if (action.intent.type === 'open-script-authoring') {
+      if (!options.openScriptAuthoring) {
+        error.value = 'AI 脚本写作当前不可用。'
+        return
+      }
+      options.openScriptAuthoring(action.intent.intent)
+      close()
       return
     }
     if (action.intent.type === 'create-cinematic-shot-graph') {
@@ -242,5 +259,5 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
     }
   }
 
-  return { actions, close, error, execute, isOpen, open, query }
+  return { actions, availableActionIds, close, error, execute, isOpen, open, query }
 }

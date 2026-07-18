@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  GitBranch, Grid3X3, Library, Map, Minus, Plus, Scan, ScanSearch, SlidersHorizontal, Workflow,
+  GitBranch, Grid3X3, Library, Map, Scan, ScanSearch, SlidersHorizontal, Workflow,
 } from 'lucide-vue-next'
 
 defineProps<{
@@ -11,33 +11,17 @@ defineProps<{
   isMinimapVisible: boolean
   readonly: boolean
   resourcesOpen: boolean
-  zoomPercent: number
 }>()
 
 const emit = defineEmits<{
   autoArrange: []
   fitGraph: []
   fitSelection: []
-  setZoom: [percent: number]
   toggleResources: [opener: HTMLElement]
   toggleEdges: []
   toggleGrid: []
   toggleMinimap: []
-  zoomIn: []
-  zoomOut: []
 }>()
-
-function commitZoom(event: Event) {
-  const input = event.target as HTMLInputElement
-  emit('setZoom', Number(input.value))
-}
-
-function handleZoomKeyDown(event: KeyboardEvent) {
-  if (event.key !== 'Enter') return
-  event.preventDefault()
-  commitZoom(event)
-  ;(event.target as HTMLInputElement).blur()
-}
 
 function toggleResources(event: MouseEvent) {
   if (event.currentTarget instanceof HTMLElement) emit('toggleResources', event.currentTarget)
@@ -45,7 +29,7 @@ function toggleResources(event: MouseEvent) {
 </script>
 
 <template>
-  <div class="view-controls" role="toolbar" aria-label="画布视图控制">
+  <div class="view-controls" role="group" aria-label="画布视图控制">
     <button
       type="button"
       aria-label="打开项目资源"
@@ -102,54 +86,20 @@ function toggleResources(event: MouseEvent) {
       @click="emit('autoArrange')"
     ><Workflow :size="17" aria-hidden="true" /></button>
 
-    <div class="zoom-controls" role="group" aria-label="缩放">
-      <button type="button" aria-label="缩小画布" title="缩小画布 (Ctrl+-)" @click="emit('zoomOut')">
-        <Minus :size="16" aria-hidden="true" />
-      </button>
-      <label class="zoom-entry">
-        <span class="sr-only">缩放百分比，范围 10 到 800</span>
-        <input
-          type="number"
-          inputmode="numeric"
-          min="10"
-          max="800"
-          step="1"
-          :value="zoomPercent"
-          aria-label="缩放百分比"
-          title="直接输入 10% 到 800%"
-          @change="commitZoom"
-          @keydown="handleZoomKeyDown"
-        />
-        <span aria-hidden="true">%</span>
-      </label>
-      <button type="button" aria-label="放大画布" title="放大画布 (Ctrl++)" @click="emit('zoomIn')">
-        <Plus :size="16" aria-hidden="true" />
-      </button>
-    </div>
   </div>
 </template>
 
 <style scoped lang="scss">
 .view-controls,
-.zoom-controls,
 .view-menu-panel {
   display: flex;
   align-items: center;
 }
 
 .view-controls {
-  position: absolute;
-  z-index: 6;
-  bottom: 20px;
-  left: 20px;
+  flex-direction: column;
   gap: 4px;
-  min-height: 44px;
-  padding: 2px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
   color: var(--text-primary);
-  background: var(--bg-panel);
-  box-shadow: var(--shadow-soft);
 }
 
 .view-menu { position: relative; }
@@ -172,43 +122,14 @@ summary::-webkit-details-marker { display: none; }
 
 .view-menu-panel {
   position: absolute;
-  bottom: calc(100% + 10px);
-  left: -2px;
+  top: -3px;
+  left: calc(100% + 10px);
   gap: 2px;
   padding: 3px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   background: var(--bg-panel);
   box-shadow: var(--shadow-floating, var(--shadow-soft));
-}
-
-.zoom-controls { gap: 1px; }
-.zoom-entry {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 40px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-.zoom-entry input {
-  width: 38px;
-  border: 0;
-  outline: 0;
-  color: var(--text-primary);
-  background: transparent;
-  font: inherit;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  appearance: textfield;
-}
-.zoom-entry input::-webkit-inner-spin-button { appearance: none; }
-.zoom-entry:focus-within {
-  border-radius: var(--radius-sm);
-  outline: 2px solid var(--v2-focus-ring, var(--accent-select));
-  outline-offset: -2px;
 }
 
 button:disabled { opacity: 0.38; cursor: not-allowed; }
@@ -218,27 +139,10 @@ summary:focus-visible {
   outline: 2px solid var(--v2-focus-ring, var(--accent-select));
   outline-offset: 2px;
 }
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
 
 @media (hover: hover) {
   button:not(:disabled):hover,
   summary:hover { color: var(--v2-accent, var(--accent-select)); background: var(--bg-panel-subtle); }
-}
-
-@media (max-width: 920px) {
-  .view-controls { right: auto; bottom: 14px; left: 14px; }
-}
-
-@media (max-width: 720px) {
-  .view-controls { bottom: max(104px, calc(env(safe-area-inset-bottom) + 88px)); left: 12px; }
-  .zoom-entry { width: 58px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

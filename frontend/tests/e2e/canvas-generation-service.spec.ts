@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { expect, test } from '@playwright/test'
 import { createPinia, setActivePinia } from 'pinia'
-import { requestCanvasGeneration } from '../../src/modules/canvas/generation-service'
+import { CanvasGenerationError, requestCanvasGeneration } from '../../src/modules/canvas/generation-service'
 import type { QuotaBalance } from '../../src/types/auth'
 
 function createQuotaStore(quotas: QuotaBalance, quotaRevision = -1) {
@@ -147,6 +147,69 @@ test('generation service leaves the current quotas untouched when the request fa
   }, quotaStore, transport)).rejects.toThrow('provider unavailable')
 
   expect(quotaStore.quotas).toBe(currentQuotas)
+})
+
+test('generation service classifies deterministic provider rejection as input-change required', async () => {
+  const transport = {
+    post: async () => {
+      throw {
+        response: {
+          data: {
+            detail: {
+              code: 'unsupported_parameter',
+              message: 'ratio is unsupported',
+              provider_request_id: 'request-image-400',
+              retryable: false,
+            },
+          },
+        },
+      }
+    },
+  }
+
+  const generation = requestCanvasGeneration({
+    mediaType: 'image', projectId: 'project-service', originCanvasId: 'canvas-service',
+    canvasNodeId: 'node-service', prompt: 'rejected prompt', aspectRatio: '4:3',
+  }, createQuotaStore({ text: 2, image: 2, video: 2 }), transport)
+
+  await expect(generation).rejects.toMatchObject({
+    name: 'CanvasGenerationError',
+    code: 'unsupported_parameter',
+    providerRequestId: 'request-image-400',
+    retryable: false,
+    message: expect.stringContaining('请修改参数后重试'),
+  } satisfies Partial<CanvasGenerationError>)
+})
+
+test('generation service exposes manual retry only for transient provider failures', async () => {
+  const transport = {
+    post: async () => {
+      throw {
+        response: {
+          data: {
+            detail: {
+              code: 'provider_unavailable',
+              message: 'provider is busy',
+              provider_request_id: 'request-video-503',
+              retryable: true,
+            },
+          },
+        },
+      }
+    },
+  }
+
+  const generation = requestCanvasGeneration({
+    mediaType: 'video', projectId: 'project-service', originCanvasId: 'canvas-service',
+    canvasNodeId: 'node-service', prompt: 'transient prompt', referenceMode: 'text-to-video', durationSeconds: 5,
+  }, createQuotaStore({ text: 2, image: 2, video: 2 }), transport)
+
+  await expect(generation).rejects.toMatchObject({
+    code: 'provider_unavailable',
+    providerRequestId: 'request-video-503',
+    retryable: true,
+    message: expect.stringContaining('请稍后手动重试'),
+  } satisfies Partial<CanvasGenerationError>)
 })
 
 test('generation service ignores an older authoritative quota response that arrives last', async () => {

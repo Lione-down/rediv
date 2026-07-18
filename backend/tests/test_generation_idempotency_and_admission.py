@@ -17,6 +17,7 @@ import main as backend_main
 from api.router import include_routers
 from controllers import generation_transactions as generation_controller
 from controllers.store import DatabaseStore, configure_store, store
+from core.agnes_contract import AgnesProviderError
 from core.security import create_token
 from models.base import get_session
 from models.generation_task import GenerationTask
@@ -35,6 +36,21 @@ class _CountingImageProvider:
             "id": f"provider-image-{len(self.calls)}",
             "data": [{"url": "https://example.com/idempotent-image.png"}],
         }
+
+
+class _DeterministicFailingImageProvider:
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    async def generate_image(self, **kwargs) -> dict:
+        self.calls.append(kwargs)
+        raise AgnesProviderError(
+            status_code=400,
+            code="unsupported_parameter",
+            safe_message="ratio is unsupported",
+            request_id=f"provider-rejection-{len(self.calls)}",
+            retryable=False,
+        )
 
 
 class GenerationIdempotencyAdmissionTests(unittest.TestCase):
@@ -64,6 +80,7 @@ class GenerationIdempotencyAdmissionTests(unittest.TestCase):
             "agnes_admission_global_limit": settings.agnes_admission_global_limit,
             "agnes_admission_per_user_limit": settings.agnes_admission_per_user_limit,
             "agnes_admission_image_limit": settings.agnes_admission_image_limit,
+            "agnes_deterministic_failure_guard_seconds": settings.agnes_deterministic_failure_guard_seconds,
         }
 
     def tearDown(self) -> None:
@@ -127,6 +144,34 @@ class GenerationIdempotencyAdmissionTests(unittest.TestCase):
         self.assertEqual(409, conflict.status_code)
         self.assertEqual("generation_request_mismatch", conflict.json()["detail"]["code"])
         self.assertEqual(1, len(provider.calls))
+
+    def test_unchanged_deterministic_failure_requires_input_change_before_resubmit(self) -> None:
+        provider = _DeterministicFailingImageProvider()
+        first_payload = self._payload(self.nodes[0]["id"], str(uuid4()), "same rejected prompt")
+        repeated_payload = {**first_payload, "client_request_id": str(uuid4())}
+        changed_payload = {**first_payload, "client_request_id": str(uuid4()), "prompt": "changed prompt"}
+
+        with patch.object(backend_main, "_agnes", provider):
+            first = self.client.post("/api/image-generate", json=first_payload, headers=self.headers)
+            repeated = self.client.post("/api/image-generate", json=repeated_payload, headers=self.headers)
+            changed = self.client.post("/api/image-generate", json=changed_payload, headers=self.headers)
+
+        self.assertEqual(422, first.status_code)
+        self.assertEqual(409, repeated.status_code)
+        tasks, total = store.list_generation_tasks(self.user["id"], media_type="image")
+        first_task = next(task for task in tasks if task["provider_request_id"] == "provider-rejection-1")
+        self.assertEqual(2, total)
+        self.assertEqual(
+            {
+                "code": "generation_input_unchanged_after_rejection",
+                "task_id": first_task["id"],
+                "error_code": "unsupported_parameter",
+                "message": "请先修改有效输入或参数，再重新提交。",
+            },
+            repeated.json()["detail"],
+        )
+        self.assertEqual(422, changed.status_code)
+        self.assertEqual(2, len(provider.calls))
 
     def test_same_node_single_flight_and_global_capacity_fail_before_task_creation(self) -> None:
         settings.agnes_admission_global_limit = 1

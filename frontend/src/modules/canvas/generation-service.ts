@@ -6,8 +6,45 @@ import { parseGenerationCapabilities, type GenerationCapabilities, type VideoRef
 import type { ShotControls } from './shot-controls'
 import type { VisualAssetRecipeId, VisualAssetRecipeVersion } from './visual-asset-recipes'
 import type { CinematicGenerationHandoff } from './cinematic-skills'
+import type { ScriptAuthoringIntent, ScriptAuthoringLineage, ScriptAuthoringLocale } from './script-authoring'
 
 export type GenerationMediaType = keyof QuotaBalance
+
+export type CanvasGenerationErrorCode =
+  | 'invalid_request'
+  | 'unsupported_parameter'
+  | 'provider_rejected'
+  | 'rate_limited'
+  | 'provider_unavailable'
+  | 'timeout'
+
+const GENERATION_ERROR_CODES = new Set<CanvasGenerationErrorCode>([
+  'invalid_request', 'unsupported_parameter', 'provider_rejected',
+  'rate_limited', 'provider_unavailable', 'timeout',
+])
+
+const RETRYABLE_GENERATION_ERRORS = new Set<CanvasGenerationErrorCode>([
+  'rate_limited', 'provider_unavailable', 'timeout',
+])
+
+export class CanvasGenerationError extends Error {
+  readonly code: CanvasGenerationErrorCode
+  readonly providerRequestId: string | null
+  readonly retryable: boolean
+
+  constructor(
+    code: CanvasGenerationErrorCode,
+    message: string,
+    providerRequestId: string | null,
+    retryable: boolean,
+  ) {
+    super(message)
+    this.name = 'CanvasGenerationError'
+    this.code = code
+    this.providerRequestId = providerRequestId
+    this.retryable = retryable
+  }
+}
 
 export interface CanvasGenerationContext {
   mediaType: GenerationMediaType
@@ -25,6 +62,14 @@ export interface CanvasGenerationContext {
   imageOperation?: ImageOperationContract
   shotControls?: ShotControls
   cinematicHandoff?: CinematicGenerationHandoff
+  scriptAuthoring?: {
+    intent: ScriptAuthoringIntent
+    locale: ScriptAuthoringLocale
+    canvasRevision: number
+    brief?: string
+    sourceText?: string
+    instruction?: string
+  }
 }
 
 export interface CanvasGenerationResponse {
@@ -34,6 +79,7 @@ export interface CanvasGenerationResponse {
   generation_task: GenerationTask
   quotas: QuotaBalance
   quota_revision: number
+  script_authoring?: ScriptAuthoringLineage | null
 }
 
 interface GenerationQuotaStore {
@@ -44,7 +90,7 @@ interface GenerationQuotaStore {
 }
 
 interface GenerationTransport {
-  post<T>(path: string, payload: unknown, config?: { timeout?: number }): Promise<{ data: T }>
+  post<T>(path: string, payload: unknown, config?: { timeout?: number; signal?: AbortSignal }): Promise<{ data: T }>
 }
 
 interface GenerationCapabilityTransport {
@@ -100,6 +146,42 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
 
+function normalizeGenerationFailure(error: unknown) {
+  if (!isRecord(error)) return error
+  const response = isRecord(error.response) ? error.response : null
+  const data = response && isRecord(response.data) ? response.data : null
+  const detail = data && isRecord(data.detail) ? data.detail : null
+  const code = detail?.code
+  if (typeof code !== 'string' || !GENERATION_ERROR_CODES.has(code as CanvasGenerationErrorCode)) return error
+  const typedCode = code as CanvasGenerationErrorCode
+  const providerMessage = typeof detail?.message === 'string' && detail.message.trim()
+    ? detail.message.trim()
+    : 'provider 未返回可用说明'
+  const providerRequestId = typeof detail?.provider_request_id === 'string' && detail.provider_request_id.trim()
+    ? detail.provider_request_id.trim()
+    : null
+  const retryable = RETRYABLE_GENERATION_ERRORS.has(typedCode) && detail?.retryable === true
+  const prefix: Record<CanvasGenerationErrorCode, string> = {
+    invalid_request: '生成请求无效',
+    unsupported_parameter: '当前生成参数不受 Agnes 支持',
+    provider_rejected: 'Agnes 拒绝了当前请求',
+    rate_limited: 'Agnes 请求过于频繁',
+    provider_unavailable: 'Agnes 当前不可用',
+    timeout: 'Agnes 响应超时',
+  }
+  const nextAction = retryable
+    ? '请稍后手动重试。'
+    : typedCode === 'unsupported_parameter'
+      ? '请修改参数后重试。'
+      : '请修改输入后重试。'
+  return new CanvasGenerationError(
+    typedCode,
+    `${prefix[typedCode]}：${providerMessage}。${nextAction}`,
+    providerRequestId,
+    retryable,
+  )
+}
+
 function hasSameIds(value: unknown, expected: readonly string[]) {
   return Array.isArray(value) && value.length === expected.length &&
     value.every((item, index) => item === expected[index])
@@ -108,7 +190,14 @@ function hasSameIds(value: unknown, expected: readonly string[]) {
 function assertGenerationRequestParameters(context: CanvasGenerationContext, task: GenerationTask) {
   const parameters = task.request_parameters
   if (context.mediaType === 'text') {
-    if (context.cinematicHandoff) {
+    if (context.scriptAuthoring) {
+      const snapshot = isRecord(parameters) ? parameters.script_authoring : null
+      if (!isRecord(snapshot) || snapshot.intent !== context.scriptAuthoring.intent ||
+        snapshot.source_node_id !== context.canvasNodeId ||
+        snapshot.canvas_revision !== context.scriptAuthoring.canvasRevision ||
+        snapshot.locale !== context.scriptAuthoring.locale
+      ) throw new Error('Generation response script authoring snapshot mismatch')
+    } else if (context.cinematicHandoff) {
       const snapshot = isRecord(parameters) ? parameters.cinematic_skill : null
       if (!isRecord(snapshot) ||
         snapshot.request_digest !== context.cinematicHandoff.submitted_preflight.request_digest ||
@@ -184,8 +273,10 @@ export async function requestCanvasGeneration(
   context: CanvasGenerationContext,
   quotaStore: GenerationQuotaStore,
   transport: GenerationTransport,
+  signal?: AbortSignal,
 ) {
   const prompt = context.prompt?.trim()
+  const scriptAuthoring = context.scriptAuthoring
   const operationDefinition = context.imageOperation
     ? IMAGE_OPERATIONS[context.imageOperation.id]
     : null
@@ -201,37 +292,59 @@ export async function requestCanvasGeneration(
     context.aspectRatio !== undefined || context.imageOperation !== undefined
   )) throw new Error('Invalid visual asset recipe request')
   if (Boolean(context.recipeId) !== Boolean(context.recipeVersion)) throw new Error('Invalid visual asset recipe request')
-  if (!context.recipeId && !prompt && (!operationDefinition || operationDefinition.requiresPrompt)) {
+  if (!context.recipeId && !prompt && !scriptAuthoring && (!operationDefinition || operationDefinition.requiresPrompt)) {
     throw new Error('Generation prompt is required')
   }
   if (operationDefinition?.requiresPrompt !== undefined && operationDefinition.requiresPrompt !== Boolean(prompt)) {
     throw new Error('Invalid image operation prompt')
   }
   const authSessionToken = quotaStore.token
-  const response = await transport.post<CanvasGenerationResponse>(
-    GENERATION_ROUTES[context.mediaType],
-    {
-      ...(context.clientRequestId ? { client_request_id: context.clientRequestId } : {}),
-      project_id: context.projectId,
-      origin_canvas_id: context.originCanvasId,
-      canvas_node_id: context.canvasNodeId ?? null,
-      ...(prompt ? { prompt } : {}),
-      ...(context.imageIds?.length ? { image_ids: context.imageIds } : {}),
-      ...(context.aspectRatio ? { aspect_ratio: context.aspectRatio } : {}),
-      ...(context.referenceMode ? { reference_mode: context.referenceMode } : {}),
-      ...(context.durationSeconds ? { duration_seconds: context.durationSeconds } : {}),
-      ...(context.recipeId ? { generation_recipe_id: context.recipeId } : {}),
-      ...(context.recipeVersion ? { generation_recipe_version: context.recipeVersion } : {}),
-      ...(context.imageOperation ? { image_operation: context.imageOperation } : {}),
-      ...(context.shotControls ? { shot_controls: context.shotControls } : {}),
-      ...(context.cinematicHandoff ? { cinematic_handoff: context.cinematicHandoff } : {}),
-    },
-    { timeout: 0 },
-  )
+  let response: { data: CanvasGenerationResponse }
+  try {
+    response = await transport.post<CanvasGenerationResponse>(
+      GENERATION_ROUTES[context.mediaType],
+      {
+        ...(context.clientRequestId ? { client_request_id: context.clientRequestId } : {}),
+        project_id: context.projectId,
+        origin_canvas_id: context.originCanvasId,
+        canvas_node_id: context.canvasNodeId ?? null,
+        ...(prompt ? { prompt } : {}),
+        ...(context.imageIds?.length ? { image_ids: context.imageIds } : {}),
+        ...(context.aspectRatio ? { aspect_ratio: context.aspectRatio } : {}),
+        ...(context.referenceMode ? { reference_mode: context.referenceMode } : {}),
+        ...(context.durationSeconds ? { duration_seconds: context.durationSeconds } : {}),
+        ...(context.recipeId ? { generation_recipe_id: context.recipeId } : {}),
+        ...(context.recipeVersion ? { generation_recipe_version: context.recipeVersion } : {}),
+        ...(context.imageOperation ? { image_operation: context.imageOperation } : {}),
+        ...(context.shotControls ? { shot_controls: context.shotControls } : {}),
+        ...(context.cinematicHandoff ? { cinematic_handoff: context.cinematicHandoff } : {}),
+        ...(scriptAuthoring ? {
+          intent: scriptAuthoring.intent,
+          locale: scriptAuthoring.locale,
+          canvas_revision: scriptAuthoring.canvasRevision,
+          ...(scriptAuthoring.brief ? { brief: scriptAuthoring.brief } : {}),
+          ...(scriptAuthoring.sourceText ? { source_text: scriptAuthoring.sourceText } : {}),
+          ...(scriptAuthoring.instruction ? { instruction: scriptAuthoring.instruction } : {}),
+        } : {}),
+      },
+      { timeout: 0, ...(signal ? { signal } : {}) },
+    )
+  } catch (error) {
+    throw normalizeGenerationFailure(error)
+  }
   if (quotaStore.token !== authSessionToken) {
     throw new Error('Generation auth session changed')
   }
   assertGenerationResponseScope(context, response.data)
+  if (scriptAuthoring) {
+    const lineage = response.data.script_authoring
+    if (!lineage || lineage.contract_version !== 1 || lineage.intent !== scriptAuthoring.intent ||
+      lineage.locale !== scriptAuthoring.locale || lineage.source_node_id !== context.canvasNodeId ||
+      lineage.source_task_id !== response.data.generation_task.id ||
+      lineage.source_model !== response.data.generation_task.model ||
+      lineage.canvas_revision !== scriptAuthoring.canvasRevision
+    ) throw new Error('Generation response script authoring lineage mismatch')
+  }
   quotaStore.applyQuotaSnapshot(response.data.quotas, response.data.quota_revision)
   return response.data
 }

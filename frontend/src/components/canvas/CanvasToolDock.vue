@@ -1,21 +1,26 @@
 <script setup lang="ts">
-import { CirclePlus } from 'lucide-vue-next'
+import { AudioLines, CirclePlus, FileText, Image, Library, ScrollText, Upload, Video } from 'lucide-vue-next'
 import { nextTick, ref, watch } from 'vue'
-import {
-  getCreatableNodeDefinitions,
-  type CanonicalNodeType,
-} from '../../modules/canvas/node-registry'
-import { resolveCanvasNodeIcon } from './canvas-node-icons'
+import type { CanonicalNodeType } from '../../modules/canvas/node-registry'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{
   'update:open': [open: boolean]
+  openResources: [opener: HTMLElement]
   select: [type: CanonicalNodeType, subtype: string]
 }>()
 
 const triggerRef = ref<HTMLButtonElement | null>(null)
 const itemRefs = ref<HTMLButtonElement[]>([])
-const definitions = getCreatableNodeDefinitions()
+const catalogEntries = [
+  { id: 'text', label: '文本', ariaLabel: '添加文本节点', icon: FileText, node: { type: 'script', subtype: 'prompt' } },
+  { id: 'image', label: '图片', ariaLabel: '添加图片节点', icon: Image, node: { type: 'generation', subtype: 'image' } },
+  { id: 'video', label: '视频', ariaLabel: '添加视频节点', icon: Video, node: { type: 'generation', subtype: 'video' } },
+  { id: 'audio', label: '音频', ariaLabel: '添加音频节点', icon: AudioLines, node: { type: 'asset', subtype: 'audio' } },
+  { id: 'script', label: '脚本', badge: '正式', ariaLabel: '添加脚本节点', icon: ScrollText, node: { type: 'script', subtype: 'script' } },
+  { id: 'upload', label: '上传', ariaLabel: '上传素材', icon: Upload, resource: true },
+  { id: 'library', label: '素材库', ariaLabel: '从素材库选择', icon: Library, resource: true },
+] as const
 function toggleMenu() {
   emit('update:open', !props.open)
 }
@@ -24,6 +29,15 @@ function selectNode(type: string, subtype: string) {
   emit('select', type as CanonicalNodeType, subtype)
   emit('update:open', false)
   void nextTick(() => triggerRef.value?.focus({ preventScroll: true }))
+}
+
+function selectEntry(entry: typeof catalogEntries[number], event: MouseEvent) {
+  if ('resource' in entry) {
+    emit('update:open', false)
+    if (event.currentTarget instanceof HTMLElement) emit('openResources', event.currentTarget)
+    return
+  }
+  selectNode(entry.node.type, entry.node.subtype)
 }
 
 function focusItem(index: number) {
@@ -66,16 +80,17 @@ watch(() => props.open, (open) => {
         @keydown="handleMenuKeyDown"
       >
         <button
-          v-for="definition in definitions"
-          :key="definition.type"
+          v-for="entry in catalogEntries"
+          :key="entry.id"
           ref="itemRefs"
           type="button"
           role="menuitem"
-          :aria-label="`添加${definition.label}节点`"
-          @click="selectNode(definition.type, definition.defaultSubtype)"
+          :aria-label="entry.ariaLabel"
+          @click="selectEntry(entry, $event)"
         >
-          <component :is="resolveCanvasNodeIcon(definition.icon)" :size="17" aria-hidden="true" />
-          <span>{{ definition.label }}</span>
+          <component :is="entry.icon" :size="17" aria-hidden="true" />
+          <span>{{ entry.label }}</span>
+          <small v-if="'badge' in entry">{{ entry.badge }}</small>
         </button>
       </div>
     </Transition>
@@ -98,18 +113,7 @@ watch(() => props.open, (open) => {
 
 <style scoped lang="scss">
 .canvas-tool-dock {
-  position: absolute;
-  z-index: 8;
-  bottom: 20px;
-  left: 50%;
-  display: flex;
-  min-height: 44px;
-  padding: 2px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--bg-panel);
-  box-shadow: var(--shadow-soft);
-  transform: translateX(-50%);
+  display: contents;
 }
 
 .add-node-trigger,
@@ -136,8 +140,8 @@ watch(() => props.open, (open) => {
 
 .node-menu {
   position: absolute;
-  bottom: calc(100% + 10px);
-  left: 50%;
+  top: -3px;
+  left: calc(100% + 10px);
   display: grid;
   width: 232px;
   grid-template-columns: 1fr 1fr;
@@ -147,7 +151,6 @@ watch(() => props.open, (open) => {
   border-radius: var(--radius-lg);
   background: var(--bg-panel-raised, var(--bg-panel));
   box-shadow: var(--shadow-floating, var(--shadow-soft));
-  transform: translateX(-50%);
 }
 
 .node-menu button {
@@ -158,6 +161,13 @@ watch(() => props.open, (open) => {
   font: inherit;
   font-size: 12px;
   text-align: left;
+}
+
+.node-menu small {
+  margin-left: auto;
+  color: var(--v2-accent-hover, var(--accent-select));
+  font-size: 10px;
+  font-weight: 600;
 }
 
 button:active { transform: scale(var(--v2-press-scale, 0.96)); }
@@ -171,14 +181,10 @@ button:focus-visible {
   transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .node-menu-enter-from,
-.node-menu-leave-to { opacity: 0; transform: translate(-50%, 8px) scale(0.98); }
+.node-menu-leave-to { opacity: 0; transform: translate(-8px, 0) scale(0.98); }
 
 @media (hover: hover) {
   button:hover { color: var(--v2-accent, var(--accent-select)); background: var(--bg-panel-subtle); }
-}
-
-@media (max-width: 920px) {
-  .canvas-tool-dock { bottom: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

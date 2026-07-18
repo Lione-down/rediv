@@ -23,6 +23,7 @@ interface ConnectionContinuationOptions {
 }
 
 const MENU_WIDTH = 248
+const MENU_MAX_HEIGHT = 304
 const MENU_MARGIN = 12
 
 export function useCanvasConnectionContinuation(options: ConnectionContinuationOptions) {
@@ -34,7 +35,7 @@ export function useCanvasConnectionContinuation(options: ConnectionContinuationO
     const viewport = options.getViewportSize()
     return {
       left: `${Math.max(MENU_MARGIN, Math.min(state.surfacePoint.x + 12, viewport.width - MENU_WIDTH - MENU_MARGIN))}px`,
-      top: `${Math.max(MENU_MARGIN, Math.min(state.surfacePoint.y + 12, viewport.height - 280))}px`,
+      top: `${Math.max(MENU_MARGIN, Math.min(state.surfacePoint.y + 12, viewport.height - MENU_MAX_HEIGHT - MENU_MARGIN))}px`,
     }
   })
 

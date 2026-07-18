@@ -31,6 +31,7 @@ import {
   type ReorderGenerationInputCommand,
   type SetNodesLockedCommand,
   type UpdateCinematicSkillSettingsCommand,
+  type ApplyScriptAuthoringResultCommand,
   type UpdateGenerationParametersCommand,
   type UngroupNodesCommand,
 } from './canvas-commands'
@@ -450,6 +451,30 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     await options.updateCinematicSkillSettings(command)
   }
 
+  async function applyScriptAuthoringResult(command: ApplyScriptAuthoringResultCommand) {
+    if (!options.updateNodeState) throw new Error('Script authoring result application is unavailable')
+    const target = options.getNodes().find((node) => node.id === command.nodeId)
+    const currentContent = target?.content ?? target?.contentData?.text ?? ''
+    if (
+      !target || target.type !== 'script' || target.isLocked || !isNodeMutationSupported(target) ||
+      currentContent !== command.expectedContent || command.lineage.source_node_id !== target.id
+    ) return
+    await options.updateNodeState(target.id, {
+      content: command.content,
+      contentData: {
+        ...target.contentData,
+        text: command.content,
+        source_model: command.lineage.source_model,
+        source_task_id: command.lineage.source_task_id,
+        source_node_id: command.lineage.source_node_id,
+        source_canvas_revision: command.lineage.canvas_revision,
+        generation_intent: command.lineage.intent,
+        generation_locale: command.lineage.locale,
+        script_authoring_contract_version: command.lineage.contract_version,
+      },
+    })
+  }
+
   async function executeCommand(envelope: CanvasCommandEnvelope) {
     const { command } = envelope
     if (command.type === 'move-nodes') return moveNodes(command)
@@ -469,6 +494,7 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'reorder-generation-input') return reorderGenerationInput(command)
     if (command.type === 'update-generation-parameters') return updateGenerationParameters(command)
     if (command.type === 'update-cinematic-skill-settings') return updateCinematicSkillSettings(command)
+    if (command.type === 'apply-script-authoring-result') return applyScriptAuthoringResult(command)
     return insertNodeIntoConnection(command)
   }
 

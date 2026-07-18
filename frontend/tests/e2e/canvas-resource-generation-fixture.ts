@@ -4,8 +4,38 @@ import { resolve } from 'node:path'
 import { expect, type Page, type Route } from '@playwright/test'
 import {
   createMockGenerationRequestParameters,
-  GENERATION_CAPABILITIES,
+  GENERATION_CAPABILITIES as LEGACY_GENERATION_CAPABILITIES,
 } from './canvas-generation-parameters-fixture'
+
+const GENERATION_CAPABILITIES = {
+  ...LEGACY_GENERATION_CAPABILITIES,
+  contract_version: 5,
+  text: {
+    contract_version: 1,
+    available: true,
+    model: 'agnes-2.0-flash',
+    model_label: 'Agnes 2.0 Flash',
+    intents: ['script_draft', 'script_refine'],
+    locales: ['zh-CN', 'en-US'],
+    default_locale: 'zh-CN',
+    brief_max_length: 4000,
+    source_max_length: 12000,
+    output_max_length: 12000,
+    creates_media: false,
+    runs_cinematic_decomposition: false,
+  },
+  audio: {
+    contract_version: 1,
+    execution_mode: 'unavailable',
+    model: null,
+    generation_modes: [],
+    provider_generation_modes: [],
+    audio_driven_video_modes: [],
+    provider_audio_driven_video_modes: [],
+    quota: { available: false, quota_type: null, unit_estimate: null },
+    task: { available: false, cancel_supported: false, resume_supported: false },
+  },
+} as const
 
 export const API_ORIGIN = 'http://localhost:8000'
 export const APP_ORIGIN = 'http://127.0.0.1:9099'
@@ -450,7 +480,8 @@ function cinematicScriptGenerationResponse(state: ResourceMockState, canvasId: s
   const task = generationTask({
     id: taskId, origin_canvas_id: canvasId, canvas_node_id: sourceNodeId, media_type: 'text',
     model: 'agnes-2.0-flash', status: 'succeeded', result_asset_id: assetId,
-    provider_request_id: `request-${taskId}`, request_parameters: requestParameters,
+    provider_request_id: `request-${taskId}`, client_request_id: requestBody.client_request_id,
+    request_fingerprint: 'b'.repeat(64), request_parameters: requestParameters,
   })
   const asset = {
     id: assetId, user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: canvasId,
@@ -463,6 +494,40 @@ function cinematicScriptGenerationResponse(state: ResourceMockState, canvasId: s
   state.quotas = { ...state.quotas, text: state.quotas.text - 1 }
   state.quotaRevision += 1
   return { content: JSON.stringify(document), asset, generation_task: task, quotas: state.quotas, quota_revision: state.quotaRevision }
+}
+
+function scriptAuthoringGenerationResponse(state: ResourceMockState, canvasId: string, requestBody: Record<string, unknown>) {
+  const intent = requestBody.intent === 'script_refine' ? 'script_refine' : 'script_draft'
+  const locale = requestBody.locale === 'en-US' ? 'en-US' : 'zh-CN'
+  const sourceNodeId = String(requestBody.canvas_node_id)
+  const canvasRevision = Number(requestBody.canvas_revision)
+  const taskId = `task-authoring-${state.generationCount + 1}`
+  const assetId = `asset-authoring-${state.generationCount + 1}`
+  const content = intent === 'script_refine'
+    ? '黄昏海岸。主角在潮声中走入画面，停下并望向远处灯塔。'
+    : '雨夜车站。摄影师穿过人群，寻找装着失踪胶卷的银色手提箱。'
+  state.generationCount += 1
+  const lineage = {
+    contract_version: 1, intent, locale, source_node_id: sourceNodeId,
+    source_task_id: taskId, source_model: 'agnes-2.0-flash', canvas_revision: canvasRevision,
+  }
+  const task = generationTask({
+    id: taskId, origin_canvas_id: canvasId, canvas_node_id: sourceNodeId, media_type: 'text',
+    model: 'agnes-2.0-flash', status: 'succeeded', result_asset_id: assetId,
+    provider_request_id: `request-${taskId}`, client_request_id: requestBody.client_request_id,
+    request_fingerprint: 'c'.repeat(64), request_parameters: { script_authoring: lineage },
+  })
+  const asset = {
+    id: assetId, user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: canvasId,
+    canvas_node_id: sourceNodeId, type: 'prompt', url: null, content_text: content,
+    source: 'generation', source_model: 'agnes-2.0-flash', source_task_id: taskId, status: 'active',
+    created_at: NOW, updated_at: NOW,
+  }
+  state.tasks = [task, ...state.tasks]
+  state.assets = [asset, ...state.assets]
+  state.quotas = { ...state.quotas, text: state.quotas.text - 1 }
+  state.quotaRevision += 1
+  return { content, asset, generation_task: task, quotas: state.quotas, quota_revision: state.quotaRevision, script_authoring: lineage }
 }
 
 function shotSchemaResponse(
@@ -776,6 +841,10 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
     }
     if (method === 'POST' && path === '/api/text-generate') {
       const canvasId = String(body?.origin_canvas_id ?? FIRST_CANVAS_ID)
+      if (body?.intent === 'script_draft' || body?.intent === 'script_refine') {
+        state.events.push(`script-authoring-requested:${body?.canvas_node_id}`)
+        return fulfillJson(route, scriptAuthoringGenerationResponse(state, canvasId, body ?? {}))
+      }
       state.events.push(`cinematic-script-requested:${body?.canvas_node_id}`)
       return fulfillJson(route, cinematicScriptGenerationResponse(state, canvasId, body ?? {}))
     }

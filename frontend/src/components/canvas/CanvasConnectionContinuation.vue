@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CornerDownRight, X } from 'lucide-vue-next'
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { ConnectionContinuationOption } from '../../modules/canvas/connection-continuation'
 import { resolveCanvasNodeIcon } from './canvas-node-icons'
 
@@ -15,6 +15,39 @@ const emit = defineEmits<{
 }>()
 const menuRef = ref<HTMLElement | null>(null)
 const itemRefs = ref<HTMLButtonElement[]>([])
+type DisplayOption = ConnectionContinuationOption & { displayLabel: string; isAvailable: boolean; availabilityLabel?: string }
+const displayOptions = computed<DisplayOption[]>(() => {
+  const options = props.options.map((option) => ({
+    ...option,
+    displayLabel: option.type === 'script' && option.subtype === 'prompt' ? '文本' : option.label,
+    isAvailable: true,
+  }))
+  const isTextContinuation = props.direction === 'downstream' && options.some((option) => (
+    option.type === 'generation' && option.targetPort === 'prompt'
+  ))
+  if (!isTextContinuation) return options
+  const audio: DisplayOption = {
+    key: 'unavailable:audio',
+    type: 'asset',
+    subtype: 'audio',
+    label: '音频',
+    displayLabel: '音频',
+    icon: 'audio-lines',
+    sourcePort: 'out',
+    targetPort: 'media',
+    isAvailable: false,
+    availabilityLabel: '暂不可用',
+  }
+  const order = (option: DisplayOption) => {
+    if (option.type === 'script' && option.subtype === 'prompt') return 0
+    if (option.type === 'generation' && option.subtype === 'image') return 1
+    if (option.type === 'generation' && option.subtype === 'video') return 2
+    if (!option.isAvailable && option.subtype === 'audio') return 3
+    if (option.type === 'script') return 4
+    return 5
+  }
+  return [...options, audio].sort((left, right) => order(left) - order(right))
+})
 
 function focusItem(index: number) {
   const items = itemRefs.value
@@ -35,8 +68,12 @@ function handleKeyDown(event: KeyboardEvent) {
     focusItem(index - 1)
   } else if (event.key === 'Home' || event.key === 'End') {
     event.preventDefault()
-    focusItem(event.key === 'Home' ? 0 : props.options.length - 1)
+    focusItem(event.key === 'Home' ? 0 : displayOptions.value.length - 1)
   }
+}
+
+function selectOption(option: DisplayOption) {
+  if (option.isAvailable) emit('select', option.key)
 }
 
 function handleOutsidePointerDown(event: PointerEvent) {
@@ -59,16 +96,17 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', handleOutsidePoi
     <p>{{ direction === 'upstream' ? `为「${originTitle}」创建兼容上游` : `从「${originTitle}」创建兼容节点` }}</p>
     <div role="menu" aria-label="兼容节点">
       <button
-        v-for="option in options"
+        v-for="option in displayOptions"
         :key="option.key"
         ref="itemRefs"
         type="button"
         role="menuitem"
-        @click="emit('select', option.key)"
+        :aria-disabled="!option.isAvailable"
+        @click="selectOption(option)"
       >
         <component :is="resolveCanvasNodeIcon(option.icon)" :size="16" aria-hidden="true" />
-        <span>{{ option.label }}</span>
-        <small>{{ option.targetPort === 'prompt' || option.sourcePort === 'out' && option.type === 'script' ? '文本' : option.targetPort === 'media' ? '参考' : option.sourcePort === 'out' && option.type === 'asset' ? '素材' : '结果' }}</small>
+        <span>{{ option.displayLabel }}</span>
+        <small>{{ option.availabilityLabel ?? (option.targetPort === 'prompt' || option.sourcePort === 'out' && option.type === 'script' ? '文本' : option.targetPort === 'media' ? '参考' : option.sourcePort === 'out' && option.type === 'asset' ? '素材' : '结果') }}</small>
       </button>
     </div>
     <footer>↑↓ 选择 · Enter 创建 · Esc 取消</footer>
@@ -108,10 +146,12 @@ p { margin: 2px 5px 7px; overflow: hidden; color: var(--v2-text-muted); font-siz
 }
 [role="menu"] button span { flex: 1; color: var(--v2-text-primary, var(--text-primary)); }
 [role="menu"] button small { color: var(--v2-text-muted); font-size: 10px; }
+[role="menu"] button[aria-disabled="true"] { color: var(--v2-text-disabled); cursor: not-allowed; opacity: 0.64; }
+[role="menu"] button[aria-disabled="true"] span { color: var(--v2-text-disabled); }
 footer { margin: 6px 5px 2px; color: var(--v2-text-muted); font-size: 9px; }
 button:focus-visible { outline: 2px solid var(--v2-focus-ring, var(--accent-select)); outline-offset: -2px; }
 @media (hover: hover) {
-  header button:hover, [role="menu"] button:hover { color: var(--v2-accent); background: var(--v2-accent-soft); }
+  header button:hover, [role="menu"] button:not([aria-disabled="true"]):hover { color: var(--v2-accent); background: var(--v2-accent-soft); }
 }
 @media (prefers-reduced-motion: reduce) { .continuation-menu, button { transition: none; } }
 </style>

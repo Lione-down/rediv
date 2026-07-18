@@ -41,9 +41,9 @@ test('grid presentation tracks the 24-unit world grid across pan and accepted zo
 
 test('workflow starters reuse canonical registry nodes and one insert-graph command', () => {
   expect(WORKFLOW_STARTERS.map((starter) => starter.id)).toEqual([
-    'script', 'image', 'video', 'storyboard',
+    'script', 'character', 'first-frame', 'audio-video',
   ])
-  const command = createWorkflowStarterCommand('image', { x: 120, y: -80 })
+  const command = createWorkflowStarterCommand('character', { x: 120, y: -80 })!
   expect(command.type).toBe('insert-graph')
   expect(command.nodes).toHaveLength(2)
   expect(command.nodes.map((node) => node.type)).toEqual(['script', 'generation'])
@@ -63,6 +63,13 @@ test('workflow starters reuse canonical registry nodes and one insert-graph comm
     sourcePort: 'out',
     targetPort: 'prompt',
   })])
+  const firstFrame = createWorkflowStarterCommand('first-frame', { x: 0, y: 0 })!
+  expect(firstFrame.nodes.map((node) => [node.type, node.contentData.subtype])).toEqual([
+    ['script', 'prompt'], ['generation', 'image'], ['generation', 'video'],
+  ])
+  expect(firstFrame.connections).toHaveLength(2)
+  expect(firstFrame.connections.every((connection) => connection.targetPort === 'prompt')).toBe(true)
+  expect(createWorkflowStarterCommand('audio-video', { x: 0, y: 0 })).toBeNull()
 })
 
 test('editable empty Canvas offers starters and an explicit zero-mutation blank path', async ({ page }, testInfo) => {
@@ -113,7 +120,7 @@ test('editable empty Canvas offers starters and an explicit zero-mutation blank 
   const starterMutationsBefore = state.authenticatedRequests.filter((request) => (
     request.startsWith('PATCH ') && request.endsWith('/document')
   )).length
-  const starterButton = guide.getByRole('button', { name: '使用图片生成工作流' })
+  const starterButton = guide.getByRole('button', { name: '使用角色多视图工作流' })
   await starterButton.focus()
   await page.keyboard.down('Space')
   await expect(surface).not.toHaveClass(/cursor-grab/)

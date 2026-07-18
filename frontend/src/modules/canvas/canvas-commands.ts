@@ -2,6 +2,7 @@ import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import type { InsertNodeIntoConnectionCommand } from './edge-insertion'
 import type { GenerationNodeParameters } from './generation-parameters'
 import type { CinematicSkillNodeSettings } from './cinematic-skills'
+import type { ScriptAuthoringLineage } from './script-authoring'
 import {
   reorderGenerationInputConnections,
   type GenerationInputDirection,
@@ -124,6 +125,14 @@ export interface UpdateCinematicSkillSettingsCommand {
   settings: CinematicSkillNodeSettings
 }
 
+export interface ApplyScriptAuthoringResultCommand {
+  type: 'apply-script-authoring-result'
+  nodeId: string
+  expectedContent: string
+  content: string
+  lineage: ScriptAuthoringLineage
+}
+
 export type CanvasCommand =
   | MoveNodesCommand
   | DuplicateNodesCommand
@@ -142,6 +151,7 @@ export type CanvasCommand =
   | ReorderGenerationInputCommand
   | UpdateGenerationParametersCommand
   | UpdateCinematicSkillSettingsCommand
+  | ApplyScriptAuthoringResultCommand
   | InsertNodeIntoConnectionCommand
 
 export interface CanvasCommandEnvelope {

@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "task_id": "T5-094",
+  "collected_at": "2026-07-18",
+  "clean_room": {
+    "allowed_sources": [
+      "official_public_page",
+      "official_public_repository",
+      "official_documentation",
+      "human_authorized_capture",
+      "revid_owned_test_evidence"
+    ],
+    "forbidden_material": [
+      "private_source",
+      "private_prompt",
+      "credential",
+      "brand_asset",
+      "proprietary_icon_file",
+      "font_file",
+      "copied_visual_asset"
+    ],
+    "color_policy": "map semantic roles to Revid graphite/violet tokens"
+  },
+  "target_viewports": [
+    { "width": 1440, "height": 900, "mode": "editable-desktop" },
+    { "width": 1366, "height": 768, "mode": "editable-desktop" },
+    { "width": 920, "height": 900, "mode": "editable-compact" },
+    { "width": 375, "height": 812, "mode": "review-only" }
+  ],
+  "target_zooms_percent": [10, 17, 36, 100, 200],
+  "evidence_sources": [
+    { "id": "L-PUBLIC-HOME", "kind": "official_public_page", "source": "https://www.liblib.tv/", "observed_at": "2026-07-18", "viewport": "browser-default-desktop" },
+    { "id": "L-PUBLIC-CANVAS", "kind": "official_public_page", "source": "https://www.liblib.tv/canvas", "observed_at": "2026-07-18", "viewport": "browser-default-desktop", "result": "redirected-to-public-home-login-gate" },
+    { "id": "L-OFFICIAL-SKILL", "kind": "official_public_repository", "source": "https://github.com/libtv-labs/libtv-skills", "observed_at": "2026-07-18" },
+    { "id": "L-SS-03-12", "kind": "human_authorized_capture_set", "source": "output/playwright/libtv-03.png through libtv-12.png", "retained_at": "2026-07-15", "capture_dimensions": "1080x820", "version_clue": "March 2026 public product review" },
+    { "id": "R-014-015", "kind": "revid_owned_test_evidence", "source": "ai/reports/REPORT-T5-014.md and REPORT-T5-015.md", "observed_at": "2026-07-15" },
+    { "id": "R-094-U3", "kind": "revid_owned_test_evidence", "source": "frontend/tests/e2e/canvas-script-generation.spec.ts", "observed_at": "2026-07-18" }
+  ],
+  "scenarios": [
+    {
+      "id": "shell-empty-desktop",
+      "ledger_ids": ["A01", "A02", "A03", "A04", "A05", "A06", "A07"],
+      "evidence_ids": ["L-SS-03"],
+      "viewports": ["1440x900", "1366x768", "920x900"],
+      "zooms_percent": [100],
+      "assertions": ["screen-fixed chrome", "visible dot grid", "compact identity", "left toolbar", "zoom group", "center hint", "suggestion strip"],
+      "current_status": "BLOCKED"
+    },
+    {
+      "id": "catalog-add-menu",
+      "ledger_ids": ["B01", "B20", "B21", "B22"],
+      "evidence_ids": ["L-SS-04"],
+      "viewports": ["1440x900", "920x900"],
+      "zooms_percent": [100],
+      "assertions": ["menu anchor", "catalog order", "icon role", "disabled or beta state", "upload and library actions"],
+      "current_status": "NOT_OBSERVABLE"
+    },
+    {
+      "id": "text-node-authoring",
+      "ledger_ids": ["B02", "B03", "B04", "B11"],
+      "evidence_ids": ["L-SS-05"],
+      "viewports": ["1440x900", "1366x768", "920x900"],
+      "zooms_percent": [100, 200],
+      "assertions": ["external label", "content-shaped body", "right output port", "composer ownership", "IME and blur commit"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "typed-continuation-menu",
+      "ledger_ids": ["B18", "B19", "C04"],
+      "evidence_ids": ["L-SS-05", "L-SS-12"],
+      "viewports": ["1440x900", "920x900"],
+      "zooms_percent": [36, 100],
+      "assertions": ["source-local anchor", "typed catalog", "zoom-stable position", "atomic branch insertion", "Escape and focus restore"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "empty-image-generation",
+      "ledger_ids": ["B05", "B06", "D01", "D03"],
+      "evidence_ids": ["L-SS-06", "L-SS-07"],
+      "viewports": ["1440x900", "1366x768", "920x900"],
+      "zooms_percent": [100],
+      "assertions": ["media-ratio placeholder", "node-local upload", "external label", "ports", "recovery actions", "no asset before success"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "image-composer",
+      "ledger_ids": ["B12", "B13", "D04"],
+      "evidence_ids": ["L-SS-08", "L-SS-09"],
+      "viewports": ["1440x900", "1366x768", "920x900"],
+      "zooms_percent": [73, 100],
+      "assertions": ["attached composer", "mode tiles", "prompt", "model", "ratio", "resolution", "shot controls", "quota estimate", "submit"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "generated-image-version-family",
+      "ledger_ids": ["B07", "B08", "D02", "D06"],
+      "evidence_ids": ["L-SS-07", "L-SS-09"],
+      "viewports": ["1440x900", "1366x768", "920x900"],
+      "zooms_percent": [78, 100, 200],
+      "assertions": ["intrinsic ratio", "single media surface", "restrained stack", "resolution badge", "output port", "lineage identity"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "image-context-toolbar",
+      "ledger_ids": ["B15", "B16", "D07", "D13"],
+      "evidence_ids": ["L-SS-09"],
+      "viewports": ["1440x900", "1366x768", "920x900"],
+      "zooms_percent": [100],
+      "assertions": ["toolbar above media", "progressive disclosure", "operation order", "download", "fullscreen", "unavailable action semantics"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "lighting-control-panel",
+      "ledger_ids": ["B17", "D14"],
+      "evidence_ids": ["L-SS-10"],
+      "viewports": ["1440x900", "920x900"],
+      "zooms_percent": [68, 100],
+      "assertions": ["source remains visible", "floating panel", "lighting controls", "reset", "quota", "submit", "focus trap", "Escape"],
+      "current_status": "BLOCKED"
+    },
+    {
+      "id": "video-player-and-composer",
+      "ledger_ids": ["B09", "B10", "B14", "D05", "D08"],
+      "evidence_ids": ["L-SS-11"],
+      "viewports": ["1440x900", "1366x768", "920x900"],
+      "zooms_percent": [100, 108],
+      "assertions": ["native playback", "time and volume", "reference thumbnails", "prompt", "model", "ratio", "duration", "audio state", "quota", "submit"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "active-edge-flow",
+      "ledger_ids": ["C01", "C02", "C03"],
+      "evidence_ids": ["L-SS-07", "L-SS-08"],
+      "viewports": ["1440x900", "920x900"],
+      "zooms_percent": [73, 78, 100, 200],
+      "assertions": ["quiet idle edge", "local active flow", "screen-stable target", "typed feedback", "reduced-motion alternative"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "dense-graph-overview",
+      "ledger_ids": ["A09", "C05", "C12", "C13", "F12"],
+      "evidence_ids": ["L-SS-12"],
+      "viewports": ["1440x900", "1366x768"],
+      "zooms_percent": [10, 17, 36, 100],
+      "assertions": ["recognizable media", "quiet edges", "fixed zoom controls", "no long tasks", "bounded DOM primitives", "200 nodes and 300 connections"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "script-ai-draft-new-node",
+      "ledger_ids": ["E02"],
+      "evidence_ids": ["R-094-U3"],
+      "viewports": ["1440x900", "375x812"],
+      "zooms_percent": [100],
+      "assertions": ["visible Agnes 2.0 Flash", "bounded brief", "default new script", "lineage edge", "undo redo reload", "no cinematic or media side effect"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "script-ai-refine-explicit-replace",
+      "ledger_ids": ["E02"],
+      "evidence_ids": ["R-094-U3"],
+      "viewports": ["1440x900", "375x812"],
+      "zooms_percent": [100],
+      "assertions": ["current source snapshot", "explicit replace", "atomic history", "stale fail closed", "cinematic action remains separate"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "story-character-first-frame-suggestions",
+      "ledger_ids": ["E01", "E03", "E04"],
+      "evidence_ids": ["L-SS-03", "R-080-091"],
+      "viewports": ["1440x900", "920x900"],
+      "zooms_percent": [100],
+      "assertions": ["suggestion strip", "script to shot", "character turnaround", "first frame video", "explicit execution"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "audio-driven-video-unavailable",
+      "ledger_ids": ["B21", "E05"],
+      "evidence_ids": ["L-SS-03", "L-SS-04", "R-080-091"],
+      "viewports": ["1440x900", "920x900", "375x812"],
+      "zooms_percent": [100],
+      "assertions": ["first-class visible entry", "capability unavailable", "zero provider quota task asset output authority", "review-only"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "agent-skill-main-composer",
+      "ledger_ids": ["A10", "E06", "E07", "E08", "E10"],
+      "evidence_ids": ["L-PUBLIC-HOME", "L-OFFICIAL-SKILL", "R-080-091"],
+      "viewports": ["1440x900", "920x900", "375x812"],
+      "zooms_percent": [100],
+      "assertions": ["attachment", "model", "Skill", "generation mode", "send", "session progress", "result lineage", "honest authority"],
+      "current_status": "BLOCKED"
+    },
+    {
+      "id": "generation-deterministic-400",
+      "ledger_ids": ["D10", "D11"],
+      "evidence_ids": ["R-094-U3"],
+      "viewports": ["1440x900", "920x900", "375x812"],
+      "zooms_percent": [100],
+      "assertions": ["typed provider failure", "redacted correlation", "no automatic retry", "same fingerprint guard", "prior result preserved", "no quota asset side effect"],
+      "current_status": "NOT_OBSERVABLE"
+    },
+    {
+      "id": "responsive-review-only",
+      "ledger_ids": ["F01", "F02"],
+      "evidence_ids": ["R-014-015", "R-094-U3"],
+      "viewports": ["1440x900", "1366x768", "920x900", "375x812"],
+      "zooms_percent": [25, 74, 100],
+      "assertions": ["desktop edit", "compact drawer ownership", "mobile review-only", "no generation", "no graph mutation"],
+      "current_status": "NOT_OBSERVABLE"
+    },
+    {
+      "id": "accessibility-and-keyboard",
+      "ledger_ids": ["F08", "F09", "F10", "F11"],
+      "evidence_ids": ["R-014-015", "R-094-U3"],
+      "viewports": ["1440x900", "920x900", "375x812"],
+      "zooms_percent": [100],
+      "assertions": ["focus order", "accessible names", "IME", "Escape", "reduced motion", "axe serious and critical zero"],
+      "current_status": "NOT_OBSERVABLE"
+    },
+    {
+      "id": "public-discovery-and-auth-boundary",
+      "ledger_ids": ["A11", "A12"],
+      "evidence_ids": ["L-PUBLIC-HOME", "L-PUBLIC-CANVAS", "L-OFFICIAL-TERMS"],
+      "viewports": ["1440x900", "1366x768"],
+      "zooms_percent": [100],
+      "assertions": ["public discovery is not inferred as authenticated Canvas", "unauthenticated Canvas asks for login", "no login or account mutation"],
+      "current_status": "NOT_OBSERVABLE"
+    },
+    {
+      "id": "navigation-history-and-minimap-boundary",
+      "ledger_ids": ["A08", "C14", "C15", "F13"],
+      "evidence_ids": ["L-SS-03", "L-SS-12", "R-014-015"],
+      "viewports": ["1440x900", "1366x768", "920x900", "375x812"],
+      "zooms_percent": [10, 17, 36, 100, 200],
+      "assertions": ["wide pan and zoom", "screen-fixed chrome", "history remains available", "minimap is progressively disclosed without removing accessible navigation"],
+      "current_status": "NOT_OBSERVABLE"
+    },
+    {
+      "id": "unobserved-graph-editing-contracts",
+      "ledger_ids": ["C06", "C07", "C08", "C09", "C10", "C11", "F14"],
+      "evidence_ids": ["L-SS-03", "L-SS-12", "R-080-091"],
+      "viewports": ["1440x900", "920x900", "375x812"],
+      "zooms_percent": [36, 100],
+      "assertions": ["checked static evidence does not show marquee", "checked static evidence does not show group or batch semantics", "checked static evidence does not show reroute or context menus", "checked static evidence does not show copy paste or file drag drop", "Revid safety contracts remain intact"],
+      "current_status": "NOT_OBSERVABLE"
+    },
+    {
+      "id": "unobserved-generation-lifecycle-contracts",
+      "ledger_ids": ["D09", "D12", "D15"],
+      "evidence_ids": ["L-SS-07", "L-SS-08", "L-SS-09", "R-080-091"],
+      "viewports": ["1440x900", "920x900", "375x812"],
+      "zooms_percent": [100],
+      "assertions": ["checked static evidence does not show queued progress or cancel timing", "visual stacking does not establish compare or replace semantics", "checked static evidence does not show broken media", "Revid recovery and prior-result preservation remain intact"],
+      "current_status": "NOT_OBSERVABLE"
+    },
+    {
+      "id": "upload-limit-product-boundary",
+      "ledger_ids": ["E09"],
+      "evidence_ids": ["L-OFFICIAL-SKILL", "R-080-091"],
+      "viewports": ["1440x900", "920x900"],
+      "zooms_percent": [100],
+      "assertions": ["LibTV documented upload boundary is recorded", "Revid ownership and safe size bounds remain authoritative", "no silent limit loosening"],
+      "current_status": "BLOCKED"
+    },
+    {
+      "id": "unobserved-finishing-and-template-contracts",
+      "ledger_ids": ["E11", "E12", "E13", "E14", "E15"],
+      "evidence_ids": ["L-PUBLIC-HOME", "L-SS-03", "L-SS-12", "R-080-091"],
+      "viewports": ["1440x900", "920x900", "375x812"],
+      "zooms_percent": [100],
+      "assertions": ["checked public surfaces do not establish dedicated character or scene node structure", "checked public surfaces do not establish subtitle or timeline contracts", "checked public surfaces do not establish Canvas export or template lifecycle", "unavailable Revid execution remains honest"],
+      "current_status": "NOT_OBSERVABLE"
+    },
+    {
+      "id": "node-geometry-and-semantic-color",
+      "ledger_ids": ["F03", "F04", "F05", "F15"],
+      "evidence_ids": ["L-SS-05", "L-SS-06", "L-SS-09", "L-SS-10", "L-SS-11", "R-014-015"],
+      "viewports": ["1440x900", "1366x768", "920x900"],
+      "zooms_percent": [17, 36, 100, 200],
+      "assertions": ["stable node body toolbar port and composer ownership", "restrained outline and radius", "quiet overlay hierarchy", "Revid semantic color map only"],
+      "current_status": "MATCHED"
+    },
+    {
+      "id": "motion-observation-boundary",
+      "ledger_ids": ["F06", "F07"],
+      "evidence_ids": ["L-SS-07", "L-SS-08", "R-014-015"],
+      "viewports": ["1440x900", "920x900", "375x812"],
+      "zooms_percent": [100],
+      "assertions": ["stills prove active edge state but not timing", "exact duration and easing are not inferred", "Revid reduced-motion contract remains active"],
+      "current_status": "NOT_OBSERVABLE"
+    }
+  ],
+  "completion_rule": {
+    "missing_scenarios_allowed": false,
+    "blocked_requires_release_condition": true,
+    "not_observable_requires_checked_surface": true,
+    "blocked_or_not_observable_requires_human_acceptance_for_task_closure": true,
+    "real_provider_evidence": "separately authorized only"
+  }
+}

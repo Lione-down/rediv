@@ -23,6 +23,7 @@ from controllers.generation_records import (
 )
 from controllers.generation_reservations import admit_generation_request, lock_active_reservations
 from controllers.resource_scope import resolve_database_resource_scope
+from core.agnes_image_reference import AgnesImageReferenceError, resolve_agnes_image_reference
 from models.asset import Asset
 from models.base import get_session, utc_now
 from models.generation_task import GenerationTask
@@ -90,7 +91,10 @@ def _resolve_input_image_urls(
             raise GenerationValidationError("Asset must be an image")
         if not asset.url:
             raise GenerationValidationError("Image asset URL is required")
-        urls.append(asset.url)
+        try:
+            urls.append(resolve_agnes_image_reference(asset.url, user_id=user_id))
+        except AgnesImageReferenceError as error:
+            raise GenerationValidationError(str(error)) from error
     return urls
 
 
