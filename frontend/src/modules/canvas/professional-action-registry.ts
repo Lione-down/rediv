@@ -20,6 +20,7 @@ export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | '
 export type ProfessionalCanvasActionIntent =
   | { type: 'create-node'; nodeType: CanonicalNodeType; subtype: string }
   | { type: 'create-shot-graph' }
+  | { type: 'create-cinematic-shot-graph'; skillId: 'revid.cinema-script'; skillVersion: 1 }
   | { type: 'create-storyboard-recipe'; recipeId: StoryboardRecipeId; recipeVersion: 1 }
   | { type: 'create-image-operation'; operationId: ImageOperationId; operationVersion: 1 }
   | { type: 'open-workflow-batch'; templateId: 'canvas-generation-batch'; templateVersion: 1 }
@@ -120,6 +121,14 @@ export const PROFESSIONAL_CANVAS_ACTIONS = [
     description: '用本地 mock 解析脚本并创建镜头生成图。',
     keywords: ['脚本', '镜头', '分镜', 'shot', 'script', 'storyboard', 'plan'],
     intent: { type: 'create-shot-graph' },
+  },
+  {
+    id: 'script.create-cinematic-shot-graph',
+    category: 'script',
+    title: 'Cinematic Script：优化并创建分镜',
+    description: '使用 revid.cinema-script.v1、当前 Agnes model 和 exact preflight 创建 strict shot document。',
+    keywords: ['cinematic', 'script', 'skill', '电影', '脚本', '镜头', '分镜', '优化'],
+    intent: { type: 'create-cinematic-shot-graph', skillId: 'revid.cinema-script', skillVersion: 1 },
   },
   {
     id: 'workflow.canvas-generation-batch',
@@ -246,7 +255,7 @@ function resolveEligibility(
   if (action.intent.type === 'split-image-grid' && !resolveProjectImageSplitTarget(context)) {
     return { eligible: false, reason: '请选择一个可用的项目上传图片。' }
   }
-  if (action.intent.type === 'create-shot-graph' && !resolveShotSchemaSource(context)) {
+  if ((action.intent.type === 'create-shot-graph' || action.intent.type === 'create-cinematic-shot-graph') && !resolveShotSchemaSource(context)) {
     return { eligible: false, reason: '请选择一个可用的脚本节点。' }
   }
   if (action.intent.type === 'open-workflow-batch' && !context.selectedNodes.some((node) => (
@@ -324,7 +333,9 @@ function actionSearchText(action: ProfessionalCanvasActionDefinition) {
             ? `${action.intent.templateId} video trim concat preview export`
           : action.intent.type === 'open-agent-skill-preflight'
             ? `${action.intent.skillId} agent skill canvas context mock preflight`
-            : 'script shot storyboard',
+            : action.intent.type === 'create-cinematic-shot-graph'
+              ? `${action.intent.skillId} cinematic script shot storyboard`
+              : 'script shot storyboard',
   ].join(' ').normalize('NFKC').toLocaleLowerCase()
 }
 

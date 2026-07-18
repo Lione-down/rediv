@@ -5,6 +5,7 @@ import type { GenerationTask } from './project-resource-types'
 import { parseGenerationCapabilities, type GenerationCapabilities, type VideoReferenceMode } from './generation-parameters'
 import type { ShotControls } from './shot-controls'
 import type { VisualAssetRecipeId, VisualAssetRecipeVersion } from './visual-asset-recipes'
+import type { CinematicGenerationHandoff } from './cinematic-skills'
 
 export type GenerationMediaType = keyof QuotaBalance
 
@@ -22,6 +23,7 @@ export interface CanvasGenerationContext {
   recipeVersion?: VisualAssetRecipeVersion
   imageOperation?: ImageOperationContract
   shotControls?: ShotControls
+  cinematicHandoff?: CinematicGenerationHandoff
 }
 
 export interface CanvasGenerationResponse {
@@ -96,13 +98,33 @@ function hasSameIds(value: unknown, expected: readonly string[]) {
 }
 
 function assertGenerationRequestParameters(context: CanvasGenerationContext, task: GenerationTask) {
-  if (context.mediaType === 'text') return
   const parameters = task.request_parameters
+  if (context.mediaType === 'text') {
+    if (context.cinematicHandoff) {
+      const snapshot = isRecord(parameters) ? parameters.cinematic_skill : null
+      if (!isRecord(snapshot) ||
+        snapshot.request_digest !== context.cinematicHandoff.submitted_preflight.request_digest ||
+        snapshot.skill_id !== context.cinematicHandoff.skill_id ||
+        snapshot.canvas_revision !== context.cinematicHandoff.canvas_revision
+      ) throw new Error('Generation response cinematic Skill snapshot mismatch')
+    }
+    return
+  }
   const imageIds = context.imageIds ?? []
   if (
     !isRecord(parameters) || parameters.contract_version !== 1 ||
     parameters.media_type !== context.mediaType || !hasSameIds(parameters.image_ids, imageIds)
   ) throw new Error('Generation response parameter snapshot mismatch')
+  if (context.cinematicHandoff) {
+    const snapshot = parameters.cinematic_skill
+    if (!isRecord(snapshot) ||
+      snapshot.request_digest !== context.cinematicHandoff.submitted_preflight.request_digest ||
+      snapshot.skill_id !== context.cinematicHandoff.skill_id ||
+      snapshot.canvas_revision !== context.cinematicHandoff.canvas_revision
+    ) throw new Error('Generation response cinematic Skill snapshot mismatch')
+  } else if (parameters.cinematic_skill !== undefined) {
+    throw new Error('Generation response cinematic Skill snapshot mismatch')
+  }
   if (context.recipeId) {
     if (
       parameters.generation_recipe_id !== context.recipeId ||
@@ -193,6 +215,7 @@ export async function requestCanvasGeneration(
       ...(context.recipeVersion ? { generation_recipe_version: context.recipeVersion } : {}),
       ...(context.imageOperation ? { image_operation: context.imageOperation } : {}),
       ...(context.shotControls ? { shot_controls: context.shotControls } : {}),
+      ...(context.cinematicHandoff ? { cinematic_handoff: context.cinematicHandoff } : {}),
     },
     { timeout: 0 },
   )

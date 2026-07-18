@@ -37,14 +37,14 @@ def node(
     )
 
 
-def shot_child(node_id: str, group_id: str, index: int, *, locked: bool = False) -> CanvasNode:
+def shot_child(node_id: str, group_id: str, index: int, *, locked: bool = False, schema_version: int = 1) -> CanvasNode:
     return node(
         node_id,
         "generation",
         {
             "subtype": "image",
             "serialization_version": 1,
-            "shot_schema_version": 1,
+            "shot_schema_version": schema_version,
             "shot_id": f"shot-{index:02d}",
             "shot_index": index,
             "shot_title": f"镜头 {index:02d}",
@@ -55,6 +55,47 @@ def shot_child(node_id: str, group_id: str, index: int, *, locked: bool = False)
 
 
 class ShotStoryboardDuplicationTestCase(unittest.TestCase):
+    def test_cinematic_bindings_and_script_lineage_remap_to_duplicate_canvas_ids(self) -> None:
+        content = {
+            "subtype": "image", "serialization_version": 1,
+            "source_script_node_id": "script-a", "source_revision": "a" * 64,
+            "cinematic_skill": {
+                "contract_version": 1, "enabled": True, "skill_id": "revid.cinema-image",
+                "skill_version": 1, "provider_id": "agnes", "model_id": "agnes-image-2.1-flash",
+                "mentions": [{
+                    "node_id": "reference-a", "role": "identity", "instruction": "保持身份",
+                    "source_revision": "b" * 64,
+                }],
+            },
+        }
+        duplicated = _duplicate_node_content(
+            node("generation-a", "generation", content), [],
+            {"generation-a": "generation-copy", "script-a": "script-copy", "reference-a": "reference-copy"},
+        )
+        self.assertEqual("script-copy", duplicated["source_script_node_id"])
+        self.assertEqual("reference-copy", duplicated["cinematic_skill"]["mentions"][0]["node_id"])
+        self.assertEqual("reference-a", content["cinematic_skill"]["mentions"][0]["node_id"])
+
+    def test_cinematic_shot_schema_v2_remaps_ordered_children(self) -> None:
+        group_id = "group-cinematic"
+        content = {
+            "subtype": "storyboard", "serialization_version": 1, "storyboard_schema_version": 2,
+            "storyboard_kind": "shot-plan", "shot_schema_version": 2, "aspect_ratio": "16:9",
+            "columns": 2, "show_numbers": True, "ordered_child_ids": ["generation-a", "generation-b"],
+            "source_script_node_id": "script-a", "source_revision": "a" * 64,
+        }
+        duplicated = _duplicate_node_content(
+            node(group_id, "group", content),
+            [shot_child("generation-a", group_id, 1, schema_version=2), shot_child("generation-b", group_id, 2, schema_version=2)],
+            {
+                group_id: "group-copy", "generation-a": "generation-a-copy",
+                "generation-b": "generation-b-copy", "script-a": "script-copy",
+            },
+        )
+        self.assertEqual(2, duplicated["shot_schema_version"])
+        self.assertEqual(["generation-a-copy", "generation-b-copy"], duplicated["ordered_child_ids"])
+        self.assertEqual("script-copy", duplicated["source_script_node_id"])
+
     def test_exact_shot_plan_v2_remaps_ordered_children(self) -> None:
         group_id = "group-a"
         content = {

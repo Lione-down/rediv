@@ -385,7 +385,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     commitScopedCanvasMutation,
     reconcileGeneration,
     setNodeStatus,
-    setNodeContent, setNodeGenerationParameters,
+    setNodeContent, setNodeGenerationParameters, setNodeCinematicSkillSettings,
     setNodeGenerationState,
   } = serializedActions
 
@@ -478,7 +478,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     setSelection,
     setMode,
     setNodeStatus,
-    setNodeContent, setNodeGenerationParameters,
+    setNodeContent, setNodeGenerationParameters, setNodeCinematicSkillSettings,
     setNodeMediaAspectRatio,
     setNodeGenerationState,
     findNodeById,

@@ -45,6 +45,8 @@ interface CanvasDocument {
 export interface ResourceMockState {
   assets: Array<Record<string, unknown>>
   capabilitiesOutcome: 'success' | 'failure'
+  cinematicAcknowledgementActive: boolean
+  cinematicRequiresAcknowledgement: boolean
   capturedFrames: Record<string, Buffer>
   canvases: CanvasRecord[]
   documents: Record<string, CanvasDocument>
@@ -176,6 +178,8 @@ export function createResourceMockState(): ResourceMockState {
       { id: 'asset-generated', user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: 'generation-cover', type: 'image', url: 'https://media.revid.test/generated.png', content_text: null, source: 'generation', source_model: 'mock-image-v1', source_task_id: 'task-existing-success', status: 'active', created_at: NOW, updated_at: NOW },
     ],
     capabilitiesOutcome: 'success',
+    cinematicAcknowledgementActive: false,
+    cinematicRequiresAcknowledgement: false,
     capturedFrames: {},
     canvases: [canvas(FIRST_CANVAS_ID, '画布 1', 0), canvas(SECOND_CANVAS_ID, '分镜', 1)],
     documents: { [FIRST_CANVAS_ID]: firstDocument, [SECOND_CANVAS_ID]: secondDocument },
@@ -373,6 +377,90 @@ function generationResponse(
   return { asset, generation_task: task, quotas: state.quotas, quota_revision: state.quotaRevision }
 }
 
+export function addCinematicVideoNode(state: ResourceMockState) {
+  const referenceNode = addProjectImageNode(state)
+  const videoNode = node('generation-cinematic-video', 'generation', '连续性视频生成', {
+    subtype: 'video', serialization_version: 1, text: '镜头缓慢推进，人物动作保持稳定',
+    generation_parameters: {
+      schema_version: 1,
+      video: { duration_seconds: 5, reference_mode: 'keyframes' },
+    },
+    cinematic_skill: {
+      contract_version: 1, enabled: true, skill_id: 'revid.cinema-video', skill_version: 1,
+      provider_id: 'agnes', model_id: 'agnes-video-v2.0',
+      mentions: [
+        { node_id: 'result-existing', role: 'first-frame', instruction: '作为精确首帧', source_revision: 'a'.repeat(64) },
+        { node_id: referenceNode.id, role: 'last-frame', instruction: '作为精确尾帧', source_revision: 'a'.repeat(64) },
+      ],
+    },
+  }, 1720)
+  state.documents[FIRST_CANVAS_ID].nodes.push(videoNode)
+  state.documents[FIRST_CANVAS_ID].connections.push(
+    {
+      id: 'connection-video-first', project_id: PROJECT_ID, canvas_id: FIRST_CANVAS_ID,
+      source_node_id: 'result-existing', target_node_id: videoNode.id, source_port: 'out', target_port: 'media',
+      status: 'active', metadata: { input_order: 1 }, created_at: NOW, updated_at: NOW,
+    },
+    {
+      id: 'connection-video-last', project_id: PROJECT_ID, canvas_id: FIRST_CANVAS_ID,
+      source_node_id: referenceNode.id, target_node_id: videoNode.id, source_port: 'out', target_port: 'media',
+      status: 'active', metadata: { input_order: 2 }, created_at: NOW, updated_at: NOW,
+    },
+  )
+  return videoNode
+}
+
+function cinematicScriptGenerationResponse(state: ResourceMockState, canvasId: string, requestBody: Record<string, unknown>) {
+  const handoff = requestBody.cinematic_handoff as Record<string, unknown>
+  const preflight = handoff.submitted_preflight as Record<string, unknown>
+  const references = preflight.references as Array<Record<string, unknown>>
+  const parameters = handoff.generation_parameters as Record<string, unknown>
+  const shotCount = Number(parameters.requested_shot_count ?? 8)
+  const sourceNodeId = String(references[0]?.node_id ?? requestBody.canvas_node_id)
+  const sourceRevision = String(references[0]?.source_revision ?? 'a'.repeat(64))
+  const shots = Array.from({ length: shotCount }, (_, offset) => {
+    const index = offset + 1
+    return {
+      shot_id: `shot-${String(index).padStart(2, '0')}`, index, title: `镜头 ${String(index).padStart(2, '0')}`,
+      narrative: `电影叙事镜头 ${index}`, dialogue: null, characters: ['主角'], wardrobe: '保持既定服装',
+      scene: '黄昏海岸', action: '人物稳定入画', framing_camera: '中景缓慢推进', duration_seconds: 5,
+      image_prompt: `黄昏海岸电影画面 ${index}`, video_prompt: `中景缓慢推进，人物稳定入画 ${index}`,
+      generatable: true, generatability_reason: null,
+    }
+  })
+  const document = {
+    contract_version: 2, schema_id: 'revid.shot-sequence', skill_id: 'revid.cinema-script', skill_version: 1,
+    source_script_node_id: sourceNodeId, source_revision: sourceRevision, aspect_ratio: '16:9',
+    shot_count: shotCount, story_structure: '建立、发展与收束', character_consistency: '保持主角身份与服装', shots,
+  }
+  const taskId = `task-script-${state.generationCount + 1}`
+  const assetId = `asset-script-${state.generationCount + 1}`
+  state.generationCount += 1
+  const requestParameters = {
+    cinematic_skill: {
+      contract_version: 1, skill_id: handoff.skill_id, skill_version: handoff.skill_version,
+      canvas_revision: handoff.canvas_revision, capability_version: 1,
+      canonical_request: preflight.canonical_request, request_digest: preflight.request_digest,
+    },
+  }
+  const task = generationTask({
+    id: taskId, origin_canvas_id: canvasId, canvas_node_id: sourceNodeId, media_type: 'text',
+    model: 'agnes-2.0-flash', status: 'succeeded', result_asset_id: assetId,
+    provider_request_id: `request-${taskId}`, request_parameters: requestParameters,
+  })
+  const asset = {
+    id: assetId, user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: canvasId,
+    canvas_node_id: sourceNodeId, type: 'prompt', url: null, content_text: JSON.stringify(document),
+    source: 'generation', source_model: 'agnes-2.0-flash', source_task_id: taskId, status: 'active',
+    created_at: NOW, updated_at: NOW,
+  }
+  state.tasks = [task, ...state.tasks]
+  state.assets = [asset, ...state.assets]
+  state.quotas = { ...state.quotas, text: state.quotas.text - 1 }
+  state.quotaRevision += 1
+  return { content: JSON.stringify(document), asset, generation_task: task, quotas: state.quotas, quota_revision: state.quotaRevision }
+}
+
 function shotSchemaResponse(
   state: ResourceMockState,
   canvasId: string,
@@ -520,6 +608,105 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
         ? fulfillJson(route, GENERATION_CAPABILITIES)
         : fulfillJson(route, { detail: 'mock capability unavailable' }, 503)
     }
+    const cinematicSkillMatch = path.match(new RegExp(
+      `^/api/projects/${PROJECT_ID}/canvases/([^/]+)/agent-skills/(cinematic-capabilities|cinematic-sources|cinematic-preflight)$`,
+    ))
+    if (cinematicSkillMatch && method === 'GET' && cinematicSkillMatch[2] === 'cinematic-capabilities') {
+      return fulfillJson(route, {
+        contract_version: 1,
+        providers: [{
+          id: 'agnes', capability_version: 1, billing_responsibility: 'platform',
+          requires_acknowledgement: state.cinematicRequiresAcknowledgement,
+          models: [
+            { id: 'agnes-2.0-flash', media_type: 'text', user_selectable: true, automatic_routing: false, accepted_reference_media: ['text'], accepted_reference_roles: ['story'], max_references: 25, supported_controls: ['shot-count'] },
+            { id: 'agnes-image-2.1-flash', media_type: 'image', user_selectable: true, automatic_routing: false, accepted_reference_media: ['image', 'text'], accepted_reference_roles: ['general', 'context', 'style', 'identity', 'wardrobe', 'scene', 'product'], max_references: 8, supported_controls: ['aspect-ratio', 'shot-controls'] },
+            { id: 'agnes-video-v2.0', media_type: 'video', user_selectable: true, automatic_routing: false, accepted_reference_media: ['image', 'text'], accepted_reference_roles: ['general', 'context', 'first-frame', 'last-frame'], max_references: 8, supported_controls: ['duration', 'reference-mode', 'shot-controls', 'temporal'] },
+          ],
+        }],
+      })
+    }
+    if (cinematicSkillMatch && method === 'GET' && cinematicSkillMatch[2] === 'cinematic-sources') {
+      const canvasId = cinematicSkillMatch[1]
+      const activeCanvas = state.canvases.find((item) => item.id === canvasId)!
+      return fulfillJson(route, {
+        canvas_revision: activeCanvas.graph_revision,
+        items: state.documents[canvasId].nodes.map((item) => {
+          const content = item.content as Record<string, unknown>
+          return {
+            node_id: item.id,
+            title: content.title,
+            node_type: item.node_type,
+            subtype: content.subtype,
+            source_revision: 'a'.repeat(64),
+          }
+        }),
+      })
+    }
+    if (cinematicSkillMatch && method === 'POST' && cinematicSkillMatch[2] === 'cinematic-preflight') {
+      const canvasId = cinematicSkillMatch[1]
+      const mentions = Array.isArray(body?.mentions) ? body.mentions as Array<Record<string, unknown>> : []
+      const references = mentions.map((mention) => {
+        const source = state.documents[canvasId].nodes.find((item) => item.id === mention.node_id)!
+        const content = source.content as Record<string, unknown>
+        const mediaType = content.subtype === 'image' ? 'image' : 'text'
+        return {
+          node_id: mention.node_id,
+          role: mention.role,
+          instruction: mention.instruction,
+          source_revision: mention.source_revision,
+          media_type: mediaType,
+          asset_id: mediaType === 'image' ? content.asset_id : null,
+          text: mediaType === 'text' ? content.text ?? null : null,
+        }
+      })
+      const nativeImageIds = Array.isArray((body?.generation_parameters as Record<string, unknown> | undefined)?.image_ids)
+        ? (body?.generation_parameters as Record<string, unknown>).image_ids as unknown[]
+        : []
+      const mentionedImageIds = references.flatMap((reference) => reference.asset_id ? [reference.asset_id] : [])
+      const canonicalRequest = {
+        skill_id: body?.skill_id,
+        skill_version: body?.skill_version,
+        provider_id: body?.provider_id,
+        model_id: body?.model_id,
+        optimized_prompt: body?.skill_id === 'revid.cinema-script'
+          ? `用户指令：${body?.user_instruction}\nSkill 约束：仅返回 revid.shot-sequence contract_version 2 JSON。`
+          : `用户指令：${body?.user_instruction}`,
+        references,
+        image_ids: [...nativeImageIds, ...mentionedImageIds.filter((imageId) => !nativeImageIds.includes(imageId))],
+        parameters: body?.generation_parameters ?? {},
+      }
+      const exactRequest = JSON.stringify(canonicalRequest)
+      return fulfillJson(route, {
+        contract_version: 1,
+        skill: { id: body?.skill_id, version: body?.skill_version },
+        project_id: PROJECT_ID,
+        canvas_id: canvasId,
+        canvas_revision: body?.canvas_revision,
+        provider_id: body?.provider_id,
+        model_id: body?.model_id,
+        capability_version: 1,
+        references,
+        summary: {
+          preserved_attributes: references.map((reference) => reference.role),
+          allowed_changes: [], conflicts: [],
+        },
+        canonical_request: canonicalRequest,
+        canonical_request_json: exactRequest,
+        exact_request: exactRequest,
+        request_digest: 'b'.repeat(64),
+        requires_acknowledgement: state.cinematicRequiresAcknowledgement,
+      })
+    }
+    if (path === '/api/provider-cost-acknowledgements/agnes') {
+      if (method === 'POST') state.cinematicAcknowledgementActive = true
+      if (method === 'DELETE') state.cinematicAcknowledgementActive = false
+      if (['GET', 'POST', 'DELETE'].includes(method)) return fulfillJson(route, {
+        user_id: 'user-resource', provider_id: 'agnes',
+        acknowledged_until: state.cinematicAcknowledgementActive ? '2026-07-19T08:00:00Z' : null,
+        cancelled_at: method === 'DELETE' ? NOW : null,
+        active: state.cinematicAcknowledgementActive,
+      })
+    }
     const agentSkillMatch = path.match(new RegExp(`^/api/projects/${PROJECT_ID}/canvases/([^/]+)/agent-skills(?:/(preflight))?$`))
     if (agentSkillMatch && method === 'GET' && !agentSkillMatch[2]) {
       return fulfillJson(route, {
@@ -582,6 +769,11 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       const failedTask = generationTask({ id: 'task-failure', origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType, model: `mock-${mediaType}-v1`, status: 'failed', result_asset_id: null, provider_request_id: null, error_code: 'provider_error', error_message: 'mock provider unavailable' })
       state.tasks = [failedTask, ...state.tasks.filter((item) => item.id !== failedTask.id)]
       return fulfillJson(route, { detail: 'mock provider unavailable' }, 503)
+    }
+    if (method === 'POST' && path === '/api/text-generate') {
+      const canvasId = String(body?.origin_canvas_id ?? FIRST_CANVAS_ID)
+      state.events.push(`cinematic-script-requested:${body?.canvas_node_id}`)
+      return fulfillJson(route, cinematicScriptGenerationResponse(state, canvasId, body ?? {}))
     }
     return fulfillJson(route, { detail: `Unhandled mock route: ${method} ${path}` }, 501)
   })

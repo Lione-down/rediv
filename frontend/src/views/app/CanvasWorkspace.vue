@@ -145,7 +145,7 @@ const {
   updateGenerationParameters,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
 const { branchFromResult, branchVisualRecipe, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode, revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId) })
-const { createShotGraph, createStoryboardRecipe, createVisualAssetRecipe } = useCanvasStoryboardRecipes({
+const { createCinematicShotGraph, createShotGraph, createStoryboardRecipe, createVisualAssetRecipe } = useCanvasStoryboardRecipes({
   assets: () => resourceStore.assets,
   branchVisualRecipe,
   canvasId,
@@ -198,6 +198,7 @@ const {
   assets: () => resourceStore.assets,
   canvasId,
   createShotGraph,
+  createCinematicShotGraph,
   createImageOperation,
   createStoryboardRecipe,
   getInsertionPoint,
@@ -624,6 +625,8 @@ onBeforeUnmount(() => {
           :generation-input-lineage="selectedGenerationInputLineage"
           :generation-tasks="resourceStore.tasks"
           :media-type="selectedMediaType"
+          :project-id="projectId"
+          :canvas-id="canvasId"
           :result-lineage="selectedResultLineage"
           mode="panel"
           :node="selectedNode"
@@ -709,6 +712,8 @@ onBeforeUnmount(() => {
               :generation-input-lineage="selectedGenerationInputLineage"
               :generation-tasks="resourceStore.tasks"
               :media-type="selectedMediaType"
+              :project-id="projectId"
+              :canvas-id="canvasId"
               :result-lineage="selectedResultLineage"
               mode="drawer"
               :node="selectedNode"

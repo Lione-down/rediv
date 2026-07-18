@@ -30,6 +30,7 @@ import {
   type ReconnectConnectionCommand,
   type ReorderGenerationInputCommand,
   type SetNodesLockedCommand,
+  type UpdateCinematicSkillSettingsCommand,
   type UpdateGenerationParametersCommand,
   type UngroupNodesCommand,
 } from './canvas-commands'
@@ -72,6 +73,7 @@ interface CanvasCommandExecutorOptions {
   ) => Promise<void> | void
   reorderGenerationInput?: (command: ReorderGenerationInputCommand) => Promise<void> | void
   updateGenerationParameters?: (command: UpdateGenerationParametersCommand) => Promise<void> | void
+  updateCinematicSkillSettings?: (command: UpdateCinematicSkillSettingsCommand) => Promise<void> | void
 }
 
 function cloneNodeDraft(node: CanvasNode, offset: { x: number; y: number }): CanvasNodeDraft {
@@ -436,6 +438,18 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     await options.updateGenerationParameters(command)
   }
 
+  async function updateCinematicSkillSettings(command: UpdateCinematicSkillSettingsCommand) {
+    if (!options.updateCinematicSkillSettings) throw new Error('Cinematic Skill editing is unavailable')
+    const target = options.getNodes().find((node) => node.id === command.nodeId)
+    const status = target ? getPersistedGenerationStatus(target.contentData ?? {}) : null
+    if (
+      !target || target.type !== 'generation' || target.isLocked || !isNodeMutationSupported(target) ||
+      status === 'queued' || status === 'running'
+    ) return
+    if (JSON.stringify(target.contentData?.cinematic_skill) === JSON.stringify(command.settings)) return
+    await options.updateCinematicSkillSettings(command)
+  }
+
   async function executeCommand(envelope: CanvasCommandEnvelope) {
     const { command } = envelope
     if (command.type === 'move-nodes') return moveNodes(command)
@@ -454,6 +468,7 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'insert-graph') return insertGraph(command)
     if (command.type === 'reorder-generation-input') return reorderGenerationInput(command)
     if (command.type === 'update-generation-parameters') return updateGenerationParameters(command)
+    if (command.type === 'update-cinematic-skill-settings') return updateCinematicSkillSettings(command)
     return insertNodeIntoConnection(command)
   }
 

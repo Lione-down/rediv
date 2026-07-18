@@ -19,13 +19,13 @@ Last updated: 2026-07-18
 
 ## Active Delivery
 
-- Active implementation Task: none; T5-090 is committed and pushed, and T5-091 remains inactive.
-- State: `IDLE`
+- Active implementation Task: `T5-091 - Revid native cinematic skills and reference-aware generation optimization`.
+- State: `DOING`
 - Last completed Task: `T5-090 - Revid Agent/Skill interface over native auth, project, canvas, and generation contracts` (`ai/reports/REPORT-T5-090.md`) at pushed `1aad57189497353c5e54a60ac8b87b6fa9677d7a`.
-- Task: `ai/tasks/todo/TASK-T5-090.md`
-- Plan: `ai/tasks/doing/TASK-T5-090-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-090-PROGRESS.md`
-- Exact next action: Human Owner may activate T5-091 as the sole implementation Task; it must reuse T5-090's exact contract and retain its future native-handoff acknowledgement gate.
+- Task: `ai/tasks/todo/TASK-T5-091.md`
+- Plan: `ai/tasks/doing/TASK-T5-091-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-091-PROGRESS.md`
+- Exact next action: complete final hygiene, exact-stage and push the T5-091 business delivery, then write REPORT and push the state-closure commit.
 
 ## Current Verified Facts
 
@@ -131,7 +131,7 @@ Last updated: 2026-07-18
 
 ## Exact Next Action
 
-Add focused backend RED tests for capability v2 versus legacy request snapshots, strict operation region/mask/source/prompt rules, and production unsupported-operation zero mutation.
+Implement T5-091 Unit 1's reversible Canvas Skill settings plus accessible provider/model, structured `@` mention, concise summary, and collapsed exact request UI; keep submission disabled until exact native handoff validation is wired.
 
 ## Blockers And Human Gates
 

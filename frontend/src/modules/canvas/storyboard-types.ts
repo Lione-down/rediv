@@ -40,7 +40,7 @@ export interface ShotStoryboardGroupContent {
   serialization_version: 1
   storyboard_schema_version: 2
   storyboard_kind: 'shot-plan'
-  shot_schema_version: 1
+  shot_schema_version: 1 | 2
   aspect_ratio: '16:9' | '9:16' | '1:1' | '4:3'
   columns: 1 | 2 | 3 | 4 | 5
   show_numbers: boolean

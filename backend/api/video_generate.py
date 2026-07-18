@@ -3,7 +3,7 @@ import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from api.generation_common import map_generation_error
+from api.generation_common import map_generation_error, resolve_cinematic_generation_handoff
 from controllers import generation_transactions as generation_controller
 from core.agnes_provider import extract_provider_progress_percent, normalize_provider_status
 from core.generation_provider import GenerationProvider, get_generation_provider
@@ -187,6 +187,28 @@ async def video_generate(
         image_ids=payload.image_ids,
         shot_controls=payload.shot_controls,
     )
+    cinematic_handoff = resolve_cinematic_generation_handoff(
+        payload.cinematic_handoff,
+        user_id=user["id"],
+        project_id=payload.project_id,
+        canvas_id=payload.origin_canvas_id,
+        media_type="video",
+        provider_id="agnes",
+        model_id=MODEL_NAME,
+        prompt=payload.prompt,
+        image_ids=payload.image_ids,
+        expected_control_parameters={
+            "reference_mode": normalized_parameters.reference_mode,
+            "duration_seconds": normalized_parameters.duration_seconds,
+            **(
+                {"shot_controls": normalized_parameters.request_parameters["shot_controls"]}
+                if "shot_controls" in normalized_parameters.request_parameters else {}
+            ),
+        },
+    )
+    request_parameters = dict(normalized_parameters.request_parameters)
+    if cinematic_handoff:
+        request_parameters["cinematic_skill"] = cinematic_handoff["request_snapshot"]
     try:
         task, input_images = generation_controller.start_video_generation_task(
             user_id=user["id"],
@@ -196,7 +218,7 @@ async def video_generate(
             origin_canvas_id=payload.origin_canvas_id,
             canvas_node_id=payload.canvas_node_id,
             image_ids=payload.image_ids,
-            request_parameters=normalized_parameters.request_parameters,
+            request_parameters=request_parameters,
         )
     except generation_controller.GenerationTransactionError as error:
         raise map_generation_error(error) from error

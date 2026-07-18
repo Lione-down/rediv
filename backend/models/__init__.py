@@ -10,6 +10,7 @@ from models.guest import Guest
 from models.identity import Identity
 from models.invitation import InvitationCode
 from models.project import Project
+from models.provider_cost_acknowledgement import ProviderCostAcknowledgement
 from models.quota import Quota, QuotaLedger
 from models.template import Template
 from models.user import User
@@ -27,6 +28,7 @@ __all__ = [
     "Identity",
     "InvitationCode",
     "Project",
+    "ProviderCostAcknowledgement",
     "Quota",
     "QuotaLedger",
     "StoreConfig",

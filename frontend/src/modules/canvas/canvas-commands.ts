@@ -1,6 +1,7 @@
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import type { InsertNodeIntoConnectionCommand } from './edge-insertion'
 import type { GenerationNodeParameters } from './generation-parameters'
+import type { CinematicSkillNodeSettings } from './cinematic-skills'
 import {
   reorderGenerationInputConnections,
   type GenerationInputDirection,
@@ -117,6 +118,12 @@ export interface UpdateGenerationParametersCommand {
   parameters: GenerationNodeParameters
 }
 
+export interface UpdateCinematicSkillSettingsCommand {
+  type: 'update-cinematic-skill-settings'
+  nodeId: string
+  settings: CinematicSkillNodeSettings
+}
+
 export type CanvasCommand =
   | MoveNodesCommand
   | DuplicateNodesCommand
@@ -134,6 +141,7 @@ export type CanvasCommand =
   | InsertGraphCommand
   | ReorderGenerationInputCommand
   | UpdateGenerationParametersCommand
+  | UpdateCinematicSkillSettingsCommand
   | InsertNodeIntoConnectionCommand
 
 export interface CanvasCommandEnvelope {

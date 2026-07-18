@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 
-AGENT_SKILL_CONTRACT_VERSION = 1
-AgentSkillExecutionMode = Literal["mock-only", "unavailable"]
+AGENT_SKILL_CONTRACT_VERSION = 2
+AgentSkillExecutionMode = Literal["mock-only", "unavailable", "native-handoff"]
 
 
 class AgentSkillContractError(ValueError):
@@ -27,6 +27,27 @@ _MANIFESTS = (
         version=1,
         execution_mode="mock-only",
         intent="canvas-context",
+        requires_acknowledgement=False,
+    ),
+    AgentSkillManifest(
+        id="revid.cinema-script",
+        version=1,
+        execution_mode="native-handoff",
+        intent="cinema-script",
+        requires_acknowledgement=False,
+    ),
+    AgentSkillManifest(
+        id="revid.cinema-image",
+        version=1,
+        execution_mode="native-handoff",
+        intent="cinema-image",
+        requires_acknowledgement=False,
+    ),
+    AgentSkillManifest(
+        id="revid.cinema-video",
+        version=1,
+        execution_mode="native-handoff",
+        intent="cinema-video",
         requires_acknowledgement=False,
     ),
 )
@@ -51,12 +72,20 @@ def _serialize_manifest(manifest: AgentSkillManifest) -> dict[str, Any]:
     }
 
 
-def build_agent_skill_capabilities() -> dict[str, Any]:
-    """Describe the closed built-in Skill registry without claiming durable execution."""
+def build_agent_skill_capabilities(contract_version: int = 1) -> dict[str, Any]:
+    """Describe the closed built-in registry while preserving T5-090's exact v1 view."""
+    if contract_version not in (1, AGENT_SKILL_CONTRACT_VERSION):
+        raise AgentSkillContractError("unknown Agent/Skill capability contract version")
+    manifests = _MANIFESTS[:1] if contract_version == 1 else _MANIFESTS
+    execution_modes = (
+        ["mock-only", "unavailable"]
+        if contract_version == 1
+        else ["mock-only", "unavailable", "native-handoff"]
+    )
     return {
-        "contract_version": AGENT_SKILL_CONTRACT_VERSION,
-        "execution_modes": ["mock-only", "unavailable"],
-        "skills": [_serialize_manifest(manifest) for manifest in _MANIFESTS],
+        "contract_version": contract_version,
+        "execution_modes": execution_modes,
+        "skills": [_serialize_manifest(manifest) for manifest in manifests],
         "provider": {"available": False},
         "quota": {"available": False},
         "task": {"available": False},
@@ -115,13 +144,15 @@ def build_agent_skill_preflight(
     canvas_nodes: list[dict[str, Any]],
 ) -> dict[str, Any]:
     manifest = resolve_agent_skill_manifest(skill_id, skill_version)
+    if manifest.id != "revid.canvas-context":
+        raise AgentSkillContractError("cinematic Skill requires structured native preflight")
     if not project_id or not canvas_id or not selected_node_ids or len(selected_node_ids) > 25:
         raise AgentSkillContractError("invalid Revid Skill preflight scope")
     if len(set(selected_node_ids)) != len(selected_node_ids):
         raise AgentSkillContractError("duplicate Canvas source selection")
     sources = _resolve_canvas_sources(selected_node_ids, canvas_nodes)
     return {
-        "contract_version": AGENT_SKILL_CONTRACT_VERSION,
+        "contract_version": 1,
         "skill": _serialize_manifest(manifest),
         "project_id": project_id,
         "canvas_id": canvas_id,

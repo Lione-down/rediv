@@ -11,6 +11,7 @@ from models.canvas import Canvas
 from models.canvas_connection import CanvasConnection
 from models.canvas_node import CanvasNode
 from models.project import Project
+from core.cinematic_skill_contract import cinematic_source_revision
 
 
 class CanvasDomainError(Exception):
@@ -50,6 +51,28 @@ def _duplicate_node_content(
     node_id_map: dict[str, str],
 ) -> dict:
     content = deepcopy(source_node.content)
+    if isinstance(content, dict):
+        source_script_node_id = content.get("source_script_node_id")
+        if isinstance(source_script_node_id, str) and source_script_node_id in node_id_map:
+            content["source_script_node_id"] = node_id_map[source_script_node_id]
+        cinematic_skill = content.get("cinematic_skill")
+        if isinstance(cinematic_skill, dict) and cinematic_skill.get("contract_version") == 1:
+            mentions = cinematic_skill.get("mentions")
+            if isinstance(mentions, list):
+                remapped_mentions = []
+                for mention in mentions:
+                    if not isinstance(mention, dict) or set(mention) != {
+                        "node_id", "role", "instruction", "source_revision",
+                    }:
+                        remapped_mentions = []
+                        break
+                    node_id = mention.get("node_id")
+                    if not isinstance(node_id, str) or node_id not in node_id_map:
+                        remapped_mentions = []
+                        break
+                    remapped_mentions.append({**mention, "node_id": node_id_map[node_id]})
+                if len(remapped_mentions) == len(mentions):
+                    cinematic_skill["mentions"] = remapped_mentions
     ordered_child_ids = content.get("ordered_child_ids") if isinstance(content, dict) else None
     is_storyboard_common = (
         source_node.node_type == "group"
@@ -101,7 +124,7 @@ def _duplicate_node_content(
         and content["storyboard_schema_version"] == 2
         and content.get("storyboard_kind") == "shot-plan"
         and type(content.get("shot_schema_version")) is int
-        and content["shot_schema_version"] == 1
+        and content["shot_schema_version"] in {1, 2}
     )
     shot_indices = [
         child.content.get("shot_index")
@@ -115,7 +138,7 @@ def _duplicate_node_content(
         and type(child.content.get("serialization_version")) is int
         and child.content["serialization_version"] == 1
         and type(child.content.get("shot_schema_version")) is int
-        and child.content["shot_schema_version"] == 1
+        and child.content["shot_schema_version"] in {1, 2}
         and type(child.content.get("shot_index")) is int
         and 1 <= child.content["shot_index"] <= len(ordered_child_ids)
         and child.content.get("shot_id") == f"shot-{child.content['shot_index']:02d}"
@@ -132,6 +155,35 @@ def _duplicate_node_content(
 
     content["ordered_child_ids"] = [node_id_map[child_id] for child_id in ordered_child_ids]
     return content
+
+
+def _refresh_duplicated_cinematic_revisions(duplicated_nodes: dict[str, CanvasNode]) -> None:
+    nodes_by_new_id = {node.id: node for node in duplicated_nodes.values()}
+
+    def revision(node: CanvasNode) -> str:
+        return cinematic_source_revision({
+            "id": node.id,
+            "node_type": node.node_type,
+            "content": node.content,
+            "parent_node_id": node.parent_node_id,
+            "status": node.status,
+        })
+
+    for duplicated in duplicated_nodes.values():
+        content = duplicated.content
+        if not isinstance(content, dict):
+            continue
+        source_script_node_id = content.get("source_script_node_id")
+        if isinstance(source_script_node_id, str) and source_script_node_id in nodes_by_new_id:
+            content["source_revision"] = revision(nodes_by_new_id[source_script_node_id])
+        cinematic_skill = content.get("cinematic_skill")
+        mentions = cinematic_skill.get("mentions") if isinstance(cinematic_skill, dict) else None
+        if not isinstance(mentions, list):
+            continue
+        for mention in mentions:
+            node_id = mention.get("node_id") if isinstance(mention, dict) else None
+            if isinstance(node_id, str) and node_id in nodes_by_new_id:
+                mention["source_revision"] = revision(nodes_by_new_id[node_id])
 
 
 def _datetime_to_iso(value: datetime | None) -> str | None:
@@ -333,6 +385,7 @@ def duplicate_canvas(
         for source_node in source_nodes:
             if source_node.parent_node_id is not None:
                 duplicated_nodes[source_node.id].parent_node_id = node_id_map[source_node.parent_node_id]
+        _refresh_duplicated_cinematic_revisions(duplicated_nodes)
 
         for source_connection in source_connections:
             session.add(

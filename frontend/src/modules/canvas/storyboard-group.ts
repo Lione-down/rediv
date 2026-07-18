@@ -58,13 +58,14 @@ export function createStoryboardGroupContent(
 export function createShotStoryboardGroupContent(
   orderedChildIds: readonly string[],
   settings: StoryboardGroupSettings = DEFAULT_STORYBOARD_GROUP_SETTINGS,
+  shotSchemaVersion: 1 | 2 = 1,
 ): StoryboardGroupContent {
   return {
     subtype: 'storyboard',
     serialization_version: 1,
     storyboard_schema_version: 2,
     storyboard_kind: 'shot-plan',
-    shot_schema_version: 1,
+    shot_schema_version: shotSchemaVersion,
     aspect_ratio: settings.aspect_ratio,
     columns: settings.columns,
     show_numbers: settings.show_numbers,
@@ -103,7 +104,7 @@ function shotStoryboardGenerationIndex(node: CanvasNode) {
   if (
     !node.isLocked && node.type === 'generation' && content?.subtype === 'image' &&
     resolveNodeDefinition(node.type, content).kind === 'canonical' &&
-    content.shot_schema_version === 1 && Number.isInteger(index) && Number(index) >= 1 && Number(index) <= 25 &&
+    [1, 2].includes(Number(content.shot_schema_version)) && Number.isInteger(index) && Number(index) >= 1 && Number(index) <= 25 &&
     content.shot_id === `shot-${String(index).padStart(2, '0')}` &&
     typeof content.shot_title === 'string' && Boolean(content.shot_title.trim()) &&
     content.shot_title.length <= 80
@@ -127,7 +128,7 @@ export function readStoryboardGroupContent(
     if (children.some((child) => child.parentNodeId !== group.id || !isStoryboardImageNode(child))) return null
   } else if (
     content!.storyboard_schema_version === 2 && content!.storyboard_kind === 'shot-plan' &&
-    content!.shot_schema_version === 1
+    [1, 2].includes(Number(content!.shot_schema_version))
   ) {
     const childrenById = new Map(children.map((child) => [child.id, child]))
     const shotIndices = orderedChildIds.map((id) => {

@@ -111,6 +111,7 @@ test('professional action definitions keep stable category and intent order', ()
     ['canvas.create-image-generation', 'create', { type: 'create-node', nodeType: 'generation', subtype: 'image' }],
     ['canvas.create-video-generation', 'create', { type: 'create-node', nodeType: 'generation', subtype: 'video' }],
     ['script.create-shot-graph', 'script', { type: 'create-shot-graph' }],
+    ['script.create-cinematic-shot-graph', 'script', { type: 'create-cinematic-shot-graph', skillId: 'revid.cinema-script', skillVersion: 1 }],
     ['workflow.canvas-generation-batch', 'workflow', { type: 'open-workflow-batch', templateId: 'canvas-generation-batch', templateVersion: 1 }],
     ['video.edit-preflight', 'video', { type: 'open-video-edit-preflight', templateId: 'video-edit-preflight', templateVersion: 1 }],
     ['audio.generation-preflight', 'audio', { type: 'open-audio-generation-preflight', templateId: 'audio-generation-preflight', templateVersion: 1 }],
@@ -204,7 +205,8 @@ test('registry resolution is deterministic, searchable, and fail closed for unkn
   expect(resolveProfessionalCanvasActions(selectedContext, '25 split').map((action) => action.id)).toEqual(['image.split-25'])
   expect(resolveProfessionalCanvasActions(context({ selectedNodes: [scriptNode()] }), 'shot storyboard')
     .filter((action) => action.eligibility.eligible).map((action) => action.id)).toEqual([
-      'script.create-shot-graph', 'audio.generation-preflight', 'storyboard.shot-board-9', 'storyboard.shot-board-16', 'storyboard.shot-board-25',
+      'script.create-shot-graph', 'script.create-cinematic-shot-graph', 'audio.generation-preflight',
+      'storyboard.shot-board-9', 'storyboard.shot-board-16', 'storyboard.shot-board-25',
     ])
   expect(resolveProfessionalCanvasAction(selectedContext, 'missing.action')).toBeNull()
 })

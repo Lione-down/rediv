@@ -20,7 +20,7 @@ interface CanvasStoryboardRecipesOptions {
 
 export function useCanvasStoryboardRecipes(options: CanvasStoryboardRecipesOptions) {
   const canvasStore = useCanvasStore()
-  const { createShotGraph } = useCanvasShotSchema({ projectId: options.projectId, canvasId: options.canvasId })
+  const { createCinematicShotGraph, createShotGraph } = useCanvasShotSchema({ projectId: options.projectId, canvasId: options.canvasId })
 
   function currentSource(recipeId: StoryboardRecipeId, recipeVersion: number) {
     const recipe = resolveStoryboardRecipe(recipeId, recipeVersion)
@@ -58,5 +58,5 @@ export function useCanvasStoryboardRecipes(options: CanvasStoryboardRecipesOptio
     return nodeId
   }
 
-  return { createShotGraph, createStoryboardRecipe, createVisualAssetRecipe }
+  return { createCinematicShotGraph, createShotGraph, createStoryboardRecipe, createVisualAssetRecipe }
 }

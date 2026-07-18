@@ -1,6 +1,7 @@
 import type { CanvasNode } from '../../types/canvas'
 import type { CanvasCommandEnvelope } from './canvas-commands'
 import type { GenerationNodeParameters } from './generation-parameters'
+import type { CinematicSkillNodeSettings } from './cinematic-skills'
 import type { PersistedGenerationStatus } from './node-registry'
 import type { CanvasDocumentPatchResponse } from './types'
 
@@ -144,6 +145,13 @@ export function createCanvasSerializedActions(options: CanvasSerializedActionsOp
     }))
   }
 
+  function setNodeCinematicSkillSettings(nodeId: string, settings: CinematicSkillNodeSettings) {
+    return options.runSerialized(({ execute }) => execute({
+      source: 'toolbar',
+      command: { type: 'update-cinematic-skill-settings', nodeId, settings },
+    }))
+  }
+
   function setNodeGenerationState(
     nodeId: string,
     status: PersistedGenerationStatus,
@@ -166,6 +174,7 @@ export function createCanvasSerializedActions(options: CanvasSerializedActionsOp
     setNodeStatus,
     setNodeContent,
     setNodeGenerationParameters,
+    setNodeCinematicSkillSettings,
     setNodeGenerationState,
   }
 }

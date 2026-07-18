@@ -23,6 +23,29 @@ class QuotaBalances(BaseModel):
 ResourceId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=36)]
 
 
+class CinematicGenerationMention(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    node_id: str = Field(min_length=1, max_length=96)
+    role: str = Field(min_length=1, max_length=32)
+    instruction: str = Field(min_length=1, max_length=500)
+    source_revision: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class CinematicGenerationHandoff(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    skill_id: str = Field(min_length=1, max_length=96)
+    skill_version: int = Field(ge=1, le=1)
+    canvas_revision: int = Field(ge=0)
+    provider_id: str = Field(min_length=1, max_length=64)
+    model_id: str = Field(min_length=1, max_length=96)
+    user_instruction: str = Field(min_length=1, max_length=4_000)
+    mentions: list[CinematicGenerationMention] = Field(default_factory=list, max_length=25)
+    generation_parameters: dict[str, Any] = Field(default_factory=dict)
+    submitted_preflight: dict[str, Any]
+
+
 class ScopedGenerationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -30,6 +53,7 @@ class ScopedGenerationRequest(BaseModel):
     origin_canvas_id: ResourceId
     canvas_node_id: ResourceId | None = None
     prompt: str | None = Field(default=None, min_length=1)
+    cinematic_handoff: CinematicGenerationHandoff | None = None
 
 
 class ImageGenerateRequest(ScopedGenerationRequest):
@@ -125,6 +149,7 @@ class TextGenerateRequest(BaseModel):
     origin_canvas_id: ResourceId | None = None
     canvas_node_id: ResourceId
     prompt: str = Field(..., min_length=1)
+    cinematic_handoff: CinematicGenerationHandoff | None = None
 
     @model_validator(mode="before")
     @classmethod

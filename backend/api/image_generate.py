@@ -3,7 +3,7 @@ import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from api.generation_common import map_generation_error
+from api.generation_common import map_generation_error, resolve_cinematic_generation_handoff
 from controllers import generation_transactions as generation_controller
 from core.generation_provider import GenerationProvider, get_generation_provider
 from core.generation_parameter_contract import IMAGE_MODEL, normalize_image_parameters
@@ -47,6 +47,32 @@ async def image_generate(
         recipe_size=recipe.output_size if recipe else None,
         shot_controls=payload.shot_controls,
     )
+    if payload.cinematic_handoff and (recipe or payload.image_operation):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cinematic Skill does not wrap recipes or image operations",
+        )
+    cinematic_handoff = resolve_cinematic_generation_handoff(
+        payload.cinematic_handoff,
+        user_id=user["id"],
+        project_id=payload.project_id,
+        canvas_id=payload.origin_canvas_id,
+        media_type="image",
+        provider_id="agnes",
+        model_id=MODEL_NAME,
+        prompt=payload.prompt,
+        image_ids=payload.image_ids,
+        expected_control_parameters={
+            "aspect_ratio": normalized_parameters.request_parameters["aspect_ratio"],
+            **(
+                {"shot_controls": normalized_parameters.request_parameters["shot_controls"]}
+                if "shot_controls" in normalized_parameters.request_parameters else {}
+            ),
+        },
+    )
+    request_parameters = dict(normalized_parameters.request_parameters)
+    if cinematic_handoff:
+        request_parameters["cinematic_skill"] = cinematic_handoff["request_snapshot"]
     try:
         task, input_images = generation_controller.start_image_generation_task(
             user_id=user["id"],
@@ -56,7 +82,7 @@ async def image_generate(
             origin_canvas_id=payload.origin_canvas_id,
             canvas_node_id=payload.canvas_node_id,
             image_ids=payload.image_ids,
-            request_parameters=normalized_parameters.request_parameters,
+            request_parameters=request_parameters,
         )
     except generation_controller.GenerationTransactionError as error:
         raise map_generation_error(error) from error

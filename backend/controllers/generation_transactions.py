@@ -162,6 +162,7 @@ def start_generation_task(
     project_id: str,
     origin_canvas_id: str | None,
     canvas_node_id: str | None,
+    request_parameters: dict | None = None,
 ) -> dict:
     task, _input_image_urls = _start_generation_task(
         user_id=user_id,
@@ -172,7 +173,7 @@ def start_generation_task(
         origin_canvas_id=origin_canvas_id,
         canvas_node_id=canvas_node_id,
         image_ids=None,
-        request_parameters=None,
+        request_parameters=request_parameters,
     )
     return task
 

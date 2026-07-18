@@ -19,6 +19,9 @@ import { resolveVisualAssetRecipe, VISUAL_ASSET_RECIPES, type VisualAssetRecipeI
 import { IMAGE_OPERATIONS } from '../../modules/canvas/image-operations'
 import CanvasGenerationParameterControls from './CanvasGenerationParameterControls.vue'
 import CanvasGenerationProgress from './CanvasGenerationProgress.vue'
+import CanvasCinematicSkillControls from './CanvasCinematicSkillControls.vue'
+import { loadCinematicSkillSources } from '../../modules/canvas/cinematic-skills'
+import { request } from '../../api/request'
 
 const props = withDefaults(defineProps<{
   error?: string
@@ -35,6 +38,8 @@ const props = withDefaults(defineProps<{
   mode: 'panel' | 'drawer'
   node: CanvasNode
   outputVariantCount?: number
+  projectId?: string
+  canvasId?: string
   quota?: number
   readonly?: boolean
   resultLineage?: ResolvedResultLineage | null
@@ -53,6 +58,8 @@ const props = withDefaults(defineProps<{
   latestTask: null,
   mediaType: null,
   outputVariantCount: 0,
+  projectId: '',
+  canvasId: '',
   quota: 0,
   readonly: false,
   resultLineage: null,
@@ -109,6 +116,51 @@ const runHistory = computed(() => resolveGenerationRunHistory(props.node.id, pro
 }))
 const canBranchResult = computed(() => canBranchFromImageResult(props.node))
 const capturedFrameProvenance = computed(() => resolveCapturedFrameProvenance(props.node, canvasStore.nodes))
+const staleScriptLineage = computed(() => {
+  const direct = props.node.contentData
+  const group = props.node.parentNodeId
+    ? canvasStore.nodes.find((candidate) => candidate.id === props.node.parentNodeId)?.contentData
+    : null
+  const lineage = direct?.source_script_node_id ? direct : group
+  if (typeof lineage?.source_script_node_id !== 'string' || typeof lineage.source_script_text !== 'string') return null
+  const source = canvasStore.nodes.find((candidate) => candidate.id === lineage.source_script_node_id)
+  const currentText = source?.content ?? source?.contentData?.text
+  return {
+    sourceNodeId: lineage.source_script_node_id,
+    isStale: typeof currentText !== 'string' || currentText.trim() !== lineage.source_script_text,
+  }
+})
+const currentCinematicRevisions = ref<Map<string, string> | null>(null)
+function record(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+}
+const cinematicTaskSnapshot = computed(() => {
+  const task = props.generationTasks.find((candidate) => candidate.id === props.resultLineage?.taskId) ?? props.latestTask
+  const parameters = record(task?.request_parameters)
+  return record(parameters?.cinematic_skill)
+})
+const cinematicResultStale = computed(() => {
+  const revisions = currentCinematicRevisions.value
+  const canonical = record(cinematicTaskSnapshot.value?.canonical_request)
+  const references = canonical?.references
+  if (!revisions || !Array.isArray(references)) return false
+  return references.some((rawReference) => {
+    const reference = record(rawReference)
+    return typeof reference?.node_id !== 'string' || typeof reference.source_revision !== 'string' ||
+      revisions.get(reference.node_id) !== reference.source_revision
+  })
+})
+
+async function refreshCinematicLineage() {
+  currentCinematicRevisions.value = null
+  if (!cinematicTaskSnapshot.value || !props.projectId || !props.canvasId) return
+  try {
+    const sources = await loadCinematicSkillSources(props.projectId, props.canvasId, request)
+    currentCinematicRevisions.value = new Map(sources.items.map((item) => [item.node_id, item.source_revision]))
+  } catch {
+    currentCinematicRevisions.value = new Map()
+  }
+}
 const mediaStateLabel = {
   included: '已作为参考图',
   'missing-asset': '缺少资源，未使用',
@@ -182,6 +234,11 @@ function runTiming(task: ProjectGenerationTask) {
 watch(() => props.node.id, () => {
   prompt.value = props.node.content?.trim() || ''
 }, { flush: 'sync' })
+watch(
+  () => [props.node.id, props.projectId, props.canvasId, props.generationTasks.length],
+  () => { void refreshCinematicLineage() },
+  { immediate: true },
+)
 
 watch(() => props.node.content, (content) => {
   if (document.activeElement?.getAttribute('aria-label') !== '生成提示词') prompt.value = content?.trim() || ''
@@ -206,6 +263,15 @@ function requestGeneration() {
       <div><Sparkles v-if="mediaType" :size="18" aria-hidden="true" /><Info v-else :size="18" aria-hidden="true" /><span><strong>{{ node.title }}</strong><small>{{ node.type }} · {{ String(node.contentData?.subtype || node.type) }}</small></span></div>
       <div class="header-actions"><button v-if="canArrangeTrace" type="button" aria-label="整理完整生成链路" title="整理完整生成链路" @click="emit('arrangeTrace')"><Columns2 :size="17" aria-hidden="true" /></button><button v-if="canFitTrace" type="button" aria-label="适配完整生成链路" title="适配完整生成链路" @click="emit('fitTrace')"><Focus :size="17" aria-hidden="true" /></button><button v-if="canContinue" type="button" aria-label="继续此节点" title="继续此节点" @click="emit('continueNode')"><GitBranch :size="17" aria-hidden="true" /></button><button type="button" aria-label="关闭节点详情" title="关闭节点详情" @click="emit('close')"><X :size="18" aria-hidden="true" /></button></div>
     </header>
+    <section v-if="staleScriptLineage?.isStale" class="stale-lineage" role="status" aria-label="旧来源版本">
+      <CircleAlert :size="15" aria-hidden="true" />
+      <span>此分镜或生成节点基于旧脚本版本；历史结果保留，刷新必须由你显式执行。</span>
+      <button type="button" @click="emit('locateNode', staleScriptLineage.sourceNodeId)">查看当前脚本</button>
+    </section>
+    <section v-if="cinematicResultStale" class="stale-lineage" role="status" aria-label="旧引用版本">
+      <CircleAlert :size="15" aria-hidden="true" />
+      <span>此任务或结果基于旧引用版本；历史结果仍可用，重新生成必须由你显式执行。</span>
+    </section>
 
     <section v-if="mediaType" class="generation-editor" role="region" aria-label="生成任务编辑器">
       <div class="section-heading"><span>{{ generationLabel }}生成</span><span>剩余 {{ quota }}</span></div>
@@ -221,6 +287,17 @@ function requestGeneration() {
       <div v-else-if="readonly && usesPrompt" class="review-prompt"><span>生成提示词</span><p>{{ prompt || '未填写提示词' }}</p></div>
       <p v-else-if="isLocalImageOperation" class="generation-operation-note" role="status">区域标记只保存到画布，不会创建生成任务。</p>
       <p v-else class="generation-operation-note">此图片操作不需要 prompt，将使用已连接的媒体输入。</p>
+      <CanvasCinematicSkillControls
+        v-if="!visualRecipe && !imageOperation && generationContext && mediaType"
+        :canvas-id="canvasId"
+        :disabled="isGenerating"
+        :generation-parameters="generationContext.parameters ?? {}"
+        :media-type="mediaType"
+        :node="node"
+        :project-id="projectId"
+        :readonly="readonly"
+        :user-instruction="generationContext.prompt || prompt"
+      />
       <CanvasGenerationParameterControls
         v-if="generationContext"
         :context="generationContext"
@@ -496,6 +573,7 @@ textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px;
 .feedback.is-error { color: var(--v2-danger); background: color-mix(in oklch, var(--v2-danger) 10%, transparent); }
 .feedback.is-success { color: var(--v2-success); background: color-mix(in oklch, var(--v2-success) 10%, transparent); }
 .review-prompt p { margin: 0; padding: 11px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); color: var(--v2-text-primary); background: var(--v2-surface-1); font-size: 12px; line-height: 1.65; white-space: pre-wrap; }
+.stale-lineage { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px; align-items: start; padding: 9px 12px; border-bottom: 1px solid var(--v2-border-subtle); color: var(--v2-warning); background: color-mix(in oklch, var(--v2-warning) 8%, transparent); font-size: 11px; line-height: 1.5; }.stale-lineage button { grid-column: 2; justify-self: start; min-height: 28px; padding: 0 7px; color: var(--v2-accent-hover); background: transparent; }
 .result-lineage-detail, .captured-frame-detail { margin-bottom: 16px; }
 .result-lineage-detail .section-heading, .captured-frame-detail .section-heading { margin-bottom: 8px; }
 .result-lineage-detail .section-heading strong, .captured-frame-detail .section-heading strong { color: var(--v2-accent); font-variant-numeric: tabular-nums; }

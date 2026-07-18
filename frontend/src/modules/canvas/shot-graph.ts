@@ -4,7 +4,7 @@ import type { InsertGraphCommand } from './canvas-commands'
 import { findFirstUnoccupiedPosition } from './graph-placement'
 import { resolveCanvasNodeLayoutSize } from './node-layout'
 import { createRegistryNodeDraft, getAuthoringConnectionPorts, resolveNodeDefinition } from './node-registry'
-import { parseShotSchemaDocument, type ShotSchemaDocument } from './shot-schema'
+import { parseShotSchemaDocument, type CinematicShotSchemaShot, type ShotSchemaDocument } from './shot-schema'
 import {
   createShotStoryboardGroupContent,
   resolveStoryboardGroupLayout,
@@ -75,6 +75,7 @@ export function createShotGraphInsertCommand(input: ShotGraphInsertInput): Inser
   const generationNodes: CanvasNode[] = []
 
   for (const shot of schema.shots) {
+    const cinematicShot = schema.contract_version === 2 ? shot as CinematicShotSchemaShot : null
     const promptDraft = createRegistryNodeDraft('script', 'prompt', { x: 0, y: 0 })
     promptNodes.push({
       id: createCanvasEntityId(),
@@ -84,11 +85,26 @@ export function createShotGraphInsertCommand(input: ShotGraphInsertInput): Inser
       contentData: {
         ...promptDraft.contentData,
         text: shot.image_prompt,
-        shot_schema_version: 1,
+        shot_schema_version: schema.contract_version,
         shot_id: shot.shot_id,
         shot_index: shot.index,
         shot_title: shot.title,
         shot_narrative: shot.narrative,
+        ...(schema.contract_version === 2 ? {
+          shot_dialogue: cinematicShot!.dialogue,
+          shot_characters: cinematicShot!.characters,
+          shot_wardrobe: cinematicShot!.wardrobe,
+          shot_scene: cinematicShot!.scene,
+          shot_action: cinematicShot!.action,
+          shot_framing_camera: cinematicShot!.framing_camera,
+          shot_duration_seconds: cinematicShot!.duration_seconds,
+          shot_video_prompt: cinematicShot!.video_prompt,
+          shot_generatable: cinematicShot!.generatable,
+          shot_generatability_reason: cinematicShot!.generatability_reason,
+          source_script_node_id: schema.source_script_node_id,
+          source_script_text: sourceText(currentSource),
+          source_revision: schema.source_revision,
+        } : {}),
       },
     })
     const generationDraft = createRegistryNodeDraft('generation', 'image', { x: 0, y: 0 })
@@ -99,10 +115,18 @@ export function createShotGraphInsertCommand(input: ShotGraphInsertInput): Inser
       parentNodeId: groupId,
       contentData: {
         ...generationDraft.contentData,
-        shot_schema_version: 1,
+        shot_schema_version: schema.contract_version,
         shot_id: shot.shot_id,
         shot_index: shot.index,
         shot_title: shot.title,
+        ...(schema.contract_version === 2 ? {
+          source_script_node_id: schema.source_script_node_id,
+          source_script_text: sourceText(currentSource),
+          source_revision: schema.source_revision,
+          shot_video_prompt: cinematicShot!.video_prompt,
+          shot_generatable: cinematicShot!.generatable,
+          shot_generatability_reason: cinematicShot!.generatability_reason,
+        } : {}),
         generation_parameters: {
           schema_version: 1,
           image: { aspect_ratio: schema.aspect_ratio },
@@ -119,6 +143,7 @@ export function createShotGraphInsertCommand(input: ShotGraphInsertInput): Inser
   const groupContent = createShotStoryboardGroupContent(
     generationNodes.map((node) => node.id),
     settings,
+    schema.contract_version,
   )
   const preliminaryLayout = resolveStoryboardGroupLayout(generationNodes, groupContent, { x: 0, y: 0 })
   const promptSize = resolveCanvasNodeLayoutSize(promptNodes[0])
@@ -151,7 +176,16 @@ export function createShotGraphInsertCommand(input: ShotGraphInsertInput): Inser
     ...groupDraft,
     ...layout.group,
     title: '分镜计划',
-    contentData: { ...groupContent },
+    contentData: {
+      ...groupContent,
+      ...(schema.contract_version === 2 ? {
+        source_script_node_id: schema.source_script_node_id,
+        source_script_text: sourceText(currentSource),
+        source_revision: schema.source_revision,
+        story_structure: schema.story_structure,
+        character_consistency: schema.character_consistency,
+      } : {}),
+    },
     zIndex: Math.min(...generationNodes.map((node) => node.zIndex ?? 0)) - 1,
   }
 

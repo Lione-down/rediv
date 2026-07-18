@@ -35,7 +35,7 @@ const activeDescendant = computed(() => activeAction.value
   : undefined)
 
 function actionIcon(action: ResolvedProfessionalCanvasAction) {
-  if (action.intent.type === 'create-shot-graph' || action.intent.type === 'create-storyboard-recipe') return Clapperboard
+  if (action.intent.type === 'create-shot-graph' || action.intent.type === 'create-cinematic-shot-graph' || action.intent.type === 'create-storyboard-recipe') return Clapperboard
   if (action.intent.type === 'create-image-operation') return ImagePlus
   if (action.intent.type === 'open-workflow-batch') return ListChecks
   if (action.intent.type === 'open-audio-generation-preflight') return AudioLines

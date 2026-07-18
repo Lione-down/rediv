@@ -1,5 +1,5 @@
 import { request } from '../../api/request'
-import { parseShotSchemaDocument, type ShotSchemaDocument } from './shot-schema'
+import { parseShotSchemaDocument, type LegacyShotSchemaDocument } from './shot-schema'
 
 export interface ShotSchemaRequestInput {
   projectId: string
@@ -22,7 +22,7 @@ function boundedId(value: string) {
 export async function requestMockShotSchema(
   input: ShotSchemaRequestInput,
   transport: ShotSchemaTransport = request,
-): Promise<ShotSchemaDocument> {
+): Promise<LegacyShotSchemaDocument> {
   const projectId = boundedId(input.projectId)
   const canvasId = boundedId(input.canvasId)
   const sourceScriptNodeId = boundedId(input.sourceScriptNodeId)
@@ -47,8 +47,8 @@ export async function requestMockShotSchema(
   )
   const document = parseShotSchemaDocument(response.data)
   if (
-    document.project_id !== projectId || document.canvas_id !== canvasId ||
+    document.contract_version !== 1 || document.project_id !== projectId || document.canvas_id !== canvasId ||
     document.source_script_node_id !== sourceScriptNodeId
   ) throw new Error('Shot schema response scope mismatch')
-  return document
+  return document as LegacyShotSchemaDocument
 }

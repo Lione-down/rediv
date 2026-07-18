@@ -14,6 +14,7 @@ interface CanvasProfessionalActionsOptions {
   assets: () => readonly Asset[]
   canvasId: ComputedRef<string>
   createShotGraph?: () => Promise<unknown>
+  createCinematicShotGraph?: () => Promise<unknown>
   createImageOperation?: (operationId: string, operationVersion: number) => Promise<unknown>
   createStoryboardRecipe?: (recipeId: string, recipeVersion: number) => Promise<unknown>
   openAgentSkillPreflight?: () => void
@@ -63,6 +64,7 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
   const actions = computed(() => resolveProfessionalCanvasActions(context(), query.value)
     .filter((action) => action.eligibility.eligible)
     .filter((action) => action.intent.type !== 'create-shot-graph' || Boolean(options.createShotGraph))
+    .filter((action) => action.intent.type !== 'create-cinematic-shot-graph' || Boolean(options.createCinematicShotGraph))
     .filter((action) => action.intent.type !== 'create-image-operation' || Boolean(options.createImageOperation))
     .filter((action) => action.intent.type !== 'create-storyboard-recipe' || Boolean(options.createStoryboardRecipe))
     .filter((action) => action.intent.type !== 'open-agent-skill-preflight' || Boolean(options.openAgentSkillPreflight))
@@ -115,6 +117,22 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
         close()
       } catch (executionError) {
         error.value = executionError instanceof Error ? executionError.message : '脚本分镜创建失败，请重试。'
+      } finally {
+        isExecuting.value = false
+      }
+      return
+    }
+    if (action.intent.type === 'create-cinematic-shot-graph') {
+      if (!options.createCinematicShotGraph) {
+        error.value = 'Cinematic script Skill 当前不可用。'
+        return
+      }
+      isExecuting.value = true
+      try {
+        await options.createCinematicShotGraph()
+        close()
+      } catch (executionError) {
+        error.value = executionError instanceof Error ? executionError.message : 'Cinematic script Skill 执行失败，请重试。'
       } finally {
         isExecuting.value = false
       }

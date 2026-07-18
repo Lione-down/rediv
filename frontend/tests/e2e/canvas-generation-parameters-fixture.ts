@@ -47,6 +47,19 @@ export function createMockGenerationRequestParameters(
   requestBody: Record<string, unknown>,
 ) {
   const imageIds = Array.isArray(requestBody.image_ids) ? requestBody.image_ids : []
+  const handoff = requestBody.cinematic_handoff as Record<string, unknown> | undefined
+  const submittedPreflight = handoff?.submitted_preflight as Record<string, unknown> | undefined
+  const cinematicSkill = handoff && submittedPreflight ? {
+    cinematic_skill: {
+      contract_version: 1,
+      skill_id: handoff.skill_id,
+      skill_version: handoff.skill_version,
+      canvas_revision: handoff.canvas_revision,
+      capability_version: 1,
+      canonical_request: submittedPreflight.canonical_request,
+      request_digest: submittedPreflight.request_digest,
+    },
+  } : {}
   if (mediaType === 'image') {
     return {
       contract_version: 1, media_type: 'image', model: GENERATION_CAPABILITIES.image.model,
@@ -59,6 +72,7 @@ export function createMockGenerationRequestParameters(
       } : {}),
       ...(requestBody.image_operation ? { image_operation: requestBody.image_operation } : {}),
       ...(requestBody.shot_controls ? { shot_controls: requestBody.shot_controls } : {}),
+      ...cinematicSkill,
     }
   }
   const durationSeconds = Number(requestBody.duration_seconds ?? 5)
@@ -72,5 +86,6 @@ export function createMockGenerationRequestParameters(
     width: GENERATION_CAPABILITIES.video.width, height: GENERATION_CAPABILITIES.video.height,
     image_ids: imageIds,
     ...(requestBody.shot_controls ? { shot_controls: requestBody.shot_controls } : {}),
+    ...cinematicSkill,
   }
 }

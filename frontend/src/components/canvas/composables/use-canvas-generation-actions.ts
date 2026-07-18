@@ -16,6 +16,11 @@ import { useProjectResourceStore } from '../../../modules/canvas/project-resourc
 import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
+import {
+  parseCinematicSkillNodeSettings,
+  prepareCinematicGeneration,
+  type CinematicGenerationHandoff,
+} from '../../../modules/canvas/cinematic-skills'
 
 interface GenerationRequestContext {
   authToken: string
@@ -54,6 +59,8 @@ interface GenerationExecutionOptions {
   imageOperation?: ImageOperationContract
   shotControls?: ShotControls
   parameters?: GenerationNodeParameters | null
+  cinematicHandoff?: CinematicGenerationHandoff
+  isCanvasPrepared?: boolean
 }
 
 export function useCanvasGenerationActions(options: CanvasGenerationActionOptions) {
@@ -91,12 +98,16 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
     let runtimeRequestId = ''
     let shouldPollForRecovery = false
     try {
-      if (requestContext.parameters) {
+      if (!requestContext.isCanvasPrepared && requestContext.parameters) {
         await canvasStore.setNodeGenerationParameters(sourceNode.id, requestContext.parameters)
       }
-      if (promptToPersist !== undefined) await canvasStore.setNodeContent(sourceNode.id, promptToPersist)
-      await canvasStore.setNodeGenerationState(sourceNode.id, 'running')
-      await canvasStore.flushPendingPersistence()
+      if (!requestContext.isCanvasPrepared && promptToPersist !== undefined) {
+        await canvasStore.setNodeContent(sourceNode.id, promptToPersist)
+      }
+      if (!requestContext.isCanvasPrepared) {
+        await canvasStore.setNodeGenerationState(sourceNode.id, 'running')
+        await canvasStore.flushPendingPersistence()
+      }
       runtimeRequestId = options.beginRuntimeRequest(context)
       const response = await requestCanvasGeneration({
         mediaType,
@@ -112,6 +123,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
         recipeVersion: requestContext.recipeVersion,
         imageOperation: requestContext.imageOperation,
         shotControls: requestContext.shotControls,
+        cinematicHandoff: requestContext.cinematicHandoff,
       }, authStore, request)
       if (!response.asset) throw new Error('生成已完成，但响应缺少结果资产。')
       resourceStore.upsertAsset(response.asset)
@@ -163,16 +175,55 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
       options.generationError.value = '请填写提示词或连接至少一个有内容的脚本节点。'
       return
     }
+    const promptToPersist = operation && !IMAGE_OPERATIONS[operation.id].requiresPrompt ? undefined : prompt
+    let prepared = null
+    try {
+      const rawSettings = sourceNode.contentData?.cinematic_skill
+      const persistedSettings = rawSettings === undefined
+        ? null
+        : parseCinematicSkillNodeSettings(rawSettings, mediaType)
+      if (persistedSettings?.enabled && operation) {
+        throw new Error('cinematic Skill 不支持包装 image operation。')
+      }
+      if (persistedSettings?.enabled) {
+        if (context.parameters) await canvasStore.setNodeGenerationParameters(sourceNode.id, context.parameters)
+        if (promptToPersist !== undefined) await canvasStore.setNodeContent(sourceNode.id, promptToPersist)
+        await canvasStore.flushPendingPersistence()
+        const generationParameters: Record<string, unknown> = {
+          image_ids: context.imageIds,
+          ...(mediaType === 'image'
+            ? { aspect_ratio: context.aspectRatio }
+            : {
+                reference_mode: context.referenceMode,
+                duration_seconds: context.durationSeconds,
+              }),
+          ...(context.shotControls ? { shot_controls: context.shotControls } : {}),
+        }
+        prepared = await prepareCinematicGeneration({
+          projectId: options.projectId.value,
+          canvasId: options.canvasId.value,
+          mediaType,
+          userInstruction: context.prompt ?? '',
+          rawSettings,
+          generationParameters,
+        }, request)
+      }
+    } catch (error) {
+      options.generationError.value = options.formatError(error)
+      return
+    }
     await executeGeneration(sourceNode, mediaType, {
-      prompt: context.prompt,
-      imageIds: context.imageIds,
+      prompt: prepared?.optimizedPrompt ?? context.prompt,
+      imageIds: prepared?.imageIds ?? context.imageIds,
       aspectRatio: context.aspectRatio,
       referenceMode: context.referenceMode,
       durationSeconds: context.durationSeconds,
       imageOperation: operation,
       shotControls: context.shotControls,
-      parameters: context.parameters,
-    }, operation && !IMAGE_OPERATIONS[operation.id].requiresPrompt ? undefined : prompt)
+      parameters: prepared ? null : context.parameters,
+      cinematicHandoff: prepared?.handoff,
+      isCanvasPrepared: Boolean(prepared),
+    }, prepared ? undefined : promptToPersist)
   }
 
   async function generateRecipe(recipeId: VisualAssetRecipeId) {
