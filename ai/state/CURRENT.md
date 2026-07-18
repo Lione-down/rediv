@@ -15,17 +15,17 @@ Last updated: 2026-07-18
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-092 (`DONE - PASS`, real Agnes visual fidelity/capacity remains outside mock evidence and Human-gated).
+- Completed V2 Tasks: T5-001 through T5-093 (`DONE - PASS`, real Agnes visual fidelity/capacity remains outside mock evidence and Human-gated).
 
 ## Active Delivery
 
-- Active implementation Task: `T5-093 - Restore legacy MySQL migration compatibility and local runtime`.
-- State: `DOING`
-- Last completed Task: `T5-092 - Same-Canvas concurrent generation and Agnes admission control` (`ai/reports/REPORT-T5-092.md`) at pushed `595f1d4bfd5b844014a5b82bcb9045fa541f8291`.
+- Active implementation Task: none.
+- State: `IDLE`
+- Last completed Task: `T5-093 - Restore legacy MySQL migration compatibility and local runtime` (`ai/reports/REPORT-T5-093.md`) at business delivery `b23b6cb9d4354cc37a78b13352e95774a81f2b07`.
 - Task: `ai/tasks/todo/TASK-T5-093.md`
 - Plan: `ai/tasks/doing/TASK-T5-093-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-093-PROGRESS.md`
-- Exact next action: add the legacy parent/server-default collation regression, then apply the established dynamic-parent-collation fix before retrying the authorized local migration.
+- Exact next action: await Human Owner selection of the next bounded implementation Task; the local frontend/backend are running on ports 5173/8000.
 
 ## Current Verified Facts
 
@@ -44,6 +44,8 @@ Last updated: 2026-07-18
 - T5-091 is `DONE - PASS`: Agent/Skill v2 registers only `revid.cinema-script.v1`, `revid.cinema-image.v1`, and `revid.cinema-video.v1`; structured Canvas-local references, deterministic exact preflight, current-state handoff validation, user-owned provider/model choice, strict shot schema v2, server billing acknowledgement, immutable snapshots, duplication remapping, and stale lineage all reuse native auth/generation/task/result authority. Full backend passed 512 tests plus 116 subtests, functional Chromium passed 496/496, focused cinematic Chromium passed 8/8, build passed 4,926 modules, and guarded 200/300 passed at 56.35 FPS / 16.8ms p95. Delivery `1f3077c9208a0a7590d1ab549e89210a49d0b923` is pushed. Mock/browser evidence does not prove real-provider visual quality. Report: `ai/reports/REPORT-T5-091.md`.
 
 - T5-092 is `DONE - PASS`: distinct Canvas generation nodes now overlap under node/task-scoped locks; every explicit action carries a UUID4 and immutable fingerprint; MySQL serializes cross-process Agnes global/per-user/per-media admission; duplicate success replays once without provider/quota duplication; and bounded pool/timeouts/lifecycle/error contracts remain under the native task/quota/result authority. Full backend passed 519 tests plus 116 subtests before the final responsibility-only controller split, with post-split affected matrices at 58 and 11 passed; build passed 4,926 modules; functional Chromium covered all 497 non-performance titles with one unrelated provenance timing retry. The unchanged 200/300 title remained red under fresh SwiftShader/no hardware acceleration (49.06 full, 35.31/33.29 isolated FPS versus 55) and is explicitly classified without threshold weakening. Delivery `595f1d4bfd5b844014a5b82bcb9045fa541f8291` is pushed. Report: `ai/reports/REPORT-T5-092.md`.
+
+- T5-093 is `DONE - PASS`: a deterministic disposable-MySQL regression reproduced the real legacy `users.id` versus MySQL 8 default collation mismatch, and `f2a3b4c5d6e7` now dynamically inherits the parent collation. Focused migration and 13-test adjacent runtime/migration evidence passed; the explicitly authorized local schema reached `a3b4c5d6e7f8`; exact runtime parent/child collations match; backend `/health` and frontend root return HTTP 200 on ports 8000/5173. Business delivery: `b23b6cb9d4354cc37a78b13352e95774a81f2b07`. Report: `ai/reports/REPORT-T5-093.md`.
 
 - T5-004 through T5-007 now provide the complete pre-certification Canvas product: full-screen multi-Canvas routing, persistent Leafer world, deterministic command model, autosave/recovery/revisions, canonical node registry, project-shared resources, versioned templates, durable generation tasks/results, and backend-authoritative quota snapshots.
 - T5-007 Unit E adds responsive project resource and contextual generation controls, registry-backed asset/template insertion, durable success/failure result presentation, desktop/narrow keyboard behavior, and a strict 375px browse/review-only boundary.

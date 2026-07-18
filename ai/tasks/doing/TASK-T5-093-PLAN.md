@@ -1,6 +1,6 @@
 # TASK-T5-093 Plan
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Objective: close the newly exposed legacy-MySQL collation incompatibility, safely advance the authorized local schema to head, and restore the local frontend/backend runtime.
 - Baseline: `origin/main` and `HEAD` at `2b426a0e303a82f2ce4c0eb7c6863f415dfa135f`.
 
@@ -16,7 +16,7 @@ Success gate: source, database metadata, Task, PLAN, PROGRESS, CURRENT, and ROAD
 
 ## Unit 1 - Regression and minimal migration fix
 
-- Status: `in progress`
+- Status: `completed`
 
 1. Extend the focused migration test to create a deterministic legacy parent/server-default collation mismatch.
 2. Confirm the regression fails against the existing migration.
@@ -27,7 +27,7 @@ Success gate: focused disposable-MySQL evidence passes and would fail if the mig
 
 ## Unit 2 - Authorized local migration and runtime recovery
 
-- Status: `pending`
+- Status: `completed`
 
 1. Recheck the local revision and absence of a partial acknowledgement table.
 2. Run `alembic upgrade head` through the repository-local `.env` under the Human authorization already granted.
@@ -38,7 +38,7 @@ Success gate: schema is at `a3b4c5d6e7f8`, backend and frontend both return HTTP
 
 ## Unit 3 - Closure and delivery
 
-- Status: `pending`
+- Status: `completed`
 
 1. Run focused regression, compile/migration-head, diff, encoding, sensitive-path, and secret checks.
 2. Review only owned paths, update PROGRESS/CURRENT/ROADMAP, and write REPORT after all criteria pass.

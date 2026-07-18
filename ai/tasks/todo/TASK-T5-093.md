@@ -1,6 +1,6 @@
 # TASK-T5-093 - Restore legacy MySQL migration compatibility and local runtime
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Objective: make the T5-091 provider-cost acknowledgement migration inherit the real parent `users.id` collation, prove the historical-schema path with a guarded MySQL regression, apply the already authorized pending migrations to the local runtime database, and restore the backend.
 - Dependency: `T5-092 - DONE - PASS` at pushed business delivery `595f1d4bfd5b844014a5b82bcb9045fa541f8291` and closure `2b426a0e303a82f2ce4c0eb7c6863f415dfa135f`.
 

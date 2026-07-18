@@ -87,7 +87,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 90 | T5-090 | Revid Agent/Skill interface over native auth, project, canvas, and generation contracts | DONE - PASS | T5-089 |
 | 91 | T5-091 | Revid native cinematic Skills, structured references, deterministic generation optimization, billing acknowledgement, and stale lineage | DONE - PASS | T5-090 |
 | 92 | T5-092 | Same-Canvas concurrent image/video generation, request idempotency, and bounded Agnes admission control | DONE | T5-091 |
-| 93 | T5-093 | Restore legacy MySQL migration compatibility and local runtime | DOING | T5-092 |
+| 93 | T5-093 | Restore legacy MySQL migration compatibility and local runtime | DONE - PASS | T5-092 |
 
 ## Task Boundaries
 
@@ -283,7 +283,7 @@ T5-091 is `DONE - PASS`. It extends T5-090 backward-compatibly with exactly thre
 
 T5-092 is `DONE - PASS`. Node/task-scoped concurrent image/video execution, strict client request idempotency, cross-process MySQL-backed global/per-user/per-media Agnes admission, bounded transport limits, lifecycle closure, provider error mapping, and exact mock/browser isolation are delivered at pushed business commit `595f1d4bfd5b844014a5b82bcb9045fa541f8291`. Focused/related backend and browser checks, full backend, production build, migration/hygiene gates, and exhaustive functional Chromium coverage passed after one transparent unrelated timing retry. The unchanged guarded 200/300 FPS title remained red only under fresh SwiftShader/no-hardware-acceleration runs; thresholds were not weakened and no real-provider or hardware-capacity claim is made. `REPORT-T5-092.md` is authoritative.
 
-T5-093 is `DOING`. Local startup exposed a historical-schema MySQL collation mismatch in the T5-091 provider-cost acknowledgement migration: the real `users.id` remains `utf8mb4_unicode_ci`, while an explicit-charset-only new table inherits MySQL 8's `utf8mb4_0900_ai_ci` default. Scope is limited to a deterministic guarded regression, the established dynamic parent-collation fix, the explicitly authorized local upgrade to repository head, and frontend/backend readiness verification.
+T5-093 is `DONE - PASS`. Local startup exposed a historical-schema MySQL collation mismatch in the T5-091 provider-cost acknowledgement migration: the real `users.id` remained `utf8mb4_unicode_ci`, while an explicit-charset-only new table inherited MySQL 8's `utf8mb4_0900_ai_ci` default. A deterministic disposable-MySQL regression reproduced the same 3780 failure, the migration now inherits the exact parent collation, focused plus 13-test adjacent evidence passed, and the explicitly authorized local schema reached `a3b4c5d6e7f8`. Backend `/health` and frontend root are HTTP 200 on ports 8000/5173. Business delivery is `b23b6cb9d4354cc37a78b13352e95774a81f2b07`; `REPORT-T5-093.md` is authoritative.
 
 ## Canvas First-Acceptance Gate
 
