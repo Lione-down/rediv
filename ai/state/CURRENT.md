@@ -15,17 +15,17 @@ Last updated: 2026-07-18
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-091 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision).
+- Completed V2 Tasks: T5-001 through T5-092 (`DONE - PASS`, real Agnes visual fidelity/capacity remains outside mock evidence and Human-gated).
 
 ## Active Delivery
 
-- Active implementation Task: `T5-092 - Same-Canvas concurrent generation and Agnes admission control`.
-- State: `VERIFYING`
-- Last completed Task: `T5-091 - Revid native cinematic skills and reference-aware generation optimization` (`ai/reports/REPORT-T5-091.md`) at pushed `1f3077c9208a0a7590d1ab549e89210a49d0b923`.
+- Active implementation Task: none.
+- State: `IDLE`
+- Last completed Task: `T5-092 - Same-Canvas concurrent generation and Agnes admission control` (`ai/reports/REPORT-T5-092.md`) at pushed `595f1d4bfd5b844014a5b82bcb9045fa541f8291`.
 - Task: `ai/tasks/todo/TASK-T5-092.md`
 - Plan: `ai/tasks/doing/TASK-T5-092-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-092-PROGRESS.md`
-- Exact next action: exact-stage the verified T5-092 implementation and active-state documents, commit/push the business delivery, then write REPORT and close durable state.
+- Exact next action: await Human Owner selection of the next bounded implementation Task; do not activate another Task implicitly.
 
 ## Current Verified Facts
 
@@ -42,6 +42,8 @@ Last updated: 2026-07-18
 - T5-090 is `DONE - PASS`: Revid-owned v1 contains exactly `revid.canvas-context` v1, a closed mock-only/unavailable manifest contract, authenticated current-user/project/Canvas discovery and canonical source preflight, no execute endpoint, and no provider/quota/task/asset/Canvas authority. Strict frontend parsing and the desktop Palette overlay display only a mock-only context inspection; 375px remains review-only. Focused backend passed 8/8, focused browser passed 14/14 plus Agent UI 2/2 and Storyboard 15/15, build passed 4,921 modules, and final functional Chromium passed 472/472 with the isolated 200/300 title passing at 57.519 FPS / 16.8ms p95 under SwiftShader/no hardware acceleration. The first combined matrix's 49.54 FPS is transparently classified without threshold change. Report: `ai/reports/REPORT-T5-090.md`.
 
 - T5-091 is `DONE - PASS`: Agent/Skill v2 registers only `revid.cinema-script.v1`, `revid.cinema-image.v1`, and `revid.cinema-video.v1`; structured Canvas-local references, deterministic exact preflight, current-state handoff validation, user-owned provider/model choice, strict shot schema v2, server billing acknowledgement, immutable snapshots, duplication remapping, and stale lineage all reuse native auth/generation/task/result authority. Full backend passed 512 tests plus 116 subtests, functional Chromium passed 496/496, focused cinematic Chromium passed 8/8, build passed 4,926 modules, and guarded 200/300 passed at 56.35 FPS / 16.8ms p95. Delivery `1f3077c9208a0a7590d1ab549e89210a49d0b923` is pushed. Mock/browser evidence does not prove real-provider visual quality. Report: `ai/reports/REPORT-T5-091.md`.
+
+- T5-092 is `DONE - PASS`: distinct Canvas generation nodes now overlap under node/task-scoped locks; every explicit action carries a UUID4 and immutable fingerprint; MySQL serializes cross-process Agnes global/per-user/per-media admission; duplicate success replays once without provider/quota duplication; and bounded pool/timeouts/lifecycle/error contracts remain under the native task/quota/result authority. Full backend passed 519 tests plus 116 subtests before the final responsibility-only controller split, with post-split affected matrices at 58 and 11 passed; build passed 4,926 modules; functional Chromium covered all 497 non-performance titles with one unrelated provenance timing retry. The unchanged 200/300 title remained red under fresh SwiftShader/no hardware acceleration (49.06 full, 35.31/33.29 isolated FPS versus 55) and is explicitly classified without threshold weakening. Delivery `595f1d4bfd5b844014a5b82bcb9045fa541f8291` is pushed. Report: `ai/reports/REPORT-T5-092.md`.
 
 - T5-004 through T5-007 now provide the complete pre-certification Canvas product: full-screen multi-Canvas routing, persistent Leafer world, deterministic command model, autosave/recovery/revisions, canonical node registry, project-shared resources, versioned templates, durable generation tasks/results, and backend-authoritative quota snapshots.
 - T5-007 Unit E adds responsive project resource and contextual generation controls, registry-backed asset/template insertion, durable success/failure result presentation, desktop/narrow keyboard behavior, and a strict 375px browse/review-only boundary.
@@ -133,7 +135,7 @@ Last updated: 2026-07-18
 
 ## Exact Next Action
 
-Exact-stage the verified T5-092 implementation and active-state documents, commit/push the business delivery, then write REPORT and close Task/PLAN/PROGRESS/CURRENT/ROADMAP.
+Await Human Owner selection of the next bounded implementation Task. T5-092 is closed and no implementation Task is active.
 
 ## Blockers And Human Gates
 

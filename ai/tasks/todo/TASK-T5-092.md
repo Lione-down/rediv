@@ -1,6 +1,6 @@
 # TASK-T5-092 - Same-Canvas concurrent generation and Agnes admission control
 
-- State: `VERIFYING`
+- State: `DONE - PASS`
 - Objective: allow one Canvas to run multiple independent image and video generation tasks concurrently while adding bounded, cross-process Agnes admission, request idempotency, transport backpressure, and exact task/result isolation.
 - Dependency: `T5-091 - DONE - PASS` at business delivery `1f3077c9208a0a7590d1ab549e89210a49d0b923` and state closure `6799fdf6ed79edd8b4e3a5af8394dfda4e7d7023` pushed to `origin/main`.
 - Activation rule: this Task remains inactive until `ai/tasks/doing/TASK-T5-092-PLAN.md` and `ai/tasks/doing/TASK-T5-092-PROGRESS.md` are created or refreshed from the current code and T5-091 contracts. No business-code edit may precede that activation audit.

@@ -1,6 +1,6 @@
 # TASK-T5-092 Plan
 
-- State: `VERIFYING`
+- State: `DONE - PASS`
 - Objective: allow distinct generation nodes in one editable Canvas to execute concurrently while preserving same-node single-flight behavior, strict authenticated request idempotency, cross-process Agnes admission, exact task/result ownership, and the existing T5-091 cinematic handoff and billing contracts.
 - Baseline: `origin/main` at `2eaad1ad91a081ae41bc7757341caaa10eecaacf`; T5-091 business delivery is `1f3077c9208a0a7590d1ab549e89210a49d0b923` and closure is `6799fdf`.
 
@@ -51,7 +51,7 @@ Success gate: mock transport/lifecycle tests prove correct classification, relea
 
 ## Unit 4 - Regression and closure
 
-- Status: `in progress`
+- Status: `completed`
 
 1. Run focused frontend concurrency and backend idempotency/admission/lifecycle tests first.
 2. Run related generation, cinematic, billing, quota/task/result, recovery, duplication, Storyboard, responsive, accessibility, and security regression.
