@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text
+from sqlalchemy import JSON, CheckConstraint, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, utc_now
@@ -38,6 +38,7 @@ class GenerationTask(Base):
         ),
         Index("ix_generation_tasks_origin_canvas_id", "origin_canvas_id"),
         Index("ix_generation_tasks_project_status_created", "project_id", "status", "created_at"),
+        UniqueConstraint("user_id", "client_request_id", name="uq_generation_tasks_user_client_request"),
         {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4", "comment": "Generation task diagnostics table"},
     )
 
@@ -61,6 +62,17 @@ class GenerationTask(Base):
     provider: Mapped[str] = mapped_column(String(64), nullable=False, default="agnes", comment="Provider name")
     model: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="Provider model name")
     provider_request_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True, comment="Provider request or task ID")
+    client_request_id: Mapped[str | None] = mapped_column(
+        String(36),
+        nullable=True,
+        index=True,
+        comment="Authenticated client action identifier used for idempotent delivery",
+    )
+    request_fingerprint: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+        comment="SHA-256 fingerprint of the immutable accepted generation request",
+    )
     request_parameters: Mapped[dict | None] = mapped_column(
         JSON,
         nullable=True,

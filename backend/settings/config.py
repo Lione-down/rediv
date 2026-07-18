@@ -27,6 +27,17 @@ class Settings(BaseSettings):
     agnes_model_text: str = "agnes-2.0-flash"
     agnes_model_image: str = "agnes-image-2.1-flash"
     agnes_model_video: str = "agnes-video-v2.0"
+    agnes_admission_global_limit: int = Field(default=4, gt=0, le=64)
+    agnes_admission_per_user_limit: int = Field(default=2, gt=0, le=32)
+    agnes_admission_text_limit: int = Field(default=2, gt=0, le=32)
+    agnes_admission_image_limit: int = Field(default=2, gt=0, le=32)
+    agnes_admission_video_limit: int = Field(default=1, gt=0, le=32)
+    agnes_admission_lease_seconds: int = Field(default=900, ge=60, le=86_400)
+    agnes_admission_retry_after_seconds: int = Field(default=5, ge=1, le=300)
+    agnes_http_connect_timeout_seconds: float = Field(default=10, gt=0, le=120)
+    agnes_http_pool_timeout_seconds: float = Field(default=2, gt=0, le=60)
+    agnes_http_read_timeout_seconds: float = Field(default=300, gt=0, le=3_600)
+    agnes_http_write_timeout_seconds: float = Field(default=30, gt=0, le=600)
 
     # === WeChat OAuth ===
     # Real OAuth callback exchanges use these env vars:

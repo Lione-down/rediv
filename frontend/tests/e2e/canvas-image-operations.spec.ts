@@ -555,6 +555,7 @@ test('inpaint uses the existing explicit generation lifecycle with an exact immu
   expect(request.body).toEqual({
     project_id: RESOURCE_PROJECT_ID,
     origin_canvas_id: FIRST_CANVAS_ID,
+    client_request_id: expect.any(String),
     canvas_node_id: branch.id,
     prompt: '将主体替换为飞鸟',
     image_ids: ['asset-generated'],
@@ -643,6 +644,7 @@ test('fusion preserves selected source order and requires a manual prompt before
   expect(state.requests.find((request) => request.path === '/api/image-generate')?.body).toEqual({
     project_id: RESOURCE_PROJECT_ID,
     origin_canvas_id: FIRST_CANVAS_ID,
+    client_request_id: expect.any(String),
     canvas_node_id: branch.id,
     prompt: '融合两个版本的天空与海岸',
     image_ids: ['asset-generated', 'asset-second-origin'],

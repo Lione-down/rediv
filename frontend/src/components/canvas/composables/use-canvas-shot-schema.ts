@@ -9,7 +9,7 @@ import {
   requestCinematicSkillPreflight,
   type CinematicGenerationHandoff,
 } from '../../../modules/canvas/cinematic-skills'
-import { requestCanvasGeneration } from '../../../modules/canvas/generation-service'
+import { createGenerationClientRequestId, requestCanvasGeneration } from '../../../modules/canvas/generation-service'
 import { parseShotSchemaDocument } from '../../../modules/canvas/shot-schema'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import { useAuthStore } from '../../../store/auth'
@@ -144,7 +144,8 @@ export function useCanvasShotSchema(options: CanvasShotSchemaOptions) {
       const canonicalPrompt = preflight.canonical_request.optimized_prompt
       if (typeof canonicalPrompt !== 'string') throw new Error('cinematic script Skill preflight 无效。')
       const response = await requestCanvasGeneration({
-        mediaType: 'text', projectId, originCanvasId: canvasId, canvasNodeId: sourceSnapshot.id,
+        mediaType: 'text', clientRequestId: createGenerationClientRequestId(),
+        projectId, originCanvasId: canvasId, canvasNodeId: sourceSnapshot.id,
         prompt: canonicalPrompt, cinematicHandoff: handoff,
       }, authStore, request)
       if (!response.content || !response.asset) throw new Error('cinematic script Skill 响应缺少 strict shot document。')

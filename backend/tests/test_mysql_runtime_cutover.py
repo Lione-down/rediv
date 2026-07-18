@@ -167,7 +167,20 @@ class TestRuntimeLifespan(unittest.IsolatedAsyncioTestCase):
         close_db.assert_not_called()
 
     async def test_lifespan_initializes_mysql_and_closes_engine(self) -> None:
+        import main as main_module
         from main import lifespan, settings
+
+        class Provider:
+            is_closed = False
+
+            def __init__(self):
+                self.close_count = 0
+
+            async def close(self):
+                self.close_count += 1
+                self.is_closed = True
+
+        provider = Provider()
 
         database_store = object()
         with (
@@ -177,6 +190,7 @@ class TestRuntimeLifespan(unittest.IsolatedAsyncioTestCase):
             patch("main.DatabaseStore", return_value=database_store),
             patch("main.configure_store") as configure_store,
             patch("main.close_db") as close_db,
+            patch.object(main_module, "_agnes", provider),
         ):
             async with lifespan(FastAPI()):
                 init_mysql_engine.assert_called_once_with()
@@ -184,6 +198,7 @@ class TestRuntimeLifespan(unittest.IsolatedAsyncioTestCase):
                 configure_store.assert_called_once_with(database_store)
 
         close_db.assert_called_once_with()
+        self.assertEqual(1, provider.close_count)
 
     async def test_lifespan_closes_engine_when_revision_gate_fails(self) -> None:
         from main import lifespan, settings

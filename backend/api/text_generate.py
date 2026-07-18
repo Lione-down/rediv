@@ -1,9 +1,10 @@
 import asyncio
 import time
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from api.generation_common import map_generation_error, resolve_cinematic_generation_handoff
+from api.generation_common import fingerprint_generation_request, map_generation_error, resolve_cinematic_generation_handoff
 from controllers import generation_transactions as generation_controller
 from core.generation_provider import GenerationProvider, get_generation_provider
 from core.generation_results import (
@@ -15,6 +16,8 @@ from core.generation_task_utils import (
     elapsed_ms,
     error_code_for_exception,
     extract_provider_request_id,
+    provider_failure_http_status,
+    safe_retry_after_seconds,
     sanitize_error_message,
     status_for_error_code,
 )
@@ -54,7 +57,11 @@ async def text_generate(
         ),
     )
     try:
-        task = generation_controller.start_generation_task(
+        request_parameters = (
+            {"cinematic_skill": cinematic_handoff["request_snapshot"]}
+            if cinematic_handoff else None
+        )
+        start = generation_controller.start_generation_request(
             user_id=user["id"],
             media_type="text",
             provider="agnes",
@@ -62,13 +69,27 @@ async def text_generate(
             project_id=payload.project_id,
             origin_canvas_id=payload.origin_canvas_id,
             canvas_node_id=payload.canvas_node_id,
-            request_parameters=(
-                {"cinematic_skill": cinematic_handoff["request_snapshot"]}
-                if cinematic_handoff else None
+            request_parameters=request_parameters,
+            client_request_id=str(payload.client_request_id or uuid4()),
+            request_fingerprint=fingerprint_generation_request(
+                media_type="text",
+                user_id=user["id"],
+                project_id=payload.project_id,
+                origin_canvas_id=payload.origin_canvas_id,
+                canvas_node_id=payload.canvas_node_id,
+                provider="agnes",
+                model=MODEL_NAME,
+                prompt=payload.prompt,
+                image_ids=None,
+                request_parameters=request_parameters,
+                cinematic_handoff=payload.cinematic_handoff,
             ),
         )
     except generation_controller.GenerationTransactionError as error:
         raise map_generation_error(error) from error
+    if start.is_replay:
+        return {"content": start.replay_outcome["asset"]["content_text"], **start.replay_outcome}
+    task = start.task
     started_at = time.perf_counter()
     provider_request_id: str | None = None
 
@@ -119,7 +140,12 @@ async def text_generate(
         )
         if isinstance(exc, HTTPException):
             raise
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Agnes text generation failed") from exc
+        retry_after = safe_retry_after_seconds(exc)
+        raise HTTPException(
+            status_code=provider_failure_http_status(error_code),
+            detail="Agnes text generation failed",
+            headers={"Retry-After": str(retry_after)} if retry_after is not None else None,
+        ) from exc
 
     try:
         result = generation_controller.complete_generation_task(

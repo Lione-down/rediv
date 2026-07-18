@@ -35,6 +35,22 @@ function errorMessage(error: unknown) {
   if (isAxiosError<{ detail?: unknown }>(error)) {
     const detail = error.response?.data?.detail
     if (typeof detail === 'string' && detail.trim()) return detail
+    if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+      const payload = detail as Record<string, unknown>
+      if (payload.code === 'provider_busy') {
+        const retryAfter = typeof payload.retry_after_seconds === 'number' ? payload.retry_after_seconds : null
+        return retryAfter
+          ? `生成服务繁忙，请在 ${retryAfter} 秒后重试。`
+          : '生成服务繁忙，请稍后重试。'
+      }
+      if (payload.code === 'generation_request_in_progress' || payload.code === 'generation_node_busy') {
+        return '此节点已有生成任务正在执行。'
+      }
+      if (payload.code === 'generation_request_mismatch') {
+        return '生成请求 ID 与原请求不一致，已安全阻止。'
+      }
+      if (typeof payload.message === 'string' && payload.message.trim()) return payload.message
+    }
   }
   return error instanceof Error ? error.message : '操作失败，请稍后重试。'
 }
@@ -89,10 +105,9 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const isResourceOpen = ref(false)
   const isContextDrawerOpen = ref(false)
   const isUploading = ref(false)
-  const isGenerating = ref(false)
   const actionError = ref('')
-  const generationError = ref('')
-  const generationSuccess = ref('')
+  const generationErrors = ref<ReadonlyMap<string, string>>(new Map())
+  const generationSuccesses = ref<ReadonlyMap<string, string>>(new Map())
   const foregroundResultNodeId = ref('')
   const { generationCapabilities, generationCapabilitiesError } = useGenerationCapabilities()
   const captureVideoFrame = createVideoFrameCaptureAction({
@@ -133,6 +148,9 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const selectedRuntimePresentation = computed(() => (
     selectedNode.value ? generationRuntime.presentations.value.get(selectedNode.value.id) ?? null : null
   ))
+  const isGenerating = computed(() => (
+    selectedNode.value ? generationRuntime.isNodeActive(selectedNode.value.id) : false
+  ))
   const latestTask = computed(() => {
     const nodeId = selectedNode.value?.id
     if (selectedRuntimePresentation.value) return selectedRuntimePresentation.value.task
@@ -141,7 +159,13 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
       : null
   })
   const visibleError = computed(() => actionError.value || resourceStore.error)
-  const visibleGenerationError = computed(() => generationError.value || generationCapabilitiesError.value)
+  const generationError = computed(() => (
+    (selectedNode.value ? generationErrors.value.get(selectedNode.value.id) ?? '' : '') ||
+    generationCapabilitiesError.value
+  ))
+  const generationSuccess = computed(() => (
+    selectedNode.value ? generationSuccesses.value.get(selectedNode.value.id) ?? '' : ''
+  ))
   const isDesktopContextOpen = computed(() => (
     !options.isCompact.value && Boolean(selectedNode.value)
   ))
@@ -327,6 +351,13 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     return result
   }
 
+  function setNodeMessage(target: Ref<ReadonlyMap<string, string>>, nodeId: string, message: string) {
+    const next = new Map(target.value)
+    if (message) next.set(nodeId, message)
+    else next.delete(nodeId)
+    target.value = next
+  }
+
   const { generate, generateRecipe, updatePrompt, updateGenerationParameters } = useCanvasGenerationActions({
     canvasId: options.canvasId,
     projectId: options.projectId,
@@ -334,9 +365,9 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     selectedNode,
     selectedMediaType,
     generationCapabilities,
-    isGenerating,
-    generationError,
-    generationSuccess,
+    isNodeGenerating: generationRuntime.isNodeActive,
+    setGenerationError: (nodeId, message) => setNodeMessage(generationErrors, nodeId, message),
+    setGenerationSuccess: (nodeId, message) => setNodeMessage(generationSuccesses, nodeId, message),
     foregroundResultNodeId,
     formatError: errorMessage,
     queueResourceReconciliation,
@@ -370,8 +401,6 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   }, { immediate: true, flush: 'post' })
 
   watch(() => selectedNode.value?.id, (nodeId) => {
-    generationError.value = ''
-    generationSuccess.value = ''
     if (!nodeId) isContextDrawerOpen.value = false
     else if (options.isCompact.value) {
       isResourceOpen.value = false
@@ -404,7 +433,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     pendingGenerationResults: generationRuntime.pendingResultProjections,
     latestTask,
     visibleError,
-    generationError: visibleGenerationError,
+    generationError,
     generationSuccess,
     foregroundResultNodeId,
     openResources,

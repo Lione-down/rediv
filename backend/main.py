@@ -14,11 +14,18 @@ async def lifespan(_app: FastAPI):
     """Validate runtime security and initialize the MySQL application state."""
     require_runtime_security_settings()
     init_mysql_engine()
+    global _agnes
+    if _agnes.is_closed:
+        _agnes = AgnesProvider(
+            api_key=settings.agnes_api_key,
+            base_url=settings.agnes_base_url,
+        )
     try:
         check_alembic_revision()
         configure_store(DatabaseStore())
         yield
     finally:
+        await _agnes.close()
         close_db()
 
 from api.router import include_routers

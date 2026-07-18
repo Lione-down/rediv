@@ -360,7 +360,7 @@ test('compact Workflow can run a preset after drawer handoff while 375px remains
   expect(state.shotSchemaCount).toBe(1)
 })
 
-test('visual Storyboard presets fail closed while another generation is in flight', async ({ page }) => {
+test('visual Storyboard presets remain available while an unrelated generation is in flight', async ({ page }) => {
   const state = createResourceMockState()
   let releaseGeneration = () => undefined
   state.generationGate = new Promise<void>((resolve) => { releaseGeneration = resolve })
@@ -374,14 +374,17 @@ test('visual Storyboard presets fail closed while another generation is in fligh
   const stage = page.getByRole('region', { name: 'Revid 无限画布工作区' })
   await stage.focus()
   await page.keyboard.press('/')
-  await expect(page.getByRole('dialog', { name: '专业操作' })).toHaveCount(0)
+  const palette = page.getByRole('dialog', { name: '专业操作' })
+  const recipeAction = palette.getByRole('option', { name: /创建角色转面参考板/ })
+  await expect(recipeAction).toBeVisible()
+  await recipeAction.click()
+  await expect.poll(() => generationPosts(state).length).toBe(2)
   expect(state.documents[FIRST_CANVAS_ID].nodes.some((node) => (
     typeof (node.content as Record<string, unknown>).generation_recipe_id === 'string'
-  ))).toBe(false)
-  expect(generationPosts(state)).toHaveLength(1)
+  ))).toBe(true)
 
   releaseGeneration()
-  await expect.poll(() => state.generationCount).toBe(1)
+  await expect.poll(() => state.generationCount).toBe(2)
 })
 
 for (const preset of [
@@ -400,6 +403,7 @@ for (const preset of [
     expect(request.body).toEqual({
       project_id: PROJECT_ID,
       origin_canvas_id: FIRST_CANVAS_ID,
+      client_request_id: expect.any(String),
       canvas_node_id: expect.any(String),
       generation_recipe_id: preset.recipeId,
       generation_recipe_version: 2,

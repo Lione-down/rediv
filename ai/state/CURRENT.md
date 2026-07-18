@@ -19,14 +19,13 @@ Last updated: 2026-07-18
 
 ## Active Delivery
 
-- Active implementation Task: none.
-- State: `IDLE`
+- Active implementation Task: `T5-092 - Same-Canvas concurrent generation and Agnes admission control`.
+- State: `VERIFYING`
 - Last completed Task: `T5-091 - Revid native cinematic skills and reference-aware generation optimization` (`ai/reports/REPORT-T5-091.md`) at pushed `1f3077c9208a0a7590d1ab549e89210a49d0b923`.
-- Task: `ai/tasks/todo/TASK-T5-091.md`
-- Plan: `ai/tasks/doing/TASK-T5-091-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-091-PROGRESS.md`
-- Planned next Task: `T5-092 - Same-Canvas concurrent generation and Agnes admission control` (`ai/tasks/todo/TASK-T5-092.md`), state `TODO` and not active.
-- Exact next action: Human Owner may activate T5-092 as the sole implementation Task; activation must create or refresh its PLAN/PROGRESS and lock idempotency plus cross-process admission before business-code edits.
+- Task: `ai/tasks/todo/TASK-T5-092.md`
+- Plan: `ai/tasks/doing/TASK-T5-092-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-092-PROGRESS.md`
+- Exact next action: exact-stage the verified T5-092 implementation and active-state documents, commit/push the business delivery, then write REPORT and close durable state.
 
 ## Current Verified Facts
 
@@ -48,7 +47,7 @@ Last updated: 2026-07-18
 - T5-007 Unit E adds responsive project resource and contextual generation controls, registry-backed asset/template insertion, durable success/failure result presentation, desktop/narrow keyboard behavior, and a strict 375px browse/review-only boundary.
 - Local upload handling now uses bounded JSON/multipart bodies, provisional cross-process reservation slots, per-user/global active and scan limits, same-volume staging, idle/total deadlines, cancellation-safe disk lifecycle, real decodable media fixtures, and bounded CPU/memory validation.
 - T5-007 final evidence passed 384 backend tests plus 56 subtests, 134 upload/security tests plus 48 subtests, 117 Chromium tests, a 4,761-module build, four accepted viewport inspections, and independent frontend/security review at 0 HIGH / 0 MEDIUM / 0 LOW.
-- Repository Alembic head is `f2a3b4c5d6e7`; the new acknowledgement migration was tested only on disposable guarded MySQL and no user/runtime migration occurred.
+- Repository Alembic head is `a3b4c5d6e7f8`; the T5-092 idempotency/admission migration passed disposable guarded MySQL tests and was not applied to user/runtime data.
 - Browser offline and prior 200-node/300-connection performance evidence remains classified as mock-browser evidence; T5-008 additionally records the final local-MySQL live run.
 - T5-008 classified all 97 acceptance checkboxes and closed its live harness, persistence, performance, visual, accessibility, and security evidence gates.
 - Unit A pure gates now include missing/unreachable/missing-Alembic/wrong-dialect/revision-mismatch runtime checks; the owned harness also requires an exact run-scoped backend health identity and preview build marker.
@@ -134,12 +133,12 @@ Last updated: 2026-07-18
 
 ## Exact Next Action
 
-Await Human Owner selection of the next bounded implementation Task. T5-091 is closed and no second Task is active.
+Exact-stage the verified T5-092 implementation and active-state documents, commit/push the business delivery, then write REPORT and close Task/PLAN/PROGRESS/CURRENT/ROADMAP.
 
 ## Blockers And Human Gates
 
 - T5-071 real-provider fidelity was explicitly accepted for offline-only closure after all 20 authorized Agnes requests returned HTTP 503 with zero outputs. It remains an unsupported release caveat, not a visual-quality pass.
-- Applying Alembic revisions through `f2a3b4c5d6e7` to user/runtime data requires reviewed backup discipline and Human authorization.
+- Applying Alembic revisions through `a3b4c5d6e7f8` to user/runtime data requires reviewed backup discipline and Human authorization.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.
 

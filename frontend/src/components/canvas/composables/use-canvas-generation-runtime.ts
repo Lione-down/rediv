@@ -28,10 +28,6 @@ const QUICK_DISCOVERY_DELAY_MS = 250
 const ACTIVE_POLL_DELAY_MS = 2_000
 const MAX_ERROR_DELAY_MS = 8_000
 
-function requestId() {
-  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
-}
-
 export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptions) {
   const authStore = useAuthStore()
   const canvasStore = useCanvasStore()
@@ -109,13 +105,19 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
     }, delay)
   }
 
-  function beginRequest(context: BeginGenerationRuntimeRequest) {
+  function isNodeActive(nodeId: string) {
+    const phase = presentations.value.get(nodeId)?.phase
+    return phase === 'submitting' || phase === 'queued' || phase === 'running'
+  }
+
+  function beginRequest(context: BeginGenerationRuntimeRequest, clientRequestId: string) {
+    if (isNodeActive(context.nodeId)) return null
     const knownTaskIds = resourceStore.tasks.filter((task) => (
       task.project_id === context.projectId && task.origin_canvas_id === context.canvasId &&
       task.canvas_node_id === context.nodeId && task.media_type === context.mediaType
     )).map((task) => task.id)
     const request: LocalGenerationRuntimeRequest = {
-      id: requestId(),
+      id: clientRequestId,
       projectId: context.projectId,
       canvasId: context.canvasId,
       nodeId: context.nodeId,
@@ -176,5 +178,6 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
     requestRecoveryPolling,
     resolveTerminalResultPlacement,
     settleRequest,
+    isNodeActive,
   }
 }

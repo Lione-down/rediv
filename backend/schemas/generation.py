@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, UUID4, field_validator, model_validator
 
 from schemas.asset import AssetListItem
 from schemas.generation_task import GenerationTaskItem
@@ -49,6 +49,7 @@ class CinematicGenerationHandoff(BaseModel):
 class ScopedGenerationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
+    client_request_id: UUID4 | None = None
     project_id: ResourceId
     origin_canvas_id: ResourceId
     canvas_node_id: ResourceId | None = None
@@ -145,6 +146,7 @@ class VideoGenerateRequest(ScopedGenerationRequest):
 class TextGenerateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
+    client_request_id: UUID4 | None = None
     project_id: ResourceId
     origin_canvas_id: ResourceId | None = None
     canvas_node_id: ResourceId

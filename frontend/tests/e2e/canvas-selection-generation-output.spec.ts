@@ -129,6 +129,7 @@ test('composed image request materializes one durable linked result', async ({ p
   expect(request).toEqual({
     project_id: PROJECT_ID,
     origin_canvas_id: FIRST_CANVAS_ID,
+    client_request_id: expect.any(String),
     canvas_node_id: generationNode.id,
     prompt: '【Scene】\nGolden coast at dusk\n\n【Camera】\nSlow lateral tracking shot',
     image_ids: ['asset-reference', 'asset-character'],

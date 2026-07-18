@@ -11,7 +11,7 @@ import WorkspaceToolRail from './components/workspace/WorkspaceToolRail.vue'
 import WorkspaceInspector from './components/workspace/WorkspaceInspector.vue'
 import WorkspacePromptDock from './components/workspace/WorkspacePromptDock.vue'
 import WorkspaceStatusBar from './components/workspace/WorkspaceStatusBar.vue'
-import { requestCanvasGeneration } from '../../modules/canvas/generation-service'
+import { createGenerationClientRequestId, requestCanvasGeneration } from '../../modules/canvas/generation-service'
 import { useAssetStore } from '../../store/assets'
 import { useAuthStore } from '../../store/auth'
 import { useCanvasStore } from '../../store/canvas'
@@ -157,6 +157,7 @@ async function requestGeneration(node: CanvasNode): Promise<GenerationOutcome> {
   if (!originCanvasId) throw new Error('当前项目没有可用画布，无法发起生成。')
   const response = await requestCanvasGeneration({
     mediaType,
+    clientRequestId: createGenerationClientRequestId(),
     projectId: projectId.value,
     originCanvasId,
     canvasNodeId: node.id,

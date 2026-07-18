@@ -76,10 +76,12 @@ test('authenticated project and Canvas generation workflow survives reload', asy
   expect(state.generationBodies).toEqual([
     {
       project_id: 'project-e2e', origin_canvas_id: 'canvas-first',
+      client_request_id: expect.any(String),
       canvas_node_id: 'node-image', prompt: '夏日海边电影海报', aspect_ratio: '4:3',
     },
     {
       project_id: 'project-e2e', origin_canvas_id: 'canvas-first',
+      client_request_id: expect.any(String),
       canvas_node_id: 'node-image', prompt: '夏日海边电影海报', aspect_ratio: '4:3',
     },
   ])

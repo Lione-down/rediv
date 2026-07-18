@@ -11,6 +11,7 @@ export type GenerationMediaType = keyof QuotaBalance
 
 export interface CanvasGenerationContext {
   mediaType: GenerationMediaType
+  clientRequestId?: string
   projectId: string
   originCanvasId: string
   canvasNodeId?: string | null
@@ -56,6 +57,12 @@ const GENERATION_ROUTES: Record<GenerationMediaType, string> = {
   video: '/api/video-generate',
 }
 
+export function createGenerationClientRequestId() {
+  const id = globalThis.crypto?.randomUUID?.()
+  if (!id) throw new Error('Current browser cannot create a secure generation request ID')
+  return id
+}
+
 function assertGenerationResponseScope(
   context: CanvasGenerationContext,
   response: CanvasGenerationResponse,
@@ -68,7 +75,8 @@ function assertGenerationResponseScope(
     task.project_id !== context.projectId ||
     task.origin_canvas_id !== context.originCanvasId ||
     task.canvas_node_id !== expectedNodeId ||
-    task.media_type !== context.mediaType
+    task.media_type !== context.mediaType ||
+    (context.clientRequestId !== undefined && task.client_request_id !== context.clientRequestId)
   ) throw new Error('Generation response scope mismatch')
   const asset = response.asset
   if (!asset) throw new Error('Generation response scope mismatch')
@@ -203,6 +211,7 @@ export async function requestCanvasGeneration(
   const response = await transport.post<CanvasGenerationResponse>(
     GENERATION_ROUTES[context.mediaType],
     {
+      ...(context.clientRequestId ? { client_request_id: context.clientRequestId } : {}),
       project_id: context.projectId,
       origin_canvas_id: context.originCanvasId,
       canvas_node_id: context.canvasNodeId ?? null,

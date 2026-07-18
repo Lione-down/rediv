@@ -10,9 +10,42 @@ from core.cinematic_skill_contract import (
     validate_cinematic_generation_handoff,
 )
 from schemas.generation import CinematicGenerationHandoff
+from core.generation_request_idempotency import generation_request_fingerprint
 
 
 def map_generation_error(error: generation_controller.GenerationTransactionError) -> HTTPException:
+    if isinstance(error, generation_controller.GenerationProviderBusyError):
+        return HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "provider_busy",
+                "message": str(error),
+                "retry_after_seconds": error.retry_after_seconds,
+            },
+            headers={"Retry-After": str(error.retry_after_seconds)},
+        )
+    if isinstance(error, generation_controller.GenerationIdempotencyConflictError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "generation_request_mismatch", "task_id": error.task_id},
+        )
+    if isinstance(error, generation_controller.GenerationRequestInProgressError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "generation_request_in_progress" if error.duplicate else "generation_node_busy",
+                "task_id": error.task_id,
+            },
+        )
+    if isinstance(error, generation_controller.GenerationRequestTerminalError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "generation_request_terminal",
+                "task_id": error.task_id,
+                "task_status": error.task_status,
+            },
+        )
     if isinstance(error, generation_controller.GenerationScopeNotFoundError):
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
     if isinstance(error, generation_controller.GenerationValidationError):
@@ -30,6 +63,36 @@ def map_generation_error(error: generation_controller.GenerationTransactionError
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         detail="Failed to save generated asset",
     )
+
+
+def fingerprint_generation_request(
+    *,
+    media_type: str,
+    user_id: str,
+    project_id: str,
+    origin_canvas_id: str | None,
+    canvas_node_id: str | None,
+    provider: str,
+    model: str,
+    prompt: str | None,
+    image_ids: list[str] | None,
+    request_parameters: dict | None,
+    cinematic_handoff: CinematicGenerationHandoff | None,
+) -> str:
+    return generation_request_fingerprint({
+        "contract_version": 1,
+        "media_type": media_type,
+        "user_id": user_id,
+        "project_id": project_id,
+        "origin_canvas_id": origin_canvas_id,
+        "canvas_node_id": canvas_node_id,
+        "provider": provider,
+        "model": model,
+        "prompt": prompt,
+        "image_ids": list(image_ids or []),
+        "request_parameters": request_parameters,
+        "cinematic_handoff": cinematic_handoff.model_dump(mode="json") if cinematic_handoff else None,
+    })
 
 
 def resolve_cinematic_generation_handoff(

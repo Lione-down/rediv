@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from api.agent_skills import router
 from api.generation_common import resolve_cinematic_generation_handoff
 from api.text_generate import text_generate
+from controllers.generation_transactions import GenerationStartResult
 from core.cinematic_skill_contract import (
     CinematicSkillContractError,
     build_cinematic_skill_preflight,
@@ -331,13 +332,13 @@ class CinematicScriptGenerationTests(unittest.IsolatedAsyncioTestCase):
         }
 
     @patch("api.text_generate.generation_controller.complete_generation_task")
-    @patch("api.text_generate.generation_controller.start_generation_task")
+    @patch("api.text_generate.generation_controller.start_generation_request")
     @patch("api.generation_common.document_controller.get_document")
     async def test_strict_script_output_uses_existing_text_task_and_exact_snapshot(
         self, get_document, start_task, complete_task,
     ):
         get_document.return_value = {"revision": 7, "nodes": [self.script]}
-        start_task.return_value = {"id": "task-script"}
+        start_task.return_value = GenerationStartResult(task={"id": "task-script"}, input_image_urls=None)
         complete_task.return_value = {"asset": {"id": "asset-script"}, "generation_task": {"id": "task-script"}}
 
         class Provider:
@@ -352,11 +353,11 @@ class CinematicScriptGenerationTests(unittest.IsolatedAsyncioTestCase):
         complete_task.assert_called_once()
 
     @patch("api.text_generate.generation_controller.fail_generation_task")
-    @patch("api.text_generate.generation_controller.start_generation_task")
+    @patch("api.text_generate.generation_controller.start_generation_request")
     @patch("api.generation_common.document_controller.get_document")
     async def test_malformed_script_provider_output_never_mutates_canvas(self, get_document, start_task, fail_task):
         get_document.return_value = {"revision": 7, "nodes": [self.script]}
-        start_task.return_value = {"id": "task-script"}
+        start_task.return_value = GenerationStartResult(task={"id": "task-script"}, input_image_urls=None)
 
         class Provider:
             async def chat(_self, **_kwargs):

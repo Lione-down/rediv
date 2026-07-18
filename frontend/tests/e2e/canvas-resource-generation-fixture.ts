@@ -119,6 +119,8 @@ function generationTask(overrides: Record<string, unknown>) {
     provider: 'mock',
     model: 'mock-image-v1',
     provider_request_id: 'request-existing',
+    client_request_id: null,
+    request_fingerprint: null,
     status: 'succeeded',
     duration_ms: 120,
     result_asset_id: 'asset-generated',
@@ -368,6 +370,8 @@ function generationResponse(
     id: taskId, origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType,
     model, status: 'succeeded', result_asset_id: assetId,
     provider_request_id: `request-success${suffix}`, request_parameters: requestParameters,
+    client_request_id: requestBody.client_request_id,
+    request_fingerprint: 'a'.repeat(64),
   })
   const asset = { id: assetId, user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: canvasId, canvas_node_id: nodeId, type: mediaType, url: `https://media.revid.test/success${suffix}.${mediaType === 'video' ? 'mp4' : 'png'}`, content_text: null, source: 'generation', source_model: model, source_task_id: taskId, status: 'active', created_at: NOW, updated_at: NOW }
   state.tasks = [task, ...state.tasks.filter((item) => item.id !== task.id)]

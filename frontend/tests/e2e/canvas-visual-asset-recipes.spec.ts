@@ -231,6 +231,7 @@ test('character recipe directly persists, executes, materializes, and reloads wi
   const request = state.requests.find((item) => item.path === '/api/image-generate')!
   expect(request.body).toEqual({
     project_id: PROJECT_ID, origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: expect.any(String),
+    client_request_id: expect.any(String),
     generation_recipe_id: 'character-sheet', generation_recipe_version: 2, image_ids: ['asset-generated'],
   })
   expect(request.body).not.toHaveProperty('prompt')

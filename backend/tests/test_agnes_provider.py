@@ -4,15 +4,42 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from core.agnes_provider import AgnesProvider
+from core.generation_task_utils import (
+    error_code_for_exception,
+    provider_failure_http_status,
+    safe_retry_after_seconds,
+)
+from settings.config import settings
 
 
 class AgnesProviderImageContractTestCase(unittest.IsolatedAsyncioTestCase):
+    async def test_provider_rate_limit_keeps_safe_bounded_retry_metadata(self) -> None:
+        request = httpx.Request("POST", "https://provider.test/v1/images/generations")
+        response = httpx.Response(429, request=request, headers={"Retry-After": "17"})
+        with self.assertRaises(httpx.HTTPStatusError) as raised:
+            response.raise_for_status()
+        error_code = error_code_for_exception(raised.exception)
+        self.assertEqual("provider_rate_limited", error_code)
+        self.assertEqual(429, provider_failure_http_status(error_code))
+        self.assertEqual(17, safe_retry_after_seconds(raised.exception))
+
+    async def test_client_pool_and_timeouts_follow_backend_admission_settings(self) -> None:
+        with patch("core.agnes_provider.httpx.AsyncClient") as client:
+            AgnesProvider(api_key="test-only-key")
+        kwargs = client.call_args.kwargs
+        self.assertEqual(settings.agnes_admission_global_limit, kwargs["limits"].max_connections)
+        self.assertEqual(settings.agnes_http_pool_timeout_seconds, kwargs["timeout"].pool)
+        self.assertEqual(settings.agnes_http_connect_timeout_seconds, kwargs["timeout"].connect)
+        self.assertEqual(settings.agnes_http_read_timeout_seconds, kwargs["timeout"].read)
+        self.assertEqual(settings.agnes_http_write_timeout_seconds, kwargs["timeout"].write)
+
     async def test_text_to_image_sends_exact_documented_payload(self) -> None:
         payload = await self._capture_image_payload()
 

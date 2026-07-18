@@ -25,6 +25,8 @@ def task_to_dict(task: GenerationTask) -> dict:
         "provider": task.provider,
         "model": task.model,
         "provider_request_id": task.provider_request_id,
+        "client_request_id": task.client_request_id,
+        "request_fingerprint": task.request_fingerprint,
         "request_parameters": task.request_parameters,
         "progress_percent": task.progress_percent,
         "progress_stage": task.progress_stage,

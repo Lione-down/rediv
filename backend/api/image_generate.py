@@ -1,9 +1,10 @@
 import asyncio
 import time
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from api.generation_common import map_generation_error, resolve_cinematic_generation_handoff
+from api.generation_common import fingerprint_generation_request, map_generation_error, resolve_cinematic_generation_handoff
 from controllers import generation_transactions as generation_controller
 from core.generation_provider import GenerationProvider, get_generation_provider
 from core.generation_parameter_contract import IMAGE_MODEL, normalize_image_parameters
@@ -17,6 +18,8 @@ from core.generation_task_utils import (
     elapsed_ms,
     error_code_for_exception,
     extract_provider_request_id,
+    provider_failure_http_status,
+    safe_retry_after_seconds,
     sanitize_error_message,
     status_for_error_code,
 )
@@ -74,7 +77,7 @@ async def image_generate(
     if cinematic_handoff:
         request_parameters["cinematic_skill"] = cinematic_handoff["request_snapshot"]
     try:
-        task, input_images = generation_controller.start_image_generation_task(
+        start = generation_controller.start_image_generation_request(
             user_id=user["id"],
             provider="agnes",
             model=MODEL_NAME,
@@ -83,9 +86,26 @@ async def image_generate(
             canvas_node_id=payload.canvas_node_id,
             image_ids=payload.image_ids,
             request_parameters=request_parameters,
+            client_request_id=str(payload.client_request_id or uuid4()),
+            request_fingerprint=fingerprint_generation_request(
+                media_type="image",
+                user_id=user["id"],
+                project_id=payload.project_id,
+                origin_canvas_id=payload.origin_canvas_id,
+                canvas_node_id=payload.canvas_node_id,
+                provider="agnes",
+                model=MODEL_NAME,
+                prompt=recipe.prompt if recipe else payload.prompt,
+                image_ids=payload.image_ids,
+                request_parameters=request_parameters,
+                cinematic_handoff=payload.cinematic_handoff,
+            ),
         )
     except generation_controller.GenerationTransactionError as error:
         raise map_generation_error(error) from error
+    if start.is_replay:
+        return {"url": start.replay_outcome["asset"]["url"], **start.replay_outcome}
+    task, input_images = start.task, start.input_image_urls
     started_at = time.perf_counter()
     provider_request_id: str | None = None
 
@@ -135,7 +155,12 @@ async def image_generate(
         )
         if isinstance(exc, HTTPException):
             raise
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Agnes image generation failed") from exc
+        retry_after = safe_retry_after_seconds(exc)
+        raise HTTPException(
+            status_code=provider_failure_http_status(error_code),
+            detail="Agnes image generation failed",
+            headers={"Retry-After": str(retry_after)} if retry_after is not None else None,
+        ) from exc
 
     try:
         result = generation_controller.complete_generation_task(

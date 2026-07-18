@@ -127,6 +127,7 @@ test('failed two-origin video preserves inputs and recovers through one explicit
   expect(failedRequest).toEqual({
     project_id: PROJECT_ID,
     origin_canvas_id: FIRST_CANVAS_ID,
+    client_request_id: expect.any(String),
     canvas_node_id: 'generation-two-origin-merge',
     prompt,
     image_ids: ['asset-second-origin', 'asset-generated'],
@@ -174,7 +175,11 @@ test('failed two-origin video preserves inputs and recovers through one explicit
 
   await expect.poll(() => state.requests.filter((item) => item.path === '/api/video-generate').length).toBe(2)
   const retriedRequest = state.requests.filter((item) => item.path === '/api/video-generate')[1].body
-  expect(retriedRequest).toEqual(failedRequest)
+  const { client_request_id: failedRequestId, ...failedPayload } = failedRequest!
+  const { client_request_id: retriedRequestId, ...retriedPayload } = retriedRequest!
+  expect(retriedPayload).toEqual(failedPayload)
+  expect(retriedRequestId).toEqual(expect.any(String))
+  expect(retriedRequestId).not.toBe(failedRequestId)
   await expect.poll(() => document.nodes.filter((item) => (
     (item.content as Record<string, unknown>).source_task_id === 'task-success'
   )).length).toBe(1)

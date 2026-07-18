@@ -52,6 +52,17 @@ class GenerationTransactionConcurrencyTestCase(unittest.TestCase):
         )
 
     def tearDown(self) -> None:
+        with get_session() as session:
+            active_tasks = list(session.scalars(select(GenerationTask).where(
+                GenerationTask.user_id == self.user["id"],
+                GenerationTask.status.in_(("queued", "running")),
+            )).all())
+            for task in active_tasks:
+                task.status = "failed"
+                task.error_code = "test_cleanup"
+                task.error_message = "Focused concurrency test cleanup"
+                task.updated_at = utc_now()
+            session.commit()
         self.client.close()
 
     def test_one_running_task_can_only_be_completed_once_and_terminal_state_is_stable(self) -> None:
@@ -101,7 +112,10 @@ class GenerationTransactionConcurrencyTestCase(unittest.TestCase):
 
     def test_concurrent_tasks_return_monotonic_quota_revisions(self) -> None:
         self._set_database_quota(2)
-        tasks = [self._start_task(), self._start_task()]
+        second_node = store.create_node(
+            self.project["id"], self.user["id"], "generation", {}, 400, 0, 320, 180
+        )
+        tasks = [self._start_task(), self._start_task(second_node["id"])]
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             outcomes = list(
@@ -144,7 +158,7 @@ class GenerationTransactionConcurrencyTestCase(unittest.TestCase):
                 except Exception as error:
                     errors.append(error)
 
-        self.assertEqual(1, len(outcomes))
+        self.assertEqual(1, len(outcomes), [repr(error) for error in errors])
         self.assertEqual(1, len(errors))
         with get_session() as session:
             running = list(
@@ -327,7 +341,7 @@ class GenerationTransactionConcurrencyTestCase(unittest.TestCase):
         self.assertEqual(7, response.json()["quotas"]["image"])
         self.assertGreaterEqual(response.json()["quota_revision"], 0)
 
-    def _start_task(self) -> dict:
+    def _start_task(self, node_id: str | None = None) -> dict:
         return generation_controller.start_generation_task(
             user_id=self.user["id"],
             media_type="image",
@@ -335,7 +349,7 @@ class GenerationTransactionConcurrencyTestCase(unittest.TestCase):
             model="agnes-image-2.1-flash",
             project_id=self.project["id"],
             origin_canvas_id=self.canvas_id,
-            canvas_node_id=self.node["id"],
+            canvas_node_id=node_id or self.node["id"],
         )
 
     @staticmethod

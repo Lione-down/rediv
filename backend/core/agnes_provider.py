@@ -15,6 +15,8 @@ from typing import Any, AsyncIterator
 
 import httpx
 
+from settings.config import settings
+
 logger = logging.getLogger(__name__)
 
 PROVIDER_STATUS_MAP = {
@@ -71,7 +73,16 @@ class AgnesProvider:
         self.base_url = base_url.rstrip("/")
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
-            timeout=httpx.Timeout(300.0, connect=10.0),
+            limits=httpx.Limits(
+                max_connections=settings.agnes_admission_global_limit,
+                max_keepalive_connections=settings.agnes_admission_global_limit,
+            ),
+            timeout=httpx.Timeout(
+                connect=settings.agnes_http_connect_timeout_seconds,
+                pool=settings.agnes_http_pool_timeout_seconds,
+                read=settings.agnes_http_read_timeout_seconds,
+                write=settings.agnes_http_write_timeout_seconds,
+            ),
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         )
 
@@ -212,6 +223,10 @@ class AgnesProvider:
     async def close(self):
         """关闭 HTTP 客户端。"""
         await self._client.aclose()
+
+    @property
+    def is_closed(self) -> bool:
+        return self._client.is_closed
 
     async def __aenter__(self):
         return self

@@ -25,6 +25,8 @@ export interface GenerationTask {
   provider: string
   model: string | null
   provider_request_id: string | null
+  client_request_id?: string | null
+  request_fingerprint?: string | null
   progress_percent?: number | null
   progress_stage?: GenerationTaskProgressStage | null
   status: GenerationTaskStatus

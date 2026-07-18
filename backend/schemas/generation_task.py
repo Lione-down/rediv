@@ -18,6 +18,8 @@ class GenerationTaskItem(BaseModel):
     provider: str
     model: str | None = None
     provider_request_id: str | None = None
+    client_request_id: str | None = None
+    request_fingerprint: str | None = None
     request_parameters: dict | None = None
     progress_percent: float | None = None
     progress_stage: GenerationTaskProgressStage | None = None

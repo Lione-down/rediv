@@ -150,6 +150,7 @@ test('two-origin generated keyframes create a durable playable video result', as
   expect(state.requests.find((item) => item.path === '/api/video-generate')?.body).toEqual({
     project_id: PROJECT_ID,
     origin_canvas_id: FIRST_CANVAS_ID,
+    client_request_id: expect.any(String),
     canvas_node_id: 'generation-two-origin-merge',
     prompt: '从远景海岸平滑推进到人物近景，保持低饱和电影感。',
     image_ids: ['asset-second-origin', 'asset-generated'],
@@ -285,6 +286,7 @@ test('image result branches into a request-ready video workflow and playable res
   expect(request).toEqual({
     project_id: PROJECT_ID,
     origin_canvas_id: FIRST_CANVAS_ID,
+    client_request_id: expect.any(String),
     canvas_node_id: generationNode.id,
     prompt: 'Animate the coastal still with a slow push-in',
     image_ids: ['asset-generated'],
@@ -371,6 +373,7 @@ test('920px result branch disclosure and generation drawer stay in bounds', asyn
   expect(state.requests.find((item) => item.path === '/api/image-generate')?.body).toEqual({
     project_id: PROJECT_ID,
     origin_canvas_id: FIRST_CANVAS_ID,
+    client_request_id: expect.any(String),
     canvas_node_id: expect.any(String),
     prompt: '保留海岸构图，增强远处雾气层次。',
     image_ids: ['asset-generated'],

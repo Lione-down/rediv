@@ -28,6 +28,8 @@ function scopedTask(mediaType: 'text' | 'image' | 'video', id: string) {
     id, user_id: 'user-service', project_id: 'project-service',
     origin_canvas_id: 'canvas-service', canvas_node_id: 'node-service', media_type: mediaType,
     provider: 'mock', model: `mock-${mediaType}-v1`, provider_request_id: `request-${id}`,
+    client_request_id: `00000000-0000-4000-8000-00000000000${id.slice(-1)}`,
+    request_fingerprint: 'a'.repeat(64),
     request_parameters: requestParameters,
     status: 'succeeded' as const, duration_ms: 12, result_asset_id: `asset-${id}`,
     error_code: null, error_message: null, created_at: '2026-07-14T08:00:00Z',
@@ -68,8 +70,10 @@ test('generation service posts complete Canvas context and replaces quotas for e
 
   const quotaStore = createQuotaStore({ text: 9, image: 9, video: 9 })
   for (const mediaType of ['text', 'image', 'video'] as const) {
+    const clientRequestId = `00000000-0000-4000-8000-00000000000${calls.length + 1}`
     const response = await requestCanvasGeneration({
       mediaType,
+      clientRequestId,
       projectId: 'project-service',
       originCanvasId: 'canvas-service',
       canvasNodeId: 'node-service',
@@ -86,6 +90,7 @@ test('generation service posts complete Canvas context and replaces quotas for e
     {
       path: '/api/text-generate',
       payload: {
+        client_request_id: '00000000-0000-4000-8000-000000000001',
         project_id: 'project-service', origin_canvas_id: 'canvas-service',
         canvas_node_id: 'node-service', prompt: 'text prompt',
       },
@@ -93,6 +98,7 @@ test('generation service posts complete Canvas context and replaces quotas for e
     {
       path: '/api/image-generate',
       payload: {
+        client_request_id: '00000000-0000-4000-8000-000000000002',
         project_id: 'project-service', origin_canvas_id: 'canvas-service',
         canvas_node_id: 'node-service', prompt: 'image prompt', aspect_ratio: '4:3',
       },
@@ -100,6 +106,7 @@ test('generation service posts complete Canvas context and replaces quotas for e
     {
       path: '/api/video-generate',
       payload: {
+        client_request_id: '00000000-0000-4000-8000-000000000003',
         project_id: 'project-service', origin_canvas_id: 'canvas-service',
         canvas_node_id: 'node-service', prompt: 'video prompt',
         reference_mode: 'text-to-video', duration_seconds: 5,
