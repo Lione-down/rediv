@@ -19,13 +19,13 @@ Last updated: 2026-07-18
 
 ## Active Delivery
 
-- Active implementation Task: none.
-- State: `IDLE`
+- Active implementation Task: `T5-093 - Restore legacy MySQL migration compatibility and local runtime`.
+- State: `DOING`
 - Last completed Task: `T5-092 - Same-Canvas concurrent generation and Agnes admission control` (`ai/reports/REPORT-T5-092.md`) at pushed `595f1d4bfd5b844014a5b82bcb9045fa541f8291`.
-- Task: `ai/tasks/todo/TASK-T5-092.md`
-- Plan: `ai/tasks/doing/TASK-T5-092-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-092-PROGRESS.md`
-- Exact next action: await Human Owner selection of the next bounded implementation Task; do not activate another Task implicitly.
+- Task: `ai/tasks/todo/TASK-T5-093.md`
+- Plan: `ai/tasks/doing/TASK-T5-093-PLAN.md`
+- Progress: `ai/tasks/doing/TASK-T5-093-PROGRESS.md`
+- Exact next action: add the legacy parent/server-default collation regression, then apply the established dynamic-parent-collation fix before retrying the authorized local migration.
 
 ## Current Verified Facts
 

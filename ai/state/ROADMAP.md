@@ -87,6 +87,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 90 | T5-090 | Revid Agent/Skill interface over native auth, project, canvas, and generation contracts | DONE - PASS | T5-089 |
 | 91 | T5-091 | Revid native cinematic Skills, structured references, deterministic generation optimization, billing acknowledgement, and stale lineage | DONE - PASS | T5-090 |
 | 92 | T5-092 | Same-Canvas concurrent image/video generation, request idempotency, and bounded Agnes admission control | DONE | T5-091 |
+| 93 | T5-093 | Restore legacy MySQL migration compatibility and local runtime | DOING | T5-092 |
 
 ## Task Boundaries
 
@@ -281,6 +282,8 @@ T5-090 is `DONE - PASS`. Its closed v1 contains exactly one Revid-built `revid.c
 T5-091 is `DONE - PASS`. It extends T5-090 backward-compatibly with exactly three Revid-owned cinematic Skill manifests, structured Canvas-local mentions, deterministic inspectable native text/image/video handoffs, user-owned backend-catalog provider/model selection, server-authoritative billing acknowledgement, strict shot schema v2, duplication-safe references, and non-destructive stale lineage. Full backend passed 512 tests plus 116 subtests, final functional Chromium passed 496/496, production build passed 4,926 modules, focused cinematic Chromium passed 8/8, and the unchanged 200/300 title passed at 56.35185107977278 FPS / 16.8ms p95. Delivery `1f3077c9208a0a7590d1ab549e89210a49d0b923` is pushed; no arbitrary/remote Skill runtime, automatic retry/model routing, paid call, secret access, user/runtime migration, or real-provider fidelity claim was introduced. Report: `ai/reports/REPORT-T5-091.md`.
 
 T5-092 is `DONE - PASS`. Node/task-scoped concurrent image/video execution, strict client request idempotency, cross-process MySQL-backed global/per-user/per-media Agnes admission, bounded transport limits, lifecycle closure, provider error mapping, and exact mock/browser isolation are delivered at pushed business commit `595f1d4bfd5b844014a5b82bcb9045fa541f8291`. Focused/related backend and browser checks, full backend, production build, migration/hygiene gates, and exhaustive functional Chromium coverage passed after one transparent unrelated timing retry. The unchanged guarded 200/300 FPS title remained red only under fresh SwiftShader/no-hardware-acceleration runs; thresholds were not weakened and no real-provider or hardware-capacity claim is made. `REPORT-T5-092.md` is authoritative.
+
+T5-093 is `DOING`. Local startup exposed a historical-schema MySQL collation mismatch in the T5-091 provider-cost acknowledgement migration: the real `users.id` remains `utf8mb4_unicode_ci`, while an explicit-charset-only new table inherits MySQL 8's `utf8mb4_0900_ai_ci` default. Scope is limited to a deterministic guarded regression, the established dynamic parent-collation fix, the explicitly authorized local upgrade to repository head, and frontend/backend readiness verification.
 
 ## Canvas First-Acceptance Gate
 

@@ -16,7 +16,29 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _mysql_provider_cost_table_kwargs() -> dict[str, str]:
+    bind = op.get_bind()
+    if bind.dialect.name != "mysql":
+        return {}
+
+    parent_collation = bind.execute(
+        sa.text(
+            """
+            SELECT COLLATION_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'users'
+              AND COLUMN_NAME = 'id'
+            """
+        )
+    ).scalar_one_or_none()
+    if not parent_collation:
+        return {}
+    return {"mysql_collate": parent_collation}
+
+
 def upgrade() -> None:
+    table_kwargs = _mysql_provider_cost_table_kwargs()
     op.create_table(
         "provider_cost_acknowledgements",
         sa.Column("id", sa.String(length=36), nullable=False, comment="Unique acknowledgement identifier"),
@@ -32,6 +54,7 @@ def upgrade() -> None:
         comment="Time-bounded user acknowledgements for user-billed provider execution",
         mysql_engine="InnoDB",
         mysql_charset="utf8mb4",
+        **table_kwargs,
     )
     op.create_index("ix_provider_cost_acknowledgements_user_id", "provider_cost_acknowledgements", ["user_id"])
 
