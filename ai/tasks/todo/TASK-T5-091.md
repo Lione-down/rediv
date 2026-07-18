@@ -1,6 +1,6 @@
 # TASK-T5-091 - Revid native cinematic skills and reference-aware generation optimization
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Objective: add three Revid-owned, versioned cinematic Skills for script planning, image generation, and video generation that optimize user input before provider execution, preserve explicit Canvas references, and reduce avoidable regeneration caused by style, identity, wardrobe, scene, product, camera, and motion drift.
 - Dependency: `T5-090 - DONE - PASS` at committed and pushed delivery `1aad57189497353c5e54a60ac8b87b6fa9677d7a`; durable state closure is `c27e6f9058d15a3da3be461f816953d395f65444` on `origin/main`.
 - Activation rule: this Task must remain inactive until T5-086 through T5-090 are complete. Activation must create or refresh `ai/tasks/doing/TASK-T5-091-PLAN.md` and `ai/tasks/doing/TASK-T5-091-PROGRESS.md` from the then-current T5-090 interface before any business-code edit.
@@ -339,3 +339,10 @@ The active PLAN must retain these focused test responsibilities and may split a 
 
 - Any real or paid provider call, provider-specific visual-quality smoke, external account, real API key, credential migration, destructive edit, database operation against user/runtime data, or incompatible UX requires explicit Human Owner authorization.
 - A new provider credential vault or user provider-account management capability requires a separate future Task and security design; this document only preserves compatible provider/model identities and billing acknowledgement behavior.
+
+## Completion evidence
+
+- Business delivery `1f3077c9208a0a7590d1ab549e89210a49d0b923` is committed and pushed to `origin/main`.
+- Full backend passed `512` tests plus `116` subtests; final functional Chromium passed `496/496`; production build passed with `4,926` modules; focused cinematic Chromium passed `8/8`.
+- The unchanged 200-node/300-connection title passed on the final current build at `56.35185107977278 FPS` and `16.80000000000291ms` frame p95 under SwiftShader/no hardware acceleration.
+- `ai/reports/REPORT-T5-091.md` records delivered contracts, verification, deliberate boundaries, performance variability, and the remaining Human-gated real-provider visual verdict.

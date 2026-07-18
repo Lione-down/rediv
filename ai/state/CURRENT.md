@@ -15,17 +15,17 @@ Last updated: 2026-07-18
 - Product V2 / Phase 5: active
 - V2 priority: Canvas first acceptance
 - Database direction: MySQL-only
-- Completed V2 Tasks: T5-001 through T5-090 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision).
+- Completed V2 Tasks: T5-001 through T5-091 (`DONE - PASS`, real Agnes visual fidelity deferred by explicit Human decision).
 
 ## Active Delivery
 
-- Active implementation Task: `T5-091 - Revid native cinematic skills and reference-aware generation optimization`.
-- State: `DOING`
-- Last completed Task: `T5-090 - Revid Agent/Skill interface over native auth, project, canvas, and generation contracts` (`ai/reports/REPORT-T5-090.md`) at pushed `1aad57189497353c5e54a60ac8b87b6fa9677d7a`.
+- Active implementation Task: none.
+- State: `IDLE`
+- Last completed Task: `T5-091 - Revid native cinematic skills and reference-aware generation optimization` (`ai/reports/REPORT-T5-091.md`) at pushed `1f3077c9208a0a7590d1ab549e89210a49d0b923`.
 - Task: `ai/tasks/todo/TASK-T5-091.md`
 - Plan: `ai/tasks/doing/TASK-T5-091-PLAN.md`
 - Progress: `ai/tasks/doing/TASK-T5-091-PROGRESS.md`
-- Exact next action: complete final hygiene, exact-stage and push the T5-091 business delivery, then write REPORT and push the state-closure commit.
+- Exact next action: await Human Owner selection of the next bounded implementation Task; do not activate a second Task implicitly.
 
 ## Current Verified Facts
 
@@ -39,13 +39,15 @@ Last updated: 2026-07-18
 
 - T5-089 is `DONE - PASS`: backend capability v4 has one exact production-unavailable audio v1 section; backward-aware frontend parsing plus strict selected-source preflight validates script/audio/video/project/user/URL scope; synthetic mock-only proof has zero provider/quota/task/asset/output authority; and the accessible desktop Slash Palette panel preserves 375px review-only and zero Canvas/history/autosave mutation. Focused backend passed 22, focused Chromium 21/21, adjacent Chromium 71/71, repaired Storyboard 15/15, final functional Chromium 466/466, project-asset services 9, and final build 4,914 modules. The separately guarded 200/300 title remained unmodified and ran under SwiftShader/no hardware acceleration at 52.001311281480724 FPS / 33.399999999999636ms p95 versus unchanged 55/33 limits; stable render/pointer/long-task/minimap metrics and the companion functional performance/accessibility titles passed. This is transparently classified in `REPORT-T5-089.md`, not a threshold change. The unrelated existing AnyIO upload-worker import failure remains documented without a production workaround.
 
-- T5-090 is `DONE - PASS`: Revid-owned v1 contains exactly `revid.canvas-context` v1, a closed mock-only/unavailable manifest contract, authenticated current-user/project/Canvas discovery and canonical source preflight, no execute endpoint, and no provider/quota/task/asset/Canvas authority. Strict frontend parsing and the desktop Palette overlay display only a mock-only context inspection; 375px remains review-only. Focused backend passed 8/8, focused browser passed 14/14 plus Agent UI 2/2 and Storyboard 15/15, build passed 4,921 modules, and final functional Chromium passed 472/472 with the isolated 200/300 title passing at 57.519 FPS / 16.8ms p95 under SwiftShader/no hardware acceleration. The first combined matrix's 49.54 FPS is transparently classified without threshold change. Report: `ai/reports/REPORT-T5-090.md`. T5-091 remains inactive and can only reuse this exact interface with a future explicit acknowledgement/native handoff contract.
+- T5-090 is `DONE - PASS`: Revid-owned v1 contains exactly `revid.canvas-context` v1, a closed mock-only/unavailable manifest contract, authenticated current-user/project/Canvas discovery and canonical source preflight, no execute endpoint, and no provider/quota/task/asset/Canvas authority. Strict frontend parsing and the desktop Palette overlay display only a mock-only context inspection; 375px remains review-only. Focused backend passed 8/8, focused browser passed 14/14 plus Agent UI 2/2 and Storyboard 15/15, build passed 4,921 modules, and final functional Chromium passed 472/472 with the isolated 200/300 title passing at 57.519 FPS / 16.8ms p95 under SwiftShader/no hardware acceleration. The first combined matrix's 49.54 FPS is transparently classified without threshold change. Report: `ai/reports/REPORT-T5-090.md`.
+
+- T5-091 is `DONE - PASS`: Agent/Skill v2 registers only `revid.cinema-script.v1`, `revid.cinema-image.v1`, and `revid.cinema-video.v1`; structured Canvas-local references, deterministic exact preflight, current-state handoff validation, user-owned provider/model choice, strict shot schema v2, server billing acknowledgement, immutable snapshots, duplication remapping, and stale lineage all reuse native auth/generation/task/result authority. Full backend passed 512 tests plus 116 subtests, functional Chromium passed 496/496, focused cinematic Chromium passed 8/8, build passed 4,926 modules, and guarded 200/300 passed at 56.35 FPS / 16.8ms p95. Delivery `1f3077c9208a0a7590d1ab549e89210a49d0b923` is pushed. Mock/browser evidence does not prove real-provider visual quality. Report: `ai/reports/REPORT-T5-091.md`.
 
 - T5-004 through T5-007 now provide the complete pre-certification Canvas product: full-screen multi-Canvas routing, persistent Leafer world, deterministic command model, autosave/recovery/revisions, canonical node registry, project-shared resources, versioned templates, durable generation tasks/results, and backend-authoritative quota snapshots.
 - T5-007 Unit E adds responsive project resource and contextual generation controls, registry-backed asset/template insertion, durable success/failure result presentation, desktop/narrow keyboard behavior, and a strict 375px browse/review-only boundary.
 - Local upload handling now uses bounded JSON/multipart bodies, provisional cross-process reservation slots, per-user/global active and scan limits, same-volume staging, idle/total deadlines, cancellation-safe disk lifecycle, real decodable media fixtures, and bounded CPU/memory validation.
 - T5-007 final evidence passed 384 backend tests plus 56 subtests, 134 upload/security tests plus 48 subtests, 117 Chromium tests, a 4,761-module build, four accepted viewport inspections, and independent frontend/security review at 0 HIGH / 0 MEDIUM / 0 LOW.
-- Repository Alembic head is `e1f2a3b4c5d6`; no user/runtime migration occurred.
+- Repository Alembic head is `f2a3b4c5d6e7`; the new acknowledgement migration was tested only on disposable guarded MySQL and no user/runtime migration occurred.
 - Browser offline and prior 200-node/300-connection performance evidence remains classified as mock-browser evidence; T5-008 additionally records the final local-MySQL live run.
 - T5-008 classified all 97 acceptance checkboxes and closed its live harness, persistence, performance, visual, accessibility, and security evidence gates.
 - Unit A pure gates now include missing/unreachable/missing-Alembic/wrong-dialect/revision-mismatch runtime checks; the owned harness also requires an exact run-scoped backend health identity and preview build marker.
@@ -131,12 +133,12 @@ Last updated: 2026-07-18
 
 ## Exact Next Action
 
-Implement T5-091 Unit 1's reversible Canvas Skill settings plus accessible provider/model, structured `@` mention, concise summary, and collapsed exact request UI; keep submission disabled until exact native handoff validation is wired.
+Await Human Owner selection of the next bounded implementation Task. T5-091 is closed and no second Task is active.
 
 ## Blockers And Human Gates
 
 - T5-071 real-provider fidelity was explicitly accepted for offline-only closure after all 20 authorized Agnes requests returned HTTP 503 with zero outputs. It remains an unsupported release caveat, not a visual-quality pass.
-- Applying Alembic revisions through `e1f2a3b4c5d6` to user/runtime data requires reviewed backup discipline and Human authorization.
+- Applying Alembic revisions through `f2a3b4c5d6e7` to user/runtime data requires reviewed backup discipline and Human authorization.
 - Paid provider calls, real secret access, credential rotation, destructive MySQL work, and ignored local `.db` cleanup remain Human Owner gates.
 - The pre-existing `revid_test_db` schema remains untouched pending ownership confirmation.
 

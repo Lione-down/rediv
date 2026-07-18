@@ -1,6 +1,6 @@
 # TASK-T5-091 Plan
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Objective: deliver three strict Revid-owned cinematic Skills through a backward-compatible extension of the T5-090 interface, with structured Canvas references, deterministic inspectable requests, user-owned provider/model choice, explicit billing acknowledgement, and honest stale lineage.
 - Baseline: `origin/main` at `c27e6f9058d15a3da3be461f816953d395f65444`; T5-090 delivery is `1aad57189497353c5e54a60ac8b87b6fa9677d7a`.
 
@@ -77,7 +77,7 @@ Success gate: provider/model remains user-owned; missing/expired acknowledgement
 
 ## Unit 6 - Regression and closure
 
-- Status: `in progress`
+- Status: `completed`
 
 1. Run focused backend/frontend cinematic Skill, mention, capability, billing, snapshot, and stale-lineage tests first.
 2. Run related generation, quota/task, professional action, Storyboard, recipe, image operation, shot control, workflow, video, audio, autosave/recovery, duplication, auth, and security regression.
