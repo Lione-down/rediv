@@ -21,6 +21,7 @@
 - Verified the current manifest and schema parse, their required scenario fields agree, all seven evidence files are UTF-8 without BOM or replacement characters, and the existing Professional Action registry Chromium suite passes `10/10`.
 - Completed the third consecutive goal-turn blocker audit. The installed Browser skill/runtime script remains present, but the current task still exposes no supported Browser control tool. Repository, remote, and local runtime checks remain healthy, so the blocker is isolated to the missing browser-control surface.
 - Exhausted safe official-independent Unit 0 work: durable evidence/schema/checklist, Revid extension inventory, token map, and current-registry verification are complete. Further parity tests or business-code changes would guess the official target and violate the Task contract.
+- Resumed after the Human Owner explicitly selected the bundled Chrome plugin. The pinned Chrome `browser-client.mjs` exists and one `extension-host` process is running, but the task capability inventory still exposes neither `node_repl` nor another supported Chrome control entry; no LibTV tab or official Canvas state was falsely claimed.
 
 ## Remaining Work
 
@@ -33,7 +34,7 @@
 
 ## Exact Next Action
 
-Restore the supported Browser control entry for this task, connect it to the user's already-authenticated official LibTV Canvas, and perform the Unit 0 read-only capture before any business-code edit.
+Expose the bundled Chrome plugin's required `node_repl` control entry to this task (or resume T5-096 in a task where that entry is callable), connect it to the user's already-authenticated official LibTV Canvas, and perform the Unit 0 read-only capture before any business-code edit.
 
 ## Files Changed
 
@@ -64,12 +65,13 @@ Restore the supported Browser control entry for this task, connect it to the use
 - `npx playwright test tests/e2e/canvas-professional-action-registry.spec.ts --project=chromium --timeout=60000 --reporter=line`: `10/10` passed in `1.5s`.
 - Evidence hygiene: seven T5-096 evidence files, UTF-8, no BOM, no replacement character; `git diff --check` passed.
 - Third blocker audit: `HEAD == origin/main == 6eda9dbb8d2d8773ac83f63494e319adfc42e93d`, ahead/behind `0/0`; Browser tool inventory empty; installed runtime script present; frontend root and backend `/health` both HTTP 200.
+- Explicit Chrome resume audit: `HEAD == 8577765d3ec2587fcab866feab94258b13017254`; only preserved user-owned untracked paths; bundled Chrome skill loaded; pinned runtime script present; `extension-host` process count `1`; callable inventory contains no `node_repl`, browser-control, or Chrome-control tool.
 
 ## Blocker And Release Condition
 
-- Blocker: the current task lacks the supported Browser control entry required to inspect the user's already-authenticated official LibTV Canvas. T5-096 forbids using old captures, public/third-party material, standalone local browser automation, or control-presence inference to close this audit.
+- Blocker: even after the Human Owner explicitly selected the bundled Chrome plugin, the current task lacks the plugin-required `node_repl` control entry needed to inspect the user's already-authenticated official LibTV Canvas. The plugin script and extension host are present, isolating the failure to task capability exposure. T5-096 forbids using old captures, public/third-party material, standalone local browser automation, or control-presence inference to close this audit.
 - Impact: official scenario scope, three-axis measurements, interaction traces, evidence hashes, extension-slot constraints, and truthful RED parity contracts cannot be established. Business-code implementation and parity claims must not start.
-- Release condition: expose the installed Browser control entry in this task, preserve or restore the user's official LibTV authenticated session, then complete and commit the Unit 0 evidence/RED contract set.
+- Release condition: expose the installed Chrome plugin's `node_repl` control entry in this task (or resume T5-096 in a task where it is callable), preserve or restore the user's official LibTV authenticated session, then complete and commit the Unit 0 evidence/RED contract set.
 
 ## Human Gates
 

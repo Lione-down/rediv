@@ -43,10 +43,11 @@ Last updated: 2026-07-19
 - Unit 0 now has a committed-ready evidence scaffold with a 19-field scenario contract, truthful non-computable mismatch counters, a live Revid semantic-token map, and 13 preservation groups covering all 29 current Professional Action entries. None of these artifacts claims official parity.
 - The existing Professional Action registry focused Chromium suite passes `10/10`; current Revid inventory is verified independently from the still-missing official action traces.
 - Three consecutive goal turns independently confirmed the same Browser-control absence while the installed skill/runtime script, repository, local frontend/backend, and remote Git state remain healthy. Safe official-independent Unit 0 preparation is exhausted; parity implementation cannot truthfully proceed from inferred behavior.
+- The Human Owner explicitly selected the bundled Chrome plugin in the resumed task. Its pinned `browser-client.mjs` exists and one `extension-host` process is running, but this task's callable capability inventory still contains no `node_repl`/Chrome control entry. Therefore `https://www.liblib.tv/` has not been opened or observed by Codex in this run.
 
 ## Exact Next Action
 
-Restore the supported Browser control entry in this task, bind it to the user's already-authenticated official LibTV Canvas, and complete Unit 0 source/viewport/zoom/action/geometry/focus/motion capture plus scenario and extension inventories. Do not edit business code before that evidence and the first RED contracts agree.
+Expose the bundled Chrome plugin's required `node_repl` control entry to this task (or resume T5-096 in a task where that entry is callable), bind it to the user's already-authenticated official LibTV Canvas, and complete Unit 0 source/viewport/zoom/action/geometry/focus/motion capture plus scenario and extension inventories. Do not edit business code before that evidence and the first RED contracts agree.
 
 ## Boundaries And Human Gates
 
