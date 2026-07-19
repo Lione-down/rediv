@@ -90,7 +90,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 93 | T5-093 | Restore legacy MySQL migration compatibility and local runtime | DONE - PASS | T5-092 |
 | 94 | T5-094 | Agnes contract recovery, AI script authoring, and LibTV observable Canvas parity | DONE - PASS | T5-093 |
 | 95 | T5-095 | Canvas main composer attachment, Send, and Agnes capability recovery | DONE - PASS | T5-094 |
-| 96 | T5-096 | LibTV official Canvas visual, functional, and interaction 1:1 parity with preserved Revid-only entries | TODO - PLANNED | T5-095 |
+| 96 | T5-096 | LibTV official Canvas visual, functional, and interaction 1:1 parity with preserved Revid-only entries | BLOCKED | T5-095 |
 
 ## Task Boundaries
 
@@ -290,7 +290,7 @@ T5-093 is `DONE - PASS`. Local startup exposed a historical-schema MySQL collati
 
 T5-094 is `DONE - PASS`. The typed Agnes contract, safe actionable provider failures, non-destructive `Agnes 2.0 Flash` script draft/refine authoring, every safely implementable clean-room Canvas parity row, and the 200-node/300-connection performance/accessibility gate are complete. Final evidence is backend `76 passed, 57 subtests passed`, related Chromium `74/74`, production build `4937 modules transformed`, full-Chromium performance/accessibility `3/3`, and manifest coverage 94/94 with `61 MATCHED`, `5 BLOCKED`, `28 NOT_OBSERVABLE`. On 2026-07-19 the Human Owner accepted the five blocked rows and 28 non-observable rows as documented deferrals and deferred real Agnes smoke; REPORT is `ai/reports/REPORT-T5-094.md` and the closure is delivered to `origin/main`.
 
-T5-096 is `TODO - PLANNED` and inactive. It replaces feature-presence parity with a new three-axis contract against the latest official authenticated LibTV Canvas: visual effect, functional outcome, and interaction effect must each pass. Revid retains its graphite/violet colors, lawful assets, native authority boundaries, and every entry with no LibTV counterpart. Prior T5-094 blocked/non-observable deferrals do not close T5-096 scenarios. The Task may activate only as the sole implementation Task after a fresh official-Canvas evidence audit and PROGRESS creation; no real/paid provider call is authorized by this plan.
+T5-096 is the sole active implementation Task and is `BLOCKED` in Unit 0 before business-code edits. It replaces feature-presence parity with a new three-axis contract against the latest official authenticated LibTV Canvas: visual effect, functional outcome, and interaction effect must each pass. Revid retains its graphite/violet colors, lawful assets, native authority boundaries, and every entry with no LibTV counterpart. Prior T5-094 blocked/non-observable deferrals do not close T5-096 scenarios. The activation repository/runtime audit and PROGRESS creation are complete, but the current task exposes no supported Browser control entry, so the required already-authenticated official-Canvas observation cannot yet be captured or measured. The release condition is restoration of that Browser entry and completion of the fresh official evidence inventory; no real/paid provider call is authorized by this plan.
 
 ## Canvas First-Acceptance Gate
 

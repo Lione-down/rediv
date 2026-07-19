@@ -1,8 +1,8 @@
 # TASK-T5-096 Plan
 
-- State: `TODO - PLANNED`
+- State: `BLOCKED`
 - Objective: deliver measured visual, functional, and interaction parity with the latest official authenticated LibTV Canvas while preserving Revid semantic colors, lawful assets, native authority contracts, and all Revid-only entries.
-- Baseline: `HEAD == origin/main == 9871cedba00001e925497e2eadca855d6a76171e` at planning time; no tracked worktree changes; user-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and outside staging scope.
+- Baseline: planning dependency `9871cedba00001e925497e2eadca855d6a76171e` is an ancestor of activation `HEAD == origin/main == e487dafc0c573641466835e028858d6ebdd23dd4`; no tracked worktree changes; user-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and outside staging scope.
 - Dependency: `T5-095 - DONE - PASS`.
 - Task: `ai/tasks/todo/TASK-T5-096.md`.
 
@@ -17,7 +17,7 @@
 
 ## Unit 0 - Activate, capture the official baseline, and write RED contracts
 
-- Status: `pending`
+- Status: `blocked`
 
 1. Re-read CURRENT, ROADMAP, T5-096 Task/PLAN, T5-094/095 evidence, applicable Canvas ADRs/specifications, current code, tests, runtime, and worktree state.
 2. Activate T5-096 as the only implementation Task; create `TASK-T5-096-PROGRESS.md` with exact completed/remaining/next/files/commands/blocker sections.

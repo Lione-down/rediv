@@ -1,10 +1,11 @@
 # TASK-T5-096 - LibTV official Canvas three-axis 1:1 parity
 
-- State: `TODO - PLANNED`
+- State: `BLOCKED`
 - Objective: make Revid's Canvas, nodes, cards, visible functional outcomes, and interaction effects match the latest official authenticated LibTV Canvas 1:1 while retaining Revid's graphite/violet color system, brand, lawful assets, native authority boundaries, and every Revid-only entry that has no LibTV counterpart.
 - Dependency: `T5-095 - DONE - PASS` at pushed delivery `9871cedba00001e925497e2eadca855d6a76171e`.
 - Activation rule: T5-096 remains inactive until it is explicitly activated as the only implementation Task and `ai/tasks/doing/TASK-T5-096-PROGRESS.md` is created from a fresh repository and official-LibTV baseline audit. No business-code edit may precede that activation audit.
 - Plan: `ai/tasks/doing/TASK-T5-096-PLAN.md`.
+- Progress: `ai/tasks/doing/TASK-T5-096-PROGRESS.md`.
 
 ## Product contract
 

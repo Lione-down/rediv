@@ -18,16 +18,13 @@ Last updated: 2026-07-19
 
 ## Active Delivery
 
-- Active implementation Task: none.
-- State: `IDLE`.
+- Active implementation Task: `T5-096 - LibTV official Canvas three-axis 1:1 parity`.
+- State: `BLOCKED` during Unit 0 official-baseline audit; no business-code edit has started.
 - Last completed Task: `T5-095 - Canvas main composer attachment, Send, and Agnes capability recovery` (`ai/reports/REPORT-T5-095.md`), delivered to `origin/main` in this closure run.
-- Next planned Task: `T5-096 - LibTV official Canvas three-axis 1:1 parity` (`TODO - PLANNED`); it is registered but not activated.
-- Planned Task: `ai/tasks/todo/TASK-T5-096.md`.
-- Planned implementation plan: `ai/tasks/doing/TASK-T5-096-PLAN.md`.
+- Task: `ai/tasks/todo/TASK-T5-096.md`.
+- Plan: `ai/tasks/doing/TASK-T5-096-PLAN.md`.
+- Progress: `ai/tasks/doing/TASK-T5-096-PROGRESS.md`.
 - Dependency baseline: T5-095 delivery `9871cedba00001e925497e2eadca855d6a76171e`.
-- Task: `ai/tasks/todo/TASK-T5-095.md`
-- Plan: `ai/tasks/doing/TASK-T5-095-PLAN.md`
-- Progress: `ai/tasks/doing/TASK-T5-095-PROGRESS.md`
 
 ## Current Verified Facts
 
@@ -40,20 +37,24 @@ Last updated: 2026-07-19
 - The verified repository-owned backend on port 8000 was restarted onto current code and returns `/health` 200; unauthenticated capability access remains 401.
 - No real/paid Agnes request was made, so current real-provider health, capacity, fidelity, and output quality remain unverified.
 - User-owned `.codex/`, `.hermes/plans/`, and `output/` remain outside Task staging scope.
+- Activation repository audit is clean for tracked files at `HEAD == origin/main == e487dafc0c573641466835e028858d6ebdd23dd4`; the planned T5-095 dependency is its direct ancestor.
+- Local frontend and backend listeners are present on ports 5173 and 8000; both root and `/health` returned HTTP 200 during activation audit.
+- The installed Browser skill is present, but this task currently exposes no supported browser-control entry. The required already-authenticated official LibTV Canvas therefore has not been observed, captured, measured, or hashed in T5-096.
 
 ## Exact Next Action
 
-When the Human Owner requests implementation, activate T5-096 as the only implementation Task, create its PROGRESS document, and perform the fresh official authenticated LibTV Canvas evidence audit before any business-code edit.
+Restore the supported Browser control entry in this task, bind it to the user's already-authenticated official LibTV Canvas, and complete Unit 0 source/viewport/zoom/action/geometry/focus/motion capture plus scenario and extension inventories. Do not edit business code before that evidence and the first RED contracts agree.
 
 ## Boundaries And Human Gates
 
 - T5-095 has no active closure blocker. T5-094 documented deferrals and deferred real Agnes smoke remain unchanged.
 - T5-096 planning does not reopen T5-094 delivery or claim new parity. T5-096 must newly verify visual, functional, and interaction effects from the official authenticated Canvas and preserve every Revid-only entry.
+- T5-096 cannot substitute standalone local Playwright, Computer Use, public pages, third-party material, or retained T5-094 captures for the required authenticated official-Canvas audit.
 - Offline/mock evidence does not prove current real-provider success. Any future real Agnes text/image/video smoke still requires explicit authorization for exact media classes and maximum call/cost boundary.
 - LibTV login-only/dynamic/private behavior remains evidence-limited and is not represented as matched.
 - Alembic changes to user/runtime data, paid calls, real secrets, destructive MySQL/filesystem work, and external-account changes remain gated.
 
 ## Worktree
 
-- T5-095 began from tracked-clean `789397fe15b443ee66431955766070918ca1b637`; scoped implementation, evidence, documentation, and REPORT are delivered by the exact closure commit to `origin/main`.
+- T5-096 activation began from tracked-clean `e487dafc0c573641466835e028858d6ebdd23dd4`, with `HEAD` and `origin/main` at ahead/behind `0/0` before activation-state documentation changes.
 - User-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and outside delivery scope.
