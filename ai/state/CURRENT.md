@@ -40,6 +40,8 @@ Last updated: 2026-07-19
 - Activation repository audit is clean for tracked files at `HEAD == origin/main == e487dafc0c573641466835e028858d6ebdd23dd4`; the planned T5-095 dependency is its direct ancestor.
 - Local frontend and backend listeners are present on ports 5173 and 8000; both root and `/health` returned HTTP 200 during activation audit.
 - The installed Browser skill is present, but this task currently exposes no supported browser-control entry. The required already-authenticated official LibTV Canvas therefore has not been observed, captured, measured, or hashed in T5-096.
+- Unit 0 now has a committed-ready evidence scaffold with a 19-field scenario contract, truthful non-computable mismatch counters, a live Revid semantic-token map, and 13 preservation groups covering all 29 current Professional Action entries. None of these artifacts claims official parity.
+- The existing Professional Action registry focused Chromium suite passes `10/10`; current Revid inventory is verified independently from the still-missing official action traces.
 
 ## Exact Next Action
 

@@ -1,0 +1,76 @@
+{
+  "schema_version": 2,
+  "task_id": "T5-096",
+  "collected_at": "2026-07-19",
+  "audit_status": "BLOCKED",
+  "official_authority": {
+    "surface": "latest official authenticated LibTV Canvas",
+    "source_url": null,
+    "observed_at": null,
+    "version_clue": null,
+    "access_status": "browser_control_unavailable",
+    "release_condition": "Expose the installed supported Browser control entry in this task and bind it to the user's authenticated official LibTV Canvas session."
+  },
+  "clean_room": {
+    "read_only_non_paid_observation": true,
+    "private_source_inspection": false,
+    "network_inspection": false,
+    "credential_or_storage_inspection": false,
+    "third_party_asset_copying": false,
+    "raw_capture_root": "output/t5-096"
+  },
+  "targets": {
+    "viewports": ["1440x900", "1366x768", "920x900"],
+    "zooms_percent": [17, 36, 100, 200],
+    "revid_review_only_viewport": "375x812",
+    "geometry_tolerance_css_px_at_100_percent": 2,
+    "structural_edge_difference_max_percent": 2
+  },
+  "status_vocabulary": {
+    "axis": ["PENDING", "MATCHED", "MISMATCH"],
+    "extension": ["PENDING", "NOT_APPLICABLE", "EXTENSION_PRESERVED", "REGRESSION"]
+  },
+  "required_scenario_fields": [
+    "id",
+    "surface",
+    "source_url",
+    "observed_at",
+    "version_clue",
+    "viewport",
+    "zoom_percent",
+    "precondition",
+    "action_trace",
+    "visible_result",
+    "geometry",
+    "focus_trace",
+    "motion",
+    "reference_file",
+    "confidence",
+    "visual_status",
+    "functional_status",
+    "interaction_status",
+    "revid_extension_status"
+  ],
+  "evidence_sources": [
+    {
+      "id": "L-T5-096-OFFICIAL",
+      "kind": "official_authenticated_canvas",
+      "status": "BLOCKED",
+      "boundary": "No official page observation has occurred in T5-096."
+    },
+    {
+      "id": "R-T5-096-CURRENT",
+      "kind": "revid_current_code_and_tests",
+      "status": "AVAILABLE",
+      "paths": [
+        "frontend/src/views/app/CanvasWorkspace.vue",
+        "frontend/src/components/canvas/",
+        "frontend/src/modules/canvas/professional-action-registry.ts",
+        "frontend/tests/e2e/"
+      ],
+      "boundary": "Proves current Revid ownership only, not LibTV parity."
+    }
+  ],
+  "scenarios": [],
+  "completion_rule": "Completion requires at least one scenario for every in-scope official surface, state, and action; all three axes must be MATCHED; every applicable Revid extension must be EXTENSION_PRESERVED; no scenario may remain PENDING or MISMATCH."
+}

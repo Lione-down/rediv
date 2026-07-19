@@ -14,6 +14,11 @@
 - Verified repository-owned local listeners on ports 5173 and 8000; frontend root and backend `/health` returned HTTP 200.
 - Confirmed the installed Browser skill and its runtime script are present. The current task does not expose the supported control entry required by that skill, so no official LibTV interaction was attempted through an unsupported substitute.
 - Inventoried the planned implementation surface at a structural level: 98 Canvas component files, 102 E2E files, existing T5-094 ledger/manifest/token map, and the largest Canvas SFC/module boundaries that may require scoped responsibility splits.
+- Rechecked the Browser capability in the continuation run; the required control entry remains unavailable, so the official audit blocker is unchanged.
+- Created the T5-096 evidence index, blocked official-manifest scaffold, 19-field scenario schema, three-axis ledger, live semantic-token map, and Revid extension map without carrying forward a T5-094 parity status.
+- Added a Task-derived official observation checklist covering the viewport/zoom matrix, shell/composer, node/media states, graph gestures, contextual generation/results, extension comparison, and clean-room safety. Every official item remains truthfully unchecked.
+- Recorded 13 preservation groups and all 29 current Professional Action registry entries. Final counterpart classification and measured extension slots remain pending the official audit.
+- Verified the current manifest and schema parse, their required scenario fields agree, all seven evidence files are UTF-8 without BOM or replacement characters, and the existing Professional Action registry Chromium suite passes `10/10`.
 
 ## Remaining Work
 
@@ -35,6 +40,13 @@ Restore the supported Browser control entry for this task, connect it to the use
 - `ai/tasks/doing/TASK-T5-096-PROGRESS.md`
 - `ai/state/CURRENT.md`
 - `ai/state/ROADMAP.md`
+- `ai/evidence/t5-096/README.md`
+- `ai/evidence/t5-096/official-canvas-scenario-manifest.json`
+- `ai/evidence/t5-096/official-canvas-scenario-manifest.schema.json`
+- `ai/evidence/t5-096/official-observation-checklist.md`
+- `ai/evidence/t5-096/three-axis-parity-ledger.md`
+- `ai/evidence/t5-096/semantic-color-map.md`
+- `ai/evidence/t5-096/revid-extension-map.md`
 
 ## Commands Run And Results
 
@@ -44,6 +56,11 @@ Restore the supported Browser control entry for this task, connect it to the use
 - Browser capability audit: Browser skill and its runtime script exist; the current task exposes no supported Browser control entry.
 - Runtime probes: ports 5173 and 8000 listening; frontend root HTTP 200; backend `/health` HTTP 200.
 - Source/test inventory: 98 files under `frontend/src/components/canvas`; 102 files under `frontend/tests/e2e`; existing T5-094 evidence files remain the prior-task baseline only.
+- Continuation start audit: `HEAD == origin/main == 8ac1fd10059a6950ad17c4cce6feae76378d4b3b`; ahead/behind `0/0`; no tracked changes and only preserved user-owned untracked paths.
+- Browser capability recheck: no supported Browser control tool is exposed in the current task.
+- Manifest validation: JSON parse passed; schema JSON parse passed; 19 required scenario fields agree; the optional Python `jsonschema` package is unavailable, so no external schema-engine claim is made.
+- `npx playwright test tests/e2e/canvas-professional-action-registry.spec.ts --project=chromium --timeout=60000 --reporter=line`: `10/10` passed in `1.5s`.
+- Evidence hygiene: seven T5-096 evidence files, UTF-8, no BOM, no replacement character; `git diff --check` passed.
 
 ## Blocker And Release Condition
 
