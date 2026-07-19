@@ -69,6 +69,7 @@ export interface CanvasGenerationContext {
     brief?: string
     sourceText?: string
     instruction?: string
+    referenceAssetIds?: string[]
   }
 }
 
@@ -195,7 +196,11 @@ function assertGenerationRequestParameters(context: CanvasGenerationContext, tas
       if (!isRecord(snapshot) || snapshot.intent !== context.scriptAuthoring.intent ||
         snapshot.source_node_id !== context.canvasNodeId ||
         snapshot.canvas_revision !== context.scriptAuthoring.canvasRevision ||
-        snapshot.locale !== context.scriptAuthoring.locale
+        snapshot.locale !== context.scriptAuthoring.locale ||
+        !hasSameIds(
+          Array.isArray(snapshot.reference_asset_ids) ? snapshot.reference_asset_ids : [],
+          context.scriptAuthoring.referenceAssetIds ?? [],
+        )
       ) throw new Error('Generation response script authoring snapshot mismatch')
     } else if (context.cinematicHandoff) {
       const snapshot = isRecord(parameters) ? parameters.cinematic_skill : null
@@ -325,6 +330,7 @@ export async function requestCanvasGeneration(
           ...(scriptAuthoring.brief ? { brief: scriptAuthoring.brief } : {}),
           ...(scriptAuthoring.sourceText ? { source_text: scriptAuthoring.sourceText } : {}),
           ...(scriptAuthoring.instruction ? { instruction: scriptAuthoring.instruction } : {}),
+          ...(scriptAuthoring.referenceAssetIds?.length ? { reference_asset_ids: scriptAuthoring.referenceAssetIds } : {}),
         } : {}),
       },
       { timeout: 0, ...(signal ? { signal } : {}) },

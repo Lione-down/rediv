@@ -34,7 +34,8 @@
     { "id": "L-OFFICIAL-SKILL", "kind": "official_public_repository", "source": "https://github.com/libtv-labs/libtv-skills", "observed_at": "2026-07-18" },
     { "id": "L-SS-03-12", "kind": "human_authorized_capture_set", "source": "output/playwright/libtv-03.png through libtv-12.png", "retained_at": "2026-07-15", "capture_dimensions": "1080x820", "version_clue": "March 2026 public product review" },
     { "id": "R-014-015", "kind": "revid_owned_test_evidence", "source": "ai/reports/REPORT-T5-014.md and REPORT-T5-015.md", "observed_at": "2026-07-15" },
-    { "id": "R-094-U3", "kind": "revid_owned_test_evidence", "source": "frontend/tests/e2e/canvas-script-generation.spec.ts", "observed_at": "2026-07-18" }
+    { "id": "R-094-U3", "kind": "revid_owned_test_evidence", "source": "frontend/tests/e2e/canvas-script-generation.spec.ts", "observed_at": "2026-07-18" },
+    { "id": "R-095-COMPOSER", "kind": "revid_owned_test_evidence", "source": "frontend/tests/e2e/canvas-libtv-shell-parity.spec.ts and backend/tests/test_text_generate.py", "observed_at": "2026-07-19" }
   ],
   "scenarios": [
     {
@@ -184,10 +185,10 @@
     {
       "id": "agent-skill-main-composer",
       "ledger_ids": ["A10", "E06", "E07", "E08", "E10"],
-      "evidence_ids": ["L-PUBLIC-HOME", "L-OFFICIAL-SKILL", "R-080-091"],
+      "evidence_ids": ["L-PUBLIC-HOME", "L-OFFICIAL-SKILL", "R-080-091", "R-095-COMPOSER"],
       "viewports": ["1440x900", "920x900", "375x812"],
       "zooms_percent": [100],
-      "assertions": ["attachment", "model", "Skill", "generation mode", "send", "session progress", "result lineage", "honest authority"],
+      "assertions": ["attachment staging without graph mutation", "removable attachment chip", "capability-owned model and manual recovery", "Skill", "generation mode", "script-authoring send", "exact prompt retention", "session progress", "result lineage", "honest authority"],
       "current_status": "BLOCKED"
     },
     {

@@ -50,6 +50,8 @@ const props = withDefaults(defineProps<{
   success?: string
   scriptAuthoringActive?: boolean
   scriptAuthoringCapability?: ScriptAuthoringCapabilities | null
+  scriptAuthoringCapabilityError?: string
+  scriptAuthoringCapabilityLoading?: boolean
   scriptAuthoringError?: string
   scriptAuthoringIntent?: ScriptAuthoringIntent | null
   scriptAuthoringSuccess?: string
@@ -76,6 +78,8 @@ const props = withDefaults(defineProps<{
   success: '',
   scriptAuthoringActive: false,
   scriptAuthoringCapability: null,
+  scriptAuthoringCapabilityError: '',
+  scriptAuthoringCapabilityLoading: false,
   scriptAuthoringError: '',
   scriptAuthoringIntent: null,
   scriptAuthoringSuccess: '',
@@ -99,6 +103,7 @@ const emit = defineEmits<{
   visualRecipe: [recipeId: VisualAssetRecipeId]
   cancelScriptAuthoring: []
   generateScript: [submission: ScriptGenerationSubmission]
+  retryScriptCapability: []
 }>()
 const prompt = ref(props.node.content?.trim() || '')
 const visualRecipe = computed(() => resolveVisualAssetRecipe(props.node))
@@ -284,6 +289,8 @@ function requestGeneration() {
       v-if="node.type === 'script' && node.contentData?.subtype === 'script'"
       :active="scriptAuthoringActive"
       :capability="scriptAuthoringCapability"
+      :capability-error="scriptAuthoringCapabilityError"
+      :capability-loading="scriptAuthoringCapabilityLoading"
       :error="scriptAuthoringError"
       :initial-intent="scriptAuthoringIntent"
       :node="node"
@@ -292,6 +299,7 @@ function requestGeneration() {
       :success="scriptAuthoringSuccess"
       @cancel="emit('cancelScriptAuthoring')"
       @generate="emit('generateScript', $event)"
+      @retry-capability="emit('retryScriptCapability')"
     />
     <section v-if="staleScriptLineage?.isStale" class="stale-lineage" role="status" aria-label="旧来源版本">
       <CircleAlert :size="15" aria-hidden="true" />

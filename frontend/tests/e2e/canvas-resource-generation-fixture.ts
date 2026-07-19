@@ -511,11 +511,17 @@ function scriptAuthoringGenerationResponse(state: ResourceMockState, canvasId: s
     contract_version: 1, intent, locale, source_node_id: sourceNodeId,
     source_task_id: taskId, source_model: 'agnes-2.0-flash', canvas_revision: canvasRevision,
   }
+  const requestSnapshot = {
+    ...lineage,
+    ...(Array.isArray(requestBody.reference_asset_ids)
+      ? { reference_asset_ids: requestBody.reference_asset_ids }
+      : {}),
+  }
   const task = generationTask({
     id: taskId, origin_canvas_id: canvasId, canvas_node_id: sourceNodeId, media_type: 'text',
     model: 'agnes-2.0-flash', status: 'succeeded', result_asset_id: assetId,
     provider_request_id: `request-${taskId}`, client_request_id: requestBody.client_request_id,
-    request_fingerprint: 'c'.repeat(64), request_parameters: { script_authoring: lineage },
+    request_fingerprint: 'c'.repeat(64), request_parameters: { script_authoring: requestSnapshot },
   })
   const asset = {
     id: assetId, user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: canvasId,
@@ -843,6 +849,12 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       const canvasId = String(body?.origin_canvas_id ?? FIRST_CANVAS_ID)
       if (body?.intent === 'script_draft' || body?.intent === 'script_refine') {
         state.events.push(`script-authoring-requested:${body?.canvas_node_id}`)
+        if (state.generationOutcome === 'failure') {
+          return fulfillJson(route, { detail: {
+            code: 'provider_unavailable', message: 'mock provider unavailable', retryable: true,
+            retry_after_seconds: 2,
+          } }, 503)
+        }
         return fulfillJson(route, scriptAuthoringGenerationResponse(state, canvasId, body ?? {}))
       }
       state.events.push(`cinematic-script-requested:${body?.canvas_node_id}`)

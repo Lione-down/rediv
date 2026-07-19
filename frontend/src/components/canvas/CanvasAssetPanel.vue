@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  AudioLines, FileStack, History, Image, Library, LoaderCircle, Plus, RefreshCw,
+  AudioLines, FileStack, History, Image, Library, LoaderCircle, Paperclip, Plus, RefreshCw,
   Save, Upload, Video, X,
 } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -14,6 +14,7 @@ import { resolveGenerationTaskProgressSummary } from '../../modules/canvas/gener
 
 const props = withDefaults(defineProps<{
   activeTab: ProjectResourceTab
+  assetAction?: 'insert' | 'attach'
   assets: ProjectAsset[]
   autofocus?: boolean
   error?: string
@@ -26,6 +27,7 @@ const props = withDefaults(defineProps<{
   templates: ProjectTemplate[]
 }>(), {
   autofocus: false,
+  assetAction: 'insert',
   error: '',
   isLoading: false,
   isUploading: false,
@@ -36,6 +38,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   captureTemplate: [name: string]
   close: []
+  attachAsset: [asset: ProjectAsset]
   insertAsset: [asset: ProjectAsset]
   instantiateTemplate: [template: ProjectTemplate]
   resize: [width: number]
@@ -184,12 +187,13 @@ onBeforeUnmount(stopResize)
     :style="mode === 'panel' ? { width: `${panelWidth}px` } : undefined"
   >
     <header class="panel-header">
-      <div><Library :size="18" aria-hidden="true" /><strong>项目资源</strong></div>
+      <div><Library :size="18" aria-hidden="true" /><strong>{{ assetAction === 'attach' ? '选择附件' : '项目资源' }}</strong></div>
       <div class="header-actions">
         <button type="button" aria-label="刷新项目资源" title="刷新项目资源" @click="emit('retry')"><RefreshCw :size="17" aria-hidden="true" /></button>
         <button type="button" aria-label="关闭项目资源" title="关闭项目资源" @click="emit('close')"><X :size="18" aria-hidden="true" /></button>
       </div>
     </header>
+    <p v-if="assetAction === 'attach'" class="resource-intent" role="status">选择要附加到创作输入的素材 · Agnes 脚本写作当前支持公开图片</p>
 
     <div class="resource-tabs" role="tablist" aria-label="项目资源分类">
       <button
@@ -226,7 +230,14 @@ onBeforeUnmount(stopResize)
             <component :is="assetIcon(asset.type)" :size="22" aria-hidden="true" /><span>{{ assetTypeLabel(asset.type) }}预览不可用</span>
           </div>
           <div class="resource-copy"><strong>{{ assetLabel(asset) }}</strong><span>{{ assetTypeLabel(asset.type) }} · {{ asset.source === 'generation' ? '生成结果' : '项目素材' }}</span></div>
-          <button v-if="!readonly" type="button" class="insert-action" :aria-label="`插入资产 ${assetLabel(asset)}到当前画布`" @click="emit('insertAsset', asset)"><Plus :size="16" aria-hidden="true" />插入</button>
+          <button
+            v-if="!readonly"
+            type="button"
+            class="insert-action"
+            :aria-label="assetAction === 'attach' ? (asset.type === 'image' ? `将资产 ${assetLabel(asset)}附加到创作输入` : `${assetTypeLabel(asset.type)}附件暂不支持 Agnes 脚本写作`) : `插入资产 ${assetLabel(asset)}到当前画布`"
+            :disabled="assetAction === 'attach' && asset.type !== 'image'"
+            @click="assetAction === 'attach' ? emit('attachAsset', asset) : emit('insertAsset', asset)"
+          ><Paperclip v-if="assetAction === 'attach'" :size="16" aria-hidden="true" /><Plus v-else :size="16" aria-hidden="true" />{{ assetAction === 'attach' ? '附加' : '插入' }}</button>
         </li>
       </ul>
     </section>
@@ -286,6 +297,7 @@ button:active:not(:disabled) { transform: scale(var(--v2-press-scale)); }
 button:focus-visible, input:focus-visible, .panel-resizer:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 button:disabled { opacity: .45; cursor: not-allowed; }
 .resource-tabs { gap: 2px; padding: 8px; border-bottom: 1px solid var(--v2-border-subtle); }
+.resource-intent { margin: 0; padding: 9px 12px; border-bottom: 1px solid var(--v2-border-subtle); color: var(--v2-text-secondary); background: var(--v2-accent-soft); font-size: 12px; }
 .resource-tabs button { display: flex; min-width: 0; flex: 1; gap: 6px; justify-content: center; padding: 0 8px; color: var(--text-secondary); font-size: 12px; }
 .resource-tabs button[aria-selected="true"] { color: var(--v2-accent); background: var(--v2-accent-soft); }
 .resource-content { min-height: 0; flex: 1; overflow: auto; padding: 12px; overscroll-behavior: contain; }

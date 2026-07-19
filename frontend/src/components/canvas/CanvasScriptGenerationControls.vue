@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { CircleAlert, LoaderCircle, Sparkles, WandSparkles, X } from 'lucide-vue-next'
+import { CircleAlert, LoaderCircle, RefreshCw, Sparkles, WandSparkles, X } from 'lucide-vue-next'
 import type { CanvasNode } from '../../types/canvas'
 import type {
   ScriptAuthoringCapabilities,
@@ -12,17 +12,20 @@ import type { ScriptGenerationSubmission } from './composables/use-canvas-script
 const props = withDefaults(defineProps<{
   active?: boolean
   capability: ScriptAuthoringCapabilities | null
+  capabilityError?: string
+  capabilityLoading?: boolean
   error?: string
   initialIntent?: ScriptAuthoringIntent | null
   node: CanvasNode
   quota?: number
   readonly?: boolean
   success?: string
-}>(), { active: false, error: '', initialIntent: null, quota: 0, readonly: false, success: '' })
+}>(), { active: false, capabilityError: '', capabilityLoading: false, error: '', initialIntent: null, quota: 0, readonly: false, success: '' })
 
 const emit = defineEmits<{
   cancel: []
   generate: [submission: ScriptGenerationSubmission]
+  retryCapability: []
 }>()
 const intent = ref<ScriptAuthoringIntent>('script_draft')
 const locale = ref<ScriptAuthoringLocale>('zh-CN')
@@ -40,13 +43,20 @@ const canSubmit = computed(() => Boolean(
 
 watch(() => props.node.id, () => {
   intent.value = props.initialIntent ?? (sourceText.value ? 'script_refine' : 'script_draft')
-  value.value = ''
+  value.value = intent.value === 'script_draft' ? sourceText.value : ''
   replace.value = false
   locale.value = props.capability?.defaultLocale ?? 'zh-CN'
 }, { immediate: true })
 
 watch(() => props.initialIntent, (nextIntent) => {
-  if (nextIntent) selectIntent(nextIntent)
+  if (!nextIntent) return
+  if (nextIntent === 'script_draft') {
+    intent.value = nextIntent
+    if (!value.value) value.value = sourceText.value
+    replace.value = false
+    return
+  }
+  selectIntent(nextIntent)
 })
 
 function selectIntent(next: ScriptAuthoringIntent) {
@@ -67,7 +77,7 @@ function submit() {
     <div class="script-authoring__heading">
       <span><Sparkles :size="15" aria-hidden="true" />AI 脚本写作</span>
       <strong v-if="capability">{{ capability.modelLabel }}</strong>
-      <strong v-else>capability 未加载</strong>
+      <strong v-else>{{ capabilityLoading ? '正在加载模型…' : '模型未就绪' }}</strong>
     </div>
     <p>只生成可编辑脚本文本；不会自动创建分镜、图片或视频。</p>
     <div class="script-authoring__intents" role="group" aria-label="脚本写作意图">
@@ -91,6 +101,7 @@ function submit() {
       <span>显式替换当前脚本（默认关闭，可撤销）</span>
     </label>
     <div class="script-authoring__actions">
+      <button v-if="!capability && !capabilityLoading" type="button" class="secondary" aria-label="重试加载模型" @click="emit('retryCapability')"><RefreshCw :size="15" aria-hidden="true" />重试模型</button>
       <button v-if="active" type="button" class="secondary" @click="emit('cancel')"><X :size="15" aria-hidden="true" />取消</button>
       <button type="button" :disabled="!canSubmit" @click="submit">
         <LoaderCircle v-if="active" class="spin" :size="15" aria-hidden="true" />
@@ -99,6 +110,7 @@ function submit() {
       </button>
     </div>
     <p v-if="quota <= 0" class="script-authoring__message is-error"><CircleAlert :size="14" aria-hidden="true" />文本 quota 不足。</p>
+    <p v-else-if="capabilityError" class="script-authoring__message is-error" role="alert"><CircleAlert :size="14" aria-hidden="true" />{{ capabilityError }}</p>
     <p v-else-if="error" class="script-authoring__message is-error" role="alert"><CircleAlert :size="14" aria-hidden="true" />{{ error }}</p>
     <p v-else-if="success" class="script-authoring__message" role="status">{{ success }}</p>
   </section>

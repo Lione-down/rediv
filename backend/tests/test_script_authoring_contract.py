@@ -27,6 +27,7 @@ class ScriptAuthoringContractTests(unittest.TestCase):
             intent="script_draft",
             locale="zh-CN",
             brief="一名摄影师在雨夜寻找失踪的胶卷。",
+            image_urls=["https://media.revid.test/reference.png"],
         )
         refine = build_script_authoring_messages(
             intent="script_refine",
@@ -38,7 +39,13 @@ class ScriptAuthoringContractTests(unittest.TestCase):
         self.assertEqual(["system", "user"], [item["role"] for item in draft])
         self.assertIn("editable script", draft[0]["content"])
         self.assertIn("zh-CN", draft[0]["content"])
-        self.assertIn("摄影师", draft[1]["content"])
+        self.assertIn("摄影师", draft[1]["content"][0]["text"])
+        self.assertEqual("text", draft[1]["content"][0]["type"])
+        self.assertEqual("image_url", draft[1]["content"][1]["type"])
+        self.assertEqual(
+            "https://media.revid.test/reference.png",
+            draft[1]["content"][1]["image_url"]["url"],
+        )
         self.assertIn("preserve", refine[0]["content"].lower())
         self.assertIn("Improve pacing", refine[1]["content"])
         self.assertIn("photographer", refine[1]["content"])

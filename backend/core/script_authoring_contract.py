@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Literal
+from typing import Any, Literal
 
 
 ScriptAuthoringIntent = Literal["script_draft", "script_refine"]
@@ -40,15 +40,26 @@ def build_script_authoring_messages(
     brief: str | None = None,
     source_text: str | None = None,
     instruction: str | None = None,
-) -> list[dict[str, str]]:
+    image_urls: list[str] | None = None,
+) -> list[dict[str, Any]]:
     shared = (
         f"Return one editable script in locale {locale}. Output plain text only, without Markdown fences, "
         "analysis, commentary, or downstream shot/media generation. Keep the result within 12000 characters."
     )
     if intent == "script_draft":
+        user_text = f"Create a complete script from this bounded creative brief:\n<brief>\n{brief}\n</brief>"
+        user_content: str | list[dict[str, Any]] = user_text
+        if image_urls:
+            user_content = [
+                {"type": "text", "text": f"{user_text}\nUse the attached images as visual story references."},
+                *[
+                    {"type": "image_url", "image_url": {"url": image_url}}
+                    for image_url in image_urls
+                ],
+            ]
         return [
             {"role": "system", "content": f"You are Revid's script authoring assistant. {shared}"},
-            {"role": "user", "content": f"Create a complete script from this bounded creative brief:\n<brief>\n{brief}\n</brief>"},
+            {"role": "user", "content": user_content},
         ]
     return [
         {
@@ -86,6 +97,7 @@ def script_authoring_snapshot(
     brief: str | None,
     source_text: str | None,
     instruction: str | None,
+    reference_asset_ids: list[str] | None = None,
 ) -> dict:
     snapshot = {
         "contract_version": 1,
@@ -94,6 +106,8 @@ def script_authoring_snapshot(
         "source_node_id": source_node_id,
         "canvas_revision": canvas_revision,
     }
+    if reference_asset_ids:
+        snapshot["reference_asset_ids"] = list(dict.fromkeys(reference_asset_ids))
     for field, value in (
         ("brief_digest", brief),
         ("source_digest", source_text),

@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios'
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { request } from '../../../api/request'
 import { createGenerationClientRequestId, requestCanvasGeneration } from '../../../modules/canvas/generation-service'
@@ -24,9 +25,17 @@ export interface ScriptGenerationSubmission {
   locale: ScriptAuthoringLocale
   value: string
   replace: boolean
+  referenceAssetIds?: string[]
 }
 
 function errorMessage(error: unknown) {
+  if (isAxiosError<{ detail?: unknown }>(error)) {
+    const detail = error.response?.data?.detail
+    if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+      const message = (detail as Record<string, unknown>).message
+      if (typeof message === 'string' && message.trim()) return message.trim()
+    }
+  }
   return error instanceof Error ? error.message : '脚本生成失败，请稍后重试。'
 }
 
@@ -96,7 +105,7 @@ export function useCanvasScriptGeneration(options: ScriptGenerationOptions) {
           locale: submission.locale,
           canvasRevision,
           ...(submission.intent === 'script_draft'
-            ? { brief: value }
+            ? { brief: value, referenceAssetIds: submission.referenceAssetIds }
             : { sourceText: sourceTextAtRequest, instruction: value }),
         },
       }, authStore, request, requestController.signal)

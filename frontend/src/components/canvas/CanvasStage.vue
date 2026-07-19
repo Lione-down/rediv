@@ -43,23 +43,30 @@ import { resolveGenerationInputLineageBridges } from '../../modules/canvas/gener
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import type { GenerationResultProjection } from '../../modules/canvas/generation-result-projection'
 import type { OwnedMediaActionTarget } from '../../modules/canvas/professional-action-registry'
+import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
 import { useCanvasStoryboardGroups } from './composables/use-canvas-storyboard-groups'
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; professionalActionsBlocked?: boolean; readonly?: boolean; resourcesOpen?: boolean
+  composerAttachments?: readonly ProjectAsset[]; composerBusy?: boolean; composerCapabilityError?: string; composerCapabilityLoading?: boolean; composerModelId?: string; composerModelLabel?: string
   generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>; pendingGenerationResults?: readonly GenerationResultProjection[]
   mediaActionTarget?: OwnedMediaActionTarget | null; professionalActionIds?: readonly string[]
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
   actionError: '', capturePending: false, contextOverlayOpen: false, professionalActionsBlocked: false, readonly: false, resourcesOpen: false,
+  composerAttachments: () => [], composerBusy: false, composerCapabilityError: '', composerCapabilityLoading: false, composerModelId: '', composerModelLabel: '',
   generationRuntimePresentations: () => new Map(), pendingGenerationResults: () => [],
   mediaActionTarget: null, professionalActionIds: () => [],
   viewportInsets: () => ({}),
 })
 const emit = defineEmits<{
   captureVideoFrame: [nodeId: string, file: File, timeSeconds: number, aspectRatio: number]
+  openComposerResources: [opener: HTMLElement]
   openResources: [opener: HTMLElement]
   openProfessionalActions: [opener: HTMLElement, query?: string]
   openRevisions: [opener: HTMLElement]
+  removeComposerAttachment: [assetId: string]
+  retryCapabilities: []
+  submitScript: [brief: string]
 }>()
 const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
 function restoreGraphPanelTriggerFocus() {
@@ -308,9 +315,14 @@ function workflowAnchor() {
 }
 
 async function startWorkflow(starterId: WorkflowStarterId, brief = '') {
-  if (props.readonly || isStartingWorkflow.value || canvasStore.nodes.length) return
-  const command = createWorkflowStarterCommand(starterId, workflowAnchor(), brief)
-  if (!command) return
+  if (props.readonly || props.composerBusy || isStartingWorkflow.value || canvasStore.nodes.length) return ''
+  const command = createWorkflowStarterCommand(
+    starterId,
+    workflowAnchor(),
+    brief,
+    props.composerAttachments.map((asset) => asset.id),
+  )
+  if (!command) return ''
   isStartingWorkflow.value = true
   try {
     await canvasStore.dispatchCommand({
@@ -319,11 +331,18 @@ async function startWorkflow(starterId: WorkflowStarterId, brief = '') {
     })
     await nextTick()
     stageRef.value?.focus({ preventScroll: true })
+    return command.nodes.at(-1)?.id ?? ''
   } catch {
     // The Canvas store owns the visible persistence failure state.
+    return ''
   } finally {
     isStartingWorkflow.value = false
   }
+}
+
+async function submitComposer(starterId: WorkflowStarterId, brief = '') {
+  const sourceNodeId = await startWorkflow(starterId, brief)
+  if (starterId === 'script' && brief.trim() && sourceNodeId) emit('submitScript', brief.trim())
 }
 
 function keepCanvasBlank() {
@@ -472,11 +491,18 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
     </div>
     <CanvasEmptyGuide
       v-if="isEmptyGuideVisible"
-      :busy="isStartingWorkflow"
+      :attachments="composerAttachments"
+      :busy="isStartingWorkflow || composerBusy"
+      :capability-error="composerCapabilityError"
+      :capability-loading="composerCapabilityLoading"
+      :model-id="composerModelId"
+      :model-label="composerModelLabel"
       :readonly="readonly"
       @dismiss="keepCanvasBlank"
-      @open-resources="emit('openResources', $event)"
-      @start="startWorkflow"
+      @open-resources="emit('openComposerResources', $event)"
+      @remove-attachment="emit('removeComposerAttachment', $event)"
+      @retry-capabilities="emit('retryCapabilities')"
+      @start="submitComposer"
     />
     <div
       :ref="setCanvasSurfaceRef"

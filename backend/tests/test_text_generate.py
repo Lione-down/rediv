@@ -154,6 +154,78 @@ class TextGenerateApiTestCase(unittest.TestCase):
         self.assertRegex(snapshot["brief_digest"], r"^[a-f0-9]{64}$")
         self.assertNotIn("brief", snapshot)
 
+    def test_script_draft_resolves_owned_public_image_references(self) -> None:
+        source = store.create_node(
+            self.project["id"], self.user["id"], "script",
+            {"subtype": "script", "serialization_version": 1, "text": ""},
+            420, 200, 320, 200,
+        )
+        reference = store.create_asset(
+            self.user["id"], "image", "https://media.revid.test/reference.png", "海边参考图",
+            project_id=self.project["id"], origin_canvas_id=source["canvas_id"],
+        )
+        fake_provider = _FakeAgnesProvider(
+            response={"choices": [{"message": {"content": "第一场：海边。"}}]},
+        )
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/text-generate",
+                json={
+                    "project_id": self.project["id"],
+                    "origin_canvas_id": source["canvas_id"],
+                    "canvas_node_id": source["id"],
+                    "intent": "script_draft",
+                    "brief": "人物走向海边。",
+                    "locale": "zh-CN",
+                    "canvas_revision": 0,
+                    "reference_asset_ids": [reference["id"]],
+                },
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(200, response.status_code)
+        user_content = fake_provider.calls[0]["messages"][1]["content"]
+        self.assertEqual("text", user_content[0]["type"])
+        self.assertEqual("image_url", user_content[1]["type"])
+        self.assertEqual(reference["url"], user_content[1]["image_url"]["url"])
+        snapshot = response.json()["generation_task"]["request_parameters"]["script_authoring"]
+        self.assertEqual([reference["id"]], snapshot["reference_asset_ids"])
+
+    def test_script_draft_rejects_non_public_image_before_provider_or_task(self) -> None:
+        source = store.create_node(
+            self.project["id"], self.user["id"], "script",
+            {"subtype": "script", "serialization_version": 1, "text": ""},
+            420, 200, 320, 200,
+        )
+        reference = store.create_asset(
+            self.user["id"], "image", "/uploads/local-reference.png", None,
+            project_id=self.project["id"], origin_canvas_id=source["canvas_id"],
+        )
+        fake_provider = _FakeAgnesProvider()
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/text-generate",
+                json={
+                    "project_id": self.project["id"],
+                    "origin_canvas_id": source["canvas_id"],
+                    "canvas_node_id": source["id"],
+                    "intent": "script_draft",
+                    "brief": "人物走向海边。",
+                    "locale": "zh-CN",
+                    "canvas_revision": 0,
+                    "reference_asset_ids": [reference["id"]],
+                },
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(422, response.status_code)
+        self.assertEqual("script_reference_unavailable", response.json()["detail"]["code"])
+        self.assertEqual([], fake_provider.calls)
+        _, total = store.list_generation_tasks(self.user["id"], media_type="text")
+        self.assertEqual(0, total)
+
     def test_script_refine_rejects_stale_source_before_task_or_provider(self) -> None:
         source = store.create_node(
             self.project["id"], self.user["id"], "script",

@@ -1,29 +1,57 @@
 <script setup lang="ts">
-import { Bot, Paperclip, Send } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { Bot, CircleAlert, LoaderCircle, Paperclip, RefreshCw, Send, X } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
+import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
 import {
   WORKFLOW_STARTERS,
   type WorkflowStarterId,
 } from './canvas-workflow-starters'
 
-const props = withDefaults(defineProps<{ readonly?: boolean; busy?: boolean }>(), {
+const props = withDefaults(defineProps<{
+  attachments?: readonly ProjectAsset[]
+  readonly?: boolean
+  busy?: boolean
+  capabilityError?: string
+  capabilityLoading?: boolean
+  modelId?: string
+  modelLabel?: string
+}>(), {
+  attachments: () => [],
   readonly: false,
   busy: false,
+  capabilityError: '',
+  capabilityLoading: false,
+  modelId: '',
+  modelLabel: '',
 })
 
 const emit = defineEmits<{
   dismiss: []
   openResources: [opener: HTMLElement]
+  removeAttachment: [assetId: string]
+  retryCapabilities: []
   start: [starterId: WorkflowStarterId, brief?: string]
 }>()
 
 const brief = ref('')
 const selectedStarterId = ref<WorkflowStarterId>('script')
 const isSkillSelected = ref(false)
+const isScriptMode = computed(() => selectedStarterId.value === 'script')
+const canSubmit = computed(() => Boolean(
+  brief.value.trim() && !props.busy && (!isScriptMode.value || props.modelId),
+))
+const sendLabel = computed(() => {
+  if (!isScriptMode.value) return '创建工作流'
+  return props.modelLabel ? `使用 ${props.modelLabel} 生成脚本` : '生成脚本'
+})
+
+function attachmentLabel(asset: ProjectAsset) {
+  return asset.content_text?.trim() || `${asset.type === 'image' ? '图片' : asset.type === 'video' ? '视频' : asset.type === 'audio' ? '音频' : '文本'}素材`
+}
 
 function submitComposer() {
   const value = brief.value.trim()
-  if (!value || props.busy) return
+  if (!value || !canSubmit.value) return
   emit('start', selectedStarterId.value, value)
 }
 </script>
@@ -41,13 +69,22 @@ function submitComposer() {
         <span class="sr-only">主创作提示词</span>
         <textarea v-model="brief" rows="2" maxlength="4000" aria-label="主创作提示词" placeholder="描述你想创建的故事、角色或镜头…"></textarea>
       </label>
+      <ul v-if="attachments.length" class="creation-attachments" aria-label="已添加附件">
+        <li v-for="asset in attachments" :key="asset.id">
+          <Paperclip :size="13" aria-hidden="true" />
+          <span>{{ attachmentLabel(asset) }}</span>
+          <button type="button" :aria-label="`移除附件 ${attachmentLabel(asset)}`" :disabled="busy" @click="emit('removeAttachment', asset.id)"><X :size="13" aria-hidden="true" /></button>
+        </li>
+      </ul>
       <div class="creation-controls">
         <button type="button" aria-label="添加附件" title="从项目资源添加附件" :disabled="busy" @click="event => emit('openResources', event.currentTarget as HTMLElement)">
           <Paperclip :size="15" aria-hidden="true" />附件
         </button>
         <label>
           <span class="sr-only">模型</span>
-          <select aria-label="模型" disabled><option>自动（节点 capability）</option></select>
+          <select aria-label="模型" :value="modelId" disabled>
+            <option :value="modelId">{{ modelLabel || (capabilityLoading ? '正在加载模型…' : '模型不可用') }}</option>
+          </select>
         </label>
         <button type="button" aria-label="选择 Agent / Skill" :aria-pressed="isSkillSelected" :disabled="busy" @click="isSkillSelected = !isSkillSelected">
           <Bot :size="15" aria-hidden="true" />Agent / Skill
@@ -58,11 +95,15 @@ function submitComposer() {
             <option v-for="starter in WORKFLOW_STARTERS" :key="starter.id" :value="starter.id" :disabled="!starter.isAvailable">{{ starter.title }}</option>
           </select>
         </label>
-        <button class="creation-send" type="submit" aria-label="将提示词写入本地工作流" :disabled="busy || !brief.trim()">
-          <Send :size="15" aria-hidden="true" />发送
+        <button class="creation-send" type="submit" :aria-label="sendLabel" :disabled="!canSubmit">
+          <LoaderCircle v-if="busy" class="is-spinning" :size="15" aria-hidden="true" /><Send v-else :size="15" aria-hidden="true" />发送
         </button>
       </div>
-      <p v-if="isSkillSelected" class="skill-selection" role="status">revid.canvas-context · 节点创建后预检</p>
+      <p v-if="isSkillSelected" class="skill-selection" role="status">Canvas context · 仅执行生成前检查</p>
+      <div v-if="capabilityError && isScriptMode" class="capability-state" role="alert">
+        <CircleAlert :size="14" aria-hidden="true" /><span>{{ capabilityError }}</span>
+        <button type="button" aria-label="重试加载模型" :disabled="capabilityLoading" @click="emit('retryCapabilities')"><RefreshCw :size="13" aria-hidden="true" />重试</button>
+      </div>
     </form>
 
     <div v-if="!readonly" class="workflow-starters" aria-label="工作流起点">
@@ -176,6 +217,15 @@ function submitComposer() {
 .creation-controls select { max-width: 160px; padding: 0 7px; }
 .creation-controls .creation-send { margin-left: auto; color: var(--v2-accent-hover); border-color: color-mix(in oklch, var(--v2-accent) 42%, var(--border-subtle)); }
 .skill-selection { margin: 0; color: var(--v2-text-secondary); font-size: 10px; }
+.creation-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0 2px; list-style: none; }
+.creation-attachments li { display: inline-flex; max-width: 220px; min-height: 28px; align-items: center; gap: 6px; padding: 0 5px 0 8px; border: 1px solid color-mix(in oklch, var(--v2-accent) 30%, var(--border-subtle)); border-radius: 999px; color: var(--v2-text-secondary); background: var(--v2-accent-soft); font-size: 11px; }
+.creation-attachments li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.creation-attachments button { display: grid; width: 20px; height: 20px; flex: none; place-items: center; padding: 0; border: 0; border-radius: 50%; color: inherit; background: transparent; }
+.capability-state { display: flex; min-height: 30px; align-items: center; gap: 7px; padding: 6px 8px; border-radius: var(--v2-radius-sm); color: var(--v2-danger); background: var(--v2-surface-1); font-size: 11px; }
+.capability-state span { flex: 1; }
+.capability-state button { display: inline-flex; min-height: 26px; align-items: center; gap: 4px; padding: 0 7px; border: 1px solid currentColor; border-radius: var(--v2-radius-sm); color: inherit; background: transparent; }
+.is-spinning { animation: composer-spin 800ms linear infinite; }
+@keyframes composer-spin { to { transform: rotate(360deg); } }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .workflow-starters {
@@ -272,5 +322,6 @@ button:disabled { cursor: wait; opacity: 0.56; }
 @media (prefers-reduced-motion: reduce) {
   button { transition: none; }
   button:active { transform: none; }
+  .is-spinning { animation: none; }
 }
 </style>

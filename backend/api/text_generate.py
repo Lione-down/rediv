@@ -7,9 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from api.generation_common import fingerprint_generation_request, map_generation_error, resolve_cinematic_generation_handoff
 from controllers import generation_transactions as generation_controller
 from controllers import canvas_documents as document_controller
+from controllers.store import store
 from controllers.canvases import CanvasDomainError
 from api.canvases import map_canvas_domain_error
 from core.agnes_contract import TEXT_CONTRACT
+from core.agnes_image_reference import AgnesImageReferenceError, resolve_agnes_public_image_url
 from core.generation_provider import GenerationProvider, get_generation_provider
 from core.generation_results import (
     ProviderResultError,
@@ -99,7 +101,35 @@ def _resolve_script_authoring_snapshot(payload: TextGenerateRequest, user_id: st
         brief=payload.brief,
         source_text=payload.source_text,
         instruction=payload.instruction,
+        reference_asset_ids=payload.reference_asset_ids,
     )
+
+
+def _resolve_script_reference_image_urls(payload: TextGenerateRequest, user_id: str) -> list[str]:
+    image_urls: list[str] = []
+    for asset_id in payload.reference_asset_ids:
+        asset = store.get_asset(asset_id)
+        if (
+            not asset or asset["user_id"] != user_id or asset["project_id"] != payload.project_id or
+            asset["status"] != "active"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"code": "script_reference_unavailable", "message": "附加素材已失效或不属于当前项目。"},
+            )
+        if asset["type"] != "image" or not isinstance(asset["url"], str):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"code": "script_reference_unsupported", "message": "脚本写作附件目前仅支持可公开访问的图片。"},
+            )
+        try:
+            image_urls.append(resolve_agnes_public_image_url(asset["url"]))
+        except AgnesImageReferenceError as error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"code": "script_reference_unavailable", "message": "附加图片必须是可公开访问的 HTTPS 地址。"},
+            ) from error
+    return image_urls
 
 
 @router.post("/text-generate", response_model=TextGenerateResponse)
@@ -109,6 +139,10 @@ async def text_generate(
     provider: GenerationProvider = Depends(get_generation_provider),
 ):
     authoring_snapshot = _resolve_script_authoring_snapshot(payload, user["id"])
+    script_reference_image_urls = (
+        _resolve_script_reference_image_urls(payload, user["id"])
+        if authoring_snapshot else []
+    )
     cinematic_handoff = resolve_cinematic_generation_handoff(
         payload.cinematic_handoff,
         user_id=user["id"],
@@ -181,6 +215,7 @@ async def text_generate(
                 brief=payload.brief,
                 source_text=payload.source_text,
                 instruction=payload.instruction,
+                image_urls=script_reference_image_urls,
             )
             if authoring_snapshot else [{"role": "user", "content": payload.prompt}]
         )

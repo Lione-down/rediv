@@ -158,6 +158,12 @@ class TextGenerateRequest(BaseModel):
     instruction: str | None = Field(default=None, min_length=1, max_length=4_000)
     locale: Literal["zh-CN", "en-US"] = "zh-CN"
     canvas_revision: int | None = Field(default=None, ge=0)
+    reference_asset_ids: list[ResourceId] = Field(default_factory=list, max_length=8)
+
+    @field_validator("reference_asset_ids")
+    @classmethod
+    def deduplicate_reference_asset_ids(cls, value: list[str]) -> list[str]:
+        return list(dict.fromkeys(value))
 
     @model_validator(mode="before")
     @classmethod
@@ -169,7 +175,10 @@ class TextGenerateRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_intent_contract(self):
-        structured_values = (self.brief, self.source_text, self.instruction, self.canvas_revision)
+        structured_values = (
+            self.brief, self.source_text, self.instruction, self.canvas_revision,
+            self.reference_asset_ids or None,
+        )
         if self.intent == "freeform":
             if not self.prompt:
                 raise ValueError("prompt is required for freeform text generation")

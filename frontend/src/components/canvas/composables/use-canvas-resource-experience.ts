@@ -31,6 +31,8 @@ interface CanvasResourceExperienceOptions {
   projectId: ComputedRef<string>
 }
 
+export type CanvasResourceIntent = 'insert' | 'attach'
+
 function errorMessage(error: unknown) {
   if (isAxiosError<{ detail?: unknown }>(error)) {
     const detail = error.response?.data?.detail
@@ -103,13 +105,19 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const activeTab = ref<ProjectResourceTab>('assets')
   const panelWidth = ref(320)
   const isResourceOpen = ref(false)
+  const resourceIntent = ref<CanvasResourceIntent>('insert')
   const isContextDrawerOpen = ref(false)
   const isUploading = ref(false)
   const actionError = ref('')
   const generationErrors = ref<ReadonlyMap<string, string>>(new Map())
   const generationSuccesses = ref<ReadonlyMap<string, string>>(new Map())
   const foregroundResultNodeId = ref('')
-  const { generationCapabilities, generationCapabilitiesError } = useGenerationCapabilities()
+  const {
+    generationCapabilities,
+    generationCapabilitiesError,
+    isGenerationCapabilitiesLoading,
+    reloadGenerationCapabilities,
+  } = useGenerationCapabilities()
   const captureVideoFrame = createVideoFrameCaptureAction({
     actionError, canvasId: options.canvasId, canvasStore, formatError: errorMessage,
     isReviewOnly: options.isReviewOnly, isUploading, projectId: options.projectId, resourceStore,
@@ -176,9 +184,11 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     void nextTick(() => target?.focus({ preventScroll: true }))
   }
 
-  function openResources(opener?: HTMLElement) {
+  function openResources(opener?: HTMLElement, intent: CanvasResourceIntent = 'insert') {
     if (opener) resourceOpener = opener
     actionError.value = ''
+    resourceIntent.value = intent
+    activeTab.value = 'assets'
     isResourceOpen.value = true
     if (options.isCompact.value) isContextDrawerOpen.value = false
   }
@@ -418,11 +428,15 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     activeTab,
     panelWidth,
     isResourceOpen,
+    resourceIntent,
     isContextDrawerOpen,
     isDesktopContextOpen,
     isUploading,
     isGenerating,
     generationCapabilities,
+    generationCapabilitiesError,
+    isGenerationCapabilitiesLoading,
+    reloadGenerationCapabilities,
     selectedNode,
     selectedMediaType,
     selectedGenerationContext,

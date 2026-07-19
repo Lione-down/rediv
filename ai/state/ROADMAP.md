@@ -89,6 +89,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 92 | T5-092 | Same-Canvas concurrent image/video generation, request idempotency, and bounded Agnes admission control | DONE | T5-091 |
 | 93 | T5-093 | Restore legacy MySQL migration compatibility and local runtime | DONE - PASS | T5-092 |
 | 94 | T5-094 | Agnes contract recovery, AI script authoring, and LibTV observable Canvas parity | DONE - PASS | T5-093 |
+| 95 | T5-095 | Canvas main composer attachment, Send, and Agnes capability recovery | DONE - PASS | T5-094 |
 
 ## Task Boundaries
 

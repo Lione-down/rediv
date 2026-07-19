@@ -35,6 +35,7 @@ import { projectCanvasStoryboard } from '../../modules/canvas/storyboard-project
 import { createReorderStoryboardGroupCommand } from '../../modules/canvas/storyboard-commands'
 import { resolveOwnedMediaActionTarget } from '../../modules/canvas/professional-action-registry'
 import type { ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
+import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
 
 type MoveDirection = -1 | 1
 interface CanvasStageHandle { arrangeSelectedProvenanceTrace: () => boolean; closeTransientInteractions: () => void; fitSelectedProvenanceTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
@@ -113,11 +114,15 @@ const {
   activeTab,
   panelWidth,
   isResourceOpen,
+  resourceIntent,
   isContextDrawerOpen,
   isDesktopContextOpen,
   isUploading,
   isGenerating,
   generationCapabilities,
+  generationCapabilitiesError,
+  isGenerationCapabilitiesLoading,
+  reloadGenerationCapabilities,
   selectedNode,
   selectedMediaType,
   selectedGenerationContext,
@@ -154,6 +159,48 @@ const scriptGeneration = useCanvasScriptGeneration({
   isReviewOnly,
   projectId,
 })
+const composerAttachments = ref<ProjectAsset[]>([])
+const scriptCapability = computed(() => generationCapabilities.value?.text ?? null)
+const composerCapabilityError = computed(() => {
+  if (isGenerationCapabilitiesLoading.value) return ''
+  if (generationCapabilitiesError.value) return generationCapabilitiesError.value
+  if (generationCapabilities.value && !generationCapabilities.value.text) {
+    return '脚本模型未就绪，请重启本地服务后重试。'
+  }
+  return ''
+})
+
+function openComposerResources(opener: HTMLElement) {
+  openResources(opener, 'attach')
+}
+
+function attachComposerAsset(asset: ProjectAsset) {
+  if (asset.project_id !== projectId.value) return
+  if (composerAttachments.value.some((item) => item.id === asset.id)) {
+    closeResources()
+    return
+  }
+  composerAttachments.value = [...composerAttachments.value, asset].slice(0, 8)
+  closeResources()
+}
+
+watch([projectId, canvasId], () => { composerAttachments.value = [] })
+
+function removeComposerAttachment(assetId: string) {
+  composerAttachments.value = composerAttachments.value.filter((asset) => asset.id !== assetId)
+}
+
+async function submitMainComposerScript(brief: string) {
+  scriptAuthoringIntent.value = 'script_draft'
+  await scriptGeneration.generate({
+    intent: 'script_draft',
+    locale: scriptCapability.value?.defaultLocale ?? 'zh-CN',
+    value: brief,
+    replace: false,
+    referenceAssetIds: composerAttachments.value.map((asset) => asset.id),
+  })
+  if (scriptGeneration.success.value) scriptAuthoringIntent.value = null
+}
 const { branchFromResult, branchVisualRecipe, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode, revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId) })
 const { createCinematicShotGraph, createShotGraph, createStoryboardRecipe, createVisualAssetRecipe } = useCanvasStoryboardRecipes({
   assets: () => resourceStore.assets,
@@ -513,11 +560,21 @@ onBeforeUnmount(() => {
           :media-action-target="mediaActionTarget"
           :generation-runtime-presentations="generationRuntimePresentations" :pending-generation-results="pendingGenerationResults"
           :resources-open="isResourceOpen"
+          :composer-attachments="composerAttachments"
+          :composer-busy="scriptGeneration.active.value"
+          :composer-capability-error="composerCapabilityError"
+          :composer-capability-loading="isGenerationCapabilitiesLoading"
+          :composer-model-id="scriptCapability?.model ?? ''"
+          :composer-model-label="scriptCapability?.modelLabel ?? ''"
           :viewport-insets="canvasViewportInsets"
+          @open-composer-resources="openComposerResources"
           @open-resources="openResources"
           @open-professional-actions="openProfessionalActions"
           @open-revisions="openRevisionPanel"
           @capture-video-frame="captureSelectedVideoFrame"
+          @remove-composer-attachment="removeComposerAttachment"
+          @retry-capabilities="reloadGenerationCapabilities"
+          @submit-script="submitMainComposerScript"
         />
       </div>
 
@@ -630,6 +687,7 @@ onBeforeUnmount(() => {
         <CanvasAssetPanel
           v-model:active-tab="activeTab"
           :assets="resourceStore.assets"
+          :asset-action="resourceIntent"
           :error="visibleError"
           :is-loading="resourceStore.isLoading"
           :is-uploading="isUploading"
@@ -638,6 +696,7 @@ onBeforeUnmount(() => {
           :readonly="isReviewOnly"
           :tasks="resourceStore.tasks"
           :templates="resourceStore.templates"
+          @attach-asset="attachComposerAsset"
           @capture-template="captureTemplate"
           @close="closeResources"
           @insert-asset="insertAsset"
@@ -672,12 +731,15 @@ onBeforeUnmount(() => {
           :success="generationSuccess"
           :script-authoring-active="scriptGeneration.active.value"
           :script-authoring-capability="scriptGeneration.capability.value"
+          :script-authoring-capability-error="composerCapabilityError"
+          :script-authoring-capability-loading="isGenerationCapabilitiesLoading"
           :script-authoring-error="scriptGeneration.error.value"
           :script-authoring-intent="scriptAuthoringIntent"
           :script-authoring-success="scriptGeneration.success.value"
           :script-quota="authStore.quotas.text"
           @cancel-script-authoring="scriptGeneration.cancel"
           @generate-script="scriptGeneration.generate"
+          @retry-script-capability="reloadGenerationCapabilities"
           @branch-generation="branchFromResult"
           @visual-recipe="createVisualAssetRecipe"
           @arrange-trace="canvasStageRef?.arrangeSelectedProvenanceTrace()"
@@ -714,6 +776,7 @@ onBeforeUnmount(() => {
             <CanvasAssetPanel
               v-model:active-tab="activeTab"
               :assets="resourceStore.assets"
+              :asset-action="resourceIntent"
               autofocus
               :error="visibleError"
               :is-loading="resourceStore.isLoading"
@@ -722,6 +785,7 @@ onBeforeUnmount(() => {
               :readonly="isReviewOnly"
               :tasks="resourceStore.tasks"
               :templates="resourceStore.templates"
+              @attach-asset="attachComposerAsset"
               @capture-template="captureTemplate"
               @close="closeResources"
               @insert-asset="insertAsset"
@@ -767,12 +831,15 @@ onBeforeUnmount(() => {
               :success="generationSuccess"
               :script-authoring-active="scriptGeneration.active.value"
               :script-authoring-capability="scriptGeneration.capability.value"
+              :script-authoring-capability-error="composerCapabilityError"
+              :script-authoring-capability-loading="isGenerationCapabilitiesLoading"
               :script-authoring-error="scriptGeneration.error.value"
               :script-authoring-intent="scriptAuthoringIntent"
               :script-authoring-success="scriptGeneration.success.value"
               :script-quota="authStore.quotas.text"
               @cancel-script-authoring="scriptGeneration.cancel"
               @generate-script="scriptGeneration.generate"
+              @retry-script-capability="reloadGenerationCapabilities"
               @branch-generation="branchFromResult"
               @visual-recipe="createVisualAssetRecipe"
               @arrange-trace="arrangeTraceFromContextDrawer"

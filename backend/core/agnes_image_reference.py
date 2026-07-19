@@ -46,6 +46,11 @@ def _resolve_public_url(reference: str) -> str:
     return reference
 
 
+def resolve_agnes_public_image_url(reference: str) -> str:
+    """Validate the public-HTTPS-only image form supported by Agnes text vision."""
+    return _resolve_public_url(reference)
+
+
 def _local_upload_path(reference: str, *, user_id: str, storage_root: Path) -> tuple[Path, str]:
     parsed = urlsplit(reference)
     if parsed.scheme or parsed.netloc or parsed.query or parsed.fragment or "%" in parsed.path:

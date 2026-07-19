@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
-import { createResourceMockState, openResourceWorkspace } from './canvas-resource-generation-fixture'
+import AxeBuilder from '@axe-core/playwright'
+import { createResourceMockState, documentPatches, openResourceWorkspace } from './canvas-resource-generation-fixture'
 
 async function openEmptyWorkspace(page: Page, viewport: { width: number; height: number }) {
   const state = createResourceMockState()
@@ -112,26 +113,100 @@ test('add menu exposes the observable media catalog and safe resource entries', 
   await expect(resources.getByRole('button', { name: '上传项目资产' })).toBeVisible()
 })
 
-test('main creation composer exposes honest model Skill attachment and local Send boundaries', async ({ page }) => {
+test('main creation composer stages attachments without mutating or dismissing the Canvas', async ({ page }) => {
   const state = await openEmptyWorkspace(page, { width: 1440, height: 900 })
   const composer = page.getByRole('form', { name: 'Canvas 主创作输入' })
   await expect(composer).toBeVisible()
-  await expect(composer.getByRole('button', { name: '添加附件' })).toBeVisible()
-  await expect(composer.getByRole('combobox', { name: '模型' })).toBeDisabled()
+
+  await composer.getByRole('button', { name: '添加附件' }).click()
+  const resources = page.getByRole('complementary', { name: '项目资源' })
+  await expect(resources).toContainText('选择要附加到创作输入的素材')
+  await resources.getByRole('button', { name: '将资产 海边参考图附加到创作输入' }).click()
+
+  await expect(composer).toBeVisible()
+  await expect(composer.getByRole('button', { name: '移除附件 海边参考图' })).toBeVisible()
+  expect(state.documents['canvas-first'].nodes).toHaveLength(0)
+  expect(documentPatches(state)).toHaveLength(0)
+  const accessibility = await new AxeBuilder({ page }).include('.creation-composer').analyze()
+  expect(accessibility.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([])
+})
+
+test('main creation composer Send runs script authoring and keeps exact input recoverable', async ({ page }) => {
+  const state = await openEmptyWorkspace(page, { width: 1440, height: 900 })
+  const composer = page.getByRole('form', { name: 'Canvas 主创作输入' })
+  await expect(composer.getByRole('combobox', { name: '模型' })).toHaveValue('agnes-2.0-flash')
   await expect(composer.getByRole('combobox', { name: '生成模式' })).toBeVisible()
-  const skill = composer.getByRole('button', { name: '选择 Agent / Skill' })
-  await skill.click()
-  await expect(skill).toHaveAttribute('aria-pressed', 'true')
-  await expect(composer).toContainText('revid.canvas-context · 节点创建后预检')
+  await composer.getByRole('button', { name: '添加附件' }).click()
+  await page.getByRole('complementary', { name: '项目资源' })
+    .getByRole('button', { name: '将资产 海边参考图附加到创作输入' }).click()
 
   await composer.getByRole('textbox', { name: '主创作提示词' }).fill('黄昏海岸，人物从远景走入近景。')
   await composer.getByRole('combobox', { name: '生成模式' }).selectOption('script')
-  await composer.getByRole('button', { name: '将提示词写入本地工作流' }).click()
-  await expect.poll(() => state.documents['canvas-first'].nodes.length).toBe(1)
-  expect(state.documents['canvas-first'].nodes[0].content.text).toBe('黄昏海岸，人物从远景走入近景。')
-  expect(state.generationCount).toBe(0)
+  await composer.getByRole('button', { name: '使用 Agnes 2.0 Flash 生成脚本' }).click()
 
-  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
-  await page.keyboard.press('Control+Z')
-  await expect.poll(() => state.documents['canvas-first'].nodes.length).toBe(0)
+  await expect.poll(() => state.generationCount).toBe(1)
+  await expect.poll(() => state.documents['canvas-first'].nodes.length).toBe(2)
+  const source = state.documents['canvas-first'].nodes.find((item) => (
+    (item.content as Record<string, unknown>).text === '黄昏海岸，人物从远景走入近景。'
+  ))
+  const result = state.documents['canvas-first'].nodes.find((item) => (
+    (item.content as Record<string, unknown>).source_task_id === 'task-authoring-1'
+  ))
+  expect(source).toBeTruthy()
+  expect(result).toBeTruthy()
+  expect((source!.content as Record<string, unknown>).reference_asset_ids).toEqual(['asset-reference'])
+  expect(state.requests.find((item) => item.path === '/api/text-generate')?.body).toMatchObject({
+    intent: 'script_draft', brief: '黄昏海岸，人物从远景走入近景。', canvas_node_id: source!.id,
+    reference_asset_ids: ['asset-reference'],
+  })
+
+  await expect(page.getByRole('region', { name: 'AI 脚本写作' })).toContainText('已创建新的可编辑脚本节点')
+})
+
+test('main composer retains the prompt and recovers capability loading without reload', async ({ page }) => {
+  const state = createResourceMockState()
+  state.documents['canvas-first'].nodes = []
+  state.documents['canvas-first'].connections = []
+  state.capabilitiesOutcome = 'failure'
+  await openResourceWorkspace(page, state, { width: 1440, height: 900 })
+
+  const composer = page.getByRole('form', { name: 'Canvas 主创作输入' })
+  const prompt = composer.getByRole('textbox', { name: '主创作提示词' })
+  await prompt.fill('保留这段创意，不要因为模型加载失败而清空。')
+  await expect(composer).toContainText('模型服务暂不可用')
+  await expect(composer.getByRole('button', { name: '重试加载模型' })).toBeVisible()
+  await expect(composer.getByRole('button', { name: '生成脚本' })).toBeDisabled()
+
+  state.capabilitiesOutcome = 'success'
+  await composer.getByRole('button', { name: '重试加载模型' }).click()
+  await expect(composer.getByRole('combobox', { name: '模型' })).toHaveValue('agnes-2.0-flash')
+  await expect(prompt).toHaveValue('保留这段创意，不要因为模型加载失败而清空。')
+  await expect(composer.getByRole('button', { name: '使用 Agnes 2.0 Flash 生成脚本' })).toBeEnabled()
+
+  expect(state.requests.filter((item) => item.path === '/api/generation-capabilities')).toHaveLength(2)
+})
+
+test('main composer keeps a failed script brief ready for bounded manual retry', async ({ page }) => {
+  const state = createResourceMockState()
+  state.documents['canvas-first'].nodes = []
+  state.documents['canvas-first'].connections = []
+  state.generationOutcome = 'failure'
+  await openResourceWorkspace(page, state, { width: 1440, height: 900 })
+
+  const composer = page.getByRole('form', { name: 'Canvas 主创作输入' })
+  await composer.getByRole('textbox', { name: '主创作提示词' }).fill('雨夜车站，摄影师寻找失踪胶卷。')
+  await composer.getByRole('button', { name: '使用 Agnes 2.0 Flash 生成脚本' }).click()
+
+  const authoring = page.getByRole('region', { name: 'AI 脚本写作' })
+  await expect(authoring).toContainText('Agnes 当前不可用')
+  await expect(authoring.getByRole('textbox', { name: '创意 Brief' })).toHaveValue('雨夜车站，摄影师寻找失踪胶卷。')
+  expect(state.requests.filter((item) => item.path === '/api/text-generate')).toHaveLength(1)
+  expect(state.documents['canvas-first'].nodes).toHaveLength(1)
+
+  await page.waitForTimeout(50)
+  expect(state.requests.filter((item) => item.path === '/api/text-generate')).toHaveLength(1)
+  state.generationOutcome = 'success'
+  await authoring.getByRole('button', { name: '生成新脚本' }).click()
+  await expect.poll(() => state.generationCount).toBe(1)
+  await expect(authoring).toContainText('已创建新的可编辑脚本节点')
 })

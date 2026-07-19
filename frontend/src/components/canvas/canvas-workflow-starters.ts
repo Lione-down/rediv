@@ -53,6 +53,7 @@ export function createWorkflowStarterCommand(
   starterId: WorkflowStarterId,
   anchor: Point,
   brief = '',
+  referenceAssetIds: readonly string[] = [],
 ): InsertGraphCommand | null {
   const normalizedBrief = brief.trim().slice(0, 4000)
   const applyBrief = (node: CanvasNode) => normalizedBrief
@@ -60,9 +61,14 @@ export function createWorkflowStarterCommand(
     : node
   if (starterId === 'audio-video') return null
   if (starterId === 'script') {
+    const script = applyBrief(createNode('script', 'script', { x: anchor.x - 160, y: anchor.y - 100 }, '故事脚本'))
+    script.contentData = {
+      ...script.contentData,
+      ...(referenceAssetIds.length ? { reference_asset_ids: [...new Set(referenceAssetIds)].slice(0, 8) } : {}),
+    }
     return {
       type: 'insert-graph',
-      nodes: [applyBrief(createNode('script', 'script', { x: anchor.x - 160, y: anchor.y - 100 }, '故事脚本'))],
+      nodes: [script],
       connections: [],
     }
   }
