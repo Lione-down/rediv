@@ -90,6 +90,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 93 | T5-093 | Restore legacy MySQL migration compatibility and local runtime | DONE - PASS | T5-092 |
 | 94 | T5-094 | Agnes contract recovery, AI script authoring, and LibTV observable Canvas parity | DONE - PASS | T5-093 |
 | 95 | T5-095 | Canvas main composer attachment, Send, and Agnes capability recovery | DONE - PASS | T5-094 |
+| 96 | T5-096 | LibTV official Canvas visual, functional, and interaction 1:1 parity with preserved Revid-only entries | TODO - PLANNED | T5-095 |
 
 ## Task Boundaries
 
@@ -288,6 +289,8 @@ T5-092 is `DONE - PASS`. Node/task-scoped concurrent image/video execution, stri
 T5-093 is `DONE - PASS`. Local startup exposed a historical-schema MySQL collation mismatch in the T5-091 provider-cost acknowledgement migration: the real `users.id` remained `utf8mb4_unicode_ci`, while an explicit-charset-only new table inherited MySQL 8's `utf8mb4_0900_ai_ci` default. A deterministic disposable-MySQL regression reproduced the same 3780 failure, the migration now inherits the exact parent collation, focused plus 13-test adjacent evidence passed, and the explicitly authorized local schema reached `a3b4c5d6e7f8`. Backend `/health` and frontend root are HTTP 200 on ports 8000/5173. Business delivery is `b23b6cb9d4354cc37a78b13352e95774a81f2b07`; `REPORT-T5-093.md` is authoritative.
 
 T5-094 is `DONE - PASS`. The typed Agnes contract, safe actionable provider failures, non-destructive `Agnes 2.0 Flash` script draft/refine authoring, every safely implementable clean-room Canvas parity row, and the 200-node/300-connection performance/accessibility gate are complete. Final evidence is backend `76 passed, 57 subtests passed`, related Chromium `74/74`, production build `4937 modules transformed`, full-Chromium performance/accessibility `3/3`, and manifest coverage 94/94 with `61 MATCHED`, `5 BLOCKED`, `28 NOT_OBSERVABLE`. On 2026-07-19 the Human Owner accepted the five blocked rows and 28 non-observable rows as documented deferrals and deferred real Agnes smoke; REPORT is `ai/reports/REPORT-T5-094.md` and the closure is delivered to `origin/main`.
+
+T5-096 is `TODO - PLANNED` and inactive. It replaces feature-presence parity with a new three-axis contract against the latest official authenticated LibTV Canvas: visual effect, functional outcome, and interaction effect must each pass. Revid retains its graphite/violet colors, lawful assets, native authority boundaries, and every entry with no LibTV counterpart. Prior T5-094 blocked/non-observable deferrals do not close T5-096 scenarios. The Task may activate only as the sole implementation Task after a fresh official-Canvas evidence audit and PROGRESS creation; no real/paid provider call is authorized by this plan.
 
 ## Canvas First-Acceptance Gate
 
