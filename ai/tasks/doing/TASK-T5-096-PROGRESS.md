@@ -22,6 +22,8 @@
 - Completed the third consecutive goal-turn blocker audit. The installed Browser skill/runtime script remains present, but the current task still exposes no supported Browser control tool. Repository, remote, and local runtime checks remain healthy, so the blocker is isolated to the missing browser-control surface.
 - Exhausted safe official-independent Unit 0 work: durable evidence/schema/checklist, Revid extension inventory, token map, and current-registry verification are complete. Further parity tests or business-code changes would guess the official target and violate the Task contract.
 - Resumed after the Human Owner explicitly selected the bundled Chrome plugin. The pinned Chrome `browser-client.mjs` exists and one `extension-host` process is running, but the task capability inventory still exposes neither `node_repl` nor another supported Chrome control entry; no LibTV tab or official Canvas state was falsely claimed.
+- Re-audited the bundled Chrome chain after the Human Owner reported the just-repaired plugin unavailable. Codex App `26.715.4045.0` is healthy; managed Chrome `26.715.31925` is installed/enabled; `latest` resolves to that version; the App bundle and cache `browser-client.mjs` plus `extension-host.exe` SHA-256 values match; the registered native-host executable path resolves; and the required Node/Node REPL runtime paths exist.
+- Confirmed this is not a second cache/native-host break. The resumed task dynamically received the Chrome skill but its immutable callable-capability inventory still contains no `node_repl`; the plugin's own troubleshooting contract forbids substituting shell/standalone automation or manually repairing a healthy native host. No reinstall or unsupported workaround was performed.
 
 ## Remaining Work
 
@@ -34,7 +36,7 @@
 
 ## Exact Next Action
 
-Expose the bundled Chrome plugin's required `node_repl` control entry to this task (or resume T5-096 in a task where that entry is callable), connect it to the user's already-authenticated official LibTV Canvas, and perform the Unit 0 read-only capture before any business-code edit.
+Restart Codex after the completed managed Chrome repair and resume T5-096 in a fresh `@chrome` task whose initial capability inventory includes `node_repl`; verify the supported `extension` binding and `openTabs()` smoke, connect it to the user's already-authenticated official LibTV Canvas, and perform the Unit 0 read-only capture before any business-code edit.
 
 ## Files Changed
 
@@ -66,12 +68,14 @@ Expose the bundled Chrome plugin's required `node_repl` control entry to this ta
 - Evidence hygiene: seven T5-096 evidence files, UTF-8, no BOM, no replacement character; `git diff --check` passed.
 - Third blocker audit: `HEAD == origin/main == 6eda9dbb8d2d8773ac83f63494e319adfc42e93d`, ahead/behind `0/0`; Browser tool inventory empty; installed runtime script present; frontend root and backend `/health` both HTTP 200.
 - Explicit Chrome resume audit: `HEAD == 8577765d3ec2587fcab866feab94258b13017254`; only preserved user-owned untracked paths; bundled Chrome skill loaded; pinned runtime script present; `extension-host` process count `1`; callable inventory contains no `node_repl`, browser-control, or Chrome-control tool.
+- Current Chrome integrity audit: AppX `26.715.4045.0` status `Ok`; plugin list reports Chrome `26.715.31925` installed/enabled; cache `latest` targets `26.715.31925`; App/cache `browser-client.mjs` and `extension-host.exe` hashes match; current native-host manifest and registry path resolve; runtime `node.exe` and `node_repl.exe` exist; one managed `extension-host` process is running.
+- Chrome skill troubleshooting audit: because the task has no callable `node_repl`, its required lightweight `openTabs()` smoke cannot be invoked. The documented recovery contract explicitly disallows shell browser substitution and manual native-host installation/repair.
 
 ## Blocker And Release Condition
 
-- Blocker: even after the Human Owner explicitly selected the bundled Chrome plugin, the current task lacks the plugin-required `node_repl` control entry needed to inspect the user's already-authenticated official LibTV Canvas. The plugin script and extension host are present, isolating the failure to task capability exposure. T5-096 forbids using old captures, public/third-party material, standalone local browser automation, or control-presence inference to close this audit.
+- Blocker: even after the Human Owner explicitly selected the bundled Chrome plugin, this resumed task lacks the plugin-required `node_repl` control entry needed to inspect the user's already-authenticated official LibTV Canvas. Live integrity evidence shows the managed plugin/cache/native-host/runtime chain is healthy, isolating the failure to immutable per-task capability exposure rather than another plugin repair failure. T5-096 forbids using old captures, public/third-party material, standalone local browser automation, or control-presence inference to close this audit.
 - Impact: official scenario scope, three-axis measurements, interaction traces, evidence hashes, extension-slot constraints, and truthful RED parity contracts cannot be established. Business-code implementation and parity claims must not start.
-- Release condition: expose the installed Chrome plugin's `node_repl` control entry in this task (or resume T5-096 in a task where it is callable), preserve or restore the user's official LibTV authenticated session, then complete and commit the Unit 0 evidence/RED contract set.
+- Release condition: restart Codex after the managed plugin repair and start a fresh task with `@chrome` so its initial capability inventory includes `node_repl`; verify the supported `extension` binding and `openTabs()` smoke there, preserve the user's official LibTV authenticated session, then complete and commit the Unit 0 evidence/RED contract set. Continuing this pre-repair task cannot refresh its callable inventory.
 
 ## Human Gates
 
