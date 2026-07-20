@@ -96,5 +96,5 @@ Obtain the Human UX verdict on the final Revid-owned 1440x900 reference-transfer
 
 ## Worktree
 
-- T6-001 activation `eb13f7d`, Unit 0A `de2db15`, Unit 1 `b31ae2a`, Unit 2 `ced6cd5`, Unit 3 `f0f56df`, Unit 4 `9e8743b`, Unit 5 `ee720c5`, and Unit 6/review `a9b69be` are pushed; `HEAD == origin/main`, ahead/behind `0/0` before the Human UX verdict update.
+- T6-001 activation `eb13f7d`, Unit 0A `de2db15`, Unit 1 `b31ae2a`, Unit 2 `ced6cd5`, Unit 3 `f0f56df`, Unit 4 `9e8743b`, Unit 5 `ee720c5`, Unit 6/review `a9b69be`, Human-gate record `fa5f5d9`, and completion-audit test `f435f7d` are pushed; `HEAD == origin/main`, ahead/behind `0/0` before the Human UX verdict update.
 - User-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and outside delivery scope.

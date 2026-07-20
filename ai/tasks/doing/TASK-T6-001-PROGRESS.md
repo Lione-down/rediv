@@ -49,10 +49,11 @@
 - Final 21-criterion completion audit found AC13 switching evidence too indirect: cinematic tests proved atomic command/autosave/undo/redo/reload/duplication and generic Canvas suites proved switching/recovery, but no cinematic browser case directly reloaded accepted canon after switching away and back. This is an evidence gap, not a confirmed product defect.
 - Added direct AC13 browser evidence: one Keep creates one document PATCH; accepted canon revision/result/end-state survive switching to the second Canvas, switching back, and reload through the native document authority. Exact case is `1/1`; cinematic + sequence + autosave + document persistence + revision recovery is `34/34`.
 - Completed the 21-row audit in `completion-audit-2026-07-20.md`: AC1-AC20 are direct `PASS`; AC21 is `PENDING_HUMAN_UX` solely for the final screenshot verdict, REPORT, and durable `DONE - PASS` synchronization.
+- The AC13 persistence test and 21-row completion audit were committed as `f435f7d` and pushed; `HEAD == origin/main`, ahead/behind `0/0`.
 
 ## Remaining Work
 
-- Complete fresh self-review, Human UX review, REPORT, durable-state synchronization, exact staging, commit, push, and remote equality.
+- Obtain the Human UX verdict, then write REPORT and synchronize Task/PLAN/PROGRESS/CURRENT/ROADMAP to `DONE - PASS`; commit, push, and verify remote equality.
 
 ## Exact Next Action
 
@@ -141,6 +142,7 @@ Obtain the Human UX verdict on the final 1440x900 reference-transfer and 375x812
 - Scoped delivery: commit `a9b69be`; push passed; local/remote ahead/behind `0/0`.
 - AC13 evidence RED: expected at least three first-Canvas document GETs, observed two; product persistence assertions passed and the over-counted test assumption was corrected.
 - AC13 direct GREEN: `1/1`; cinematic/sequence/autosave/document-persistence/revision-recovery matrix: `34/34`.
+- Completion-audit delivery: commit `f435f7d`; push passed; local/remote ahead/behind `0/0`.
 
 ## Blockers And Release Conditions
 
