@@ -1,8 +1,18 @@
-# Revid Product V2 / Phase 5 Direct Delivery Roadmap
+# Revid Product V2/V3 Direct Delivery Roadmap
 
 Last updated: 2026-07-20
 
-## Product Outcome
+## Active Product V3 / Phase 6 Outcome
+
+Deliver backward-compatible Revid-native cinematic director Skills v2 on top of the accepted Canvas, while preserving explicit user/provider ownership, native generation authorities, durable graph/history contracts, and fail-closed safety.
+
+| Order | Task | Deliverable | State | Dependency |
+|---:|---|---|---|---|
+| 1 | T6-001 | Detached-edge correction, cinematic director contracts, sequence canon, accepted-take continuation, and explicit retake workflow | DOING | T5-096 |
+
+T6-001 is the only active implementation Task. Its first unit repairs the Human-reported detached connection before cinematic v2 business implementation. No T6-002 or later Task is activated.
+
+## Completed Product V2 / Phase 5 Outcome
 
 Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted milestone is a multi-canvas infinite creative workspace. Global UI upgrades follow only after Canvas acceptance.
 

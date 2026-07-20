@@ -11,19 +11,20 @@ Last updated: 2026-07-20
 
 ## Product State
 
-- Phase 4 initial version: `COMPLETE - PASS`
-- Product V2 / Phase 5: active; Canvas-first acceptance.
+- Phase 4 initial version: `COMPLETE - PASS`.
+- Product V2 / Phase 5: `COMPLETE - PASS`; T5-096 is the final T5 Task.
+- Product V3 / Phase 6: active.
 - Database direction: MySQL-only.
-- Completed V2 Tasks: T5-001 through T5-096 (`DONE - PASS`).
 
 ## Active Delivery
 
-- Active implementation Task: none.
-- State: `IDLE`; do not activate another Task without Human Owner direction.
-- Last completed Task: `T5-096 - LibTV official Canvas three-axis 1:1 parity`, including the Unit 7 dynamic visible-boundary correction and completion-evidence hardening.
-- Task: `ai/tasks/todo/TASK-T5-096.md`.
-- Plan: `ai/tasks/doing/TASK-T5-096-PLAN.md`.
-- Progress: `ai/tasks/doing/TASK-T5-096-PROGRESS.md`.
+- Active implementation Task: `T6-001 - Revid-native cinematic director Skills v2`.
+- State: `DOING`.
+- Active unit: `Unit 0A - detached connection geometry correction`.
+- Task: `ai/tasks/todo/TASK-T6-001.md`.
+- Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`.
+- Progress: `ai/tasks/doing/TASK-T6-001-PROGRESS.md`.
+- Activation baseline: `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`, ahead/behind `0/0`.
 
 ## Current Verified Facts
 
@@ -65,7 +66,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Keep the official LibTV public share open as the browser handoff and await Human Owner direction before activating the next dependency-ready Task. No T5-096 Unit 7 work remains.
+Write a deterministic RED browser fixture for the Human-reported detached edge, tracing both SVG path endpoints through shared node layout, port geometry, renderer reconciliation, and viewport conversion before changing product code.
 
 ## Boundaries And Human Gates
 
@@ -78,5 +79,5 @@ Keep the official LibTV public share open as the browser handoff and await Human
 
 ## Worktree
 
-- The T5-096 scoped delivery and its separate typed-registry test-contract precursor are committed and pushed; final `HEAD == origin/main` is rechecked after push.
+- T6-001 activation documents are the only intended tracked changes before Unit 0A RED.
 - User-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and outside delivery scope.
