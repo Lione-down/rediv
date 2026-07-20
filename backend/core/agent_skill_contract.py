@@ -4,8 +4,9 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 
-AGENT_SKILL_CONTRACT_VERSION = 2
+AGENT_SKILL_CONTRACT_VERSION = 3
 AgentSkillExecutionMode = Literal["mock-only", "unavailable", "native-handoff"]
+AgentSkillLifecycle = Literal["active", "historical"]
 
 
 class AgentSkillContractError(ValueError):
@@ -19,22 +20,26 @@ class AgentSkillManifest:
     execution_mode: AgentSkillExecutionMode
     intent: str
     requires_acknowledgement: bool
+    lifecycle: AgentSkillLifecycle = "active"
+    replaces_version: int | None = None
 
 
-_MANIFESTS = (
-    AgentSkillManifest(
-        id="revid.canvas-context",
-        version=1,
-        execution_mode="mock-only",
-        intent="canvas-context",
-        requires_acknowledgement=False,
-    ),
+_CANVAS_CONTEXT_MANIFEST = AgentSkillManifest(
+    id="revid.canvas-context",
+    version=1,
+    execution_mode="mock-only",
+    intent="canvas-context",
+    requires_acknowledgement=False,
+)
+
+_CINEMATIC_V1_MANIFESTS = (
     AgentSkillManifest(
         id="revid.cinema-script",
         version=1,
         execution_mode="native-handoff",
         intent="cinema-script",
         requires_acknowledgement=False,
+        lifecycle="historical",
     ),
     AgentSkillManifest(
         id="revid.cinema-image",
@@ -42,6 +47,7 @@ _MANIFESTS = (
         execution_mode="native-handoff",
         intent="cinema-image",
         requires_acknowledgement=False,
+        lifecycle="historical",
     ),
     AgentSkillManifest(
         id="revid.cinema-video",
@@ -49,8 +55,25 @@ _MANIFESTS = (
         execution_mode="native-handoff",
         intent="cinema-video",
         requires_acknowledgement=False,
+        lifecycle="historical",
     ),
 )
+
+_CINEMATIC_V2_MANIFESTS = tuple(
+    AgentSkillManifest(
+        id=f"revid.cinema-{kind}",
+        version=2,
+        execution_mode="native-handoff",
+        intent=f"cinema-{kind}",
+        requires_acknowledgement=False,
+        lifecycle="active",
+        replaces_version=1,
+    )
+    for kind in ("script", "image", "video")
+)
+
+_LEGACY_DISCOVERY_MANIFESTS = (_CANVAS_CONTEXT_MANIFEST, *_CINEMATIC_V1_MANIFESTS)
+_MANIFESTS = (_CANVAS_CONTEXT_MANIFEST, *_CINEMATIC_V1_MANIFESTS, *_CINEMATIC_V2_MANIFESTS)
 
 _CANONICAL_SUBTYPES = {
     "script": {"script", "prompt"},
@@ -72,11 +95,47 @@ def _serialize_manifest(manifest: AgentSkillManifest) -> dict[str, Any]:
     }
 
 
+def _serialize_lifecycle_manifest(manifest: AgentSkillManifest) -> dict[str, Any]:
+    return {
+        **_serialize_manifest(manifest),
+        "lifecycle": manifest.lifecycle,
+        "replaces_version": manifest.replaces_version,
+    }
+
+
+def validate_agent_skill_manifests(manifests: tuple[AgentSkillManifest, ...]) -> None:
+    identities: set[tuple[str, int]] = set()
+    active_ids: set[str] = set()
+    by_identity = {(manifest.id, manifest.version): manifest for manifest in manifests}
+    for manifest in manifests:
+        identity = (manifest.id, manifest.version)
+        if not manifest.id or manifest.version < 1 or identity in identities:
+            raise AgentSkillContractError("duplicate or invalid Revid Skill manifest")
+        identities.add(identity)
+        if manifest.lifecycle not in ("active", "historical"):
+            raise AgentSkillContractError("unknown Revid Skill lifecycle")
+        if manifest.lifecycle == "active":
+            if manifest.id in active_ids:
+                raise AgentSkillContractError("duplicate active Revid Skill manifest")
+            active_ids.add(manifest.id)
+        if manifest.replaces_version is not None:
+            replaced = by_identity.get((manifest.id, manifest.replaces_version))
+            if manifest.lifecycle != "active" or not replaced or replaced.lifecycle != "historical":
+                raise AgentSkillContractError("invalid Revid Skill replacement lifecycle")
+
+
 def build_agent_skill_capabilities(contract_version: int = 1) -> dict[str, Any]:
     """Describe the closed built-in registry while preserving T5-090's exact v1 view."""
-    if contract_version not in (1, AGENT_SKILL_CONTRACT_VERSION):
+    if contract_version not in (1, 2, AGENT_SKILL_CONTRACT_VERSION):
         raise AgentSkillContractError("unknown Agent/Skill capability contract version")
-    manifests = _MANIFESTS[:1] if contract_version == 1 else _MANIFESTS
+    validate_agent_skill_manifests(_MANIFESTS)
+    manifests = (
+        _LEGACY_DISCOVERY_MANIFESTS[:1]
+        if contract_version == 1
+        else _LEGACY_DISCOVERY_MANIFESTS
+        if contract_version == 2
+        else tuple(manifest for manifest in _MANIFESTS if manifest.lifecycle == "active")
+    )
     execution_modes = (
         ["mock-only", "unavailable"]
         if contract_version == 1
@@ -85,7 +144,11 @@ def build_agent_skill_capabilities(contract_version: int = 1) -> dict[str, Any]:
     return {
         "contract_version": contract_version,
         "execution_modes": execution_modes,
-        "skills": [_serialize_manifest(manifest) for manifest in manifests],
+        "skills": [
+            _serialize_lifecycle_manifest(manifest)
+            if contract_version == 3 else _serialize_manifest(manifest)
+            for manifest in manifests
+        ],
         "provider": {"available": False},
         "quota": {"available": False},
         "task": {"available": False},
@@ -93,10 +156,19 @@ def build_agent_skill_capabilities(contract_version: int = 1) -> dict[str, Any]:
 
 
 def resolve_agent_skill_manifest(skill_id: str, version: int) -> AgentSkillManifest:
+    validate_agent_skill_manifests(_MANIFESTS)
     for manifest in _MANIFESTS:
         if manifest.id == skill_id and manifest.version == version:
             return manifest
     raise AgentSkillContractError("unknown or unsupported Revid Skill manifest")
+
+
+def resolve_active_agent_skill_manifest(skill_id: str) -> AgentSkillManifest:
+    validate_agent_skill_manifests(_MANIFESTS)
+    for manifest in _MANIFESTS:
+        if manifest.id == skill_id and manifest.lifecycle == "active":
+            return manifest
+    raise AgentSkillContractError("unknown or unsupported active Revid Skill manifest")
 
 
 def _resolve_canvas_sources(

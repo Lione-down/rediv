@@ -42,7 +42,7 @@ Success gate: no detached path on load or reconciliation; both edge endpoints re
 
 ## Unit 1 - Versioned registry and strict v2 schemas
 
-- Status: `in_progress`
+- Status: `completed`
 
 1. Write RED backend/frontend fixtures for three active v2 manifests, exact historical v1 resolution, duplicate-active/unknown-version rejection, and version-mixing rejection.
 2. Add strict bounded director brief, sequence state, reference transfer, workflow mode, and retake schemas with extra keys forbidden.
@@ -55,7 +55,7 @@ Success gate: focused backend and Chromium contract suites pass with exact v1 fi
 
 ## Unit 2 - Deterministic director compiler and exact native preflight
 
-- Status: `pending`
+- Status: `in_progress`
 
 1. Add table-driven RED cases for standalone, vague brief, image continuity, video keyframes, conflicting roles, unsupported media, and instruction precedence.
 2. Implement a pure compiler with no network, database, filesystem, or clock dependency.

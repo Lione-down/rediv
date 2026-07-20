@@ -14,3 +14,9 @@
 ## Commit-time rule
 
 Before each scoped implementation commit, compare the actual diff with the pinned source. If code or substantial textual expression was copied, add the applicable MIT notice before staging. Concept-level independent implementation alone does not require vendoring the upstream package.
+
+## Unit 1 diff audit
+
+- Result: independently expressed Revid registry/schema implementation; no upstream code, prose, provider/router table, examples, assets, or metadata copied.
+- Match scan across Unit 1 product/test diff for source/project/provider names: `0`.
+- Notice decision: no third-party notice addition required for this unit.

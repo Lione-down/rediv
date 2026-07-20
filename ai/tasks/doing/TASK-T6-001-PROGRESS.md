@@ -1,7 +1,7 @@
 # TASK-T6-001 Progress
 
 - State: `DOING`
-- Active unit: `Unit 1 - versioned registry and strict v2 schemas`
+- Active unit: `Unit 2 - deterministic director compiler and exact native preflight`
 - Activation baseline: `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`; ahead/behind `0/0`.
 - Task: `ai/tasks/todo/TASK-T6-001.md`
 - Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`
@@ -19,6 +19,10 @@
 - Hardened browser coverage to read actual SVG screen endpoints at 17%, 36%, 100%, and 200% with non-zero translation. The focused test passed and produced zero document PATCHes.
 - Related connection/port/target/motion/T5-096 node/selection matrix passed `34/34`; production build passed with `4937 modules transformed`.
 - Inspected the Revid-owned 1440x900 36% capture. The draft visibly leaves the script output port and follows the pointer; SHA-256 is recorded in `ai/evidence/t6-001/unit-0a-detached-edge-evidence-2026-07-20.md` and the raw PNG remains untracked.
+- Preserved capability v1 and v2 byte-shape semantics and added a separate v3 lifecycle registry with Canvas Context v1 plus exactly three active cinematic v2 manifests; cinematic v1 remains exact historical resolution only.
+- Added strict backend/frontend director brief, reference transfer, sequence, and retake contracts with exact keys, bounded values, source revisions, unique identities, complete accepted canon, and no execution fields.
+- Unit 1 behavior RED proved completed beat references could point at a planned beat; GREEN binds completed/reserved references to their actual beat state on backend and frontend.
+- Unit 1 verification is green: backend `24/24`, frontend `12/12`, production build `4937 modules transformed`; v1 contract/execution and frontend Agent/Skill/mention fixtures remain unchanged.
 
 ## Remaining Work
 
@@ -27,7 +31,7 @@
 
 ## Exact Next Action
 
-Audit the current backend/frontend cinematic v1 registry and public capability/preflight shapes, then write Unit 1 RED fixtures for exactly three active v2 manifests, exact historical v1 resolution, duplicate/unknown lifecycle rejection, and strict director/sequence/retake schema bounds before product-code changes.
+Write Unit 2 table-driven RED fixtures for standalone fast lane, vague brief, instruction precedence, conflicting/unsupported references, deterministic warnings/conflicts, and preview/canonical JSON/digest/native-handoff snapshot equality before extending cinematic preflight or generation handoff.
 
 ## Files Changed
 
@@ -37,6 +41,7 @@ Audit the current backend/frontend cinematic v1 registry and public capability/p
 - `ai/evidence/t6-001/README.md`
 - `ai/evidence/t6-001/source-license-ledger.md`
 - `ai/evidence/t6-001/unit-0a-detached-edge-evidence-2026-07-20.md`
+- `ai/evidence/t6-001/unit-1-contract-evidence-2026-07-20.md`
 - `ai/state/CURRENT.md`
 - `ai/state/ROADMAP.md`
 - `frontend/src/components/canvas/composables/use-canvas-stage.ts`
@@ -53,6 +58,9 @@ Audit the current backend/frontend cinematic v1 registry and public capability/p
 - Related Chromium matrix: `34/34` passed in `50.7s`.
 - Production build: `4937 modules transformed`.
 - Visual evidence generation rerun: `1/1` passed; PNG decoded 1440x900 and hash recorded without staging the raw file.
+- Unit 1 backend focused/legacy matrix: `24/24` passed.
+- Unit 1 frontend focused/legacy matrix: `12/12` passed.
+- Unit 1 production build: `4937 modules transformed`.
 
 ## Blockers And Release Conditions
 

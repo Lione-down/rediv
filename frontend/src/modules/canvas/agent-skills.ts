@@ -1,4 +1,5 @@
 export const CANVAS_AGENT_SKILL_CONTRACT_VERSION = 1
+export const CANVAS_AGENT_SKILL_LIFECYCLE_CONTRACT_VERSION = 3
 export const CANVAS_CONTEXT_SKILL_ID = 'revid.canvas-context'
 export const CANVAS_CONTEXT_SKILL_VERSION = 1
 
@@ -17,6 +18,25 @@ export interface CanvasAgentSkillCapabilities {
   contract_version: 1
   execution_modes: ['mock-only', 'unavailable']
   skills: [CanvasAgentSkillManifest]
+  provider: { available: false }
+  quota: { available: false }
+  task: { available: false }
+}
+
+export interface CanvasAgentSkillLifecycleManifest {
+  id: 'revid.canvas-context' | 'revid.cinema-script' | 'revid.cinema-image' | 'revid.cinema-video'
+  version: 1 | 2
+  execution_mode: 'mock-only' | 'native-handoff'
+  intent: 'canvas-context' | 'cinema-script' | 'cinema-image' | 'cinema-video'
+  requires_acknowledgement: false
+  lifecycle: 'active'
+  replaces_version: 1 | null
+}
+
+export interface CanvasAgentSkillCapabilitiesV3 {
+  contract_version: 3
+  execution_modes: ['mock-only', 'unavailable', 'native-handoff']
+  skills: CanvasAgentSkillLifecycleManifest[]
   provider: { available: false }
   quota: { available: false }
   task: { available: false }
@@ -171,6 +191,42 @@ export function parseCanvasAgentSkillCapabilities(value: unknown): CanvasAgentSk
   }
 }
 
+export function parseCanvasAgentSkillCapabilitiesV3(value: unknown): CanvasAgentSkillCapabilitiesV3 {
+  if (!isRecord(value) || !hasExactKeys(value, [
+    'contract_version', 'execution_modes', 'provider', 'quota', 'skills', 'task',
+  ]) || value.contract_version !== CANVAS_AGENT_SKILL_LIFECYCLE_CONTRACT_VERSION ||
+    !Array.isArray(value.execution_modes) || value.execution_modes.length !== 3 ||
+    value.execution_modes[0] !== 'mock-only' || value.execution_modes[1] !== 'unavailable' ||
+    value.execution_modes[2] !== 'native-handoff' || !Array.isArray(value.skills) || value.skills.length !== 4 ||
+    !isUnavailableAuthority(value.provider) || !isUnavailableAuthority(value.quota) ||
+    !isUnavailableAuthority(value.task)
+  ) throw contractError()
+  const expected = [
+    ['revid.canvas-context', 1, 'mock-only', 'canvas-context', null],
+    ['revid.cinema-script', 2, 'native-handoff', 'cinema-script', 1],
+    ['revid.cinema-image', 2, 'native-handoff', 'cinema-image', 1],
+    ['revid.cinema-video', 2, 'native-handoff', 'cinema-video', 1],
+  ] as const
+  const skills = value.skills.map((raw, index) => {
+    const contract = expected[index]
+    if (!isRecord(raw) || !hasExactKeys(raw, [
+      'execution_mode', 'id', 'intent', 'lifecycle', 'replaces_version',
+      'requires_acknowledgement', 'version',
+    ]) || raw.id !== contract[0] || raw.version !== contract[1] ||
+      raw.execution_mode !== contract[2] || raw.intent !== contract[3] ||
+      raw.requires_acknowledgement !== false || raw.lifecycle !== 'active' ||
+      raw.replaces_version !== contract[4]
+    ) throw contractError()
+    return raw as unknown as CanvasAgentSkillLifecycleManifest
+  })
+  return {
+    contract_version: 3,
+    execution_modes: ['mock-only', 'unavailable', 'native-handoff'],
+    skills,
+    provider: { available: false }, quota: { available: false }, task: { available: false },
+  }
+}
+
 export function parseCanvasAgentSkillPreflight(
   value: unknown,
   expected: Pick<CanvasAgentSkillPreflightInput, 'projectId' | 'canvasId' | 'selectedNodeIds'>,
@@ -211,6 +267,18 @@ export async function loadCanvasAgentSkillCapabilities(
   const scope = normalizeScope(projectId, canvasId)
   const response = await transport.get<unknown>(canvasAgentSkillPath(scope.projectId, scope.canvasId))
   return parseCanvasAgentSkillCapabilities(response.data)
+}
+
+export async function loadCanvasAgentSkillCapabilitiesV3(
+  projectId: string,
+  canvasId: string,
+  transport: CanvasAgentSkillTransport,
+) {
+  const scope = normalizeScope(projectId, canvasId)
+  const response = await transport.get<unknown>(
+    `${canvasAgentSkillPath(scope.projectId, scope.canvasId)}?contract_version=3`,
+  )
+  return parseCanvasAgentSkillCapabilitiesV3(response.data)
 }
 
 export async function requestCanvasAgentSkillPreflight(

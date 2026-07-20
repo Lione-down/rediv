@@ -1,10 +1,13 @@
 import unittest
 
 from core.agent_skill_contract import (
+    AgentSkillManifest,
     AgentSkillContractError,
     build_agent_skill_capabilities,
     build_agent_skill_preflight,
+    resolve_active_agent_skill_manifest,
     resolve_agent_skill_manifest,
+    validate_agent_skill_manifests,
 )
 
 
@@ -35,6 +38,51 @@ class AgentSkillContractTests(unittest.TestCase):
             resolve_agent_skill_manifest("revid.external-tool", 1)
         with self.assertRaises(AgentSkillContractError):
             resolve_agent_skill_manifest("revid.canvas-context", 2)
+
+    def test_v3_discovers_only_active_cinematic_v2_and_preserves_v2_exactly(self):
+        legacy = build_agent_skill_capabilities(contract_version=2)
+        current = build_agent_skill_capabilities(contract_version=3)
+
+        self.assertEqual(2, legacy["contract_version"])
+        self.assertEqual([1, 1, 1, 1], [item["version"] for item in legacy["skills"]])
+        self.assertTrue(all("lifecycle" not in item for item in legacy["skills"]))
+        self.assertEqual(3, current["contract_version"])
+        self.assertEqual(
+            [
+                ("revid.canvas-context", 1, "active", None),
+                ("revid.cinema-script", 2, "active", 1),
+                ("revid.cinema-image", 2, "active", 1),
+                ("revid.cinema-video", 2, "active", 1),
+            ],
+            [
+                (item["id"], item["version"], item["lifecycle"], item["replaces_version"])
+                for item in current["skills"]
+            ],
+        )
+        self.assertEqual(1, resolve_agent_skill_manifest("revid.cinema-video", 1).version)
+        self.assertEqual(2, resolve_agent_skill_manifest("revid.cinema-video", 2).version)
+        self.assertEqual(2, resolve_active_agent_skill_manifest("revid.cinema-video").version)
+
+    def test_registry_validation_rejects_duplicate_active_and_unknown_lifecycle(self):
+        valid = AgentSkillManifest(
+            id="revid.cinema-image", version=2, execution_mode="native-handoff",
+            intent="cinema-image", requires_acknowledgement=False,
+            lifecycle="active", replaces_version=None,
+        )
+        second_active = AgentSkillManifest(
+            id="revid.cinema-image", version=3, execution_mode="native-handoff",
+            intent="cinema-image", requires_acknowledgement=False,
+            lifecycle="active", replaces_version=None,
+        )
+        with self.assertRaisesRegex(AgentSkillContractError, "duplicate active"):
+            validate_agent_skill_manifests((valid, second_active))
+        invalid = AgentSkillManifest(
+            id="revid.cinema-image", version=3, execution_mode="native-handoff",
+            intent="cinema-image", requires_acknowledgement=False,
+            lifecycle="retired", replaces_version=2,  # type: ignore[arg-type]
+        )
+        with self.assertRaisesRegex(AgentSkillContractError, "lifecycle"):
+            validate_agent_skill_manifests((invalid,))
 
     def test_canvas_context_preflight_is_bounded_deterministic_and_non_durable(self):
         preflight = build_agent_skill_preflight(
