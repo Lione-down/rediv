@@ -126,6 +126,20 @@ def _start_generation_task(
                 origin_canvas_id=origin_canvas_id,
                 canvas_node_id=canvas_node_id,
             )
+            existing_request_id = session.scalar(
+                select(GenerationTask.id).where(
+                    GenerationTask.user_id == user_id,
+                    GenerationTask.client_request_id == client_request_id,
+                )
+            )
+            input_image_urls = None
+            if image_ids and existing_request_id is None:
+                input_image_urls = _resolve_input_image_urls(
+                    session,
+                    user_id=user_id,
+                    project_id=scope.project_id,
+                    image_ids=image_ids,
+                )
             existing = admit_generation_request(
                 session,
                 user_id=user_id,
@@ -149,12 +163,13 @@ def _start_generation_task(
             )
             if quota is None or getattr(quota, f"{media_type}_quota") < 1:
                 raise GenerationQuotaError(media_type)
-            input_image_urls = _resolve_input_image_urls(
-                session,
-                user_id=user_id,
-                project_id=scope.project_id,
-                image_ids=image_ids,
-            )
+            if input_image_urls is None:
+                input_image_urls = _resolve_input_image_urls(
+                    session,
+                    user_id=user_id,
+                    project_id=scope.project_id,
+                    image_ids=image_ids,
+                )
             reservation_count = lock_active_reservations(
                 session,
                 user_id=user_id,

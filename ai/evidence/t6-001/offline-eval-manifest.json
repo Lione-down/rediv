@@ -1,0 +1,22 @@
+{
+  "contract_version": 1,
+  "suite_id": "t6-001-cinematic-director-v2-offline",
+  "evidence_class": "offline-contract-mock-browser",
+  "real_provider_fidelity_claimed": false,
+  "cases": [
+    { "id": "standalone-fast-lane", "layer": "backend", "expected": "ready_without_hidden_brief", "mutation": "none", "evidence": ["test_active_v2_manifest_does_not_fall_through_to_v1_preflight_shape"] },
+    { "id": "vague-brief", "layer": "backend", "expected": "explicit_brief_required", "mutation": "none", "evidence": ["test_vague_instruction_requests_explicit_brief_without_inventing_intention"] },
+    { "id": "product-continuity", "layer": "backend", "expected": "ordered_product_transfer", "mutation": "none", "evidence": ["test_group_expansion_keeps_one_explicit_transfer_policy_on_each_ordered_child"] },
+    { "id": "character-continuity", "layer": "browser", "expected": "identity_transfer_with_non_transfer_rules", "mutation": "canvas-command-only", "evidence": ["active Director v2 binds non-transfer rules, disables unsupported media with reasons, and Send stays explicit"] },
+    { "id": "accepted-unexpected-outcome", "layer": "browser", "expected": "user_observed_end_state_becomes_canon", "mutation": "one-canon-command", "evidence": ["take review keeps canon atomic and reroll remains preflight-only until a later explicit Send"] },
+    { "id": "rejected-take", "layer": "frontend", "expected": "result_preserved_without_accepted_canon", "mutation": "one-canon-command", "evidence": ["accept and reject are explicit one-revision reviews and rejected result remains untouched"] },
+    { "id": "completed-reserved-beats", "layer": "backend", "expected": "completed_not_replayed_reserved_not_leaked", "mutation": "none", "evidence": ["test_sequence_canon_is_projected_without_future_beat_text_and_drift_is_rejected"] },
+    { "id": "single-variable-retake", "layer": "backend-browser", "expected": "one_repair_variable_preflight_then_explicit_send", "mutation": "explicit-send-only", "evidence": ["test_prompt_wording_cannot_route_provider_model_or_controls_and_retake_names_one_variable", "take review keeps canon atomic and reroll remains preflight-only until a later explicit Send"] },
+    { "id": "unsupported-media", "layer": "backend-browser", "expected": "reason_visible_and_request_rejected", "mutation": "none", "evidence": ["test_reference_transfer_conflicts_are_explicit_and_unsupported_media_fails_closed", "active Director v2 binds non-transfer rules, disables unsupported media with reasons, and Send stays explicit"] },
+    { "id": "stale-canon", "layer": "backend", "expected": "handoff_drift_rejected", "mutation": "none", "evidence": ["test_sequence_canon_is_projected_without_future_beat_text_and_drift_is_rejected"] },
+    { "id": "provider-ownership", "layer": "backend-frontend", "expected": "prompt_cannot_route_provider_model_or_controls", "mutation": "none", "evidence": ["test_prompt_wording_cannot_route_provider_model_or_controls_and_retake_names_one_variable", "explicit Send preparation uses active v2 preflight while provider and model remain settings-owned"] },
+    { "id": "malformed-schema", "layer": "backend-frontend", "expected": "strict_contract_rejected", "mutation": "none", "evidence": ["v2 parsers reject extras, version mixing, invalid enums, stale revisions, and partial canon"] },
+    { "id": "duplication", "layer": "backend", "expected": "ids_and_revisions_remapped_history_unchanged", "mutation": "duplicate-canvas-only", "evidence": ["test_cinematic_sequence_source_and_accepted_result_remap_without_mutating_history"] },
+    { "id": "review-only-375", "layer": "browser", "expected": "inspectable_without_mutation_controls", "mutation": "none", "evidence": ["375px review-only keeps Director take decisions inspectable without mutation controls"] }
+  ]
+}

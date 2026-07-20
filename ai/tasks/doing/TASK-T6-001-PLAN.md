@@ -103,7 +103,7 @@ Success gate: unsupported intent is explicit/non-mutating and retakes remain use
 
 ## Unit 6 - Eval, browser UX, accessibility, regression, and performance
 
-- Status: `in_progress`
+- Status: `completed`
 
 Required offline eval covers standalone fast lane, vague brief, product/character continuity, accepted unexpected outcome, rejected take, completed/reserved beats, single-variable retake, unsupported media, stale canon, provider ownership, malformed schema, duplication, and 375px review-only.
 
@@ -112,7 +112,7 @@ Verification order:
 1. Focused backend contracts/execution.
 2. Focused frontend pure/browser suites.
 3. Diff-derived T5-090/091/092/094/095/096 and Canvas geometry regressions.
-4. Full backend through `backend/.venv/Scripts/python.exe` using the repository's guarded MySQL-compatible paths.
+4. Full backend through `backend/.venv/Scripts/python.exe` using the repository's guarded MySQL-compatible paths. If the existing cross-Canvas input-generation/node-deletion concurrency gate exposes the inverse `generation_tasks -> assets` versus `assets -> generation_tasks` lock order, preserve its RED reproduction and restore one shared `assets -> generation_tasks` order before continuing the full gate.
 5. Production frontend build and full functional Chromium.
 6. Axe, keyboard, IME, focus, Escape/outside dismissal, reduced motion, 200% zoom, 1440/1366/920 editing, and 375 review-only.
 7. Existing guarded 200-node/300-connection performance thresholds without weakening.
@@ -122,7 +122,7 @@ Success gate: deterministic evidence is green and no result is represented as re
 
 ## Unit 7 - Fresh review, Human UX gate, report, and delivery
 
-- Status: `pending`
+- Status: `in_progress`
 
 1. Review the fresh diff against every acceptance criterion and non-goal.
 2. Prove no generic execute route, imported runtime, hidden routing/generation, unsupported-reference weakening, or second authority entered the diff.

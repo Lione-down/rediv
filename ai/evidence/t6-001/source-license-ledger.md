@@ -41,3 +41,9 @@ Before each scoped implementation commit, compare the actual diff with the pinne
 
 - Result: independently expressed Revid settings compatibility, capability projection, reference-transfer UX, take review, transient retake preflight, and tests; no upstream code, prose, prompts, examples, assets, provider/router table, or metadata copied.
 - Notice decision: no third-party notice addition required for this unit.
+
+## Unit 6 and final diff audit
+
+- Result: the offline eval manifest, lock-order correction, duplication module split, native-transaction test split, evidence, and state updates are independently expressed Revid work. No upstream code, substantial prose, prompts, examples, assets, provider/router table, package, runtime, or metadata was copied.
+- Full activation-baseline-to-final-diff name/content scan found no Seedance/ByteDance/Volcengine/BytePlus runtime reference in product code and no generic execute, imported/remote Skill runtime, second scheduler/store/authority, dependency, migration, or provider integration.
+- Notice decision: no third-party notice addition is required for T6-001.

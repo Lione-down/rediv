@@ -1,0 +1,14 @@
+# T6-001 Unit 6 Eval And Regression Evidence
+
+- Date: `2026-07-20`; starting baseline `ee720c599e7fec1130fae00d2ef31bea662e0adb`.
+- Offline eval manifest covers exactly the fourteen required scenarios and declares `real_provider_fidelity_claimed: false`. Its validator passed `14/14` plus `14` subtests.
+- The first full backend run exposed one stable existing MySQL `1213 deadlock` after `563` passes and `147` subtests. Generation admission acquired `generation_tasks` before input `assets`, while source-node deletion used `assets` before `generation_tasks`.
+- The existing concurrency RED was preserved. New image requests now lock/resolve input assets before admission task locks; an idempotency probe preserves admission-first replay semantics. Exact RED-to-GREEN is `1/1`; related concurrency/idempotency/image/provider validation is `36/36` plus `11` subtests.
+- Unit 7 review split the duplication subdomain from the 525-line Canvas controller and separated the 531-line native-transaction integration test. The first post-split full run exposed one omitted existing `deepcopy` import (`6 failed, 558 passed`); focused duplication/cinematic recovery passed `23/23` plus `3` subtests, and the final-diff backend full suite passed `564/564` plus `147` subtests in `424.22s`.
+- Unfiltered default Chromium: `551 passed / 552`; the sole failure was the known SwiftShader performance boundary at `52.43 FPS` against the unchanged `55 FPS` threshold. A separate single full-functional invocation excluding only that hardware gate passed `551/551` in `10.1m`.
+- Focused browser UX/accessibility matrix passed `56/56` and explicitly covers cinematic v2, Axe, keyboard/focus restoration, IME ownership, Escape/outside dismissal, reduced motion, 10-800% zoom, 1440/1366/920 editing, and 375 review-only.
+- The unchanged 200-node/300-connection gate passed `2/2` under headed full Chromium. Final AMD Radeon D3D11 metrics: stable render `531ms`, average `126.63 FPS`, frame P95 `18ms`, pointer P95 `2ms`, longest task `0ms`, minimap `11.24/s`; hardware acceleration was true.
+- Performance metrics SHA-256: `2638accb80c883ddc2eefc179bc1302a8ff9b471116a030f06a228e678855cd1`; raw metrics remain under untracked `output/`.
+- Final production build passed with `4947 modules transformed`.
+- Final hygiene found `0` sensitive-path candidates, `0` high-confidence secret assignments, `0` strict UTF-8 failures, and `0` UTF-8 BOM files. No generic execute route, imported/remote runtime, second scheduler/store/authority, provider integration, migration, package dependency, or copied third-party expression entered the diff.
+- No threshold was weakened. No real provider call, paid action, quota debit, migration, destructive operation, external-account mutation, or secret access occurred. These results prove deterministic contract/mock/browser behavior, not real-provider creative quality or fidelity.

@@ -1,7 +1,7 @@
 # TASK-T6-001 Progress
 
 - State: `DOING`
-- Active unit: `Unit 6 - eval, browser UX, accessibility, regression, and performance`
+- Active unit: `Unit 7 - fresh review, Human UX gate, report, and delivery`
 - Activation baseline: `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`; ahead/behind `0/0`.
 - Task: `ai/tasks/todo/TASK-T6-001.md`
 - Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`
@@ -37,15 +37,22 @@
 - Unit 5 upgrades new opt-ins to active v2 while preserving exact v1 settings, retains backend-catalog role/media/control reasons, persists bounded non-transfer rules, and proves prompt wording cannot route provider/model/controls.
 - Added progressive take review. Keep uses one canon command; Reroll/Rewrite produces only a transient single-variable preflight that is consumed by a later explicit Send on the original generation node.
 - Unit 5 verification is backend `21/21`, frontend `28/28`, build `4947`; 1440 and 375 review-only screenshots were visually inspected and hash-recorded.
+- Added the exact 14-case Unit 6 offline eval manifest and a fail-closed backend validator; focused eval is `14/14` plus `14` subtests.
+- Full backend reached `563 passed` plus `147` subtests with one stable existing concurrency failure. Exact rerun reproduced MySQL `1213 deadlock`: image generation locks `generation_tasks` before its input `assets`, while source-node deletion updates `assets` before `generation_tasks`.
+- Completed systematic root-cause and history analysis. The existing RED test has required a shared asset-then-task lock order since `f563e22`; the bounded fix is to resolve and lock input assets before admission acquires generation-task locks.
+- Restored one shared `assets -> generation_tasks` lock order for new referenced generation requests while preserving admission-first replay behavior. Exact GREEN is `1/1`; related concurrency/idempotency/image/provider validation is `36/36` plus `11` subtests.
+- Unit 6 is deterministic-green: backend `564/564` plus `147` subtests; full functional Chromium `551/551`; focused UX/accessibility `56/56`; headed full-Chromium performance `2/2` with unchanged thresholds; production build `4947 modules transformed`.
+- Unit 7 fresh review moved the complete duplication subdomain out of the 525-line Canvas controller into a 191-line module and split the 531-line native-transaction integration class; final production controller is 343 lines and each new file is below 500 lines.
+- The first post-split full backend run caught one omitted existing `deepcopy` import (`6 failed, 558 passed`). After the exact import restoration, focused duplication/cinematic passed `23/23` plus `3` subtests and final-diff full backend passed `564/564` plus `147` subtests.
+- Final source/license and hygiene review found no third-party copied expression, notice obligation, generic execute/imported runtime/second authority, provider integration, dependency, migration, sensitive path, high-confidence secret assignment, invalid UTF-8, or BOM.
 
 ## Remaining Work
 
-- Complete Unit 6 eval, regression, accessibility, browser, and performance verification.
 - Complete fresh self-review, Human UX review, REPORT, durable-state synchronization, exact staging, commit, push, and remote equality.
 
 ## Exact Next Action
 
-Add the Unit 6 offline eval matrix, then run diff-derived regression, full backend/frontend, accessibility, responsive, IME/focus/reduced-motion/zoom, and unchanged performance gates.
+Perform the Unit 7 fresh acceptance/diff/source-license/hygiene review, commit and push the Unit 6 slice, then present the existing Revid-owned 1440x900 and 375x812 screenshots for the Human UX verdict before REPORT and final Task closure.
 
 ## Files Changed
 
@@ -81,6 +88,12 @@ Add the Unit 6 offline eval matrix, then run diff-derived regression, full backe
 - `frontend/src/modules/canvas/cinematic-director-ux.ts`
 - `frontend/src/modules/canvas/cinematic-skill-settings.ts`
 - `frontend/tests/e2e/canvas-cinematic-director-ux.spec.ts`
+- `ai/evidence/t6-001/offline-eval-manifest.json`
+- `backend/tests/test_cinematic_offline_eval_manifest.py`
+- `backend/controllers/generation_starts.py`
+- `ai/evidence/t6-001/unit-6-eval-regression-evidence-2026-07-20.md`
+- `backend/controllers/canvas_duplication.py`
+- `backend/tests/test_cinematic_skill_v2_native_transaction.py`
 
 ## Commands Run And Results
 
@@ -106,8 +119,23 @@ Add the Unit 6 offline eval matrix, then run diff-derived regression, full backe
 - Unit 5 backend focused matrix: `21/21` passed.
 - Unit 5 frontend focused v1/v2 and real browser matrix: `28/28` passed.
 - Unit 5 production build: `4947 modules transformed`; serious/critical axe findings `0` in v2 reference UI.
+- Unit 6 offline eval: `14 passed`, `14 subtests passed`.
+- Full backend: `1 failed, 563 passed, 147 subtests passed`; sole failure is `test_cross_canvas_input_start_and_node_delete_share_asset_then_task_lock_order` with MySQL `1213 deadlock`.
+- Exact concurrency rerun: stable RED with the same `UPDATE generation_tasks SET canvas_node_id = NULL` deadlock fingerprint.
+- Exact concurrency GREEN: `1/1`; related transaction/admission/image/provider validation: `36/36` plus `11` subtests.
+- Final backend full suite: `564 passed, 147 subtests passed` in `437.00s`.
+- Unfiltered Chromium: `551/552`; only the known headless SwiftShader performance boundary failed at `52.43 FPS` versus unchanged `55 FPS`.
+- Fresh full functional Chromium excluding only the hardware gate: `551/551` in `10.1m`.
+- Focused UX/accessibility/responsive/IME/focus/reduced-motion/zoom matrix: `56/56`.
+- Headed full-Chromium performance: `2/2`; final AMD D3D11 sample `126.63 FPS`, frame P95 `18ms`, render `531ms`, pointer P95 `2ms`, longest task `0ms`, minimap `11.24/s`; metrics hash `2638accb...`.
+- Final production build: `4947 modules transformed`.
+- Duplication module split focused GREEN: `5/5` plus `3` subtests; cinematic/duplication split matrix: `16/16` plus `3` subtests.
+- First post-split full backend: `6 failed, 558 passed, 147 subtests passed`; fingerprint `NameError: deepcopy` in duplicated connection metadata.
+- Recovery focused matrix: `23/23` plus `3` subtests; final-diff backend full: `564/564` plus `147` subtests in `424.22s`.
+- Fresh hygiene: `git diff --check` passed; sensitive paths `0`; high-confidence secret assignments `0`; strict UTF-8 failures `0`; BOM files `0`.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Unit 6 deterministic verification.
+- Current automated blocker: none.
+- Final Human UX verdict is still required before REPORT and `DONE - PASS` closure.
 - Human gates remain real/paid provider calls, secrets, external accounts, destructive work, migrations/new long-term storage, incompatible provider contracts, and final real-output quality claims.
