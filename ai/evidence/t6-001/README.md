@@ -19,6 +19,7 @@ Status: active. No completion claim is made.
 - Unit 5 reference transfer, capability reasons, take review, and explicit retake ownership: `unit-5-reference-retake-evidence-2026-07-20.md`.
 - Unit 6 required-scenario offline eval manifest: `offline-eval-manifest.json`.
 - Unit 6 eval, lock-order regression, full suites, accessibility, responsive, performance, and build: `unit-6-eval-regression-evidence-2026-07-20.md`.
+- Final requirement-by-requirement acceptance audit: `completion-audit-2026-07-20.md` (`AC1-AC20 PASS`, `AC21 PENDING_HUMAN_UX`).
 - Sequence, acceptance, continuation, duplication, stale, and retake action traces.
 - Offline eval manifest/schema and behavior ledger.
 - Responsive, accessibility, functional Chromium, build, backend, performance, hygiene, and delivery evidence.

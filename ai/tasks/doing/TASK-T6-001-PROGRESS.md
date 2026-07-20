@@ -46,6 +46,9 @@
 - The first post-split full backend run caught one omitted existing `deepcopy` import (`6 failed, 558 passed`). After the exact import restoration, focused duplication/cinematic passed `23/23` plus `3` subtests and final-diff full backend passed `564/564` plus `147` subtests.
 - Final source/license and hygiene review found no third-party copied expression, notice obligation, generic execute/imported runtime/second authority, provider integration, dependency, migration, sensitive path, high-confidence secret assignment, invalid UTF-8, or BOM.
 - Unit 6/review slice was committed as `a9b69be` and pushed; `HEAD == origin/main`, ahead/behind `0/0`. Final regenerated Human-review PNG hashes are `06e2375a...` at 1440x900 and `ab9388a6...` at 375x812.
+- Final 21-criterion completion audit found AC13 switching evidence too indirect: cinematic tests proved atomic command/autosave/undo/redo/reload/duplication and generic Canvas suites proved switching/recovery, but no cinematic browser case directly reloaded accepted canon after switching away and back. This is an evidence gap, not a confirmed product defect.
+- Added direct AC13 browser evidence: one Keep creates one document PATCH; accepted canon revision/result/end-state survive switching to the second Canvas, switching back, and reload through the native document authority. Exact case is `1/1`; cinematic + sequence + autosave + document persistence + revision recovery is `34/34`.
+- Completed the 21-row audit in `completion-audit-2026-07-20.md`: AC1-AC20 are direct `PASS`; AC21 is `PENDING_HUMAN_UX` solely for the final screenshot verdict, REPORT, and durable `DONE - PASS` synchronization.
 
 ## Remaining Work
 
@@ -53,7 +56,7 @@
 
 ## Exact Next Action
 
-Present the final Revid-owned 1440x900 reference-transfer and 375x812 review-only screenshots for the Human UX verdict. On acceptance, write REPORT, synchronize Task/PLAN/PROGRESS/CURRENT/ROADMAP to `DONE - PASS`, commit, push, and verify remote equality.
+Obtain the Human UX verdict on the final 1440x900 reference-transfer and 375x812 review-only screenshots. On acceptance, write REPORT and synchronize Task/PLAN/PROGRESS/CURRENT/ROADMAP to `DONE - PASS`, commit, push, and verify remote equality.
 
 ## Files Changed
 
@@ -95,6 +98,7 @@ Present the final Revid-owned 1440x900 reference-transfer and 375x812 review-onl
 - `ai/evidence/t6-001/unit-6-eval-regression-evidence-2026-07-20.md`
 - `backend/controllers/canvas_duplication.py`
 - `backend/tests/test_cinematic_skill_v2_native_transaction.py`
+- `ai/evidence/t6-001/completion-audit-2026-07-20.md`
 
 ## Commands Run And Results
 
@@ -135,6 +139,8 @@ Present the final Revid-owned 1440x900 reference-transfer and 375x812 review-onl
 - Recovery focused matrix: `23/23` plus `3` subtests; final-diff backend full: `564/564` plus `147` subtests in `424.22s`.
 - Fresh hygiene: `git diff --check` passed; sensitive paths `0`; high-confidence secret assignments `0`; strict UTF-8 failures `0`; BOM files `0`.
 - Scoped delivery: commit `a9b69be`; push passed; local/remote ahead/behind `0/0`.
+- AC13 evidence RED: expected at least three first-Canvas document GETs, observed two; product persistence assertions passed and the over-counted test assumption was corrected.
+- AC13 direct GREEN: `1/1`; cinematic/sequence/autosave/document-persistence/revision-recovery matrix: `34/34`.
 
 ## Blockers And Release Conditions
 

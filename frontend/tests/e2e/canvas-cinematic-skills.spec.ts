@@ -8,6 +8,7 @@ import {
   documentPatches,
   FIRST_CANVAS_ID,
   openResourceWorkspace,
+  SECOND_CANVAS_ID,
 } from './canvas-resource-generation-fixture'
 
 const VISUAL_DIR = resolve(process.cwd(), '../output/playwright/t5-091-cinematic-skills')
@@ -192,6 +193,41 @@ test('take review keeps canon atomic and reroll remains preflight-only until a l
   const handoff = state.requests.filter((item) => item.path === '/api/image-generate').at(-1)!.body?.cinematic_handoff as Record<string, unknown>
   expect(handoff).toEqual(expect.objectContaining({ skill_version: 2, workflow_mode: 'retake' }))
   expect(handoff.retake_context).toEqual(expect.objectContaining({ repair_variable: 'camera movement' }))
+})
+
+test('accepted canon survives Canvas switching and reload through one native document mutation', async ({ page }) => {
+  const state = createResourceMockState()
+  configureDirectorV2Result(state)
+  await openResourceWorkspace(page, state)
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  await page.getByRole('button', { name: '选择并定位 历史图片生成结果', exact: true }).click()
+  const review = page.getByRole('region', { name: 'Cinematic Director take review' })
+  await review.getByLabel('画面结束状态').fill('角色停在站台入口并抬头')
+  await review.getByRole('button', { name: '确认选择' }).click()
+  await expect.poll(() => documentPatches(state)).toHaveLength(1)
+
+  await page.getByRole('button', { name: '画布 1' }).click()
+  await page.getByRole('option', { name: /分镜/ }).click()
+  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}`))
+  await page.getByRole('button', { name: '分镜', exact: true }).click()
+  await page.getByRole('option', { name: /画布 1/ }).click()
+  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}`))
+  await page.reload()
+
+  const script = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'script-source')!
+  const sequence = (script.content as Record<string, unknown>).cinematic_sequence as {
+    canon_revision: number
+    clips: Array<Record<string, unknown>>
+  }
+  expect(sequence.canon_revision).toBe(1)
+  expect(sequence.clips[0]).toEqual(expect.objectContaining({
+    state: 'accepted',
+    accepted_result_node_id: 'result-existing',
+    observed_end_state: '角色停在站台入口并抬头',
+  }))
+  expect(state.events.filter((item) => item === `document-loaded:${SECOND_CANVAS_ID}`)).toHaveLength(1)
+  expect(state.events.filter((item) => item === `document-loaded:${FIRST_CANVAS_ID}`).length).toBeGreaterThanOrEqual(2)
+  expect(documentPatches(state)).toHaveLength(1)
 })
 
 test('structured @ mention persists as one reversible Canvas command and preflights exact request', async ({ page }) => {
