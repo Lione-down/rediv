@@ -55,7 +55,7 @@ Success gate: focused backend and Chromium contract suites pass with exact v1 fi
 
 ## Unit 2 - Deterministic director compiler and exact native preflight
 
-- Status: `in_progress`
+- Status: `completed`
 
 1. Add table-driven RED cases for standalone, vague brief, image continuity, video keyframes, conflicting roles, unsupported media, and instruction precedence.
 2. Implement a pure compiler with no network, database, filesystem, or clock dependency.
@@ -67,7 +67,7 @@ Success gate: preflight alone mutates nothing; one explicit Send yields one exac
 
 ## Unit 3 - Explicit director brief and durable sequence planning
 
-- Status: `pending`
+- Status: `in_progress`
 
 1. Lock one backward-aware representation for director/sequence content before implementation.
 2. Validate explicit text-authority output against source node/revision before one Canvas command.

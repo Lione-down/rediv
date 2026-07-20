@@ -5,6 +5,12 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, UUID4, field_validator, model_validator
 
 from schemas.asset import AssetListItem
+from schemas.cinematic_sequence import (
+    CinematicDirectorBrief,
+    CinematicRetakeContext,
+    CinematicSequenceState,
+    TransferExclusion,
+)
 from schemas.generation_task import GenerationTaskItem
 from core.generation_parameter_contract import (
     normalize_image_parameters,
@@ -29,6 +35,7 @@ class CinematicGenerationMention(BaseModel):
     node_id: str = Field(min_length=1, max_length=96)
     role: str = Field(min_length=1, max_length=32)
     instruction: str = Field(min_length=1, max_length=500)
+    must_not_transfer: list[TransferExclusion] | None = Field(default=None, max_length=12)
     source_revision: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
@@ -36,14 +43,35 @@ class CinematicGenerationHandoff(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     skill_id: str = Field(min_length=1, max_length=96)
-    skill_version: int = Field(ge=1, le=1)
+    skill_version: int = Field(ge=1, le=2)
     canvas_revision: int = Field(ge=0)
     provider_id: str = Field(min_length=1, max_length=64)
     model_id: str = Field(min_length=1, max_length=96)
     user_instruction: str = Field(min_length=1, max_length=4_000)
     mentions: list[CinematicGenerationMention] = Field(default_factory=list, max_length=25)
     generation_parameters: dict[str, Any] = Field(default_factory=dict)
+    workflow_mode: Literal["standalone_clip", "sequence_clip", "continuation", "retake"] | None = None
+    director_brief: CinematicDirectorBrief | None = None
+    sequence_context: CinematicSequenceState | None = None
+    retake_context: CinematicRetakeContext | None = None
     submitted_preflight: dict[str, Any]
+
+    @model_validator(mode="after")
+    def validate_versioned_workflow(self):
+        workflow_values = (
+            self.workflow_mode, self.director_brief, self.sequence_context, self.retake_context,
+        )
+        if self.skill_version == 1:
+            if any(value is not None for value in workflow_values):
+                raise ValueError("cinematic v1 cannot use director workflow fields")
+            if any(mention.must_not_transfer is not None for mention in self.mentions):
+                raise ValueError("cinematic v1 cannot use reference transfer exclusions")
+        else:
+            if self.workflow_mode is None:
+                raise ValueError("cinematic v2 requires a workflow mode")
+            if any(mention.must_not_transfer is None for mention in self.mentions):
+                raise ValueError("cinematic v2 requires explicit reference transfer exclusions")
+        return self
 
 
 class ScopedGenerationRequest(BaseModel):

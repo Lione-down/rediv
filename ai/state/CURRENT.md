@@ -20,7 +20,7 @@ Last updated: 2026-07-20
 
 - Active implementation Task: `T6-001 - Revid-native cinematic director Skills v2`.
 - State: `DOING`.
-- Active unit: `Unit 2 - deterministic director compiler and exact native preflight`.
+- Active unit: `Unit 3 - explicit director brief and durable sequence planning`.
 - Task: `ai/tasks/todo/TASK-T6-001.md`.
 - Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`.
 - Progress: `ai/tasks/doing/TASK-T6-001-PROGRESS.md`.
@@ -32,6 +32,8 @@ Last updated: 2026-07-20
 - GREEN keeps hit testing in surface-space but constructs the SVG path in world-space. Actual path screen endpoints now equal the visible source port and pointer at 17/36/100/200%, related Chromium is `34/34`, build is `4937 modules transformed`, and the 1440x900 36% visual capture is hash-recorded under T6 evidence.
 - T6-001 Unit 1 is complete: capability v1/v2 remain exact, v3 discovers exactly three active cinematic v2 manifests while v1 stays historical, and strict backend/frontend director/reference/sequence/retake parsers fail closed on version mixing, extras, stale revisions, partial canon, invalid state references, and hidden execution fields.
 - Unit 1 evidence is backend `24/24`, frontend `12/12`, and build `4937`; no provider/task/quota/asset/Canvas/database mutation or source copying occurred.
+- T6-001 Unit 2 is complete: v2 uses a separate pure director compiler with exact workflow/context rules, explicit vague/conflict outcomes, fixed instruction precedence, group-safe transfer policy, native parameter validation, sequence/canon projection, canonical JSON/digest, and transaction-time drift validation while v1 remains unchanged.
+- Unit 2 evidence is backend `26/26`, frontend `8/8`, and build `4937`. Preflight performed zero native starts; one replay-safe explicit Send persisted the byte-equal canonical request/digest through the existing video transaction with zero provider calls.
 
 - The reported `736 x 1312` portrait case exposed a real dynamic-layout defect: existing Leafer ports retained creation-time coordinates after natural media metadata narrowed the visible node, while DOM/card/selection and shared graph geometry used the new layout size. Unit 7 now recalculates every existing port from the shared size and recertifies the node layers; Director remains excluded.
 - Unit 7 RED measured `245.859375` CSS px output-port drift; GREEN recomputes existing input/output port geometry on layout change and passes the delayed `736 x 1312` transition at 17/36/100/200% zoom. Related Chromium is `50/50`, full functional Chromium is `533/533`, and build is `4937 modules transformed`.
@@ -71,7 +73,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Write Unit 2 RED fixtures for pure director compilation, standalone/vague/conflicting/unsupported cases, instruction precedence, deterministic warnings/conflicts, and exact preview/canonical JSON/digest/native-handoff snapshot equality before changing preflight or generation code.
+Lock the backward-aware Canvas content representation for director brief and sequence planning, then write Unit 3 RED fixtures for strict text-authority output, one atomic command, next-unresolved-clip exposure, undo/redo, autosave/reload/recovery, and zero generation during planning.
 
 ## Boundaries And Human Gates
 
@@ -84,5 +86,5 @@ Write Unit 2 RED fixtures for pure director compilation, standalone/vague/confli
 
 ## Worktree
 
-- Activation `eb13f7d` and Unit 0A `de2db15` are pushed; Unit 1 registry/schema/test/evidence/state changes are the current owned diff pending scoped delivery.
+- Activation `eb13f7d`, Unit 0A `de2db15`, and Unit 1 `b31ae2a` are pushed; Unit 2 compiler/preflight/handoff/test/evidence/state changes are the current owned diff pending scoped delivery.
 - User-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and outside delivery scope.

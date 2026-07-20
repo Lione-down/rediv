@@ -1,7 +1,7 @@
 # TASK-T6-001 Progress
 
 - State: `DOING`
-- Active unit: `Unit 2 - deterministic director compiler and exact native preflight`
+- Active unit: `Unit 3 - explicit director brief and durable sequence planning`
 - Activation baseline: `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`; ahead/behind `0/0`.
 - Task: `ai/tasks/todo/TASK-T6-001.md`
 - Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`
@@ -23,15 +23,20 @@
 - Added strict backend/frontend director brief, reference transfer, sequence, and retake contracts with exact keys, bounded values, source revisions, unique identities, complete accepted canon, and no execution fields.
 - Unit 1 behavior RED proved completed beat references could point at a planned beat; GREEN binds completed/reserved references to their actual beat state on backend and frontend.
 - Unit 1 verification is green: backend `24/24`, frontend `12/12`, production build `4937 modules transformed`; v1 contract/execution and frontend Agent/Skill/mention fixtures remain unchanged.
+- Added a separate pure v2 director compiler while preserving v1 preflight and snapshot shapes. It has no network, database, filesystem, or clock dependency.
+- Added exact workflow/context compatibility, fixed instruction precedence, strict reference-transfer projection, native parameter validation, explicit vague/conflict outcomes, sequence/canon projection, canonical JSON/digest, and non-ready handoff blocking.
+- Unit 2 primary RED proved active v2 fell through to the v1 response. Self-review RED proved group-expanded children lost the parent transfer policy; both are closed.
+- Extended only the existing authenticated `/cinematic-preflight` and native generation handoff. A replay-safe explicit Send captured byte-equal canonical request/digest in the existing task snapshot with zero provider calls.
+- Unit 2 verification is green: backend `26/26`, frontend `8/8`, production build `4937 modules transformed`.
 
 ## Remaining Work
 
-- Complete Units 1 through 6 for cinematic director Skills v2.
+- Complete Units 3 through 6 for cinematic director Skills v2.
 - Complete fresh self-review, Human UX review, REPORT, durable-state synchronization, exact staging, commit, push, and remote equality.
 
 ## Exact Next Action
 
-Write Unit 2 table-driven RED fixtures for standalone fast lane, vague brief, instruction precedence, conflicting/unsupported references, deterministic warnings/conflicts, and preview/canonical JSON/digest/native-handoff snapshot equality before extending cinematic preflight or generation handoff.
+Lock the backward-aware Canvas content representation for director brief and sequence planning, then write Unit 3 RED fixtures for strict text-authority output, one atomic command, next-unresolved-clip exposure, undo/redo, autosave/reload/recovery, and zero generation during planning.
 
 ## Files Changed
 
@@ -42,10 +47,20 @@ Write Unit 2 table-driven RED fixtures for standalone fast lane, vague brief, in
 - `ai/evidence/t6-001/source-license-ledger.md`
 - `ai/evidence/t6-001/unit-0a-detached-edge-evidence-2026-07-20.md`
 - `ai/evidence/t6-001/unit-1-contract-evidence-2026-07-20.md`
+- `ai/evidence/t6-001/unit-2-director-compiler-evidence-2026-07-20.md`
 - `ai/state/CURRENT.md`
 - `ai/state/ROADMAP.md`
 - `frontend/src/components/canvas/composables/use-canvas-stage.ts`
 - `frontend/tests/e2e/canvas-connection-continuation-browser.spec.ts`
+- `backend/api/agent_skills.py`
+- `backend/api/generation_common.py`
+- `backend/core/cinematic_director_compiler.py`
+- `backend/core/cinematic_skill_contract.py`
+- `backend/core/cinematic_skill_handoff.py`
+- `backend/schemas/generation.py`
+- `backend/tests/test_cinematic_skill_v2_execution.py`
+- `frontend/src/modules/canvas/cinematic-director-preflight.ts`
+- `frontend/tests/e2e/canvas-cinematic-director-preflight.spec.ts`
 
 ## Commands Run And Results
 
@@ -61,8 +76,11 @@ Write Unit 2 table-driven RED fixtures for standalone fast lane, vague brief, in
 - Unit 1 backend focused/legacy matrix: `24/24` passed.
 - Unit 1 frontend focused/legacy matrix: `12/12` passed.
 - Unit 1 production build: `4937 modules transformed`.
+- Unit 2 backend focused v1/v2 matrix: `26/26` passed.
+- Unit 2 frontend focused v1/v2 matrix: `8/8` passed.
+- Unit 2 production build: `4937 modules transformed`.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Unit 0A investigation.
+- Current blocker: none for Unit 3 implementation.
 - Human gates remain real/paid provider calls, secrets, external accounts, destructive work, migrations/new long-term storage, incompatible provider contracts, and final real-output quality claims.

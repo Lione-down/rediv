@@ -148,9 +148,13 @@ def resolve_cinematic_generation_handoff(
             provider_id=handoff.provider_id,
             model_id=handoff.model_id,
             user_instruction=handoff.user_instruction,
-            mentions=[mention.model_dump() for mention in handoff.mentions],
+            mentions=[mention.model_dump(exclude_none=True) for mention in handoff.mentions],
             generation_parameters=handoff.generation_parameters,
             canvas_nodes=document["nodes"],
+            workflow_mode=handoff.workflow_mode,
+            director_brief=handoff.director_brief.model_dump(mode="json") if handoff.director_brief else None,
+            sequence_context=handoff.sequence_context.model_dump(mode="json") if handoff.sequence_context else None,
+            retake_context=handoff.retake_context.model_dump(mode="json") if handoff.retake_context else None,
         )
         if resolved["request_snapshot"]["canonical_request"] and handoff.submitted_preflight.get("requires_acknowledgement"):
             acknowledgement = acknowledgement_controller.get_acknowledgement(user_id, handoff.provider_id)
