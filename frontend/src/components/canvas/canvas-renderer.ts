@@ -80,6 +80,7 @@ export interface CanvasRenderer {
 interface CanvasRendererInspectionSurface extends HTMLElement {
   __revidCanvasInspection?: {
     getNodeScreenRect: (nodeId: string) => { height: number; width: number; x: number; y: number } | null
+    getPortScreenPoint: (nodeId: string, direction: 'input' | 'output', portId: string) => { x: number; y: number } | null
   }
 }
 
@@ -112,6 +113,18 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
             y: surfaceBounds.y + bounds.y,
             width: bounds.width,
             height: bounds.height,
+          }
+        },
+        getPortScreenPoint(nodeId: string, direction: 'input' | 'output', portId: string) {
+          const port = nodeVisuals.get(nodeId)?.ports.find((candidate) => (
+            candidate.direction === direction && candidate.id === portId
+          ))
+          if (!port) return null
+          const bounds = port.visual.getBounds('box', 'page')
+          const surfaceBounds = options.surface.getBoundingClientRect()
+          return {
+            x: surfaceBounds.x + bounds.x + bounds.width / 2,
+            y: surfaceBounds.y + bounds.y + bounds.height / 2,
           }
         },
       },
@@ -385,6 +398,19 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     visual.card.strokeWidth = nextState.isSelected ? 1.5 : 1
     visual.card.shadow = isGroup || isMedia ? undefined : hasEmphasis ? { x: 0, y: 10, blur: 28, color: nodeShadowColor(node) } : undefined
     for (const port of visual.ports) {
+      const siblings = port.direction === 'input' ? presentation.inputPorts : presentation.outputPorts
+      const index = siblings.findIndex((candidate) => candidate.id === port.id)
+      const geometry = resolveCanvasPortGeometry(
+        port.direction,
+        size,
+        index,
+        siblings.length,
+        options.getViewport().zoom,
+      )
+      port.visual.x = geometry.visual.x
+      port.visual.y = geometry.visual.y
+      port.visual.width = geometry.visual.size
+      port.visual.height = geometry.visual.size
       port.visual.visible = !node.isLocked
       port.visual.opacity = nextState.isSelected ? 1 : 0.16
     }

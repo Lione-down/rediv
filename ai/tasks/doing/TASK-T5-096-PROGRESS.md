@@ -1,12 +1,21 @@
 # TASK-T5-096 Progress
 
 - State: `DONE - PASS`
-- Active unit: `Complete - Human accepted declared boundaries; delivered to origin/main`
-- Activation baseline: `HEAD == origin/main == e487dafc0c573641466835e028858d6ebdd23dd4` before the scoped state-document changes; ahead/behind `0/0`; T5-095 delivery `9871cedba00001e925497e2eadca855d6a76171e` is an ancestor.
+- Active unit: `Complete - Unit 7 LibTV-first node-boundary correction delivered to origin/main`
+- Reopen baseline: `HEAD == origin/main == e3c85e7af1ed9d4ebfa37a7137ce39f784cee051`; prior T5-096 delivery is the correction baseline and T5-095 delivery `9871cedba00001e925497e2eadca855d6a76171e` remains an ancestor.
 - Task: `ai/tasks/todo/TASK-T5-096.md`
 - Plan: `ai/tasks/doing/TASK-T5-096-PLAN.md`
 
 ## Completed Work
+
+- Reopened T5-096 on 2026-07-20 after the Human Owner supplied a production screenshot showing a `736 x 1312` portrait media node whose visible body and selection outline were aligned while the right output port remained at the pre-metadata fallback width. The Human Owner clarified that all Revid Canvas nodes must continue to match LibTV; Director remains explicitly excluded.
+- Root-cause trace confirmed that DOM surfaces, card bounds, selection, hit testing, minimap, and connection anchors consume `resolveCanvasNodeLayoutSize`, while an existing Leafer node visual updates its card width/height after metadata but does not recompute the already-created port `x/y/radius/strokeWidth`. This leaves the output port at its creation-time coordinate after a portrait ratio narrows the node.
+- Loaded and applied `systematic-debugging`, `test-driven-development`, and the explicitly requested Chrome-control workflow. No product-code edit has preceded the Unit 7 RED.
+- Added an opt-in inspection point for actual Leafer port centers and a deterministic delayed `736 x 1312` portrait fixture. The valid RED measured the visible node right boundary at `1294.140625` CSS px and the stale output-port center at `1540` CSS px, a `245.859375` CSS px drift.
+- Updated existing Leafer node visuals to recompute every input/output port from `resolveCanvasPortGeometry` whenever the shared node layout size changes. The same portrait transition now keeps both ports on the visible boundary at 17%, 36%, 100%, and 200% zoom, and the visible-boundary output drag remains functional.
+- Verification is green: focused GREEN `2/2`; related node/port/connection/LibTV geometry matrix `50/50`; full functional Chromium excluding the unchanged hardware performance title `533/533` in `12.6m`; production build `4937 modules transformed`.
+- Corrected the verification order after Human Owner review: the official LibTV Canvas is inspected first and defines the expected result; Revid is only the implementation counterpart. A fresh supported-Chrome read-only audit of the official public share at settled 100% confirms media-as-node-body, external title/resolution, edge landing on the actual media boundary, and a source-attached contextual detail surface. The earlier local Revid unauthenticated state is not a parity blocker and no login request is required.
+- No credential, cookie, local storage, secret, paid action, upload, generation, Director, or graph mutation was accessed or attempted during the official audit.
 
 - Human Owner selected `ACCEPT_WITH_DECLARED_BOUNDARIES` on 2026-07-20. AC22 is released; the accepted scope preserves the declared outer-geometry metric, read-only/non-paid official observation boundary, 200/207 zoom boundary, Revid semantic colors/extensions, and complete Director exclusion.
 - Final full-functional recertification exposed four deterministic timeouts (`528/532`) in result reveal and pending selection-change tests. Focused reproduction confirmed one coordinator regression: desktop context visibility was also collapsing its layout slot during Stage-surface clicks, destabilizing Graph Access, while Project Resources was incorrectly treated as a competing contextual overlay and hid the generation editor. The fix keeps the desktop context layout slot stable while hiding its surface and restores Resources as a coexisting primary side panel; the four exact regressions then passed `4/4`, and the fresh final full-functional invocation passed `532/532`.
@@ -80,11 +89,11 @@
 
 ## Remaining Work
 
-- None for T5-096.
+- None for T5-096 after exact staging, commit, push, and final `HEAD == origin/main` verification in this closure run.
 
 ## Exact Next Action
 
-Await Human Owner direction before activating any next Task.
+Keep the official LibTV public share open as the browser handoff and await Human Owner direction before activating another implementation Task.
 
 ## Files Changed
 
@@ -149,10 +158,11 @@ Await Human Owner direction before activating any next Task.
 
 - Released blocker: Chrome capability exposure, supported `extension` binding, authenticated URL access, screenshot capture, and hashing now work.
 - Unit 0 release: exact populated 200% is explicitly unavailable in the public share and bounded by the verified 207% state; focus/controller timing and all named extension slots are recorded.
-- Current implementation blocker: none. Final automated recertification and Human acceptance are complete.
+- Current implementation blocker: none. Automated correction and recertification are green.
+- Verification release: durable evidence now records LibTV-first observation and Revid-only counterpart verification. Local Revid authentication is neither required nor accepted as a substitute for official LibTV evidence.
 
 ## Human Gates
 
 - No paid/real Agnes request, external-account mutation, secret access, `.env` inspection, user/runtime migration, destructive operation, or incompatible long-term contract change is authorized.
 - Human Owner selected `ACCEPT_WITH_DECLARED_BOUNDARIES` on 2026-07-20; the final side-by-side/action-trace gate is released.
-- No further T5-096 action remains after the scoped delivery reaches `origin/main` and HEAD equality is rechecked.
+- The prior Human decision remains valid for the declared official-observation boundaries; the newly reported node-boundary defect and Unit 7 verification are now closed independently.

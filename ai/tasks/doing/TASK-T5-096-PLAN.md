@@ -126,6 +126,20 @@ The representative lawful fixture, clean-room comparison contract, reporter-boun
 
 Success gate: Task, PLAN, PROGRESS, evidence, implementation, tests, REPORT, durable state, commit, and `origin/main` agree on `DONE - PASS` with no overclaim about real provider quality.
 
+## Unit 7 - Dynamic node visible-boundary parity correction
+
+- Status: `complete`
+
+1. Inspect the official LibTV Canvas first in a read-only, non-paid state and record the publicly observable node body, external label/resolution, port/edge landing, selection, and contextual-surface roles. These observations define the expected result; Revid never defines its own parity target.
+2. Reproduce the Human Owner's `736 x 1312` portrait-media case in a deterministic Revid browser fixture, including the transition from the persisted fallback node dimensions to natural media metadata.
+3. Write RED evidence that compares the DOM media body with the Leafer card, selection outline, input/output port centers, connection endpoints, hit target, status/version layers, and contextual toolbar at 17%, 36%, 100%, and 200% zoom.
+4. Update existing Leafer node visuals from the shared layout size whenever metadata changes the visible node boundary; recompute port geometry instead of preserving creation-time coordinates.
+5. Prove the same contract for representative portrait, landscape, square, authoring, generation, result, video, and group nodes without changing serialization or graph authority.
+6. Run focused RED/GREEN, related node/port/connection/selection regressions, production build, Chrome browser QA, and the applicable full functional gate before closing the correction.
+7. Refresh completion evidence and Human review artifacts so no outer-landmark result is used to overclaim port, edge, selection, or dynamic-metadata parity.
+
+Success gate: every visible node layer follows one geometry source before and after metadata reconciliation, all target zooms stay within 2 CSS pixels, and the Human-reported detached-port state cannot recur.
+
 ## Planned test files
 
 - Create `frontend/tests/e2e/canvas-libtv-parity-v2-fixture.ts` for deterministic Revid scenarios and mutation/focus instrumentation.

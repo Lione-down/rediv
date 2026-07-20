@@ -8,6 +8,9 @@
 
 ## Delivered
 
+- Reopened and closed Unit 7 after the Human Owner reported a detached output port on a `736 x 1312` portrait node. A fresh official LibTV read-only audit defines the expected media/label/edge/context geometry first; Revid is used only as the counterpart, and local Revid login is not a parity prerequisite.
+- RED measured `245.859375` CSS px of stale output-port drift after delayed natural media metadata. The renderer-level correction recomputes existing input/output port geometry from the shared visible layout for every renderer-managed node; the fixed portrait transition passes at 17%, 36%, 100%, and 200% while visible-boundary port dragging remains functional.
+- Unit 7 evidence passes focused Chromium `2/2`, related node/port/connection/LibTV geometry Chromium `50/50`, full functional Chromium `533/533`, and production build `4937 modules transformed`.
 - Audited the latest authenticated official LibTV Canvas through supported Chrome control and retained lawful exact-viewport evidence for 1440x900, 1366x768, and 920x900 plus the applicable 17%, 36%, 100%, 200%, and public-share 207% boundary states.
 - Rebuilt the evidence contract around seventeen registered non-paid/read-only scenarios with independent visual, functional, interaction, and Revid-extension outcomes. Every registered axis is `MATCHED`, every applicable extension is `EXTENSION_PRESERVED`, and all five registered-row counters are zero.
 - Matched the horizontal bottom-centered rail, 32px visual surfaces inside accessible 40px hit targets, four-card empty starter core, exact nine-action Add catalog, zoom behavior, node/media geometry, graph editing, contextual ownership, focus/dismissal, responsive placement, and reduced-motion behavior while retaining Revid's graphite/violet semantic colors.

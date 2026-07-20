@@ -572,7 +572,7 @@ function shotSchemaResponse(
 }
 
 export async function installResourceMockApi(page: Page, state: ResourceMockState) {
-  await page.route('https://media.revid.test/**', (route) => {
+  await page.route('https://media.revid.test/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname
     if (state.capturedFrames[pathname]) {
       return route.fulfill({ status: 200, headers: { 'content-type': 'image/png', 'access-control-allow-origin': '*' }, body: state.capturedFrames[pathname] })
@@ -594,7 +594,9 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
         body: body.subarray(start, end + 1),
       })
     }
-    const dimensions = pathname.includes('parity-reference')
+    const dimensions = pathname.includes('portrait-736x1312')
+      ? { width: 736, height: 1312, label: 'PORTRAIT 736:1312' }
+      : pathname.includes('parity-reference')
       ? { width: 225, height: 300, label: 'REFERENCE 3:4' }
       : pathname.includes('parity-output')
         ? { width: 225, height: 300, label: 'OUTPUT 3:4' }
@@ -603,6 +605,7 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
           : pathname.includes('portrait')
             ? { width: 180, height: 320, label: 'PORTRAIT 9:16' }
             : { width: 320, height: 180, label: 'LANDSCAPE 16:9' }
+    if (pathname.includes('portrait-736x1312')) await new Promise((resolveDelay) => setTimeout(resolveDelay, 3000))
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${dimensions.width}" height="${dimensions.height}" viewBox="0 0 ${dimensions.width} ${dimensions.height}"><rect width="100%" height="100%" rx="12" fill="#6242df"/><path d="M0 0h32v32H0zM${dimensions.width - 32} 0h32v32h-32zM0 ${dimensions.height - 32}h32v32H0zM${dimensions.width - 32} ${dimensions.height - 32}h32v32h-32z" fill="#d8ccff"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="sans-serif" font-size="16">${dimensions.label}</text></svg>`
     return route.fulfill({
     status: isBroken ? 404 : 200,

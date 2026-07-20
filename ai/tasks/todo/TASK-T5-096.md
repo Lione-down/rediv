@@ -119,6 +119,7 @@
 21. Final counters are `VISUAL_MISMATCH=0`, `FUNCTIONAL_MISMATCH=0`, `INTERACTION_MISMATCH=0`, `UNOBSERVED=0`, and `REVID_EXTENSION_REGRESSION=0`.
 22. Human Owner reviews the final side-by-side and action-trace evidence before the Task may move from `VERIFYING` to `DONE - PASS`.
 23. Task, PLAN, PROGRESS, evidence, code, tests, REPORT, CURRENT, ROADMAP, commit, and `origin/main` must agree before closure.
+24. After media metadata changes a node's visible aspect ratio, the DOM body, Leafer card/selection, input and output ports, connection endpoints, hit target, status/version layers, and contextual toolbar must share the same visible boundary at every supported zoom. The screenshot-like `736 x 1312` portrait case must remain within 2 CSS pixels before and after metadata reconciliation.
 
 ## Expected implementation surface at activation
 
