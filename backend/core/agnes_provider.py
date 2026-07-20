@@ -26,7 +26,7 @@ from core.agnes_contract import (
     build_video_poll_request,
     build_video_request,
 )
-from settings.config import settings
+from settings.config import Settings, settings, validate_agnes_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -83,20 +83,32 @@ def extract_provider_progress_percent(response: object) -> float | None:
 class AgnesProvider:
     """Agnes AI 多模态模型统一入口。"""
 
-    def __init__(self, api_key: str, base_url: str | None = None):
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str | None = None,
+        *,
+        config: Settings | None = None,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ):
+        runtime_settings = settings if config is None else config
         self.api_key = api_key
-        self.base_url = (base_url or AGNES_CONTRACT.base_url).rstrip("/")
+        self.base_url = validate_agnes_base_url(
+            base_url or AGNES_CONTRACT.base_url,
+            runtime_settings,
+        )
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
+            transport=transport,
             limits=httpx.Limits(
-                max_connections=settings.agnes_admission_global_limit,
-                max_keepalive_connections=settings.agnes_admission_global_limit,
+                max_connections=runtime_settings.agnes_admission_global_limit,
+                max_keepalive_connections=runtime_settings.agnes_admission_global_limit,
             ),
             timeout=httpx.Timeout(
-                connect=settings.agnes_http_connect_timeout_seconds,
-                pool=settings.agnes_http_pool_timeout_seconds,
-                read=settings.agnes_http_read_timeout_seconds,
-                write=settings.agnes_http_write_timeout_seconds,
+                connect=runtime_settings.agnes_http_connect_timeout_seconds,
+                pool=runtime_settings.agnes_http_pool_timeout_seconds,
+                read=runtime_settings.agnes_http_read_timeout_seconds,
+                write=runtime_settings.agnes_http_write_timeout_seconds,
             ),
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         )

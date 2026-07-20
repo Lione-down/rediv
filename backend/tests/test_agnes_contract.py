@@ -25,14 +25,14 @@ class AgnesContractTestCase(unittest.TestCase):
     def test_settings_resolve_one_typed_contract_for_all_media(self) -> None:
         contract = resolve_agnes_contract(
             Settings(
-                agnes_base_url="https://provider.example/root/",
+                agnes_base_url="https://apihub.agnes-ai.com/",
                 agnes_model_text="text-current",
                 agnes_model_image="image-current",
                 agnes_model_video="video-current",
             )
         )
 
-        self.assertEqual("https://provider.example/root", contract.base_url)
+        self.assertEqual("https://apihub.agnes-ai.com", contract.base_url)
         self.assertEqual(("text", "image", "video"), tuple(contract.media))
         self.assertEqual("text-current", contract.media["text"].model)
         self.assertEqual("/v1/chat/completions", contract.media["text"].submit_path)

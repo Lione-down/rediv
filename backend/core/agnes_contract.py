@@ -7,7 +7,7 @@ from typing import Any, Mapping
 
 import httpx
 
-from settings.config import Settings, settings
+from settings.config import Settings, settings, validate_agnes_base_url
 
 
 _SAFE_CODE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,79}$")
@@ -53,7 +53,7 @@ def resolve_agnes_contract(config: Settings = settings) -> AgnesContract:
         ),
     }
     return AgnesContract(
-        base_url=config.agnes_base_url.rstrip("/"),
+        base_url=validate_agnes_base_url(config.agnes_base_url, config),
         media=MappingProxyType(media),
     )
 

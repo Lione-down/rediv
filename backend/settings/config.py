@@ -1,6 +1,7 @@
 from functools import lru_cache
 from ipaddress import ip_address
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,6 +33,7 @@ class Settings(BaseSettings):
     # === Agnes AI API ===
     agnes_api_key: str = ""
     agnes_base_url: str = "https://apihub.agnes-ai.com"
+    agnes_allow_development_endpoint: bool = False
     agnes_model_text: str = "agnes-2.0-flash"
     agnes_model_image: str = "agnes-image-2.1-flash"
     agnes_model_video: str = "agnes-video-v2.0"
@@ -98,6 +100,7 @@ _KNOWN_JWT_PLACEHOLDERS = frozenset(
         "your-secret-key",
     }
 )
+AGNES_PRODUCTION_BASE_URL = "https://apihub.agnes-ai.com"
 
 
 def _is_loopback_host(host: str) -> bool:
@@ -128,6 +131,44 @@ def development_auth_request_is_enabled(
     return client_host == "testclient" or _is_loopback_host(client_host)
 
 
+def validate_agnes_base_url(
+    base_url: str,
+    configured: Settings | None = None,
+) -> str:
+    runtime_settings = settings if configured is None else configured
+    normalized = base_url.strip().rstrip("/")
+    try:
+        parsed = urlsplit(normalized)
+        hostname = parsed.hostname or ""
+        port = parsed.port
+    except ValueError:
+        raise ValueError("Agnes endpoint is not trusted") from None
+    if (
+        not normalized
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or parsed.path not in ("", "/")
+        or not hostname.isascii()
+    ):
+        raise ValueError("Agnes endpoint is not trusted")
+    if normalized == AGNES_PRODUCTION_BASE_URL and port is None:
+        return normalized
+
+    development_endpoint_enabled = bool(
+        runtime_settings.runtime_profile == "development"
+        and runtime_settings.agnes_allow_development_endpoint
+    )
+    if (
+        development_endpoint_enabled
+        and parsed.scheme in {"http", "https"}
+        and _is_loopback_host(hostname)
+    ):
+        return normalized
+    raise ValueError("Agnes endpoint is not trusted")
+
+
 def require_runtime_security_settings(configured: Settings | None = None) -> None:
     runtime_settings = settings if configured is None else configured
     normalized_secret = runtime_settings.jwt_secret.strip()
@@ -147,3 +188,4 @@ def require_runtime_security_settings(configured: Settings | None = None) -> Non
             "Development authentication requires an explicit development profile, "
             "mock-auth opt-in, and loopback runtime binding"
         )
+    validate_agnes_base_url(runtime_settings.agnes_base_url, runtime_settings)

@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 5 - Agnes credential boundary`
+- Active unit: `Unit 6 - Deterministic CI and dependencies`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Plan: `ai/tasks/doing/TASK-T6-002-PLAN.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`.
@@ -33,16 +33,18 @@
 - Enforced the authorized `2 MiB` raw request, `64 KiB` node content, `16 KiB` connection metadata, and depth-16 contracts before Pydantic fingerprint/persistence work. Added aggregate caps of 50,000 keys, 75,000 strings, and 1.5 MiB UTF-8 string bytes.
 - Added a chunk-aware reader that does not trust `Content-Length`, a raw nesting scan before JSON decode, an iterative non-recursive measurement walker, non-finite number rejection, and schema-level field-budget validation.
 - Added exact-boundary, one-byte-over, 1,000-node aggregate, depth-17, aggregate key/string/string-byte, and no-content-length chunked tests. Every rejection proves graph revision, node, connection, and Canvas revision counts are unchanged.
+- Completed Unit 5 by fixing the production credential-bearing Agnes client to the repository-owned exact origin `https://apihub.agnes-ai.com` before HTTP client construction.
+- Rejected plaintext production URLs, URL userinfo, query strings, fragments, path prefixes, explicit ports, Unicode/confusable hosts, suffix domains, and arbitrary HTTPS hosts with a generic non-secret error.
+- Added an explicit development-only override requiring `runtime_profile=development`, `REVID_AGNES_ALLOW_DEVELOPMENT_ENDPOINT=true`, and a loopback hostname. Tests inject `httpx.MockTransport` directly and do not override the production URL or issue real requests.
+- Applied the same endpoint validator to startup security, the typed Agnes contract, application composition, and provider construction; updated both tracked configuration examples and backend operations documentation.
 
 ## Remaining Work
 
-- Units 5 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
-- Unit 4 budget gate is released by the Human Owner's explicit full-plan execution request and the recorded measurement/contract above.
-- Unit 3 route removal requires a Human decision only if a live external caller or support commitment is discovered.
+- Units 6 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
 
 ## Exact Next Action
 
-Verify the repository-owned Agnes production endpoint contract, then add Unit 5 RED tests for plaintext, userinfo, query/fragment, confusable/suffix, and arbitrary HTTPS endpoints before client construction.
+Inventory the current dependency and verification commands, then add Unit 6 RED checks for a deterministic least-privilege CI workflow and reproducible backend dependency constraints.
 
 ## Files Changed
 
@@ -88,6 +90,11 @@ Verify the repository-owned Agnes production endpoint contract, then add Unit 5 
 - `backend/api/canvas_documents.py`
 - `backend/schemas/canvas_document.py`
 - `backend/tests/test_canvas_document_limits.py`
+- `backend/core/agnes_contract.py`
+- `backend/core/agnes_provider.py`
+- `backend/main.py`
+- `backend/tests/test_agnes_contract.py`
+- `backend/tests/test_agnes_endpoint_security.py`
 
 ## Commands Run And Results
 
@@ -107,9 +114,10 @@ Verify the repository-owned Agnes production endpoint contract, then add Unit 5 
 - Unit 3 adjacent security regression passes `7/7`; the deterministic Canvas document persistence Chromium spec passes `2/2`. No real provider call or user database was used.
 - Unit 4 RED failed at import because no JSON budget authority existed. GREEN is `7/7`, including exact raw/field boundaries, +1-byte failures, aggregate budgets, depth, and chunked no-content-length transport with zero database mutation.
 - Unit 4 related Canvas document/revision/fingerprint/generation-idempotency regression is `19/19`; deterministic Canvas document persistence Chromium remains `2/2` after the manual bounded reader replaced framework body parsing.
+- Unit 5 RED failed because unsafe URLs constructed `httpx.AsyncClient`, startup accepted an arbitrary host, and neither a settings opt-in nor direct mock transport injection existed. GREEN endpoint security is `4/4` and proves all rejected URLs construct zero clients without echoing the supplied test key.
+- Unit 5 focused provider/contract/validation checks pass `4/4`, `8/8`, `6/6`, and `11/11`. The related endpoint/provider/contract/smoke/runtime/generation transaction/concurrency/restart/reference/audio matrix passes `79/79` in `23.444s` against guarded disposable test schemas with no real provider request.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Unit 5; no real Agnes request or credential access is authorized or required.
-- Unit 4 limit gate: record non-content size distribution and obtain exact Human-approved budgets before enforcing the product contract.
+- Current blocker: none for Unit 6; no hosted workflow mutation, real secret, provider call, or user database is required for the local implementation and verification work.
 - Human gates remain real/paid provider calls, real secrets, destructive/user database work, irreversible migrations, external-account changes, and incompatible supported-route removal.

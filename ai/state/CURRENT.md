@@ -29,6 +29,8 @@ Last updated: 2026-07-20
 
 ## Current Verified Facts
 
+- T6-002 Units 1 through 5 are complete. Unit 5 pins credential-bearing Agnes traffic to the exact production origin `https://apihub.agnes-ai.com`, rejects endpoint confusion before client construction, permits only an explicit development-loopback override, and supports direct `httpx.MockTransport` injection. Focused and related checks pass `79/79`; no real provider request or credential access occurred.
+
 - T6-002 Unit 1 is complete: copied/default configuration cannot enable mock or dev-admin auth, old/short JWT placeholders fail before MySQL startup, dev-admin secrets use only a dedicated header, development auth requires explicit profile/opt-in plus loopback bind/request, and MySQL-backed fixed windows enforce cross-worker password/dev/mock throttling without storing raw subjects.
 - Unit 1 evidence is backend `54/54`, frontend build `4947 modules transformed`, affected Python compile clean, and one Alembic head `b4c5d6e7f8a9`. Only guarded disposable `revid_test_*` schemas were created/dropped; no real secret, provider call, or user database was accessed.
 - T6-002 Unit 2 is complete: password and WeChat registration now redeem invitations under `SELECT ... FOR UPDATE` in the same MySQL transaction as unique user/identity, initial quota/ledger creation, and usage increment; failed or duplicate registration consumes zero uses and post-commit cache refresh is non-authoritative.
@@ -92,7 +94,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Execute T6-002 Unit 5 by verifying the repository-owned Agnes host contract, then write endpoint-confusion RED tests and pin credential-bearing client construction without making provider calls.
+Execute T6-002 Unit 6 by adding deterministic least-privilege CI and reproducible backend dependency gates, then prove their local equivalents without using real secrets or paid services.
 
 ## Boundaries And Human Gates
 

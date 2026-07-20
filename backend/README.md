@@ -71,6 +71,8 @@ Development authentication is off by default. Mock WeChat and `/admin/dev-login`
 
 The optional admin key is sent only in the `X-Revid-Dev-Admin-Key` header, never in a query string. Password login and development-auth attempts use a MySQL-backed fixed window shared by all Uvicorn workers; limits are configured by `REVID_AUTH_LOGIN_ATTEMPT_LIMIT`, `REVID_AUTH_DEVELOPMENT_ATTEMPT_LIMIT`, and `REVID_AUTH_ATTEMPT_WINDOW_SECONDS`.
 
+Agnes credentials are pinned to the exact production origin `https://apihub.agnes-ai.com`. The runtime rejects URL userinfo, query strings, fragments, path prefixes, explicit ports, Unicode hostnames, suffix domains, and any other production override before constructing an HTTP client. A custom endpoint is accepted only when `REVID_RUNTIME_PROFILE=development`, `REVID_AGNES_ALLOW_DEVELOPMENT_ENDPOINT=true`, and the endpoint host is loopback. Tests should inject `httpx.MockTransport` instead of overriding the production URL.
+
 ## Schema Lifecycle
 
 From `backend/`, apply migrations only to an explicitly selected disposable or approved database:

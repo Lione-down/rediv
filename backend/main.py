@@ -19,6 +19,7 @@ async def lifespan(_app: FastAPI):
         _agnes = AgnesProvider(
             api_key=settings.agnes_api_key,
             base_url=settings.agnes_base_url,
+            config=settings,
         )
     try:
         check_alembic_revision()
@@ -34,6 +35,7 @@ from api.router import include_routers
 _agnes = AgnesProvider(
     api_key=settings.agnes_api_key,
     base_url=settings.agnes_base_url,
+    config=settings,
 )
 
 
