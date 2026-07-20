@@ -9,8 +9,9 @@ Deliver backward-compatible Revid-native cinematic director Skills v2 on top of 
 | Order | Task | Deliverable | State | Dependency |
 |---:|---|---|---|---|
 | 1 | T6-001 | Detached-edge correction, cinematic director contracts, sequence canon, accepted-take continuation, and explicit retake workflow | DONE - PASS | T5-096 |
+| 2 | T6-002 | Project audit security, consistency, CI, persistence, Canvas-state, and maintainability remediation | DOING | T6-001 |
 
-T6-001 is `DONE - PASS`. It repaired the Human-reported detached connection before delivering backward-compatible cinematic v2 Skills, deterministic native handoff, durable sequence canon, accepted-take continuation, and explicit retakes. Human Owner selected `ACCEPT` for the final desktop and 375px review evidence on 2026-07-20. `REPORT-T6-001.md` is authoritative; no T6-002 or later Task is activated.
+T6-001 is `DONE - PASS`; `REPORT-T6-001.md` is authoritative. T6-002 is the only active implementation Task and executes the 2026-07-20 audit remediation in ten dependency-ordered Units with RED/GREEN verification, scoped delivery, and Human gates for exact Canvas limits or incompatible supported-route removal.
 
 ## Completed Product V2 / Phase 5 Outcome
 

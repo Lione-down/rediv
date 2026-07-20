@@ -12,11 +12,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token, hash_password
+from settings.config import settings
 from tests.mysql_test_database import MySQLTestDatabase
 
 
 class AdminEnhancementsTestCase(unittest.TestCase):
     def setUp(self) -> None:
+        self.original_runtime_profile = settings.runtime_profile
+        self.original_runtime_bind_host = settings.runtime_bind_host
+        self.original_allow_mock_auth = settings.allow_mock_auth
+        self.original_wechat_mock_enabled = settings.wechat_mock_enabled
+        self.original_jwt_secret = settings.jwt_secret
+        settings.runtime_profile = "development"
+        settings.runtime_bind_host = "127.0.0.1"
+        settings.allow_mock_auth = True
+        settings.wechat_mock_enabled = True
+        settings.jwt_secret = "unit-test-admin-enhancements-secret-minimum-32"
         self.mysql_database = MySQLTestDatabase("revid_test_admin_enhancements")
         self.mysql_database.start()
         self.addCleanup(self.mysql_database.stop)
@@ -39,6 +50,11 @@ class AdminEnhancementsTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.client.close()
+        settings.runtime_profile = self.original_runtime_profile
+        settings.runtime_bind_host = self.original_runtime_bind_host
+        settings.allow_mock_auth = self.original_allow_mock_auth
+        settings.wechat_mock_enabled = self.original_wechat_mock_enabled
+        settings.jwt_secret = self.original_jwt_secret
 
     def test_list_all_projects(self) -> None:
         response = self.client.get("/admin/projects", headers=self._admin_headers())

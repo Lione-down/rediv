@@ -2,7 +2,7 @@ import { request } from './request'
 
 export function devAdminLogin(adminKey: string) {
   return request.post('/admin/dev-login', null, {
-    params: { admin_key: adminKey },
+    headers: { 'X-Revid-Dev-Admin-Key': adminKey },
   })
 }
 

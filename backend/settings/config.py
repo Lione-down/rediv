@@ -1,4 +1,6 @@
 from functools import lru_cache
+from ipaddress import ip_address
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,6 +14,12 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173", "http://localhost:9099"])
     jwt_secret: str = Field(default="", repr=False)
     acceptance_instance_id: str = ""
+    runtime_profile: Literal["production", "development"] = "production"
+    runtime_bind_host: str = "127.0.0.1"
+    allow_mock_auth: bool = False
+    auth_login_attempt_limit: int = Field(default=5, ge=1, le=100)
+    auth_development_attempt_limit: int = Field(default=5, ge=1, le=100)
+    auth_attempt_window_seconds: int = Field(default=300, ge=1, le=86_400)
 
     # === Database ===
     db_host: str = ""
@@ -46,7 +54,7 @@ class Settings(BaseSettings):
     wechat_app_id: str = ""
     wechat_app_secret: str = ""
     wechat_redirect_uri: str = "http://localhost:8000/auth/wechat/callback"
-    wechat_mock_enabled: bool = True
+    wechat_mock_enabled: bool = False
 
     # === Admin ===
     dev_admin_key: str = Field(default="", repr=False)
@@ -81,6 +89,61 @@ def get_settings() -> Settings:
 settings = get_settings()
 
 
-def require_runtime_security_settings() -> None:
-    if not settings.jwt_secret.strip():
-        raise RuntimeError("REVID_JWT_SECRET is required")
+_KNOWN_JWT_PLACEHOLDERS = frozenset(
+    {
+        "change-this-in-production",
+        "change-this-secret-in-production",
+        "jwt-secret",
+        "secret",
+        "your-secret-key",
+    }
+)
+
+
+def _is_loopback_host(host: str) -> bool:
+    normalized = host.strip().lower().strip("[]")
+    if normalized == "localhost":
+        return True
+    try:
+        return ip_address(normalized).is_loopback
+    except ValueError:
+        return False
+
+
+def development_auth_is_enabled(configured: Settings | None = None) -> bool:
+    runtime_settings = settings if configured is None else configured
+    return bool(
+        runtime_settings.runtime_profile == "development"
+        and runtime_settings.allow_mock_auth
+        and _is_loopback_host(runtime_settings.runtime_bind_host)
+    )
+
+
+def development_auth_request_is_enabled(
+    client_host: str,
+    configured: Settings | None = None,
+) -> bool:
+    if not development_auth_is_enabled(configured):
+        return False
+    return client_host == "testclient" or _is_loopback_host(client_host)
+
+
+def require_runtime_security_settings(configured: Settings | None = None) -> None:
+    runtime_settings = settings if configured is None else configured
+    normalized_secret = runtime_settings.jwt_secret.strip()
+    if (
+        len(normalized_secret) < 32
+        or normalized_secret.lower() in _KNOWN_JWT_PLACEHOLDERS
+    ):
+        raise RuntimeError("REVID_JWT_SECRET must be a non-placeholder secret of at least 32 characters")
+
+    development_auth_requested = bool(
+        runtime_settings.allow_mock_auth
+        or runtime_settings.wechat_mock_enabled
+        or runtime_settings.dev_admin_key.strip()
+    )
+    if development_auth_requested and not development_auth_is_enabled(runtime_settings):
+        raise RuntimeError(
+            "Development authentication requires an explicit development profile, "
+            "mock-auth opt-in, and loopback runtime binding"
+        )

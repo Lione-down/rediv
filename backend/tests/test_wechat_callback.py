@@ -27,6 +27,14 @@ class WechatCallbackTestCase(unittest.TestCase):
         self.original_mock_enabled = settings.wechat_mock_enabled
         self.original_app_id = settings.wechat_app_id
         self.original_app_secret = settings.wechat_app_secret
+        self.original_runtime_profile = settings.runtime_profile
+        self.original_runtime_bind_host = settings.runtime_bind_host
+        self.original_allow_mock_auth = settings.allow_mock_auth
+        self.original_jwt_secret = settings.jwt_secret
+        settings.runtime_profile = "development"
+        settings.runtime_bind_host = "127.0.0.1"
+        settings.allow_mock_auth = True
+        settings.jwt_secret = "unit-test-wechat-auth-secret-minimum-32"
 
         self.client = TestClient(app)
 
@@ -34,6 +42,38 @@ class WechatCallbackTestCase(unittest.TestCase):
         settings.wechat_mock_enabled = self.original_mock_enabled
         settings.wechat_app_id = self.original_app_id
         settings.wechat_app_secret = self.original_app_secret
+        settings.runtime_profile = self.original_runtime_profile
+        settings.runtime_bind_host = self.original_runtime_bind_host
+        settings.allow_mock_auth = self.original_allow_mock_auth
+        settings.jwt_secret = self.original_jwt_secret
+
+    def test_mock_route_is_hidden_without_explicit_development_auth(self) -> None:
+        settings.wechat_mock_enabled = True
+        settings.runtime_profile = "production"
+        settings.allow_mock_auth = False
+
+        response = self.client.post(
+            "/auth/wechat/mock",
+            json={"openid": "blocked-mock-user", "nickname": "Blocked"},
+        )
+
+        self.assertEqual(404, response.status_code)
+        self.assertEqual("Not found", response.json()["detail"])
+
+    def test_mock_token_issuance_has_a_shared_database_throttle(self) -> None:
+        settings.wechat_mock_enabled = True
+
+        responses = [
+            self.client.post(
+                "/auth/wechat/mock",
+                json={"openid": f"throttled-mock-user-{index}", "nickname": "Mock"},
+            )
+            for index in range(6)
+        ]
+
+        self.assertEqual([200] * 5, [response.status_code for response in responses[:5]])
+        self.assertEqual(429, responses[5].status_code)
+        self.assertEqual("Too many authentication attempts", responses[5].json()["detail"])
 
     def test_mock_mode_keeps_existing_callback_behavior(self) -> None:
         settings.wechat_mock_enabled = True

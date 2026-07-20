@@ -13,19 +13,24 @@ Last updated: 2026-07-20
 
 - Phase 4 initial version: `COMPLETE - PASS`.
 - Product V2 / Phase 5: `COMPLETE - PASS`; T5-096 is the final T5 Task.
-- Product V3 / Phase 6: active; T6-001 is `DONE - PASS` and no later Task is activated.
+- Product V3 / Phase 6: active; T6-002 audit remediation is `DOING` after T6-001 `DONE - PASS`.
 - Database direction: MySQL-only.
 
 ## Active Delivery
 
-- Active implementation Task: none.
+- Active implementation Task: `T6-002 - Project audit remediation and structural hardening`.
+- State: `DOING`; verification outcome: `PENDING`.
+- Task: `ai/tasks/todo/TASK-T6-002.md`.
+- Plan: `ai/tasks/doing/TASK-T6-002-PLAN.md`.
+- Progress: `ai/tasks/doing/TASK-T6-002-PROGRESS.md`.
 - Last completed Task: `T6-001 - Revid-native cinematic director Skills v2`.
-- State: `DONE - PASS`.
+- Last completed state: `DONE`; verification outcome: `PASS`.
 - Report: `ai/reports/REPORT-T6-001.md`.
-- No T6-002 or later Task is planned or activated.
 
 ## Current Verified Facts
 
+- T6-002 Unit 1 is complete: copied/default configuration cannot enable mock or dev-admin auth, old/short JWT placeholders fail before MySQL startup, dev-admin secrets use only a dedicated header, development auth requires explicit profile/opt-in plus loopback bind/request, and MySQL-backed fixed windows enforce cross-worker password/dev/mock throttling without storing raw subjects.
+- Unit 1 evidence is backend `54/54`, frontend build `4947 modules transformed`, affected Python compile clean, and one Alembic head `b4c5d6e7f8a9`. Only guarded disposable `revid_test_*` schemas were created/dropped; no real secret, provider call, or user database was accessed.
 - T6-001 Unit 0A is complete: the Human screenshot exposed a draft-only coordinate defect. The draft path combined surface-space endpoints with a second SVG viewport transform; RED measured `155 CSS px` of horizontal source drift at a translated 50% viewport.
 - GREEN keeps hit testing in surface-space but constructs the SVG path in world-space. Actual path screen endpoints now equal the visible source port and pointer at 17/36/100/200%, related Chromium is `34/34`, build is `4937 modules transformed`, and the 1440x900 36% visual capture is hash-recorded under T6 evidence.
 - T6-001 Unit 1 is complete: capability v1/v2 remain exact, v3 discovers exactly three active cinematic v2 manifests while v1 stays historical, and strict backend/frontend director/reference/sequence/retake parsers fail closed on version mixing, extras, stale revisions, partial canon, invalid state references, and hidden execution fields.
@@ -81,7 +86,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Await Human Owner product direction before planning or activating any later Product V3 Task.
+Execute T6-002 Unit 2 with RED duplicate, rollback, and two-connection invitation-redemption concurrency tests before changing registration behavior.
 
 ## Boundaries And Human Gates
 
@@ -94,5 +99,5 @@ Await Human Owner product direction before planning or activating any later Prod
 
 ## Worktree
 
-- T6-001 implementation, verification, Human acceptance, REPORT, and durable closure are delivered; final handoff verifies `HEAD == origin/main`, ahead/behind `0/0`.
+- T6-002 activation began from `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`, ahead/behind `0/0`, with no pre-existing tracked changes.
 - User-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and outside delivery scope.

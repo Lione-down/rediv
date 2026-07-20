@@ -1,5 +1,6 @@
 from models.admin_log import AdminLog
 from models.agnes_admission_guard import AgnesAdmissionGuard
+from models.auth_attempt import AuthAttemptWindow
 from models.asset import Asset
 from models.base import Base, StoreConfig, dispose_engine, get_session, init_engine, utc_now
 from models.canvas import Canvas
@@ -19,6 +20,7 @@ from models.user import User
 __all__ = [
     "AdminLog",
     "AgnesAdmissionGuard",
+    "AuthAttemptWindow",
     "Asset",
     "Base",
     "Canvas",

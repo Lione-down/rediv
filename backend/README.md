@@ -60,11 +60,16 @@ REVID_DB_NAME
 REVID_DB_USER
 REVID_DB_PASSWORD
 REVID_JWT_SECRET
+REVID_RUNTIME_PROFILE
+REVID_RUNTIME_BIND_HOST
+REVID_ALLOW_MOCK_AUTH
 ```
 
-Inject real credential values through process environment or an ignored local secret file. Do not paste values into commands, docs, source, screenshots or issue reports. Never commit `.env` or `.env.*`.
+`REVID_JWT_SECRET` must be a unique non-placeholder value of at least 32 characters. Inject real credential values through process environment or an ignored local secret file. Do not paste values into commands, docs, source, screenshots or issue reports. Never commit `.env` or `.env.*`.
 
-`REVID_DEV_ADMIN_KEY` is optional. When absent, `/admin/dev-login` is disabled with a service-unavailable response; configure it explicitly only when the development login route is required.
+Development authentication is off by default. Mock WeChat and `/admin/dev-login` require all of `REVID_RUNTIME_PROFILE=development`, loopback `REVID_RUNTIME_BIND_HOST`, and `REVID_ALLOW_MOCK_AUTH=true`; non-loopback requests are rejected. `REVID_WECHAT_MOCK_ENABLED` and `REVID_DEV_ADMIN_KEY` then opt in their individual routes. A disabled development route returns 404.
+
+The optional admin key is sent only in the `X-Revid-Dev-Admin-Key` header, never in a query string. Password login and development-auth attempts use a MySQL-backed fixed window shared by all Uvicorn workers; limits are configured by `REVID_AUTH_LOGIN_ATTEMPT_LIMIT`, `REVID_AUTH_DEVELOPMENT_ATTEMPT_LIMIT`, and `REVID_AUTH_ATTEMPT_WINDOW_SECONDS`.
 
 ## Schema Lifecycle
 
@@ -91,7 +96,7 @@ Do not run downgrade, destructive migration, reset, DROP, TRUNCATE or destructiv
 From repository root, after the approved MySQL runtime variables are available:
 
 ```powershell
-.\backend\.venv\Scripts\python.exe -m uvicorn main:app --app-dir backend --reload
+.\backend\.venv\Scripts\python.exe -m uvicorn main:app --app-dir backend --host 127.0.0.1 --reload
 ```
 
 Default endpoints:

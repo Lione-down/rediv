@@ -158,7 +158,7 @@ class TestRuntimeLifespan(unittest.IsolatedAsyncioTestCase):
             patch.object(settings, "jwt_secret", ""),
             patch("main.init_mysql_engine") as init_mysql_engine,
             patch("main.close_db") as close_db,
-            self.assertRaisesRegex(RuntimeError, "REVID_JWT_SECRET is required"),
+            self.assertRaisesRegex(RuntimeError, "REVID_JWT_SECRET must be"),
         ):
             async with lifespan(FastAPI()):
                 self.fail("lifespan must not start without an explicit JWT secret")

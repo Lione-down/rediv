@@ -31,11 +31,23 @@ class PasswordAuthContractTestCase(unittest.TestCase):
         self.client = TestClient(app)
 
         self.original_wechat_mock_enabled = settings.wechat_mock_enabled
+        self.original_jwt_secret = settings.jwt_secret
+        self.original_runtime_profile = settings.runtime_profile
+        self.original_runtime_bind_host = settings.runtime_bind_host
+        self.original_allow_mock_auth = settings.allow_mock_auth
+        settings.runtime_profile = "development"
+        settings.runtime_bind_host = "127.0.0.1"
+        settings.allow_mock_auth = True
+        settings.jwt_secret = "unit-test-password-auth-secret-minimum-32"
         settings.wechat_mock_enabled = True
         store.registration_settings["registration_mode"] = "open"
 
     def tearDown(self) -> None:
         settings.wechat_mock_enabled = self.original_wechat_mock_enabled
+        settings.jwt_secret = self.original_jwt_secret
+        settings.runtime_profile = self.original_runtime_profile
+        settings.runtime_bind_host = self.original_runtime_bind_host
+        settings.allow_mock_auth = self.original_allow_mock_auth
         self.client.close()
 
     def test_public_registration_settings_expose_only_non_sensitive_fields(self) -> None:
@@ -104,6 +116,37 @@ class PasswordAuthContractTestCase(unittest.TestCase):
         wrong_password = self._login("login-user", "WrongPass123!")
         self.assertEqual(401, wrong_password.status_code)
         self.assertEqual("Invalid credentials", wrong_password.json()["detail"])
+
+    def test_login_failures_share_one_database_throttle_window(self) -> None:
+        first_client = self.client
+        second_client = TestClient(first_client.app)
+        try:
+            responses = [
+                (first_client if index % 2 == 0 else second_client).post(
+                    "/auth/login",
+                    json={"identifier": "missing-user", "password": "WrongPass123!"},
+                )
+                for index in range(6)
+            ]
+        finally:
+            second_client.close()
+
+        self.assertEqual([401] * 5, [response.status_code for response in responses[:5]])
+        self.assertEqual(429, responses[5].status_code)
+        self.assertEqual("Too many authentication attempts", responses[5].json()["detail"])
+        self.assertGreaterEqual(int(responses[5].headers["Retry-After"]), 1)
+
+    def test_successful_password_login_clears_its_throttle_window(self) -> None:
+        registration = self._register("clear-window", "StrongPass123!", "clear@example.com")
+        self.assertEqual(200, registration.status_code)
+
+        for _index in range(4):
+            self.assertEqual(401, self._login("clear-window", "WrongPass123!").status_code)
+
+        self.assertEqual(200, self._login("clear-window", "StrongPass123!").status_code)
+
+        for _index in range(4):
+            self.assertEqual(401, self._login("clear-window", "WrongPass123!").status_code)
 
     def test_banned_user_is_rejected_but_frozen_user_can_login(self) -> None:
         banned_registration = self._register("banned-user", "StrongPass123!", "banned@example.com")
@@ -252,14 +295,28 @@ class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
         self.original_admin_username = settings.admin_username
         self.original_admin_password = settings.admin_password
         self.original_dev_admin_key = settings.dev_admin_key
+        self.original_jwt_secret = settings.jwt_secret
+        self.original_runtime_profile = settings.runtime_profile
+        self.original_runtime_bind_host = settings.runtime_bind_host
+        self.original_allow_mock_auth = settings.allow_mock_auth
         self.mysql_database = MySQLTestDatabase("revid_test_runtime_admin")
         self.mysql_database.start()
         self.addCleanup(self.mysql_database.stop)
+        settings.jwt_secret = "unit-test-runtime-admin-secret-minimum-32"
 
     def tearDown(self) -> None:
         settings.admin_username = self.original_admin_username
         settings.admin_password = self.original_admin_password
         settings.dev_admin_key = self.original_dev_admin_key
+        settings.jwt_secret = self.original_jwt_secret
+        settings.runtime_profile = self.original_runtime_profile
+        settings.runtime_bind_host = self.original_runtime_bind_host
+        settings.allow_mock_auth = self.original_allow_mock_auth
+
+    def _enable_development_auth(self) -> None:
+        settings.runtime_profile = "development"
+        settings.runtime_bind_host = "127.0.0.1"
+        settings.allow_mock_auth = True
 
     def test_database_store_skips_default_admin_without_env_credentials(self) -> None:
         settings.admin_username = ""
@@ -286,13 +343,17 @@ class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
         settings.admin_username = ""
         settings.admin_password = ""
         settings.dev_admin_key = "test-" * 8
+        self._enable_development_auth()
         configure_store(DatabaseStore())
 
         app = FastAPI()
         include_routers(app)
         client = TestClient(app)
         try:
-            response = client.post("/admin/dev-login", params={"admin_key": settings.dev_admin_key})
+            response = client.post(
+                "/admin/dev-login",
+                headers={"X-Revid-Dev-Admin-Key": settings.dev_admin_key},
+            )
         finally:
             client.close()
 
@@ -301,17 +362,87 @@ class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
 
     def test_dev_login_is_disabled_without_explicit_key(self) -> None:
         settings.dev_admin_key = ""
+        self._enable_development_auth()
 
         app = FastAPI()
         include_routers(app)
         client = TestClient(app)
         try:
-            response = client.post("/admin/dev-login", params={"admin_key": "test-" * 8})
+            response = client.post(
+                "/admin/dev-login",
+                headers={"X-Revid-Dev-Admin-Key": "test-" * 8},
+            )
         finally:
             client.close()
 
-        self.assertEqual(503, response.status_code)
-        self.assertEqual("Development admin login is not configured", response.json()["detail"])
+        self.assertEqual(404, response.status_code)
+        self.assertEqual("Not found", response.json()["detail"])
+
+    def test_dev_login_rejects_query_secret_without_echoing_it(self) -> None:
+        supplied_key = "query-secret-" * 3
+        settings.admin_username = "runtime-admin"
+        settings.admin_password = "StrongPass123!"
+        settings.dev_admin_key = supplied_key
+        self._enable_development_auth()
+        configure_store(DatabaseStore())
+
+        app = FastAPI()
+        include_routers(app)
+        client = TestClient(app)
+        try:
+            response = client.post("/admin/dev-login", params={"admin_key": supplied_key})
+        finally:
+            client.close()
+
+        self.assertEqual(403, response.status_code)
+        self.assertNotIn(supplied_key, response.text)
+
+    def test_dev_login_accepts_only_explicit_header_contract(self) -> None:
+        supplied_key = "header-secret-" * 3
+        settings.admin_username = "runtime-admin"
+        settings.admin_password = "StrongPass123!"
+        settings.dev_admin_key = supplied_key
+        self._enable_development_auth()
+        configure_store(DatabaseStore())
+
+        app = FastAPI()
+        include_routers(app)
+        client = TestClient(app)
+        try:
+            response = client.post(
+                "/admin/dev-login",
+                headers={"X-Revid-Dev-Admin-Key": supplied_key},
+            )
+        finally:
+            client.close()
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("admin", response.json()["user"]["role"])
+
+    def test_invalid_dev_login_headers_share_database_throttle(self) -> None:
+        settings.admin_username = "runtime-admin"
+        settings.admin_password = "StrongPass123!"
+        settings.dev_admin_key = "configured-admin-key-" * 2
+        self._enable_development_auth()
+        configure_store(DatabaseStore())
+
+        app = FastAPI()
+        include_routers(app)
+        client = TestClient(app)
+        try:
+            responses = [
+                client.post(
+                    "/admin/dev-login",
+                    headers={"X-Revid-Dev-Admin-Key": f"wrong-admin-key-{index}"},
+                )
+                for index in range(6)
+            ]
+        finally:
+            client.close()
+
+        self.assertEqual([403] * 5, [response.status_code for response in responses[:5]])
+        self.assertEqual(429, responses[5].status_code)
+        self.assertEqual("Too many authentication attempts", responses[5].json()["detail"])
 
 
 if __name__ == "__main__":

@@ -1,12 +1,13 @@
 import hmac
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 
 from controllers import quotas as quota_controller
 from controllers.store import store
+from core.auth_throttle import AuthThrottleExceeded, clear_auth_attempts, record_auth_attempt
 from core.security import create_token, current_admin
 from schemas.admin import InvitationCodeCreate, QuotaGrantRequest, RegistrationSettingsUpdate
-from settings.config import settings
+from settings.config import development_auth_request_is_enabled, settings
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -22,15 +23,41 @@ def _log_admin_operation(
     store.log_admin_operation(admin_id, action, target_type, target_id, detail)
 
 
-@router.post("/dev-login")
-def dev_admin_login(admin_key: str):
-    if not settings.dev_admin_key.strip():
+def _require_dev_admin_key(
+    request: Request,
+    supplied_key: str | None = Header(default=None, alias="X-Revid-Dev-Admin-Key"),
+) -> str:
+    client_host = request.client.host if request.client is not None else "unknown"
+    if (
+        not development_auth_request_is_enabled(client_host)
+        or not settings.dev_admin_key.strip()
+    ):
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Development admin login is not configured",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found",
         )
-    if not hmac.compare_digest(admin_key, settings.dev_admin_key):
+    subject = client_host
+    try:
+        record_auth_attempt(
+            "dev-admin",
+            subject,
+            limit=settings.auth_development_attempt_limit,
+            window_seconds=settings.auth_attempt_window_seconds,
+        )
+    except AuthThrottleExceeded as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many authentication attempts",
+            headers={"Retry-After": str(exc.retry_after_seconds)},
+        ) from None
+    if supplied_key is None or not hmac.compare_digest(supplied_key, settings.dev_admin_key):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid admin key")
+    clear_auth_attempts("dev-admin", subject)
+    return supplied_key
+
+
+@router.post("/dev-login")
+def dev_admin_login(_admin_key: str = Depends(_require_dev_admin_key)):
     admin = next(
         (
             user

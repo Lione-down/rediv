@@ -1,10 +1,11 @@
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from controllers import quotas as quota_controller
 from controllers.store import store
+from core.auth_throttle import AuthThrottleExceeded, clear_auth_attempts, record_auth_attempt
 from core.security import (
     create_token,
     create_wechat_oauth_state,
@@ -25,12 +26,43 @@ from schemas.auth import (
     WechatAuthorizeResponse,
     WechatCallbackRequest,
 )
-from settings.config import settings
+from settings.config import development_auth_request_is_enabled, settings
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 me_router = APIRouter(tags=["auth"])
 WECHAT_TIMEOUT_SECONDS = 10
+
+
+def _require_development_auth(request: Request) -> None:
+    client_host = request.client.host if request.client is not None else "unknown"
+    if development_auth_request_is_enabled(client_host):
+        return
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
+
+def _request_client_host(request: Request) -> str:
+    return request.client.host if request.client is not None else "unknown"
+
+
+def _request_subject(request: Request, identity: str) -> str:
+    return f"{_request_client_host(request)}|{identity.strip().lower()}"
+
+
+def _record_auth_attempt(bucket: str, subject: str, limit: int) -> None:
+    try:
+        record_auth_attempt(
+            bucket,
+            subject,
+            limit=limit,
+            window_seconds=settings.auth_attempt_window_seconds,
+        )
+    except AuthThrottleExceeded as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many authentication attempts",
+            headers={"Retry-After": str(exc.retry_after_seconds)},
+        ) from None
 
 
 def _normalize_login_value(value: str | None) -> str | None:
@@ -162,9 +194,10 @@ def _login_or_register_wechat(profile: dict, invitation_code: str | None) -> Aut
 
 
 @router.get("/wechat/authorize", response_model=WechatAuthorizeResponse)
-def wechat_authorize(state: str = "revid-login"):
+def wechat_authorize(request: Request, state: str = "revid-login"):
     signed_state = create_wechat_oauth_state(state)
     if settings.wechat_mock_enabled:
+        _require_development_auth(request)
         return WechatAuthorizeResponse(
             authorize_url=f"/auth/wechat/mock?state={signed_state}",
             mock=True,
@@ -185,17 +218,29 @@ def wechat_authorize(state: str = "revid-login"):
 
 
 @router.post("/wechat/mock", response_model=AuthResponse)
-def mock_wechat_login(payload: MockWechatLoginRequest):
+def mock_wechat_login(payload: MockWechatLoginRequest, request: Request):
     if not settings.wechat_mock_enabled:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mock provider is disabled")
+    _require_development_auth(request)
+    _record_auth_attempt(
+        "wechat-mock",
+        _request_client_host(request),
+        settings.auth_development_attempt_limit,
+    )
     profile = payload.model_dump(exclude={"invitation_code"})
     return _login_or_register_wechat(profile, payload.invitation_code)
 
 
 @router.post("/wechat/callback", response_model=AuthResponse)
-def wechat_callback(payload: WechatCallbackRequest):
+def wechat_callback(payload: WechatCallbackRequest, request: Request):
     verify_wechat_oauth_state(payload.state)
     if settings.wechat_mock_enabled:
+        _require_development_auth(request)
+        _record_auth_attempt(
+            "wechat-mock",
+            _request_client_host(request),
+            settings.auth_development_attempt_limit,
+        )
         profile = {"openid": payload.code, "nickname": "Mock Wechat User", "avatar_url": "", "unionid": None}
         return _login_or_register_wechat(profile, payload.invitation_code)
     profile = _fetch_wechat_profile(payload.code)
@@ -237,7 +282,9 @@ def register(payload: RegisterRequest):
 
 
 @router.post("/login", response_model=AuthResponse)
-def login(payload: LoginRequest):
+def login(payload: LoginRequest, request: Request):
+    subject = _request_subject(request, payload.identifier)
+    _record_auth_attempt("login", subject, settings.auth_login_attempt_limit)
     user = store.find_user_by_identifier(payload.identifier)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
@@ -245,6 +292,7 @@ def login(payload: LoginRequest):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is banned")
     if not verify_password(payload.password, store.get_password_hash(user["id"])):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    clear_auth_attempts("login", subject)
     store.touch_login(user["id"])
     return _issue_auth(store.get_user(user["id"]) or user)
 
