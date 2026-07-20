@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { AudioLines, CirclePlus, FileText, Image, Library, ScrollText, Upload, Video } from 'lucide-vue-next'
+import { AudioLines, CirclePlus, FileClock, FileText, Image, Library, ScrollText, Upload, Video } from 'lucide-vue-next'
 import { nextTick, ref, watch } from 'vue'
 import type { CanonicalNodeType } from '../../modules/canvas/node-registry'
+import type { ProjectResourceTab } from '../../modules/canvas/project-resource-types'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{
   'update:open': [open: boolean]
-  openResources: [opener: HTMLElement]
+  openResources: [opener: HTMLElement, tab: ProjectResourceTab]
+  openVideoEditPreflight: [opener: HTMLElement]
   select: [type: CanonicalNodeType, subtype: string]
 }>()
 
@@ -16,10 +18,12 @@ const catalogEntries = [
   { id: 'text', label: '文本', ariaLabel: '添加文本节点', icon: FileText, node: { type: 'script', subtype: 'prompt' } },
   { id: 'image', label: '图片', ariaLabel: '添加图片节点', icon: Image, node: { type: 'generation', subtype: 'image' } },
   { id: 'video', label: '视频', ariaLabel: '添加视频节点', icon: Video, node: { type: 'generation', subtype: 'video' } },
+  { id: 'video-synthesis', label: '视频合成', badge: 'Beta', ariaLabel: '视频合成', icon: Video, action: 'video-preflight' },
   { id: 'audio', label: '音频', ariaLabel: '添加音频节点', icon: AudioLines, node: { type: 'asset', subtype: 'audio' } },
-  { id: 'script', label: '脚本', badge: '正式', ariaLabel: '添加脚本节点', icon: ScrollText, node: { type: 'script', subtype: 'script' } },
-  { id: 'upload', label: '上传', ariaLabel: '上传素材', icon: Upload, resource: true },
-  { id: 'library', label: '素材库', ariaLabel: '从素材库选择', icon: Library, resource: true },
+  { id: 'script', label: '脚本', ariaLabel: '添加脚本节点', icon: ScrollText, node: { type: 'script', subtype: 'script' } },
+  { id: 'library', label: '素材库', badge: 'NEW', ariaLabel: '从素材库选择', icon: Library, resourceTab: 'assets' },
+  { id: 'upload', label: '上传', ariaLabel: '上传素材', icon: Upload, resourceTab: 'assets' },
+  { id: 'history', label: '从生成历史选择', ariaLabel: '从生成历史选择', icon: FileClock, resourceTab: 'tasks' },
 ] as const
 function toggleMenu() {
   emit('update:open', !props.open)
@@ -32,12 +36,19 @@ function selectNode(type: string, subtype: string) {
 }
 
 function selectEntry(entry: typeof catalogEntries[number], event: MouseEvent) {
-  if ('resource' in entry) {
+  if (!(event.currentTarget instanceof HTMLElement)) return
+  const surfaceOpener = triggerRef.value ?? event.currentTarget
+  if ('resourceTab' in entry) {
     emit('update:open', false)
-    if (event.currentTarget instanceof HTMLElement) emit('openResources', event.currentTarget)
+    emit('openResources', surfaceOpener, entry.resourceTab as ProjectResourceTab)
     return
   }
-  selectNode(entry.node.type, entry.node.subtype)
+  if ('action' in entry && entry.action === 'video-preflight') {
+    emit('update:open', false)
+    emit('openVideoEditPreflight', surfaceOpener)
+    return
+  }
+  if ('node' in entry) selectNode(entry.node.type, entry.node.subtype)
 }
 
 function focusItem(index: number) {
@@ -106,7 +117,7 @@ watch(() => props.open, (open) => {
       :aria-expanded="open"
       @click="toggleMenu"
     >
-      <CirclePlus :size="18" aria-hidden="true" />
+      <span data-rail-visual><CirclePlus :size="18" aria-hidden="true" /></span>
     </button>
   </div>
 </template>
@@ -130,7 +141,18 @@ watch(() => props.open, (open) => {
 
 .add-node-trigger {
   display: grid;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   place-items: center;
+}
+
+[data-rail-visual] {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: var(--radius-md);
 }
 
 .add-node-trigger[aria-expanded="true"] {
@@ -140,8 +162,8 @@ watch(() => props.open, (open) => {
 
 .node-menu {
   position: absolute;
-  top: -3px;
-  left: calc(100% + 10px);
+  bottom: calc(100% + 10px);
+  left: 0;
   display: grid;
   width: 232px;
   grid-template-columns: 1fr 1fr;
@@ -181,7 +203,7 @@ button:focus-visible {
   transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .node-menu-enter-from,
-.node-menu-leave-to { opacity: 0; transform: translate(-8px, 0) scale(0.98); }
+.node-menu-leave-to { opacity: 0; transform: translate(0, 8px) scale(0.98); }
 
 @media (hover: hover) {
   button:hover { color: var(--v2-accent, var(--accent-select)); background: var(--bg-panel-subtle); }

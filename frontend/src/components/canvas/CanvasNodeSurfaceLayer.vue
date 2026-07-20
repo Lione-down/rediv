@@ -13,7 +13,6 @@ const emit = defineEmits<{
   continueNode: [nodeId: string, portId: string]
   captureFrame: [nodeId: string, file: File, timeSeconds: number, aspectRatio: number]
   mediaMetadata: [nodeId: string, aspectRatio: number]
-  requestUpload: [opener: HTMLElement]
 }>()
 const surfaces = computed(() => props.nodes.flatMap((node) => {
   const interaction = buildCanvasNodeInteraction(node, { isReadOnly: props.readonly, isSelected: props.selectedNodeIds.length === 1 && props.selectedNodeIds[0] === node.id })
@@ -27,7 +26,7 @@ function forwardCaptureFrame(nodeId: string, file: File, timeSeconds: number, as
     <CanvasNodeContinuationTrigger v-if="continuationTrigger" :node="continuationTrigger.node" :port-id="continuationTrigger.portId" :surface-node-rect-style="surfaceNodeRectStyle" @open="forwardContinuation" />
     <div v-for="surface in surfaces" :key="surface.node.id" class="canvas-node-surface" :class="`is-${surface.interaction.kind}`" :data-node-id="surface.node.id" :style="surfaceNodeRectStyle(surface.node, surface.interaction.kind === 'composer' ? 'composer' : 'content')">
       <CanvasNodeComposer v-if="surface.interaction.kind === 'composer' && selectedNodeIds.length === 1" :label="surface.interaction.label" :model-value="surface.interaction.content" @commit="emit('commitContent', surface.node.id, $event)" />
-      <CanvasNodeMedia v-else-if="surface.interaction.kind === 'media'" :media="surface.interaction.media" :can-capture-frame="!readonly && !surface.node.isLocked && selectedNodeIds.length === 1 && selectedNodeIds[0] === surface.node.id && surface.interaction.media.kind === 'video'" :can-request-upload="!readonly && !surface.node.isLocked" :capture-pending="capturePending" :is-selected="selectedNodeIds.length === 1 && selectedNodeIds[0] === surface.node.id" :keyframe-rail-placement="resolveKeyframeRailPlacement(surface.node, nodes)" @capture-frame="(file, timeSeconds, aspectRatio) => forwardCaptureFrame(surface.node.id, file, timeSeconds, aspectRatio)" @metadata="emit('mediaMetadata', surface.node.id, $event)" @request-upload="emit('requestUpload', $event)" />
+      <CanvasNodeMedia v-else-if="surface.interaction.kind === 'media'" :media="surface.interaction.media" :can-capture-frame="!readonly && !surface.node.isLocked && selectedNodeIds.length === 1 && selectedNodeIds[0] === surface.node.id && surface.interaction.media.kind === 'video'" :capture-pending="capturePending" :keyframe-rail-placement="resolveKeyframeRailPlacement(surface.node, nodes)" @capture-frame="(file, timeSeconds, aspectRatio) => forwardCaptureFrame(surface.node.id, file, timeSeconds, aspectRatio)" @metadata="emit('mediaMetadata', surface.node.id, $event)" />
     </div>
   </div>
 </template>

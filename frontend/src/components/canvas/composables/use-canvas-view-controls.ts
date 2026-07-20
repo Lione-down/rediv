@@ -2,6 +2,8 @@ import { computed, ref, watch } from 'vue'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
 import {
+  CANVAS_DEFAULT_FIT_PADDING,
+  CANVAS_GRAPH_FIT_PADDING,
   clampZoom,
   fitViewportToNodes,
   surfaceToWorld,
@@ -79,15 +81,20 @@ export function useCanvasViewControls(options: CanvasViewControlsOptions) {
     return applyZoomAtPoint(percent / 100)
   }
 
-  function fitNodes(nodes: readonly CanvasNode[], shouldFocus = true, insets: Partial<ViewportInsets> = {}) {
-    const viewport = fitViewportToNodes(nodes, options.getViewportSize(), 48, insets)
+  function fitNodes(
+    nodes: readonly CanvasNode[],
+    shouldFocus = true,
+    insets: Partial<ViewportInsets> = {},
+    padding = CANVAS_DEFAULT_FIT_PADDING,
+  ) {
+    const viewport = fitViewportToNodes(nodes, options.getViewportSize(), padding, insets)
     if (!viewport) return false
     options.updateViewport(viewport)
     if (shouldFocus) options.focusStage()
     return true
   }
 
-  function fitGraph() { return fitNodes(canvasStore.nodes) }
+  function fitGraph() { return fitNodes(canvasStore.nodes, true, {}, CANVAS_GRAPH_FIT_PADDING) }
   function fitSelection() { return fitNodes(canvasStore.selectedNodes) }
 
   function toggleGrid() { isGridEnabled.value = !isGridEnabled.value; options.focusStage() }

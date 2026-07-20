@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "task_id": "T5-096",
+  "authority": "latest official authenticated LibTV Canvas",
+  "source_url": "https://www.liblib.tv/canvas?spaceId=3180019&projectId=103d0031b2c24d739bde07fe1e20ffda",
+  "recorded_at": "2026-07-20T01:22:45+08:00",
+  "collection_method": "Chrome extension public accessibility tree plus named-control bounding rectangles",
+  "clean_room_boundary": {
+    "read_only": true,
+    "paid_or_generation_action": false,
+    "account_or_project_mutation": false,
+    "private_source_or_class_inspection": false,
+    "network_or_storage_inspection": false,
+    "third_party_asset_copying": false
+  },
+  "browser_context": {
+    "page_title": "LibTV - 专业视频创作工具",
+    "authenticated": true,
+    "css_viewport": { "width": 1662, "height": 1138 },
+    "device_pixel_ratio": 1.25,
+    "visual_viewport_scale": 1,
+    "project_name": "未命名工作区",
+    "active_canvas": "画布 1",
+    "canvas_zoom_readout": "100%",
+    "node_count": 0
+  },
+  "observations": [
+    {
+      "id": "O096-CANVAS-SWITCHER-EMPTY",
+      "surface": "Canvas switcher disclosure",
+      "action_trace": ["Activate the unique 画布 1 button.", "Read the public dialog.", "Press Escape from the dialog."],
+      "visible_result": {
+        "existing_canvases": ["画布 1"],
+        "alternative_populated_canvas_count": 0,
+        "actions": ["新建画布", "切换到画布 画布 1", "更多操作"]
+      },
+      "mutation_boundary": "No create, rename, reorder, duplicate, or switch action was invoked."
+    },
+    {
+      "id": "O096-ACTION-RAIL",
+      "surface": "Viewport-fixed action rail",
+      "visible_result": {
+        "order": ["添加节点", "打开工具箱", "素材库", "角色库", "历史记录", "快捷键", "教程"],
+        "orientation": "horizontal",
+        "anchor": "bottom-center"
+      },
+      "geometry_css_px": {
+        "button_size": { "width": 32, "height": 32 },
+        "button_top": 1084.8,
+        "sample_button_lefts": {
+          "打开工具箱": 730.7,
+          "素材库": 770.7,
+          "角色库": 810.7,
+          "历史记录": 850.7,
+          "快捷键": 899.7,
+          "教程": 939.7
+        }
+      }
+    },
+    {
+      "id": "O096-TOOLBOX",
+      "surface": "Toolbox disclosure",
+      "action_trace": ["Activate the unique 打开工具箱 button.", "Observe the public template catalog.", "Activate the rail entry again to dismiss."],
+      "visible_result": {
+        "tabs_or_actions": ["我的工具箱", "工具箱模板说明"],
+        "catalog_examples": ["【预设】左弧滑行", "【预设】电商手机弹出效果", "【预设】咖啡杯出场", "【预设】360旋转展示", "【预设】Live 2D", "【预设】大师分镜九宫格-经典暗调"],
+        "template_primary_action": "使用"
+      },
+      "mutation_boundary": "No template 使用 action was invoked."
+    },
+    {
+      "id": "O096-ASSET-LIBRARY",
+      "surface": "Asset-library disclosure",
+      "visible_result": {
+        "entries": ["风格库 新增风格节点 NEW", "特效库 新增特效节点 NEW"]
+      },
+      "geometry_css_px": {
+        "entry_size": { "width": 222.4, "height": 52 },
+        "entry_left": 720,
+        "entry_tops": [946.8, 1002.8]
+      },
+      "mutation_boundary": "Neither node-creation entry was invoked."
+    },
+    {
+      "id": "O096-CHARACTER-LIBRARY",
+      "surface": "Character-library panel",
+      "visible_result": {
+        "selected_public_preset": "甜妹/清新少女",
+        "actions": ["应用至画布", "角色筛选", "最近使用"],
+        "close_control": "close"
+      },
+      "geometry_css_px": {
+        "close": { "x": 1553.4, "y": 192.54, "width": 24, "height": 24 },
+        "apply": { "x": 1452.4, "y": 661.06, "width": 109, "height": 32 }
+      },
+      "mutation_boundary": "应用至画布 and preset-selection actions were not invoked."
+    },
+    {
+      "id": "O096-HISTORY-EMPTY",
+      "surface": "History panel",
+      "visible_result": {
+        "heading": "历史资产",
+        "counts": { "图片": 0, "视频": 0, "音频": 0 },
+        "sort": "时间降序",
+        "empty_copy": "暂无历史记录"
+      }
+    },
+    {
+      "id": "O096-SHORTCUTS",
+      "surface": "Shortcut panel",
+      "visible_result": {
+        "sections": ["创作", "缩放", "移动画布", "其他"],
+        "observed_actions": ["成组", "合并分镜组", "解组", "连线", "复制节点和连线", "生成", "新建节点", "节点复制", "创建副本", "放大", "缩小", "适应画布", "整理画布", "撤销", "重做", "删除"],
+        "close_control": "关闭快捷键面板"
+      },
+      "geometry_css_px": {
+        "close": { "x": 1366.4, "y": 643.8, "width": 28, "height": 28 }
+      }
+    },
+    {
+      "id": "O096-TUTORIAL-MENU",
+      "surface": "Tutorial disclosure",
+      "visible_result": {
+        "actions": ["使用教程", "联系客服", "联系销售", "关注公众号"]
+      },
+      "mutation_boundary": "No tutorial navigation or contact action was invoked."
+    },
+    {
+      "id": "O096-AGENT-EMPTY",
+      "surface": "Agent empty conversation panel",
+      "visible_result": {
+        "heading": "新对话",
+        "actions": ["历史对话", "Agent 设置", "CLI & Skill", "添加附件", "选择模型", "Skill", "生成模式"],
+        "composer_placeholder": "开始你的创作，或者 @ 引用工作流/节点/资源",
+        "send_enabled": false
+      },
+      "geometry_css_px": {
+        "panel": { "x": 1262.4, "y": 0, "width": 400, "height": 1137.6 },
+        "composer": { "x": 1280, "y": 1012.8, "width": 365.6, "height": 64 },
+        "send": { "x": 1613.6, "y": 1084.8, "width": 32, "height": 32 }
+      },
+      "mutation_boundary": "No prompt, attachment, model, Skill, mode, notification, or Send action was invoked."
+    },
+    {
+      "id": "O096-STORYBOARD-EMPTY",
+      "surface": "Storyboard empty state",
+      "action_trace": ["Activate the unique 故事板 button.", "Observe the empty sections.", "Return to 工作流."],
+      "visible_result": {
+        "sections": ["文本", "图片", "视频"],
+        "empty_states": ["暂无文本", "暂无图片", "暂无视频"],
+        "composer_preserved": true
+      }
+    },
+    {
+      "id": "O096-ASSET-MANAGER-EMPTY",
+      "surface": "Canvas content sidebar and asset manager",
+      "visible_result": {
+        "canvas_node_count": 0,
+        "asset_tabs": ["个人资产库", "可灵主体库"],
+        "asset_filters": ["全部", "其它", "人物", "场景", "物品", "风格", "音效"],
+        "empty_copy": "当前暂无资产",
+        "available_but_not_invoked": ["新建", "上传资产"]
+      },
+      "geometry_css_px": {
+        "canvas_content_sidebar": { "x": 0, "y": 0, "width": 280, "height": 1137.6 },
+        "upload_button": { "x": 868, "y": 505.3, "width": 76, "height": 32 }
+      }
+    },
+    {
+      "id": "O096-MINIMAP-EMPTY",
+      "surface": "Empty Canvas minimap",
+      "action_trace": ["Activate the unique 切换小地图 button.", "Observe the Mini Map image."],
+      "visible_result": { "minimap_visible": true },
+      "geometry_css_px": {
+        "minimap": { "x": 152.8, "y": 974.4, "width": 150, "height": 110 }
+      },
+      "mutation_boundary": "Only viewport UI state changed; the Canvas remained empty."
+    }
+  ],
+  "acquisition_gaps": [
+    "The authenticated project has exactly one empty Canvas and no history or project assets, so populated node, media, connection, and generation lifecycle states remain unavailable without mutation.",
+    "The Chrome extension screenshot path argument did not create files during this observation window; these rows therefore retain structured public-surface observations and geometry but no screenshot hash.",
+    "No paid generation, upload, template use, character application, external contact, or account mutation was used to manufacture a populated state."
+  ]
+}

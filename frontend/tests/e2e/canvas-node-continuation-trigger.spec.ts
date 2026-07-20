@@ -65,11 +65,13 @@ test('selected script exposes canonical continuation and creates one foreground 
 
   const chooser = page.getByRole('dialog', { name: '继续连接' })
   await expect(chooser).toBeVisible()
-  await expect(chooser.getByRole('menuitem')).toHaveCount(2)
+  await expect(chooser.getByRole('menuitem')).toHaveCount(5)
+  await expect(chooser.getByRole('menuitem', { name: /^文本/ })).toBeVisible()
   await expect(chooser.getByRole('menuitem', { name: /图片生成/ })).toBeVisible()
   await expect(chooser.getByRole('menuitem', { name: /视频生成/ })).toBeVisible()
-  await page.keyboard.press('ArrowDown')
-  await page.keyboard.press('Enter')
+  await expect(chooser.getByRole('menuitem', { name: /^音频/ })).toBeDisabled()
+  await expect(chooser.getByRole('menuitem', { name: /^脚本/ })).toBeVisible()
+  await chooser.getByRole('menuitem', { name: /图片生成/ }).click()
 
   await expect.poll(() => documentPatches(state).length).toBe(1)
   const generation = state.documents[FIRST_CANVAS_ID].nodes.find((item) => (

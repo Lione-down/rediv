@@ -36,11 +36,11 @@ function toggleResources(event: MouseEvent) {
       title="项目资源"
       :aria-expanded="resourcesOpen"
       @click="toggleResources"
-    ><Library :size="17" aria-hidden="true" /></button>
+    ><span data-rail-visual><Library :size="17" aria-hidden="true" /></span></button>
 
     <details class="view-menu">
       <summary aria-label="打开视图选项" title="视图选项">
-        <SlidersHorizontal :size="17" aria-hidden="true" />
+        <span data-rail-visual><SlidersHorizontal :size="17" aria-hidden="true" /></span>
       </summary>
       <div class="view-menu-panel" role="group" aria-label="视图选项">
         <button
@@ -84,7 +84,7 @@ function toggleResources(event: MouseEvent) {
       title="自动排列节点 (Alt+Shift+F)"
       :disabled="!canAutoArrange"
       @click="emit('autoArrange')"
-    ><Workflow :size="17" aria-hidden="true" /></button>
+    ><span data-rail-visual><Workflow :size="17" aria-hidden="true" /></span></button>
 
   </div>
 </template>
@@ -97,8 +97,8 @@ function toggleResources(event: MouseEvent) {
 }
 
 .view-controls {
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 0;
   color: var(--text-primary);
 }
 
@@ -108,6 +108,8 @@ button {
   display: grid;
   width: 40px;
   height: 40px;
+  box-sizing: border-box;
+  padding: 0;
   place-items: center;
   border: 0;
   border-radius: var(--radius-md);
@@ -118,12 +120,20 @@ button {
 }
 summary { list-style: none; }
 summary::-webkit-details-marker { display: none; }
+.view-controls > button [data-rail-visual],
+.view-menu > summary [data-rail-visual] {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: var(--radius-md);
+}
 .view-menu[open] summary { color: var(--v2-accent, var(--accent-select)); background: var(--v2-accent-soft); }
 
 .view-menu-panel {
   position: absolute;
-  top: -3px;
-  left: calc(100% + 10px);
+  right: 0;
+  bottom: calc(100% + 10px);
   gap: 2px;
   padding: 3px;
   border: 1px solid var(--border-subtle);

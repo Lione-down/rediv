@@ -154,7 +154,7 @@ test('revision panel lists checkpoints and restores a retained edit to a new hea
   }
   await openCanvas(page, state)
 
-  await page.getByRole('button', { name: '打开修订历史' }).click()
+  await page.getByRole('button', { name: '打开修订历史', exact: true }).click()
   const panel = page.getByRole('dialog', { name: '修订历史与恢复' })
   await expect(panel).toBeVisible()
   await expect(panel).toBeFocused()
@@ -171,7 +171,7 @@ test('revision panel lists checkpoints and restores a retained edit to a new hea
   await expect(page.locator('.sync-status')).toContainText('r9')
   await expect(panel).toContainText('已从 r7 创建新 head r9')
   await panel.getByRole('button', { name: '关闭修订历史' }).click()
-  await expect(page.getByRole('button', { name: '打开修订历史' })).toBeFocused()
+  await expect(page.getByRole('button', { name: '打开修订历史', exact: true })).toBeFocused()
 })
 
 test('conflict recovery offers explicit reload-latest and preserve-local-copy choices', async ({ page }) => {
@@ -234,7 +234,7 @@ test('mobile review can inspect history but cannot restore revisions', async ({ 
       document: { node_upserts: [localNode], connection_upserts: [] }, payload: null }))
   }, { key: RECOVERY_KEY, projectId: PROJECT_ID, canvasId: CANVAS_ID })
   await openCanvas(page, state, 375, false)
-  await page.getByRole('button', { name: '打开修订历史' }).click()
+  await page.getByRole('button', { name: '打开修订历史', exact: true }).click()
   const panel = page.getByRole('dialog', { name: '修订历史与恢复' })
   await expect(panel).toBeVisible()
   await expect(panel.getByRole('button', { name: '恢复本地副本并重试' })).toHaveCount(0)
@@ -265,7 +265,7 @@ test('committed restore reports a local refresh failure without claiming no chan
     restoreRequests: [], revision: 8, nodeTitle: 'Current revision 8',
   }
   await openCanvas(page, state)
-  await page.getByRole('button', { name: '打开修订历史' }).click()
+  await page.getByRole('button', { name: '打开修订历史', exact: true }).click()
   const panel = page.getByRole('dialog', { name: '修订历史与恢复' })
   await panel.getByRole('button', { name: '恢复修订 r7' }).click()
   await panel.getByRole('button', { name: '确认恢复 r7' }).click()

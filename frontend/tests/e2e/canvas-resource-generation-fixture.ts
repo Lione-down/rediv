@@ -594,11 +594,15 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
         body: body.subarray(start, end + 1),
       })
     }
-    const dimensions = pathname.includes('square')
-      ? { width: 240, height: 240, label: 'SQUARE 1:1' }
-      : pathname.includes('portrait')
-        ? { width: 180, height: 320, label: 'PORTRAIT 9:16' }
-        : { width: 320, height: 180, label: 'LANDSCAPE 16:9' }
+    const dimensions = pathname.includes('parity-reference')
+      ? { width: 225, height: 300, label: 'REFERENCE 3:4' }
+      : pathname.includes('parity-output')
+        ? { width: 225, height: 300, label: 'OUTPUT 3:4' }
+        : pathname.includes('square')
+          ? { width: 240, height: 240, label: 'SQUARE 1:1' }
+          : pathname.includes('portrait')
+            ? { width: 180, height: 320, label: 'PORTRAIT 9:16' }
+            : { width: 320, height: 180, label: 'LANDSCAPE 16:9' }
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${dimensions.width}" height="${dimensions.height}" viewBox="0 0 ${dimensions.width} ${dimensions.height}"><rect width="100%" height="100%" rx="12" fill="#6242df"/><path d="M0 0h32v32H0zM${dimensions.width - 32} 0h32v32h-32zM0 ${dimensions.height - 32}h32v32H0zM${dimensions.width - 32} ${dimensions.height - 32}h32v32h-32z" fill="#d8ccff"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="sans-serif" font-size="16">${dimensions.label}</text></svg>`
     return route.fulfill({
     status: isBroken ? 404 : 200,
@@ -868,12 +872,14 @@ export async function openResourceWorkspace(
   page: Page,
   state: ResourceMockState,
   viewport = { width: 1440, height: 900 },
+  options: { enableCanvasInspection?: boolean } = {},
 ) {
   await page.setViewportSize(viewport)
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await installResourceMockApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'resource-token'))
-  await page.goto(`/app/projects/${PROJECT_ID}/canvases/${FIRST_CANVAS_ID}`)
+  const inspectionQuery = options.enableCanvasInspection ? '?revidCanvasInspection=1' : ''
+  await page.goto(`/app/projects/${PROJECT_ID}/canvases/${FIRST_CANVAS_ID}${inspectionQuery}`)
   await expect(page.getByRole('region', { name: '项目与画布导航' })).toBeVisible()
 }
 

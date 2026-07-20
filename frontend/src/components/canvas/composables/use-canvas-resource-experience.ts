@@ -184,11 +184,11 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     void nextTick(() => target?.focus({ preventScroll: true }))
   }
 
-  function openResources(opener?: HTMLElement, intent: CanvasResourceIntent = 'insert') {
+  function openResources(opener?: HTMLElement, intent: CanvasResourceIntent = 'insert', tab: ProjectResourceTab = 'assets') {
     if (opener) resourceOpener = opener
     actionError.value = ''
     resourceIntent.value = intent
-    activeTab.value = 'assets'
+    activeTab.value = tab
     isResourceOpen.value = true
     if (options.isCompact.value) isContextDrawerOpen.value = false
   }

@@ -412,7 +412,7 @@ test('selected editable node opens a composer below the node content surface', a
   await page.screenshot({ path: resolve(evidenceDirectory, 'selected-node-composer.png'), fullPage: true })
 })
 
-test('empty media exposes a node-local upload entry backed by Project Resources', async ({ page }) => {
+test('empty media keeps upload in the official-equivalent Add authority without duplicate node chrome', async ({ page }) => {
   const state = createResourceMockState()
   state.documents['canvas-first'].nodes.push({
     ...state.documents['canvas-first'].nodes[0],
@@ -426,13 +426,11 @@ test('empty media exposes a node-local upload entry backed by Project Resources'
 
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 待上传图片' }).click()
-  const recovery = page.getByRole('toolbar', { name: '空媒体恢复操作' })
-  await expect(recovery).toBeVisible()
-  await expect(recovery.getByRole('button', { name: '生成原图' })).toBeDisabled()
-  await expect(recovery.getByRole('button', { name: '高清修复' })).toBeDisabled()
-  const upload = recovery.getByRole('button', { name: '为当前媒体上传素材' })
-  await expect(upload).toBeVisible()
-  await upload.click()
+  await expect(page.getByRole('toolbar', { name: '空媒体恢复操作' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '为当前媒体上传素材' })).toHaveCount(0)
+
+  await page.getByRole('button', { name: '添加节点' }).click()
+  await page.getByRole('menu', { name: '添加节点' }).getByRole('menuitem', { name: '上传素材' }).click()
   await expect(page.getByRole('complementary', { name: '项目资源' })).toBeVisible()
 })
 

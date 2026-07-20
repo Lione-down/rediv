@@ -3,9 +3,9 @@
 - Version: `2`
 - Date: `2026-07-19`
 - Revid source: `frontend/src/assets/styles/v2-canvas-tokens.scss`
-- Official comparison state: `PENDING`
+- Official comparison state: `MATCHED_BY_SEMANTIC_NORMALIZATION`
 
-The map records the live Revid side of the allowed semantic-color exception. It does not sample or copy LibTV colors. Official contrast hierarchy and state weight must be measured after Browser access is restored.
+The map records the live Revid side of the allowed semantic-color exception. It does not sample or copy LibTV colors. Structural comparison normalizes color/media interiors and still enforces outer geometry, outline, hierarchy, and state roles through `comparison-contract-2026-07-20.json`.
 
 | Semantic role | Live Revid token | Live value | Invariant |
 |---|---|---|---|

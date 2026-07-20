@@ -120,7 +120,7 @@ test('editable empty Canvas offers starters and an explicit zero-mutation blank 
   const starterMutationsBefore = state.authenticatedRequests.filter((request) => (
     request.startsWith('PATCH ') && request.endsWith('/document')
   )).length
-  const starterButton = guide.getByRole('button', { name: '使用角色多视图工作流' })
+  const starterButton = guide.getByRole('button', { name: '使用角色三视图工作流' })
   await starterButton.focus()
   await page.keyboard.down('Space')
   await expect(surface).not.toHaveClass(/cursor-grab/)

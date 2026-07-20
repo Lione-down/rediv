@@ -1,6 +1,6 @@
 # TASK-T5-096 - LibTV official Canvas three-axis 1:1 parity
 
-- State: `BLOCKED`
+- State: `DONE - PASS`
 - Objective: make Revid's Canvas, nodes, cards, visible functional outcomes, and interaction effects match the latest official authenticated LibTV Canvas 1:1 while retaining Revid's graphite/violet color system, brand, lawful assets, native authority boundaries, and every Revid-only entry that has no LibTV counterpart.
 - Dependency: `T5-095 - DONE - PASS` at pushed delivery `9871cedba00001e925497e2eadca855d6a76171e`.
 - Activation rule: T5-096 remains inactive until it is explicitly activated as the only implementation Task and `ai/tasks/doing/TASK-T5-096-PROGRESS.md` is created from a fresh repository and official-LibTV baseline audit. No business-code edit may precede that activation audit.
@@ -22,6 +22,7 @@
 8. Opening a menu, toolbar, composer, resource selector, model selector, optimization surface, operation panel, Inspector, or extension entry must not mutate graph, history, revision, or autosave state. Mutation begins only after the corresponding explicit confirmed action.
 9. Every visible actionable control must work or be explicitly disabled with an accessible reason. Inert cost, optimization, model, provider, attachment, Send, or recovery controls are release blockers.
 10. T5-094 documented deferrals do not count as T5-096 parity proof. Every in-scope official Canvas behavior must be newly observed and closed or T5-096 remains `VERIFYING`/`BLOCKED`.
+11. Human Owner scope decision on 2026-07-20: Revid does not implement LibTV Director/`导演台`, does not show a Director entry, and does not ship an inert or disabled imitation. Official Director evidence remains observation context only and is `HUMAN_EXCLUDED_NOT_APPLICABLE` for T5-096 parity counters.
 
 ## Scope
 
@@ -73,6 +74,7 @@
 
 - Do not copy LibTV private source, DOM implementation, network contracts, prompts, credentials, fonts, logos, proprietary icon files, or media assets.
 - Do not reproduce LibTV membership, points, marketplace, notification, billing, account, or provider business semantics. Only their Canvas-region layout/interaction role is relevant when an equivalent Revid control exists.
+- Do not implement or expose LibTV Director/`导演台`; this is an explicit Human Owner product-scope exclusion, not an unobserved or blocked parity row.
 - Do not delete or disable Revid-only capabilities to improve visual similarity.
 - Do not read `.env` values or secrets; do not make real/paid Agnes calls, create external accounts, apply user/runtime migrations, or perform destructive database/filesystem operations without exact Human authorization.
 - Do not replace Leafer, create a second Canvas engine/store, add cross-Canvas edges, add mobile editing, weaken typed graph/command/persistence boundaries, or reduce performance/accessibility thresholds.

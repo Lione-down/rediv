@@ -1,6 +1,6 @@
 # Revid Product V2 / Phase 5 Direct Delivery Roadmap
 
-Last updated: 2026-07-19
+Last updated: 2026-07-20
 
 ## Product Outcome
 
@@ -90,7 +90,7 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 | 93 | T5-093 | Restore legacy MySQL migration compatibility and local runtime | DONE - PASS | T5-092 |
 | 94 | T5-094 | Agnes contract recovery, AI script authoring, and LibTV observable Canvas parity | DONE - PASS | T5-093 |
 | 95 | T5-095 | Canvas main composer attachment, Send, and Agnes capability recovery | DONE - PASS | T5-094 |
-| 96 | T5-096 | LibTV official Canvas visual, functional, and interaction 1:1 parity with preserved Revid-only entries | BLOCKED | T5-095 |
+| 96 | T5-096 | LibTV official Canvas visual, functional, and interaction 1:1 parity with preserved Revid-only entries | DONE - PASS | T5-095 |
 
 ## Task Boundaries
 
@@ -290,7 +290,7 @@ T5-093 is `DONE - PASS`. Local startup exposed a historical-schema MySQL collati
 
 T5-094 is `DONE - PASS`. The typed Agnes contract, safe actionable provider failures, non-destructive `Agnes 2.0 Flash` script draft/refine authoring, every safely implementable clean-room Canvas parity row, and the 200-node/300-connection performance/accessibility gate are complete. Final evidence is backend `76 passed, 57 subtests passed`, related Chromium `74/74`, production build `4937 modules transformed`, full-Chromium performance/accessibility `3/3`, and manifest coverage 94/94 with `61 MATCHED`, `5 BLOCKED`, `28 NOT_OBSERVABLE`. On 2026-07-19 the Human Owner accepted the five blocked rows and 28 non-observable rows as documented deferrals and deferred real Agnes smoke; REPORT is `ai/reports/REPORT-T5-094.md` and the closure is delivered to `origin/main`.
 
-T5-096 is the sole active implementation Task and is `BLOCKED` in Unit 0 before business-code edits. It replaces feature-presence parity with a new three-axis contract against the latest official authenticated LibTV Canvas: visual effect, functional outcome, and interaction effect must each pass. Revid retains its graphite/violet colors, lawful assets, native authority boundaries, and every entry with no LibTV counterpart. Prior T5-094 blocked/non-observable deferrals do not close T5-096 scenarios. The activation repository/runtime audit and PROGRESS creation are complete, but the current task exposes no supported Browser control entry, so the required already-authenticated official-Canvas observation cannot yet be captured or measured. The release condition is restoration of that Browser entry and completion of the fresh official evidence inventory; no real/paid provider call is authorized by this plan.
+T5-096 is `DONE - PASS`. Seventeen registered non-paid/read-only official scenarios are paired with lawful Revid evidence; Director/`导演台` is `HUMAN_EXCLUDED_NOT_APPLICABLE`, so Add has nine actions and no imitation. Official guide/Add evidence places upload under Add/添加资源; Revid preserves that authority and removes the duplicate node-local empty-media upload/recovery strip. The representative ten-node/one-group/nine-media/eleven-edge fixture and eleven-landmark clean-room verifier report `0%` structural-edge difference for the populated 1440x900 outer-geometry metric under the 2px tolerance and `<=2%` gate; this does not claim whole-frame, typography, port, edge-curve, shadow, motion, or populated 1366/920 proof. Registered-row counters are zero; mapped assertions `34/34`, focused parity/evidence `9/9`, full functional `532/532`, production build `4937`, accessibility, and headed AMD D3D11 performance pass unchanged thresholds. On 2026-07-20 the Human Owner selected `ACCEPT_WITH_DECLARED_BOUNDARIES`; `ai/reports/REPORT-T5-096.md` is authoritative and the closure is delivered to `origin/main`. No real/paid provider call was made.
 
 ## Canvas First-Acceptance Gate
 

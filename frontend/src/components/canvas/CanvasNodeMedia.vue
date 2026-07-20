@@ -4,8 +4,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { CanvasNodeMediaPresentation } from './canvas-node-presentation'
 import CanvasVideoKeyframeRail from './CanvasVideoKeyframeRail.vue'
 const CANVAS_VIDEO_PLAY_EVENT = 'revid:canvas-video-play'
-const props = withDefaults(defineProps<{ media: CanvasNodeMediaPresentation; canCaptureFrame?: boolean; canRequestUpload?: boolean; capturePending?: boolean; isSelected?: boolean; keyframeRailPlacement?: 'above' | 'below' }>(), { canCaptureFrame: false, canRequestUpload: false, capturePending: false, isSelected: false, keyframeRailPlacement: 'below' })
-const emit = defineEmits<{ captureFrame: [file: File, timeSeconds: number, aspectRatio: number]; metadata: [aspectRatio: number]; requestUpload: [opener: HTMLElement] }>()
+const props = withDefaults(defineProps<{ media: CanvasNodeMediaPresentation; canCaptureFrame?: boolean; capturePending?: boolean; keyframeRailPlacement?: 'above' | 'below' }>(), { canCaptureFrame: false, capturePending: false, keyframeRailPlacement: 'below' })
+const emit = defineEmits<{ captureFrame: [file: File, timeSeconds: number, aspectRatio: number]; metadata: [aspectRatio: number] }>()
 const state = ref<'loading' | 'ready' | 'error'>('loading')
 const captureError = ref('')
 const isCapturing = ref(false)
@@ -92,28 +92,6 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
 </script>
 <template>
   <div class="canvas-node-media" :aria-label="media.label">
-    <div v-if="media.kind === 'placeholder' && canRequestUpload && isSelected" class="canvas-node-media__recovery" role="toolbar" aria-label="空媒体恢复操作">
-      <button
-        type="button"
-        aria-label="为当前媒体上传素材"
-        @click.stop="event => emit('requestUpload', event.currentTarget as HTMLElement)"
-        @pointerdown.stop
-      >
-        上传素材
-      </button>
-      <button type="button" aria-label="生成原图" title="生成原图（需要可用媒体来源）" disabled>生成原图</button>
-      <button type="button" aria-label="高清修复" title="高清修复（需要可用媒体来源）" disabled>高清修复</button>
-    </div>
-    <button
-      v-else-if="media.kind === 'placeholder' && canRequestUpload"
-      type="button"
-      class="canvas-node-media__upload"
-      aria-label="为当前媒体上传素材"
-      @click.stop="event => emit('requestUpload', event.currentTarget as HTMLElement)"
-      @pointerdown.stop
-    >
-      上传素材
-    </button>
     <div class="canvas-node-media__viewport">
       <span v-if="media.kind === 'placeholder'" class="canvas-node-media__message">{{ media.label }}</span>
       <template v-else>
@@ -156,14 +134,6 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
 }
 
 .canvas-node-media__viewport video { pointer-events: auto; }
-.canvas-node-media__upload { position: absolute; z-index: 3; right: 0; bottom: calc(100% + 8px); min-height: 32px; padding: 0 10px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); color: var(--v2-text-primary); background: var(--v2-surface-2); box-shadow: var(--v2-shadow-floating); font: inherit; font-size: 11px; pointer-events: auto; cursor: pointer; }
-.canvas-node-media__upload:hover { border-color: var(--v2-accent); color: var(--v2-accent-hover); }
-.canvas-node-media__upload:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
-.canvas-node-media__recovery { position: absolute; z-index: 3; top: calc(100% + 8px); left: 0; display: flex; width: max-content; gap: 4px; padding: 5px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); background: var(--v2-surface-2); box-shadow: var(--v2-shadow-floating); pointer-events: auto; }
-.canvas-node-media__recovery button { min-height: 30px; padding: 0 9px; border: 0; border-radius: var(--v2-radius-xs); color: var(--v2-text-primary); background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
-.canvas-node-media__recovery button:hover:not(:disabled) { color: var(--v2-accent-hover); background: var(--v2-accent-soft); }
-.canvas-node-media__recovery button:disabled { color: var(--v2-text-muted); cursor: not-allowed; opacity: 0.48; }
-.canvas-node-media__recovery button:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 1px; }
 .canvas-node-media__capture { position: absolute; z-index: 2; top: 8px; right: 8px; display: inline-flex; min-height: 30px; align-items: center; gap: 5px; padding: 0 9px; border: 1px solid color-mix(in oklch, var(--accent-select) 54%, var(--v2-border-standard)); border-radius: var(--radius-pill); color: var(--v2-text-primary); background: color-mix(in oklch, var(--v2-surface-1) 88%, transparent); box-shadow: 0 8px 20px oklch(3% 0.01 292 / 0.3); font: inherit; font-size: 11px; white-space: nowrap; backdrop-filter: blur(10px); pointer-events: auto; cursor: pointer; }
 .canvas-node-media__capture:hover { border-color: var(--accent-select); background: var(--v2-surface-2); }
 .canvas-node-media__capture:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }

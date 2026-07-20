@@ -406,7 +406,7 @@ test('response loss retries only the committed batch before saving later desired
   await expect(panel).toBeFocused()
   await expect(syncStatus).toBeDisabled()
   await panel.getByRole('button', { name: '关闭修订历史' }).click()
-  await expect(page.getByRole('button', { name: '打开修订历史' })).toBeFocused()
+  await expect(page.getByRole('button', { name: '打开修订历史', exact: true })).toBeFocused()
 })
 
 test('revision conflict stops overwrite and exposes current revision while preserving recovery', async ({ page }) => {

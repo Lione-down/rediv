@@ -252,7 +252,7 @@ test('Tab opens the canonical node menu and creates a registry-backed asset node
 
   const menu = page.getByRole('menu', { name: '添加节点' })
   await expect(menu).toBeVisible()
-  await expect(menu.getByRole('menuitem')).toHaveCount(7)
+  await expect(menu.getByRole('menuitem')).toHaveCount(9)
   await expect(menu.getByRole('menuitem', { name: '添加音频节点' })).toBeVisible()
   await page.screenshot({ path: '../output/playwright/t5-007-unit-a-node-menu-1440x900.png' })
 

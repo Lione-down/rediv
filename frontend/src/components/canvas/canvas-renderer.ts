@@ -77,6 +77,12 @@ export interface CanvasRenderer {
   updateViewport: () => void
 }
 
+interface CanvasRendererInspectionSurface extends HTMLElement {
+  __revidCanvasInspection?: {
+    getNodeScreenRect: (nodeId: string) => { height: number; width: number; x: number; y: number } | null
+  }
+}
+
 export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRenderer {
   const interactiveTargets = new WeakSet<object>()
   const nodeVisuals = new Map<string, NodeVisuals>()
@@ -89,6 +95,28 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
   })
   const worldGroup = new Group()
   leafer.add(worldGroup)
+
+  const inspectionSurface = options.surface as CanvasRendererInspectionSurface
+  const isInspectionEnabled = new URLSearchParams(window.location.search).get('revidCanvasInspection') === '1'
+  if (isInspectionEnabled) {
+    Object.defineProperty(inspectionSurface, '__revidCanvasInspection', {
+      configurable: true,
+      value: {
+        getNodeScreenRect(nodeId: string) {
+          const visual = nodeVisuals.get(nodeId)
+          if (!visual) return null
+          const bounds = visual.card.getBounds('box', 'page')
+          const surfaceBounds = options.surface.getBoundingClientRect()
+          return {
+            x: surfaceBounds.x + bounds.x,
+            y: surfaceBounds.y + bounds.y,
+            width: bounds.width,
+            height: bounds.height,
+          }
+        },
+      },
+    })
+  }
 
   function getNodeVisualState(node: CanvasNode): NodeVisualState {
     const presentation = buildCanvasNodePresentation(node)
@@ -203,8 +231,9 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     const state = getNodeVisualState(node)
     const presentation = buildCanvasNodePresentation(node)
     const authoringCard = resolveCanvasAuthoringCardPresentation(node, options.getGenerationRuntimePresentation(node.id))
-    const isGroup = isSupportedCanvasGroupNode(node)
-    const isMedia = presentation.visualKind === 'media' || presentation.visualKind === 'result'
+    const isGroup = presentation.chrome.bodyKind === 'group'
+    const isMedia = presentation.chrome.bodyKind === 'media'
+    const hasExternalLabel = presentation.chrome.labelPlacement === 'external'
     const size = canvasNodeVisualSize(node)
     const hasEmphasis = isNodeProgress(node) || isNodeDanger(node) || state.isSelected
     const group = new Group({ x: node.x, y: node.y })
@@ -258,10 +287,8 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     })
     const typeText = new Text({
       x: 16,
-      y: isMedia ? -22 : authoringCard ? 13 : 14,
-      text: authoringCard
-        ? `${authoringCard.typeLabel}${authoringCard.isLocked ? ' · 已锁定' : ''}`
-        : `${node.isLocked ? '已锁定 · ' : ''}${isGroup || isMedia ? node.title : presentation.typeLabel}`,
+      y: hasExternalLabel ? -22 : 14,
+      text: `${node.isLocked ? '已锁定 · ' : ''}${hasExternalLabel ? presentation.chrome.label : presentation.typeLabel}`,
       fill: options.cssVar('--text-muted', 'oklch(62% 0.014 245)'),
       fontSize: authoringCard ? 10 : 11,
       fontWeight: authoringCard ? 600 : 500,
@@ -270,7 +297,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       x: authoringCard ? 92 : 16,
       y: authoringCard ? 10 : 34,
       width: authoringCard ? size.width - 108 : size.width - 32,
-      text: authoringCard ? authoringCard.title : isGroup || isMedia ? '' : compactNodeTitle(node.title),
+      text: hasExternalLabel ? '' : compactNodeTitle(node.title),
       fill: options.cssVar('--text-primary', 'oklch(18% 0.014 245)'),
       fontSize: authoringCard ? 14 : 15,
       fontWeight: '600',
@@ -280,7 +307,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     })
     const contentText = new Text({
       x: 16,
-      y: authoringCard ? 52 : 62,
+      y: hasExternalLabel ? 16 : 62,
       width: size.width - 32,
       text: authoringCard ? authoringCard.bodyPreview : isGroup || imageMedia ? '' : state.content,
       fill: presentation.isUnsupported
@@ -289,7 +316,9 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       fontSize: 13,
       lineHeight: 22,
       textWrap: 'break',
-      height: authoringCard ? Math.max(18, authoringCard.slots.body.height - 20) : Math.max(22, size.height - 70),
+      height: hasExternalLabel
+        ? Math.max(22, size.height - (authoringCard?.lifecycle ? 46 : 32))
+        : Math.max(22, size.height - 70),
       textOverflow: 'hide',
     })
     const progressVisuals = authoringCard?.lifecycle
@@ -337,7 +366,8 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     }
     const presentation = buildCanvasNodePresentation(node)
     const authoringCard = resolveCanvasAuthoringCardPresentation(node, options.getGenerationRuntimePresentation(node.id))
-    const isGroup = isSupportedCanvasGroupNode(node)
+    const isGroup = presentation.chrome.bodyKind === 'group'
+    const hasExternalLabel = presentation.chrome.labelPlacement === 'external'
     const size = canvasNodeVisualSize(node)
 
     visual.card.width = size.width
@@ -348,7 +378,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       : presentation.isUnsupported
         ? options.cssVar('--v2-surface-3', 'oklch(21% 0.035 292)')
       : options.cssVar('--canvas-node-surface', 'rgba(255, 255, 255, 0.92)')
-    const isMedia = presentation.visualKind === 'media' || presentation.visualKind === 'result'
+    const isMedia = presentation.chrome.bodyKind === 'media'
     const hasEmphasis = isNodeProgress(node) || isNodeDanger(node) || nextState.isSelected
     visual.card.cornerRadius = isMedia ? 8 : 12
     if (isMedia) visual.card.fill = 'transparent'
@@ -363,20 +393,20 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     visual.mediaImage.width = Math.max(1, size.width)
     visual.mediaImage.height = Math.max(1, size.height)
     if (imageMedia) visual.mediaImage.url = imageMedia.url
-    visual.typeText.y = isMedia ? -22 : authoringCard ? 13 : 14
-    visual.typeText.text = authoringCard
-      ? `${authoringCard.typeLabel}${authoringCard.isLocked ? ' · 已锁定' : ''}`
-      : `${node.isLocked ? '已锁定 · ' : ''}${isGroup || isMedia ? node.title : presentation.typeLabel}`
+    visual.typeText.y = hasExternalLabel ? -22 : 14
+    visual.typeText.text = `${node.isLocked ? '已锁定 · ' : ''}${hasExternalLabel ? presentation.chrome.label : presentation.typeLabel}`
     visual.typeText.fontSize = authoringCard ? 10 : 11
     visual.typeText.fontWeight = authoringCard ? 600 : 500
     visual.titleText.x = authoringCard ? 92 : 16
     visual.titleText.y = authoringCard ? 10 : 34
     visual.titleText.width = authoringCard ? size.width - 108 : size.width - 32
     visual.titleText.fontSize = authoringCard ? 14 : 15
-    visual.titleText.text = authoringCard ? authoringCard.title : isGroup || isMedia ? '' : compactNodeTitle(node.title)
+    visual.titleText.text = hasExternalLabel ? '' : compactNodeTitle(node.title)
     visual.contentText.width = size.width - 32
-    visual.contentText.y = authoringCard ? 52 : 62
-    visual.contentText.height = authoringCard ? Math.max(18, authoringCard.slots.body.height - 20) : Math.max(22, size.height - 70)
+    visual.contentText.y = hasExternalLabel ? 16 : 62
+    visual.contentText.height = hasExternalLabel
+      ? Math.max(22, size.height - (authoringCard?.lifecycle ? 46 : 32))
+      : Math.max(22, size.height - 70)
     visual.contentText.text = authoringCard ? authoringCard.bodyPreview : isGroup || imageMedia ? '' : nextState.content
     visual.contentText.fill = presentation.isUnsupported
       ? options.cssVar('--danger', 'oklch(66% 0.19 24)')
@@ -443,7 +473,11 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
   )
 
   return {
-    destroy: () => { unbindPortPointerTargets(); leafer.destroy() },
+    destroy: () => {
+      unbindPortPointerTargets()
+      if (isInspectionEnabled) delete inspectionSurface.__revidCanvasInspection
+      leafer.destroy()
+    },
     isInteractiveTarget: (target) => Boolean(target && interactiveTargets.has(target as object)),
     isPortTarget: (nodeId, target) => {
       const visual = nodeVisuals.get(nodeId)

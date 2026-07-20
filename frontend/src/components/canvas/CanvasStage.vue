@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { NDropdown } from 'naive-ui'
 import { History, Keyboard, WandSparkles } from 'lucide-vue-next'
-import { computed, nextTick, ref, type ComponentPublicInstance } from 'vue'
+import { computed, nextTick, ref, watch, type ComponentPublicInstance } from 'vue'
 import CanvasEmptyGuide from './CanvasEmptyGuide.vue'
 import CanvasConnectionContinuation from './CanvasConnectionContinuation.vue'
 import CanvasConnectionLayer from './CanvasConnectionLayer.vue'
@@ -59,9 +59,12 @@ const props = withDefaults(defineProps<{
   viewportInsets: () => ({}),
 })
 const emit = defineEmits<{
+  activateContextSurface: []
   captureVideoFrame: [nodeId: string, file: File, timeSeconds: number, aspectRatio: number]
+  contextSurfaceState: [open: boolean]
   openComposerResources: [opener: HTMLElement]
-  openResources: [opener: HTMLElement]
+  openResources: [opener: HTMLElement, tab?: 'assets' | 'templates' | 'tasks']
+  openVideoEditPreflight: [opener: HTMLElement]
   openProfessionalActions: [opener: HTMLElement, query?: string]
   openRevisions: [opener: HTMLElement]
   removeComposerAttachment: [assetId: string]
@@ -155,8 +158,13 @@ const {
   isProfessionalActionsBlocked: () => props.professionalActionsBlocked,
   isReadOnly: () => props.readonly,
   onGraphPanelClosed: restoreGraphPanelTriggerFocus,
+  onOpenContextSurface: () => emit('activateContextSurface'),
   onOpenProfessionalActions: (opener) => emit('openProfessionalActions', opener),
 })
+const isStageContextSurfaceOpen = computed(() => (
+  isNodeMenuOpen.value || isGraphPanelOpen.value || contextMenu.value.show
+))
+watch(isStageContextSurfaceOpen, (open) => emit('contextSurfaceState', open), { immediate: true })
 
 const dismissedEmptyCanvasIds = ref<ReadonlySet<string>>(new Set())
 const emptyMinimapRequestedCanvasIds = ref<ReadonlySet<string>>(new Set())
@@ -545,7 +553,6 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         @continue-node="openNodeContinuation"
         @capture-frame="forwardCapturedVideoFrame"
         @media-metadata="adoptMediaAspectRatio"
-        @request-upload="emit('openResources', $event)"
       />
       <CanvasMediaToolbar
         v-if="mediaToolbarStyle && mediaActionTarget"
@@ -688,7 +695,8 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         <CanvasToolDock
           v-if="!readonly"
           :open="isNodeMenuOpen"
-          @open-resources="emit('openResources', $event)"
+          @open-resources="(opener, tab) => emit('openResources', opener, tab)"
+          @open-video-edit-preflight="emit('openVideoEditPreflight', $event)"
           @select="createNodeFromMenu"
           @update:open="updateNodeMenuOpen"
         />
@@ -717,7 +725,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
           :disabled="professionalActionsBlocked"
           @click="openProfessionalActionsFromRail"
         >
-          <WandSparkles :size="17" aria-hidden="true" />
+          <span data-rail-visual><WandSparkles :size="17" aria-hidden="true" /></span>
         </button>
         <button
           v-if="!readonly"
@@ -727,7 +735,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
           title="修订历史"
           @click="event => emit('openRevisions', event.currentTarget as HTMLElement)"
         >
-          <History :size="17" aria-hidden="true" />
+          <span data-rail-visual><History :size="17" aria-hidden="true" /></span>
         </button>
         <button
           ref="graphPanelTriggerRef"
@@ -738,7 +746,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
           :aria-expanded="isGraphPanelOpen"
           @click="toggleGraphPanel"
         >
-          <Keyboard :size="17" aria-hidden="true" />
+          <span data-rail-visual><Keyboard :size="17" aria-hidden="true" /></span>
         </button>
       </div>
       <CanvasZoomControls

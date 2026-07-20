@@ -167,7 +167,7 @@ async function expectVisibleCommandFeedback(page: Page, message: string) {
     feedback.boundingBox(),
     page.getByRole('region', { name: 'Revid 无限画布工作区' }).boundingBox(),
     page.locator('.selection-toolbar').boundingBox(),
-    page.locator('.canvas-tool-dock').boundingBox(),
+    page.locator('.canvas-action-rail').boundingBox(),
   ])
   expect(feedbackBox).not.toBeNull()
   expect(stageBox).not.toBeNull()

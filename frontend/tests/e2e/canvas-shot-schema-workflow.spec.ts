@@ -214,7 +214,7 @@ test('revision panel transition while mock provider is pending aborts before gra
 
   await expect.poll(() => state.events.filter((event) => event.startsWith('shot-schema-requested:')).length).toBe(1)
   const response = page.waitForResponse((candidate) => candidate.url().endsWith('/shot-schema'))
-  await page.getByRole('button', { name: '打开修订历史' }).click()
+  await page.getByRole('button', { name: '打开修订历史', exact: true }).click()
   await expect(page.getByRole('dialog', { name: '修订历史与恢复' })).toBeVisible()
   release()
   await response

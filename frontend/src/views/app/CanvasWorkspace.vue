@@ -63,7 +63,9 @@ const agentSkillPreflightOpen = ref(false)
 const scriptAuthoringIntent = ref<ScriptAuthoringIntent | null>(null)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
 const canvasStageRef = ref<CanvasStageHandle | null>(null)
+const isStageContextSurfaceOpen = ref(false)
 let revisionPanelOpener: HTMLElement | null = null
+let videoEditPreflightOpener: HTMLElement | null = null
 let reviewMediaQuery: MediaQueryList | null = null
 let compactMediaQuery: MediaQueryList | null = null
 const projectId = computed(() => normalizeRouteIdentifier(route.params.projectId))
@@ -171,7 +173,13 @@ const composerCapabilityError = computed(() => {
 })
 
 function openComposerResources(opener: HTMLElement) {
+  activateContextSurface('resources')
   openResources(opener, 'attach')
+}
+
+function openCanvasResources(opener: HTMLElement, tab: 'assets' | 'templates' | 'tasks' = 'assets') {
+  activateContextSurface('resources')
+  openResources(opener, 'insert', tab)
 }
 
 function attachComposerAsset(asset: ProjectAsset) {
@@ -216,30 +224,41 @@ const { createImageOperation } = useCanvasImageOperations({
   userId: () => authStore.user?.id ?? '',
 })
 function openWorkflowBatch() {
+  activateContextSurface('workflow-batch')
   workflowBatchOpen.value = true
 }
 function closeWorkflowBatch() {
   workflowBatchOpen.value = false
 }
-function openVideoEditPreflight() {
+function openVideoEditPreflight(opener?: HTMLElement) {
+  activateContextSurface('video-preflight')
+  videoEditPreflightOpener = opener ?? null
   videoEditPreflightOpen.value = true
 }
 function closeVideoEditPreflight() {
   videoEditPreflightOpen.value = false
+  const focusTarget = canRestoreFocus(videoEditPreflightOpener)
+    ? videoEditPreflightOpener
+    : null
+  videoEditPreflightOpener = null
+  void nextTick(() => focusTarget?.focus({ preventScroll: true }))
 }
 function openAudioGenerationPreflight() {
+  activateContextSurface('audio-preflight')
   audioGenerationPreflightOpen.value = true
 }
 function closeAudioGenerationPreflight() {
   audioGenerationPreflightOpen.value = false
 }
 function openAgentSkillPreflight() {
+  activateContextSurface('agent-skill')
   agentSkillPreflightOpen.value = true
 }
 function closeAgentSkillPreflight() {
   agentSkillPreflightOpen.value = false
 }
 function openScriptAuthoring(intent: ScriptAuthoringIntent) {
+  activateContextSurface('context')
   scriptAuthoringIntent.value = null
   if (isCompact.value) isContextDrawerOpen.value = true
   void nextTick(() => { scriptAuthoringIntent.value = intent })
@@ -279,6 +298,52 @@ const {
   splitImageGrid,
   userId: () => authStore.user?.id ?? '',
 })
+type CanvasContextSurface =
+  | 'agent-skill'
+  | 'audio-preflight'
+  | 'compare'
+  | 'context'
+  | 'professional'
+  | 'resources'
+  | 'revision'
+  | 'stage'
+  | 'video-preflight'
+  | 'workflow-batch'
+
+function activateContextSurface(next: CanvasContextSurface) {
+  if (next !== 'stage') canvasStageRef.value?.closeTransientInteractions()
+  if (next !== 'professional') closeProfessionalActions()
+  if (next !== 'resources') closeResources(false)
+  if (next !== 'context') isContextDrawerOpen.value = false
+  if (next !== 'revision') {
+    isRevisionPanelOpen.value = false
+    revisionPanelOpener = null
+  }
+  if (next !== 'compare') isResultCompareOpen.value = false
+  if (next !== 'workflow-batch') workflowBatchOpen.value = false
+  if (next !== 'video-preflight') {
+    videoEditPreflightOpen.value = false
+    videoEditPreflightOpener = null
+  }
+  if (next !== 'audio-preflight') audioGenerationPreflightOpen.value = false
+  if (next !== 'agent-skill') agentSkillPreflightOpen.value = false
+}
+
+function openProfessionalActionsExclusive(opener: HTMLElement, initialQuery = '') {
+  activateContextSurface('professional')
+  openProfessionalActions(opener, initialQuery)
+}
+const isDesktopContextVisible = computed(() => (
+  isDesktopContextOpen.value &&
+  !isStageContextSurfaceOpen.value &&
+  !professionalActionsOpen.value &&
+  !isRevisionPanelOpen.value &&
+  !isResultCompareOpen.value &&
+  !workflowBatchOpen.value &&
+  !videoEditPreflightOpen.value &&
+  !audioGenerationPreflightOpen.value &&
+  !agentSkillPreflightOpen.value
+))
 const EMPTY_PROFESSIONAL_ACTION_IDS: readonly string[] = Object.freeze([])
 const mediaActionTarget = computed(() => {
   const selectedNodeIds = canvasDocumentStore.selectedNodeIds
@@ -361,7 +426,11 @@ const comparisonItems = computed(() => comparisonVariants.value.flatMap((variant
 }))
 const compareTrayStyle = computed(() => ({ '--compare-left': isResourceOpen.value && !isCompact.value ? `${panelWidth.value + 16}px` : '16px', '--compare-right': isDesktopContextOpen.value ? '376px' : '16px' }))
 
-function openResultComparison() { if (comparisonItems.value.length > 1) { isContextDrawerOpen.value = false; isResultCompareOpen.value = true } }
+function openResultComparison() {
+  if (comparisonItems.value.length <= 1) return
+  activateContextSurface('compare')
+  isResultCompareOpen.value = true
+}
 
 function closeResultComparison() { isResultCompareOpen.value = false }
 
@@ -465,6 +534,7 @@ async function retryCanvasState(event?: MouseEvent) {
 function openRevisionPanel(event?: Event | HTMLElement) {
   const opener = event instanceof HTMLElement ? event : event?.currentTarget
   if (!isRevisionPanelOpen.value) {
+    activateContextSurface('revision')
     revisionPanelOpener = opener instanceof HTMLElement ? opener : null
   }
   isRevisionPanelOpen.value = true
@@ -567,9 +637,12 @@ onBeforeUnmount(() => {
           :composer-model-id="scriptCapability?.model ?? ''"
           :composer-model-label="scriptCapability?.modelLabel ?? ''"
           :viewport-insets="canvasViewportInsets"
+          @activate-context-surface="activateContextSurface('stage')"
+          @context-surface-state="isStageContextSurfaceOpen = $event"
           @open-composer-resources="openComposerResources"
-          @open-resources="openResources"
-          @open-professional-actions="openProfessionalActions"
+          @open-resources="openCanvasResources"
+          @open-video-edit-preflight="openVideoEditPreflight"
+          @open-professional-actions="openProfessionalActionsExclusive"
           @open-revisions="openRevisionPanel"
           @capture-video-frame="captureSelectedVideoFrame"
           @remove-composer-attachment="removeComposerAttachment"
@@ -707,7 +780,7 @@ onBeforeUnmount(() => {
         />
       </div>
 
-      <div v-if="selectedNode && isDesktopContextOpen" class="context-panel-shell">
+      <div v-if="selectedNode && isDesktopContextVisible" class="context-panel-shell">
         <CanvasContextPanel
           :allow-generation-execution="viewMode === 'workflow'"
           :can-arrange-trace="viewMode === 'workflow' && canArrangeProvenanceTrace"

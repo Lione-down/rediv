@@ -37,6 +37,7 @@ interface CanvasStageOptions {
   isProfessionalActionsBlocked?: () => boolean
   isReadOnly?: () => boolean
   onGraphPanelClosed?: () => void
+  onOpenContextSurface?: () => void
   onOpenProfessionalActions?: (opener: HTMLElement) => void
 }
 export function useCanvasStage(options: CanvasStageOptions = {}) {
@@ -81,11 +82,13 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     findNodeAtWorldPoint,
     getViewport,
     isReadOnly: () => options.isReadOnly?.() ?? false,
+    onOpenSurface: options.onOpenContextSurface,
     toSurfacePoint,
   })
   const { closeGraphPanel, closeNodeMenu, createNodeFromMenu, isGraphPanelOpen, isNodeMenuOpen,
     openNodeMenu, toggleGraphPanel, updateNodeMenuOpen } = useCanvasStageOverlays({
     closeContextMenu, createRegistryNodeAt, getViewport, getViewportSize: () => surfaceViewportSize.value,
+    onOpenSurface: options.onOpenContextSurface,
   })
   const {
     alignSelection, autoArrange,

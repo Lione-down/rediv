@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bot, CircleAlert, LoaderCircle, Paperclip, RefreshCw, Send, X } from 'lucide-vue-next'
+import { Bot, CircleAlert, LoaderCircle, MousePointer2, Paperclip, RefreshCw, Send, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
 import {
@@ -49,6 +49,13 @@ function attachmentLabel(asset: ProjectAsset) {
   return asset.content_text?.trim() || `${asset.type === 'image' ? '图片' : asset.type === 'video' ? '视频' : asset.type === 'audio' ? '音频' : '文本'}素材`
 }
 
+function starterDisplayTitle(starterId: WorkflowStarterId) {
+  if (starterId === 'script') return '故事脚本生成'
+  if (starterId === 'character') return '角色三视图'
+  if (starterId === 'first-frame') return '首帧图生视频'
+  return '音频生视频'
+}
+
 function submitComposer() {
   const value = brief.value.trim()
   if (!value || !canSubmit.value) return
@@ -58,10 +65,14 @@ function submitComposer() {
 
 <template>
   <section class="canvas-empty-guide" role="region" aria-label="空白画布起点" aria-live="polite">
-    <div class="empty-guide-copy">
-      <span>{{ readonly ? '只读审阅' : '空白画布' }}</span>
-      <h2>{{ readonly ? '这个画布还是空白的' : '从一个创作方向开始' }}</h2>
-      <p>{{ readonly ? '当前没有可审阅的节点。' : '双击画布或选择一个创作起点' }}</p>
+    <div v-if="readonly" class="empty-guide-copy is-review">
+      <span>只读审阅</span>
+      <h2>这个画布还是空白的</h2>
+      <p>当前没有可审阅的节点。</p>
+    </div>
+    <div v-else class="empty-guide-copy is-creation-hint">
+      <MousePointer2 :size="20" aria-hidden="true" />
+      <div><p>双击画布</p><p>自由生成节点</p></div>
     </div>
 
     <form v-if="!readonly" class="creation-composer" role="form" aria-label="Canvas 主创作输入" @submit.prevent="submitComposer">
@@ -111,15 +122,15 @@ function submitComposer() {
         v-for="starter in WORKFLOW_STARTERS"
         :key="starter.id"
         type="button"
-        :aria-label="`使用${starter.title}工作流`"
+        :aria-label="`使用${starterDisplayTitle(starter.id)}工作流`"
+        :aria-description="starter.detail"
         :class="{ 'is-unavailable': !starter.isAvailable }"
         :disabled="busy || !starter.isAvailable"
         @click="emit('start', starter.id as WorkflowStarterId)"
       >
         <span class="starter-marker" aria-hidden="true">{{ starter.marker }}</span>
         <span class="starter-copy">
-          <strong>{{ starter.title }}</strong>
-          <small>{{ starter.detail }}</small>
+          <strong>{{ starterDisplayTitle(starter.id) }}</strong>
         </span>
       </button>
     </div>
@@ -141,21 +152,33 @@ function submitComposer() {
   position: absolute;
   inset: 0;
   z-index: 4;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 20px;
-  padding: 96px 24px 112px;
+  padding: 0;
   color: var(--text-primary);
   text-align: center;
   pointer-events: none;
 }
 
 .empty-guide-copy {
+  position: absolute;
+  top: calc(50% - 50px);
+  left: 50%;
   display: grid;
   justify-items: center;
   gap: 6px;
+  transform: translateX(-50%);
 }
+
+.empty-guide-copy.is-creation-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.empty-guide-copy.is-creation-hint div { display: grid; gap: 1px; text-align: left; }
+.empty-guide-copy.is-creation-hint p { font-size: 12px; line-height: 1.35; }
+.empty-guide-copy.is-creation-hint p:first-child { color: var(--text-secondary); font-weight: 550; }
 
 .empty-guide-copy > span {
   color: var(--v2-accent, var(--accent-select));
@@ -180,6 +203,9 @@ function submitComposer() {
 }
 
 .creation-composer {
+  position: absolute;
+  bottom: 76px;
+  left: 50%;
   display: grid;
   box-sizing: border-box;
   width: min(702px, calc(100vw - 48px));
@@ -191,6 +217,7 @@ function submitComposer() {
   box-shadow: var(--shadow-soft);
   text-align: left;
   pointer-events: auto;
+  transform: translateX(-50%);
 }
 
 .creation-prompt textarea {
@@ -229,20 +256,24 @@ function submitComposer() {
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .workflow-starters {
+  position: absolute;
+  top: calc(50% + 3px);
+  left: 50%;
   display: grid;
-  grid-template-columns: repeat(4, 168px);
-  gap: 10px;
+  grid-template-columns: repeat(4, 214px);
+  gap: 12px;
   pointer-events: auto;
+  transform: translateX(-50%);
 }
 
 .workflow-starters button {
   display: grid;
-  width: 168px;
-  height: 60px;
-  grid-template-columns: 40px minmax(0, 1fr);
+  width: 214px;
+  height: 56px;
+  grid-template-columns: 32px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  padding: 8px;
+  padding: 8px 12px;
   border: 1px solid var(--border-standard, var(--border-subtle));
   border-radius: var(--v2-radius-sm, var(--radius-md));
   color: var(--text-primary);
@@ -254,8 +285,8 @@ function submitComposer() {
 
 .starter-marker {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   place-items: center;
   border-radius: var(--v2-radius-xs, 4px);
   color: var(--v2-accent, var(--accent-select));
@@ -270,17 +301,18 @@ function submitComposer() {
   gap: 2px;
 }
 
-.starter-copy strong,
-.starter-copy small {
+.starter-copy strong {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: clip;
 }
 
 .starter-copy strong { font-size: 13px; font-weight: 550; }
-.starter-copy small { color: var(--text-muted); font-size: 11px; }
 
 .keep-blank-action {
+  position: absolute;
+  right: 20px;
+  bottom: 18px;
   min-width: 120px;
   min-height: 40px;
   padding: 0 12px;
@@ -314,8 +346,6 @@ button:disabled { cursor: wait; opacity: 0.56; }
 }
 
 @media (max-width: 760px) {
-  .canvas-empty-guide { padding-inline: 16px; }
-  .workflow-starters { grid-template-columns: repeat(2, 168px); }
   .creation-controls { flex-wrap: wrap; }
 }
 

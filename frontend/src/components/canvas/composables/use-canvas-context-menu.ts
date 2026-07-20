@@ -24,6 +24,7 @@ interface CanvasContextMenuOptions {
   findNodeAtWorldPoint: (point: Point) => CanvasNode | null
   getViewport: () => ViewportState
   isReadOnly: () => boolean
+  onOpenSurface?: () => void
   toSurfacePoint: (clientX: number, clientY: number) => Point | null
 }
 
@@ -96,6 +97,7 @@ export function useCanvasContextMenu(options: CanvasContextMenuOptions) {
     if (!origin || !surfacePoint || !canvasStore.activeProjectId || !canvasStore.hasLoaded) return
     origin.preventDefault()
     if (options.isReadOnly()) return
+    options.onOpenSurface?.()
     options.cancelActiveInteraction()
     const worldPoint = surfaceToWorld(surfacePoint, options.getViewport())
     const resolvedNodeId = options.findNodeAtWorldPoint(worldPoint)?.id ?? null

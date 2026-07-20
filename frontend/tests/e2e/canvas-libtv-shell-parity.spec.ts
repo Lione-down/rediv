@@ -19,12 +19,13 @@ test('empty desktop Canvas uses compact fixed chrome and progressive navigation'
   await expect(identity).toBeVisible()
   await expect(actionRail).toBeVisible()
   await expect(zoom).toBeVisible()
-  await expect(page.getByText('双击画布或选择一个创作起点')).toBeVisible()
+  await expect(page.getByText('双击画布', { exact: true })).toBeVisible()
+  await expect(page.getByText('自由生成节点', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /^使用.*工作流$/ })).toHaveCount(4)
-  await expect(page.getByRole('button', { name: '使用故事脚本工作流' })).toBeEnabled()
-  await expect(page.getByRole('button', { name: '使用角色多视图工作流' })).toBeEnabled()
-  await expect(page.getByRole('button', { name: '使用首帧视频工作流' })).toBeEnabled()
-  await expect(page.getByRole('button', { name: '使用音频驱动视频工作流' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '使用故事脚本生成工作流' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '使用角色三视图工作流' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '使用首帧图生视频工作流' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '使用音频生视频工作流' })).toBeDisabled()
   await expect(page.locator('.minimap')).toHaveCount(0)
 
   const geometry = await page.evaluate(() => {
@@ -34,13 +35,19 @@ test('empty desktop Canvas uses compact fixed chrome and progressive navigation'
     const canvasRect = rect('.canvas-switcher')
     const railRect = rect('.canvas-action-rail')
     const zoomRect = rect('.zoom-controls')
+    const composerRect = rect('.creation-composer')
+    const starters = Array.from(document.querySelectorAll<HTMLElement>('.workflow-starters > button')).map((button) => button.getBoundingClientRect())
+    const startersLeft = Math.min(...starters.map((starter) => starter.left))
+    const startersRight = Math.max(...starters.map((starter) => starter.right))
     const stageRect = rect('.workspace-stage')
     const surfaceElement = document.querySelector<HTMLElement>('.canvas-surface')!
     const surfaceRect = surfaceElement.getBoundingClientRect()
     return {
       identity: { height: identityRect.height, left: identityRect.left, top: identityRect.top },
       identityCenterDelta: Math.abs((projectRect.top + projectRect.height / 2) - (canvasRect.top + canvasRect.height / 2)),
-      rail: { left: railRect.left, top: railRect.top, width: railRect.width, height: railRect.height },
+      rail: { left: railRect.left, top: railRect.top, width: railRect.width, height: railRect.height, bottom: innerHeight - railRect.bottom, centerDelta: Math.abs(railRect.left + railRect.width / 2 - innerWidth / 2) },
+      composer: { top: composerRect.top, bottom: composerRect.bottom },
+      starters: { top: starters[0].top, bottom: starters[0].bottom, width: starters[0].width, height: starters[0].height, topSpread: Math.max(...starters.map((starter) => starter.top)) - Math.min(...starters.map((starter) => starter.top)), centerDelta: Math.abs((startersLeft + startersRight) / 2 - innerWidth / 2) },
       zoom: { left: zoomRect.left, bottom: innerHeight - zoomRect.bottom },
       surface: {
         heightDelta: Math.abs(stageRect.height - surfaceRect.height),
@@ -53,10 +60,17 @@ test('empty desktop Canvas uses compact fixed chrome and progressive navigation'
   expect(geometry.identity.left).toBeLessThanOrEqual(20)
   expect(geometry.identity.top).toBeLessThanOrEqual(20)
   expect(geometry.identityCenterDelta).toBeLessThanOrEqual(4)
-  expect(geometry.rail.left).toBeLessThanOrEqual(24)
-  expect(geometry.rail.top).toBeGreaterThanOrEqual(76)
-  expect(geometry.rail.width).toBeLessThanOrEqual(48)
-  expect(geometry.rail.height).toBeGreaterThanOrEqual(160)
+  expect(geometry.rail.bottom).toBeLessThanOrEqual(24)
+  expect(geometry.rail.centerDelta).toBeLessThanOrEqual(2)
+  expect(geometry.rail.height).toBeLessThanOrEqual(48)
+  expect(geometry.starters.top).toBeGreaterThanOrEqual(451)
+  expect(geometry.starters.top).toBeLessThanOrEqual(455)
+  expect(geometry.starters.width).toBe(214)
+  expect(geometry.starters.height).toBe(56)
+  expect(geometry.starters.topSpread).toBeLessThanOrEqual(2)
+  expect(geometry.starters.centerDelta).toBeLessThanOrEqual(2)
+  expect(geometry.composer.top).toBeGreaterThanOrEqual(geometry.starters.bottom + 100)
+  expect(geometry.composer.bottom).toBeLessThanOrEqual(geometry.rail.top - 12)
   expect(geometry.zoom.left).toBeLessThanOrEqual(24)
   expect(geometry.zoom.bottom).toBeLessThanOrEqual(24)
   expect(geometry.surface.widthDelta).toBeLessThanOrEqual(1)
@@ -102,8 +116,8 @@ test('add menu exposes the observable media catalog and safe resource entries', 
   await page.getByRole('button', { name: '添加节点' }).click()
 
   const menu = page.getByRole('menu', { name: '添加节点' })
-  await expect(menu.getByRole('menuitem')).toHaveCount(7)
-  for (const name of ['添加文本节点', '添加图片节点', '添加视频节点', '添加音频节点', '添加脚本节点', '上传素材', '从素材库选择']) {
+  await expect(menu.getByRole('menuitem')).toHaveCount(9)
+  for (const name of ['添加文本节点', '添加图片节点', '添加视频节点', '视频合成', '添加音频节点', '添加脚本节点', '从素材库选择', '上传素材', '从生成历史选择']) {
     await expect(menu.getByRole('menuitem', { name })).toBeVisible()
   }
 

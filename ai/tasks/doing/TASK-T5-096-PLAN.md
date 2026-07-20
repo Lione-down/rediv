@@ -1,6 +1,6 @@
 # TASK-T5-096 Plan
 
-- State: `BLOCKED`
+- State: `DONE - PASS`
 - Objective: deliver measured visual, functional, and interaction parity with the latest official authenticated LibTV Canvas while preserving Revid semantic colors, lawful assets, native authority contracts, and all Revid-only entries.
 - Baseline: planning dependency `9871cedba00001e925497e2eadca855d6a76171e` is an ancestor of activation `HEAD == origin/main == e487dafc0c573641466835e028858d6ebdd23dd4`; no tracked worktree changes; user-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and outside staging scope.
 - Dependency: `T5-095 - DONE - PASS`.
@@ -14,10 +14,12 @@
 4. Revid's graphite/violet semantic colors, branding, copy, licensed icon system, Leafer engine, typed graph, commands, history, autosave, persistence, provider/model selection, quota/task/result ownership, responsive boundary, and accessibility requirements remain authoritative.
 5. No task unit may claim parity from control presence, feature-name similarity, a still image for hidden interaction, a mock for real-provider output quality, or a prior documented deferral.
 6. Default implementation evidence is pure/unit plus browser mock and guarded local regression. Real/paid provider calls remain separately gated and are not required to validate Canvas mechanics.
+7. Human Owner explicitly excludes Director/`导演台`. The official entry/node stays in clean-room evidence, but Revid's scoped Add catalog has nine actions and no Director control, implementation, or inert placeholder.
+8. Official guide section `1.4.2 画布左侧栏` and the authenticated Add disclosure place local media upload under Add/添加资源. Revid preserves that upload authority in its nine-action Add catalog; an additional node-local empty-media upload/recovery strip is duplicate visible chrome and must not remain as a parity exception.
 
 ## Unit 0 - Activate, capture the official baseline, and write RED contracts
 
-- Status: `blocked`
+- Status: `completed`
 
 1. Re-read CURRENT, ROADMAP, T5-096 Task/PLAN, T5-094/095 evidence, applicable Canvas ADRs/specifications, current code, tests, runtime, and worktree state.
 2. Activate T5-096 as the only implementation Task; create `TASK-T5-096-PROGRESS.md` with exact completed/remaining/next/files/commands/blocker sections.
@@ -27,15 +29,19 @@
 6. Add `ai/evidence/t5-096/official-canvas-scenario-manifest.json`, `three-axis-parity-ledger.md`, `semantic-color-map.md`, `revid-extension-map.md`, and an evidence index. Raw official captures stay under untracked `output/`.
 7. Add RED pure/browser tests for the first implementation slice and prove the failure fingerprints represent actual parity gaps, not fixture or encoding errors.
 
+Completed Unit 0 evidence: the first RED browser contracts were proven with measured failure fingerprints (`column` vs `row`; scoped `7` vs `9` after the Director exclusion). Exact 1440x900/1366x768/920x900 CSS viewports, empty 17/36/100/200% states, a direct official guide, its public read-only populated/selected share, the exact-200 limitation with nearest 207%, and focus/controller timing bounds are retained. All fourteen Revid counterpart/extension decisions have a named slot, including no-counterpart main composer `X14`; Units 1-5 completed the final slot geometry and regression evidence.
+
+The official 32x32 rail measurement describes the visual surface, not Revid's locked accessible hit target. The RED contract now asserts a 32px inner visual surface inside an at-least-40px hit target so later GREEN cannot trade away accessibility for screenshot similarity.
+
 Success gate: official evidence, scenario schema, extension map, RED tests, Task/PLAN/PROGRESS/CURRENT/ROADMAP, and current source agree on a complete bounded target. Any scoped official behavior that cannot be safely observed has an exact blocker and keeps the Task from implementation closure.
 
 ## Unit 1 - Canvas shell, navigation, and main creation surface
 
-- Status: `pending`
+- Status: `completed`
 
 1. Write focused RED tests for full-window surface, grid, fixed identity/chrome, action rail, zoom group, empty hints/starters, add menu, and desktop/compact geometry.
 2. Introduce the shared parity layout metrics without changing Revid semantic color values.
-3. Match the official shell and main composer structure at 1440/1366/920 while preserving named Revid extension slots.
+3. Match the official shell at 1440/1366/920 while preserving the no-counterpart Revid main composer in named extension slot `X14` above the rail.
 4. Match attachment, model/Skill/mode, Send, loading, disabled, error, capability reload, and retained-retry interaction states.
 5. Prove attachment/resource disclosure, model/Skill selection, and panel dismissal produce zero graph/history/autosave mutation; Send retains T5-095's exact durable authoring behavior.
 6. Run focused shell/composer tests, T5-094/095 related tests, and viewport screenshots before proceeding.
@@ -44,7 +50,7 @@ Success gate: shell and main-composer scenarios pass all three axes, every exten
 
 ## Unit 2 - Shared node, card, media, port, and zoom geometry
 
-- Status: `pending`
+- Status: `completed`
 
 1. Write RED pure/browser tests for every observed node type and idle/hover/selected/editing/disabled/loading/running/success/failure/locked state.
 2. Add one internal geometry/presentation contract consumed by Leafer visuals and DOM media/editor/composer layers.
@@ -57,7 +63,7 @@ Success gate: every node/card scenario passes measured visual geometry and its r
 
 ## Unit 3 - Selection, graph editing, connection, and motion parity
 
-- Status: `pending`
+- Status: `completed`
 
 1. Write RED browser tests from the official action traces for click/shift-click, marquee, multi-move, group/ungroup, aggregate continuation, context menu, duplicate, delete, and undo/redo.
 2. Match port visible geometry, acquisition area, compatible feedback, connection draft, exact landing, branching, edge selection, reroute, insertion, delete, and continuation menus.
@@ -70,7 +76,7 @@ Success gate: all observed graph actions reproduce the official gesture, feedbac
 
 ## Unit 4 - Contextual authoring, generation, media operations, and results
 
-- Status: `pending`
+- Status: `completed`
 
 1. Write RED tests for node-local composer, media toolbar, operation panel, model/parameter/cost/optimization surfaces, progress, failure, retry, results, compare/version, download/fullscreen, replace, and continuation.
 2. Move official-equivalent primary actions to their measured node-local anchors. Keep Revid-only diagnostics and advanced abilities in registered extension slots rather than a competing permanent primary surface.
@@ -83,7 +89,7 @@ Success gate: contextual generation and media/result scenarios match official vi
 
 ## Unit 5 - Revid extension preservation and responsive/accessibility closure
 
-- Status: `pending`
+- Status: `completed`
 
 1. Add a deterministic browser scenario for every entry in `revid-extension-map.md`.
 2. Prove each extension remains visible, one-level reachable, keyboard accessible, focus-safe, and fully functional at its supported viewport.
@@ -93,13 +99,27 @@ Success gate: contextual generation and media/result scenarios match official vi
 
 Success gate: `REVID_EXTENSION_REGRESSION=0`; parity-core comparisons remain within thresholds with only exact declared extension masks.
 
-## Unit 6 - Full certification, Human review, and delivery
+## Unit 6 - Deterministic comparison closure, Human review, and delivery
 
-- Status: `pending`
+- Status: `completed`
+
+The representative lawful fixture, clean-room comparison contract, reporter-bound 17-row action mapping, visible-control inventory, opt-in runtime Leafer/DOM geometry checks, and deterministic <=2px/<=2% outer-landmark verifier are complete. The `0%` structural result applies only to eleven populated 1440x900 outer landmarks. Upload remains in the official-equivalent Add authority without duplicate node-local chrome. Refreshed reporter `34/34`, focused parity/evidence `9/9`, final full functional `532/532`, production build `4937`, accessibility, and headed AMD D3D11 performance are complete. The Human Owner selected `ACCEPT_WITH_DECLARED_BOUNDARIES`; REPORT, exact staging, commit, push, and durable-state synchronization complete Unit 6.
+
+### Unit 6A - Comparison contract and representative fixture
+
+1. Add `completion-audit-2026-07-20.md` as the criterion-by-criterion truth source.
+2. Build a lawful deterministic populated Revid graph covering the observed media-first nodes, external labels, large group, dense connections, selected media, minimap, and high-zoom context.
+3. Define pair IDs, exact extension masks, semantic normalization, geometry targets, and action-trace mappings without copying official assets.
+
+### Unit 6B - Numeric convergence and closure
+
+1. Add a deterministic geometry/structural-edge verifier enforcing <=2 CSS px and <=2% on every declared critical pair.
+2. Fix product or fixture mismatches until the verifier and affected interaction matrices pass.
+3. Re-run one full functional invocation, build, accessibility, hardware performance, diff/hygiene, then publish the final Human review board.
 
 1. Run all focused T5-096 tests first, then related Canvas tests, production build, full functional Chromium, guarded local runtime checks, accessibility, and 200-node/300-connection performance evidence without threshold weakening.
 2. Generate side-by-side visual boards and action-trace reports for every scenario. Record numeric geometry, structural visual difference, mutation counts, focus trace, and extension result.
-3. Audit the ledger for `VISUAL_MISMATCH=0`, `FUNCTIONAL_MISMATCH=0`, `INTERACTION_MISMATCH=0`, `UNOBSERVED=0`, and `REVID_EXTENSION_REGRESSION=0`.
+3. Audit the registered-row ledger for `VISUAL_MISMATCH=0`, `FUNCTIONAL_MISMATCH=0`, `INTERACTION_MISMATCH=0`, `UNOBSERVED=0`, and `REVID_EXTENSION_REGRESSION=0`; keep checklist boundaries and Human exclusions outside those counters and visible in the completion audit.
 4. Submit the final side-by-side/action-trace evidence for Human Owner visual, functional, and interaction acceptance. Keep the Task `VERIFYING` until accepted.
 5. Perform fresh diff review, `git diff --check`, strict UTF-8/BOM, file-size/growth, sensitive-path, secret-signature, exact-stage, and HEAD-drift checks.
 6. Update PROGRESS/CURRENT/ROADMAP and write REPORT only after all non-deferred criteria and Human review pass; commit and push the exact owned paths.
@@ -149,7 +169,7 @@ Run the unchanged guarded 200-node/300-connection performance/accessibility titl
 - Valid graph mutation: exactly one intended atomic command/history entry unless the existing documented durable generation transaction is authoritative.
 - Accessibility: zero axe serious/critical violations; keyboard, IME, focus restore, and reduced-motion paths green.
 - Performance: existing accepted 200-node/300-connection thresholds remain unchanged.
-- Final ledger: no mismatch, unobserved, unexplained mask, inert action, or Revid-extension regression.
+- Final registered-row ledger: no mismatch, unobserved registered row, unexplained mask, inert action, or Revid-extension regression; declared official observation boundaries and Human exclusions remain explicit rather than being forced into zero counters.
 
 ## Stop rules
 

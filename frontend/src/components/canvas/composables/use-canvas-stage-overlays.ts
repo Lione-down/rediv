@@ -11,6 +11,7 @@ interface CanvasStageOverlayOptions {
   ) => Promise<unknown>
   getViewport: () => ViewportState
   getViewportSize: () => { width: number; height: number }
+  onOpenSurface?: () => void
 }
 
 export function useCanvasStageOverlays(options: CanvasStageOverlayOptions) {
@@ -21,9 +22,11 @@ export function useCanvasStageOverlays(options: CanvasStageOverlayOptions) {
   function closeNodeMenu() { isNodeMenuOpen.value = false }
   function toggleGraphPanel() {
     isNodeMenuOpen.value = false
+    if (!isGraphPanelOpen.value) options.onOpenSurface?.()
     isGraphPanelOpen.value = !isGraphPanelOpen.value
   }
   function openNodeMenu() {
+    options.onOpenSurface?.()
     options.closeContextMenu()
     isGraphPanelOpen.value = false
     isNodeMenuOpen.value = true

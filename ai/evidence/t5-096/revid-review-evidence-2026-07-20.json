@@ -1,0 +1,33 @@
+{
+  "task_id": "T5-096",
+  "date": "2026-07-20",
+  "state": "AUTOMATED_PARITY_VERIFIED_HUMAN_REVIEW_PENDING",
+  "raw_root": "output/t5-096/revid/2026-07-20",
+  "capture_authority": "deterministic local Playwright fixtures; no real or paid provider calls",
+  "verification_snapshot_root": "frontend/tests/e2e/canvas-libtv-three-axis-parity.spec.ts-snapshots",
+  "verification_normalization": "Runtime snapshots preserve all product chrome and mask only dynamic video pixels; unmasked human-review captures remain under raw_root.",
+  "files": [
+    { "name": "revid-empty-1366x768-100pct.png", "width": 1366, "height": 768, "sha256": "81a734eece3f69274efa98503e41b6ea940e853a75a598af4416d1497776dd50", "snapshot_sha256": "81a734eece3f69274efa98503e41b6ea940e853a75a598af4416d1497776dd50" },
+    { "name": "revid-empty-1440x900-100pct.png", "width": 1440, "height": 900, "sha256": "a180a1c3f0c812d747659b90db860f6a38d04b95abdeca96d6bfb4fd38a510c7", "snapshot_sha256": "a180a1c3f0c812d747659b90db860f6a38d04b95abdeca96d6bfb4fd38a510c7" },
+    { "name": "revid-empty-1440x900-17pct.png", "width": 1440, "height": 900, "sha256": "31626f4c71dca9312f799dcdaeca487b17fae019318427e25fd700d1b203cd3f", "snapshot_sha256": "31626f4c71dca9312f799dcdaeca487b17fae019318427e25fd700d1b203cd3f" },
+    { "name": "revid-empty-1440x900-200pct.png", "width": 1440, "height": 900, "sha256": "6a40548cf8e76fad06b4ffeeb988ddcd912aa24cce51d03e5bb1b9d29a16394a", "snapshot_sha256": "6a40548cf8e76fad06b4ffeeb988ddcd912aa24cce51d03e5bb1b9d29a16394a" },
+    { "name": "revid-empty-1440x900-36pct.png", "width": 1440, "height": 900, "sha256": "46636b3d91048e1a3b3fd0c2ce25136b49f9b23aaaead35ac47394caccc5e4d6", "snapshot_sha256": "46636b3d91048e1a3b3fd0c2ce25136b49f9b23aaaead35ac47394caccc5e4d6" },
+    { "name": "revid-empty-920x900-100pct.png", "width": 920, "height": 900, "sha256": "9d559ca8861dfc9c03ded6ff74d9130c1dd9b3dc727cbb57d0aaf8d5ccf4de55", "snapshot_sha256": "9d559ca8861dfc9c03ded6ff74d9130c1dd9b3dc727cbb57d0aaf8d5ccf4de55" },
+    { "name": "revid-empty-add-disclosure-1440x900-200pct.png", "width": 1440, "height": 900, "sha256": "a9ec0b846ff44aef1481a52cc9e65181dae7f58b6e135318708fb41cf9ffc63f", "snapshot_sha256": "a9ec0b846ff44aef1481a52cc9e65181dae7f58b6e135318708fb41cf9ffc63f" },
+    { "name": "revid-image-selected-1440x900-100pct.png", "width": 1440, "height": 900, "sha256": "ba2e72a30ffa57b56c3e1022e388c9f02cf300c9aa08b617418eb7b06a949b91", "snapshot_sha256": "baa01632f8fc0649747be3c7e226495eab563df9a9c990bb09dda97700c82504" },
+    { "name": "revid-image-selected-1440x900-200pct.png", "width": 1440, "height": 900, "sha256": "5ffd77232516d4e9aa3ef153417c584c216763ce77c59045eb0eb4be30298da9", "snapshot_sha256": "74fa802f305d4f85c82c64bcba701f9bb86796ead9d2df06a495a9e27e0058b8" },
+    { "name": "revid-populated-1366x768-fit.png", "width": 1366, "height": 768, "sha256": "ad111ffb4ebc89abd60ea7544f381915f9a775d41a7b008a3579524911c712ca", "snapshot_sha256": "5c9cbf7aae0747a819dbfcd7432386aa498b0918b49fc757d602c4b3a072c4e5" },
+    { "name": "revid-populated-1440x900-fit.png", "width": 1440, "height": 900, "sha256": "bc9d979d5afd4516c0d43981d85879a277d1f7a0a7e2f2c7c64041094df290d4", "snapshot_sha256": "69924baad0061153785f8f5fcf706bec239ca68489b6e38db59031a879891a4a" },
+    { "name": "revid-populated-920x900-fit.png", "width": 920, "height": 900, "sha256": "f6d38eea88a6a6b29ffb8d1eed020083876a9eaa8115b195f9b5755db0e589f6", "snapshot_sha256": "e6bab05ba6cd1345072600301aabece388a24cf09a957348554b0b5eac563839" }
+  ],
+  "automated_results": {
+    "t5_096_focused": "9/9 passed, including executable evidence mappings, per-landmark runtime geometry, and deterministic 0% structural-edge difference under the declared 2px tolerance and 2% threshold",
+    "full_functional_chromium": "532/532 passed in one invocation with the hardware-only performance case explicitly separated",
+    "hardware_performance": "200 nodes / 300 connections passed unchanged thresholds on headed AMD D3D11: 151.75 FPS, frame P95 20.9ms, stable render 601ms, pointer P95 2.5ms, longest task 0ms, minimap 10.71/s",
+    "headless_boundary": "SwiftShader does not satisfy the unchanged FPS/frame-P95 gate and is retained as an environment boundary"
+  },
+  "human_scope_exclusion": {
+    "surface": "Director/导演台",
+    "classification": "HUMAN_EXCLUDED_NOT_APPLICABLE"
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "task_id": "T5-096",
+  "observed_at": "2026-07-20T01:35:00+08:00",
+  "boundary": {
+    "read_only_non_paid_observation": true,
+    "private_source_inspection": false,
+    "network_inspection": false,
+    "credential_or_storage_inspection": false,
+    "third_party_asset_copying": false,
+    "account_or_project_mutation": false
+  },
+  "human_scope_exclusions": [
+    {
+      "surface": "Director/导演台",
+      "classification": "HUMAN_EXCLUDED_NOT_APPLICABLE",
+      "decision_date": "2026-07-20",
+      "effect": "Official observations may retain Director as source context, but Revid must not implement, expose, or imitate it and it is excluded from parity counters."
+    }
+  ],
+  "official_sources": [
+    {
+      "id": "canvas",
+      "url": "https://www.liblib.tv/canvas?spaceId=3180019&projectId=103d0031b2c24d739bde07fe1e20ffda",
+      "title": "LibTV - 专业视频创作工具",
+      "version_clue": "Authenticated empty Canvas with Workflow, Storyboard, Agent, seven bottom-center rail actions, four starter cards, bottom-left view controls, and 100% zoom."
+    },
+    {
+      "id": "guide",
+      "url": "https://resonate.feishu.cn/wiki/Loxfw6XHziYRk0kKzdjcFfp9nhb",
+      "title": "LibTV使用指南 - 飞书云文档",
+      "version_clue": "Direct link opened by LibTV's 使用教程 action; document showed latest modification 07/16 and sections 1.2.1 through 1.4.4."
+    },
+    {
+      "id": "share",
+      "url": "https://www.liblib.tv/canvas/share?shareId=W713Ltb3p",
+      "title": "LibTV - 专业视频创作工具",
+      "version_clue": "Direct read-only share URL published by the official guide; populated graph includes a three-node group, Director node, image/media nodes, references, prompt data, tail frame, result, connections, minimap, and view controls."
+    }
+  ],
+  "observations": [
+    {
+      "id": "L096-SHELL-EMPTY-EXACT-1440",
+      "source": "canvas",
+      "viewport": {"width": 1440, "height": 900, "device_pixel_ratio": 1.0000000149011612},
+      "zoom_percent": 100,
+      "precondition": "Authenticated empty Workflow Canvas with zero nodes.",
+      "action_trace": ["Apply the Chrome viewport capability at 1440x900 CSS pixels.", "Set the named 缩放比例 input to 100 and press Enter.", "Close the zoom disclosure and capture the settled Canvas."],
+      "visible_result": "No permanent left sidebar or visible main creation composer is present. The seven-action rail is horizontal and bottom-centered; four starter cards remain centered; bottom-left view controls remain viewport-fixed.",
+      "geometry_css_px": {
+        "rail_button_size": {"width": 32, "height": 32},
+        "rail_y": 847.2,
+        "rail_x": {"add": 579.5, "toolbox": 619.5, "assets": 659.5, "characters": 699.5, "history": 739.5, "shortcuts": 788.5, "tutorial": 828.5},
+        "asset_manager": {"x": 22, "y": 854, "width": 94, "height": 28},
+        "zoom": {"x": 248, "y": 854, "width": 42.475, "height": 28},
+        "starter_cards": {"count": 4, "width": 214, "height": 56, "y": 453},
+        "main_creation_composer_visible": false
+      },
+      "reference_file": {"path": "output/t5-096/official/2026-07-20/libtv-empty-canvas-exact-1440x900-100pct.jpg", "width": 1440, "height": 900, "format": "JPEG", "sha256": "fa92863497375359b6a4ea14ddaae6cbe9fe5e1d7c292d1533ffcc4f801b1cdb"},
+      "confidence": "HIGH"
+    },
+    {
+      "id": "L096-SHELL-EMPTY-EXACT-1366",
+      "source": "canvas",
+      "viewport": {"width": 1366, "height": 768, "device_pixel_ratio": 1.0000000149011612},
+      "zoom_percent": 100,
+      "precondition": "Same empty Workflow Canvas at 100%.",
+      "action_trace": ["Apply the Chrome viewport capability at 1366x768 CSS pixels.", "Verify innerWidth and innerHeight before capture."],
+      "visible_result": "The rail stays horizontal and bottom-centered; the bottom-left view controls keep their desktop positions.",
+      "geometry_css_px": {"add": {"x": 542.7, "y": 715.2, "width": 32, "height": 32}, "tutorial": {"x": 791.7, "y": 715.2, "width": 32, "height": 32}, "asset_manager": {"x": 22, "y": 722, "width": 94, "height": 28}, "zoom": {"x": 248, "y": 722, "width": 42.475, "height": 28}},
+      "reference_file": {"path": "output/t5-096/official/2026-07-20/libtv-empty-canvas-exact-1366x768-100pct.jpg", "width": 1366, "height": 768, "format": "JPEG", "sha256": "84693379881a2c0f1e2aac332285d42684fb490a16cc98a9f13cd0e4a40b4cd2"},
+      "confidence": "HIGH"
+    },
+    {
+      "id": "L096-SHELL-EMPTY-EXACT-920",
+      "source": "canvas",
+      "viewport": {"width": 920, "height": 900, "device_pixel_ratio": 1.0000000149011612},
+      "zoom_percent": 100,
+      "precondition": "Same empty Workflow Canvas at 100%.",
+      "action_trace": ["Apply the Chrome viewport capability at 920x900 CSS pixels.", "Verify innerWidth and innerHeight before capture."],
+      "visible_result": "The rail remains horizontal and bottom-centered rather than becoming a permanent side rail. The four starter cards extend beyond the compact visible width while viewport controls remain available.",
+      "geometry_css_px": {"add": {"x": 319.5, "y": 847.2, "width": 32, "height": 32}, "tutorial": {"x": 568.5, "y": 847.2, "width": 32, "height": 32}, "asset_manager": {"x": 22, "y": 854, "width": 94, "height": 28}, "zoom": {"x": 248, "y": 854, "width": 42.475, "height": 28}},
+      "reference_file": {"path": "output/t5-096/official/2026-07-20/libtv-empty-canvas-exact-920x900-100pct.jpg", "width": 920, "height": 900, "format": "JPEG", "sha256": "6e3776050a9a9ba4b9afe281edbf9b5f04807fb058a06d405f5480950b52db31"},
+      "confidence": "HIGH"
+    },
+    {
+      "id": "L096-ZOOM-EMPTY-EXACT-MATRIX",
+      "source": "canvas",
+      "viewport": {"width": 1440, "height": 900, "device_pixel_ratio": 1.0000000149011612},
+      "zoom_percent": [17, 36, 100, 200],
+      "precondition": "Empty Workflow Canvas; the named zoom input is the only edited control.",
+      "action_trace": ["Open 缩放选项.", "Fill 缩放比例 with 17, 36, 100, then 200 in separate settled states.", "Press Enter after each value and verify the named zoom button reports the requested percentage.", "Close the disclosure before each capture."],
+      "visible_result": "Each requested value settles exactly. Viewport-fixed product chrome remains stable while the Canvas world zoom changes; no node is created.",
+      "focus_trace": ["The named zoom textbox receives focus.", "Enter commits the controlled input.", "The disclosure is closed from the named zoom button."],
+      "motion": {"kind": "animated_zoom_transition", "settled_wait_ms": 350},
+      "reference_files": [
+        {"path": "output/t5-096/official/2026-07-20/libtv-empty-canvas-exact-1440x900-17pct.jpg", "sha256": "e164563d0809a0c2b1e55122c5e94d7695cb1d430bfd4d7b537a49c698b3a87f"},
+        {"path": "output/t5-096/official/2026-07-20/libtv-empty-canvas-exact-1440x900-36pct.jpg", "sha256": "c864ebdd589de54cda9f1a37c3298867215f6a56990fd14d97222c315d8c8e57"},
+        {"path": "output/t5-096/official/2026-07-20/libtv-empty-canvas-exact-1440x900-100pct.jpg", "sha256": "fa92863497375359b6a4ea14ddaae6cbe9fe5e1d7c292d1533ffcc4f801b1cdb"},
+        {"path": "output/t5-096/official/2026-07-20/libtv-empty-canvas-exact-1440x900-200pct.jpg", "sha256": "dce06d96628cda534fe94f7df709ae0450f0cf4b3893dc0aee58580ead71ab40"}
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "id": "L096-GUIDE-NODES-WORKFLOW-SHELL",
+      "source": "guide",
+      "viewport": {"width": 1440, "height": 900, "device_pixel_ratio": 1.0000000149011612},
+      "zoom_percent": null,
+      "precondition": "Open the official 使用教程 action from the authenticated Canvas, then follow its direct Feishu document link.",
+      "action_trace": ["Open section 1.2.7 常用节点操作.", "Open section 1.3.2 工作流操作.", "Open section 1.4.2 画布左侧栏."],
+      "visible_result": "The official guide inventories text, image, video, audio, script, node operations, workflow construction, project menu, Canvas sidebar, personal center, and minimap. Its update notes also describe node location by media double-click, right-click copy, multi-select grouping/storyboard merge, asset drag-in, auto-arrange, video synthesis, and blank-Canvas Director creation.",
+      "reference_files": [
+        {"path": "output/t5-096/official/2026-07-20/libtv-official-guide-node-operations-exact-1440x900.jpg", "sha256": "337f60d38dbefd6aa129c6cf98b116b04112c7e2ea6c01f985529d4788eaa7cd"},
+        {"path": "output/t5-096/official/2026-07-20/libtv-official-guide-workflow-operations-exact-1440x900.jpg", "sha256": "d1583170b788ddface0cdba45b7afbd770ed1796c70b83e442a92cd03ce612df"},
+        {"path": "output/t5-096/official/2026-07-20/libtv-official-guide-canvas-sidebar-exact-1440x900.jpg", "sha256": "f0f14ab32da512283c9b3bb9509a440f7a44a423134b292aca6de138377f2ac2"}
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "id": "L096-SHARE-POPULATED-EXACT-MATRIX",
+      "source": "share",
+      "viewport": [{"width": 1440, "height": 900}, {"width": 1366, "height": 768}, {"width": 920, "height": 900}],
+      "zoom_percent": 28,
+      "precondition": "Open the official guide's public read-only share at 1440x900; no Copy Project or graph-changing control is invoked.",
+      "action_trace": ["Wait for the populated graph and named Director/media nodes.", "Capture at 1440x900.", "Apply 1366x768 and 920x900 CSS viewports without changing graph state.", "Verify the zoom readout remains 28%."],
+      "visible_result": "The populated graph, three-node group, Director node, media/reference/result nodes, edges, minimap, and view controls remain observable across all three exact viewports.",
+      "reference_files": [
+        {"path": "output/t5-096/official/2026-07-20/libtv-official-share-populated-exact-1440x900-28pct.jpg", "width": 1440, "height": 900, "sha256": "29f58980b2d475088e34edc752c889d0cff2261d94d8b77f4085c9cc83860d4b"},
+        {"path": "output/t5-096/official/2026-07-20/libtv-official-share-populated-exact-1366x768-28pct.jpg", "width": 1366, "height": 768, "sha256": "e397d9f47770e3a01f2b6e4c12f623defc9448ed0fdfc4e3dfd89eddc09223b6"},
+        {"path": "output/t5-096/official/2026-07-20/libtv-official-share-populated-exact-920x900-28pct.jpg", "width": 920, "height": 900, "sha256": "8c9371bd6672e2a6f66a39ee5962121dcd3d388b3b6f70838caa6e18527e95c0"}
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "id": "L096-SHARE-IMAGE-SELECTED",
+      "source": "share",
+      "viewport": {"width": 1440, "height": 900, "device_pixel_ratio": 1.0000000149011612},
+      "zoom_percent": 39,
+      "precondition": "Official public share loaded at 1440x900 with the populated graph visible.",
+      "action_trace": ["Select the unique 图片节点 4 label.", "Observe the read-only panorama preview controls.", "Use the unique 退出全景预览(不支持esc退出) action to restore the graph."],
+      "visible_result": "Selection opens panorama preview with Exit, Reset View, composition guides, full-screen, and disabled screenshot controls; Exit returns to the populated graph without mutation.",
+      "focus_trace": ["The unique media node becomes the active contextual target.", "The named Exit action restores the graph context."],
+      "reference_file": {"path": "output/t5-096/official/2026-07-20/libtv-official-share-image-selected-exact-1440x900-39pct.jpg", "width": 1440, "height": 900, "format": "JPEG", "sha256": "81620470ef73c210024f4cf09965e95c1bf9186c68571227c65ada8d335da11a"},
+      "confidence": "HIGH"
+    },
+    {
+      "id": "L096-SHARE-POPULATED-HIGH-ZOOM-BOUNDARY",
+      "source": "share",
+      "viewport": {"width": 1440, "height": 900, "device_pixel_ratio": 1.0000000149011612},
+      "zoom_percent": 207,
+      "precondition": "Official public read-only share loaded at its fitted 30% state with the populated graph available.",
+      "action_trace": ["Open the named zoom disclosure and attempt to commit 200 through the numeric zoom textbox.", "Wait 4.75 seconds and verify the readout remains 30%, establishing that the public share ignores direct numeric editing.", "Activate the official 100% preset, then invoke the named 放大 action four times with settled waits."],
+      "visible_result": "The read-only share exposes the deterministic sequence 100%, 120%, 144%, 173%, and 207%; exact populated 200% is not an available official state. At the nearest observable high zoom, the populated media surface, screen-fixed view controls, and node context remain visible without Copy Project or graph mutation.",
+      "geometry_css_px": {"canvas_zoom_readout": "207%", "exact_200_status": "NOT_AVAILABLE_IN_PUBLIC_SHARE", "zoom_sequence_percent": [100, 120, 144, 173, 207]},
+      "focus_trace": ["The zoom textbox receives focus but does not commit 200 in the read-only share.", "The named zoom menu actions remain keyboard-addressable.", "The official 适合屏幕 action restores the share to 30%."],
+      "motion": {"kind": "animated_zoom_transition", "measurement": "controller_observed_settled_wait_only", "css_duration_ms": null},
+      "reference_file": {"path": "output/t5-096/official/2026-07-20/libtv-official-share-populated-exact-1440x900-207pct.jpg", "width": 1440, "height": 900, "format": "JPEG", "sha256": "002a0ae6861c4248b93bac087f3552abd8f43d01d040ec0098cf750faa8d463e"},
+      "confidence": "HIGH"
+    },
+    {
+      "id": "L096-SHARE-FOCUS-RESTORATION-BOUNDARY",
+      "source": "share",
+      "viewport": {"width": 1440, "height": 900, "device_pixel_ratio": 1.0000000149011612},
+      "zoom_percent": [30, 207],
+      "precondition": "Official public read-only share with populated media nodes; no Copy Project or graph-changing action invoked.",
+      "action_trace": ["At fit 30%, select the unique 图片节点 4 and invoke the named panorama Exit control.", "Observe the graph restoration and active control.", "At 207%, select 参考生成图像 and press Escape on the Canvas application."],
+      "visible_result": "The panorama Exit restores the graph and focus to the named zoom-options button at 30%. Escape from the 207% selected-image context clears the contextual selection and leaves focus on BODY while preserving the 207% view state.",
+      "focus_trace": ["At 30%, media selection moves focus into the selected node context.", "Named panorama Exit restores focus to 缩放选项 with readout 30%.", "At 207%, Escape returns focus to BODY and does not mutate the graph."],
+      "motion": {"kind": "contextual_selection_and_exit", "measurement": "controller_observed_upper_bound_only", "selection_upper_bound_ms": 2599, "exit_upper_bound_ms": 3047, "css_duration_ms": null},
+      "reference_file": {"path": "output/t5-096/official/2026-07-20/libtv-official-share-image-selected-exact-1440x900-207pct.jpg", "width": 1440, "height": 900, "format": "JPEG", "sha256": "44d4a7c21156fbfaa48a9192c74ab31a0937d770bdf32c47ce3615ba04ab8bb4"},
+      "confidence": "HIGH"
+    }
+  ],
+  "remaining_evidence_gate": [
+    "Exact populated 200% is unavailable in the official public share; its ignored numeric input and nearest deterministic 207% state are explicitly bounded rather than fabricated.",
+    "Precise CSS motion duration is not exposed by the supported read-only observation path; controller-observed upper bounds and deterministic settled states are retained.",
+    "Final Revid extension rectangles and zero-collision evidence remain implementation-time Unit 5 work; every ownership group already has a named counterpart or extension slot."
+  ]
+}

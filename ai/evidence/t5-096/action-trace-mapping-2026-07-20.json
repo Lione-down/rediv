@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "task_id": "T5-096",
+  "state": "REGISTERED_ROWS_AUTOMATED_PASS_HUMAN_REVIEW_PENDING",
+  "director_scope": "HUMAN_EXCLUDED_NOT_APPLICABLE",
+  "counter_scope": "REGISTERED_NON_PAID_READ_ONLY_ROWS_ONLY; DECLARED_CHECKLIST_BOUNDARIES_AND_DIRECTOR_EXCLUSION_NOT_COUNTED",
+  "functional_run": {
+    "command": "npx playwright test --project=chromium --grep-invert \"200-node 300-connection Canvas passes focused interaction thresholds\"",
+    "result": "532/532 passed",
+    "hardware_gate": "1/1 passed separately under headed AMD D3D11 with unchanged thresholds"
+  },
+  "mapped_assertion_run": {
+    "command": "npx playwright test tests/e2e/canvas-libtv-three-axis-parity.spec.ts tests/e2e/canvas-agent-skill-preflight-ui.spec.ts tests/e2e/canvas-storyboard-workflow.spec.ts tests/e2e/canvas-resource-generation.spec.ts tests/e2e/canvas-command-interactions.spec.ts tests/e2e/canvas-storyboard-group-workflow.spec.ts tests/e2e/canvas-libtv-structural-parity.spec.ts --project=chromium --reporter=json",
+    "result": "34/34 passed",
+    "project": "chromium",
+    "report_relative_path": "output/t5-096/revid/2026-07-20/mapped-assertion-results.json",
+    "report_sha256": "c194da524a197c8594ea95981386b8c8da05862b79a407ce759bb31e2d3565e1",
+    "files": [
+      "canvas-agent-skill-preflight-ui.spec.ts",
+      "canvas-command-interactions.spec.ts",
+      "canvas-libtv-structural-parity.spec.ts",
+      "canvas-libtv-three-axis-parity.spec.ts",
+      "canvas-resource-generation.spec.ts",
+      "canvas-storyboard-group-workflow.spec.ts",
+      "canvas-storyboard-workflow.spec.ts"
+    ]
+  },
+  "mappings": [
+    { "id": "L096-SHELL-EMPTY-1440", "revid_outcome": "Exact 1440x900 empty shell, four starters, adjacent X14 composer, bottom rail, and zero graph mutation.", "tests": ["canvas-libtv-three-axis-parity.spec.ts", "canvas-libtv-shell-parity.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-SHELL-EMPTY-1366", "revid_outcome": "Exact 1366x768 empty shell preserves the same hierarchy and bounded controls.", "tests": ["canvas-libtv-three-axis-parity.spec.ts", "authenticated-workflow.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-SHELL-EMPTY-920", "revid_outcome": "Exact 920x900 compact shell keeps editing and rail ownership without collision.", "tests": ["canvas-libtv-three-axis-parity.spec.ts", "canvas-shell-navigation.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-ZOOM-EMPTY-17", "revid_outcome": "Named zoom input commits 17%; screen-fixed chrome and empty graph remain unchanged.", "tests": ["canvas-libtv-three-axis-parity.spec.ts", "canvas-libtv-node-geometry.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-ZOOM-EMPTY-36", "revid_outcome": "Named zoom input commits 36%; screen-fixed chrome and empty graph remain unchanged.", "tests": ["canvas-libtv-three-axis-parity.spec.ts", "canvas-libtv-node-geometry.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-ZOOM-EMPTY-200", "revid_outcome": "Named zoom input commits 200%; screen-fixed chrome and empty graph remain unchanged.", "tests": ["canvas-libtv-three-axis-parity.spec.ts", "canvas-composer-zoom.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-DISCLOSURE-ADD-ESC", "revid_outcome": "Add discloses nine scoped actions, omits Director, routes Upload to Project Resources, and remains document-PATCH neutral.", "tests": ["canvas-libtv-three-axis-parity.spec.ts", "canvas-keyboard-ownership.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-RAIL-DISCLOSURES-EMPTY-NATIVE", "revid_outcome": "Horizontal bottom rail routes Add, resources, history, preflights, Palette, tutorial, and keyboard disclosures through native authorities.", "tests": ["canvas-libtv-three-axis-parity.spec.ts", "canvas-professional-action-palette.spec.ts", "canvas-shell-navigation.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-AGENT-EMPTY-NATIVE", "revid_outcome": "Agent/Skill opens one closed registration/preflight surface; unavailable execution is explicitly disabled and graph-neutral.", "tests": ["canvas-agent-skill-contract.spec.ts", "canvas-agent-skill-preflight-ui.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-STORYBOARD-EMPTY-NATIVE", "revid_outcome": "Storyboard switches to the native empty projection and returns to Workflow without persistence writes.", "tests": ["canvas-storyboard-workflow.spec.ts", "canvas-storyboard-visual.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-ASSET-MANAGER-EMPTY-NATIVE", "revid_outcome": "Project resources and generation history open the native asset surface; empty state and pagination remain explicit and mutation-free.", "tests": ["canvas-resource-generation.spec.ts", "canvas-resource-pagination.spec.ts", "canvas-libtv-three-axis-parity.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-MINIMAP-EMPTY-NATIVE", "revid_outcome": "Minimap disclosure uses the shared viewport authority and remains independent of graph mutation.", "tests": ["canvas-command-interactions.spec.ts", "canvas-performance-accessibility.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-GUIDE-NODES-WORKFLOW-SHELL", "revid_outcome": "Canonical node insertion, graph Workflow, Storyboard projection, grouping, connections, and Canvas shell paths are all native and reversible.", "tests": ["canvas-command-interactions.spec.ts", "canvas-empty-grid.spec.ts", "canvas-storyboard-group-workflow.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-SHARE-POPULATED-EXACT-MATRIX", "revid_outcome": "Lawful ten-node/one-group/nine-media/eleven-edge graph matches declared outer structure at all three viewports; 1440 structural difference is 0% under the 2px tolerance, and empty media has no duplicate node-local upload/recovery chrome.", "tests": ["canvas-libtv-structural-parity.spec.ts", "canvas-libtv-three-axis-parity.spec.ts", "canvas-libtv-visual-parity.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-SHARE-IMAGE-SELECTED", "revid_outcome": "Media selection retains source visibility, contextual ownership, active edges, Escape dismissal, and no document PATCH.", "tests": ["canvas-libtv-three-axis-parity.spec.ts", "canvas-image-operations.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-SHARE-POPULATED-HIGH-ZOOM-BOUNDARY", "revid_outcome": "Revid proves exact 200% selected-media geometry; official public share's nearest deterministic 207% remains the declared comparison boundary.", "tests": ["canvas-libtv-three-axis-parity.spec.ts", "canvas-libtv-node-geometry.spec.ts"], "status": "MATCHED" },
+    { "id": "L096-SHARE-FOCUS-RESTORATION-BOUNDARY", "revid_outcome": "Escape closes the exclusive contextual surface, preserves graph/camera state, and returns focus through the documented Revid owner.", "tests": ["canvas-libtv-three-axis-parity.spec.ts", "canvas-keyboard-ownership.spec.ts", "canvas-shell-navigation.spec.ts"], "status": "MATCHED" }
+  ],
+  "counters": {
+    "VISUAL_MISMATCH": 0,
+    "FUNCTIONAL_MISMATCH": 0,
+    "INTERACTION_MISMATCH": 0,
+    "UNOBSERVED": 0,
+    "REVID_EXTENSION_REGRESSION": 0
+  }
+}

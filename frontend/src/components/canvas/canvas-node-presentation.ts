@@ -11,6 +11,13 @@ export type CanvasNodeMediaPresentation =
   | { kind: 'placeholder'; label: string }
 
 export type CanvasNodeVisualKind = 'text' | 'media' | 'generation' | 'result' | 'unknown'
+export type CanvasNodeBodyKind = 'authoring' | 'media' | 'group' | 'unsupported'
+
+export interface CanvasNodeChromePresentation {
+  bodyKind: CanvasNodeBodyKind
+  label: string
+  labelPlacement: 'external' | 'internal'
+}
 
 export interface CanvasNodePresentation {
   typeLabel: string
@@ -21,6 +28,7 @@ export interface CanvasNodePresentation {
   inputPorts: readonly NodePortDefinition[]
   outputPorts: readonly NodePortDefinition[]
   media: CanvasNodeMediaPresentation | null
+  chrome: CanvasNodeChromePresentation
 }
 
 export function isSupportedCanvasGroupNode(node: CanvasNode) { return isNodeGroupContainer(node) }
@@ -59,9 +67,22 @@ function getMediaPresentation(node: CanvasNode): CanvasNodeMediaPresentation | n
 export function buildCanvasNodePresentation(node: CanvasNode): CanvasNodePresentation {
   const definition = resolveNodeDefinition(node.type, node.contentData)
   if (definition.kind === 'unsupported') {
-    return { typeLabel: `不支持的节点 · ${node.type}`, visualKind: 'unknown', content: `节点类型 ${node.type} 暂不受支持，原始数据已保留。`, canEditContent: false, isUnsupported: true, inputPorts: [], outputPorts: [], media: null }
+    return {
+      typeLabel: `不支持的节点 · ${node.type}`,
+      visualKind: 'unknown',
+      content: `节点类型 ${node.type} 暂不受支持，原始数据已保留。`,
+      canEditContent: false,
+      isUnsupported: true,
+      inputPorts: [],
+      outputPorts: [],
+      media: null,
+      chrome: { bodyKind: 'unsupported', label: node.title, labelPlacement: 'internal' },
+    }
   }
   const media = definition.capabilities.canPreviewMedia ? getMediaPresentation(node) : null
+  const bodyKind: CanvasNodeBodyKind = isNodeGroupContainer(node)
+    ? 'group'
+    : media ? 'media' : 'authoring'
   return {
     typeLabel: definition.label,
     visualKind: node.type === 'result' ? 'result' : media ? 'media' : node.type === 'generation' ? 'generation' : 'text',
@@ -71,6 +92,7 @@ export function buildCanvasNodePresentation(node: CanvasNode): CanvasNodePresent
     inputPorts: definition.ports.filter((port) => port.direction === 'input'),
     outputPorts: definition.ports.filter((port) => port.direction === 'output'),
     media,
+    chrome: { bodyKind, label: node.title, labelPlacement: 'external' },
   }
 }
 

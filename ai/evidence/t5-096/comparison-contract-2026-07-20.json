@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "task_id": "T5-096",
+  "state": "AUTOMATED_PASS",
+  "comparison_basis": "PUBLICLY_OBSERVABLE_CLEAN_ROOM_STRUCTURE",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "official_reference": {
+    "relative_path": "output/t5-096/official/2026-07-20/libtv-official-share-populated-exact-1440x900-28pct.jpg",
+    "sha256": "29f58980b2d475088e34edc752c889d0cff2261d94d8b77f4085c9cc83860d4b",
+    "observed_zoom_percent": 28
+  },
+  "revid_capture": {
+    "relative_path": "output/t5-096/revid/2026-07-20/revid-populated-1440x900-fit.png",
+    "sha256": "bc9d979d5afd4516c0d43981d85879a277d1f7a0a7e2f2c7c64041094df290d4",
+    "camera_action": "Control+0",
+    "fit_padding_css_px": 108
+  },
+  "verification": {
+    "command": "npx playwright test tests/e2e/canvas-libtv-evidence-contract.spec.ts tests/e2e/canvas-libtv-three-axis-parity.spec.ts tests/e2e/canvas-libtv-structural-parity.spec.ts --project=chromium",
+    "result": "9/9 passed",
+    "structural_edge_difference_percent": 0,
+    "result_relative_path": "output/t5-096/revid/2026-07-20/revid-structural-parity-result.json",
+    "result_sha256": "dbeaf11a4f38e0c8fc0904c199e696fd49ac9d609850accc7ef8fe4a48e44838"
+  },
+  "action_trace_mapping": {
+    "relative_path": "ai/evidence/t5-096/action-trace-mapping-2026-07-20.json",
+    "sha256": "584fa4248c6089433efa650fcb0eb7ec76fb0929dd7b55ec30a7e72bd79256fc",
+    "rows": 17
+  },
+  "thresholds": {
+    "geometry_tolerance_css_px": 2,
+    "structural_edge_difference_percent": 2
+  },
+  "metric": {
+    "name": "bidirectional_tolerant_structural_edge_difference",
+    "definition": "Rasterize each declared outer rectangle edge at one CSS-pixel resolution. An edge pixel matches when the opposite set contains a pixel within the declared Chebyshev tolerance. Difference is unmatched pixels in both directions divided by total pixels in both sets.",
+    "normalization": [
+      "Compare outer structural rectangles only.",
+      "Ignore media pixels, official copy, labels, icons, connection curves, colors, shadows, and antialiasing.",
+      "Use browser-runtime DOM rectangles for media nodes, cross-check each DOM rectangle against its Leafer card, and read group/script rectangles directly from the runtime Leafer inspection surface.",
+      "Require every landmark x, y, width, and height field to remain within 2 CSS pixels before applying the aggregate edge gate."
+    ]
+  },
+  "landmarks": [
+    { "id": "environment", "revid_node_id": "parity-environment", "measurement": "dom", "rect": { "x": 108, "y": 374, "width": 172, "height": 97 } },
+    { "id": "character_main", "revid_node_id": "parity-character-main", "measurement": "dom", "rect": { "x": 340, "y": 376, "width": 172, "height": 96 } },
+    { "id": "character_turnaround", "revid_node_id": "parity-character-turnaround", "measurement": "dom", "rect": { "x": 340, "y": 506, "width": 172, "height": 97 } },
+    { "id": "character_variant", "revid_node_id": "parity-character-variant", "measurement": "dom", "rect": { "x": 340, "y": 628, "width": 172, "height": 97 } },
+    { "id": "scene_result", "revid_node_id": "parity-scene-result", "measurement": "dom", "rect": { "x": 579, "y": 378, "width": 180, "height": 102 } },
+    { "id": "video_result", "revid_node_id": "parity-video-result", "measurement": "dom", "rect": { "x": 588, "y": 555, "width": 172, "height": 96 } },
+    { "id": "empty_media", "revid_node_id": "parity-empty-media", "measurement": "dom", "rect": { "x": 798, "y": 175, "width": 173, "height": 98 } },
+    { "id": "large_group", "revid_node_id": "parity-large-group", "measurement": "world", "rect": { "x": 788, "y": 374, "width": 544, "height": 305 } },
+    { "id": "group_script", "revid_node_id": "parity-group-script", "measurement": "world", "rect": { "x": 1004, "y": 396, "width": 98, "height": 112 } },
+    { "id": "group_reference", "revid_node_id": "parity-group-reference", "measurement": "dom", "rect": { "x": 803, "y": 539, "width": 97, "height": 130 } },
+    { "id": "group_output", "revid_node_id": "parity-group-output", "measurement": "dom", "rect": { "x": 1219, "y": 453, "width": 97, "height": 130 } }
+  ],
+  "exclusions": [
+    {
+      "id": "official_director_console",
+      "classification": "HUMAN_EXCLUDED_NOT_APPLICABLE",
+      "official_region": { "x": 142, "y": 514, "width": 116, "height": 117 },
+      "reason": "Human Owner explicitly excluded the Director console from T5-096. It has no Revid implementation, entry, placeholder, imitation, or parity counter."
+    }
+  ],
+  "extensions": [
+    {
+      "id": "X14_main_composer",
+      "classification": "REVID_EXTENSION_NOT_PARITY",
+      "applies_to": "empty_1440x900_pair",
+      "revid_region": { "x": 369, "y": 703, "width": 702, "height": 121 },
+      "reason": "The Revid X14 composer remains independently labeled above the rail and is excluded only from empty-shell structural comparison; it does not overlap the starter core."
+    },
+    {
+      "id": "X05_graph_access_closed_state",
+      "classification": "REVID_EXTENSION_NOT_PARITY",
+      "applies_to": "populated_1440x900_pair",
+      "revid_region": null,
+      "reason": "Graph Access is closed in the compared state and therefore contributes no visible mask or parity-core geometry effect."
+    }
+  ]
+}

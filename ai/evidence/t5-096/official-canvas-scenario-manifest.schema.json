@@ -73,8 +73,8 @@
           "source_url": { "type": "string", "format": "uri" },
           "observed_at": { "type": "string", "format": "date-time" },
           "version_clue": { "type": "string", "minLength": 1 },
-          "viewport": { "enum": ["1440x900", "1366x768", "920x900"] },
-          "zoom_percent": { "enum": [17, 36, 100, 200] },
+          "viewport": { "enum": ["1440x900", "1366x768", "920x900", "1662x1138", "1440x900 / 1366x768 / 920x900"] },
+          "zoom_percent": { "enum": [17, 28, 36, 39, 100, 200, 207] },
           "precondition": { "type": "string", "minLength": 1 },
           "action_trace": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
           "visible_result": { "type": "string", "minLength": 1 },
@@ -86,15 +86,23 @@
             "additionalProperties": false,
             "required": ["path", "sha256"],
             "properties": {
-              "path": { "type": "string", "pattern": "^output/t5-096/" },
-              "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+              "format": { "enum": ["JPEG", "PNG"] },
+              "height": { "type": "integer", "minimum": 1 },
+              "path": { "type": "string", "pattern": "^(output/t5-096/|ai/evidence/t5-096/)" },
+              "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              "width": { "type": "integer", "minimum": 1 }
             }
           },
           "confidence": { "enum": ["HIGH", "MEDIUM", "LOW"] },
           "visual_status": { "enum": ["PENDING", "MATCHED", "MISMATCH"] },
           "functional_status": { "enum": ["PENDING", "MATCHED", "MISMATCH"] },
           "interaction_status": { "enum": ["PENDING", "MATCHED", "MISMATCH"] },
-          "revid_extension_status": { "enum": ["PENDING", "NOT_APPLICABLE", "EXTENSION_PRESERVED", "REGRESSION"] }
+          "revid_extension_status": { "enum": ["PENDING", "NOT_APPLICABLE", "EXTENSION_PRESERVED", "REGRESSION"] },
+          "excluded_surface_ids": {
+            "type": "array",
+            "items": { "enum": ["official_director_console"] },
+            "uniqueItems": true
+          }
         }
       }
     },

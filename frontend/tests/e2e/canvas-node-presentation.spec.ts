@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
   buildCanvasNodePresentation,
+  canvasNodeVisualSize,
   isSupportedCanvasGroupNode,
 } from '../../src/components/canvas/canvas-node-presentation'
 import type { CanvasNode } from '../../src/types/canvas'
@@ -28,6 +29,49 @@ test('presentation exposes every registry port for generation nodes', () => {
   expect(presentation.inputPorts.map((port) => port.id)).toEqual(['prompt', 'media'])
   expect(presentation.outputPorts.map((port) => port.id)).toEqual(['out'])
   expect(presentation.isUnsupported).toBe(false)
+  expect(presentation.chrome).toEqual({
+    bodyKind: 'authoring',
+    label: '节点',
+    labelPlacement: 'external',
+  })
+})
+
+test('supported authoring, media, and group nodes expose content-shaped external-label chrome', () => {
+  expect(buildCanvasNodePresentation(node({
+    type: 'script',
+    title: '剧情脚本',
+    content: '第一场：雨夜。',
+  })).chrome).toEqual({
+    bodyKind: 'authoring',
+    label: '剧情脚本',
+    labelPlacement: 'external',
+  })
+
+  expect(buildCanvasNodePresentation(node({
+    type: 'result',
+    title: '参考生成图像',
+    contentData: { subtype: 'image', serialization_version: 1, url: '/uploads/result.png' },
+  })).chrome).toEqual({
+    bodyKind: 'media',
+    label: '参考生成图像',
+    labelPlacement: 'external',
+  })
+
+  expect(buildCanvasNodePresentation(node({
+    type: 'group',
+    title: '分组 3 个节点',
+    contentData: { subtype: 'group', serialization_version: 1 },
+  })).chrome).toEqual({
+    bodyKind: 'group',
+    label: '分组 3 个节点',
+    labelPlacement: 'external',
+  })
+})
+
+test('long script surfaces retain observed prompt-card height without changing short cards', () => {
+  expect(canvasNodeVisualSize(node({ content: '短镜头。', height: 260 }))).toEqual({ width: 320, height: 120 })
+  expect(canvasNodeVisualSize(node({ content: '中'.repeat(100), height: 260 }))).toEqual({ width: 320, height: 180 })
+  expect(canvasNodeVisualSize(node({ content: '长'.repeat(180), height: 260 }))).toEqual({ width: 320, height: 220 })
 })
 
 test('presentation labels unsupported nodes and exposes no mutation ports', () => {
@@ -42,6 +86,11 @@ test('presentation labels unsupported nodes and exposes no mutation ports', () =
   expect(presentation.inputPorts).toEqual([])
   expect(presentation.outputPorts).toEqual([])
   expect(presentation.isUnsupported).toBe(true)
+  expect(presentation.chrome).toEqual({
+    bodyKind: 'unsupported',
+    label: '未来分镜',
+    labelPlacement: 'internal',
+  })
 })
 
 test('future-version group nodes retain unsupported rendering instead of group chrome', () => {

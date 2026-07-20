@@ -76,6 +76,8 @@ export interface MinimapMetrics {
 export const MIN_ZOOM = 0.1
 export const MAX_ZOOM = 8
 export const CANVAS_GRID_SIZE = 24
+export const CANVAS_DEFAULT_FIT_PADDING = 48
+export const CANVAS_GRAPH_FIT_PADDING = 108
 
 export function clampZoom(zoom: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
@@ -102,7 +104,7 @@ export function getNodesBounds(nodes: readonly CanvasNode[]): WorldRect | null {
 export function fitViewportToNodes(
   nodes: readonly CanvasNode[],
   size: ViewportSize,
-  padding = 48,
+  padding = CANVAS_DEFAULT_FIT_PADDING,
   insets: Partial<ViewportInsets> = {},
 ): ViewportState | null {
   const bounds = getNodesBounds(nodes)
