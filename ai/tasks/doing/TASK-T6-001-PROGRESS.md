@@ -45,6 +45,7 @@
 - Unit 7 fresh review moved the complete duplication subdomain out of the 525-line Canvas controller into a 191-line module and split the 531-line native-transaction integration class; final production controller is 343 lines and each new file is below 500 lines.
 - The first post-split full backend run caught one omitted existing `deepcopy` import (`6 failed, 558 passed`). After the exact import restoration, focused duplication/cinematic passed `23/23` plus `3` subtests and final-diff full backend passed `564/564` plus `147` subtests.
 - Final source/license and hygiene review found no third-party copied expression, notice obligation, generic execute/imported runtime/second authority, provider integration, dependency, migration, sensitive path, high-confidence secret assignment, invalid UTF-8, or BOM.
+- Unit 6/review slice was committed as `a9b69be` and pushed; `HEAD == origin/main`, ahead/behind `0/0`. Final regenerated Human-review PNG hashes are `06e2375a...` at 1440x900 and `ab9388a6...` at 375x812.
 
 ## Remaining Work
 
@@ -52,7 +53,7 @@
 
 ## Exact Next Action
 
-Perform the Unit 7 fresh acceptance/diff/source-license/hygiene review, commit and push the Unit 6 slice, then present the existing Revid-owned 1440x900 and 375x812 screenshots for the Human UX verdict before REPORT and final Task closure.
+Present the final Revid-owned 1440x900 reference-transfer and 375x812 review-only screenshots for the Human UX verdict. On acceptance, write REPORT, synchronize Task/PLAN/PROGRESS/CURRENT/ROADMAP to `DONE - PASS`, commit, push, and verify remote equality.
 
 ## Files Changed
 
@@ -133,6 +134,7 @@ Perform the Unit 7 fresh acceptance/diff/source-license/hygiene review, commit a
 - First post-split full backend: `6 failed, 558 passed, 147 subtests passed`; fingerprint `NameError: deepcopy` in duplicated connection metadata.
 - Recovery focused matrix: `23/23` plus `3` subtests; final-diff backend full: `564/564` plus `147` subtests in `424.22s`.
 - Fresh hygiene: `git diff --check` passed; sensitive paths `0`; high-confidence secret assignments `0`; strict UTF-8 failures `0`; BOM files `0`.
+- Scoped delivery: commit `a9b69be`; push passed; local/remote ahead/behind `0/0`.
 
 ## Blockers And Release Conditions
 

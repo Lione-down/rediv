@@ -82,7 +82,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Perform the Unit 7 fresh diff/acceptance/source-license/hygiene review, deliver the Unit 6 slice, and present the Revid-owned 1440x900 plus 375x812 screenshots for the Human UX verdict before REPORT and final closure.
+Obtain the Human UX verdict on the final Revid-owned 1440x900 reference-transfer and 375x812 review-only screenshots. If accepted, write REPORT and synchronize Task/PLAN/PROGRESS/CURRENT/ROADMAP to `DONE - PASS`, then commit, push, and verify `0/0`.
 
 ## Boundaries And Human Gates
 
@@ -95,5 +95,5 @@ Perform the Unit 7 fresh diff/acceptance/source-license/hygiene review, deliver 
 
 ## Worktree
 
-- Activation `eb13f7d`, Unit 0A `de2db15`, Unit 1 `b31ae2a`, and Unit 2 `ced6cd5` are pushed; Unit 3 text/sequence/command/test/evidence/state changes are the current owned diff pending scoped delivery.
+- T6-001 activation `eb13f7d`, Unit 0A `de2db15`, Unit 1 `b31ae2a`, Unit 2 `ced6cd5`, Unit 3 `f0f56df`, Unit 4 `9e8743b`, Unit 5 `ee720c5`, and Unit 6/review `a9b69be` are pushed; `HEAD == origin/main`, ahead/behind `0/0` before the Human UX verdict update.
 - User-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and outside delivery scope.
