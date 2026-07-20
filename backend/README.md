@@ -138,7 +138,3 @@ Ordinary CI never uses real credentials, provider calls, user databases, hardwar
 ## Local Database Artifacts
 
 Ignored historical `.db` files are not V2 runtime data sources. Do not delete them automatically. Each exact path requires backup/parity evidence and Human Owner approval before removal.
-
-## Security Note
-
-The current `T5-002` includes a P0 source credential finding. Source cleanup must not print the candidate value, and deleting an assignment does not rotate a credential. If the value was ever real or reused, Human Owner must rotate it separately.

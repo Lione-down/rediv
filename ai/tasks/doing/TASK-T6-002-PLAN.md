@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 7 - Durable state normalization`
+- Active unit: `Unit 8 - Request-scoped repositories`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Progress: `ai/tasks/doing/TASK-T6-002-PROGRESS.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`; tracked worktree clean.
@@ -67,13 +67,15 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 
 ### Unit 7 - Durable state normalization
 
-- Status: `active`
+- Status: `completed`
 
 - First add a failing validator for allowed states, one active Task, complete tables, link existence, and Task/REPORT/CURRENT/ROADMAP agreement.
 - Archive the long completion snapshot, make CURRENT concise, complete missing ROADMAP rows, normalize T5-092, and update entry docs without moving historical Task files.
 - Adopt `State = TODO|DOING|VERIFYING|BLOCKED|DONE` plus separate verification outcome.
 
 ### Unit 8 - Request-scoped repositories
+
+- Status: `active`
 
 - Prove stale cross-instance authorization/admin/domain state with two-store/two-session RED tests.
 - Introduce narrow domain repositories and migrate auth/admin first, then project/Canvas and asset/generation paths in bounded commits.

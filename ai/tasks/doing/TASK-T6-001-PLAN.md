@@ -1,6 +1,7 @@
 # TASK-T6-001 Plan
 
-- State: `DONE - PASS`
+- State: `DONE`
+- Verification outcome: `PASS`
 - Objective: repair detached Canvas edge geometry first, then deliver Revid-native cinematic director Skills v2 without changing v1 history or creating a second execution/state authority.
 - Activation baseline: `main`, `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`, ahead/behind `0/0`; tracked worktree clean; Human-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and excluded.
 - External workflow reference: `https://github.com/Emily2040/seedance-2.0`, pinned `main == 57d01dc66f93ecb03c2475be5f22dc416d9b701d` on 2026-07-20. It is an MIT-licensed design reference, not runtime code or provider truth.

@@ -1,6 +1,7 @@
 # TASK-T6-001 - Revid-native cinematic director Skills v2
 
-- State: `DONE - PASS`
+- State: `DONE`
+- Verification outcome: `PASS`
 - Phase: `Product V3 / Phase 6`
 - Objective: first eliminate the Human-reported detached Canvas connection geometry, then upgrade the three Revid-owned cinematic Skills to backward-compatible v2 director workflows with inspectable native handoff, durable sequence canon, accepted-take continuation, and explicit user-reviewed retakes.
 - Dependency: `T5-096 - DONE - PASS` at pushed `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`.

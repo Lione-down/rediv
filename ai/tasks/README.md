@@ -12,7 +12,7 @@ ai/tasks/
 └── done/       # 已归档的完成 Task 定义
 ```
 
-为保持 durable link 稳定，Task 状态变化不强制移动文件。`CURRENT.md`、`ROADMAP.md` 和 Task 内的 `Status` 必须一致。
+为保持 durable link 稳定，Task 状态变化不强制移动文件；目录名不具备状态语义。`CURRENT.md`、`ROADMAP.md` 和当前 Task chain 的 `State` / `Verification outcome` 必须一致。
 
 ## Required Files
 
@@ -34,6 +34,15 @@ ai/tasks/
 - `DONE`：REPORT、实现、验证、CURRENT 和 ROADMAP 已一致。
 
 同一时间只允许一个 implementation Task 处于 `DOING` 或 `VERIFYING`。
+
+Verification outcome 与 State 分离：
+
+- `PENDING`：尚未完成全部要求的验证。
+- `PASS`：全部非 deferred acceptance 与 hard gates 已满足。
+- `FAIL`：验证已执行但存在未关闭失败。
+- `DEFERRED`：仅用于 Human Owner 明确接受并记录的边界。
+
+T4/T5 历史文件中的复合 metadata 保持为历史证据；从 T6 起，Task、PLAN、PROGRESS、REPORT、CURRENT 和 ROADMAP 必须使用精确 State token 与独立 Verification outcome。运行 `python scripts/validate-project-state.py` 验证当前 durable state。
 
 ## Direct Delivery Flow
 
@@ -58,8 +67,8 @@ REPORT-T5-002.md
 
 Commit 使用 `type(scope): subject`，一个 commit 只包含一个已验证的逻辑单元。
 
-## Active V2 Chain
+## Active Chain
 
-- `T5-001`: V2 documentation and architecture baseline, `DONE`
-- `T5-002`: P0 credential cleanup and complete MySQL-only retirement, `DOING`
-- 后续 dependency-ready 顺序见 [`../state/ROADMAP.md`](../state/ROADMAP.md)
+- `T6-001`: Revid-native cinematic director Skills v2, `DONE / PASS`。
+- `T6-002`: project audit remediation and structural hardening, `DOING / PENDING`。
+- 精确 active unit 与 next action 见 [CURRENT](../state/CURRENT.md)，完整 dependency 顺序见 [ROADMAP](../state/ROADMAP.md)。

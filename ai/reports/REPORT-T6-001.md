@@ -1,6 +1,7 @@
 # REPORT-T6-001 - Revid-native cinematic director Skills v2
 
-- Status: `DONE - PASS`
+- State: `DONE`
+- Verification outcome: `PASS`
 - Date: `2026-07-20`
 - Activation baseline: `034a49f45952cfa0f893363d401aa9ccf52eddbd`
 - Human decision: `ACCEPT`

@@ -6,12 +6,12 @@ Last updated: 2026-07-20
 
 Deliver backward-compatible Revid-native cinematic director Skills v2 on top of the accepted Canvas, while preserving explicit user/provider ownership, native generation authorities, durable graph/history contracts, and fail-closed safety.
 
-| Order | Task | Deliverable | State | Dependency |
-|---:|---|---|---|---|
-| 1 | T6-001 | Detached-edge correction, cinematic director contracts, sequence canon, accepted-take continuation, and explicit retake workflow | DONE - PASS | T5-096 |
-| 2 | T6-002 | Project audit security, consistency, CI, persistence, Canvas-state, and maintainability remediation | DOING | T6-001 |
+| Order | Task | Deliverable | State | Verification | Dependency |
+|---:|---|---|---|---|---|
+| 1 | T6-001 | Detached-edge correction, cinematic director contracts, sequence canon, accepted-take continuation, and explicit retake workflow | DONE | PASS | T5-096 |
+| 2 | T6-002 | Project audit security, consistency, CI, persistence, Canvas-state, and maintainability remediation | DOING | PENDING | T6-001 |
 
-T6-001 is `DONE - PASS`; `REPORT-T6-001.md` is authoritative. T6-002 is the only active implementation Task and executes the 2026-07-20 audit remediation in ten dependency-ordered Units with RED/GREEN verification, scoped delivery, and Human gates for exact Canvas limits or incompatible supported-route removal.
+T6-001 is `DONE / PASS`; `REPORT-T6-001.md` is authoritative. T6-002 is the only active implementation Task and executes the 2026-07-20 audit remediation in ten dependency-ordered Units with RED/GREEN verification, scoped delivery, and Human gates for exact Canvas limits or incompatible supported-route removal.
 
 ## Completed Product V2 / Phase 5 Outcome
 
@@ -34,74 +34,104 @@ Deliver a MySQL-only, premium dark-purple Revid V2 whose first accepted mileston
 
 ## Delivery Order
 
-| Order | Task | Deliverable | State | Dependency |
-|---:|---|---|---|---|
-| 1 | T5-001 | V2 PRD, Canvas acceptance, design system, architecture, ADRs, and roadmap | DONE - PASS | Phase 4 complete and Human direction approved |
-| 2 | T5-002 | P0 credential cleanup and complete MySQL-only runtime/test/tooling retirement | DONE - PASS | T5-001 |
-| 3 | T5-003 | Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route | DONE - PASS | T5-002 |
-| 4 | T5-004 | Single V2 token source, full-screen Canvas shell, canvas navigation, and viewport persistence | DONE - PASS | T5-003 |
-| 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | DONE - PASS | T5-004 |
-| 6 | T5-006 | Autosave queue, optimistic conflict handling, 100-step undo/redo, revisions, checkpoints, and restore | DONE - PASS | T5-005 |
-| 7 | T5-007 | Node registry, project-shared assets/templates, generation tasks/results, and mock provider flows | DONE - PASS | T5-006 |
-| 8 | T5-008 | Canvas first-acceptance E2E, 200/300 performance, browser, visual, accessibility, MySQL, and security closure | DONE - PASS | T5-007 |
-| 9 | T5-009 | Global V2 app-shell and shared-component dark-purple rollout without Canvas regression | DONE - PASS | T5-008 |
-| 10 | T5-010 | Login, Home, Space, Admin, error, empty, loading, and responsive V2 UX upgrade | DONE - PASS | T5-009 |
-| 11 | T5-011 | Full V2 regression, real-runtime verification, security review, documentation, and release closure | DONE - PASS | T5-010 |
-| 12 | T5-012 | Restore Canvas workspace rendering with Naive UI theme compatibility | DONE - PASS | T5-011 |
-| 13 | T5-013 | Repair Canvas node editing, generation lifecycle, and connections | DONE - PASS | T5-012 |
-| 14 | T5-014 | LibTV-inspired Canvas visual parity for node geometry, media, editing, ports, and passive edges | DONE - PASS | T5-013 |
-| 15 | T5-015 | Reference-backed Canvas refinement for media-shaped nodes, quiet graph chrome, and contextual tools | DONE - PASS | T5-014 |
-| 16 | T5-016 | Multi-scenario Canvas and node validation across mixed media, graph topology, lifecycle, density, and viewports | DONE - PASS | T5-015 |
-| 17 | T5-017 | Connected scripts and media become visible, validated image/video generation context | DONE - PASS | T5-016 |
-| 18 | T5-018 | Drag-edge continuation into compatible new typed nodes with atomic insertion | DONE - PASS | T5-017 |
-| 19 | T5-019 | Reverse typed port dragging and upstream continuation | DONE - PASS | T5-018 |
-| 20 | T5-020 | Direct edge selection and typed endpoint rerouting | DONE - PASS | T5-019 |
-| 21 | T5-021 | Atomic typed node insertion into an existing edge | DONE - PASS | T5-020 |
-| 22 | T5-022 | Generation input provenance spotlight and deterministic ordering | DONE - PASS | T5-021 |
-| 23 | T5-023 | Result lineage and sibling variant inspection | DONE - PASS | T5-022 |
-| 24 | T5-024 | In-canvas sibling result comparison tray | DONE - PASS | T5-023 |
-| 25 | T5-025 | Multi-input generation request preflight | DONE - PASS | T5-024 |
-| 26 | T5-026 | Undoable generation input ordering | DONE - PASS | T5-025 |
-| 27 | T5-027 | Generation node run history | DONE - PASS | T5-026 |
-| 43 | T5-043 | Align Agnes image and video provider contracts | DONE - PASS | T5-042 |
-| 44 | T5-044 | Zoom-consistent generation composer geometry | DONE - PASS | T5-043 |
-| 45 | T5-045 | Proportional node status badges at overview zoom | DONE - PASS | T5-044 |
-| 46 | T5-046 | Zoom-consistent media fallback content | DONE - PASS | T5-045 |
-| 47 | T5-047 | Proportional provenance markers at overview zoom | DONE - PASS | T5-046 |
-| 48 | T5-048 | Video current-frame reuse as Canvas image input | DONE - PASS | T5-047 |
-| 49 | T5-049 | Captured-frame provenance and repeat capture loop | DONE - PASS | T5-048 |
-| 50 | T5-050 | Selection-order composition preflight | DONE - PASS | T5-049 |
-| 51 | T5-051 | Reorderable composition preflight | DONE - PASS | T5-050 |
-| 52 | T5-052 | Dense composition preflight scalability | DONE - PASS | T5-051 |
-| 53 | T5-053 | Selected edge semantic identity | DONE - PASS | T5-052 |
-| 54 | T5-054 | Ordered multi-generation edge identity | DONE - PASS | T5-053 |
-| 55 | T5-055 | Arrange authoritative generation lineage | DONE - PASS | T5-054 |
-| 56 | T5-056 | Chained generation input lineage bridge | DONE - PASS | T5-055 |
-| 72 | T5-072 | Enterprise Canvas scenario certification and finite release closure | DONE - PASS | T5-071 |
-| 73 | T5-073 | Canvas authoring card hierarchy refinement | DONE - PASS | T5-072 |
-| 74 | T5-074 | Authenticated logout and global session exit | DONE - PASS | T5-073 |
-| 75 | T5-075 | Provider-backed generation parameters and reference intent | DONE - PASS | T5-074 |
-| 76 | T5-076 | Runtime generation visibility | DONE - PASS | T5-075 |
-| 77 | T5-077 | Durable generation stage and percent progress | DONE - PASS | T5-076 |
-| 78 | T5-078 | Pending output placement and result handoff | DONE - PASS | T5-077 |
-| 79 | T5-079 | Canvas media containment and keyframe rail isolation | DONE - PASS | T5-078 |
-| 80 | T5-080 | Canvas node and connection interaction usability | DONE - PASS | T5-079 |
-| 81 | T5-081 | Storyboard projection and image storyboard groups | DONE - PASS | T5-080 |
-| 82 | T5-082 | Professional action registry, Slash Palette, and 4/9/16/25 project-image grid split | DONE - PASS | T5-081 |
-| 83 | T5-083 | Versioned script-to-shot schema and atomic script/shot/generation/storyboard graph creation | DONE - PASS | T5-082 |
-| 84 | T5-084 | Professional Storyboard recipes for grid, character, and scene views | DONE - PASS | T5-083 |
-| 85 | T5-085 | Image expansion, inpaint, erase, cutout, upscale, region, and fusion contracts | DONE - PASS | T5-084 |
-| 86 | T5-086 | Shot angle, framing, focus, lighting, and time controls | DONE - PASS | T5-085 |
-| 87 | T5-087 | Workflow templates, dry-run, dependency execution, cancel/resume, and quota estimate | DONE - PASS | T5-086 |
-| 88 | T5-088 | Video trim, concat, preview, export, and FFmpeg/backend contract decision | DONE - PASS | T5-087 |
-| 89 | T5-089 | Audio generation and audio-driven video with fail-closed capability/quota/task contracts | DONE - PASS | T5-088 |
-| 90 | T5-090 | Revid Agent/Skill interface over native auth, project, canvas, and generation contracts | DONE - PASS | T5-089 |
-| 91 | T5-091 | Revid native cinematic Skills, structured references, deterministic generation optimization, billing acknowledgement, and stale lineage | DONE - PASS | T5-090 |
-| 92 | T5-092 | Same-Canvas concurrent image/video generation, request idempotency, and bounded Agnes admission control | DONE | T5-091 |
-| 93 | T5-093 | Restore legacy MySQL migration compatibility and local runtime | DONE - PASS | T5-092 |
-| 94 | T5-094 | Agnes contract recovery, AI script authoring, and LibTV observable Canvas parity | DONE - PASS | T5-093 |
-| 95 | T5-095 | Canvas main composer attachment, Send, and Agnes capability recovery | DONE - PASS | T5-094 |
-| 96 | T5-096 | LibTV official Canvas visual, functional, and interaction 1:1 parity with preserved Revid-only entries | DONE - PASS | T5-095 |
+| Order | Task | Deliverable | State | Verification | Dependency |
+|---:|---|---|---|---|---|
+| 1 | T5-001 | V2 PRD, Canvas acceptance, design system, architecture, ADRs, and roadmap | DONE | PASS | Phase 4 complete and Human direction approved |
+| 2 | T5-002 | P0 credential cleanup and complete MySQL-only runtime/test/tooling retirement | DONE | PASS | T5-001 |
+| 3 | T5-003 | Multi-canvas MySQL schema, safe backfill, APIs, duplication, and compatibility route | DONE | PASS | T5-002 |
+| 4 | T5-004 | Single V2 token source, full-screen Canvas shell, canvas navigation, and viewport persistence | DONE | PASS | T5-003 |
+| 5 | T5-005 | Incremental Leafer renderer, command model, selection, multi-move, group, connect, shortcuts, and arrange | DONE | PASS | T5-004 |
+| 6 | T5-006 | Autosave queue, optimistic conflict handling, 100-step undo/redo, revisions, checkpoints, and restore | DONE | PASS | T5-005 |
+| 7 | T5-007 | Node registry, project-shared assets/templates, generation tasks/results, and mock provider flows | DONE | PASS | T5-006 |
+| 8 | T5-008 | Canvas first-acceptance E2E, 200/300 performance, browser, visual, accessibility, MySQL, and security closure | DONE | PASS | T5-007 |
+| 9 | T5-009 | Global V2 app-shell and shared-component dark-purple rollout without Canvas regression | DONE | PASS | T5-008 |
+| 10 | T5-010 | Login, Home, Space, Admin, error, empty, loading, and responsive V2 UX upgrade | DONE | PASS | T5-009 |
+| 11 | T5-011 | Full V2 regression, real-runtime verification, security review, documentation, and release closure | DONE | PASS | T5-010 |
+| 12 | T5-012 | Restore Canvas workspace rendering with Naive UI theme compatibility | DONE | PASS | T5-011 |
+| 13 | T5-013 | Repair Canvas node editing, generation lifecycle, and connections | DONE | PASS | T5-012 |
+| 14 | T5-014 | LibTV-inspired Canvas visual parity for node geometry, media, editing, ports, and passive edges | DONE | PASS | T5-013 |
+| 15 | T5-015 | Reference-backed Canvas refinement for media-shaped nodes, quiet graph chrome, and contextual tools | DONE | PASS | T5-014 |
+| 16 | T5-016 | Multi-scenario Canvas and node validation across mixed media, graph topology, lifecycle, density, and viewports | DONE | PASS | T5-015 |
+| 17 | T5-017 | Connected scripts and media become visible, validated image/video generation context | DONE | PASS | T5-016 |
+| 18 | T5-018 | Drag-edge continuation into compatible new typed nodes with atomic insertion | DONE | PASS | T5-017 |
+| 19 | T5-019 | Reverse typed port dragging and upstream continuation | DONE | PASS | T5-018 |
+| 20 | T5-020 | Direct edge selection and typed endpoint rerouting | DONE | PASS | T5-019 |
+| 21 | T5-021 | Atomic typed node insertion into an existing edge | DONE | PASS | T5-020 |
+| 22 | T5-022 | Generation input provenance spotlight and deterministic ordering | DONE | PASS | T5-021 |
+| 23 | T5-023 | Result lineage and sibling variant inspection | DONE | PASS | T5-022 |
+| 24 | T5-024 | In-canvas sibling result comparison tray | DONE | PASS | T5-023 |
+| 25 | T5-025 | Multi-input generation request preflight | DONE | PASS | T5-024 |
+| 26 | T5-026 | Undoable generation input ordering | DONE | PASS | T5-025 |
+| 27 | T5-027 | Generation node run history | DONE | PASS | T5-026 |
+| 28 | T5-028 | Verified run result navigation | DONE | PASS | T5-027 |
+| 29 | T5-029 | Multi-selection generation composition | DONE | PASS | T5-028 |
+| 30 | T5-030 | Selection composition output validation | DONE | PASS | T5-029 |
+| 31 | T5-031 | Generation result placement and reveal | DONE | PASS | T5-030 |
+| 32 | T5-032 | Branch generation from image result | DONE | PASS | T5-031 |
+| 33 | T5-033 | Multi-result remix composition | DONE | PASS | T5-032 |
+| 34 | T5-034 | Foreground workflow reveal | DONE | PASS | T5-033 |
+| 35 | T5-035 | Contextual typed node continuation | DONE | PASS | T5-034 |
+| 36 | T5-036 | Intent-safe continuation affordance | DONE | PASS | T5-035 |
+| 37 | T5-037 | Multi-selection input role preview | DONE | PASS | T5-036 |
+| 38 | T5-038 | Generation output variant map | DONE | PASS | T5-037 |
+| 39 | T5-039 | End-to-end generation provenance trace | DONE | PASS | T5-038 |
+| 40 | T5-040 | Explicit full generation trace fit | DONE | PASS | T5-039 |
+| 41 | T5-041 | Result-origin full lineage fit | DONE | PASS | T5-040 |
+| 42 | T5-042 | Inspector lineage source navigation | DONE | PASS | T5-041 |
+| 43 | T5-043 | Align Agnes image and video provider contracts | DONE | PASS | T5-042 |
+| 44 | T5-044 | Zoom-consistent generation composer geometry | DONE | PASS | T5-043 |
+| 45 | T5-045 | Proportional node status badges at overview zoom | DONE | PASS | T5-044 |
+| 46 | T5-046 | Zoom-consistent media fallback content | DONE | PASS | T5-045 |
+| 47 | T5-047 | Proportional provenance markers at overview zoom | DONE | PASS | T5-046 |
+| 48 | T5-048 | Video current-frame reuse as Canvas image input | DONE | PASS | T5-047 |
+| 49 | T5-049 | Captured-frame provenance and repeat capture loop | DONE | PASS | T5-048 |
+| 50 | T5-050 | Selection-order composition preflight | DONE | PASS | T5-049 |
+| 51 | T5-051 | Reorderable composition preflight | DONE | PASS | T5-050 |
+| 52 | T5-052 | Dense composition preflight scalability | DONE | PASS | T5-051 |
+| 53 | T5-053 | Selected edge semantic identity | DONE | PASS | T5-052 |
+| 54 | T5-054 | Ordered multi-generation edge identity | DONE | PASS | T5-053 |
+| 55 | T5-055 | Arrange authoritative generation lineage | DONE | PASS | T5-054 |
+| 56 | T5-056 | Chained generation input lineage bridge | DONE | PASS | T5-055 |
+| 57 | T5-057 | Multi-origin chained generation navigation | DONE | PASS | T5-056 |
+| 58 | T5-058 | Multi-origin reorder identity lifecycle | DONE | PASS | T5-057 |
+| 59 | T5-059 | Two-origin video keyframe generation | DONE | PASS | T5-058 |
+| 60 | T5-060 | Two-origin video failure recovery | DONE | PASS | T5-059 |
+| 61 | T5-061 | In-flight generation input lock | DONE | PASS | T5-060 |
+| 62 | T5-062 | Selected video keyframe rail | DONE | PASS | T5-061 |
+| 63 | T5-063 | Contextual toolbar collision avoidance | DONE | PASS | T5-062 |
+| 64 | T5-064 | Composition selection hull | DONE | PASS | T5-063 |
+| 65 | T5-065 | Reference-first visual asset recipes | DONE | PASS | T5-064 |
+| 66 | T5-066 | Generated video playback inside Canvas nodes | DONE | PASS | T5-065 |
+| 67 | T5-067 | Generation-owned output variant comparison | DONE | PASS | T5-066 |
+| 68 | T5-068 | Comparison variant panel-safe reveal | DONE | PASS | T5-067 |
+| 69 | T5-069 | Canvas single-active video playback | DONE | PASS | T5-068 |
+| 70 | T5-070 | Honest generation reference compatibility | DONE | PASS | T5-069 |
+| 71 | T5-071 | Reference-first visual fidelity v2 and recipe-flow isolation | DONE | PASS | T5-070 |
+| 72 | T5-072 | Enterprise Canvas scenario certification and finite release closure | DONE | PASS | T5-071 |
+| 73 | T5-073 | Canvas authoring card hierarchy refinement | DONE | PASS | T5-072 |
+| 74 | T5-074 | Authenticated logout and global session exit | DONE | PASS | T5-073 |
+| 75 | T5-075 | Provider-backed generation parameters and reference intent | DONE | PASS | T5-074 |
+| 76 | T5-076 | Runtime generation visibility | DONE | PASS | T5-075 |
+| 77 | T5-077 | Durable generation stage and percent progress | DONE | PASS | T5-076 |
+| 78 | T5-078 | Pending output placement and result handoff | DONE | PASS | T5-077 |
+| 79 | T5-079 | Canvas media containment and keyframe rail isolation | DONE | PASS | T5-078 |
+| 80 | T5-080 | Canvas node and connection interaction usability | DONE | PASS | T5-079 |
+| 81 | T5-081 | Storyboard projection and image storyboard groups | DONE | PASS | T5-080 |
+| 82 | T5-082 | Professional action registry, Slash Palette, and 4/9/16/25 project-image grid split | DONE | PASS | T5-081 |
+| 83 | T5-083 | Versioned script-to-shot schema and atomic script/shot/generation/storyboard graph creation | DONE | PASS | T5-082 |
+| 84 | T5-084 | Professional Storyboard recipes for grid, character, and scene views | DONE | PASS | T5-083 |
+| 85 | T5-085 | Image expansion, inpaint, erase, cutout, upscale, region, and fusion contracts | DONE | PASS | T5-084 |
+| 86 | T5-086 | Shot angle, framing, focus, lighting, and time controls | DONE | PASS | T5-085 |
+| 87 | T5-087 | Workflow templates, dry-run, dependency execution, cancel/resume, and quota estimate | DONE | PASS | T5-086 |
+| 88 | T5-088 | Video trim, concat, preview, export, and FFmpeg/backend contract decision | DONE | PASS | T5-087 |
+| 89 | T5-089 | Audio generation and audio-driven video with fail-closed capability/quota/task contracts | DONE | PASS | T5-088 |
+| 90 | T5-090 | Revid Agent/Skill interface over native auth, project, canvas, and generation contracts | DONE | PASS | T5-089 |
+| 91 | T5-091 | Revid native cinematic Skills, structured references, deterministic generation optimization, billing acknowledgement, and stale lineage | DONE | PASS | T5-090 |
+| 92 | T5-092 | Same-Canvas concurrent image/video generation, request idempotency, and bounded Agnes admission control | DONE | PASS | T5-091 |
+| 93 | T5-093 | Restore legacy MySQL migration compatibility and local runtime | DONE | PASS | T5-092 |
+| 94 | T5-094 | Agnes contract recovery, AI script authoring, and LibTV observable Canvas parity | DONE | PASS | T5-093 |
+| 95 | T5-095 | Canvas main composer attachment, Send, and Agnes capability recovery | DONE | PASS | T5-094 |
+| 96 | T5-096 | LibTV official Canvas visual, functional, and interaction 1:1 parity with preserved Revid-only entries | DONE | PASS | T5-095 |
 
 ## Task Boundaries
 

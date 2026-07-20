@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 7 - Durable state normalization`
+- Active unit: `Unit 8 - Request-scoped repositories`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Plan: `ai/tasks/doing/TASK-T6-002-PLAN.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`.
@@ -42,14 +42,19 @@
 - Added a repository-owned backend test runner whose import-safe `__main__` lets AnyIO process workers initialize under Windows/Python 3.13. This closes the historical full-suite harness failure without weakening process isolation.
 - Refreshed the committed default-grant ledger compatibility view from authoritative MySQL rows after atomic registration, closing the full-suite quota regression exposed by the first clean run.
 - Added CI-owned Playwright preview startup, exact `test:e2e:ci` selection, failure-only three-day artifacts, and a separate unchanged headed hardware performance command. Headless SwiftShader is not treated as a hardware FPS authority.
+- Completed Unit 7 with a repository-owned state validator covering exact T6 state/outcome tokens, one active Task, complete T5/T6 ROADMAP rows, Task/PLAN/PROGRESS/REPORT/CURRENT agreement, required CURRENT sections, and durable Markdown link existence.
+- Preserved the pre-normalization CURRENT byte-for-byte in `ai/state/archive/2026-07-20-t5-t6-completion-snapshot.md`, then reduced CURRENT to a 39-line rolling cursor with delivery mode, product state, active/last Task, live gates, next action, ownership, and Human boundaries.
+- Rebuilt ROADMAP task metadata with independent State and Verification columns, restored all missing T5-028..042 and T5-057..071 rows from their authoritative reports, and normalized T5-092 to `DONE / PASS`.
+- Migrated the current T6-001 Task chain and report to exact `State: DONE` plus `Verification outcome: PASS` while explicitly retaining T4/T5 composite metadata as historical evidence. Stable Task paths were not moved.
+- Replaced stale T5-002/T5-003 entry guidance in the root/task READMEs and removed the obsolete backend P0 note. The entry docs now point to T6-002, the validators, clean CI, and current Human gates.
 
 ## Remaining Work
 
-- Units 7 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
+- Units 8 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
 
 ## Exact Next Action
 
-Add the Unit 7 failing durable-state validator for allowed states, one active Task, complete ROADMAP rows, link existence, and Task/REPORT/state agreement before normalizing CURRENT and historical state metadata.
+Add Unit 8 two-store/two-session RED tests proving ban, freeze, registration-settings, asset-state, and invitation changes are visible to the next request without process restart, then migrate auth/admin to narrow request-scoped repositories first.
 
 ## Files Changed
 
@@ -109,6 +114,15 @@ Add the Unit 7 failing durable-state validator for allowed states, one active Ta
 - `frontend/playwright.ci.config.ts`
 - `scripts/run-backend-tests.py`
 - `scripts/validate-ci-contract.py`
+- `README.md`
+- `ai/reports/REPORT-T6-001.md`
+- `ai/state/archive/2026-07-20-t5-t6-completion-snapshot.md`
+- `ai/tasks/README.md`
+- `ai/tasks/todo/TASK-T6-001.md`
+- `ai/tasks/doing/TASK-T6-001-PLAN.md`
+- `ai/tasks/doing/TASK-T6-001-PROGRESS.md`
+- `backend/README.md`
+- `scripts/validate-project-state.py`
 
 ## Commands Run And Results
 
@@ -135,8 +149,10 @@ Add the Unit 7 failing durable-state validator for allowed states, one active Ta
 - `npm ci --dry-run` resolved the tracked lock. A live Vite process held the installed Rolldown binary, so destructive local `npm ci` could not clean the shared `node_modules`; non-cleaning `npm install` restored that local tree without a lockfile diff. Production build passed with `4937 modules transformed`.
 - Deterministic Chromium ran `553` titles with zero retries: `552` functional/accessibility titles passed and only the exact hardware-sensitive performance title failed under SwiftShader (`44.43 FPS`, frame P95 `50ms`, `hardwareAcceleration=false`). The unchanged headed gate remains `55 FPS` / `33ms`; the ordinary CI selection lists the same `552` passing titles and excludes only that exact title.
 - Workflow YAML parses to four jobs. Docker CLI is unavailable locally, while official Docker Hub metadata confirms the pinned `mysql:8.0.42` multi-platform digest used by CI.
+- Unit 7 validator RED reported invalid T6-001 composite metadata, missing verification outcomes, incomplete/legacy ROADMAP tables, an over-budget CURRENT, and missing live-gate/ownership sections. GREEN passes with CURRENT at `39` lines, exactly `96` T5 rows plus `2` T6 rows, one active T6 Task, and zero missing checked links.
+- The archived CURRENT SHA-256 matched the source snapshot immediately after copy, proving the detailed completion narrative was preserved before the concise rewrite.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Unit 7. The first hosted GitHub workflow run remains external evidence after push; local workflow structure and every runnable equivalent gate are verified.
+- Current blocker: none for Unit 8. Repository work must remain on guarded disposable MySQL and preserve every public route/domain contract while removing process-wide cache authority.
 - Human gates remain real/paid provider calls, real secrets, destructive/user database work, irreversible migrations, external-account changes, and incompatible supported-route removal.

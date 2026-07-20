@@ -1,6 +1,7 @@
 # TASK-T6-001 Progress
 
-- State: `DONE - PASS`
+- State: `DONE`
+- Verification outcome: `PASS`
 - Active unit: `Complete - Unit 7 Human UX acceptance, report, and delivery`
 - Activation baseline: `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`; ahead/behind `0/0`.
 - Task: `ai/tasks/todo/TASK-T6-001.md`
