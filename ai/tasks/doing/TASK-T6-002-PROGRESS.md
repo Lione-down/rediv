@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 2 - Atomic registration and invitation redemption`
+- Active unit: `Unit 3 - Authoritative provenance and graph routes`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Plan: `ai/tasks/doing/TASK-T6-002-PLAN.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`.
@@ -20,16 +20,20 @@
 - Added a MySQL `auth_attempt_windows` fixed-window authority with complete table/column comments, HMAC-SHA256 subjects, `SELECT ... FOR UPDATE`, cross-worker concurrency, success clear, expiry reset, and stable 429/`Retry-After` behavior.
 - Bound password login to `IP+identifier`, development admin to IP, and mock issuance to IP so identifier/openid rotation cannot bypass the shared window.
 - Updated both tracked examples, backend runtime documentation, loopback startup command, and frontend admin header transport. No real secret, provider request, or user database was accessed.
+- Completed Unit 2 with one MySQL transaction owning fresh registration-settings read, duplicate prechecks, locked invitation validation, user/identity/quota/ledger creation, invitation increment, and database uniqueness handling.
+- Removed `store.use_invitation_code()` from both password and WeChat API registration flows. Compatibility caches now refresh only from committed rows and never authorize invitation redemption.
+- Added stable 403/409 domain-to-HTTP mapping, preserved username/email conflict details, and normalized offset-aware invitation expirations to UTC before MySQL `DATETIME` persistence.
+- Added rollback coverage for password quota, WeChat identity, and WeChat quota failures plus a real two-thread/two-connection single-use invitation race. Failed registrations leave user, identity, quota, ledger, and `used_count` unchanged.
 
 ## Remaining Work
 
-- Units 2 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
+- Units 3 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
 - Unit 4 exact Canvas budgets require measurement followed by Human Owner approval.
 - Unit 3 route removal requires a Human decision only if a live external caller or support commitment is discovered.
 
 ## Exact Next Action
 
-Inspect invitation/user/identity/quota models and `DatabaseStore` transaction boundaries, then add Unit 2 RED tests proving duplicate/rollback failures consume zero invitation uses and two concurrent `max_uses=1` registrations create exactly one user.
+Run the Unit 3 whole-repository caller classification for generated-asset and legacy project graph routes, then add forged-provenance RED tests before changing the route surface.
 
 ## Files Changed
 
@@ -55,6 +59,9 @@ Inspect invitation/user/identity/quota models and `DatabaseStore` transaction bo
 - `backend/tests/test_wechat_callback.py`
 - `backend/tests/test_admin_enhancements.py`
 - `frontend/src/api/admin.ts`
+- `backend/controllers/registration.py`
+- `backend/controllers/store.py`
+- `backend/tests/test_registration_concurrency.py`
 
 ## Commands Run And Results
 
@@ -66,9 +73,12 @@ Inspect invitation/user/identity/quota models and `DatabaseStore` transaction bo
 - API throttle RED: sixth password/dev-admin/mock attempts remained `401/403/200`; GREEN is `4/4`, and a second RED proved openid rotation bypass before the IP-level mock bucket fix.
 - Final Unit 1 backend matrix: `54/54` passed in `141.742s` against guarded disposable `revid_test_*` schemas.
 - Related frontend production build: `4947 modules transformed`; Python affected-file compile passed; Alembic reports single head `b4c5d6e7f8a9`.
+- Unit 2 RED: the new suite initially failed because no transactional registration service existed; the first GREEN attempt then exposed child-row flush ordering, and related regression exposed offset-aware expiry drift through MySQL `DATETIME`.
+- Unit 2 concurrency/rollback suite: `5/5` passed in each of three consecutive guarded disposable-MySQL runs (`27.518s`, `27.555s`, `28.036s`), with exactly one winner and `used_count=1` every time.
+- Unit 2 related regression: combined invitation/password auth ran `25` tests with only the newly exposed expiry case failing; after UTC normalization the focused expiry case passed and the full invitation suite passed `7/7`. The other `24` tests in the combined run passed.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Units 2 through 3.
+- Current blocker: none for Unit 3.
 - Unit 4 limit gate: record non-content size distribution and obtain exact Human-approved budgets before enforcing the product contract.
 - Human gates remain real/paid provider calls, real secrets, destructive/user database work, irreversible migrations, external-account changes, and incompatible supported-route removal.

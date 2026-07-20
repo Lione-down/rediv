@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 2 - Atomic registration and invitation redemption`
+- Active unit: `Unit 3 - Authoritative provenance and graph routes`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Progress: `ai/tasks/doing/TASK-T6-002-PROGRESS.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`; tracked worktree clean.
@@ -25,13 +25,15 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 
 ### Unit 2 - Atomic registration and invitation redemption
 
-- Status: `active`
+- Status: `completed`
 
 - Lock invitation rows and perform uniqueness checks, identity/user/quota creation, and usage increment in one transaction.
 - Treat database uniqueness as final authority and refresh only minimum post-commit compatibility state.
 - RED/GREEN: duplicate, rollback, and two-connection `max_uses=1` races, repeated three times.
 
 ### Unit 3 - Authoritative provenance and graph routes
+
+- Status: `active`
 
 - Reclassify all callers of generated-asset and legacy project graph routes.
 - Remove forged-provenance creation; derive all generation lineage server-side or remove the unused route.

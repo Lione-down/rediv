@@ -46,6 +46,13 @@ def parse_iso(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value)
 
 
+def parse_mysql_datetime(value: str | None) -> datetime | None:
+    parsed = parse_iso(value)
+    if parsed is None or parsed.tzinfo is None:
+        return parsed
+    return parsed.astimezone(UTC).replace(tzinfo=None)
+
+
 def datetime_to_iso(value: datetime | None) -> str | None:
     if value is None:
         return None
@@ -1093,7 +1100,7 @@ class DatabaseStore:
             invitation.status = payload["status"]
             invitation.max_uses = payload["max_uses"]
             invitation.used_count = payload["used_count"]
-            invitation.expires_at = parse_iso(payload["expires_at"])
+            invitation.expires_at = parse_mysql_datetime(payload["expires_at"])
             invitation.quota_package_id = payload["quota_package_id"]
             invitation.created_by_admin_id = payload["created_by_admin_id"]
             invitation.created_at = parse_iso(payload["created_at"]) or now_utc()
@@ -1449,6 +1456,38 @@ class DatabaseStore:
         self.identities[f"{provider}:{provider_user_id}"] = payload
         return payload
 
+    def sync_registration_result(
+        self,
+        user: User,
+        identity: Identity | None,
+        quota: Quota,
+        invitation: InvitationCode | None,
+    ) -> dict:
+        user_payload = self._user_to_dict(user)
+        cached_user = self.users.get(user.id)
+        if cached_user is None:
+            cached_user = PersistentDict(user_payload, self._persist_user)
+            self.users[user.id] = cached_user
+        else:
+            cached_user.replace_local(user_payload)
+        self._password_hashes[user.id] = user.password_hash
+
+        if identity is not None:
+            self.identities[f"{identity.provider}:{identity.provider_user_id}"] = self._identity_to_dict(identity)
+        self.replace_quota_snapshot(user.id, self._quota_to_dict(quota), quota.revision)
+
+        if invitation is not None:
+            invitation_payload = self._invitation_to_dict(invitation)
+            cached_invitation = self.invitation_codes.get(invitation.code)
+            if cached_invitation is None:
+                self.invitation_codes[invitation.code] = PersistentDict(
+                    invitation_payload,
+                    self._persist_invitation,
+                )
+            else:
+                cached_invitation.replace_local(invitation_payload)
+        return cached_user
+
     def find_identity(self, provider: str, provider_user_id: str) -> dict | None:
         return self.identities.get(f"{provider}:{provider_user_id}")
 
@@ -1485,7 +1524,7 @@ class DatabaseStore:
             status="active",
             max_uses=max_uses,
             used_count=0,
-            expires_at=parse_iso(expires_at),
+            expires_at=parse_mysql_datetime(expires_at),
             quota_package_id=quota_package_id,
             created_by_admin_id=admin_id,
             created_at=now_utc(),

@@ -31,6 +31,8 @@ Last updated: 2026-07-20
 
 - T6-002 Unit 1 is complete: copied/default configuration cannot enable mock or dev-admin auth, old/short JWT placeholders fail before MySQL startup, dev-admin secrets use only a dedicated header, development auth requires explicit profile/opt-in plus loopback bind/request, and MySQL-backed fixed windows enforce cross-worker password/dev/mock throttling without storing raw subjects.
 - Unit 1 evidence is backend `54/54`, frontend build `4947 modules transformed`, affected Python compile clean, and one Alembic head `b4c5d6e7f8a9`. Only guarded disposable `revid_test_*` schemas were created/dropped; no real secret, provider call, or user database was accessed.
+- T6-002 Unit 2 is complete: password and WeChat registration now redeem invitations under `SELECT ... FOR UPDATE` in the same MySQL transaction as unique user/identity, initial quota/ledger creation, and usage increment; failed or duplicate registration consumes zero uses and post-commit cache refresh is non-authoritative.
+- Unit 2 evidence is three consecutive `5/5` concurrency/rollback runs with exactly one single-use winner each time, invitation regression `7/7`, and the remaining `24` tests in the combined invitation/password run passing. Offset-aware invitation expiry is normalized to UTC before MySQL persistence.
 - T6-001 Unit 0A is complete: the Human screenshot exposed a draft-only coordinate defect. The draft path combined surface-space endpoints with a second SVG viewport transform; RED measured `155 CSS px` of horizontal source drift at a translated 50% viewport.
 - GREEN keeps hit testing in surface-space but constructs the SVG path in world-space. Actual path screen endpoints now equal the visible source port and pointer at 17/36/100/200%, related Chromium is `34/34`, build is `4937 modules transformed`, and the 1440x900 36% visual capture is hash-recorded under T6 evidence.
 - T6-001 Unit 1 is complete: capability v1/v2 remain exact, v3 discovers exactly three active cinematic v2 manifests while v1 stays historical, and strict backend/frontend director/reference/sequence/retake parsers fail closed on version mixing, extras, stale revisions, partial canon, invalid state references, and hidden execution fields.
@@ -86,7 +88,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Execute T6-002 Unit 2 with RED duplicate, rollback, and two-connection invitation-redemption concurrency tests before changing registration behavior.
+Execute T6-002 Unit 3 by classifying every caller of generated-asset and legacy project graph routes, then write forged-provenance RED tests before changing the supported API surface.
 
 ## Boundaries And Human Gates
 

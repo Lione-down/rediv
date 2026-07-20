@@ -4,6 +4,12 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from controllers import quotas as quota_controller
+from controllers.registration import (
+    RegistrationConflictError,
+    RegistrationForbiddenError,
+    register_password_user,
+    register_wechat_user,
+)
 from controllers.store import store
 from core.auth_throttle import AuthThrottleExceeded, clear_auth_attempts, record_auth_attempt
 from core.security import (
@@ -165,13 +171,6 @@ def _fetch_wechat_profile(code: str) -> dict:
     }
 
 
-def _enforce_registration_mode(invitation_code: str | None) -> None:
-    if store.registration_settings["registration_mode"] == "closed":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Registration is closed")
-    if not store.use_invitation_code(invitation_code):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid invitation code")
-
-
 def _login_or_register_wechat(profile: dict, invitation_code: str | None) -> AuthResponse:
     if not store.registration_settings["wechat_login_enabled"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Wechat login is disabled")
@@ -180,16 +179,12 @@ def _login_or_register_wechat(profile: dict, invitation_code: str | None) -> Aut
         user = store.get_user(identity["user_id"])
         store.touch_login(user["id"])
         return _issue_auth(user)
-    _enforce_registration_mode(invitation_code)
-    user = store.create_user(
-        profile.get("nickname", "Wechat User"),
-        profile.get("avatar_url", ""),
-        username=None,
-        email=None,
-        password_hash=None,
-    )
-    store.bind_identity(user["id"], "wechat_open", profile["openid"], profile.get("unionid"), profile)
-    store.grant_default_quotas(user["id"])
+    try:
+        user = register_wechat_user(profile, invitation_code)
+    except RegistrationForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from None
+    except RegistrationConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from None
     return _issue_auth(user)
 
 
@@ -263,22 +258,18 @@ def register(payload: RegisterRequest):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username is required")
     if not password_meets_policy(payload.password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password does not meet policy")
-    _enforce_registration_mode(payload.invitation_code)
-    if store.find_user_by_username(normalized_username):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists")
-    if normalized_email and store.find_user_by_email(normalized_email):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
-
-    user = store.create_user(
-        normalized_username,
-        "",
-        username=normalized_username,
-        email=normalized_email,
-        password_hash=hash_password(payload.password),
-    )
-    store.grant_default_quotas(user["id"])
-    store.touch_login(user["id"])
-    return _issue_auth(store.get_user(user["id"]) or user)
+    try:
+        user = register_password_user(
+            username=normalized_username,
+            email=normalized_email,
+            password_hash=hash_password(payload.password),
+            invitation_code=payload.invitation_code,
+        )
+    except RegistrationForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from None
+    except RegistrationConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from None
+    return _issue_auth(user)
 
 
 @router.post("/login", response_model=AuthResponse)
