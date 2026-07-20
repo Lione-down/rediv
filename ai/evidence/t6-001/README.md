@@ -11,7 +11,7 @@ Status: active. No completion claim is made.
 
 ## Planned evidence
 
-- Unit 0A detached-edge RED/GREEN measurements and browser screenshots.
+- Unit 0A detached-edge RED/GREEN summary: `unit-0a-detached-edge-evidence-2026-07-20.md`; raw browser capture remains untracked.
 - Version/lifecycle and strict schema contract results.
 - Canonical compiler/preflight/digest/native-handoff equality results.
 - Sequence, acceptance, continuation, duplication, stale, and retake action traces.

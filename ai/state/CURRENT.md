@@ -20,13 +20,16 @@ Last updated: 2026-07-20
 
 - Active implementation Task: `T6-001 - Revid-native cinematic director Skills v2`.
 - State: `DOING`.
-- Active unit: `Unit 0A - detached connection geometry correction`.
+- Active unit: `Unit 1 - versioned registry and strict v2 schemas`.
 - Task: `ai/tasks/todo/TASK-T6-001.md`.
 - Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`.
 - Progress: `ai/tasks/doing/TASK-T6-001-PROGRESS.md`.
 - Activation baseline: `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`, ahead/behind `0/0`.
 
 ## Current Verified Facts
+
+- T6-001 Unit 0A is complete: the Human screenshot exposed a draft-only coordinate defect. The draft path combined surface-space endpoints with a second SVG viewport transform; RED measured `155 CSS px` of horizontal source drift at a translated 50% viewport.
+- GREEN keeps hit testing in surface-space but constructs the SVG path in world-space. Actual path screen endpoints now equal the visible source port and pointer at 17/36/100/200%, related Chromium is `34/34`, build is `4937 modules transformed`, and the 1440x900 36% visual capture is hash-recorded under T6 evidence.
 
 - The reported `736 x 1312` portrait case exposed a real dynamic-layout defect: existing Leafer ports retained creation-time coordinates after natural media metadata narrowed the visible node, while DOM/card/selection and shared graph geometry used the new layout size. Unit 7 now recalculates every existing port from the shared size and recertifies the node layers; Director remains excluded.
 - Unit 7 RED measured `245.859375` CSS px output-port drift; GREEN recomputes existing input/output port geometry on layout change and passes the delayed `736 x 1312` transition at 17/36/100/200% zoom. Related Chromium is `50/50`, full functional Chromium is `533/533`, and build is `4937 modules transformed`.
@@ -66,7 +69,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Write a deterministic RED browser fixture for the Human-reported detached edge, tracing both SVG path endpoints through shared node layout, port geometry, renderer reconciliation, and viewport conversion before changing product code.
+Audit the exact existing cinematic v1 registry/capability/preflight contracts and write Unit 1 RED fixtures for active v2 lifecycle, historical v1 resolution, invalid lifecycle/version rejection, and strict director/sequence/retake schemas.
 
 ## Boundaries And Human Gates
 
@@ -79,5 +82,5 @@ Write a deterministic RED browser fixture for the Human-reported detached edge, 
 
 ## Worktree
 
-- T6-001 activation documents are the only intended tracked changes before Unit 0A RED.
+- The pushed activation commit is `eb13f7d`; Unit 0A product/test/evidence/state changes are the current owned diff pending scoped delivery.
 - User-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and outside delivery scope.

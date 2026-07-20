@@ -8,7 +8,7 @@ import { isPointInsideCanvasNodeLayout, resolveCanvasNodeLayoutCenter } from '..
 import {
   buildConnectionPath, clampZoom, minimapPointToWorld,
   nodeInputAnchor as getNodeInputAnchor, nodeOutputAnchor as getNodeOutputAnchor,
-  normalizeViewport, nodeIntersectsRect,
+  nodePortWorldAnchor as getNodePortWorldAnchor, normalizeViewport, nodeIntersectsRect,
   rectFromPoints, snapDeltaToGrid, surfaceToWorld,
   type Point, type ViewportInsets, type ViewportState,
 } from '../canvas-geometry'
@@ -64,10 +64,11 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   const temporaryConnectionPath = computed(() => {
     const draft = draftConnection.value
     if (!draft) return ''
-    const pointer = { x: draft.currentX, y: draft.currentY }
+    const pointer = surfaceToWorld({ x: draft.currentX, y: draft.currentY }, getViewport())
+    const origin = nodePortWorldPoint(draft.originNodeId, draft.originPort, draft.direction)
     return draft.direction === 'output'
-      ? buildConnectionPath(nodePortAnchor(draft.originNodeId, draft.originPort, 'output'), pointer)
-      : buildConnectionPath(pointer, nodePortAnchor(draft.originNodeId, draft.originPort, 'input'))
+      ? buildConnectionPath(origin, pointer)
+      : buildConnectionPath(pointer, origin)
   })
   const marqueeStyle = computed(() => {
     if (!marquee.value) return null
@@ -169,7 +170,12 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     ))
     return orderedNodes.reverse().find((node) => isPointInsideCanvasNodeLayout(node, point)) ?? null
   }
-  function nodePortAnchor(nodeId: string, portId: string, direction: 'input' | 'output') {
+  function nodePortWorldPoint(nodeId: string, portId: string, direction: 'input' | 'output') {
+    const node = findNode(nodeId)
+    if (!node) return { x: 0, y: 0 }
+    return getNodePortWorldAnchor(node, direction, portId)
+  }
+  function nodePortSurfaceAnchor(nodeId: string, portId: string, direction: 'input' | 'output') {
     const node = findNode(nodeId)
     if (!node) return { x: 0, y: 0 }
     return direction === 'input' ? getNodeInputAnchor(node, getViewport(), portId) : getNodeOutputAnchor(node, getViewport(), portId)
@@ -283,7 +289,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (options.isReadOnly?.()) return
     const originNode = findNode(nodeId)
     if (!originNode || !isArrangeEligibleNode(originNode)) return
-    const anchor = nodePortAnchor(nodeId, portId, direction)
+    const anchor = nodePortSurfaceAnchor(nodeId, portId, direction)
     dragState = null
     draftConnection.value = { originNodeId: nodeId, originPort: portId, direction, pointerId: event.origin?.pointerId ?? null,
       currentX: anchor.x, currentY: anchor.y, startX: anchor.x, startY: anchor.y, moved: false }

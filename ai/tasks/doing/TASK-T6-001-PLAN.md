@@ -30,7 +30,7 @@ Success gate: exactly one Task is active and only scoped activation documents ch
 
 ## Unit 0A - Detached connection geometry correction
 
-- Status: `in_progress`
+- Status: `completed`
 
 1. Reproduce the screenshot state with a deterministic fixture that distinguishes persisted node coordinates, shared resolved layout, Leafer port centers, and SVG connection endpoints.
 2. Add RED assertions for initial load plus delayed reconciliation at 17%, 36%, 100%, and 200%, including both source and target endpoints, actual path endpoints, and 40px acquisition targets.
@@ -42,7 +42,7 @@ Success gate: no detached path on load or reconciliation; both edge endpoints re
 
 ## Unit 1 - Versioned registry and strict v2 schemas
 
-- Status: `pending`
+- Status: `in_progress`
 
 1. Write RED backend/frontend fixtures for three active v2 manifests, exact historical v1 resolution, duplicate-active/unknown-version rejection, and version-mixing rejection.
 2. Add strict bounded director brief, sequence state, reference transfer, workflow mode, and retake schemas with extra keys forbidden.

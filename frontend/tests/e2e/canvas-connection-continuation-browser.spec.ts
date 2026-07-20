@@ -14,6 +14,7 @@ import {
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-018-connection-continuation')
 const upstreamEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-019-reverse-port-drag')
+const unit0aEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't6-001-unit-0a')
 
 function mappedNode(state: ResourceMockState, nodeId: string) {
   const dto = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === nodeId)
@@ -52,11 +53,25 @@ async function dragFromOutputOffset(
 }
 
 async function beginOutputDrag(page: Page, state: ResourceMockState, target: { x: number; y: number }) {
-  const source = await surfacePoint(page, nodeOutputAnchor(mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out'))
+  const canvas = state.canvases.find((candidate) => candidate.id === FIRST_CANVAS_ID)!
+  const viewport = { x: canvas.viewport_x, y: canvas.viewport_y, zoom: canvas.viewport_zoom }
+  const source = await surfacePoint(page, nodeOutputAnchor(mappedNode(state, 'script-source'), viewport, 'out'))
   const destination = await surfacePoint(page, target)
   await page.mouse.move(source.x, source.y)
   await page.mouse.down()
   await page.mouse.move(destination.x, destination.y, { steps: 8 })
+}
+
+async function draftScreenEndpoints(page: Page) {
+  return page.locator('.draft-layer .draft').evaluate((element) => {
+    const path = element as SVGPathElement
+    const matrix = path.getScreenCTM()
+    if (!matrix) throw new Error('Draft path transform is unavailable')
+    const start = new DOMPoint(path.getPointAtLength(0).x, path.getPointAtLength(0).y).matrixTransform(matrix)
+    const endPoint = path.getPointAtLength(path.getTotalLength())
+    const end = new DOMPoint(endPoint.x, endPoint.y).matrixTransform(matrix)
+    return { start: { x: start.x, y: start.y }, end: { x: end.x, y: end.y } }
+  })
 }
 
 async function dragFromInput(
@@ -249,6 +264,45 @@ test('active draft stays visible while idle edges are hidden', async ({ page }) 
   await expect(page.locator('.draft-layer .connection-flow[data-flow-reason="draft"]')).toBeVisible()
   await page.keyboard.press('Escape')
   await page.mouse.up()
+  expect(documentPatches(state)).toHaveLength(0)
+})
+
+test('active draft endpoints share the port and pointer surface coordinates at every supported parity zoom', async ({ page }) => {
+  const state = createResourceMockState()
+  const canvas = state.canvases.find((candidate) => candidate.id === FIRST_CANVAS_ID)!
+  const script = mappedNode(state, 'script-source')
+  const targetSurface = { x: 1040, y: 650 }
+  canvas.viewport_zoom = 0.17
+  canvas.viewport_x = 220 - script.x * canvas.viewport_zoom
+  canvas.viewport_y = 180 - script.y * canvas.viewport_zoom
+  await openResourceWorkspace(page, state)
+
+  for (const percent of [17, 36, 100, 200]) {
+    const zoom = percent / 100
+    canvas.viewport_zoom = zoom
+    canvas.viewport_x = 220 - script.x * zoom
+    canvas.viewport_y = 180 - script.y * zoom
+    if (percent !== 17) await page.reload()
+    await expect(page.getByLabel('缩放百分比')).toHaveValue(String(percent))
+
+    const viewport = { x: canvas.viewport_x, y: canvas.viewport_y, zoom }
+    const source = await surfacePoint(page, nodeOutputAnchor(script, viewport, 'out'))
+    const target = await surfacePoint(page, targetSurface)
+    await beginOutputDrag(page, state, targetSurface)
+
+    const endpoints = await draftScreenEndpoints(page)
+    expect(endpoints.start.x).toBeCloseTo(source.x, 0)
+    expect(endpoints.start.y).toBeCloseTo(source.y, 0)
+    expect(endpoints.end.x).toBeCloseTo(target.x, 0)
+    expect(endpoints.end.y).toBeCloseTo(target.y, 0)
+    if (percent === 36 && process.env.UPDATE_T6_001_EVIDENCE === '1') {
+      await mkdir(unit0aEvidenceDirectory, { recursive: true })
+      await page.screenshot({ path: resolve(unit0aEvidenceDirectory, 'draft-edge-36-percent.png'), fullPage: true })
+    }
+
+    await page.keyboard.press('Escape')
+    await page.mouse.up()
+  }
   expect(documentPatches(state)).toHaveLength(0)
 })
 
