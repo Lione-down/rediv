@@ -1,7 +1,7 @@
 # T5-096 Evidence Index
 
 - Task: `T5-096 - LibTV official Canvas three-axis 1:1 parity`
-- State: `DONE_PASS_WITH_DECLARED_BOUNDARIES`; Units 0-6 and Human acceptance complete
+- State: `DONE_PASS_WITH_DECLARED_BOUNDARIES`; Units 0-7 and Human acceptance complete
 - Date: `2026-07-20`
 
 ## Committed Evidence
@@ -22,6 +22,7 @@
 | `revid-visible-control-inventory-2026-07-20.md` | Visible action, authority, disabled-reason, and deterministic-test inventory | Automated pass; Director excluded, no inert imitation |
 | `completion-audit-2026-07-20.md` | Requirement-scope audit of all 23 acceptance criteria | All criteria closed with declared Human-accepted boundaries |
 | `human-review-board.md` | Final official/Revid raw-pair routing | Accepted with declared boundaries |
+| `unit-7-visible-boundary-evidence-2026-07-20.md` | LibTV-first dynamic metadata, node/port/edge/selection/context evidence supplement | Complete; direct 17/36/100/200 assertions and current `533/533` functional recertification |
 
 ## Raw Evidence Policy
 
@@ -43,4 +44,4 @@ Human Owner scope: Director/`导演台` remains visible only in official source 
 
 Integrity-bound JSON reporter, mapping, manifest, and review artifacts retain their generation-time `HUMAN_REVIEW_PENDING` state strings so their recorded SHA-256 values remain reproducible. Final Human acceptance is recorded in `human-review-board.md`, `completion-audit-2026-07-20.md`, and `ai/reports/REPORT-T5-096.md`; the historical artifact labels are not an open gate.
 
-Units 0 through 6 are green. The rail/Add path uses native authorities and zero disclosure mutation; the official four-card starter core remains measured at 214x56; Revid's T5-095 composer is preserved as adjacent extension `X14`; the representative lawful graph covers the observed density/group/media/edge grammar. The committed structural verifier reports `0%` unmatched outer edges under the per-landmark 2px tolerance and `<=2%` aggregate threshold. Final evidence is `9/9` focused parity/evidence, `532/532` full functional, `4937` production modules, and the unchanged performance gate passing under headed AMD D3D11. Director remains excluded. The Human Owner selected `ACCEPT_WITH_DECLARED_BOUNDARIES`; `ai/reports/REPORT-T5-096.md` records the completed delivery.
+Units 0 through 7 are green. The rail/Add path uses native authorities and zero disclosure mutation; the official four-card starter core remains measured at 214x56; Revid's T5-095 composer is preserved as adjacent extension `X14`; the representative lawful graph covers the observed density/group/media/edge grammar. The committed structural verifier reports `0%` unmatched outer edges under the per-landmark 2px tolerance and `<=2%` aggregate threshold. That metric does not cover port/edge/selection/dynamic-metadata behavior; Unit 7 closes those layers separately in `unit-7-visible-boundary-evidence-2026-07-20.md`. Current Unit 7 evidence is focused `2/2`, related `47/47`, full functional `533/533`, production build `4937`, and the unchanged performance gate passing under headed AMD D3D11. Director remains excluded. The Human Owner selected `ACCEPT_WITH_DECLARED_BOUNDARIES`; `ai/reports/REPORT-T5-096.md` records the completed delivery.

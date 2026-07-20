@@ -1,12 +1,18 @@
 # TASK-T5-096 Progress
 
 - State: `DONE - PASS`
-- Active unit: `Complete - Unit 7 LibTV-first node-boundary correction delivered to origin/main`
+- Active unit: `Complete - Unit 7 implementation and completion evidence hardened`
+- Completion-audit baseline: `HEAD == origin/main == 775fba97c6a45ca3464e9c9ecd37d5c004481610`; the delivered port correction remains the implementation baseline.
 - Reopen baseline: `HEAD == origin/main == e3c85e7af1ed9d4ebfa37a7137ce39f784cee051`; prior T5-096 delivery is the correction baseline and T5-095 delivery `9871cedba00001e925497e2eadca855d6a76171e` remains an ancestor.
 - Task: `ai/tasks/todo/TASK-T5-096.md`
 - Plan: `ai/tasks/doing/TASK-T5-096-PLAN.md`
 
 ## Completed Work
+
+- Reopened Unit 7 verification after a requirement-by-requirement audit found that the committed portrait test directly covered DOM bounds, input/output port centers, zoom, and an exact-center output drag, while the PLAN also names the Leafer card/selection boundary, existing connection endpoint, acquisition target, status/version layers, contextual toolbar, and refreshed completion/Human evidence. No product defect is inferred from this evidence gap; `DONE - PASS` will be restored only after direct assertions and durable artifacts cover the full named scope.
+- Closed the completion-evidence gap. The delayed portrait test now binds DOM media to the Leafer card/selected outline, input/output ports, the existing connection endpoint, a drag 12 CSS px outside the visible dot but inside the 40 CSS px acquisition target, status overlay, version stack, and media toolbar at 17/36/100/200%. Metadata produces only two bounded single-node PATCHes for the two loaded variants and no connection/delete mutation; zoom, selection, disclosure, and the unfinished continuation draft add no further PATCH.
+- Added `ai/evidence/t5-096/unit-7-visible-boundary-evidence-2026-07-20.md` and refreshed the evidence index, AC24 completion audit, and Human review board. The eleven-landmark `0%` metric is now explicitly excluded from port, edge, selection, contextual-layer, and dynamic-metadata claims.
+- Current recertification is green: focused Unit 7 `2/2`; related node/port/connection/selection/media `47/47`; production build `4937 modules transformed`; one full functional Chromium invocation `533/533` in `12.5m`. The separately certified headed AMD D3D11 performance gate remains unchanged.
 
 - Reopened T5-096 on 2026-07-20 after the Human Owner supplied a production screenshot showing a `736 x 1312` portrait media node whose visible body and selection outline were aligned while the right output port remained at the pre-metadata fallback width. The Human Owner clarified that all Revid Canvas nodes must continue to match LibTV; Director remains explicitly excluded.
 - Root-cause trace confirmed that DOM surfaces, card bounds, selection, hit testing, minimap, and connection anchors consume `resolveCanvasNodeLayoutSize`, while an existing Leafer node visual updates its card width/height after metadata but does not recompute the already-created port `x/y/radius/strokeWidth`. This leaves the output port at its creation-time coordinate after a portrait ratio narrows the node.
@@ -106,6 +112,10 @@ Keep the official LibTV public share open as the browser handoff and await Human
 ## Commands Run And Results
 
 - Reporter-bound mapping run after final upload/context-layout convergence: seven primary specs under Chromium with JSON reporter -> `34/34` passed; report SHA-256 `c194da524a197c8594ea95981386b8c8da05862b79a407ce759bb31e2d3565e1`. The evidence contract verifies each of the 17 mapped title/project/result tuples rather than source presence alone.
+- Unit 7 evidence hardening: `npx playwright test tests/e2e/canvas-libtv-node-geometry.spec.ts --project=chromium --timeout=60000 --reporter=line` -> `2/2` passed; direct dynamic-metadata layer assertions are green.
+- Unit 7 related matrix across LibTV geometry/visual, node presentation, port geometry, connection target/continuation/motion, and selection generation output -> `47/47` passed in `55.5s`.
+- Current production build: `npm run build` -> `4937 modules transformed`.
+- Current full functional single invocation: `npx playwright test --project=chromium --grep-invert "200-node 300-connection Canvas passes focused interaction thresholds" --timeout=60000 --reporter=line` -> `533/533` passed in `12.5m`.
 - Final focused parity/evidence: `npx playwright test tests/e2e/canvas-libtv-evidence-contract.spec.ts tests/e2e/canvas-libtv-three-axis-parity.spec.ts tests/e2e/canvas-libtv-structural-parity.spec.ts --project=chromium` -> `9/9` passed; registered-row counters are derived, mapping/report hashes agree, and the populated 1440 outer-landmark result is `0%` with per-landmark 2px tolerance and 2% aggregate threshold.
 - Context exclusivity RED/GREEN: the stale preview bundle failed `6/7` on simultaneous revision/node-detail visibility; after rebuild the same `canvas-libtv-three-axis-parity.spec.ts` passed `7/7`. Revision/resource/Palette/video/audio/Agent/Graph related specs passed `34/34`.
 - Inspection-surface closure: production build after opt-in query gating passed with `4937 modules`; the regenerated reporter-bound suite remained `34/34` and the final focused evidence/parity suite remained `9/9`.

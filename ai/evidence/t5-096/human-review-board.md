@@ -54,6 +54,16 @@ Every mapped primary assertion below is present in the `chromium` JSON reporter 
 3. Official guide section `1.4.2 画布左侧栏` and the authenticated Add disclosure place upload under Add/添加资源. Revid preserves that authority in its nine-action Add catalog and removes the duplicate node-local empty-media upload/recovery strip.
 4. Director/`导演台` is already decided and is not part of this review.
 
+## Unit 7 dynamic-boundary supplement
+
+The Human-reported `736 x 1312` portrait case is now a separate review row rather than an implied part of the eleven-landmark `0%` metric.
+
+| Reference role | Revid counterpart | Direct proof | Review result |
+|---|---|---|---|
+| Official public-share media is the visible node body; title/resolution are external; edges land on the body; selected context stays source-attached | Delayed natural metadata narrows a persisted fallback result while DOM, Leafer card/selected outline, ports, existing edge, hit target, status/version, and toolbar follow one boundary | `unit-7-visible-boundary-evidence-2026-07-20.md`; 17/36/100/200% focused `2/2`; current related `47/47`; full functional `533/533`; build `4937` | `ACCEPTED_WITH_EXISTING_DECLARED_BOUNDARIES`; the prior Human color/read-only/200-207/Director decisions remain unchanged |
+
+No new official raw capture is claimed for the 100% reinspection. The supplement reuses the integrity-bound official public-share source set and records the new Revid dynamic proof separately. The outer-landmark `0%` result is not cited for port, edge, selection, contextual layer, or metadata reconciliation.
+
 ## Human decision
 
 After inspecting the raw pairs and the 17 rows, choose one:

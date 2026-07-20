@@ -20,7 +20,7 @@ Last updated: 2026-07-20
 
 - Active implementation Task: none.
 - State: `IDLE`; do not activate another Task without Human Owner direction.
-- Last completed Task: `T5-096 - LibTV official Canvas three-axis 1:1 parity`, including the reference-first Unit 7 portrait-node boundary correction delivered to `origin/main` in this closure run.
+- Last completed Task: `T5-096 - LibTV official Canvas three-axis 1:1 parity`, including the Unit 7 dynamic visible-boundary correction and completion-evidence hardening.
 - Task: `ai/tasks/todo/TASK-T5-096.md`.
 - Plan: `ai/tasks/doing/TASK-T5-096-PLAN.md`.
 - Progress: `ai/tasks/doing/TASK-T5-096-PROGRESS.md`.
@@ -30,6 +30,7 @@ Last updated: 2026-07-20
 - The reported `736 x 1312` portrait case exposed a real dynamic-layout defect: existing Leafer ports retained creation-time coordinates after natural media metadata narrowed the visible node, while DOM/card/selection and shared graph geometry used the new layout size. Unit 7 now recalculates every existing port from the shared size and recertifies the node layers; Director remains excluded.
 - Unit 7 RED measured `245.859375` CSS px output-port drift; GREEN recomputes existing input/output port geometry on layout change and passes the delayed `736 x 1312` transition at 17/36/100/200% zoom. Related Chromium is `50/50`, full functional Chromium is `533/533`, and build is `4937 modules transformed`.
 - A fresh supported-Chrome read-only audit of the official LibTV public Canvas share at settled 100% confirms the observable Unit 7 authority: media is the visible node body, title/resolution sit outside that body, edges terminate on the actual media boundary, and the contextual detail surface stays attached below the source node. Local Revid authentication is not a reference prerequisite and is not a blocker; Revid is checked only after these official observations are fixed as the expected behavior.
+- Unit 7 completion evidence now directly binds the DOM/Leafer selected boundary, existing edge endpoint, 40px port acquisition, status/version layers, and media toolbar after delayed metadata at 17/36/100/200%. Current recertification is focused `2/2`, related `47/47`, full functional `533/533` in `12.5m`, and build `4937`; `ai/evidence/t5-096/unit-7-visible-boundary-evidence-2026-07-20.md` is the scope-specific supplement.
 
 - T5-095 corrects the T5-094 main-composer acceptance error: attachment selection is composer-owned and non-mutating, while script Send uses the authenticated durable script-authoring path and yields an editable lineage result.
 - Owned active public-HTTPS images may be attached as Agnes `image_url` story references. Local/private/foreign/stale/unsupported references fail before provider/task/quota work.
@@ -64,7 +65,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Keep the official LibTV public share open as the browser handoff and await Human Owner direction before activating the next dependency-ready Task. No T5-096 work remains after this closure delivery.
+Keep the official LibTV public share open as the browser handoff and await Human Owner direction before activating the next dependency-ready Task. No T5-096 Unit 7 work remains.
 
 ## Boundaries And Human Gates
 

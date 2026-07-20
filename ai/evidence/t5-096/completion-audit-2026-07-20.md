@@ -33,10 +33,13 @@
 | 21 | `PROVEN_FOR_REGISTERED_ROWS` | Ledger counters are numeric zero for the 17 registered rows | Zero does not include declared checklist boundaries or the excluded Director surface. |
 | 22 | `PROVEN` | Expanded 17-row Human review board plus raw official/Revid pairs | Human selected `ACCEPT_WITH_DECLARED_BOUNDARIES`. |
 | 23 | `PROVEN_ON_DELIVERY` | REPORT, exact staging, scoped commits, push, and durable-state agreement | Delivered to `origin/main` in the closure run. |
+| 24 | `PROVEN` | `unit-7-visible-boundary-evidence-2026-07-20.md`; delayed `736 x 1312` fixture; direct DOM/Leafer/port/edge/hit/status/version/toolbar assertions at 17/36/100/200%; focused `2/2`; related `47/47`; full functional `533/533`; build `4937` | The eleven-landmark `0%` metric is explicitly excluded from this proof. No real-provider or whole-frame claim. |
 
 ## Resolved visual-audit finding
 
 The earlier three-node Revid capture was insufficient. It has been replaced by a lawful ten-node/one-group/nine-media/eleven-edge fixture. The 1440x900 runtime comparison covers eleven outer structural landmarks and reports `0%` unmatched edges at the declared 2px tolerance. This result is intentionally not described as whole-frame or all-dimension parity.
+
+The later Unit 7 portrait report exposed a separate dynamic-boundary defect outside that metric. The committed supplement now proves the reconciled DOM/Leafer card and selected outline, input/output ports, existing edge endpoint, 40px acquisition target, status/version layers, and media toolbar after delayed natural metadata at every target zoom. The outer-landmark result is not used as evidence for any of those layers.
 
 ## Closure sequence status
 
@@ -46,3 +49,4 @@ The earlier three-node Revid capture was insufficient. It has been replaced by a
 4. Implementation/fixture convergence: `COMPLETE_WITH_HUMAN_ACCEPTED_BOUNDARIES`; raw whole-frame exclusions are accepted as declared.
 5. Focused `9/9`, full functional `532/532`, build `4937`, accessibility, headed AMD D3D11 performance, and final pre-stage hygiene: `COMPLETE`.
 6. Human acceptance and delivery synchronization: `COMPLETE`; REPORT and durable state record `ACCEPT_WITH_DECLARED_BOUNDARIES`.
+7. Unit 7 dynamic visible-boundary supplement: `COMPLETE`; focused `2/2`, current related `47/47`, current full functional `533/533`, build `4937`, and committed Human-review supplement agree.

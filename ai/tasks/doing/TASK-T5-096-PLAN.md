@@ -130,6 +130,8 @@ Success gate: Task, PLAN, PROGRESS, evidence, implementation, tests, REPORT, dur
 
 - Status: `complete`
 
+Completion audit on `HEAD == 775fba97c6a45ca3464e9c9ecd37d5c004481610` found that the original portrait GREEN directly asserted DOM bounds and port centers, but did not bind every named Unit 7 layer or refresh the committed completion audit and Human review board. The hardened test now directly covers the Leafer card/selected outline, existing connection endpoint, acquisition target, status/version layers, and media toolbar; representative node-family coverage, committed review artifacts, focused `2/2`, related `47/47`, build `4937`, and full functional `533/533` are complete.
+
 1. Inspect the official LibTV Canvas first in a read-only, non-paid state and record the publicly observable node body, external label/resolution, port/edge landing, selection, and contextual-surface roles. These observations define the expected result; Revid never defines its own parity target.
 2. Reproduce the Human Owner's `736 x 1312` portrait-media case in a deterministic Revid browser fixture, including the transition from the persisted fallback node dimensions to natural media metadata.
 3. Write RED evidence that compares the DOM media body with the Leafer card, selection outline, input/output port centers, connection endpoints, hit target, status/version layers, and contextual toolbar at 17%, 36%, 100%, and 200% zoom.
