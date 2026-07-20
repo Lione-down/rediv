@@ -42,7 +42,9 @@ test('two-sided compatibility exposes only canonical bridge subtypes', () => {
   ])
   expect(resolveEdgeInsertionOptions(
     script, generation, edge('script', 'generation', 'out', 'prompt'),
-  )).toEqual([])
+  ).map((option) => option.key)).toEqual([
+    'script:script:in:out', 'script:prompt:in:out',
+  ])
 })
 
 test('edge insertion preserves upstream identity and creates one downstream edge', () => {
@@ -121,7 +123,7 @@ test('selected result edge inserts one bridge node through one undoable patch', 
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(2)
 })
 
-test('incompatible text edge exposes no midpoint insertion action', async ({ page }) => {
+test('compatible text edge exposes typed bridge choices without mutation', async ({ page }) => {
   const state = createResourceMockState()
   state.documents[FIRST_CANVAS_ID].connections = [{
     id: 'text-edge', project_id: 'project-resource', canvas_id: FIRST_CANVAS_ID,
@@ -130,7 +132,17 @@ test('incompatible text edge exposes no midpoint insertion action', async ({ pag
   }]
   await openResourceWorkspace(page, state)
   await page.getByRole('button', { name: '选择连线：镜头脚本 到 封面生成' }).click()
-  await expect(page.getByRole('button', { name: '在连线中插入节点' })).toHaveCount(0)
+  await page.getByRole('button', { name: '在连线中插入节点' }).click()
+  const chooser = page.getByRole('dialog', { name: '在线路中插入节点' })
+  await expect(chooser.getByRole('menuitem')).toHaveCount(2)
+  await expect(chooser.getByRole('menuitem').allTextContents()).resolves.toEqual([
+    '脚本结果输入 → 结果输出',
+    '提示词结果输入 → 结果输出',
+  ])
+  expect(documentPatches(state)).toHaveLength(0)
+  await page.keyboard.press('Escape')
+  await expect(chooser).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(0)
 })
 
 test('edge insertion chooser stays quiet and clamped at compact desktop width', async ({ page }) => {
@@ -158,7 +170,7 @@ test('Escape, outside dismissal, and readonly mode never mutate edge topology', 
   expect(documentPatches(state)).toHaveLength(0)
 
   await page.getByRole('button', { name: '在连线中插入节点' }).click()
-  await page.getByRole('button', { name: '打开修订历史' }).click()
+  await page.getByRole('button', { name: '打开修订历史', exact: true }).click()
   await expect(page.getByRole('dialog', { name: '在线路中插入节点' })).toHaveCount(0)
   expect(documentPatches(state)).toHaveLength(0)
 

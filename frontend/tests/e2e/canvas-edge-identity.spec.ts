@@ -141,7 +141,7 @@ test('selected prompt media and result edges expose one contextual semantic iden
   await expect(identity.getByText('T1 提示词')).toBeVisible()
   await expect(identity.getByText('镜头运动与人物关系的长中文约束')).toBeVisible()
   await expect(identity.getByText('封面生成')).toBeVisible()
-  await expect(identity.getByRole('button', { name: '在连线中插入节点' })).toHaveCount(0)
+  await expect(identity.getByRole('button', { name: '在连线中插入节点' })).toBeVisible()
 
   await page.getByRole('button', {
     name: '选择连线：海岸环境与人物造型连续性参考图 到 封面生成',

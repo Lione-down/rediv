@@ -221,7 +221,10 @@ test('script Storyboard recipe Palette stays bounded, reduced-motion safe, acces
   await page.keyboard.press('/')
   const palette = page.getByRole('dialog', { name: '专业操作' })
   await expect(palette).toBeVisible()
-  await expect(palette.getByRole('option')).toHaveCount(12)
+  await expect(palette.getByRole('option')).toHaveCount(14)
+  for (const name of ['创建四格剧情板', '创建九镜头故事板', '创建十六镜头故事板', '创建二十五镜头故事板']) {
+    await expect(palette.getByRole('option', { name: new RegExp(name) })).toBeVisible()
+  }
   await expect(palette.getByRole('option').first()).toHaveCSS('transition-duration', '0s')
   const box = await palette.boundingBox()
   expect(box).not.toBeNull()

@@ -12,10 +12,12 @@ function node(id: string, type: CanvasNode['type'], subtype: string): CanvasNode
   }
 }
 
-test('text output offers only image and video generation continuations', () => {
+test('text output offers registry-compatible script and generation continuations', () => {
   const options = resolveConnectionContinuationOptions(node('script', 'script', 'script'), 'out')
 
   expect(options.map(({ type, subtype, targetPort }) => ({ type, subtype, targetPort }))).toEqual([
+    { type: 'script', subtype: 'script', targetPort: 'in' },
+    { type: 'script', subtype: 'prompt', targetPort: 'in' },
     { type: 'generation', subtype: 'image', targetPort: 'prompt' },
     { type: 'generation', subtype: 'video', targetPort: 'prompt' },
   ])
@@ -51,7 +53,8 @@ test('non-connectable and unknown source ports expose no continuation', () => {
 
 test('continuation builds one deterministic node-plus-edge graph command', () => {
   const source = node('script', 'script', 'script')
-  const option = resolveConnectionContinuationOptions(source, 'out')[0]
+  const option = resolveConnectionContinuationOptions(source, 'out')
+    .find((candidate) => candidate.key === 'generation:image:prompt')!
   const ids = ['node-created', 'edge-created']
   const command = createConnectionContinuationCommand(source, option, { x: 600, y: 320 }, 'downstream', () => ids.shift()!)
 
