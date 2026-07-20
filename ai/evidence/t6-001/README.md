@@ -14,6 +14,7 @@ Status: active. No completion claim is made.
 - Unit 0A detached-edge RED/GREEN summary: `unit-0a-detached-edge-evidence-2026-07-20.md`; raw browser capture remains untracked.
 - Unit 1 version/lifecycle and strict schema results: `unit-1-contract-evidence-2026-07-20.md`.
 - Unit 2 canonical compiler/preflight/digest/native-handoff equality: `unit-2-director-compiler-evidence-2026-07-20.md`.
+- Unit 3 strict text-authority and atomic sequence planning: `unit-3-sequence-planning-evidence-2026-07-20.md`.
 - Sequence, acceptance, continuation, duplication, stale, and retake action traces.
 - Offline eval manifest/schema and behavior ledger.
 - Responsive, accessibility, functional Chromium, build, backend, performance, hygiene, and delivery evidence.

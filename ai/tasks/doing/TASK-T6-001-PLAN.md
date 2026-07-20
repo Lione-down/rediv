@@ -67,7 +67,7 @@ Success gate: preflight alone mutates nothing; one explicit Send yields one exac
 
 ## Unit 3 - Explicit director brief and durable sequence planning
 
-- Status: `in_progress`
+- Status: `completed`
 
 1. Lock one backward-aware representation for director/sequence content before implementation.
 2. Validate explicit text-authority output against source node/revision before one Canvas command.
@@ -79,7 +79,7 @@ Success gate: durable reversible planning creates no image/video task until a la
 
 ## Unit 4 - Accepted-take continuation and duplication-safe canon
 
-- Status: `pending`
+- Status: `in_progress`
 
 1. Require accepted result lineage plus observed end state before continuation preflight.
 2. Reject foreign, stale, deleted, rejected, wrong-media, or wrong-task results before mutation.

@@ -1,7 +1,7 @@
 # TASK-T6-001 Progress
 
 - State: `DOING`
-- Active unit: `Unit 3 - explicit director brief and durable sequence planning`
+- Active unit: `Unit 4 - accepted-take continuation and duplication-safe canon`
 - Activation baseline: `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`; ahead/behind `0/0`.
 - Task: `ai/tasks/todo/TASK-T6-001.md`
 - Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`
@@ -28,15 +28,19 @@
 - Unit 2 primary RED proved active v2 fell through to the v1 response. Self-review RED proved group-expanded children lost the parent transfer policy; both are closed.
 - Extended only the existing authenticated `/cinematic-preflight` and native generation handoff. A replay-safe explicit Send captured byte-equal canonical request/digest in the existing task snapshot with zero provider calls.
 - Unit 2 verification is green: backend `26/26`, frontend `8/8`, production build `4937 modules transformed`.
+- Locked sequence storage to `sourceScript.contentData.cinematic_sequence`, preserving script text and existing Canvas document/history/autosave authority.
+- Extended the existing text endpoint to validate exact v2 sequence output against the submitted source revision and director brief while preserving v1 shot documents.
+- Added one atomic sequence command, strict stale/wrong-source rejection, next-unresolved-clip gating, and an explicit existing-text-authority planning method.
+- Unit 3 RED proved v2 sequence output was incorrectly parsed as a v1 shot document. GREEN plus command/history verification is backend `19/19`, frontend `21/21`, build `4941`.
 
 ## Remaining Work
 
-- Complete Units 3 through 6 for cinematic director Skills v2.
+- Complete Units 4 through 6 for cinematic director Skills v2.
 - Complete fresh self-review, Human UX review, REPORT, durable-state synchronization, exact staging, commit, push, and remote equality.
 
 ## Exact Next Action
 
-Lock the backward-aware Canvas content representation for director brief and sequence planning, then write Unit 3 RED fixtures for strict text-authority output, one atomic command, next-unresolved-clip exposure, undo/redo, autosave/reload/recovery, and zero generation during planning.
+Write Unit 4 RED fixtures for accepted/rejected review transitions, current-Canvas result/task lineage, observed end state, completed/reserved beat rules, stale/deleted/foreign/wrong-media rejection, exact canon revision increments, continuation preflight, and duplication remapping.
 
 ## Files Changed
 
@@ -61,6 +65,12 @@ Lock the backward-aware Canvas content representation for director brief and seq
 - `backend/tests/test_cinematic_skill_v2_execution.py`
 - `frontend/src/modules/canvas/cinematic-director-preflight.ts`
 - `frontend/tests/e2e/canvas-cinematic-director-preflight.spec.ts`
+- `ai/evidence/t6-001/unit-3-sequence-planning-evidence-2026-07-20.md`
+- `backend/api/text_generate.py`
+- `backend/tests/test_cinematic_sequence_planning.py`
+- `frontend/src/components/canvas/composables/use-canvas-shot-schema.ts`
+- `frontend/src/modules/canvas/cinematic-sequence-command.ts`
+- `frontend/tests/e2e/canvas-cinematic-sequence-planning.spec.ts`
 
 ## Commands Run And Results
 
@@ -79,6 +89,9 @@ Lock the backward-aware Canvas content representation for director brief and seq
 - Unit 2 backend focused v1/v2 matrix: `26/26` passed.
 - Unit 2 frontend focused v1/v2 matrix: `8/8` passed.
 - Unit 2 production build: `4937 modules transformed`.
+- Unit 3 backend text-authority/compatibility matrix: `19/19` passed.
+- Unit 3 frontend sequence/command/history matrix: `21/21` passed.
+- Unit 3 production build: `4941 modules transformed`.
 
 ## Blockers And Release Conditions
 

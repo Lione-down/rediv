@@ -193,6 +193,7 @@ def _validate_native_parameters(
 
 def _optimized_prompt(
     *,
+    skill_id: str,
     user_instruction: str,
     references: list[dict[str, Any]],
     director: dict[str, Any] | None,
@@ -224,6 +225,11 @@ def _optimized_prompt(
             f"motion={director['motion']};sound={director['sound_intent']}",
         ])
     lines.append("导演政策：保持显式指令、参考传递和已接受 canon，不得静默削弱约束或改变 provider/model。")
+    if skill_id == "revid.cinema-script":
+        lines.append(
+            "输出契约：只返回 revid.cinematic-sequence contract_version 1 JSON，不要 Markdown；"
+            "保持 source_script_node_id、source_revision 和 director_brief 精确一致，clip 不超过 25。"
+        )
     return "\n".join(lines)
 
 
@@ -341,6 +347,7 @@ def compile_cinematic_director_preflight(
             if key in CONTROL_MAPPING
         },
         "optimized_prompt": _optimized_prompt(
+            skill_id=skill_id,
             user_instruction=user_instruction.strip(),
             references=references,
             director=director,

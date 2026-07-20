@@ -26,3 +26,8 @@ Before each scoped implementation commit, compare the actual diff with the pinne
 - Result: independently expressed Revid compiler, preflight, handoff, schema, client, and tests; no upstream code, prompt prose, router/provider table, examples, assets, or metadata copied.
 - Match scan across Unit 2 product/test diff for source/project/provider names: `0`.
 - Notice decision: no third-party notice addition required for this unit.
+
+## Unit 3 diff audit
+
+- Result: independently expressed Revid text-output selection, sequence command, planning action, and tests; no upstream code, prose, examples, assets, or metadata copied.
+- Notice decision: no third-party notice addition required for this unit.

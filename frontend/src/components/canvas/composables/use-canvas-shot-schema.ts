@@ -15,6 +15,17 @@ import { useProjectResourceStore } from '../../../modules/canvas/project-resourc
 import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
+import {
+  buildCinematicDirectorHandoff,
+  requestCinematicDirectorPreflight,
+  type CinematicDirectorPreflightInput,
+} from '../../../modules/canvas/cinematic-director-preflight'
+import { parseCinematicDirectorBrief, type CinematicDirectorBrief } from '../../../modules/canvas/cinematic-director'
+import { parseCinematicSequenceState } from '../../../modules/canvas/cinematic-sequence'
+import {
+  createApplyCinematicSequenceCommand,
+  resolveNextUnresolvedCinematicClip,
+} from '../../../modules/canvas/cinematic-sequence-command'
 
 interface CanvasShotSchemaOptions {
   canvasId: ComputedRef<string>
@@ -156,5 +167,70 @@ export function useCanvasShotSchema(options: CanvasShotSchemaOptions) {
     return commitShotGraph(sourceSnapshot, script, schema)
   }
 
-  return { createCinematicShotGraph, createShotGraph }
+  async function createCinematicSequencePlan(
+    rawDirectorBrief: CinematicDirectorBrief,
+    requestedClipCount = 8,
+  ) {
+    const projectId = options.projectId.value
+    const canvasId = options.canvasId.value
+    const source = currentSource()
+    if (!source) throw new Error('请选择一个可用的脚本节点。')
+    if (!Number.isInteger(requestedClipCount) || requestedClipCount < 1 || requestedClipCount > 25) {
+      throw new Error('sequence clip 数量必须在 1 到 25 之间。')
+    }
+    const sourceSnapshot = snapshotNode(source)
+    const script = sourceText(sourceSnapshot)
+    const directorBrief = parseCinematicDirectorBrief(rawDirectorBrief)
+    if (directorBrief.source_script_node_id !== sourceSnapshot.id) {
+      throw new Error('director brief 与当前脚本不匹配。')
+    }
+    if (authStore.quotas.text < 1) throw new Error('text quota 不足，sequence planning 已阻止。')
+    const [capabilities, sources] = await Promise.all([
+      loadCinematicSkillCapabilities(projectId, canvasId, request),
+      loadCinematicSkillSources(projectId, canvasId, request),
+    ])
+    const provider = capabilities.providers.find((candidate) => candidate.id === 'agnes')
+    const model = provider?.models.find((candidate) => candidate.media_type === 'text')
+    const sourceBinding = sources.items.find((candidate) => candidate.node_id === sourceSnapshot.id)
+    if (!provider || !model || !sourceBinding || sourceBinding.source_revision !== directorBrief.source_revision) {
+      throw new Error('director brief 或脚本来源已变化，请重新规划。')
+    }
+    const preflightInput: CinematicDirectorPreflightInput = {
+      projectId, canvasId, canvasRevision: sources.canvas_revision,
+      skillId: 'revid.cinema-script', providerId: provider.id, modelId: model.id,
+      userInstruction: `把明确 director brief 规划为 ${requestedClipCount} 个连续 clip，只返回严格 sequence JSON。`,
+      mentions: [{
+        node_id: sourceBinding.node_id, role: 'story', instruction: '保持原始剧情顺序',
+        must_not_transfer: [], source_revision: sourceBinding.source_revision,
+      }],
+      generationParameters: {
+        image_ids: [], requested_shot_count: requestedClipCount, aspect_ratio: '16:9',
+      },
+      workflowMode: 'standalone_clip', directorBrief, sequenceContext: null, retakeContext: null,
+    }
+    const preflight = await requestCinematicDirectorPreflight(preflightInput, request)
+    if (!preflight.ready_for_handoff) throw new Error('sequence planning preflight 尚未满足执行条件。')
+    const response = await requestCanvasGeneration({
+      mediaType: 'text', clientRequestId: createGenerationClientRequestId(),
+      projectId, originCanvasId: canvasId, canvasNodeId: sourceSnapshot.id,
+      prompt: preflight.canonical_request.optimized_prompt as string,
+      cinematicHandoff: buildCinematicDirectorHandoff(preflightInput, preflight),
+    }, authStore, request)
+    if (!response.content || !response.asset) throw new Error('sequence planning 响应不完整。')
+    const sequence = parseCinematicSequenceState(JSON.parse(response.content))
+    const current = currentSource()
+    if (!current || current.id !== sourceSnapshot.id || sourceText(current) !== script) {
+      throw new Error('脚本上下文已变化，请重新规划。')
+    }
+    const command = createApplyCinematicSequenceCommand(sourceSnapshot, script, sequence)
+    if (!command || sequence.source_revision !== sourceBinding.source_revision) {
+      throw new Error('sequence planning 来源校验失败。')
+    }
+    await canvasStore.dispatchCommand({ source: 'toolbar', command })
+    resourceStore.upsertAsset(response.asset)
+    resourceStore.upsertTask(response.generation_task)
+    return resolveNextUnresolvedCinematicClip(sequence)?.clip_id ?? null
+  }
+
+  return { createCinematicSequencePlan, createCinematicShotGraph, createShotGraph }
 }

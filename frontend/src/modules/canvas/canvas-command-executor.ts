@@ -46,6 +46,7 @@ import {
   type UpdateStoryboardGroupCommand,
 } from './storyboard-commands'
 import { resolveCanvasNodeLayoutRect } from './node-layout'
+import { executeApplyCinematicSequenceCommand } from './cinematic-sequence-command'
 import {
   createStoryboardGroupContent,
   updateStoryboardGroupContent,
@@ -495,6 +496,9 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'update-generation-parameters') return updateGenerationParameters(command)
     if (command.type === 'update-cinematic-skill-settings') return updateCinematicSkillSettings(command)
     if (command.type === 'apply-script-authoring-result') return applyScriptAuthoringResult(command)
+    if (command.type === 'apply-cinematic-sequence') return executeApplyCinematicSequenceCommand(
+      options.getNodes(), options.updateNodeState, command,
+    )
     return insertNodeIntoConnection(command)
   }
 

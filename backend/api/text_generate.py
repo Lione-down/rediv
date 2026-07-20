@@ -38,6 +38,7 @@ from core.script_authoring_contract import (
     validate_script_authoring_output,
 )
 from schemas.generation import TextGenerateRequest, TextGenerateResponse
+from schemas.cinematic_sequence import CinematicSequenceState
 from schemas.shot_schema import CinematicShotSchemaDocument
 
 
@@ -227,17 +228,28 @@ async def text_generate(
         if authoring_snapshot:
             generated_text = validate_script_authoring_output(generated_text)
         if payload.cinematic_handoff:
-            shot_document = CinematicShotSchemaDocument.model_validate_json(generated_text)
             reference_revisions = {
                 reference["source_revision"]
                 for reference in payload.cinematic_handoff.submitted_preflight["references"]
             }
-            if (
-                shot_document.source_script_node_id != payload.canvas_node_id
-                or shot_document.source_revision not in reference_revisions
-            ):
-                raise ProviderResultError("Provider returned a shot document for the wrong script source")
-            generated_text = shot_document.model_dump_json()
+            if payload.cinematic_handoff.skill_version == 2:
+                sequence = CinematicSequenceState.model_validate_json(generated_text)
+                expected_brief = payload.cinematic_handoff.submitted_preflight["canonical_request"]["director_brief"]
+                if (
+                    sequence.source_script_node_id != payload.canvas_node_id
+                    or sequence.source_revision not in reference_revisions
+                    or sequence.director_brief.model_dump(mode="json") != expected_brief
+                ):
+                    raise ProviderResultError("Provider returned a sequence for the wrong director source")
+                generated_text = sequence.model_dump_json()
+            else:
+                shot_document = CinematicShotSchemaDocument.model_validate_json(generated_text)
+                if (
+                    shot_document.source_script_node_id != payload.canvas_node_id
+                    or shot_document.source_revision not in reference_revisions
+                ):
+                    raise ProviderResultError("Provider returned a shot document for the wrong script source")
+                generated_text = shot_document.model_dump_json()
         provider_request_id = validate_optional_provider_identifier(
             extract_provider_request_id(response, "id", "request_id")
         )

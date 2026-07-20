@@ -6,6 +6,7 @@ import { parseGenerationCapabilities, type GenerationCapabilities, type VideoRef
 import type { ShotControls } from './shot-controls'
 import type { VisualAssetRecipeId, VisualAssetRecipeVersion } from './visual-asset-recipes'
 import type { CinematicGenerationHandoff } from './cinematic-skills'
+import type { CinematicDirectorGenerationHandoff } from './cinematic-director-preflight'
 import type { ScriptAuthoringIntent, ScriptAuthoringLineage, ScriptAuthoringLocale } from './script-authoring'
 
 export type GenerationMediaType = keyof QuotaBalance
@@ -61,7 +62,7 @@ export interface CanvasGenerationContext {
   recipeVersion?: VisualAssetRecipeVersion
   imageOperation?: ImageOperationContract
   shotControls?: ShotControls
-  cinematicHandoff?: CinematicGenerationHandoff
+  cinematicHandoff?: CinematicGenerationHandoff | CinematicDirectorGenerationHandoff
   scriptAuthoring?: {
     intent: ScriptAuthoringIntent
     locale: ScriptAuthoringLocale

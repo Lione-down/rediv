@@ -3,6 +3,7 @@ import type { InsertNodeIntoConnectionCommand } from './edge-insertion'
 import type { GenerationNodeParameters } from './generation-parameters'
 import type { CinematicSkillNodeSettings } from './cinematic-skills'
 import type { ScriptAuthoringLineage } from './script-authoring'
+import type { ApplyCinematicSequenceCommand } from './cinematic-sequence-command'
 import {
   reorderGenerationInputConnections,
   type GenerationInputDirection,
@@ -152,6 +153,7 @@ export type CanvasCommand =
   | UpdateGenerationParametersCommand
   | UpdateCinematicSkillSettingsCommand
   | ApplyScriptAuthoringResultCommand
+  | ApplyCinematicSequenceCommand
   | InsertNodeIntoConnectionCommand
 
 export interface CanvasCommandEnvelope {
