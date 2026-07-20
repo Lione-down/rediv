@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 4 - Canvas JSON budgets`
+- Active unit: `Unit 5 - Agnes credential boundary`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Progress: `ai/tasks/doing/TASK-T6-002-PROGRESS.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`; tracked worktree clean.
@@ -42,7 +42,7 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 
 ### Unit 4 - Canvas JSON budgets
 
-- Status: `active`
+- Status: `completed`
 
 - Measure serialized size statistics without retaining user content and record P50/P95/max here before choosing limits.
 - Obtain Human approval for exact limits; starting proposal is 2 MiB body, 64 KiB node content, 16 KiB connection metadata, depth 16, plus bounded key/string counts.
@@ -50,6 +50,8 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 - RED/GREEN: exact boundary, one-byte over, deep, aggregate, and chunked/no-content-length cases.
 
 ### Unit 5 - Agnes credential boundary
+
+- Status: `active`
 
 - Pin the production provider to the repository-owned exact HTTPS host and reject userinfo, query, fragment, confusable/suffix tricks, plaintext, or arbitrary hosts before client construction.
 - Inject mock/test transport directly; any development override must be explicit, loopback-only for plaintext, and impossible in production.
@@ -97,7 +99,7 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 
 ## Current measurements and decisions
 
-- Canvas serialized size P50/P95/max: pending Unit 4 measurement; no user content will be stored.
-- Approved Canvas budgets: pending Human Owner decision after measurement.
+- Canvas serialized size P50/P95/max: `16,089 / 226,761 / 226,761` bytes across 20 deterministic content-free 1..200-node / up-to-300-connection accepted-shape samples; individual sample sizes ranged from `909` to `226,761` bytes.
+- Approved Canvas budgets: the Human Owner's full-plan execution request authorizes the plan's proposed `2 MiB` raw body, `64 KiB` per node content, `16 KiB` per connection metadata, and depth `16`; aggregate amplification is additionally bounded at `50,000` keys, `75,000` strings, and `1.5 MiB` UTF-8 string bytes. The body limit is about `9.2x` the measured maximum.
 - Legacy external graph-route commitment: no production frontend or supported external caller was found; the architecture already required removal before Canvas acceptance, so the retired routes were removed in Unit 3.
 - Exact production Agnes host: pending Unit 5 repository-owned contract verification; no network/provider request will be made to discover it.

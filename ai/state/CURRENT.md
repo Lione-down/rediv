@@ -35,6 +35,8 @@ Last updated: 2026-07-20
 - Unit 2 evidence is three consecutive `5/5` concurrency/rollback runs with exactly one single-use winner each time, invitation regression `7/7`, and the remaining `24` tests in the combined invitation/password run passing. Offset-aware invitation expiry is normalized to UTC before MySQL persistence.
 - T6-002 Unit 3 is complete: the client-supplied generated-asset route and both project-scoped legacy graph routers are removed after caller classification found no production frontend or supported external dependency. Native generation plus exact Canvas-scoped APIs are the remaining mutation authorities.
 - Unit 3 evidence is route/provenance `3/3`, asset/project `24/24`, multi-canvas/E2E/native-generation `27/27`, adjacent security `7/7`, and deterministic Canvas persistence Chromium `2/2`. Forged arbitrary, failed, or foreign task IDs create zero generated assets.
+- T6-002 Unit 4 is complete: content-free accepted-shape samples measured P50/P95/max `16,089/226,761/226,761` bytes; Canvas PATCH now enforces a chunk-aware 2 MiB body, 64 KiB content, 16 KiB metadata, depth 16, and bounded aggregate key/string budgets before fingerprinting or persistence.
+- Unit 4 evidence is limits `7/7`, related document/revision/fingerprint/idempotency `19/19`, and deterministic persistence Chromium `2/2`. Exact boundaries succeed; every +1/depth/aggregate/chunked rejection returns 413/422 with zero graph or revision mutation.
 - T6-001 Unit 0A is complete: the Human screenshot exposed a draft-only coordinate defect. The draft path combined surface-space endpoints with a second SVG viewport transform; RED measured `155 CSS px` of horizontal source drift at a translated 50% viewport.
 - GREEN keeps hit testing in surface-space but constructs the SVG path in world-space. Actual path screen endpoints now equal the visible source port and pointer at 17/36/100/200%, related Chromium is `34/34`, build is `4937 modules transformed`, and the 1440x900 36% visual capture is hash-recorded under T6 evidence.
 - T6-001 Unit 1 is complete: capability v1/v2 remain exact, v3 discovers exactly three active cinematic v2 manifests while v1 stays historical, and strict backend/frontend director/reference/sequence/retake parsers fail closed on version mixing, extras, stale revisions, partial canon, invalid state references, and hidden execution fields.
@@ -90,7 +92,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Execute T6-002 Unit 4 by recording content-free Canvas size measurements, then add exact-boundary, aggregate, depth, and chunked-body RED tests before enforcing the approved JSON budgets.
+Execute T6-002 Unit 5 by verifying the repository-owned Agnes host contract, then write endpoint-confusion RED tests and pin credential-bearing client construction without making provider calls.
 
 ## Boundaries And Human Gates
 

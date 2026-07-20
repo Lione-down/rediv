@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 4 - Canvas JSON budgets`
+- Active unit: `Unit 5 - Agnes credential boundary`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Plan: `ai/tasks/doing/TASK-T6-002-PLAN.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`.
@@ -29,16 +29,20 @@
 - Unmounted and removed the two project-scoped graph API modules. Canonical Canvas-scoped document/resource routes remain active, and the end-to-end generation workflow now creates its node through the exact Canvas-scoped path.
 - Removed the two obsolete legacy-route CRUD test modules while retaining graph schema/transaction coverage in multi-canvas, Canvas document, and store suites. Added explicit route-absence and forged-provenance zero-mutation coverage.
 - Centralized the backend test-suite development mock contract so fail-closed production defaults no longer make unrelated suites depend on cross-test setting leakage. Focused throttle suites explicitly restore the limit of five.
+- Completed Unit 4 content-free measurement across 20 deterministic accepted-shape Canvas mutations: P50 `16,089` bytes, P95/max `226,761` bytes, and a measured range of `909..226,761` bytes for 1..200 nodes and up to 300 connections.
+- Enforced the authorized `2 MiB` raw request, `64 KiB` node content, `16 KiB` connection metadata, and depth-16 contracts before Pydantic fingerprint/persistence work. Added aggregate caps of 50,000 keys, 75,000 strings, and 1.5 MiB UTF-8 string bytes.
+- Added a chunk-aware reader that does not trust `Content-Length`, a raw nesting scan before JSON decode, an iterative non-recursive measurement walker, non-finite number rejection, and schema-level field-budget validation.
+- Added exact-boundary, one-byte-over, 1,000-node aggregate, depth-17, aggregate key/string/string-byte, and no-content-length chunked tests. Every rejection proves graph revision, node, connection, and Canvas revision counts are unchanged.
 
 ## Remaining Work
 
-- Units 4 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
-- Unit 4 exact Canvas budgets require measurement followed by Human Owner approval.
+- Units 5 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
+- Unit 4 budget gate is released by the Human Owner's explicit full-plan execution request and the recorded measurement/contract above.
 - Unit 3 route removal requires a Human decision only if a live external caller or support commitment is discovered.
 
 ## Exact Next Action
 
-Measure representative accepted Canvas documents without retaining content, record P50/P95/max serialized sizes, then enforce the approved Unit 4 JSON budgets with exact-boundary and zero-mutation RED/GREEN tests.
+Verify the repository-owned Agnes production endpoint contract, then add Unit 5 RED tests for plaintext, userinfo, query/fragment, confusable/suffix, and arbitrary HTTPS endpoints before client construction.
 
 ## Files Changed
 
@@ -80,6 +84,10 @@ Measure representative accepted Canvas documents without retaining content, reco
 - `backend/tests/test_multi_canvas_foundation.py`
 - `backend/tests/test_e2e_workflow.py`
 - `ai/architecture/REVID-V2-CANVAS-ARCHITECTURE.md`
+- `backend/core/json_budget.py`
+- `backend/api/canvas_documents.py`
+- `backend/schemas/canvas_document.py`
+- `backend/tests/test_canvas_document_limits.py`
 
 ## Commands Run And Results
 
@@ -97,9 +105,11 @@ Measure representative accepted Canvas documents without retaining content, reco
 - Unit 3 RED: the project-scoped node route still returned `200` before unmounting. The initial forged-provenance run exposed a pre-existing test-runtime dependency on leaked mock settings before reaching the assertion; the centralized explicit test contract released that setup blocker.
 - Unit 3 GREEN: forged arbitrary/failed/foreign task payloads issue no asset mutation and the three route-absence checks pass `3/3`; asset/project suites pass `24/24`; multi-canvas/E2E/native generation transaction, concurrency, and restart suites pass `27/27`.
 - Unit 3 adjacent security regression passes `7/7`; the deterministic Canvas document persistence Chromium spec passes `2/2`. No real provider call or user database was used.
+- Unit 4 RED failed at import because no JSON budget authority existed. GREEN is `7/7`, including exact raw/field boundaries, +1-byte failures, aggregate budgets, depth, and chunked no-content-length transport with zero database mutation.
+- Unit 4 related Canvas document/revision/fingerprint/generation-idempotency regression is `19/19`; deterministic Canvas document persistence Chromium remains `2/2` after the manual bounded reader replaced framework body parsing.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Unit 4 implementation under the Human-approved execution request and recorded proposed limits.
+- Current blocker: none for Unit 5; no real Agnes request or credential access is authorized or required.
 - Unit 4 limit gate: record non-content size distribution and obtain exact Human-approved budgets before enforcing the product contract.
 - Human gates remain real/paid provider calls, real secrets, destructive/user database work, irreversible migrations, external-account changes, and incompatible supported-route removal.

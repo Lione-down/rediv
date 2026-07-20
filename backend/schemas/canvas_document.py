@@ -2,6 +2,11 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from core.json_budget import (
+    CANVAS_CONNECTION_METADATA_MAX_BYTES,
+    CANVAS_NODE_CONTENT_MAX_BYTES,
+    measure_json,
+)
 from schemas.canvas import CanvasResponse
 from schemas.canvas_connection import CanvasConnectionResponse
 from schemas.canvas_node import CanvasNodeResponse
@@ -27,6 +32,13 @@ class CanvasNodeUpsert(BaseModel):
     is_locked: bool = Field(default=False)
     is_collapsed: bool = Field(default=False)
 
+    @field_validator("content")
+    @classmethod
+    def validate_content_budget(cls, value: dict) -> dict:
+        if measure_json(value).serialized_bytes > CANVAS_NODE_CONTENT_MAX_BYTES:
+            raise ValueError("Canvas node content is too large")
+        return value
+
 
 class CanvasConnectionUpsert(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -37,6 +49,13 @@ class CanvasConnectionUpsert(BaseModel):
     target_node_id: str = Field(..., min_length=1, max_length=36)
     target_port: str = Field(..., min_length=1, max_length=100)
     metadata: dict = Field(default_factory=dict)
+
+    @field_validator("metadata")
+    @classmethod
+    def validate_metadata_budget(cls, value: dict) -> dict:
+        if measure_json(value).serialized_bytes > CANVAS_CONNECTION_METADATA_MAX_BYTES:
+            raise ValueError("Canvas connection metadata is too large")
+        return value
 
 
 class CanvasDocumentPatchRequest(BaseModel):

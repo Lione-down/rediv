@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 
 from api.canvases import map_canvas_domain_error
 from controllers import canvas_documents as document_controller
@@ -6,6 +8,13 @@ from controllers import canvas_document_mutations as mutation_controller
 from controllers import canvas_revisions as revision_controller
 from controllers import canvases as canvas_controller
 from core.security import current_user
+from core.json_budget import (
+    JsonAggregateTooLargeError,
+    JsonBodyTooLargeError,
+    JsonMalformedError,
+    JsonShapeBudgetError,
+    read_canvas_document_json,
+)
 from schemas.canvas import CanvasResponse
 from schemas.canvas_connection import CanvasConnectionCreateRequest, CanvasConnectionResponse
 from schemas.canvas_document import (
@@ -40,12 +49,32 @@ def get_document(project_id: str, canvas_id: str, user=Depends(current_user)):
 
 
 @router.patch("/document", response_model=CanvasDocumentPatchResponse)
-def patch_document(
+async def patch_document(
     project_id: str,
     canvas_id: str,
-    payload: CanvasDocumentPatchRequest,
+    request: Request,
     user=Depends(current_user),
 ):
+    try:
+        raw_payload = await read_canvas_document_json(request)
+    except (JsonBodyTooLargeError, JsonAggregateTooLargeError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=str(error),
+        ) from None
+    except (JsonShapeBudgetError, JsonMalformedError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(error),
+        ) from None
+    try:
+        payload = CanvasDocumentPatchRequest.model_validate(raw_payload)
+    except ValidationError as error:
+        errors = [
+            {**item, "loc": ("body", *item["loc"])}
+            for item in error.errors(include_url=False, include_input=False)
+        ]
+        raise RequestValidationError(errors, body=raw_payload) from error
     try:
         return mutation_controller.patch_document(
             project_id,
