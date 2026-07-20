@@ -145,6 +145,39 @@ def _sequence_projection(sequence: dict[str, Any] | None) -> dict[str, Any] | No
     }
 
 
+def _validate_continuation_result(
+    *,
+    sequence: dict[str, Any] | None,
+    canvas_nodes: list[dict[str, Any]],
+    project_id: str,
+    canvas_id: str,
+    expected_media: str,
+) -> None:
+    if sequence is None:
+        raise CinematicDirectorCompilerError("continuation requires accepted sequence canon")
+    accepted = next((clip for clip in reversed(sequence["clips"]) if clip["state"] == "accepted"), None)
+    if accepted is None or not accepted["observed_end_state"]:
+        raise CinematicDirectorCompilerError("continuation requires an accepted result and observed end state")
+    result = next(
+        (node for node in canvas_nodes if node.get("id") == accepted["accepted_result_node_id"]),
+        None,
+    )
+    content = result.get("content") if isinstance(result, dict) else None
+    if (
+        not isinstance(result, dict) or result.get("status") == "deleted" or result.get("node_type") != "result"
+        or not isinstance(content, dict) or content.get("serialization_version") != 1
+        or content.get("subtype") != expected_media
+        or content.get("project_id") != project_id or content.get("origin_canvas_id") != canvas_id
+        or not isinstance(content.get("asset_id"), str) or not content["asset_id"].strip()
+        or not isinstance(content.get("source_task_id"), str) or not content["source_task_id"].strip()
+    ):
+        raise CinematicDirectorCompilerError("accepted continuation result lineage is unavailable or foreign")
+    from core.cinematic_skill_contract import cinematic_source_revision
+
+    if cinematic_source_revision(result) != accepted["accepted_result_revision"]:
+        raise CinematicDirectorCompilerError("accepted continuation result revision is stale")
+
+
 def _reference_conflicts(references: list[dict[str, Any]]) -> list[dict[str, str]]:
     conflicts: list[dict[str, str]] = []
     for reference in references:
@@ -306,6 +339,16 @@ def compile_cinematic_director_preflight(
         retake_context=retake_context,
         source_index=source_index,
     )
+    if workflow_mode == "continuation":
+        _validate_continuation_result(
+            sequence=sequence,
+            canvas_nodes=canvas_nodes,
+            project_id=project_id,
+            canvas_id=canvas_id,
+            expected_media={
+                "revid.cinema-image": "image", "revid.cinema-video": "video",
+            }.get(skill_id, "unsupported"),
+        )
     is_vague = director is None and user_instruction.strip().lower() in VAGUE_INSTRUCTIONS
     conflicts = _reference_conflicts(references)
     recommendations = (

@@ -245,11 +245,19 @@ class CinematicSkillV2ExecutionTests(unittest.TestCase):
             text="角色收到车票后走入雨夜站台。",
         )
         sequence = sequence_context(script)
+        result = source_node(
+            "result-1", node_type="result", subtype="video", asset_id="asset-result-1",
+        )
+        result["content"].update({
+            "project_id": "project-1", "origin_canvas_id": "canvas-1",
+            "source_task_id": "task-result-1",
+        })
+        sequence["clips"][0]["accepted_result_revision"] = cinematic_source_revision(result)
         preflight = self.build_v2(
             workflow_mode="continuation",
             director_brief=None,
             sequence_context=sequence,
-            canvas_nodes=[script],
+            canvas_nodes=[script, result],
             user_instruction="从列车门前继续，角色抬头确认车次",
         )
 
@@ -273,12 +281,26 @@ class CinematicSkillV2ExecutionTests(unittest.TestCase):
                 user_instruction="从列车门前继续，角色抬头确认车次",
                 mentions=[],
                 generation_parameters={"duration_seconds": 5, "reference_mode": "text-to-video"},
-                canvas_nodes=[script],
+                canvas_nodes=[script, result],
                 workflow_mode="continuation",
                 director_brief=None,
                 sequence_context={**sequence, "canon_revision": 2},
                 retake_context=None,
             )
+        for invalid_result in [
+            {**result, "status": "deleted"},
+            {**result, "content": {**result["content"], "origin_canvas_id": "foreign-canvas"}},
+            {**result, "content": {**result["content"], "source_task_id": None}},
+            {**result, "content": {**result["content"], "subtype": "image"}},
+        ]:
+            with self.assertRaises(CinematicSkillContractError):
+                self.build_v2(
+                    workflow_mode="continuation",
+                    director_brief=None,
+                    sequence_context=sequence,
+                    canvas_nodes=[script, invalid_result],
+                    user_instruction="从列车门前继续，角色抬头确认车次",
+                )
 
     def test_preview_handoff_and_immutable_snapshot_are_exact_and_drift_sensitive(self):
         preflight = self.build_v2()

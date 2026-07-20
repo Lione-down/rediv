@@ -79,7 +79,7 @@ Success gate: durable reversible planning creates no image/video task until a la
 
 ## Unit 4 - Accepted-take continuation and duplication-safe canon
 
-- Status: `in_progress`
+- Status: `completed`
 
 1. Require accepted result lineage plus observed end state before continuation preflight.
 2. Reject foreign, stale, deleted, rejected, wrong-media, or wrong-task results before mutation.
@@ -91,7 +91,7 @@ Success gate: only explicit acceptance advances canon and exact lineage survives
 
 ## Unit 5 - Reference transfer, capability gating, and retake UX
 
-- Status: `pending`
+- Status: `in_progress`
 
 1. Bind every reference to one role, ordered identity, source revision, explicit instruction, and bounded non-transfer enum.
 2. Disable unsupported audio/video/reference roles with backend capability reasons; crafted requests fail before mutation.

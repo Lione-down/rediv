@@ -55,6 +55,34 @@ def shot_child(node_id: str, group_id: str, index: int, *, locked: bool = False,
 
 
 class ShotStoryboardDuplicationTestCase(unittest.TestCase):
+    def test_cinematic_sequence_source_and_accepted_result_remap_without_mutating_history(self) -> None:
+        content = {
+            "subtype": "script", "serialization_version": 1, "text": "雨夜车站",
+            "cinematic_sequence": {
+                "contract_version": 1, "schema_id": "revid.cinematic-sequence",
+                "sequence_id": "sequence-1", "source_script_node_id": "script-a",
+                "source_revision": "a" * 64,
+                "director_brief": {
+                    "source_script_node_id": "script-a", "source_revision": "a" * 64,
+                },
+                "clips": [{
+                    "clip_id": "clip-01", "state": "accepted", "accepted_result_node_id": "result-a",
+                    "accepted_result_revision": "b" * 64,
+                }],
+            },
+        }
+        duplicated = _duplicate_node_content(
+            node("script-a", "script", content), [],
+            {"script-a": "script-copy", "result-a": "result-copy"},
+        )
+
+        sequence = duplicated["cinematic_sequence"]
+        self.assertEqual("sequence-script-copy", sequence["sequence_id"])
+        self.assertEqual("script-copy", sequence["source_script_node_id"])
+        self.assertEqual("script-copy", sequence["director_brief"]["source_script_node_id"])
+        self.assertEqual("result-copy", sequence["clips"][0]["accepted_result_node_id"])
+        self.assertEqual("script-a", content["cinematic_sequence"]["source_script_node_id"])
+
     def test_cinematic_bindings_and_script_lineage_remap_to_duplicate_canvas_ids(self) -> None:
         content = {
             "subtype": "image", "serialization_version": 1,

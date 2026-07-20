@@ -1,7 +1,7 @@
 # TASK-T6-001 Progress
 
 - State: `DOING`
-- Active unit: `Unit 4 - accepted-take continuation and duplication-safe canon`
+- Active unit: `Unit 5 - reference transfer, capability gating, and retake UX`
 - Activation baseline: `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`; ahead/behind `0/0`.
 - Task: `ai/tasks/todo/TASK-T6-001.md`
 - Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`
@@ -32,15 +32,17 @@
 - Extended the existing text endpoint to validate exact v2 sequence output against the submitted source revision and director brief while preserving v1 shot documents.
 - Added one atomic sequence command, strict stale/wrong-source rejection, next-unresolved-clip gating, and an explicit existing-text-authority planning method.
 - Unit 3 RED proved v2 sequence output was incorrectly parsed as a v1 shot document. GREEN plus command/history verification is backend `19/19`, frontend `21/21`, build `4941`.
+- Unit 4 adds one-revision accept/reject review, current-Canvas result/task/media/revision validation, reserved/completed beat preservation, continuation fail-closed checks, and duplication-safe sequence/source/result remapping.
+- Unit 4 verification is backend `17/17` plus `3` subtests, frontend `8/8`, build `4941`.
 
 ## Remaining Work
 
-- Complete Units 4 through 6 for cinematic director Skills v2.
+- Complete Units 5 through 6 for cinematic director Skills v2.
 - Complete fresh self-review, Human UX review, REPORT, durable-state synchronization, exact staging, commit, push, and remote equality.
 
 ## Exact Next Action
 
-Write Unit 4 RED fixtures for accepted/rejected review transitions, current-Canvas result/task lineage, observed end state, completed/reserved beat rules, stale/deleted/foreign/wrong-media rejection, exact canon revision increments, continuation preflight, and duplication remapping.
+Implement Unit 5 progressive reference-transfer and take-review UX, capability reasons, and bounded single-variable retake preflights without auto-execution.
 
 ## Files Changed
 

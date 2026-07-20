@@ -8,6 +8,7 @@ import {
   resolveNextUnresolvedCinematicClip,
 } from '../../src/modules/canvas/cinematic-sequence-command'
 import { parseCinematicSequenceState } from '../../src/modules/canvas/cinematic-sequence'
+import { createCinematicTakeReviewCommand } from '../../src/modules/canvas/cinematic-take-review'
 import type { CanvasNode } from '../../src/types/canvas'
 
 const REVISION = 'a'.repeat(64)
@@ -140,4 +141,37 @@ test('one sequence command participates in autosave and exact undo redo history'
   expect(nodes.value[0].contentData?.cinematic_sequence).toBeUndefined()
   expect(await history.redo()).toBe(true)
   expect(nodes.value[0].contentData?.cinematic_sequence).toEqual(sequence())
+})
+
+test('accept and reject are explicit one-revision reviews and rejected result remains untouched', () => {
+  const source: CanvasNode = {
+    id: 'script-1', type: 'script', title: '脚本', x: 0, y: 0, width: 300, height: 200,
+    content: '正文', contentData: { subtype: 'script', serialization_version: 1, text: '正文' },
+  }
+  const result: CanvasNode = {
+    id: 'result-1', type: 'result', title: 'Take 1', x: 400, y: 0, width: 320, height: 240,
+    status: 'success', contentData: {
+      subtype: 'video', serialization_version: 1, asset_id: 'asset-1', source_task_id: 'task-1',
+    },
+  }
+  const generated = structuredClone(sequence())
+  generated.clips[0].state = 'generated'
+  const accepted = createCinematicTakeReviewCommand({
+    source, sequence: generated, clipId: 'clip-01', result, resultRevision: REVISION,
+    decision: 'accept', observedEndState: '角色抵达列车门前',
+    completedBeatIds: ['beat-01'], reservedBeatIds: ['beat-02'],
+  })!
+  expect(accepted.sequence.canon_revision).toBe(1)
+  expect(accepted.sequence.clips[0]).toEqual(expect.objectContaining({
+    state: 'accepted', accepted_result_node_id: 'result-1', observed_end_state: '角色抵达列车门前',
+  }))
+
+  const before = JSON.stringify(result)
+  const rejected = createCinematicTakeReviewCommand({
+    source, sequence: generated, clipId: 'clip-01', result, resultRevision: REVISION,
+    decision: 'reject', observedEndState: null, completedBeatIds: [], reservedBeatIds: [],
+  })!
+  expect(rejected.sequence.canon_revision).toBe(1)
+  expect(rejected.sequence.clips[0].state).toBe('rejected')
+  expect(JSON.stringify(result)).toBe(before)
 })

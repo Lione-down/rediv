@@ -73,6 +73,35 @@ def _duplicate_node_content(
                     remapped_mentions.append({**mention, "node_id": node_id_map[node_id]})
                 if len(remapped_mentions) == len(mentions):
                     cinematic_skill["mentions"] = remapped_mentions
+        sequence = content.get("cinematic_sequence")
+        if (
+            isinstance(sequence, dict)
+            and sequence.get("contract_version") == 1
+            and sequence.get("schema_id") == "revid.cinematic-sequence"
+        ):
+            sequence_source_id = sequence.get("source_script_node_id")
+            if isinstance(sequence_source_id, str) and sequence_source_id in node_id_map:
+                remapped_source_id = node_id_map[sequence_source_id]
+                sequence["source_script_node_id"] = remapped_source_id
+                sequence["sequence_id"] = f"sequence-{remapped_source_id}"[:96]
+                director_brief = sequence.get("director_brief")
+                if isinstance(director_brief, dict):
+                    director_brief["source_script_node_id"] = remapped_source_id
+            clips = sequence.get("clips")
+            if isinstance(clips, list):
+                for clip in clips:
+                    if not isinstance(clip, dict) or clip.get("state") != "accepted":
+                        continue
+                    result_id = clip.get("accepted_result_node_id")
+                    if isinstance(result_id, str) and result_id in node_id_map:
+                        clip["accepted_result_node_id"] = node_id_map[result_id]
+                    else:
+                        clip.update({
+                            "state": "rejected",
+                            "accepted_result_node_id": None,
+                            "accepted_result_revision": None,
+                            "observed_end_state": None,
+                        })
     ordered_child_ids = content.get("ordered_child_ids") if isinstance(content, dict) else None
     is_storyboard_common = (
         source_node.node_type == "group"
@@ -178,12 +207,27 @@ def _refresh_duplicated_cinematic_revisions(duplicated_nodes: dict[str, CanvasNo
             content["source_revision"] = revision(nodes_by_new_id[source_script_node_id])
         cinematic_skill = content.get("cinematic_skill")
         mentions = cinematic_skill.get("mentions") if isinstance(cinematic_skill, dict) else None
-        if not isinstance(mentions, list):
+        if isinstance(mentions, list):
+            for mention in mentions:
+                node_id = mention.get("node_id") if isinstance(mention, dict) else None
+                if isinstance(node_id, str) and node_id in nodes_by_new_id:
+                    mention["source_revision"] = revision(nodes_by_new_id[node_id])
+        sequence = content.get("cinematic_sequence")
+        if not isinstance(sequence, dict) or sequence.get("schema_id") != "revid.cinematic-sequence":
             continue
-        for mention in mentions:
-            node_id = mention.get("node_id") if isinstance(mention, dict) else None
-            if isinstance(node_id, str) and node_id in nodes_by_new_id:
-                mention["source_revision"] = revision(nodes_by_new_id[node_id])
+        sequence_source_id = sequence.get("source_script_node_id")
+        if isinstance(sequence_source_id, str) and sequence_source_id in nodes_by_new_id:
+            source_revision = revision(nodes_by_new_id[sequence_source_id])
+            sequence["source_revision"] = source_revision
+            director_brief = sequence.get("director_brief")
+            if isinstance(director_brief, dict):
+                director_brief["source_revision"] = source_revision
+        clips = sequence.get("clips")
+        if isinstance(clips, list):
+            for clip in clips:
+                result_id = clip.get("accepted_result_node_id") if isinstance(clip, dict) else None
+                if isinstance(result_id, str) and result_id in nodes_by_new_id:
+                    clip["accepted_result_revision"] = revision(nodes_by_new_id[result_id])
 
 
 def _datetime_to_iso(value: datetime | None) -> str | None:
