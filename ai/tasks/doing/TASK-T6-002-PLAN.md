@@ -1,10 +1,11 @@
 # TASK-T6-002 Implementation Plan
 
-- State: `DOING`
-- Verification outcome: `PENDING`
-- Active unit: `Unit 10 - Test fixture/spec splits and final regression`
+- State: `DONE`
+- Verification outcome: `PASS`
+- Active unit: `none`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Progress: `ai/tasks/doing/TASK-T6-002-PROGRESS.md`
+- Report: `ai/reports/REPORT-T6-002.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`; tracked worktree clean.
 - Decisions: `ADR-2026-07-10-CODEX-DIRECT-DELIVERY`, `ADR-002`, `ADR-004`, and `ADR-005` remain authoritative.
 
@@ -91,7 +92,7 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 
 ### Unit 10 - Test fixture/spec splits and final regression
 
-- Status: `active`
+- Status: `completed`
 
 - Capture exported helper and test title/count baselines, split only by behavior domain, and prove before/after identity.
 - Run full backend, build, functional Chromium, accessibility, headed performance, state validator, audit signals, diff/hygiene, exact staging, and origin agreement.

@@ -1,12 +1,13 @@
 # TASK-T6-002 - Project audit remediation and structural hardening
 
-- State: `DOING`
-- Verification outcome: `PENDING`
+- State: `DONE`
+- Verification outcome: `PASS`
 - Phase: `Product V3 / Phase 6`
 - Objective: execute the 2026-07-20 project audit remediation program so authentication, registration, provenance, Canvas payloads, provider credentials, CI, durable state, persistence freshness, Canvas UI state, and high-risk tests are fail-closed, maintainable, and reproducibly verified.
 - Dependency: `T6-001 - DONE / PASS` at activation baseline `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`.
 - Plan: `ai/tasks/doing/TASK-T6-002-PLAN.md`.
 - Progress: `ai/tasks/doing/TASK-T6-002-PROGRESS.md`.
+- Report: `ai/reports/REPORT-T6-002.md`.
 - Audit source: preserved user-owned `.hermes/plans/2026-07-20_225502-project-audit-remediation.md` with SHA-256 `457ACDEF858F3A5AD54659CC43F63D8E87A70B722B91775B854E970AA7E56C0E`.
 
 ## Scope

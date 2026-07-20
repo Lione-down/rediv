@@ -539,7 +539,15 @@ function openRevisionPanel(event?: Event | HTMLElement) {
 }
 
 function closeRevisionPanel() {
-  contextSurfaceController.deactivate('revision')
+  const opener = contextSurface.value.kind === 'revision' ? contextSurface.value.opener : null
+  contextSurfaceController.deactivate('revision', false)
+  void nextTick(() => {
+    const canRestoreOpener = opener?.isConnected
+      && opener.getAttribute('aria-disabled') !== 'true'
+      && (!(opener instanceof HTMLButtonElement) || !opener.disabled)
+    const target = canRestoreOpener ? opener : revisionTriggerRef.value
+    target?.focus({ preventScroll: true })
+  })
 }
 
 function retryProjectResources() {
@@ -567,8 +575,9 @@ function updateStageContextSurface(open: boolean) {
   if (!open) contextSurfaceController.markClosed('stage')
 }
 
-watch([projectId, canvasId], ([nextProjectId, nextCanvasId]) => {
-  contextSurfaceController.clear(false)
+watch([projectId, canvasId], ([nextProjectId, nextCanvasId], [previousProjectId]) => {
+  const keepsProjectResources = previousProjectId === nextProjectId && contextSurface.value.kind === 'resources'
+  if (!keepsProjectResources) contextSurfaceController.clear(false)
   viewMode.value = 'workflow'
   void loadWorkspaceContext(nextProjectId, nextCanvasId)
 }, { immediate: true })

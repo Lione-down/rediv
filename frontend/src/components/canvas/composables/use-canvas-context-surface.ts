@@ -22,6 +22,12 @@ function connectedTarget(target: HTMLElement | null | undefined): HTMLElement | 
   return target?.isConnected ? target : null
 }
 
+function restorableTarget(target: HTMLElement | null | undefined): HTMLElement | null {
+  const connected = connectedTarget(target)
+  if (!connected || connected.getAttribute('aria-disabled') === 'true') return null
+  return connected instanceof HTMLButtonElement && connected.disabled ? null : connected
+}
+
 export function useCanvasContextSurface(options: CanvasContextSurfaceOptions) {
   const surface = shallowRef<CanvasContextSurface>({ kind: 'none' })
 
@@ -49,7 +55,8 @@ export function useCanvasContextSurface(options: CanvasContextSurfaceOptions) {
     surface.value = { kind: 'none' }
     if (!restoreFocus) return
     void nextTick(() => {
-      const target = connectedTarget(opener) ?? connectedTarget(options.fallbackFocusTarget?.())
+      const target = restorableTarget(opener)
+        ?? restorableTarget(options.fallbackFocusTarget?.())
       target?.focus({ preventScroll: true })
     })
   }

@@ -1,10 +1,11 @@
 # TASK-T6-002 Progress
 
-- State: `DOING`
-- Verification outcome: `PENDING`
-- Active unit: `Unit 10 - Test fixture/spec splits and final regression`
+- State: `DONE`
+- Verification outcome: `PASS`
+- Active unit: `none`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Plan: `ai/tasks/doing/TASK-T6-002-PLAN.md`
+- Report: `ai/reports/REPORT-T6-002.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`.
 
 ## Completed Work
@@ -56,14 +57,18 @@
 - Added a browser regression proving Resources-to-Revision exclusivity, diagnostic active-kind state, and Revision-trigger focus return. Existing professional palette keyboard ownership, revision recovery, mobile review, and mutation paths remain green.
 - Split cinematic lineage and the unchanged scoped stylesheet from `CanvasContextPanel.vue`, reducing it from `652` to `499` lines. Split Stage interaction types, viewport ownership, and window pointer-listener lifecycle, reducing `use-canvas-stage.ts` from `522` to `498` lines.
 - Recorded bounded aggregate-SFC exceptions for the route-composition `CanvasWorkspace.vue` and script-sub-500 `CanvasStage.vue`, including quantitative composition and mandatory re-split triggers. New extracted behavior files remain below 500 lines.
+- Completed Unit 10 by splitting all six frontend test/fixture files above 500 lines into public barrels, API/state fixtures, setup fixtures, and ordered registration modules; no frontend test TS/JS file now exceeds 500 lines.
+- Preserved five exact Playwright title counts and ordered SHA-256 values plus the 15-name public resource-fixture manifest. The affected `54/54` Chromium set and final `553/553` functional/accessibility suite pass.
+- Closed two final ContextSurface edge cases exposed by the first full run: disabled recovery openers now fall back to the Revision trigger, and project-scoped Resources remain open across same-project Canvas navigation. Focused rerun is `3/3`.
+- Completed the final locked backend, build, headed performance, dependency, state, CI, database-artifact, diff, sensitive-path, exact-stage, push, and origin-agreement gates without real providers, secrets, user data, or destructive actions.
 
 ## Remaining Work
 
-- Unit 10 in `TASK-T6-002-PLAN.md` remains to split oversized high-risk frontend test fixtures/specs and run the final whole-program verification.
+- None. Units 1 through 10 and every non-deferred acceptance criterion are complete.
 
 ## Exact Next Action
 
-Start Unit 10 by capturing exported-helper and Playwright title/count/ordering baselines for oversized frontend test files, then split by behavior domain without changing those sets.
+No implementation Task is active. The Human Owner may select the next Product V3 Task; no untracked plan is activated implicitly.
 
 ## Files Changed
 
@@ -153,6 +158,10 @@ Start Unit 10 by capturing exported-helper and Playwright title/count/ordering b
 - `frontend/src/views/app/CanvasWorkspace.vue`
 - `frontend/tests/e2e/canvas-context-surface.spec.ts`
 - `ai/evidence/t6-002/unit-9-canvas-ui-state-evidence-2026-07-20.md`
+- Unit 10 test fixture/spec split files recorded by the final diff.
+- `ai/evidence/t6-002/unit-10-final-verification-2026-07-20.md`
+- `ai/reports/REPORT-T6-002.md`
+- `scripts/validate-project-state.py`
 
 ## Commands Run And Results
 
@@ -186,8 +195,12 @@ Start Unit 10 by capturing exported-helper and Playwright title/count/ordering b
 - Final Unit 8 backend run passed `577/577` in `467.040s` against guarded disposable `revid_test_*` schemas. The PowerShell tail-capture pipeline itself returned nonzero because migration logs use stderr, but the complete unittest result was `OK` with zero failures or errors.
 - Unit 9 production build passed with `4,952` modules transformed. Focused Chromium passed `11/11` across contextual-surface, professional-palette, and revision suites in `14.1s`.
 - Unit 9 file-size results are `CanvasContextPanel.vue 499` and `use-canvas-stage.ts 498`; extracted ContextPanel style text equals the former embedded block after line-ending normalization; `git diff --check` passed.
+- Unit 10 ordered-title hashes match all five pre-split baselines; affected Chromium passed `54/54`; frontend test TS/JS files above 500 lines are `0`.
+- Final locked backend passed `577/577` with exit `0` in `506.6s`; the PATH-level global Python attempt was rejected as environment evidence after missing `annotated_doc`, while the repository venv uses locked FastAPI `0.115.6` and passes `pip check`.
+- Final production build passed with `4,952` modules; full deterministic functional/accessibility Chromium passed `553/553` in `9.9m`; headed performance passed `2/2` in `1.2m` under unchanged thresholds.
+- Final `npm audit` reports zero vulnerabilities; project-state/CI validators, one Alembic head, diff, database-artifact, file-size, sensitive-path, exact-stage, push, and origin checks pass.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Unit 10. Test splits must preserve exported helpers plus exact Playwright title/count/ordering before the final full regression begins.
+- Current blocker: none. T6-002 is complete; all Human gates remain boundaries for future work rather than deferred T6-002 acceptance criteria.
 - Human gates remain real/paid provider calls, real secrets, destructive/user database work, irreversible migrations, external-account changes, and incompatible supported-route removal.

@@ -18,15 +18,14 @@ Last updated: 2026-07-20
 
 ## Active Delivery
 
-- Active implementation Task: `T6-002 - Project audit remediation and structural hardening`.
-- State: `DOING`
-- Verification outcome: `PENDING`
+- Active implementation Task: none.
+- State: `DONE`
+- Verification outcome: `PASS`
+- Last completed Task: `T6-002 - Project audit remediation and structural hardening`, `DONE / PASS`.
 - Task: [TASK-T6-002](../tasks/todo/TASK-T6-002.md).
 - Plan: [TASK-T6-002-PLAN](../tasks/doing/TASK-T6-002-PLAN.md).
 - Progress: [TASK-T6-002-PROGRESS](../tasks/doing/TASK-T6-002-PROGRESS.md).
-- Active unit: `Unit 10 - Test fixture/spec splits and final regression`.
-- Last completed Task: `T6-001 - Revid-native cinematic director Skills v2`, `DONE / PASS`.
-- Last report: [REPORT-T6-001](../reports/REPORT-T6-001.md).
+- Last report: [REPORT-T6-002](../reports/REPORT-T6-002.md).
 - Archived completion detail: [2026-07-20 T5/T6 completion snapshot](archive/2026-07-20-t5-t6-completion-snapshot.md).
 
 ## Live Gates
@@ -38,13 +37,15 @@ Last updated: 2026-07-20
 - Latest Unit 8 evidence: two-worker freshness `4/4`; focused generation/E2E `31/31`; full backend `577/577` in `467.040s`; one Alembic head `c5d6e7f8a9b0`.
 - Unit 9 is delivered: one discriminated contextual-surface authority, deterministic opener focus return, ContextPanel/Stage behavior-domain splits, and quantified aggregate-SFC exceptions with re-split triggers.
 - Latest Unit 9 evidence: production build `4,952` modules; focused Chromium `11/11`; `CanvasContextPanel.vue 499` lines; `use-canvas-stage.ts 498` lines.
+- Unit 10 is delivered: six oversized frontend test/fixture files split with exact title/export identity; frontend test TS/JS files above 500 lines are `0`.
+- Final evidence: backend `577/577`; functional/accessibility Chromium `553/553`; headed performance `2/2`; build `4,952`; dependency and durable-state gates pass.
 - Latest Unit 6 evidence: clean Python 3.13 `pip check`; backend `575/575`; frontend build `4937` modules; deterministic functional/accessibility Chromium `552/552`.
 - The unchanged 200-node/300-connection headed hardware gate remains separate from ordinary SwiftShader CI. No real or paid provider request is authorized or claimed.
 - Only guarded disposable `revid_test_*` schemas may be created or dropped by tests.
 
 ## Exact Next Action
 
-Execute Unit 10: capture oversized frontend test helper/title baselines, split by behavior domain with identity checks, then run the final whole-program regression and hygiene gates.
+No implementation Task is active. Await explicit Human Owner selection before activating later Product V3 work; user-owned untracked plans are not activation authority.
 
 ## Worktree Ownership
 
