@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 3 - Authoritative provenance and graph routes`
+- Active unit: `Unit 4 - Canvas JSON budgets`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Progress: `ai/tasks/doing/TASK-T6-002-PROGRESS.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`; tracked worktree clean.
@@ -33,7 +33,7 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 
 ### Unit 3 - Authoritative provenance and graph routes
 
-- Status: `active`
+- Status: `completed`
 
 - Reclassify all callers of generated-asset and legacy project graph routes.
 - Remove forged-provenance creation; derive all generation lineage server-side or remove the unused route.
@@ -41,6 +41,8 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 - RED/GREEN: asset lineage, multi-canvas ownership, route surface, and document persistence.
 
 ### Unit 4 - Canvas JSON budgets
+
+- Status: `active`
 
 - Measure serialized size statistics without retaining user content and record P50/P95/max here before choosing limits.
 - Obtain Human approval for exact limits; starting proposal is 2 MiB body, 64 KiB node content, 16 KiB connection metadata, depth 16, plus bounded key/string counts.
@@ -97,5 +99,5 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 
 - Canvas serialized size P50/P95/max: pending Unit 4 measurement; no user content will be stored.
 - Approved Canvas budgets: pending Human Owner decision after measurement.
-- Legacy external graph-route commitment: pending Unit 3 whole-repo caller classification.
+- Legacy external graph-route commitment: no production frontend or supported external caller was found; the architecture already required removal before Canvas acceptance, so the retired routes were removed in Unit 3.
 - Exact production Agnes host: pending Unit 5 repository-owned contract verification; no network/provider request will be made to discover it.

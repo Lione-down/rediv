@@ -137,7 +137,7 @@ class CanvasRevisionApiTestCase(unittest.TestCase):
 
         close_db()
         try:
-            with patch.object(settings, "jwt_secret", "canvas-restart-test-secret"):
+            with patch.object(settings, "jwt_secret", "unit-test-canvas-restart-secret-minimum-32"):
                 restarted_headers = self._auth_headers(self.user["id"])
                 with TestClient(production_app) as restarted_client:
                     restarted = restarted_client.get(

@@ -378,7 +378,8 @@ class ResourceSchemaFoundationTestCase(unittest.TestCase):
 
     def test_05_schema_and_backfilled_resources_survive_runtime_restart(self) -> None:
         revision = self.mysql_database.restart_runtime()
-        self.assertEqual("a3b4c5d6e7f8", revision["current"])
+        self.assertTrue(revision["match"])
+        self.assertEqual(revision["head"], revision["current"])
         engine = init_engine()
         assert_selected_database(engine, self.schema_name)
         with engine.connect() as connection:

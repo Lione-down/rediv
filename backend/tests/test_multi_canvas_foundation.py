@@ -250,7 +250,7 @@ class MultiCanvasFoundationTestCase(unittest.TestCase):
                     },
                 )
 
-    def test_legacy_routes_expose_only_first_canvas(self) -> None:
+    def test_legacy_project_graph_routes_are_not_mounted(self) -> None:
         self._ensure_second_canvas()
         reloaded_store = DatabaseStore()
         configure_store(reloaded_store)
@@ -264,9 +264,8 @@ class MultiCanvasFoundationTestCase(unittest.TestCase):
             listed = client.get(f"/projects/{self.project_id}/nodes", headers=headers)
             hidden = client.get(f"/projects/{self.project_id}/nodes/{second_node['id']}", headers=headers)
 
-        self.assertEqual(200, listed.status_code)
-        self.assertEqual([self.source_node_id, self.target_node_id], sorted(node["id"] for node in listed.json()["items"]))
-        self.assertEqual(403, hidden.status_code)
+        self.assertEqual(404, listed.status_code)
+        self.assertEqual(404, hidden.status_code)
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token
 from models.base import init_engine
+from settings.config import settings
 from tests.mysql_test_database import MySQLTestDatabase
 
 
@@ -30,6 +31,20 @@ class ProjectAssetServicesTestCase(unittest.TestCase):
         cls.mysql_database.stop()
 
     def setUp(self) -> None:
+        self.original_auth_settings = (
+            settings.runtime_profile,
+            settings.runtime_bind_host,
+            settings.allow_mock_auth,
+            settings.wechat_mock_enabled,
+            settings.jwt_secret,
+            settings.auth_development_attempt_limit,
+        )
+        settings.runtime_profile = "development"
+        settings.runtime_bind_host = "127.0.0.1"
+        settings.allow_mock_auth = True
+        settings.wechat_mock_enabled = True
+        settings.jwt_secret = "unit-test-project-assets-secret-minimum-32"
+        settings.auth_development_attempt_limit = 1000
         configure_store(DatabaseStore())
         self.client = self._new_client()
         store.registration_settings["registration_mode"] = "open"
@@ -49,6 +64,14 @@ class ProjectAssetServicesTestCase(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.client.close()
+        (
+            settings.runtime_profile,
+            settings.runtime_bind_host,
+            settings.allow_mock_auth,
+            settings.wechat_mock_enabled,
+            settings.jwt_secret,
+            settings.auth_development_attempt_limit,
+        ) = self.original_auth_settings
 
     def test_audio_upload_is_project_shared_across_canvases_and_survives_restart(self) -> None:
         upload = self.client.post(
@@ -78,14 +101,15 @@ class ProjectAssetServicesTestCase(unittest.TestCase):
 
         self.client.close()
         restart = self.mysql_database.restart_runtime()
-        self.assertEqual("a3b4c5d6e7f8", restart["current"])
+        self.assertTrue(restart["match"])
+        self.assertEqual(restart["head"], restart["current"])
         from database import close_db
         from main import app as production_app
         from settings.config import settings
 
         close_db()
         try:
-            with patch.object(settings, "jwt_secret", "asset-restart-test-secret"):
+            with patch.object(settings, "jwt_secret", "unit-test-asset-restart-secret-minimum-32"):
                 restarted_headers = self._auth_headers(self.user["id"])
                 with TestClient(production_app) as restarted_client:
                     after_restart = restarted_client.get(
@@ -196,7 +220,7 @@ class ProjectAssetServicesTestCase(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual([asset["id"]], [item["id"] for item in response.json()["items"]])
 
-    def test_audio_is_not_accepted_as_generated_media(self) -> None:
+    def test_generated_asset_creation_route_is_not_public(self) -> None:
         response = self.client.post(
             "/assets/from_generation",
             json={
@@ -207,7 +231,7 @@ class ProjectAssetServicesTestCase(unittest.TestCase):
             headers=self.headers,
         )
 
-        self.assertEqual(422, response.status_code)
+        self.assertEqual(405, response.status_code)
 
     @staticmethod
     def _new_client() -> TestClient:

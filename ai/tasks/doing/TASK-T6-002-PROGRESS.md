@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 3 - Authoritative provenance and graph routes`
+- Active unit: `Unit 4 - Canvas JSON budgets`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Plan: `ai/tasks/doing/TASK-T6-002-PLAN.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`.
@@ -24,16 +24,21 @@
 - Removed `store.use_invitation_code()` from both password and WeChat API registration flows. Compatibility caches now refresh only from committed rows and never authorize invitation redemption.
 - Added stable 403/409 domain-to-HTTP mapping, preserved username/email conflict details, and normalized offset-aware invitation expirations to UTC before MySQL `DATETIME` persistence.
 - Added rollback coverage for password quota, WeChat identity, and WeChat quota failures plus a real two-thread/two-connection single-use invitation race. Failed registrations leave user, identity, quota, ledger, and `used_count` unchanged.
+- Completed Unit 3 caller classification: no production frontend or supported external caller uses `/assets/from_generation`, `/projects/{project_id}/nodes`, or `/projects/{project_id}/connections`; remaining references were old tests, architecture text, and historical Tasks.
+- Removed the client-supplied generated-asset endpoint and request schema. Native generation transactions remain the only authority that can persist `source=generation` lineage.
+- Unmounted and removed the two project-scoped graph API modules. Canonical Canvas-scoped document/resource routes remain active, and the end-to-end generation workflow now creates its node through the exact Canvas-scoped path.
+- Removed the two obsolete legacy-route CRUD test modules while retaining graph schema/transaction coverage in multi-canvas, Canvas document, and store suites. Added explicit route-absence and forged-provenance zero-mutation coverage.
+- Centralized the backend test-suite development mock contract so fail-closed production defaults no longer make unrelated suites depend on cross-test setting leakage. Focused throttle suites explicitly restore the limit of five.
 
 ## Remaining Work
 
-- Units 3 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
+- Units 4 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
 - Unit 4 exact Canvas budgets require measurement followed by Human Owner approval.
 - Unit 3 route removal requires a Human decision only if a live external caller or support commitment is discovered.
 
 ## Exact Next Action
 
-Run the Unit 3 whole-repository caller classification for generated-asset and legacy project graph routes, then add forged-provenance RED tests before changing the route surface.
+Measure representative accepted Canvas documents without retaining content, record P50/P95/max serialized sizes, then enforce the approved Unit 4 JSON budgets with exact-boundary and zero-mutation RED/GREEN tests.
 
 ## Files Changed
 
@@ -62,6 +67,19 @@ Run the Unit 3 whole-repository caller classification for generated-asset and le
 - `backend/controllers/registration.py`
 - `backend/controllers/store.py`
 - `backend/tests/test_registration_concurrency.py`
+- `backend/api/assets.py`
+- `backend/api/router.py`
+- `backend/schemas/asset.py`
+- `backend/api/canvas_nodes.py` (removed)
+- `backend/api/canvas_connections.py` (removed)
+- `backend/tests/test_canvas_node_crud.py` (removed)
+- `backend/tests/test_canvas_connection_crud.py` (removed)
+- `backend/tests/__init__.py`
+- `backend/tests/test_asset_upload.py`
+- `backend/tests/test_project_asset_services.py`
+- `backend/tests/test_multi_canvas_foundation.py`
+- `backend/tests/test_e2e_workflow.py`
+- `ai/architecture/REVID-V2-CANVAS-ARCHITECTURE.md`
 
 ## Commands Run And Results
 
@@ -76,9 +94,12 @@ Run the Unit 3 whole-repository caller classification for generated-asset and le
 - Unit 2 RED: the new suite initially failed because no transactional registration service existed; the first GREEN attempt then exposed child-row flush ordering, and related regression exposed offset-aware expiry drift through MySQL `DATETIME`.
 - Unit 2 concurrency/rollback suite: `5/5` passed in each of three consecutive guarded disposable-MySQL runs (`27.518s`, `27.555s`, `28.036s`), with exactly one winner and `used_count=1` every time.
 - Unit 2 related regression: combined invitation/password auth ran `25` tests with only the newly exposed expiry case failing; after UTC normalization the focused expiry case passed and the full invitation suite passed `7/7`. The other `24` tests in the combined run passed.
+- Unit 3 RED: the project-scoped node route still returned `200` before unmounting. The initial forged-provenance run exposed a pre-existing test-runtime dependency on leaked mock settings before reaching the assertion; the centralized explicit test contract released that setup blocker.
+- Unit 3 GREEN: forged arbitrary/failed/foreign task payloads issue no asset mutation and the three route-absence checks pass `3/3`; asset/project suites pass `24/24`; multi-canvas/E2E/native generation transaction, concurrency, and restart suites pass `27/27`.
+- Unit 3 adjacent security regression passes `7/7`; the deterministic Canvas document persistence Chromium spec passes `2/2`. No real provider call or user database was used.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Unit 3.
+- Current blocker: none for Unit 4 implementation under the Human-approved execution request and recorded proposed limits.
 - Unit 4 limit gate: record non-content size distribution and obtain exact Human-approved budgets before enforcing the product contract.
 - Human gates remain real/paid provider calls, real secrets, destructive/user database work, irreversible migrations, external-account changes, and incompatible supported-route removal.

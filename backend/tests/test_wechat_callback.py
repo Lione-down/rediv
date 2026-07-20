@@ -31,10 +31,12 @@ class WechatCallbackTestCase(unittest.TestCase):
         self.original_runtime_bind_host = settings.runtime_bind_host
         self.original_allow_mock_auth = settings.allow_mock_auth
         self.original_jwt_secret = settings.jwt_secret
+        self.original_development_attempt_limit = settings.auth_development_attempt_limit
         settings.runtime_profile = "development"
         settings.runtime_bind_host = "127.0.0.1"
         settings.allow_mock_auth = True
         settings.jwt_secret = "unit-test-wechat-auth-secret-minimum-32"
+        settings.auth_development_attempt_limit = 5
 
         self.client = TestClient(app)
 
@@ -46,6 +48,7 @@ class WechatCallbackTestCase(unittest.TestCase):
         settings.runtime_bind_host = self.original_runtime_bind_host
         settings.allow_mock_auth = self.original_allow_mock_auth
         settings.jwt_secret = self.original_jwt_secret
+        settings.auth_development_attempt_limit = self.original_development_attempt_limit
 
     def test_mock_route_is_hidden_without_explicit_development_auth(self) -> None:
         settings.wechat_mock_enabled = True

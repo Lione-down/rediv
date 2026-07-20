@@ -64,8 +64,15 @@ class E2EWorkflowTestCase(unittest.TestCase):
         project = project_response.json()
         self.assertEqual(user["id"], project["user_id"])
 
+        canvases_response = self.client.get(
+            f"/api/projects/{project['id']}/canvases",
+            headers=self._auth_headers(token),
+        )
+        self.assertEqual(200, canvases_response.status_code)
+        canvas_id = canvases_response.json()["items"][0]["id"]
+
         node_response = self.client.post(
-            f"/projects/{project['id']}/nodes",
+            f"/api/projects/{project['id']}/canvases/{canvas_id}/nodes",
             json={
                 "node_type": "text",
                 "content": {"text": "Need a short launch storyboard"},

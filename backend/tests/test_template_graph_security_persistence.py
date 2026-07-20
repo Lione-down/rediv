@@ -99,14 +99,15 @@ class TemplateGraphSecurityPersistenceTestCase(unittest.TestCase):
 
         self.client.close()
         restart = self.mysql_database.restart_runtime()
-        self.assertEqual("a3b4c5d6e7f8", restart["current"])
+        self.assertTrue(restart["match"])
+        self.assertEqual(restart["head"], restart["current"])
         from database import close_db
         from main import app as production_app
         from settings.config import settings
 
         close_db()
         try:
-            with patch.object(settings, "jwt_secret", "template-restart-test-secret"):
+            with patch.object(settings, "jwt_secret", "unit-test-template-restart-secret-minimum-32"):
                 restarted_headers = self._auth_headers(self.user["id"])
                 with TestClient(production_app) as restarted_client:
                     template_after_restart = restarted_client.get(

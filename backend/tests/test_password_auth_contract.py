@@ -35,6 +35,7 @@ class PasswordAuthContractTestCase(unittest.TestCase):
         self.original_runtime_profile = settings.runtime_profile
         self.original_runtime_bind_host = settings.runtime_bind_host
         self.original_allow_mock_auth = settings.allow_mock_auth
+        self.original_development_attempt_limit = settings.auth_development_attempt_limit
         settings.runtime_profile = "development"
         settings.runtime_bind_host = "127.0.0.1"
         settings.allow_mock_auth = True
@@ -48,6 +49,7 @@ class PasswordAuthContractTestCase(unittest.TestCase):
         settings.runtime_profile = self.original_runtime_profile
         settings.runtime_bind_host = self.original_runtime_bind_host
         settings.allow_mock_auth = self.original_allow_mock_auth
+        settings.auth_development_attempt_limit = self.original_development_attempt_limit
         self.client.close()
 
     def test_public_registration_settings_expose_only_non_sensitive_fields(self) -> None:
@@ -299,10 +301,12 @@ class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
         self.original_runtime_profile = settings.runtime_profile
         self.original_runtime_bind_host = settings.runtime_bind_host
         self.original_allow_mock_auth = settings.allow_mock_auth
+        self.original_development_attempt_limit = settings.auth_development_attempt_limit
         self.mysql_database = MySQLTestDatabase("revid_test_runtime_admin")
         self.mysql_database.start()
         self.addCleanup(self.mysql_database.stop)
         settings.jwt_secret = "unit-test-runtime-admin-secret-minimum-32"
+        settings.auth_development_attempt_limit = 5
 
     def tearDown(self) -> None:
         settings.admin_username = self.original_admin_username
@@ -312,6 +316,7 @@ class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
         settings.runtime_profile = self.original_runtime_profile
         settings.runtime_bind_host = self.original_runtime_bind_host
         settings.allow_mock_auth = self.original_allow_mock_auth
+        settings.auth_development_attempt_limit = self.original_development_attempt_limit
 
     def _enable_development_auth(self) -> None:
         settings.runtime_profile = "development"

@@ -338,6 +338,12 @@ Migration is expand-first and forward-fix oriented:
 9. release the explicit frontend route and multi-canvas stores;
 10. remove legacy project-scoped graph APIs before Canvas acceptance.
 
+The removal gate is complete as of 2026-07-20: production caller scans found no
+frontend or supported external client dependency on `/projects/{project_id}/nodes`,
+`/projects/{project_id}/connections`, or `/assets/from_generation`. Canvas-scoped
+document/resource APIs and native generation transactions are the only active
+mutation authorities; generated-asset provenance cannot be supplied by clients.
+
 No migration runs against a user database without the normal migration authorization and backup discipline. Automated tests operate only on guarded `revid_test_*` schemas.
 
 ## 11. Rollback And Failure Handling

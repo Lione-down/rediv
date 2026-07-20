@@ -4,15 +4,19 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import AsyncMock, patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import func, select
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from api.router import include_routers
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token, hash_password
+from models.asset import Asset
+from models.base import get_session
 from settings.config import settings
 from tests.media_fixtures import VALID_PNG_BYTES
 from tests.mysql_test_database import MySQLTestDatabase
@@ -29,6 +33,20 @@ class AssetFlowTestCase(unittest.TestCase):
         cls.mysql_database.stop()
 
     def setUp(self) -> None:
+        self.original_auth_settings = (
+            settings.runtime_profile,
+            settings.runtime_bind_host,
+            settings.allow_mock_auth,
+            settings.wechat_mock_enabled,
+            settings.jwt_secret,
+            settings.auth_development_attempt_limit,
+        )
+        settings.runtime_profile = "development"
+        settings.runtime_bind_host = "127.0.0.1"
+        settings.allow_mock_auth = True
+        settings.wechat_mock_enabled = True
+        settings.jwt_secret = "unit-test-asset-upload-secret-minimum-32"
+        settings.auth_development_attempt_limit = 1000
         self.temp_dir = TemporaryDirectory()
         self.original_storage_root = settings.storage_local_root
         settings.storage_local_root = str(Path(self.temp_dir.name) / "storage")
@@ -48,6 +66,14 @@ class AssetFlowTestCase(unittest.TestCase):
     def tearDown(self) -> None:
         self.client.close()
         settings.storage_local_root = self.original_storage_root
+        (
+            settings.runtime_profile,
+            settings.runtime_bind_host,
+            settings.allow_mock_auth,
+            settings.wechat_mock_enabled,
+            settings.jwt_secret,
+            settings.auth_development_attempt_limit,
+        ) = self.original_auth_settings
         self.temp_dir.cleanup()
 
     def test_list_assets_basic(self) -> None:
@@ -175,12 +201,16 @@ class AssetFlowTestCase(unittest.TestCase):
     def test_upload_multipart_file(self) -> None:
         project = store.create_project(self.user["id"], "File Project")
         content = VALID_PNG_BYTES
-        response = self.client.post(
-            "/assets/upload",
-            data={"type": "image", "content_text": "cover", "project_id": project["id"]},
-            files={"file": ("cover.png", content, "image/png")},
-            headers=self._auth_headers(self.user["id"]),
-        )
+        with patch(
+            "api.assets.validate_staged_upload_in_process",
+            new=AsyncMock(),
+        ):
+            response = self.client.post(
+                "/assets/upload",
+                data={"type": "image", "content_text": "cover", "project_id": project["id"]},
+                files={"file": ("cover.png", content, "image/png")},
+                headers=self._auth_headers(self.user["id"]),
+            )
 
         self.assertEqual(200, response.status_code)
         payload = response.json()
@@ -189,50 +219,54 @@ class AssetFlowTestCase(unittest.TestCase):
         self.assertTrue(saved_file.exists())
         self.assertEqual(content, saved_file.read_bytes())
 
-    def test_from_generation(self) -> None:
+    def test_generated_asset_provenance_cannot_be_created_by_public_route(self) -> None:
         project = store.create_project(self.user["id"], "Generation Project")
         node = store.create_node(project["id"], self.user["id"], "text", {}, 0, 0, 300, 200)
-        canvas_id = store.get_first_canvas_id(project["id"])
-        response = self.client.post(
-            "/assets/from_generation",
-            json={
-                "type": "video",
-                "url": "https://example.com/video.mp4",
-                "content_text": "generated clip",
-                "source_model": "agnes-video-v2.0",
-                "source_task_id": "task-123",
-                "canvas_node_id": node["id"],
-                "project_id": project["id"],
-            },
-            headers=self._auth_headers(self.user["id"]),
+        other_project = store.create_project(self.other_user["id"], "Foreign Generation Project")
+        failed_task = store.create_generation_task(
+            self.user["id"],
+            "video",
+            "agnes",
+            "agnes-video-v2.0",
+            project_id=project["id"],
+            canvas_node_id=node["id"],
+            status="failed",
         )
-
-        self.assertEqual(200, response.status_code)
-        payload = response.json()
-        self.assertEqual("generation", payload["source"])
-        self.assertEqual("agnes-video-v2.0", payload["source_model"])
-        self.assertEqual("task-123", payload["source_task_id"])
-        self.assertEqual(node["id"], payload["canvas_node_id"])
-        self.assertEqual(canvas_id, payload["origin_canvas_id"])
-
-    def test_from_generation_rejects_cross_project_node(self) -> None:
-        project = store.create_project(self.user["id"], "Target Project")
-        other_project = store.create_project(self.user["id"], "Other Project")
-        other_node = store.create_node(other_project["id"], self.user["id"], "text", {}, 0, 0, 300, 200)
-
-        response = self.client.post(
-            "/assets/from_generation",
-            json={
-                "type": "image",
-                "url": "https://example.com/generated.png",
-                "project_id": project["id"],
-                "canvas_node_id": other_node["id"],
-            },
-            headers=self._auth_headers(self.user["id"]),
+        foreign_task = store.create_generation_task(
+            self.other_user["id"],
+            "image",
+            "agnes",
+            "agnes-image-v1.0",
+            project_id=other_project["id"],
+            status="succeeded",
         )
+        with get_session() as session:
+            before_count = session.scalar(
+                select(func.count(Asset.id)).where(Asset.source == "generation")
+            )
 
-        self.assertEqual(403, response.status_code)
-        self.assertEqual("Canvas node does not belong to project", response.json()["detail"])
+        for task_id in ("arbitrary-task", failed_task["id"], foreign_task["id"]):
+            with self.subTest(task_id=task_id):
+                response = self.client.post(
+                    "/assets/from_generation",
+                    json={
+                        "type": "video",
+                        "url": "https://attacker.example/forged.mp4",
+                        "content_text": "forged generated clip",
+                        "source_model": "forged-model",
+                        "source_task_id": task_id,
+                        "canvas_node_id": node["id"],
+                        "project_id": project["id"],
+                    },
+                    headers=self._auth_headers(self.user["id"]),
+                )
+                self.assertEqual(405, response.status_code)
+
+        with get_session() as session:
+            after_count = session.scalar(
+                select(func.count(Asset.id)).where(Asset.source == "generation")
+            )
+        self.assertEqual(before_count, after_count)
 
     def test_get_asset_own(self) -> None:
         asset = store.create_asset(self.user["id"], "prompt", None, "hello")

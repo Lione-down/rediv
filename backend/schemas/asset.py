@@ -40,16 +40,5 @@ class AssetCreateRequest(BaseModel):
     origin_canvas_id: str | None = Field(default=None, max_length=36)
 
 
-class AssetFromGenerationRequest(BaseModel):
-    type: Literal["prompt", "image", "video"]
-    url: str | None = None
-    content_text: str | None = None
-    source_model: str | None = None
-    source_task_id: str | None = None
-    canvas_node_id: str | None = None
-    project_id: str | None = None
-    origin_canvas_id: str | None = None
-
-
 class AssetHideRequest(BaseModel):
     asset_id: str

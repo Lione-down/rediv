@@ -42,7 +42,6 @@ from core.upload_reservation import (
 from schemas.asset import (
     ASSET_CONTENT_TEXT_MAX_LENGTH,
     AssetCreateRequest,
-    AssetFromGenerationRequest,
     AssetListResponse,
 )
 from settings.config import settings
@@ -439,26 +438,6 @@ async def upload_asset(request: Request, user=Depends(current_user)):
         raise _upload_http_error(UploadStorageUnavailableError()) from error
     except (_UploadRequestTimeout, UploadMediaError, UploadReservationBusyError, UploadUserQuotaError) as error:
         raise _upload_http_error(error) from error
-
-
-@router.post("/from_generation")
-def from_generation(payload: AssetFromGenerationRequest, user=Depends(current_user)):
-    try:
-        asset = store.create_asset(
-            user["id"],
-            payload.type,
-            payload.url,
-            payload.content_text,
-            project_id=payload.project_id,
-            origin_canvas_id=payload.origin_canvas_id,
-            canvas_node_id=payload.canvas_node_id,
-            source="generation",
-            source_model=payload.source_model,
-            source_task_id=payload.source_task_id,
-        )
-    except (KeyError, PermissionError) as error:
-        raise _asset_scope_http_error(error) from error
-    return asset
 
 
 @router.get("/{asset_id}")
