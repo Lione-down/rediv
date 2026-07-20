@@ -231,6 +231,7 @@ def _optimized_prompt(
     references: list[dict[str, Any]],
     director: dict[str, Any] | None,
     sequence: dict[str, Any] | None,
+    retake: dict[str, Any] | None,
     generation_parameters: dict[str, Any],
 ) -> str:
     lines = [f"当前明确指令：{user_instruction}"]
@@ -257,6 +258,15 @@ def _optimized_prompt(
             f"performance={director['blocking_performance']};"
             f"motion={director['motion']};sound={director['sound_intent']}",
         ])
+    if retake is not None:
+        lines.append(
+            f"返修决策：{retake['decision']}；问题类别：{retake['problem_category']}；"
+            f"attempt {retake['attempt_count']}/8"
+        )
+        if retake["repair_variable"] is not None:
+            lines.append(f"唯一修复变量：{retake['repair_variable']}")
+        if retake["revised_instruction"] is not None:
+            lines.append(f"改写指令：{retake['revised_instruction']}")
     lines.append("导演政策：保持显式指令、参考传递和已接受 canon，不得静默削弱约束或改变 provider/model。")
     if skill_id == "revid.cinema-script":
         lines.append(
@@ -395,6 +405,7 @@ def compile_cinematic_director_preflight(
             references=references,
             director=director,
             sequence=sequence,
+            retake=retake,
             generation_parameters=generation_parameters,
         ),
         "constraint_envelope": deepcopy(legacy["canonical_request"]["constraint_envelope"]),

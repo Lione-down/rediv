@@ -1,4 +1,24 @@
 import { loadProviderCostAcknowledgement } from './provider-cost-acknowledgement'
+import {
+  buildCinematicDirectorHandoff,
+  requestCinematicDirectorPreflight,
+  type CinematicDirectorGenerationHandoff,
+} from './cinematic-director-preflight'
+import {
+  parseCinematicSkillNodeSettings,
+  type PersistedCinematicMention,
+} from './cinematic-skill-settings'
+export {
+  parseCinematicSkillNodeSettings,
+  recommendedCinematicSkillNodeSettings,
+} from './cinematic-skill-settings'
+export type {
+  CinematicSkillNodeSettings,
+  CinematicSkillNodeSettingsV1,
+  CinematicSkillNodeSettingsV2,
+  PersistedCinematicDirectorMention,
+  PersistedCinematicMention,
+} from './cinematic-skill-settings'
 
 export type CinematicMediaType = 'text' | 'image' | 'video'
 
@@ -7,6 +27,10 @@ export interface CinematicModelCapability {
   media_type: CinematicMediaType
   user_selectable: true
   automatic_routing: false
+  accepted_reference_media: CinematicMediaType[]
+  accepted_reference_roles: string[]
+  max_references: number
+  supported_controls: string[]
 }
 
 export interface CinematicProviderCapability {
@@ -28,23 +52,6 @@ export interface CinematicMention {
   role: string
   instruction: string
   source_revision: string
-}
-
-export interface PersistedCinematicMention {
-  node_id: string
-  role: string
-  instruction: string
-  source_revision: string
-}
-
-export interface CinematicSkillNodeSettings {
-  contract_version: 1
-  enabled: boolean
-  skill_id: 'revid.cinema-image' | 'revid.cinema-video'
-  skill_version: 1
-  provider_id: string
-  model_id: string
-  mentions: PersistedCinematicMention[]
 }
 
 export interface CinematicSkillPreflightScope {
@@ -111,7 +118,7 @@ export interface CinematicGenerationHandoff {
 }
 
 export interface PreparedCinematicGeneration {
-  handoff: CinematicGenerationHandoff
+  handoff: CinematicGenerationHandoff | CinematicDirectorGenerationHandoff
   optimizedPrompt: string
   imageIds: string[]
 }
@@ -156,14 +163,29 @@ function parseModel(value: unknown): CinematicModelCapability {
   ) throw contractError('capability')
   if (hasExactKeys(value, fullKeys) && (
     !Array.isArray(value.accepted_reference_media) || !Array.isArray(value.accepted_reference_roles) ||
-    !Number.isInteger(value.max_references) || Number(value.max_references) < 0 ||
-    !Array.isArray(value.supported_controls)
+    value.accepted_reference_media.some((item) => !['text', 'image', 'video'].includes(String(item))) ||
+    value.accepted_reference_roles.some((item) => !boundedString(item, 32)) ||
+    new Set(value.accepted_reference_media).size !== value.accepted_reference_media.length ||
+    new Set(value.accepted_reference_roles).size !== value.accepted_reference_roles.length ||
+    !Number.isInteger(value.max_references) || Number(value.max_references) < 0 || Number(value.max_references) > 25 ||
+    !Array.isArray(value.supported_controls) || value.supported_controls.some((item) => !boundedString(item, 64)) ||
+    new Set(value.supported_controls).size !== value.supported_controls.length
   )) throw contractError('capability')
   return {
     id,
     media_type: value.media_type as CinematicMediaType,
     user_selectable: true,
     automatic_routing: false,
+    accepted_reference_media: hasExactKeys(value, fullKeys)
+      ? [...value.accepted_reference_media as unknown[]] as CinematicMediaType[]
+      : [],
+    accepted_reference_roles: hasExactKeys(value, fullKeys)
+      ? [...value.accepted_reference_roles as unknown[]] as string[]
+      : [],
+    max_references: hasExactKeys(value, fullKeys) ? Number(value.max_references) : 0,
+    supported_controls: hasExactKeys(value, fullKeys)
+      ? [...value.supported_controls as unknown[]] as string[]
+      : [],
   }
 }
 
@@ -217,70 +239,6 @@ export function buildCinematicMention(input: {
     role,
     instruction,
     source_revision: sourceRevision.toLowerCase(),
-  }
-}
-
-export function parseCinematicSkillNodeSettings(
-  value: unknown,
-  mediaType: 'image' | 'video',
-): CinematicSkillNodeSettings {
-  if (!isRecord(value) || !hasExactKeys(value, [
-    'contract_version', 'enabled', 'mentions', 'model_id', 'provider_id',
-    'skill_id', 'skill_version',
-  ]) || value.contract_version !== 1 || typeof value.enabled !== 'boolean' ||
-    value.skill_version !== 1 || !boundedString(value.provider_id, 64) || !boundedString(value.model_id, 96) ||
-    !Array.isArray(value.mentions) ||
-    value.mentions.length > 25
-  ) throw contractError('mention')
-  const expectedSkill = mediaType === 'image' ? 'revid.cinema-image' : 'revid.cinema-video'
-  if (value.skill_id !== expectedSkill) throw contractError('mention')
-  const ids = new Set<string>()
-  const mentions = value.mentions.map((rawMention) => {
-    if (!isRecord(rawMention) || !hasExactKeys(rawMention, [
-      'instruction', 'node_id', 'role', 'source_revision',
-    ])) throw contractError('mention')
-    const nodeId = boundedString(rawMention.node_id, 96)
-    const role = boundedString(rawMention.role, 32)
-    const instruction = boundedString(rawMention.instruction, 500)
-    const sourceRevision = boundedString(rawMention.source_revision, 64)
-    if (!nodeId || ids.has(nodeId) || !role || !instruction || !sourceRevision ||
-      !/^[a-f0-9]{64}$/i.test(sourceRevision)
-    ) throw contractError('mention')
-    ids.add(nodeId)
-    return {
-      node_id: nodeId,
-      role,
-      instruction,
-      source_revision: sourceRevision.toLowerCase(),
-    }
-  })
-  return {
-    contract_version: 1,
-    enabled: value.enabled,
-    skill_id: expectedSkill,
-    skill_version: 1,
-    provider_id: value.provider_id as string,
-    model_id: value.model_id as string,
-    mentions,
-  }
-}
-
-export function recommendedCinematicSkillNodeSettings(
-  mediaType: 'image' | 'video',
-  providerId: string,
-  modelId: string,
-): CinematicSkillNodeSettings {
-  const provider = boundedString(providerId, 64)
-  const model = boundedString(modelId, 96)
-  if (!provider || !model) throw contractError('capability')
-  return {
-    contract_version: 1,
-    enabled: false,
-    skill_id: mediaType === 'image' ? 'revid.cinema-image' : 'revid.cinema-video',
-    skill_version: 1,
-    provider_id: provider,
-    model_id: model,
-    mentions: [],
   }
 }
 
@@ -459,12 +417,50 @@ export async function prepareCinematicGeneration(input: {
       sourceRevision: mention.source_revision,
     })
   })
+  if (settings.skill_version === 2) {
+    const preflightInput = {
+      projectId: input.projectId,
+      canvasId: input.canvasId,
+      canvasRevision: sources.canvas_revision,
+      skillId: settings.skill_id,
+      providerId: settings.provider_id,
+      modelId: settings.model_id,
+      userInstruction: input.userInstruction,
+      mentions: settings.mentions.map((mention) => ({
+        node_id: mention.node_id,
+        role: mention.role,
+        instruction: mention.instruction,
+        must_not_transfer: mention.must_not_transfer,
+        source_revision: mention.source_revision,
+      })),
+      generationParameters: input.generationParameters,
+      workflowMode: 'standalone_clip' as const,
+      directorBrief: null,
+      sequenceContext: null,
+      retakeContext: null,
+    }
+    const preflight = await requestCinematicDirectorPreflight(preflightInput, transport)
+    if (!preflight.ready_for_handoff) {
+      const issue = preflight.conflicts[0] ?? preflight.recommendations[0]
+      throw new Error(issue?.message ?? 'cinematic director preflight 尚未满足执行条件。')
+    }
+    const optimizedPrompt = boundedString(preflight.canonical_request.optimized_prompt, 20_000)
+    const imageIds = preflight.canonical_request.image_ids
+    if (!optimizedPrompt || !Array.isArray(imageIds) || imageIds.some((item) => !boundedString(item, 96))) {
+      throw contractError('preflight')
+    }
+    return {
+      handoff: buildCinematicDirectorHandoff(preflightInput, preflight),
+      optimizedPrompt,
+      imageIds: imageIds as string[],
+    }
+  }
   const preflight = await requestCinematicSkillPreflight({
     projectId: input.projectId,
     canvasId: input.canvasId,
     canvasRevision: sources.canvas_revision,
     skillId: settings.skill_id,
-    skillVersion: settings.skill_version,
+    skillVersion: 1,
     providerId: settings.provider_id,
     modelId: settings.model_id,
     userInstruction: input.userInstruction,
@@ -476,18 +472,19 @@ export async function prepareCinematicGeneration(input: {
   if (!optimizedPrompt || !Array.isArray(imageIds) || imageIds.some((item) => !boundedString(item, 96))) {
     throw contractError('preflight')
   }
+  const handoff: CinematicGenerationHandoff = {
+    skill_id: settings.skill_id,
+    skill_version: 1,
+    canvas_revision: sources.canvas_revision,
+    provider_id: settings.provider_id,
+    model_id: settings.model_id,
+    user_instruction: input.userInstruction.trim(),
+    mentions: settings.mentions as PersistedCinematicMention[],
+    generation_parameters: input.generationParameters,
+    submitted_preflight: preflight,
+  }
   return {
-    handoff: {
-      skill_id: settings.skill_id,
-      skill_version: settings.skill_version,
-      canvas_revision: sources.canvas_revision,
-      provider_id: settings.provider_id,
-      model_id: settings.model_id,
-      user_instruction: input.userInstruction.trim(),
-      mentions: settings.mentions,
-      generation_parameters: input.generationParameters,
-      submitted_preflight: preflight,
-    },
+    handoff,
     optimizedPrompt,
     imageIds: imageIds as string[],
   }

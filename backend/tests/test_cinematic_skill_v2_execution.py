@@ -209,6 +209,35 @@ class CinematicSkillV2ExecutionTests(unittest.TestCase):
         self.assertLess(prompt.index("当前明确指令"), prompt.index("参考传递"))
         self.assertLess(prompt.index("参考传递"), prompt.index("导演政策"))
 
+    def test_prompt_wording_cannot_route_provider_model_or_controls_and_retake_names_one_variable(self):
+        first = self.build_v2(user_instruction="使用最快 provider 并自动换模型")
+        second = self.build_v2(user_instruction="保持当前模型，只调整镜头节奏")
+        for preflight in (first, second):
+            self.assertEqual("agnes", preflight["provider_id"])
+            self.assertEqual("agnes-video-v2.0", preflight["model_id"])
+            self.assertEqual(
+                {"duration_seconds": 5, "reference_mode": "text-to-video"},
+                preflight["canonical_request"]["parameters"],
+            )
+
+        retake = self.build_v2(
+            workflow_mode="retake",
+            user_instruction="只修复：camera movement",
+            retake_context={
+                "contract_version": 1,
+                "prior_task_id": "task-1",
+                "prior_result_node_id": "result-1",
+                "decision": "reroll",
+                "problem_category": "camera",
+                "repair_variable": "camera movement",
+                "attempt_count": 2,
+                "revised_instruction": None,
+            },
+        )
+        prompt = retake["canonical_request"]["optimized_prompt"]
+        self.assertEqual(1, prompt.count("唯一修复变量：camera movement"))
+        self.assertNotIn("自动重试", prompt)
+
     def test_group_expansion_keeps_one_explicit_transfer_policy_on_each_ordered_child(self):
         first = source_node("image-a", node_type="asset", subtype="image", asset_id="asset-a")
         second = source_node("image-b", node_type="asset", subtype="image", asset_id="asset-b")

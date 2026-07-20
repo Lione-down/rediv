@@ -1,7 +1,7 @@
 # TASK-T6-001 Progress
 
 - State: `DOING`
-- Active unit: `Unit 5 - reference transfer, capability gating, and retake UX`
+- Active unit: `Unit 6 - eval, browser UX, accessibility, regression, and performance`
 - Activation baseline: `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`; ahead/behind `0/0`.
 - Task: `ai/tasks/todo/TASK-T6-001.md`
 - Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`
@@ -34,15 +34,18 @@
 - Unit 3 RED proved v2 sequence output was incorrectly parsed as a v1 shot document. GREEN plus command/history verification is backend `19/19`, frontend `21/21`, build `4941`.
 - Unit 4 adds one-revision accept/reject review, current-Canvas result/task/media/revision validation, reserved/completed beat preservation, continuation fail-closed checks, and duplication-safe sequence/source/result remapping.
 - Unit 4 verification is backend `17/17` plus `3` subtests, frontend `8/8`, build `4941`.
+- Unit 5 upgrades new opt-ins to active v2 while preserving exact v1 settings, retains backend-catalog role/media/control reasons, persists bounded non-transfer rules, and proves prompt wording cannot route provider/model/controls.
+- Added progressive take review. Keep uses one canon command; Reroll/Rewrite produces only a transient single-variable preflight that is consumed by a later explicit Send on the original generation node.
+- Unit 5 verification is backend `21/21`, frontend `28/28`, build `4947`; 1440 and 375 review-only screenshots were visually inspected and hash-recorded.
 
 ## Remaining Work
 
-- Complete Units 5 through 6 for cinematic director Skills v2.
+- Complete Unit 6 eval, regression, accessibility, browser, and performance verification.
 - Complete fresh self-review, Human UX review, REPORT, durable-state synchronization, exact staging, commit, push, and remote equality.
 
 ## Exact Next Action
 
-Implement Unit 5 progressive reference-transfer and take-review UX, capability reasons, and bounded single-variable retake preflights without auto-execution.
+Add the Unit 6 offline eval matrix, then run diff-derived regression, full backend/frontend, accessibility, responsive, IME/focus/reduced-motion/zoom, and unchanged performance gates.
 
 ## Files Changed
 
@@ -73,6 +76,11 @@ Implement Unit 5 progressive reference-transfer and take-review UX, capability r
 - `frontend/src/components/canvas/composables/use-canvas-shot-schema.ts`
 - `frontend/src/modules/canvas/cinematic-sequence-command.ts`
 - `frontend/tests/e2e/canvas-cinematic-sequence-planning.spec.ts`
+- `ai/evidence/t6-001/unit-5-reference-retake-evidence-2026-07-20.md`
+- `frontend/src/components/canvas/CanvasCinematicTakeReview.vue`
+- `frontend/src/modules/canvas/cinematic-director-ux.ts`
+- `frontend/src/modules/canvas/cinematic-skill-settings.ts`
+- `frontend/tests/e2e/canvas-cinematic-director-ux.spec.ts`
 
 ## Commands Run And Results
 
@@ -94,8 +102,12 @@ Implement Unit 5 progressive reference-transfer and take-review UX, capability r
 - Unit 3 backend text-authority/compatibility matrix: `19/19` passed.
 - Unit 3 frontend sequence/command/history matrix: `21/21` passed.
 - Unit 3 production build: `4941 modules transformed`.
+- Unit 4 backend/frontend/build: `17/17` plus `3` subtests, `8/8`, `4941 modules transformed`.
+- Unit 5 backend focused matrix: `21/21` passed.
+- Unit 5 frontend focused v1/v2 and real browser matrix: `28/28` passed.
+- Unit 5 production build: `4947 modules transformed`; serious/critical axe findings `0` in v2 reference UI.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Unit 3 implementation.
+- Current blocker: none for Unit 6 deterministic verification.
 - Human gates remain real/paid provider calls, secrets, external accounts, destructive work, migrations/new long-term storage, incompatible provider contracts, and final real-output quality claims.

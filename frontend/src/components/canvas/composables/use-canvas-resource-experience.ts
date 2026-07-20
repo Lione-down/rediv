@@ -23,6 +23,7 @@ import { createCanvasImageGridSplitAction } from './use-canvas-image-grid-split'
 import { useGenerationCapabilities } from './use-generation-capabilities'
 import { useCanvasGenerationActions } from './use-canvas-generation-actions'
 import { useCanvasGenerationRuntime } from './use-canvas-generation-runtime'
+import type { PreparedCinematicGeneration } from '../../../modules/canvas/cinematic-skills'
 
 interface CanvasResourceExperienceOptions {
   canvasId: ComputedRef<string>
@@ -111,6 +112,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const actionError = ref('')
   const generationErrors = ref<ReadonlyMap<string, string>>(new Map())
   const generationSuccesses = ref<ReadonlyMap<string, string>>(new Map())
+  const pendingDirectorPreflights = new Map<string, PreparedCinematicGeneration>()
   const foregroundResultNodeId = ref('')
   const {
     generationCapabilities,
@@ -384,7 +386,20 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     beginRuntimeRequest: generationRuntime.beginRequest,
     requestRuntimeRecoveryPolling: generationRuntime.requestRecoveryPolling,
     settleRuntimeRequest: generationRuntime.settleRequest,
+    consumeDirectorPreflight: (nodeId) => {
+      const prepared = pendingDirectorPreflights.get(nodeId) ?? null
+      pendingDirectorPreflights.delete(nodeId)
+      return prepared
+    },
   })
+
+  function setDirectorPreflight(nodeId: string, prepared: PreparedCinematicGeneration) {
+    const node = canvasStore.findNodeById(nodeId)
+    if (!node || getGenerationMediaType(node) === null || options.isReviewOnly.value) return false
+    pendingDirectorPreflights.set(nodeId, prepared)
+    setNodeMessage(generationSuccesses, nodeId, 'Retake preflight 已准备；下一次显式 Send 将使用该 exact request。')
+    return true
+  }
 
   function closeContext() {
     isContextDrawerOpen.value = false
@@ -394,6 +409,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   let suppressNextCompactContextOpen = false
   function selectNodeForCanvasLocation(nodeId: string) { if (!canvasStore.findNodeById(nodeId)) return false; suppressNextCompactContextOpen = options.isCompact.value; canvasStore.selectNode(nodeId); return true }
   watch(options.projectId, (projectId) => {
+    pendingDirectorPreflights.clear()
     if (projectId) void resourceStore.loadProject(projectId).catch(() => undefined)
   }, { immediate: true })
 
@@ -464,6 +480,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     captureTemplate,
     instantiateTemplate,
     generate,
+    setDirectorPreflight,
     generateRecipe,
     updatePrompt,
     updateGenerationParameters,

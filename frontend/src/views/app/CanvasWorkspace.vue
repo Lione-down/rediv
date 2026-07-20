@@ -151,6 +151,7 @@ const {
   captureTemplate,
   instantiateTemplate,
   generate,
+  setDirectorPreflight,
   generateRecipe,
   updatePrompt,
   updateGenerationParameters,
@@ -820,6 +821,7 @@ onBeforeUnmount(() => {
           @compare-results="openResultComparison"
           @fit-trace="canvasStageRef?.fitSelectedProvenanceTrace()"
           @generate="generate"
+          @director-preflight-ready="setDirectorPreflight"
           @locate-node="locateNodeFromContext"
           @reorder-input="reorderGenerationInput"
           @retry-recipe="generateRecipe"
@@ -921,6 +923,7 @@ onBeforeUnmount(() => {
               @compare-results="openResultComparison"
               @fit-trace="fitTraceFromContextDrawer"
               @generate="generate"
+              @director-preflight-ready="setDirectorPreflight"
               @locate-node="locateNodeFromContext"
               @reorder-input="reorderGenerationInput"
               @retry-recipe="generateRecipe"

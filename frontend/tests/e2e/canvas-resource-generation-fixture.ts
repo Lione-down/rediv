@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer'
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, type Page, type Route } from '@playwright/test'
@@ -496,6 +497,15 @@ function cinematicScriptGenerationResponse(state: ResourceMockState, canvasId: s
   return { content: JSON.stringify(document), asset, generation_task: task, quotas: state.quotas, quota_revision: state.quotaRevision }
 }
 
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(',')}}`
+  }
+  return JSON.stringify(value)
+}
+
 function scriptAuthoringGenerationResponse(state: ResourceMockState, canvasId: string, requestBody: Record<string, unknown>) {
   const intent = requestBody.intent === 'script_refine' ? 'script_refine' : 'script_draft'
   const locale = requestBody.locale === 'en-US' ? 'en-US' : 'zh-CN'
@@ -745,6 +755,64 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
         ? (body?.generation_parameters as Record<string, unknown>).image_ids as unknown[]
         : []
       const mentionedImageIds = references.flatMap((reference) => reference.asset_id ? [reference.asset_id] : [])
+      if (body?.skill_version === 2) {
+        const directorReferences = references.map((reference, index) => ({
+          ...reference,
+          must_not_transfer: (mentions[index]?.must_not_transfer as unknown[] | undefined) ?? [],
+        }))
+        const parameters = body?.generation_parameters as Record<string, unknown> ?? {}
+        const supportedControlMapping = Object.fromEntries(Object.keys(parameters).flatMap((key) => {
+          const mapping: Record<string, string> = {
+            aspect_ratio: 'aspect-ratio', shot_controls: 'shot-controls', reference_mode: 'reference-mode',
+            duration_seconds: 'duration', requested_shot_count: 'shot-count', image_ids: 'native-image-references',
+          }
+          return mapping[key] ? [[key, mapping[key]]] : []
+        }))
+        const canonicalRequest = {
+          skill_id: body?.skill_id,
+          skill_version: 2,
+          policy_version: 2,
+          workflow_mode: body?.workflow_mode,
+          scope: { project_id: PROJECT_ID, canvas_id: canvasId, canvas_revision: body?.canvas_revision },
+          provider: { provider_id: body?.provider_id, model_id: body?.model_id, capability_version: 1 },
+          user_instruction: body?.user_instruction,
+          instruction_precedence: [
+            'current_user_instruction', 'reference_transfer', 'accepted_canon',
+            'current_node_parameters', 'director_policy', 'provider_defaults',
+          ].map((source, index) => ({ rank: index + 1, source })),
+          director_brief: body?.director_brief ?? null,
+          director_coherence: 'standalone_fast_lane',
+          references: directorReferences,
+          sequence_context: null,
+          retake_context: body?.retake_context ?? null,
+          image_ids: [...nativeImageIds, ...mentionedImageIds.filter((imageId) => !nativeImageIds.includes(imageId))],
+          parameters,
+          supported_control_mapping: supportedControlMapping,
+          optimized_prompt: `当前明确指令：${body?.user_instruction}\n导演政策：保持显式指令且不改变 provider/model。`,
+          constraint_envelope: {},
+          warnings: [], conflicts: [], recommendations: [],
+        }
+        const exactRequest = canonicalJson(canonicalRequest)
+        return fulfillJson(route, {
+          contract_version: 2,
+          skill: { id: body?.skill_id, version: 2 },
+          workflow_mode: body?.workflow_mode,
+          project_id: PROJECT_ID,
+          canvas_id: canvasId,
+          canvas_revision: body?.canvas_revision,
+          provider_id: body?.provider_id,
+          model_id: body?.model_id,
+          capability_version: 1,
+          director_coherence: 'standalone_fast_lane',
+          references: directorReferences,
+          warnings: [], conflicts: [], recommendations: [], ready_for_handoff: true,
+          canonical_request: canonicalRequest,
+          canonical_request_json: exactRequest,
+          exact_request: exactRequest,
+          request_digest: createHash('sha256').update(exactRequest).digest('hex'),
+          requires_acknowledgement: state.cinematicRequiresAcknowledgement,
+        })
+      }
       const canonicalRequest = {
         skill_id: body?.skill_id,
         skill_version: body?.skill_version,

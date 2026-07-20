@@ -12,9 +12,19 @@ import {
   type CinematicSkillPreflight,
   type CinematicSkillSource,
 } from '../../modules/canvas/cinematic-skills'
+import {
+  requestCinematicDirectorPreflight,
+  type CinematicDirectorPreflight,
+} from '../../modules/canvas/cinematic-director-preflight'
+import {
+  buildCinematicReferenceTransfer,
+  CINEMATIC_TRANSFER_EXCLUSIONS,
+  resolveCinematicReferenceAvailability,
+} from '../../modules/canvas/cinematic-director-ux'
 import { acknowledgeProviderCost } from '../../modules/canvas/provider-cost-acknowledgement'
 import { useCanvasStore } from '../../store/canvas'
 import type { CanvasNode } from '../../types/canvas'
+import type { CinematicReferenceRole, CinematicTransferExclusion } from '../../modules/canvas/cinematic-director'
 
 const props = withDefaults(defineProps<{
   canvasId?: string
@@ -42,25 +52,15 @@ const isLoading = ref(false)
 const isChooserOpen = ref(false)
 const instruction = ref('')
 const selectedRole = ref(props.mediaType === 'image' ? 'identity' : 'first-frame')
+const selectedExclusions = ref<CinematicTransferExclusion[]>([])
 const error = ref('')
-const preflight = ref<CinematicSkillPreflight | null>(null)
+const preflight = ref<CinematicSkillPreflight | CinematicDirectorPreflight | null>(null)
 const acknowledgementHours = ref(24)
 const isAcknowledging = ref(false)
 const isAcknowledged = ref(false)
 const loadedScope = ref('')
 
 const scopeKey = computed(() => `${props.projectId}:${props.canvasId}:${props.node.id}`)
-
-const roleOptions = computed(() => props.mediaType === 'image'
-  ? [
-      ['general', '通用参考'], ['style', '画风'], ['identity', '角色身份'], ['wardrobe', '服装'],
-      ['scene', '场景'], ['product', '产品'], ['context', '文本上下文'],
-    ]
-  : [
-      ['general', '通用参考'], ['first-frame', '视频首帧'], ['last-frame', '视频尾帧'],
-      ['identity', '角色身份'], ['style', '画风'], ['scene', '场景'], ['action', '动作节奏'],
-      ['first-and-last-frame', '同图首尾帧（capability 预检）'], ['context', '文本上下文'],
-    ])
 
 const availableModels = computed(() => capabilities.value?.providers.flatMap((provider) => (
   provider.models.filter((model) => model.media_type === props.mediaType).map((model) => ({ provider, model }))
@@ -79,11 +79,28 @@ const persisted = computed(() => {
   }
 })
 const settings = computed(() => persisted.value ?? recommended.value)
+const selectedModel = computed(() => availableModels.value.find(({ provider, model }) => (
+  provider.id === settings.value.provider_id && model.id === settings.value.model_id
+))?.model ?? availableModels.value[0]?.model ?? null)
+const roleLabels: Record<string, string> = {
+  general: '通用参考', context: '文本上下文', style: '画风', identity: '角色身份',
+  wardrobe: '服装', scene: '场景', product: '产品', story: '故事', character: '角色',
+  'source-script': '源脚本', shot: '镜头', dialogue: '对白', action: '动作节奏',
+  'first-frame': '视频首帧', 'last-frame': '视频尾帧',
+}
+const roleOptions = computed(() => selectedModel.value?.accepted_reference_roles.map((role) => (
+  [role, roleLabels[role] ?? role] as const
+)) ?? [])
 const sourceById = computed(() => new Map(sources.value.map((source) => [source.node_id, source])))
 function selectModel(event: Event) {
   const [providerId, modelId] = (event.target as HTMLSelectElement).value.split('::', 2)
   const choice = availableModels.value.find(({ provider, model }) => provider.id === providerId && model.id === modelId)
   if (choice) void persist({ ...settings.value, provider_id: providerId, model_id: modelId })
+}
+
+function sourceAvailability(source: CinematicSkillSource) {
+  if (!selectedModel.value) return { isSupported: false, reason: 'provider/model capability 尚未加载。' }
+  return resolveCinematicReferenceAvailability(selectedModel.value, source, selectedRole.value)
 }
 
 function formatError(value: unknown) {
@@ -143,6 +160,18 @@ async function toggleEnabled(event: Event) {
   })
 }
 
+async function upgradeToV2() {
+  const current = settings.value
+  if (current.skill_version !== 1) return
+  await persist({
+    ...current,
+    skill_version: 2,
+    mentions: current.mentions.map((mention) => ({
+      ...mention, role: mention.role as CinematicReferenceRole, must_not_transfer: [],
+    })),
+  })
+}
+
 function openChooser(event: KeyboardEvent) {
   if (event.key === '@') isChooserOpen.value = true
   if (event.key === 'Escape') isChooserOpen.value = false
@@ -159,25 +188,40 @@ async function addMention(source: CinematicSkillSource) {
     error.value = '同一节点不能重复绑定。'
     return
   }
-  await persist({
-    ...settings.value,
-    enabled: true,
-    mentions: [...settings.value.mentions, {
+  const availability = sourceAvailability(source)
+  if (!availability.isSupported) {
+    error.value = availability.reason
+    return
+  }
+  const mention = {
       node_id: source.node_id,
       role: selectedRole.value,
       instruction: nextInstruction,
       source_revision: source.source_revision,
-    }],
-  })
+  }
+  const current = settings.value
+  await persist(current.skill_version === 2
+    ? {
+        ...current,
+        enabled: true,
+        mentions: [...current.mentions, buildCinematicReferenceTransfer({
+          source,
+          role: mention.role as CinematicReferenceRole,
+          instruction: nextInstruction,
+          mustNotTransfer: selectedExclusions.value,
+        })],
+      }
+    : { ...current, enabled: true, mentions: [...current.mentions, mention] })
   instruction.value = ''
+  selectedExclusions.value = []
   isChooserOpen.value = false
 }
 
 function removeMention(nodeId: string) {
-  void persist({
-    ...settings.value,
-    mentions: settings.value.mentions.filter((mention) => mention.node_id !== nodeId),
-  })
+  const current = settings.value
+  void persist(current.skill_version === 2
+    ? { ...current, mentions: current.mentions.filter((mention) => mention.node_id !== nodeId) }
+    : { ...current, mentions: current.mentions.filter((mention) => mention.node_id !== nodeId) })
 }
 
 async function runPreflight() {
@@ -191,21 +235,38 @@ async function runPreflight() {
     const nextSources = await loadCinematicSkillSources(props.projectId, props.canvasId, request)
     sources.value = nextSources.items.filter((source) => source.node_id !== props.node.id)
     sourceCanvasRevision.value = nextSources.canvas_revision
-    preflight.value = await requestCinematicSkillPreflight({
-      projectId: props.projectId,
-      canvasId: props.canvasId,
-      canvasRevision: nextSources.canvas_revision,
-      skillId: settings.value.skill_id,
-      skillVersion: 1,
-      providerId: settings.value.provider_id,
-      modelId: settings.value.model_id,
-      userInstruction: props.userInstruction,
-      mentions: settings.value.mentions.map((mention) => ({
-        ...mention,
-        display_title: sourceById.value.get(mention.node_id)?.title ?? mention.node_id,
-      })),
-      generationParameters: { ...props.generationParameters },
-    }, request)
+    const current = settings.value
+    preflight.value = current.skill_version === 2
+      ? await requestCinematicDirectorPreflight({
+          projectId: props.projectId,
+          canvasId: props.canvasId,
+          canvasRevision: nextSources.canvas_revision,
+          skillId: current.skill_id,
+          providerId: current.provider_id,
+          modelId: current.model_id,
+          userInstruction: props.userInstruction,
+          mentions: current.mentions,
+          generationParameters: { ...props.generationParameters },
+          workflowMode: 'standalone_clip',
+          directorBrief: null,
+          sequenceContext: null,
+          retakeContext: null,
+        }, request)
+      : await requestCinematicSkillPreflight({
+          projectId: props.projectId,
+          canvasId: props.canvasId,
+          canvasRevision: nextSources.canvas_revision,
+          skillId: current.skill_id,
+          skillVersion: 1,
+          providerId: current.provider_id,
+          modelId: current.model_id,
+          userInstruction: props.userInstruction,
+          mentions: current.mentions.map((mention) => ({
+            ...mention,
+            display_title: sourceById.value.get(mention.node_id)?.title ?? mention.node_id,
+          })),
+          generationParameters: { ...props.generationParameters },
+        }, request)
     isAcknowledged.value = !preflight.value.requires_acknowledgement
   } catch (value) {
     error.value = formatError(value)
@@ -244,6 +305,11 @@ watch(() => props.mediaType, () => {
   selectedRole.value = props.mediaType === 'image' ? 'identity' : 'first-frame'
   preflight.value = null
 })
+watch(roleOptions, (options) => {
+  if (options.length && !options.some(([role]) => role === selectedRole.value)) {
+    selectedRole.value = options[0][0]
+  }
+})
 onMounted(() => {
   if (persisted.value?.enabled) void loadContract()
 })
@@ -262,6 +328,9 @@ onMounted(() => {
     <div v-if="settings.enabled" class="skill-identity">
       <strong>{{ settings.skill_id }}.v{{ settings.skill_version }}</strong>
       <small>{{ settings.provider_id }} / {{ settings.model_id }}</small>
+      <button v-if="!readonly && settings.skill_version === 1" type="button" class="upgrade-button" @click="upgradeToV2">
+        升级到 Director v2
+      </button>
     </div>
     <label v-if="!readonly && settings.enabled" class="model-field">
       <span>Provider / model（用户选择）</span>
@@ -278,6 +347,13 @@ onMounted(() => {
             <option v-for="option in roleOptions" :key="option[0]" :value="option[0]">{{ option[1] }}</option>
           </select>
         </label>
+        <details v-if="settings.skill_version === 2" class="transfer-exclusions">
+          <summary>不传递（{{ selectedExclusions.length }}）</summary>
+          <label v-for="exclusion in CINEMATIC_TRANSFER_EXCLUSIONS" :key="exclusion.id">
+            <input v-model="selectedExclusions" type="checkbox" :value="exclusion.id" :disabled="disabled">
+            <span>{{ exclusion.label }}</span>
+          </label>
+        </details>
         <label>
           <span>输入 @ 打开当前 Canvas 节点</span>
           <input
@@ -297,16 +373,16 @@ onMounted(() => {
             :key="source.node_id"
             type="button"
             role="option"
-            :disabled="settings.mentions.some((mention) => mention.node_id === source.node_id)"
+            :disabled="settings.mentions.some((mention) => mention.node_id === source.node_id) || !sourceAvailability(source).isSupported"
             @click="addMention(source)"
-          ><span>{{ source.title }}</span><small>{{ source.node_type }} · {{ source.subtype }}</small></button>
+          ><span>{{ source.title }}</span><small>{{ source.node_type }} · {{ source.subtype }} · {{ sourceAvailability(source).reason }}</small></button>
           <p v-if="!sources.length">没有可引用的 canonical 节点。</p>
         </div>
       </div>
 
       <ul v-if="settings.mentions.length" class="mention-tokens" aria-label="已绑定结构化引用">
         <li v-for="mention in settings.mentions" :key="mention.node_id">
-          <span><strong>@{{ sourceById.get(mention.node_id)?.title ?? mention.node_id }}</strong><small>{{ mention.role }} · {{ mention.instruction }}</small></span>
+          <span><strong>@{{ sourceById.get(mention.node_id)?.title ?? mention.node_id }}</strong><small>{{ mention.role }} · {{ mention.instruction }}<template v-if="'must_not_transfer' in mention"> · 不传递 {{ mention.must_not_transfer.join('、') || '无' }}</template></small></span>
           <CircleAlert v-if="sourceById.get(mention.node_id)?.source_revision !== mention.source_revision" :size="14" aria-label="引用来源已变更" />
           <button v-if="!readonly" type="button" :aria-label="`移除引用 ${sourceById.get(mention.node_id)?.title ?? mention.node_id}`" @click="removeMention(mention.node_id)"><Trash2 :size="14" aria-hidden="true" /></button>
         </li>
@@ -359,4 +435,5 @@ onMounted(() => {
 .cinematic-skill { display: grid; gap: 9px; padding: 11px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: color-mix(in srgb, var(--v2-surface-2) 84%, transparent); }
 .cinematic-skill header, .cinematic-skill header span, .skill-toggle, .skill-summary > span { display: flex; align-items: center; gap: 6px; }.cinematic-skill header { justify-content: space-between; color: var(--v2-text-secondary); font-size: 11px; }.skill-toggle { cursor: pointer; }.skill-identity { display: grid; gap: 2px; }.skill-identity strong { color: var(--v2-accent-hover); font-size: 12px; }.skill-identity small, .mention-tokens small { color: var(--v2-text-muted); font-size: 10px; }.model-field, .mention-composer, .mention-composer label { display: grid; gap: 5px; color: var(--v2-text-secondary); font-size: 10px; }.mention-composer { position: relative; grid-template-columns: minmax(112px, .55fr) minmax(0, 1fr); }.cinematic-skill input[type='text'], .cinematic-skill select { min-height: 34px; padding: 6px 8px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); color: var(--v2-text-primary); background: var(--v2-canvas); font: inherit; }.mention-chooser { position: absolute; z-index: 2; top: calc(100% + 4px); right: 0; display: grid; width: min(100%, 310px); max-height: 190px; padding: 5px; overflow-y: auto; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-md); background: var(--v2-surface-3); box-shadow: var(--v2-shadow-prominent); }.mention-chooser button { display: grid; gap: 2px; padding: 8px; border: 0; border-radius: var(--v2-radius-sm); color: var(--v2-text-primary); background: transparent; text-align: left; cursor: pointer; }.mention-chooser button:hover, .mention-chooser button:focus-visible { background: var(--v2-accent-soft); }.mention-tokens { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }.mention-tokens li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; padding: 7px 8px; border-radius: var(--v2-radius-sm); background: var(--v2-surface-1); }.mention-tokens li span { display: grid; min-width: 0; }.mention-tokens strong { overflow: hidden; text-overflow: ellipsis; color: var(--v2-text-primary); font-size: 11px; white-space: nowrap; }.mention-tokens button { display: grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: var(--v2-radius-sm); color: var(--v2-text-muted); background: transparent; cursor: pointer; }.preflight-button { display: flex; min-height: 36px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--v2-accent-border); border-radius: var(--v2-radius-sm); color: var(--v2-accent-hover); background: var(--v2-accent-soft); cursor: pointer; }.preflight-button:disabled { cursor: not-allowed; opacity: .5; }.skill-error, .empty-mentions, .skill-summary p { margin: 0; color: var(--v2-text-muted); font-size: 10px; line-height: 1.5; }.skill-error { color: var(--v2-danger); }.skill-summary { display: grid; gap: 6px; padding-top: 4px; border-top: 1px solid var(--v2-border-subtle); }.skill-summary > span { color: var(--v2-success); font-size: 11px; }.skill-summary details { min-width: 0; }.skill-summary summary { color: var(--v2-text-secondary); cursor: pointer; font-size: 10px; }.skill-summary pre { max-height: 180px; margin: 6px 0 0; padding: 8px; overflow: auto; border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: var(--v2-canvas); font: 10px/1.5 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }.cinematic-skill :focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }.is-spinning { animation: spin 1s linear infinite; }@keyframes spin { to { transform: rotate(360deg); } }@media (prefers-reduced-motion: reduce) { .is-spinning { animation: none; } }@media (max-width: 420px) { .mention-composer { grid-template-columns: 1fr; } }
 .billing-reminder { display: grid; gap: 8px; padding: 9px; border: 1px solid var(--v2-warning); border-radius: var(--v2-radius-sm); background: var(--v2-surface-1); }.billing-reminder label { display: grid; gap: 4px; color: var(--v2-text-secondary); font-size: 10px; }.billing-reminder div { display: flex; flex-wrap: wrap; gap: 6px; }.billing-reminder button { min-height: 32px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); color: var(--v2-text-primary); background: var(--v2-surface-3); }.billing-confirmed { color: var(--v2-success) !important; }
+.upgrade-button { justify-self: start; min-height: 28px; border: 1px solid var(--v2-accent-border); border-radius: var(--v2-radius-sm); color: var(--v2-accent-hover); background: var(--v2-accent-soft); cursor: pointer; font-size: 10px; }.transfer-exclusions { grid-column: 1 / -1; padding: 7px 8px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-sm); }.transfer-exclusions summary { cursor: pointer; }.transfer-exclusions[open] { display: flex; flex-wrap: wrap; gap: 6px 10px; }.transfer-exclusions label { display: inline-flex; grid-auto-flow: column; align-items: center; gap: 4px; }.mention-chooser button:disabled { cursor: not-allowed; opacity: .48; }
 </style>

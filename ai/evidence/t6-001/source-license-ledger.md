@@ -36,3 +36,8 @@ Before each scoped implementation commit, compare the actual diff with the pinne
 
 - Result: independently expressed Revid continuation lineage validation, take-review state transition, duplication remapping, and tests; no upstream code, prose, examples, assets, or metadata copied.
 - Notice decision: no third-party notice addition required for this unit.
+
+## Unit 5 diff audit
+
+- Result: independently expressed Revid settings compatibility, capability projection, reference-transfer UX, take review, transient retake preflight, and tests; no upstream code, prose, prompts, examples, assets, provider/router table, or metadata copied.
+- Notice decision: no third-party notice addition required for this unit.

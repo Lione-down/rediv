@@ -20,7 +20,7 @@ Last updated: 2026-07-20
 
 - Active implementation Task: `T6-001 - Revid-native cinematic director Skills v2`.
 - State: `DOING`.
-- Active unit: `Unit 5 - reference transfer, capability gating, and retake UX`.
+- Active unit: `Unit 6 - eval, browser UX, accessibility, regression, and performance`.
 - Task: `ai/tasks/todo/TASK-T6-001.md`.
 - Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`.
 - Progress: `ai/tasks/doing/TASK-T6-001-PROGRESS.md`.
@@ -37,6 +37,8 @@ Last updated: 2026-07-20
 - T6-001 Unit 3 is complete: strict v2 text output is source/brief bound, sequence state lives only in the source script node, and one atomic command participates in autosave and undo/redo while exposing only the next executable clip.
 - Unit 3 evidence is backend `19/19`, frontend `21/21`, and build `4941`; planning uses the existing text authority and creates no image/video task.
 - T6-001 Unit 4 is complete: take review advances canon once, continuation requires revalidated current-Canvas result/task/media/revision lineage, and duplication remaps sequence/source/result references without mutating history. Evidence is backend `17/17` plus `3` subtests, frontend `8/8`, build `4941`.
+- T6-001 Unit 5 is complete: new opt-ins use active v2 while exact v1 settings remain historical; catalog-driven reference roles/media expose unsupported reasons; bounded non-transfer rules persist; Keep is atomic; Reroll/Rewrite is single-variable preflight-only until a later explicit Send.
+- Unit 5 evidence is backend `21/21`, frontend `28/28`, build `4947`, axe serious/critical zero, and visually inspected 1440x900 plus 375x812 review-only captures. No real provider call occurred.
 
 - The reported `736 x 1312` portrait case exposed a real dynamic-layout defect: existing Leafer ports retained creation-time coordinates after natural media metadata narrowed the visible node, while DOM/card/selection and shared graph geometry used the new layout size. Unit 7 now recalculates every existing port from the shared size and recertifies the node layers; Director remains excluded.
 - Unit 7 RED measured `245.859375` CSS px output-port drift; GREEN recomputes existing input/output port geometry on layout change and passes the delayed `736 x 1312` transition at 17/36/100/200% zoom. Related Chromium is `50/50`, full functional Chromium is `533/533`, and build is `4937 modules transformed`.
@@ -76,7 +78,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Implement Unit 5 progressive reference-transfer and take-review UX, capability reasons, and bounded single-variable retake preflights without auto-execution.
+Add the Unit 6 offline eval matrix, then run diff-derived regression, full backend/frontend, accessibility, responsive, IME/focus/reduced-motion/zoom, and unchanged performance gates.
 
 ## Boundaries And Human Gates
 

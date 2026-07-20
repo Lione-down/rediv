@@ -20,7 +20,9 @@ import {
   parseCinematicSkillNodeSettings,
   prepareCinematicGeneration,
   type CinematicGenerationHandoff,
+  type PreparedCinematicGeneration,
 } from '../../../modules/canvas/cinematic-skills'
+import type { CinematicDirectorGenerationHandoff } from '../../../modules/canvas/cinematic-director-preflight'
 
 interface GenerationRequestContext {
   authToken: string
@@ -46,6 +48,7 @@ interface CanvasGenerationActionOptions {
   beginRuntimeRequest: (context: GenerationRequestContext, clientRequestId: string) => string | null
   requestRuntimeRecoveryPolling: () => void
   settleRuntimeRequest: (runtimeRequestId: string) => void
+  consumeDirectorPreflight: (nodeId: string) => PreparedCinematicGeneration | null
 }
 
 interface GenerationExecutionOptions {
@@ -59,7 +62,7 @@ interface GenerationExecutionOptions {
   imageOperation?: ImageOperationContract
   shotControls?: ShotControls
   parameters?: GenerationNodeParameters | null
-  cinematicHandoff?: CinematicGenerationHandoff
+  cinematicHandoff?: CinematicGenerationHandoff | CinematicDirectorGenerationHandoff
   isCanvasPrepared?: boolean
 }
 
@@ -203,16 +206,12 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
     }
     if (!execution) return
     const promptToPersist = operation && !IMAGE_OPERATIONS[operation.id].requiresPrompt ? undefined : prompt
-    let prepared = null
+    let prepared = options.consumeDirectorPreflight(sourceNode.id)
     try {
       const rawSettings = sourceNode.contentData?.cinematic_skill
-      const persistedSettings = rawSettings === undefined
-        ? null
-        : parseCinematicSkillNodeSettings(rawSettings, mediaType)
-      if (persistedSettings?.enabled && operation) {
-        throw new Error('cinematic Skill 不支持包装 image operation。')
-      }
-      if (persistedSettings?.enabled) {
+      const persistedSettings = rawSettings === undefined ? null : parseCinematicSkillNodeSettings(rawSettings, mediaType)
+      if ((persistedSettings?.enabled || prepared) && operation) throw new Error('cinematic Skill 不支持包装 image operation。')
+      if (!prepared && persistedSettings?.enabled) {
         if (context.parameters) await canvasStore.setNodeGenerationParameters(sourceNode.id, context.parameters)
         if (promptToPersist !== undefined) await canvasStore.setNodeContent(sourceNode.id, promptToPersist)
         await canvasStore.flushPendingPersistence()

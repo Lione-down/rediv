@@ -91,7 +91,7 @@ Success gate: only explicit acceptance advances canon and exact lineage survives
 
 ## Unit 5 - Reference transfer, capability gating, and retake UX
 
-- Status: `in_progress`
+- Status: `completed`
 
 1. Bind every reference to one role, ordered identity, source revision, explicit instruction, and bounded non-transfer enum.
 2. Disable unsupported audio/video/reference roles with backend capability reasons; crafted requests fail before mutation.
@@ -103,7 +103,7 @@ Success gate: unsupported intent is explicit/non-mutating and retakes remain use
 
 ## Unit 6 - Eval, browser UX, accessibility, regression, and performance
 
-- Status: `pending`
+- Status: `in_progress`
 
 Required offline eval covers standalone fast lane, vague brief, product/character continuity, accepted unexpected outcome, rejected take, completed/reserved beats, single-variable retake, unsupported media, stale canon, provider ownership, malformed schema, duplication, and 375px review-only.
 

@@ -20,7 +20,9 @@ import { IMAGE_OPERATIONS } from '../../modules/canvas/image-operations'
 import CanvasGenerationParameterControls from './CanvasGenerationParameterControls.vue'
 import CanvasGenerationProgress from './CanvasGenerationProgress.vue'
 import CanvasCinematicSkillControls from './CanvasCinematicSkillControls.vue'
+import CanvasCinematicTakeReview from './CanvasCinematicTakeReview.vue'
 import { loadCinematicSkillSources } from '../../modules/canvas/cinematic-skills'
+import type { PreparedCinematicGeneration } from '../../modules/canvas/cinematic-skills'
 import { request } from '../../api/request'
 import CanvasScriptGenerationControls from './CanvasScriptGenerationControls.vue'
 import type { ScriptAuthoringCapabilities, ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
@@ -96,6 +98,7 @@ const emit = defineEmits<{
   fitTrace: []
   locateNode: [nodeId: string]
   generate: [prompt?: string]
+  directorPreflightReady: [generationNodeId: string, prepared: PreparedCinematicGeneration]
   reorderInput: [connectionId: string, direction: -1 | 1]
   updatePrompt: [prompt: string]
   updateParameters: [parameters: GenerationNodeParameters]
@@ -310,6 +313,17 @@ function requestGeneration() {
       <CircleAlert :size="15" aria-hidden="true" />
       <span>此任务或结果基于旧引用版本；历史结果仍可用，重新生成必须由你显式执行。</span>
     </section>
+    <CanvasCinematicTakeReview
+      v-if="node.type === 'result'"
+      :canvas-id="canvasId"
+      :node="node"
+      :project-id="projectId"
+      :readonly="readonly"
+      :result-lineage="resultLineage"
+      :task-snapshot="cinematicTaskSnapshot"
+      @locate-node="emit('locateNode', $event)"
+      @preflight-ready="(nodeId, prepared) => emit('directorPreflightReady', nodeId, prepared)"
+    />
 
     <section v-if="mediaType" class="generation-editor" role="region" aria-label="生成任务编辑器">
       <div class="section-heading"><span>{{ generationLabel }}生成</span><span>剩余 {{ quota }}</span></div>
