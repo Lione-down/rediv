@@ -75,13 +75,15 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 
 ### Unit 8 - Request-scoped repositories
 
-- Status: `active`
+- Status: `completed`
 
 - Prove stale cross-instance authorization/admin/domain state with two-store/two-session RED tests.
 - Introduce narrow domain repositories and migrate auth/admin first, then project/Canvas and asset/generation paths in bounded commits.
 - Remove production dictionary exposure and retire the duplicate application store only after caller scans and full regression.
 
 ### Unit 9 - Explicit Canvas UI state and production file splits
+
+- Status: `active`
 
 - Add a discriminated single `ContextSurface` with deterministic opener/focus return; preserve existing DOM, copy, shortcuts, and mutation behavior.
 - Stabilize overlay/focus regression before extracting contextual domains and Stage chrome.

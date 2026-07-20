@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from controllers.store import store
 from models.asset import Asset
 from models.generation_task import GenerationTask
 from models.quota import Quota, QuotaLedger
@@ -78,7 +77,3 @@ def ledger_to_dict(record: QuotaLedger) -> dict:
         "admin_id": record.admin_id,
         "created_at": _datetime_to_iso(record.created_at),
     }
-
-
-def sync_task_cache(task: dict) -> None:
-    store.generation_tasks[task["id"]] = task

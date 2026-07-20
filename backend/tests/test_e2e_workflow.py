@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import main as backend_main
+from controllers import quotas as quota_controller
 from controllers.store import DatabaseStore, configure_store, store
 from tests.mysql_test_database import MySQLTestDatabase
 
@@ -124,7 +125,7 @@ class E2EWorkflowTestCase(unittest.TestCase):
 
         quota_records = [
             record
-            for record in store.quota_ledger
+            for record in quota_controller.list_quota_ledger(user["id"])
             if record["user_id"] == user["id"] and record["reason"] == "text_generate"
         ]
         self.assertEqual(1, len(quota_records))

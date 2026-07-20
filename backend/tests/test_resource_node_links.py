@@ -12,7 +12,7 @@ import controllers.canvas_documents as canvas_documents_module
 from controllers.canvas_document_mutations import patch_document
 from controllers.canvas_documents import create_node, delete_node
 from controllers.canvas_revisions import restore_revision
-from controllers.store import DatabaseStore, InMemoryStore, configure_store, store
+from controllers.store import DatabaseStore, TestInMemoryStore, configure_store, store
 from models.asset import Asset
 from models.base import get_session
 from models.generation_task import GenerationTask
@@ -21,7 +21,7 @@ from tests.mysql_test_database import MySQLTestDatabase
 
 class ResourceNodeLinkMemoryTestCase(unittest.TestCase):
     def test_origin_canvas_infers_owned_project(self) -> None:
-        memory_store = InMemoryStore()
+        memory_store = TestInMemoryStore()
         user = memory_store.create_user("resource-origin-memory", "")
         project = memory_store.create_project(user["id"], "Resource Origin Memory")
         canvas_id = memory_store.get_first_canvas_id(project["id"])
@@ -38,7 +38,7 @@ class ResourceNodeLinkMemoryTestCase(unittest.TestCase):
         self.assertEqual(canvas_id, asset["origin_canvas_id"])
 
     def test_inmemory_delete_clears_resource_node_links(self) -> None:
-        memory_store = InMemoryStore()
+        memory_store = TestInMemoryStore()
         user = memory_store.create_user("resource-link-memory", "")
         project = memory_store.create_project(user["id"], "Resource Link Memory")
         canvas_id = memory_store.get_first_canvas_id(project["id"])

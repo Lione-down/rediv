@@ -331,9 +331,9 @@ class GenerationTransactionConcurrencyTestCase(unittest.TestCase):
         self.assertEqual("succeeded", result["generation_task"]["status"])
         self.assertEqual(self.canvas_id, result["asset"]["origin_canvas_id"])
 
-    def test_me_reads_authoritative_database_quota_instead_of_process_cache(self) -> None:
+    def test_me_and_legacy_quota_view_read_authoritative_database_value(self) -> None:
         self._set_database_quota(7)
-        self.assertNotEqual(7, store.quotas[self.user["id"]]["image"])
+        self.assertEqual(7, store.quotas[self.user["id"]]["image"])
 
         response = self.client.get("/me", headers=self.headers)
 

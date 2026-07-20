@@ -255,7 +255,11 @@ class MultiCanvasFoundationTestCase(unittest.TestCase):
         reloaded_store = DatabaseStore()
         configure_store(reloaded_store)
         first_canvas_id = store.get_first_canvas_id(self.project_id)
-        second_node = next(node for node in store.canvas_nodes.values() if node["canvas_id"] != first_canvas_id)
+        second_node = next(
+            node
+            for node in reloaded_store.canvas_graph_repository.list_nodes_for_project(self.project_id)
+            if node["canvas_id"] != first_canvas_id
+        )
 
         app = FastAPI()
         include_routers(app)

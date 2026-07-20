@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from api.router import include_routers
-from controllers.store import DatabaseStore, InMemoryStore, configure_store, store
+from controllers.store import DatabaseStore, TestInMemoryStore, configure_store, store
 from core.security import create_token
 from tests.mysql_test_database import MySQLTestDatabase
 
@@ -132,7 +132,7 @@ class ProjectCrudTestCase(unittest.TestCase):
         self.assertEqual(self.user["id"], loaded["user_id"])
 
     def test_inmemory_project_crud(self) -> None:
-        memory_store = InMemoryStore()
+        memory_store = TestInMemoryStore()
         user = memory_store.create_user("Memory User", "")
 
         created = memory_store.create_project(user["id"], "Memory Project")
@@ -146,7 +146,7 @@ class ProjectCrudTestCase(unittest.TestCase):
         self.assertIsNone(memory_store.get_project(created["id"]))
 
     def test_inmemory_project_delete_rejects_linked_resources(self) -> None:
-        memory_store = InMemoryStore()
+        memory_store = TestInMemoryStore()
         user = memory_store.create_user("Memory Resource User", "")
         project = memory_store.create_project(user["id"], "Memory Resource Project")
         memory_store.create_asset(

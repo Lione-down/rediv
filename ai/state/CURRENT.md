@@ -24,7 +24,7 @@ Last updated: 2026-07-20
 - Task: [TASK-T6-002](../tasks/todo/TASK-T6-002.md).
 - Plan: [TASK-T6-002-PLAN](../tasks/doing/TASK-T6-002-PLAN.md).
 - Progress: [TASK-T6-002-PROGRESS](../tasks/doing/TASK-T6-002-PROGRESS.md).
-- Active unit: `Unit 8 - Request-scoped repositories`.
+- Active unit: `Unit 9 - Explicit Canvas UI state and production file splits`.
 - Last completed Task: `T6-001 - Revid-native cinematic director Skills v2`, `DONE / PASS`.
 - Last report: [REPORT-T6-001](../reports/REPORT-T6-001.md).
 - Archived completion detail: [2026-07-20 T5/T6 completion snapshot](archive/2026-07-20-t5-t6-completion-snapshot.md).
@@ -34,13 +34,15 @@ Last updated: 2026-07-20
 - T6-002 Units 1-5 are delivered: fail-closed authentication, atomic invitation redemption, authoritative routes/provenance, bounded Canvas JSON, and exact Agnes endpoint trust.
 - Unit 6 is delivered: immutable-action least-privilege CI, reviewed Python constraints, digest-pinned MySQL 8, process-safe backend runner, deterministic Chromium, and pinned secret/SAST checks.
 - Unit 7 is delivered: exact T6 State/Verification metadata, complete ROADMAP rows, a concise CURRENT cursor with archived detail, refreshed entry docs, and a GREEN durable-state validator.
+- Unit 8 is delivered: request-scoped domain repositories, no production full-table startup cache or dictionary authority, fresh cross-worker auth/admin/domain reads, deterministic microsecond admin-log ordering, and a test-only renamed memory fake.
+- Latest Unit 8 evidence: two-worker freshness `4/4`; focused generation/E2E `31/31`; full backend `577/577` in `467.040s`; one Alembic head `c5d6e7f8a9b0`.
 - Latest Unit 6 evidence: clean Python 3.13 `pip check`; backend `575/575`; frontend build `4937` modules; deterministic functional/accessibility Chromium `552/552`.
 - The unchanged 200-node/300-connection headed hardware gate remains separate from ordinary SwiftShader CI. No real or paid provider request is authorized or claimed.
 - Only guarded disposable `revid_test_*` schemas may be created or dropped by tests.
 
 ## Exact Next Action
 
-Execute Unit 8 request-scoped repository migration: begin with two-store freshness RED tests, then move auth/admin reads off process-wide full-table caches in bounded verified commits.
+Execute Unit 9: inventory Canvas contextual surfaces and oversized production files, add explicit single-surface/focus-return regression, then extract behavior domains without changing current DOM or interactions.
 
 ## Worktree Ownership
 

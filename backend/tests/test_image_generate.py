@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import main as backend_main
 from api.router import include_routers
+from controllers import quotas as quota_controller
 from controllers.store import DatabaseStore, configure_store, store
 from core.agnes_contract import AgnesProviderError
 from core.security import create_token
@@ -333,7 +334,7 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("asset_persistence_error", tasks[0]["error_code"])
         generation_records = [
             record
-            for record in store.quota_ledger
+            for record in quota_controller.list_quota_ledger(self.user["id"])
             if record["user_id"] == self.user["id"]
             and record["reason"] in {"image_generate", "image_generate_refund"}
         ]

@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from api.router import include_routers
+from controllers import quotas as quota_controller
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token, hash_password
 from tests.mysql_test_database import MySQLTestDatabase
@@ -42,7 +43,7 @@ class QuotaFlowTestCase(unittest.TestCase):
         self.assertEqual({"text": 100, "image": 20, "video": 3}, payload["quotas"])
         self.assertEqual({"text": 100, "image": 20, "video": 3}, dict(store.quotas[user_id]))
 
-        user_ledger = [record for record in store.quota_ledger if record["user_id"] == user_id]
+        user_ledger = quota_controller.list_quota_ledger(user_id)
         self.assertEqual(3, len(user_ledger))
         self.assertTrue(all(record["reason"] == "default_grant" for record in user_ledger))
 
@@ -104,8 +105,8 @@ class QuotaFlowTestCase(unittest.TestCase):
         self.assertEqual(130, store.quotas[user_id]["text"])
         user_text_grants = [
             record
-            for record in store.quota_ledger
-            if record["user_id"] == user_id and record["quota_type"] == "text" and record["reason"] == "admin_grant"
+            for record in quota_controller.list_quota_ledger(user_id)
+            if record["quota_type"] == "text" and record["reason"] == "admin_grant"
         ]
         self.assertEqual(3, len(user_text_grants))
 

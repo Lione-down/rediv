@@ -22,6 +22,14 @@ from models.project import Project
 from models.quota import Quota, QuotaLedger
 from models.template import Template
 from models.user import User
+from repositories import (
+    AssetRepository,
+    CanvasGraphRepository,
+    GenerationTaskRepository,
+    ProjectRepository,
+    FreshQuotaView,
+    UserRepository,
+)
 
 from controllers.resource_scope import (
     ProjectResourceConflictError,
@@ -103,7 +111,8 @@ class PersistentDict(dict):
         super().update(payload)
 
 
-class InMemoryStore:
+class TestInMemoryStore:
+    """Database-free fake retained only for isolated controller unit tests."""
     def __init__(self) -> None:
         self.users: dict[str, dict] = {}
         self._password_hashes: dict[str, str | None] = {}
@@ -939,81 +948,22 @@ class DatabaseStore:
         self.projects: dict[str, dict] = {}
         self.templates: dict[str, dict] = {}
         self.invitation_codes: dict[str, PersistentDict] = {}
-        self.quotas: dict[str, PersistentDict] = {}
-        self._quota_revisions: dict[str, int] = {}
-        self._quota_cache_lock = Lock()
+        self.quotas = FreshQuotaView(self._quota_to_dict)
         self.quota_ledger: list[dict] = []
         self.admin_logs: list[dict] = []
+        self.user_repository = UserRepository()
+        self.asset_repository = AssetRepository()
+        self.generation_task_repository = GenerationTaskRepository()
+        self.project_repository = ProjectRepository()
+        self.canvas_graph_repository = CanvasGraphRepository()
+        with get_session() as session:
+            registration_settings = self._load_registration_settings(session)
         self.registration_settings = PersistentDict(
-            DEFAULT_REGISTRATION_SETTINGS,
+            registration_settings,
             self._persist_registration_settings,
         )
         reconcile_stale_generation_reservations()
-        self._load_state()
         self._bootstrap_admin_if_configured()
-
-    def _load_state(self) -> None:
-        with get_session() as session:
-            self.registration_settings.replace_local(self._load_registration_settings(session))
-            self.users = {}
-            self._password_hashes = {}
-            for user in session.scalars(select(User)).all():
-                self.users[user.id] = PersistentDict(self._user_to_dict(user), self._persist_user)
-                self._password_hashes[user.id] = user.password_hash
-            self.identities = {
-                f"{identity.provider}:{identity.provider_user_id}": self._identity_to_dict(identity)
-                for identity in session.scalars(select(Identity)).all()
-            }
-            self.guests = {
-                guest.session_id: self._guest_to_dict(guest)
-                for guest in session.scalars(select(Guest)).all()
-            }
-            self.assets = {
-                asset.id: self._asset_to_dict(asset)
-                for asset in session.scalars(select(Asset)).all()
-            }
-            self.generation_tasks = {
-                task.id: self._generation_task_to_dict(task)
-                for task in session.scalars(select(GenerationTask)).all()
-            }
-            self.canvas_connections = {
-                connection.id: self._canvas_connection_to_dict(connection)
-                for connection in session.scalars(select(CanvasConnection)).all()
-            }
-            self.canvas_nodes = {
-                node.id: self._canvas_node_to_dict(node)
-                for node in session.scalars(select(CanvasNode)).all()
-            }
-            self.canvases = {
-                canvas.id: self._canvas_to_dict(canvas)
-                for canvas in session.scalars(select(Canvas)).all()
-            }
-            self.projects = {
-                project.id: self._project_to_dict(project)
-                for project in session.scalars(select(Project)).all()
-            }
-            self.templates = {
-                template.id: self._template_to_dict(template)
-                for template in session.scalars(select(Template)).all()
-            }
-            self.invitation_codes = {
-                invitation.code: PersistentDict(
-                    self._invitation_to_dict(invitation),
-                    self._persist_invitation,
-                )
-                for invitation in session.scalars(select(InvitationCode)).all()
-            }
-            quota_rows = list(session.scalars(select(Quota)).all())
-            self.quotas = {
-                quota.user_id: PersistentDict(
-                    self._quota_to_dict(quota),
-                    lambda payload, user_id=quota.user_id: self._persist_quota(user_id, payload),
-                )
-                for quota in quota_rows
-            }
-            self._quota_revisions = {quota.user_id: quota.revision for quota in quota_rows}
-            self.quota_ledger = [self._quota_ledger_to_dict(record) for record in session.scalars(select(QuotaLedger)).all()]
-            self.admin_logs = [self._admin_log_to_dict(record) for record in session.scalars(select(AdminLog)).all()]
 
     def _bootstrap_admin_if_configured(self) -> None:
         from core.security import hash_password, verify_password
@@ -1026,7 +976,7 @@ class DatabaseStore:
 
         user = self.find_user_by_username(normalized_username)
         if user is None:
-            user = next((candidate for candidate in self.users.values() if candidate["role"] == "admin"), None)
+            user = self.user_repository.find_configured_admin()
 
         if user is not None:
             password_hash = self.get_password_hash(user["id"])
@@ -1041,8 +991,13 @@ class DatabaseStore:
         self.ensure_admin_user(normalized_username, hash_password(password))
 
     def _ensure_admin_quotas(self, user_id: str) -> None:
+        with get_session() as session:
+            quota = session.scalar(select(Quota).where(Quota.user_id == user_id))
+            if quota is None:
+                raise KeyError(f'Quota "{user_id}" not found')
+            quotas = self._quota_to_dict(quota)
         for quota_type, target in ADMIN_BOOTSTRAP_QUOTAS.items():
-            current = self.quotas[user_id][quota_type]
+            current = quotas[quota_type]
             if current < target:
                 self.grant_quota(user_id, quota_type, target - current, "default_grant", None)
 
@@ -1115,9 +1070,7 @@ class DatabaseStore:
             quota.image_quota = payload["image"]
             quota.video_quota = payload["video"]
             quota.revision += 1
-            revision = quota.revision
             session.commit()
-        self._quota_revisions[user_id] = revision
 
     def _user_to_dict(self, user: User) -> dict:
         return {
@@ -1356,21 +1309,18 @@ class DatabaseStore:
             session.add(quota)
             session.commit()
         user_payload = PersistentDict(self._user_to_dict(user), self._persist_user)
-        quota_payload = PersistentDict(
-            self._quota_to_dict(quota),
-            lambda payload, key=user_id: self._persist_quota(key, payload),
-        )
         self.users[user_id] = user_payload
         self._password_hashes[user_id] = password_hash
-        self.quotas[user_id] = quota_payload
-        self._quota_revisions[user_id] = quota.revision
         return user_payload
 
     def get_user(self, user_id: str) -> dict | None:
-        return self.users.get(user_id)
+        user = self.user_repository.get(user_id)
+        if user is None:
+            return None
+        return PersistentDict(user, self._persist_user)
 
     def get_password_hash(self, user_id: str) -> str | None:
-        return self._password_hashes.get(user_id)
+        return self.user_repository.get_password_hash(user_id)
 
     def set_password_hash(self, user_id: str, password_hash: str | None) -> None:
         with get_session() as session:
@@ -1390,22 +1340,13 @@ class DatabaseStore:
             cached_user.replace_local(payload)
 
     def find_user_by_username(self, username: str | None) -> dict | None:
-        normalized = normalize_login_value(username)
-        if normalized is None:
-            return None
-        return next((user for user in self.users.values() if user.get("username") == normalized), None)
+        return self.user_repository.find_by_username(username)
 
     def find_user_by_email(self, email: str | None) -> dict | None:
-        normalized = normalize_login_value(email)
-        if normalized is None:
-            return None
-        return next((user for user in self.users.values() if user.get("email") == normalized), None)
+        return self.user_repository.find_by_email(email)
 
     def find_user_by_identifier(self, identifier: str) -> dict | None:
-        normalized = normalize_login_value(identifier)
-        if normalized is None:
-            return None
-        return self.find_user_by_username(normalized) or self.find_user_by_email(normalized)
+        return self.user_repository.find_by_identifier(identifier)
 
     def ensure_admin_user(self, username: str, password_hash: str, nickname: str = "Admin") -> dict:
         normalized_username = normalize_login_value(username)
@@ -1413,7 +1354,7 @@ class DatabaseStore:
             raise ValueError("Admin username is required")
         user = self.find_user_by_username(normalized_username)
         if user is None:
-            user = next((candidate for candidate in self.users.values() if candidate["role"] == "admin"), None)
+            user = self.user_repository.find_configured_admin()
 
         if user is None:
             user = self.create_user(
@@ -1430,10 +1371,9 @@ class DatabaseStore:
             user["generation_status"] = "enabled"
             user["username"] = normalized_username
             user["updated_at"] = now_iso()
+            self._persist_user(user)
             self.set_password_hash(user["id"], password_hash)
 
-        if user["id"] not in self._password_hashes:
-            self._password_hashes[user["id"]] = password_hash
         self._ensure_admin_quotas(user["id"])
         return self.get_user(user["id"]) or user
 
@@ -1463,53 +1403,19 @@ class DatabaseStore:
         quota: Quota,
         invitation: InvitationCode | None,
     ) -> dict:
-        user_payload = self._user_to_dict(user)
-        cached_user = self.users.get(user.id)
-        if cached_user is None:
-            cached_user = PersistentDict(user_payload, self._persist_user)
-            self.users[user.id] = cached_user
-        else:
-            cached_user.replace_local(user_payload)
-        self._password_hashes[user.id] = user.password_hash
-
-        if identity is not None:
-            self.identities[f"{identity.provider}:{identity.provider_user_id}"] = self._identity_to_dict(identity)
-        self.replace_quota_snapshot(user.id, self._quota_to_dict(quota), quota.revision)
-        with get_session() as session:
-            committed_ledger = [
-                self._quota_ledger_to_dict(record)
-                for record in session.scalars(
-                    select(QuotaLedger).where(QuotaLedger.user_id == user.id)
-                ).all()
-            ]
-        self.quota_ledger = [
-            record for record in self.quota_ledger if record["user_id"] != user.id
-        ] + committed_ledger
-
-        if invitation is not None:
-            invitation_payload = self._invitation_to_dict(invitation)
-            cached_invitation = self.invitation_codes.get(invitation.code)
-            if cached_invitation is None:
-                self.invitation_codes[invitation.code] = PersistentDict(
-                    invitation_payload,
-                    self._persist_invitation,
-                )
-            else:
-                cached_invitation.replace_local(invitation_payload)
-        return cached_user
+        return self._user_to_dict(user)
 
     def find_identity(self, provider: str, provider_user_id: str) -> dict | None:
-        return self.identities.get(f"{provider}:{provider_user_id}")
+        return self.user_repository.find_identity(provider, provider_user_id)
 
     def touch_login(self, user_id: str) -> None:
-        user = self.users.get(user_id)
+        user = self.get_user(user_id)
         if not user:
             return
         payload = dict(user)
         payload["last_login_at"] = now_iso()
         payload["updated_at"] = now_iso()
         self._persist_user(payload)
-        user.replace_local(payload)
 
     def create_guest(self) -> dict:
         guest = Guest(
@@ -1599,30 +1505,10 @@ class DatabaseStore:
             )
             session.add(record)
             session.flush()
-            quota_payload = self._quota_to_dict(quota_row)
-            quota_revision = quota_row.revision
             payload = self._quota_ledger_to_dict(record)
             session.commit()
 
-        self.replace_quota_snapshot(user_id, quota_payload, quota_revision)
-        self.quota_ledger.append(payload)
         return payload
-
-    def replace_quota_snapshot(self, user_id: str, payload: dict, revision: int) -> bool:
-        with self._quota_cache_lock:
-            if revision < self._quota_revisions.get(user_id, -1):
-                return False
-            quota_bucket = self.quotas.get(user_id)
-            if quota_bucket is None:
-                quota_bucket = PersistentDict(
-                    payload,
-                    lambda value, key=user_id: self._persist_quota(key, value),
-                )
-                self.quotas[user_id] = quota_bucket
-            else:
-                quota_bucket.replace_local(payload)
-            self._quota_revisions[user_id] = revision
-            return True
 
     def create_asset(
         self,
@@ -1729,14 +1615,7 @@ class DatabaseStore:
         return payload
 
     def get_generation_task(self, task_id: str) -> dict | None:
-        with get_session() as session:
-            row = session.get(GenerationTask, task_id)
-            if row is None:
-                return None
-            payload = self._generation_task_to_dict(row)
-
-        self.generation_tasks[task_id] = payload
-        return payload
+        return self.generation_task_repository.get(task_id)
 
     def list_generation_tasks(
         self,
@@ -1850,10 +1729,6 @@ class DatabaseStore:
         return templates
 
     def get_template(self, template_id: str) -> dict | None:
-        template = self.templates.get(template_id)
-        if template is not None:
-            return template
-
         with get_session() as session:
             row = session.get(Template, template_id)
             if row is None:
@@ -1971,20 +1846,7 @@ class DatabaseStore:
         return items
 
     def get_node(self, node_id: str) -> dict | None:
-        node = self.canvas_nodes.get(node_id)
-        if node is not None:
-            if node["status"] == "deleted":
-                return None
-            return node
-
-        with get_session() as session:
-            row = session.get(CanvasNode, node_id)
-            if row is None or row.status == "deleted":
-                return None
-            payload = self._canvas_node_to_dict(row)
-
-        self.canvas_nodes[node_id] = payload
-        return payload
+        return self.canvas_graph_repository.get_node(node_id)
 
     def update_node(self, node_id: str, user_id: str, **fields) -> dict | None:
         with get_session() as session:
@@ -2136,20 +1998,7 @@ class DatabaseStore:
         return items
 
     def get_connection(self, connection_id: str) -> dict | None:
-        connection = self.canvas_connections.get(connection_id)
-        if connection is not None:
-            if connection["status"] == "deleted":
-                return None
-            return connection
-
-        with get_session() as session:
-            row = session.get(CanvasConnection, connection_id)
-            if row is None or row.status == "deleted":
-                return None
-            payload = self._canvas_connection_to_dict(row)
-
-        self.canvas_connections[connection_id] = payload
-        return payload
+        return self.canvas_graph_repository.get_connection(connection_id)
 
     def update_connection(self, connection_id: str, user_id: str, **fields) -> dict | None:
         with get_session() as session:
@@ -2219,12 +2068,7 @@ class DatabaseStore:
         return connection_ids
 
     def list_projects(self, user_id: str) -> list[dict]:
-        statement = select(Project).where(Project.user_id == user_id)
-        with get_session() as session:
-            projects = [self._project_to_dict(project) for project in session.scalars(statement).all()]
-
-        projects.sort(key=lambda project: project["created_at"], reverse=True)
-        return projects
+        return self.project_repository.list_for_user(user_id)
 
     def list_all_projects(self) -> list[dict]:
         with get_session() as session:
@@ -2302,18 +2146,7 @@ class DatabaseStore:
         return payload
 
     def get_project(self, project_id: str) -> dict | None:
-        project = self.projects.get(project_id)
-        if project is not None:
-            return project
-
-        with get_session() as session:
-            row = session.get(Project, project_id)
-            if row is None:
-                return None
-            payload = self._project_to_dict(row)
-
-        self.projects[project_id] = payload
-        return payload
+        return self.project_repository.get(project_id)
 
     def delete_project(self, project_id: str, user_id: str) -> dict | None:
         with get_session() as session:
@@ -2371,14 +2204,7 @@ class DatabaseStore:
         return assets[start:end], total
 
     def get_asset(self, asset_id: str) -> dict | None:
-        with get_session() as session:
-            row = session.get(Asset, asset_id)
-            if row is None:
-                return None
-            payload = self._asset_to_dict(row)
-
-        self.assets[asset_id] = payload
-        return payload
+        return self.asset_repository.get(asset_id)
 
     def delete_asset(self, asset_id: str, user_id: str) -> dict | None:
         with get_session() as session:
@@ -2410,10 +2236,10 @@ class DatabaseStore:
 
 
 class StoreProxy:
-    def __init__(self, backend: InMemoryStore | DatabaseStore | None = None) -> None:
+    def __init__(self, backend: DatabaseStore | TestInMemoryStore | None = None) -> None:
         self._backend = backend
 
-    def configure(self, backend: InMemoryStore | DatabaseStore) -> None:
+    def configure(self, backend: DatabaseStore | TestInMemoryStore) -> None:
         self._backend = backend
 
     def __getattr__(self, name: str):
@@ -2425,5 +2251,5 @@ class StoreProxy:
 store = StoreProxy()
 
 
-def configure_store(backend: InMemoryStore | DatabaseStore) -> None:
+def configure_store(backend: DatabaseStore | TestInMemoryStore) -> None:
     store.configure(backend)

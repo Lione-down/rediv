@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import unittest
 
-from controllers.store import DatabaseStore
+from controllers.store import DatabaseStore, configure_store
+from controllers.quotas import get_quota_balances
 from core.security import hash_password
+from repositories.assets import AssetRepository
 from tests.mysql_test_database import MySQLTestDatabase
 
 
@@ -60,7 +62,7 @@ class DatabaseStoreTestCase(unittest.TestCase):
         user = self.store.create_user("Asset User", "")
         asset = self.store.create_asset(user["id"], "image", "https://example.com/image.png", None)
 
-        self.assertEqual(asset["id"], self.store.assets[asset["id"]]["id"])
+        self.assertEqual(asset["id"], self.store.asset_repository.get(asset["id"])["id"])
         self.assertEqual(user["id"], asset["user_id"])
 
     def test_generation_task_persists_after_reload(self) -> None:
@@ -103,10 +105,14 @@ class DatabaseStoreTestCase(unittest.TestCase):
         self.store.grant_quota(user["id"], "image", 3, "default_grant", None)
 
         reloaded_store = DatabaseStore()
+        configure_store(reloaded_store)
 
         self.assertEqual("Persisted User", reloaded_store.get_user(user["id"])["nickname"])
-        self.assertEqual(3, reloaded_store.quotas[user["id"]]["image"])
-        self.assertEqual(1, len([asset for asset in reloaded_store.assets.values() if asset["user_id"] == user["id"]]))
+        self.assertEqual(3, get_quota_balances(user["id"])["image"])
+        self.assertEqual(
+            1,
+            len([asset for asset in AssetRepository().list_all() if asset["user_id"] == user["id"]]),
+        )
 
 
 if __name__ == "__main__":

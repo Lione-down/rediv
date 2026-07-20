@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 
-from controllers.store import store
 from models.base import get_session
 from models.quota import Quota, QuotaLedger
 
@@ -41,10 +40,6 @@ def get_quota_balances(user_id: str) -> dict[str, int] | None:
     return snapshot[0] if snapshot is not None else None
 
 
-def sync_quota_snapshot(user_id: str, quotas: dict[str, int], revision: int) -> None:
-    store.replace_quota_snapshot(user_id, quotas, revision)
-
-
 def get_quota_snapshot(user_id: str) -> tuple[dict[str, int], int] | None:
     with get_session() as session:
         quota = session.scalar(select(Quota).where(Quota.user_id == user_id))
@@ -53,7 +48,6 @@ def get_quota_snapshot(user_id: str) -> tuple[dict[str, int], int] | None:
         payload = _quota_to_dict(quota)
         revision = quota.revision
 
-    sync_quota_snapshot(user_id, payload, revision)
     return payload, revision
 
 

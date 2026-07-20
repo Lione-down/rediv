@@ -370,13 +370,13 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         self.assertEqual([], provider.calls)
         self.assertEqual(0, self._task_count())
 
-    def test_database_quota_overrides_stale_process_cache(self) -> None:
+    def test_quota_view_observes_external_database_update(self) -> None:
         provider = _FakeImageProvider()
         with get_session() as session:
             quota = session.scalar(select(Quota).where(Quota.user_id == self.user["id"]))
             quota.image_quota = 2
             session.commit()
-        self.assertNotEqual(2, store.quotas[self.user["id"]]["image"])
+        self.assertEqual(2, store.quotas[self.user["id"]]["image"])
 
         response = self._generate_image(provider)
 

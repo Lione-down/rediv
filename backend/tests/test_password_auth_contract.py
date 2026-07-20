@@ -329,7 +329,9 @@ class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
 
         runtime_store = DatabaseStore()
 
-        admin_users = [user for user in runtime_store.users.values() if user["role"] == "admin"]
+        admin_users = [
+            user for user in runtime_store.user_repository.list_users() if user["role"] == "admin"
+        ]
         self.assertEqual([], admin_users)
 
     def test_database_store_bootstraps_single_admin_from_env_credentials(self) -> None:
@@ -339,7 +341,9 @@ class RuntimeAdminBootstrapContractTestCase(unittest.TestCase):
         first_store = DatabaseStore()
         second_store = DatabaseStore()
 
-        admin_users = [user for user in second_store.users.values() if user["role"] == "admin"]
+        admin_users = [
+            user for user in second_store.user_repository.list_users() if user["role"] == "admin"
+        ]
         self.assertEqual(1, len(admin_users))
         self.assertEqual("runtime-admin", admin_users[0]["username"])
         self.assertTrue(verify_password("StrongPass123!", first_store.get_password_hash(admin_users[0]["id"])))

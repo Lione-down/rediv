@@ -101,7 +101,7 @@ class AdminEnhancementsTestCase(unittest.TestCase):
 
         self.assertEqual(200, response.status_code)
         self.assertEqual("banned", response.json()["status"])
-        last_log = store.admin_logs[-1]
+        last_log = store.user_repository.list_admin_logs(limit=1)[0]
         self.assertEqual("ban", last_log["action"])
         self.assertEqual("user", last_log["target_type"])
         self.assertEqual(self.user["id"], last_log["target_id"])
@@ -116,7 +116,7 @@ class AdminEnhancementsTestCase(unittest.TestCase):
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(150, response.json()["quotas"]["text"])
-        last_log = store.admin_logs[-1]
+        last_log = store.user_repository.list_admin_logs(limit=1)[0]
         self.assertEqual("grant_quota", last_log["action"])
         self.assertEqual(self.user["id"], last_log["target_id"])
         self.assertEqual("manual topup", last_log["detail"]["message"].split(": ", 1)[-1])
@@ -149,7 +149,12 @@ class AdminEnhancementsTestCase(unittest.TestCase):
 
         reloaded_store = DatabaseStore()
 
-        self.assertTrue(any(log["action"] == "ban" and log["target_id"] == self.user["id"] for log in reloaded_store.admin_logs))
+        self.assertTrue(
+            any(
+                log["action"] == "ban" and log["target_id"] == self.user["id"]
+                for log in reloaded_store.user_repository.list_admin_logs()
+            )
+        )
 
     def _register_user(self, openid: str):
         return self.client.post(

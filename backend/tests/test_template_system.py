@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from api.router import include_routers
-from controllers.store import DatabaseStore, InMemoryStore, configure_store, store
+from controllers.store import DatabaseStore, TestInMemoryStore, configure_store, store
 from core.security import create_token
 from tests.mysql_test_database import MySQLTestDatabase
 
@@ -160,7 +160,7 @@ class TemplateSystemTestCase(unittest.TestCase):
         self.assertEqual({"text": "Opening"}, loaded["node_data"][0]["content"])
 
     def test_inmemory_template_crud(self) -> None:
-        memory_store = InMemoryStore()
+        memory_store = TestInMemoryStore()
         user = memory_store.create_user("Memory User", "")
         project = memory_store.create_project(user["id"], "Memory Project")
         memory_store.create_node(project["id"], user["id"], "text", {"text": "one"}, 10, 10, 300, 200)

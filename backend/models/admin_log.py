@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String
+from sqlalchemy import JSON, ForeignKey, String
+from sqlalchemy.dialects.mysql import DATETIME
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, utc_now
@@ -18,4 +19,9 @@ class AdminLog(Base):
     target_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True, comment="目标类型")
     target_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True, comment="目标ID")
     detail: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict, comment="操作详情JSON")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False, comment="创建时间")
+    created_at: Mapped[datetime] = mapped_column(
+        DATETIME(fsp=6),
+        default=utc_now,
+        nullable=False,
+        comment="创建时间",
+    )

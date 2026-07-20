@@ -5,7 +5,6 @@ from uuid import uuid4
 
 from sqlalchemy import select
 
-from controllers import quotas as quota_controller
 from controllers.generation_errors import (
     GenerationDeterministicFailureError,
     GenerationForbiddenError,
@@ -25,7 +24,6 @@ from controllers.generation_records import (
     asset_to_dict as _asset_to_dict,
     ledger_to_dict as _ledger_to_dict,
     quota_to_dict as _quota_to_dict,
-    sync_task_cache as _sync_task_cache,
     task_to_dict as _task_to_dict,
 )
 from controllers.generation_progress import (
@@ -43,7 +41,6 @@ from controllers.generation_starts import (
     start_video_generation_task,
 )
 from controllers.resource_scope import resolve_database_resource_scope
-from controllers.store import store
 from models.asset import Asset
 from models.base import get_session, utc_now
 from models.generation_task import GenerationTask
@@ -73,7 +70,6 @@ def update_generation_task_state(task_id: str, **fields) -> dict:
         session.flush()
         task_payload = _task_to_dict(task)
         session.commit()
-    _sync_task_cache(task_payload)
     return task_payload
 
 
@@ -105,7 +101,6 @@ def fail_generation_task(
         session.flush()
         task_payload = _task_to_dict(task)
         session.commit()
-    _sync_task_cache(task_payload)
     return task_payload
 
 
@@ -209,7 +204,6 @@ def complete_generation_task(
                     session.flush()
                     task_payload = _task_to_dict(task)
                     session.commit()
-                    _sync_task_cache(task_payload)
                 raise mapped_error from error
             quota = session.scalar(
                 select(Quota).where(Quota.user_id == task_snapshot.user_id).with_for_update()
@@ -300,15 +294,8 @@ def complete_generation_task(
     except Exception as error:
         raise GenerationPersistenceError("Failed to persist generated asset") from error
 
-    _sync_task_cache(task_payload)
-    quota_controller.sync_quota_snapshot(
-        task_payload["user_id"], quota_payload, quota_revision
-    )
     if quota_unavailable:
         raise GenerationQuotaError(task_payload["media_type"])
-    store.assets[asset_payload["id"]] = asset_payload
-    if ledger_payload is not None:
-        store.quota_ledger.append(ledger_payload)
     return {
         "asset": asset_payload,
         "generation_task": task_payload,

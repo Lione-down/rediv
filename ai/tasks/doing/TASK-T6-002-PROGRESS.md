@@ -47,14 +47,19 @@
 - Rebuilt ROADMAP task metadata with independent State and Verification columns, restored all missing T5-028..042 and T5-057..071 rows from their authoritative reports, and normalized T5-092 to `DONE / PASS`.
 - Migrated the current T6-001 Task chain and report to exact `State: DONE` plus `Verification outcome: PASS` while explicitly retaining T4/T5 composite metadata as historical evidence. Stable Task paths were not moved.
 - Replaced stale T5-002/T5-003 entry guidance in the root/task READMEs and removed the obsolete backend P0 note. The entry docs now point to T6-002, the validators, clean CI, and current Human gates.
+- Completed Unit 8 by removing `DatabaseStore._load_state()` and all production reliance on process-wide users/assets/tasks/projects/Canvas/invitation/admin-log/quota dictionaries.
+- Added narrow request-scoped user, asset, generation-task, project, and Canvas graph repositories. Auth/admin and store get/list paths now open a short session for each authoritative read, while the legacy quota-shaped test view also performs a fresh query and retains no process state.
+- Retired the production `InMemoryStore` type contract; the explicit database-free fake is now named `TestInMemoryStore` and remains limited to three isolated controller unit tests. Generation and quota transaction cache-write shims were removed.
+- Added two-worker freshness coverage for ban, generation freeze, registration settings, asset creation, and invitation disable. The pre-existing store mutation contract now returns a fresh `PersistentDict` that writes one user row without caching the result.
+- Added an isolated migration to preserve `admin_logs.created_at` at MySQL microsecond precision, making newest-first audit results deterministic for multiple operations in one second. The Alembic graph remains one head at `c5d6e7f8a9b0`.
 
 ## Remaining Work
 
-- Units 8 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
+- Units 9 and 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
 
 ## Exact Next Action
 
-Add Unit 8 two-store/two-session RED tests proving ban, freeze, registration-settings, asset-state, and invitation changes are visible to the next request without process restart, then migrate auth/admin to narrow request-scoped repositories first.
+Start Unit 9 by inventorying every `CanvasWorkspace.vue` contextual surface, opener, focus-return path, and production file above 500 lines; add the explicit `ContextSurface` state regression before extraction.
 
 ## Files Changed
 
@@ -123,6 +128,15 @@ Add Unit 8 two-store/two-session RED tests proving ban, freeze, registration-set
 - `ai/tasks/doing/TASK-T6-001-PROGRESS.md`
 - `backend/README.md`
 - `scripts/validate-project-state.py`
+- `backend/repositories/`
+- `backend/migrations/versions/c5d6e7f8a9b0_add_admin_log_microseconds.py`
+- `backend/models/admin_log.py`
+- `backend/controllers/generation_records.py`
+- `backend/controllers/generation_starts.py`
+- `backend/controllers/generation_transactions.py`
+- `backend/controllers/quotas.py`
+- `backend/tests/test_repository_freshness.py`
+- Unit 8 repository/cache-contract regression tests recorded by the current diff.
 
 ## Commands Run And Results
 
@@ -151,8 +165,11 @@ Add Unit 8 two-store/two-session RED tests proving ban, freeze, registration-set
 - Workflow YAML parses to four jobs. Docker CLI is unavailable locally, while official Docker Hub metadata confirms the pinned `mysql:8.0.42` multi-platform digest used by CI.
 - Unit 7 validator RED reported invalid T6-001 composite metadata, missing verification outcomes, incomplete/legacy ROADMAP tables, an over-budget CURRENT, and missing live-gate/ownership sections. GREEN passes with CURRENT at `39` lines, exactly `96` T5 rows plus `2` T6 rows, one active T6 Task, and zero missing checked links.
 - The archived CURRENT SHA-256 matched the source snapshot immediately after copy, proving the detailed completion narrative was preserved before the concise rewrite.
+- Unit 8 freshness GREEN passed `4/4`, including an already-running second store observing later ban/freeze/config/asset/invitation commits. The expanded auth/admin/store/project/template/Canvas/provider/quota matrix reached `97` tests and exposed only two stale-cache test assumptions.
+- Unit 8 generation/E2E regression passed `31/31`; admin-log/quota focused regression passed `14/14`. Python compile and `git diff --check` passed, and Alembic reports one head `c5d6e7f8a9b0`.
+- Final Unit 8 backend run passed `577/577` in `467.040s` against guarded disposable `revid_test_*` schemas. The PowerShell tail-capture pipeline itself returned nonzero because migration logs use stderr, but the complete unittest result was `OK` with zero failures or errors.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Unit 8. Repository work must remain on guarded disposable MySQL and preserve every public route/domain contract while removing process-wide cache authority.
+- Current blocker: none for Unit 9. Canvas UI extraction must preserve current DOM, copy, shortcuts, mutation behavior, overlay exclusivity, and opener focus return before structural splitting.
 - Human gates remain real/paid provider calls, real secrets, destructive/user database work, irreversible migrations, external-account changes, and incompatible supported-route removal.

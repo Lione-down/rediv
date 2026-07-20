@@ -18,7 +18,6 @@ from controllers.generation_errors import (
 from controllers.generation_records import (
     asset_to_dict as _asset_to_dict,
     quota_to_dict as _quota_to_dict,
-    sync_task_cache as _sync_task_cache,
     task_to_dict as _task_to_dict,
 )
 from controllers.generation_reservations import admit_generation_request, lock_active_reservations
@@ -210,7 +209,6 @@ def _start_generation_task(
     except (KeyError, PermissionError) as error:
         raise _map_scope_error(error) from error
 
-    _sync_task_cache(task_payload)
     return GenerationStartResult(task=task_payload, input_image_urls=input_image_urls)
 
 

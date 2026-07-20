@@ -33,11 +33,13 @@ from schemas.auth import (
     WechatCallbackRequest,
 )
 from settings.config import development_auth_request_is_enabled, settings
+from repositories.users import UserRepository
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 me_router = APIRouter(tags=["auth"])
 WECHAT_TIMEOUT_SECONDS = 10
+user_repository = UserRepository()
 
 
 def _require_development_auth(request: Request) -> None:
@@ -172,7 +174,8 @@ def _fetch_wechat_profile(code: str) -> dict:
 
 
 def _login_or_register_wechat(profile: dict, invitation_code: str | None) -> AuthResponse:
-    if not store.registration_settings["wechat_login_enabled"]:
+    registration_settings = user_repository.get_registration_settings()
+    if not registration_settings["wechat_login_enabled"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Wechat login is disabled")
     identity = store.find_identity("wechat_open", profile["openid"])
     if identity:
@@ -244,9 +247,10 @@ def wechat_callback(payload: WechatCallbackRequest, request: Request):
 
 @router.get("/registration-settings", response_model=RegistrationSettingsResponse)
 def registration_settings():
+    current_settings = user_repository.get_registration_settings()
     return RegistrationSettingsResponse(
-        registration_mode=store.registration_settings["registration_mode"],
-        wechat_login_enabled=store.registration_settings["wechat_login_enabled"],
+        registration_mode=current_settings["registration_mode"],
+        wechat_login_enabled=current_settings["wechat_login_enabled"],
     )
 
 
