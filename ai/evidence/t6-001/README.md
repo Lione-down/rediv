@@ -1,6 +1,6 @@
 # T6-001 Evidence Index
 
-Status: active. No completion claim is made.
+Status: `DONE - PASS`. Human Owner selected `ACCEPT` on 2026-07-20.
 
 ## Baseline
 
@@ -9,7 +9,9 @@ Status: active. No completion claim is made.
 - External workflow reference pin: `57d01dc66f93ecb03c2475be5f22dc416d9b701d`.
 - User screenshot: local attachment supplied on 2026-07-20; it is input evidence only and is not copied into the repository.
 
-## Planned evidence
+## Evidence
+
+- Final report: `ai/reports/REPORT-T6-001.md`.
 
 - Unit 0A detached-edge RED/GREEN summary: `unit-0a-detached-edge-evidence-2026-07-20.md`; raw browser capture remains untracked.
 - Unit 1 version/lifecycle and strict schema results: `unit-1-contract-evidence-2026-07-20.md`.
@@ -19,9 +21,9 @@ Status: active. No completion claim is made.
 - Unit 5 reference transfer, capability reasons, take review, and explicit retake ownership: `unit-5-reference-retake-evidence-2026-07-20.md`.
 - Unit 6 required-scenario offline eval manifest: `offline-eval-manifest.json`.
 - Unit 6 eval, lock-order regression, full suites, accessibility, responsive, performance, and build: `unit-6-eval-regression-evidence-2026-07-20.md`.
-- Final requirement-by-requirement acceptance audit: `completion-audit-2026-07-20.md` (`AC1-AC20 PASS`, `AC21 PENDING_HUMAN_UX`).
+- Final requirement-by-requirement acceptance audit: `completion-audit-2026-07-20.md` (`AC1-AC21 PASS`).
 - Sequence, acceptance, continuation, duplication, stale, and retake action traces.
 - Offline eval manifest/schema and behavior ledger.
 - Responsive, accessibility, functional Chromium, build, backend, performance, hygiene, and delivery evidence.
 
-Raw screenshots, videos, and performance output remain under untracked `output/`. Only Revid-owned, lawful, reproducible evidence may be committed. Units 0A through 6 are deterministic-green; final fresh review and Human UX acceptance remain pending, so no Task completion claim is made.
+Raw screenshots, videos, and performance output remain under untracked `output/`. Only Revid-owned, lawful, reproducible evidence is committed. Units 0A through 7 are complete, automated evidence is deterministic-green, and the Human UX gate is accepted.

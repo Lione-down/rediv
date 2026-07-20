@@ -1,6 +1,6 @@
 # TASK-T6-001 Plan
 
-- State: `DOING`
+- State: `DONE - PASS`
 - Objective: repair detached Canvas edge geometry first, then deliver Revid-native cinematic director Skills v2 without changing v1 history or creating a second execution/state authority.
 - Activation baseline: `main`, `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`, ahead/behind `0/0`; tracked worktree clean; Human-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and excluded.
 - External workflow reference: `https://github.com/Emily2040/seedance-2.0`, pinned `main == 57d01dc66f93ecb03c2475be5f22dc416d9b701d` on 2026-07-20. It is an MIT-licensed design reference, not runtime code or provider truth.
@@ -8,7 +8,7 @@
 
 ## Locked decisions
 
-1. T5-096 is the final Product V2 / Phase 5 Task. T6-001 is the only active implementation Task.
+1. T5-096 is the final Product V2 / Phase 5 Task. T6-001 was the only active implementation Task during delivery; no later Task was activated.
 2. Unit 0A closes the user-reported detached-edge regression before cinematic v2 business work.
 3. The active manifests are `revid.cinema-script.v2`, `revid.cinema-image.v2`, and `revid.cinema-video.v2`; exact v1 history stays separately resolvable.
 4. The provider-neutral compiler is pure. Provider facts stay in the source-dated backend capability catalog.
@@ -122,7 +122,7 @@ Success gate: deterministic evidence is green and no result is represented as re
 
 ## Unit 7 - Fresh review, Human UX gate, report, and delivery
 
-- Status: `in_progress`
+- Status: `completed`
 
 1. Review the fresh diff against every acceptance criterion and non-goal.
 2. Prove no generic execute route, imported runtime, hidden routing/generation, unsupported-reference weakening, or second authority entered the diff.

@@ -1,7 +1,7 @@
 # TASK-T6-001 Progress
 
-- State: `DOING`
-- Active unit: `Unit 7 - fresh review, Human UX gate, report, and delivery`
+- State: `DONE - PASS`
+- Active unit: `Complete - Unit 7 Human UX acceptance, report, and delivery`
 - Activation baseline: `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`; ahead/behind `0/0`.
 - Task: `ai/tasks/todo/TASK-T6-001.md`
 - Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`
@@ -48,16 +48,18 @@
 - Unit 6/review slice was committed as `a9b69be` and pushed; `HEAD == origin/main`, ahead/behind `0/0`. Final regenerated Human-review PNG hashes are `06e2375a...` at 1440x900 and `ab9388a6...` at 375x812.
 - Final 21-criterion completion audit found AC13 switching evidence too indirect: cinematic tests proved atomic command/autosave/undo/redo/reload/duplication and generic Canvas suites proved switching/recovery, but no cinematic browser case directly reloaded accepted canon after switching away and back. This is an evidence gap, not a confirmed product defect.
 - Added direct AC13 browser evidence: one Keep creates one document PATCH; accepted canon revision/result/end-state survive switching to the second Canvas, switching back, and reload through the native document authority. Exact case is `1/1`; cinematic + sequence + autosave + document persistence + revision recovery is `34/34`.
-- Completed the 21-row audit in `completion-audit-2026-07-20.md`: AC1-AC20 are direct `PASS`; AC21 is `PENDING_HUMAN_UX` solely for the final screenshot verdict, REPORT, and durable `DONE - PASS` synchronization.
+- Completed the 21-row pre-verdict audit in `completion-audit-2026-07-20.md`: AC1-AC20 were direct `PASS`, and AC21 was held only for the final screenshot verdict, REPORT, and durable synchronization; the later Human `ACCEPT` released that gate.
 - The AC13 persistence test and 21-row completion audit were committed as `f435f7d` and pushed; `HEAD == origin/main`, ahead/behind `0/0`.
+- Human Owner reviewed the final Revid-owned 1440x900 reference-transfer and 375x812 review-only screenshots and selected `ACCEPT` on 2026-07-20. AC21 is released and the complete Task is accepted as `DONE - PASS`.
+- Wrote `ai/reports/REPORT-T6-001.md` and synchronized Task, PLAN, PROGRESS, completion audit, evidence index, CURRENT, and ROADMAP for final delivery.
 
 ## Remaining Work
 
-- Obtain the Human UX verdict, then write REPORT and synchronize Task/PLAN/PROGRESS/CURRENT/ROADMAP to `DONE - PASS`; commit, push, and verify remote equality.
+- None. T6-001 is complete; no later Product V3 Task is activated.
 
 ## Exact Next Action
 
-Obtain the Human UX verdict on the final 1440x900 reference-transfer and 375x812 review-only screenshots. On acceptance, write REPORT and synchronize Task/PLAN/PROGRESS/CURRENT/ROADMAP to `DONE - PASS`, commit, push, and verify remote equality.
+Await Human Owner product direction before planning or activating any later Product V3 Task.
 
 ## Files Changed
 
@@ -100,6 +102,7 @@ Obtain the Human UX verdict on the final 1440x900 reference-transfer and 375x812
 - `backend/controllers/canvas_duplication.py`
 - `backend/tests/test_cinematic_skill_v2_native_transaction.py`
 - `ai/evidence/t6-001/completion-audit-2026-07-20.md`
+- `ai/reports/REPORT-T6-001.md`
 
 ## Commands Run And Results
 
@@ -143,9 +146,10 @@ Obtain the Human UX verdict on the final 1440x900 reference-transfer and 375x812
 - AC13 evidence RED: expected at least three first-Canvas document GETs, observed two; product persistence assertions passed and the over-counted test assumption was corrected.
 - AC13 direct GREEN: `1/1`; cinematic/sequence/autosave/document-persistence/revision-recovery matrix: `34/34`.
 - Completion-audit delivery: commit `f435f7d`; push passed; local/remote ahead/behind `0/0`.
+- Human-acceptance closure gate: exactly eight Task/PLAN/PROGRESS/evidence/REPORT/CURRENT/ROADMAP files staged; `git diff --cached --check` passed; strict UTF-8 failures `0`; BOM files `0`; sensitive paths `0`; high-confidence secret assignments `0`.
 
 ## Blockers And Release Conditions
 
-- Current automated blocker: none.
-- Final Human UX verdict is still required before REPORT and `DONE - PASS` closure.
+- Current blocker: none.
+- Human UX gate released: Human Owner selected `ACCEPT` on 2026-07-20.
 - Human gates remain real/paid provider calls, secrets, external accounts, destructive work, migrations/new long-term storage, incompatible provider contracts, and final real-output quality claims.

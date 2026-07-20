@@ -13,18 +13,16 @@ Last updated: 2026-07-20
 
 - Phase 4 initial version: `COMPLETE - PASS`.
 - Product V2 / Phase 5: `COMPLETE - PASS`; T5-096 is the final T5 Task.
-- Product V3 / Phase 6: active.
+- Product V3 / Phase 6: active; T6-001 is `DONE - PASS` and no later Task is activated.
 - Database direction: MySQL-only.
 
 ## Active Delivery
 
-- Active implementation Task: `T6-001 - Revid-native cinematic director Skills v2`.
-- State: `DOING`.
-- Active unit: `Unit 7 - fresh review, Human UX gate, report, and delivery`.
-- Task: `ai/tasks/todo/TASK-T6-001.md`.
-- Plan: `ai/tasks/doing/TASK-T6-001-PLAN.md`.
-- Progress: `ai/tasks/doing/TASK-T6-001-PROGRESS.md`.
-- Activation baseline: `HEAD == origin/main == 034a49f45952cfa0f893363d401aa9ccf52eddbd`, ahead/behind `0/0`.
+- Active implementation Task: none.
+- Last completed Task: `T6-001 - Revid-native cinematic director Skills v2`.
+- State: `DONE - PASS`.
+- Report: `ai/reports/REPORT-T6-001.md`.
+- No T6-002 or later Task is planned or activated.
 
 ## Current Verified Facts
 
@@ -42,8 +40,8 @@ Last updated: 2026-07-20
 - T6-001 Unit 6 is deterministic-green. The exact fourteen-case offline eval passed `14/14` plus `14` subtests; full backend passed `564/564` plus `147` subtests; full functional Chromium passed `551/551`; the named UX/accessibility matrix passed `56/56`; build transformed `4947` modules.
 - Full backend first exposed and then closed an existing cross-Canvas input-generation/source-node-deletion deadlock. New referenced requests restore the shared `assets -> generation_tasks` lock order while idempotent replay semantics remain admission-first; related regression is `36/36` plus `11` subtests.
 - The unchanged 200-node/300-connection gate passed `2/2` on headed full Chromium with AMD D3D11: `126.63 FPS`, frame P95 `18ms`, render `531ms`, pointer P95 `2ms`, longest task `0ms`, minimap `11.24/s`. Default SwiftShader remains an explicitly separated environment boundary.
-- Unit 7 fresh code review split duplication logic and the native-transaction integration class below the 500-line boundary. An omitted `deepcopy` import was caught by the first post-split full run, then closed by `23/23` focused plus final `564/564` backend and `147` subtests. Final hygiene/source-license scans are clean; Human UX verdict remains the only closure gate.
-- The final 21-row T6-001 audit is explicit: AC1-AC20 are `PASS`; AC13 now directly proves one accepted-canon PATCH survives Canvas switching and reload, with the cinematic/persistence/recovery matrix `34/34`; AC21 alone is `PENDING_HUMAN_UX` before REPORT and durable `DONE - PASS` synchronization.
+- Unit 7 fresh code review split duplication logic and the native-transaction integration class below the 500-line boundary. An omitted `deepcopy` import was caught by the first post-split full run, then closed by `23/23` focused plus final `564/564` backend and `147` subtests. Final hygiene/source-license scans are clean.
+- The final 21-row T6-001 audit is `PASS`: AC13 directly proves one accepted-canon PATCH survives Canvas switching and reload, with the cinematic/persistence/recovery matrix `34/34`; Human Owner selected `ACCEPT` for the final 1440x900 and 375x812 screenshots on 2026-07-20. REPORT and durable state are synchronized to `DONE - PASS`.
 
 - The reported `736 x 1312` portrait case exposed a real dynamic-layout defect: existing Leafer ports retained creation-time coordinates after natural media metadata narrowed the visible node, while DOM/card/selection and shared graph geometry used the new layout size. Unit 7 now recalculates every existing port from the shared size and recertifies the node layers; Director remains excluded.
 - Unit 7 RED measured `245.859375` CSS px output-port drift; GREEN recomputes existing input/output port geometry on layout change and passes the delayed `736 x 1312` transition at 17/36/100/200% zoom. Related Chromium is `50/50`, full functional Chromium is `533/533`, and build is `4937 modules transformed`.
@@ -83,7 +81,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Obtain the Human UX verdict on the final Revid-owned 1440x900 reference-transfer and 375x812 review-only screenshots. If accepted, write REPORT and synchronize Task/PLAN/PROGRESS/CURRENT/ROADMAP to `DONE - PASS`, then commit, push, and verify `0/0`.
+Await Human Owner product direction before planning or activating any later Product V3 Task.
 
 ## Boundaries And Human Gates
 
@@ -96,5 +94,5 @@ Obtain the Human UX verdict on the final Revid-owned 1440x900 reference-transfer
 
 ## Worktree
 
-- T6-001 activation `eb13f7d`, Unit 0A `de2db15`, Unit 1 `b31ae2a`, Unit 2 `ced6cd5`, Unit 3 `f0f56df`, Unit 4 `9e8743b`, Unit 5 `ee720c5`, Unit 6/review `a9b69be`, Human-gate record `fa5f5d9`, and completion-audit test `f435f7d` are pushed; `HEAD == origin/main`, ahead/behind `0/0` before the Human UX verdict update.
+- T6-001 implementation, verification, Human acceptance, REPORT, and durable closure are delivered; final handoff verifies `HEAD == origin/main`, ahead/behind `0/0`.
 - User-owned `.codex/`, `.hermes/plans/`, and `output/` remain untracked and outside delivery scope.

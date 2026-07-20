@@ -2,7 +2,7 @@
 
 - Date: `2026-07-20`.
 - Audit scope: all 21 acceptance criteria in `TASK-T6-001.md`, the activation-baseline-to-current diff, focused/full tests, rendered evidence, scoped commits, and `origin/main`.
-- Verdict: AC1-AC20 are directly evidenced. AC21 remains pending only because the Human UX verdict must precede REPORT and `DONE - PASS` synchronization.
+- Verdict: AC1-AC21 are directly evidenced and T6-001 is `DONE - PASS`. Human Owner selected `ACCEPT` for the final 1440x900 and 375x812 screenshots on 2026-07-20.
 
 | AC | Status | Direct evidence |
 |---:|---|---|
@@ -26,7 +26,7 @@
 | 18 | `PASS` | Unchanged 200-node/300-connection gate passes `2/2` under headed full Chromium on AMD D3D11: `126.63 FPS`, frame P95 `18ms`, render `531ms`, pointer P95 `2ms`, longest task `0ms`, minimap `11.24/s`; SwiftShader boundary remains explicit. |
 | 19 | `PASS` | `source-license-ledger.md` records independent expression and no notice obligation; all evidence explicitly excludes real-provider fidelity/creative-quality claims. |
 | 20 | `PASS` | Focused tests preceded related matrices, backend `564/564 + 147` subtests, functional Chromium `551/551`, build `4947`, accessibility/performance, UTF-8/BOM/diff/secret/sensitive-path/exact-stage/HEAD-drift checks. |
-| 21 | `PENDING_HUMAN_UX` | Implementation/evidence/scoped commits and `origin/main` agree. REPORT and final Task/PLAN/PROGRESS/CURRENT/ROADMAP `DONE - PASS` synchronization intentionally wait for the Human UX verdict on the final 1440x900 and 375x812 screenshots. |
+| 21 | `PASS` | Human Owner selected `ACCEPT` for the final 1440x900 and 375x812 screenshots on 2026-07-20; REPORT and Task/PLAN/PROGRESS/CURRENT/ROADMAP are synchronized to `DONE - PASS`, and final delivery verifies `HEAD == origin/main`. |
 
 ## Final boundary
 
