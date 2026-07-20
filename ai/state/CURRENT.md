@@ -29,6 +29,7 @@ Last updated: 2026-07-20
 
 ## Current Verified Facts
 
+- T6-002 Unit 6 is complete: immutable-action, least-privilege CI now covers constrained install/build, full backend on digest-pinned MySQL 8, deterministic Chromium, and secret/SAST scanning. Clean Python 3.13 passed `pip check` and backend `575/575`; build passed `4937` modules; deterministic functional/accessibility Chromium passed `552/552` with the unchanged hardware-only 200/300 title explicitly retained outside SwiftShader CI.
 - T6-002 Units 1 through 5 are complete. Unit 5 pins credential-bearing Agnes traffic to the exact production origin `https://apihub.agnes-ai.com`, rejects endpoint confusion before client construction, permits only an explicit development-loopback override, and supports direct `httpx.MockTransport` injection. Focused and related checks pass `79/79`; no real provider request or credential access occurred.
 
 - T6-002 Unit 1 is complete: copied/default configuration cannot enable mock or dev-admin auth, old/short JWT placeholders fail before MySQL startup, dev-admin secrets use only a dedicated header, development auth requires explicit profile/opt-in plus loopback bind/request, and MySQL-backed fixed windows enforce cross-worker password/dev/mock throttling without storing raw subjects.
@@ -94,7 +95,7 @@ Last updated: 2026-07-20
 
 ## Exact Next Action
 
-Execute T6-002 Unit 6 by adding deterministic least-privilege CI and reproducible backend dependency gates, then prove their local equivalents without using real secrets or paid services.
+Execute T6-002 Unit 7 by adding a failing durable-state validator, then normalize CURRENT, ROADMAP coverage/status vocabulary, and project entry documentation without relocating historical Task files.
 
 ## Boundaries And Human Gates
 

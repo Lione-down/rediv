@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 6 - Deterministic CI and dependencies`
+- Active unit: `Unit 7 - Durable state normalization`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Plan: `ai/tasks/doing/TASK-T6-002-PLAN.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`.
@@ -37,14 +37,19 @@
 - Rejected plaintext production URLs, URL userinfo, query strings, fragments, path prefixes, explicit ports, Unicode/confusable hosts, suffix domains, and arbitrary HTTPS hosts with a generic non-secret error.
 - Added an explicit development-only override requiring `runtime_profile=development`, `REVID_AGNES_ALLOW_DEVELOPMENT_ENDPOINT=true`, and a loopback hostname. Tests inject `httpx.MockTransport` directly and do not override the production URL or issue real requests.
 - Applied the same endpoint validator to startup security, the typed Agnes contract, application composition, and provider construction; updated both tracked configuration examples and backend operations documentation.
+- Completed Unit 6 with four least-privilege CI jobs for hygiene/build, full backend against a digest-pinned MySQL 8 service, deterministic single-worker Chromium mock coverage, and pinned Gitleaks/CodeQL scans. Every external action is fixed to a full commit SHA and ordinary CI consumes no repository secrets.
+- Added reviewed Python 3.13 exact constraints covering direct and transitive backend dependencies while retaining `requirements.txt` as the direct dependency contract. A clean temporary venv installed the constraints and passed `pip check`.
+- Added a repository-owned backend test runner whose import-safe `__main__` lets AnyIO process workers initialize under Windows/Python 3.13. This closes the historical full-suite harness failure without weakening process isolation.
+- Refreshed the committed default-grant ledger compatibility view from authoritative MySQL rows after atomic registration, closing the full-suite quota regression exposed by the first clean run.
+- Added CI-owned Playwright preview startup, exact `test:e2e:ci` selection, failure-only three-day artifacts, and a separate unchanged headed hardware performance command. Headless SwiftShader is not treated as a hardware FPS authority.
 
 ## Remaining Work
 
-- Units 6 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
+- Units 7 through 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
 
 ## Exact Next Action
 
-Inventory the current dependency and verification commands, then add Unit 6 RED checks for a deterministic least-privilege CI workflow and reproducible backend dependency constraints.
+Add the Unit 7 failing durable-state validator for allowed states, one active Task, complete ROADMAP rows, link existence, and Task/REPORT/state agreement before normalizing CURRENT and historical state metadata.
 
 ## Files Changed
 
@@ -95,6 +100,15 @@ Inventory the current dependency and verification commands, then add Unit 6 RED 
 - `backend/main.py`
 - `backend/tests/test_agnes_contract.py`
 - `backend/tests/test_agnes_endpoint_security.py`
+- `.github/workflows/ci.yml`
+- `.gitignore`
+- `backend/constraints.txt`
+- `backend/requirements.txt`
+- `backend/controllers/store.py`
+- `frontend/package.json`
+- `frontend/playwright.ci.config.ts`
+- `scripts/run-backend-tests.py`
+- `scripts/validate-ci-contract.py`
 
 ## Commands Run And Results
 
@@ -116,8 +130,13 @@ Inventory the current dependency and verification commands, then add Unit 6 RED 
 - Unit 4 related Canvas document/revision/fingerprint/generation-idempotency regression is `19/19`; deterministic Canvas document persistence Chromium remains `2/2` after the manual bounded reader replaced framework body parsing.
 - Unit 5 RED failed because unsafe URLs constructed `httpx.AsyncClient`, startup accepted an arbitrary host, and neither a settings opt-in nor direct mock transport injection existed. GREEN endpoint security is `4/4` and proves all rejected URLs construct zero clients without echoing the supplied test key.
 - Unit 5 focused provider/contract/validation checks pass `4/4`, `8/8`, `6/6`, and `11/11`. The related endpoint/provider/contract/smoke/runtime/generation transaction/concurrency/restart/reference/audio matrix passes `79/79` in `23.444s` against guarded disposable test schemas with no real provider request.
+- Unit 6 CI validator RED reported missing workflow, constraints, frontend script, and CI web server. GREEN validates all full-SHA actions, least privilege, digest-pinned MySQL, constrained install, process-safe backend runner, deterministic Chromium selection, safe artifacts, and hardware-gate separation.
+- Clean Python 3.13 constraints install passed `pip check`. The first full run exposed the known AnyIO `unittest/__main__.py` worker bootstrap failure and a missing committed-ledger cache refresh (`575` tests: 30 errors/3 failures); focused fixes passed `16/16`, and the final single clean-environment invocation passed `575/575` in `620.646s`.
+- `npm ci --dry-run` resolved the tracked lock. A live Vite process held the installed Rolldown binary, so destructive local `npm ci` could not clean the shared `node_modules`; non-cleaning `npm install` restored that local tree without a lockfile diff. Production build passed with `4937 modules transformed`.
+- Deterministic Chromium ran `553` titles with zero retries: `552` functional/accessibility titles passed and only the exact hardware-sensitive performance title failed under SwiftShader (`44.43 FPS`, frame P95 `50ms`, `hardwareAcceleration=false`). The unchanged headed gate remains `55 FPS` / `33ms`; the ordinary CI selection lists the same `552` passing titles and excludes only that exact title.
+- Workflow YAML parses to four jobs. Docker CLI is unavailable locally, while official Docker Hub metadata confirms the pinned `mysql:8.0.42` multi-platform digest used by CI.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Unit 6; no hosted workflow mutation, real secret, provider call, or user database is required for the local implementation and verification work.
+- Current blocker: none for Unit 7. The first hosted GitHub workflow run remains external evidence after push; local workflow structure and every runnable equivalent gate are verified.
 - Human gates remain real/paid provider calls, real secrets, destructive/user database work, irreversible migrations, external-account changes, and incompatible supported-route removal.

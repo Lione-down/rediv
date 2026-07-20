@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 6 - Deterministic CI and dependencies`
+- Active unit: `Unit 7 - Durable state normalization`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Progress: `ai/tasks/doing/TASK-T6-002-PROGRESS.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`; tracked worktree clean.
@@ -59,13 +59,15 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 
 ### Unit 6 - Deterministic CI and dependencies
 
-- Status: `active`
+- Status: `completed`
 
 - Add read-only workflow jobs for hygiene/build, guarded MySQL backend, deterministic Chromium, pinned security checks, and safe failure artifacts.
 - Adopt a reproducible reviewed backend constraints workflow and retain `npm ci` with the tracked lockfile.
 - Prove local equivalents and document which live/hardware/paid gates remain outside ordinary CI.
 
 ### Unit 7 - Durable state normalization
+
+- Status: `active`
 
 - First add a failing validator for allowed states, one active Task, complete tables, link existence, and Task/REPORT/CURRENT/ROADMAP agreement.
 - Archive the long completion snapshot, make CURRENT concise, complete missing ROADMAP rows, normalize T5-092, and update entry docs without moving historical Task files.

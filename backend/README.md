@@ -46,8 +46,10 @@ backend/
 Install dependencies from `backend/`:
 
 ```powershell
-python -m pip install -r requirements.txt
+python -m pip install --constraint constraints.txt --requirement requirements.txt
 ```
+
+`constraints.txt` is the reviewed Python 3.13 resolver output and is mandatory for production and CI installs. Dependency upgrades are intentional changes: resolve from `requirements.txt` in a clean Python 3.13 environment, replace the exact pins, review the complete diff, run `pip check`, and execute the full backend suite before delivery.
 
 ## Runtime Configuration
 
@@ -118,6 +120,20 @@ python -m unittest tests.test_mysql_runtime_cutover
 ```
 
 Database-backed tests require the process-supplied `REVID_TEST_MYSQL_ADMIN_URL` and use exact-name guarded disposable `revid_test_*` schemas. Pure unit tests remain database-free. Tests must never point to user or production databases.
+
+Run the complete backend suite from the repository-owned entrypoint:
+
+```powershell
+python ..\scripts\run-backend-tests.py
+```
+
+The entrypoint keeps `__main__` import-safe when AnyIO starts isolated media-validation workers. Optional dotted unittest names may follow the script path for focused runs. Direct `python -m unittest` remains suitable only for suites that do not start process workers.
+
+## Continuous Integration
+
+`.github/workflows/ci.yml` runs four least-privilege gates: dependency/hygiene plus production build, the full backend suite against an isolated MySQL 8 service, single-worker deterministic Chromium mock coverage, and pinned Gitleaks/CodeQL scans. All external actions use immutable commit SHAs. Browser artifacts are uploaded only after failure, exclude hidden files, and expire after three days.
+
+Ordinary CI never uses real credentials, provider calls, user databases, hardware performance claims, live-browser sessions, or paid services. The exact 200-node/300-connection FPS title is excluded from headless CI because SwiftShader is not a hardware performance authority; its 55 FPS and 33 ms P95 thresholds are unchanged and remain available through `npm run test:e2e:performance:headed`. Those gates remain explicit verification outside ordinary CI. Run `python scripts/validate-ci-contract.py` from the repository root after any workflow, constraints, or CI-browser change.
 
 ## Local Database Artifacts
 

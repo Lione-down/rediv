@@ -1475,6 +1475,16 @@ class DatabaseStore:
         if identity is not None:
             self.identities[f"{identity.provider}:{identity.provider_user_id}"] = self._identity_to_dict(identity)
         self.replace_quota_snapshot(user.id, self._quota_to_dict(quota), quota.revision)
+        with get_session() as session:
+            committed_ledger = [
+                self._quota_ledger_to_dict(record)
+                for record in session.scalars(
+                    select(QuotaLedger).where(QuotaLedger.user_id == user.id)
+                ).all()
+            ]
+        self.quota_ledger = [
+            record for record in self.quota_ledger if record["user_id"] != user.id
+        ] + committed_ledger
 
         if invitation is not None:
             invitation_payload = self._invitation_to_dict(invitation)
