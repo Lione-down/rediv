@@ -36,6 +36,10 @@ import { createReorderStoryboardGroupCommand } from '../../modules/canvas/storyb
 import { resolveOwnedMediaActionTarget } from '../../modules/canvas/professional-action-registry'
 import type { ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
 import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
+import {
+  useCanvasContextSurface,
+  type CanvasContextSurfaceKind,
+} from '../../components/canvas/composables/use-canvas-context-surface'
 
 type MoveDirection = -1 | 1
 interface CanvasStageHandle { arrangeSelectedProvenanceTrace: () => boolean; closeTransientInteractions: () => void; fitSelectedProvenanceTrace: () => boolean; openSelectedContinuation: () => void; revealNode: (nodeId: string) => boolean }
@@ -64,8 +68,6 @@ const scriptAuthoringIntent = ref<ScriptAuthoringIntent | null>(null)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
 const canvasStageRef = ref<CanvasStageHandle | null>(null)
 const isStageContextSurfaceOpen = ref(false)
-let revisionPanelOpener: HTMLElement | null = null
-let videoEditPreflightOpener: HTMLElement | null = null
 let reviewMediaQuery: MediaQueryList | null = null
 let compactMediaQuery: MediaQueryList | null = null
 const projectId = computed(() => normalizeRouteIdentifier(route.params.projectId))
@@ -174,23 +176,23 @@ const composerCapabilityError = computed(() => {
 })
 
 function openComposerResources(opener: HTMLElement) {
-  activateContextSurface('resources')
+  activateContextSurface('resources', opener)
   openResources(opener, 'attach')
 }
 
 function openCanvasResources(opener: HTMLElement, tab: 'assets' | 'templates' | 'tasks' = 'assets') {
-  activateContextSurface('resources')
+  activateContextSurface('resources', opener)
   openResources(opener, 'insert', tab)
 }
 
 function attachComposerAsset(asset: ProjectAsset) {
   if (asset.project_id !== projectId.value) return
   if (composerAttachments.value.some((item) => item.id === asset.id)) {
-    closeResources()
+    closeResourceSurface()
     return
   }
   composerAttachments.value = [...composerAttachments.value, asset].slice(0, 8)
-  closeResources()
+  closeResourceSurface()
 }
 
 watch([projectId, canvasId], () => { composerAttachments.value = [] })
@@ -229,34 +231,28 @@ function openWorkflowBatch() {
   workflowBatchOpen.value = true
 }
 function closeWorkflowBatch() {
-  workflowBatchOpen.value = false
+  contextSurfaceController.deactivate('workflow-batch')
 }
 function openVideoEditPreflight(opener?: HTMLElement) {
-  activateContextSurface('video-preflight')
-  videoEditPreflightOpener = opener ?? null
+  activateContextSurface('video-preflight', opener)
   videoEditPreflightOpen.value = true
 }
 function closeVideoEditPreflight() {
-  videoEditPreflightOpen.value = false
-  const focusTarget = canRestoreFocus(videoEditPreflightOpener)
-    ? videoEditPreflightOpener
-    : null
-  videoEditPreflightOpener = null
-  void nextTick(() => focusTarget?.focus({ preventScroll: true }))
+  contextSurfaceController.deactivate('video-preflight')
 }
 function openAudioGenerationPreflight() {
   activateContextSurface('audio-preflight')
   audioGenerationPreflightOpen.value = true
 }
 function closeAudioGenerationPreflight() {
-  audioGenerationPreflightOpen.value = false
+  contextSurfaceController.deactivate('audio-preflight')
 }
 function openAgentSkillPreflight() {
   activateContextSurface('agent-skill')
   agentSkillPreflightOpen.value = true
 }
 function closeAgentSkillPreflight() {
-  agentSkillPreflightOpen.value = false
+  contextSurfaceController.deactivate('agent-skill')
 }
 function openScriptAuthoring(intent: ScriptAuthoringIntent) {
   activateContextSurface('context')
@@ -299,39 +295,32 @@ const {
   splitImageGrid,
   userId: () => authStore.user?.id ?? '',
 })
-type CanvasContextSurface =
-  | 'agent-skill'
-  | 'audio-preflight'
-  | 'compare'
-  | 'context'
-  | 'professional'
-  | 'resources'
-  | 'revision'
-  | 'stage'
-  | 'video-preflight'
-  | 'workflow-batch'
+const contextSurfaceController = useCanvasContextSurface({
+  closeSurface(kind) {
+    const closers: Record<CanvasContextSurfaceKind, () => void> = {
+      'agent-skill': () => { agentSkillPreflightOpen.value = false },
+      'audio-preflight': () => { audioGenerationPreflightOpen.value = false },
+      compare: () => { isResultCompareOpen.value = false },
+      context: () => { isContextDrawerOpen.value = false },
+      professional: closeProfessionalActions,
+      resources: () => { closeResources(false) },
+      revision: () => { isRevisionPanelOpen.value = false },
+      stage: () => { canvasStageRef.value?.closeTransientInteractions() },
+      'video-preflight': () => { videoEditPreflightOpen.value = false },
+      'workflow-batch': () => { workflowBatchOpen.value = false },
+    }
+    closers[kind]()
+  },
+  fallbackFocusTarget: () => document.querySelector<HTMLElement>('.canvas-surface'),
+})
+const contextSurface = contextSurfaceController.surface
 
-function activateContextSurface(next: CanvasContextSurface) {
-  if (next !== 'stage') canvasStageRef.value?.closeTransientInteractions()
-  if (next !== 'professional') closeProfessionalActions()
-  if (next !== 'resources') closeResources(false)
-  if (next !== 'context') isContextDrawerOpen.value = false
-  if (next !== 'revision') {
-    isRevisionPanelOpen.value = false
-    revisionPanelOpener = null
-  }
-  if (next !== 'compare') isResultCompareOpen.value = false
-  if (next !== 'workflow-batch') workflowBatchOpen.value = false
-  if (next !== 'video-preflight') {
-    videoEditPreflightOpen.value = false
-    videoEditPreflightOpener = null
-  }
-  if (next !== 'audio-preflight') audioGenerationPreflightOpen.value = false
-  if (next !== 'agent-skill') agentSkillPreflightOpen.value = false
+function activateContextSurface(kind: CanvasContextSurfaceKind, opener?: HTMLElement | null) {
+  contextSurfaceController.activate(kind, opener)
 }
 
 function openProfessionalActionsExclusive(opener: HTMLElement, initialQuery = '') {
-  activateContextSurface('professional')
+  activateContextSurface('professional', opener)
   openProfessionalActions(opener, initialQuery)
 }
 const isDesktopContextVisible = computed(() => (
@@ -433,15 +422,21 @@ function openResultComparison() {
   isResultCompareOpen.value = true
 }
 
-function closeResultComparison() { isResultCompareOpen.value = false }
+function closeResultComparison() { contextSurfaceController.deactivate('compare') }
+
+function closeProfessionalSurface() {
+  contextSurfaceController.deactivate('professional', false)
+}
+
+function closeResourceSurface(restoreFocus = true) {
+  closeResources(restoreFocus)
+  contextSurfaceController.markClosed('resources')
+}
 
 function setViewMode(mode: CanvasViewMode) {
   if (viewMode.value === mode) return
   if (mode === 'storyboard') {
-    canvasStageRef.value?.closeTransientInteractions()
-    closeResources(false)
-    closeResultComparison()
-    isRevisionPanelOpen.value = false
+    contextSurfaceController.clear(false)
   }
   viewMode.value = mode
 }
@@ -457,7 +452,7 @@ function reorderStoryboardItem(groupId: string, nodeId: string, direction: -1 | 
 }
 
 function selectComparedResult(nodeId: string) {
-  isResultCompareOpen.value = false
+  contextSurfaceController.deactivate('compare', false)
   canvasDocumentStore.selectNode(nodeId)
   void nextTick(() => canvasStageRef.value?.revealNode(nodeId))
 }
@@ -535,24 +530,16 @@ async function retryCanvasState(event?: MouseEvent) {
 function openRevisionPanel(event?: Event | HTMLElement) {
   const opener = event instanceof HTMLElement ? event : event?.currentTarget
   if (!isRevisionPanelOpen.value) {
-    activateContextSurface('revision')
-    revisionPanelOpener = opener instanceof HTMLElement ? opener : null
+    activateContextSurface(
+      'revision',
+      opener instanceof HTMLElement ? opener : revisionTriggerRef.value,
+    )
   }
   isRevisionPanelOpen.value = true
 }
 
-function canRestoreFocus(element: HTMLElement | null) {
-  if (!element?.isConnected || element.getAttribute('aria-disabled') === 'true') return false
-  return !(element instanceof HTMLButtonElement && element.disabled)
-}
-
 function closeRevisionPanel() {
-  isRevisionPanelOpen.value = false
-  const focusTarget = canRestoreFocus(revisionPanelOpener)
-    ? revisionPanelOpener
-    : revisionTriggerRef.value
-  revisionPanelOpener = null
-  void nextTick(() => focusTarget?.focus({ preventScroll: true }))
+  contextSurfaceController.deactivate('revision')
 }
 
 function retryProjectResources() {
@@ -560,19 +547,28 @@ function retryProjectResources() {
 }
 
 function updateResourceDrawer(show: boolean) {
-  if (!show) closeResources(false)
+  if (!show) closeResourceSurface(false)
 }
 
 function updateContextDrawer(show: boolean) {
-  if (!show) closeContext()
+  if (!show) {
+    closeContext()
+    contextSurfaceController.markClosed('context')
+  }
 }
 
 function dismissContextDrawer() {
   isContextDrawerOpen.value = false
+  contextSurfaceController.markClosed('context')
+}
+
+function updateStageContextSurface(open: boolean) {
+  isStageContextSurfaceOpen.value = open
+  if (!open) contextSurfaceController.markClosed('stage')
 }
 
 watch([projectId, canvasId], ([nextProjectId, nextCanvasId]) => {
-  isResultCompareOpen.value = false
+  contextSurfaceController.clear(false)
   viewMode.value = 'workflow'
   void loadWorkspaceContext(nextProjectId, nextCanvasId)
 }, { immediate: true })
@@ -609,6 +605,7 @@ onBeforeUnmount(() => {
   <NConfigProvider :theme="darkTheme" :theme-overrides="v2CanvasNaiveTheme">
     <div
       class="v2-canvas-theme canvas-workspace"
+      :data-context-surface="contextSurface.kind"
       :class="{
         'is-review-only': isReviewOnly,
         'is-storyboard-mode': viewMode === 'storyboard',
@@ -639,7 +636,7 @@ onBeforeUnmount(() => {
           :composer-model-label="scriptCapability?.modelLabel ?? ''"
           :viewport-insets="canvasViewportInsets"
           @activate-context-surface="activateContextSurface('stage')"
-          @context-surface-state="isStageContextSurfaceOpen = $event"
+          @context-surface-state="updateStageContextSurface"
           @open-composer-resources="openComposerResources"
           @open-resources="openCanvasResources"
           @open-video-edit-preflight="openVideoEditPreflight"
@@ -657,7 +654,7 @@ onBeforeUnmount(() => {
         :actions="professionalActions"
         :error="professionalActionError"
         :query="professionalActionQuery"
-        @close="closeProfessionalActions"
+        @close="closeProfessionalSurface"
         @select="executeProfessionalAction"
         @update:query="professionalActionQuery = $event"
       />
@@ -772,7 +769,7 @@ onBeforeUnmount(() => {
           :templates="resourceStore.templates"
           @attach-asset="attachComposerAsset"
           @capture-template="captureTemplate"
-          @close="closeResources"
+          @close="closeResourceSurface"
           @insert-asset="insertAsset"
           @instantiate-template="instantiateTemplate"
           @resize="setPanelWidth"
@@ -862,7 +859,7 @@ onBeforeUnmount(() => {
               :templates="resourceStore.templates"
               @attach-asset="attachComposerAsset"
               @capture-template="captureTemplate"
-              @close="closeResources"
+              @close="closeResourceSurface"
               @insert-asset="insertAsset"
               @instantiate-template="instantiateTemplate"
               @retry="retryProjectResources"

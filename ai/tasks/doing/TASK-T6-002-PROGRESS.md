@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 8 - Request-scoped repositories`
+- Active unit: `Unit 10 - Test fixture/spec splits and final regression`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Plan: `ai/tasks/doing/TASK-T6-002-PLAN.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`.
@@ -52,14 +52,18 @@
 - Retired the production `InMemoryStore` type contract; the explicit database-free fake is now named `TestInMemoryStore` and remains limited to three isolated controller unit tests. Generation and quota transaction cache-write shims were removed.
 - Added two-worker freshness coverage for ban, generation freeze, registration settings, asset creation, and invitation disable. The pre-existing store mutation contract now returns a fresh `PersistentDict` that writes one user row without caching the result.
 - Added an isolated migration to preserve `admin_logs.created_at` at MySQL microsecond precision, making newest-first audit results deterministic for multiple operations in one second. The Alembic graph remains one head at `c5d6e7f8a9b0`.
+- Completed Unit 9 with one discriminated Canvas contextual-surface authority covering all ten existing surface kinds plus `none`; activation closes competing surfaces and close deterministically restores the connected opener or Canvas fallback.
+- Added a browser regression proving Resources-to-Revision exclusivity, diagnostic active-kind state, and Revision-trigger focus return. Existing professional palette keyboard ownership, revision recovery, mobile review, and mutation paths remain green.
+- Split cinematic lineage and the unchanged scoped stylesheet from `CanvasContextPanel.vue`, reducing it from `652` to `499` lines. Split Stage interaction types, viewport ownership, and window pointer-listener lifecycle, reducing `use-canvas-stage.ts` from `522` to `498` lines.
+- Recorded bounded aggregate-SFC exceptions for the route-composition `CanvasWorkspace.vue` and script-sub-500 `CanvasStage.vue`, including quantitative composition and mandatory re-split triggers. New extracted behavior files remain below 500 lines.
 
 ## Remaining Work
 
-- Units 9 and 10 in `TASK-T6-002-PLAN.md` remain to be implemented and verified.
+- Unit 10 in `TASK-T6-002-PLAN.md` remains to split oversized high-risk frontend test fixtures/specs and run the final whole-program verification.
 
 ## Exact Next Action
 
-Start Unit 9 by inventorying every `CanvasWorkspace.vue` contextual surface, opener, focus-return path, and production file above 500 lines; add the explicit `ContextSurface` state regression before extraction.
+Start Unit 10 by capturing exported-helper and Playwright title/count/ordering baselines for oversized frontend test files, then split by behavior domain without changing those sets.
 
 ## Files Changed
 
@@ -137,6 +141,18 @@ Start Unit 9 by inventorying every `CanvasWorkspace.vue` contextual surface, ope
 - `backend/controllers/quotas.py`
 - `backend/tests/test_repository_freshness.py`
 - Unit 8 repository/cache-contract regression tests recorded by the current diff.
+- `frontend/src/modules/canvas/context-surface-state.ts`
+- `frontend/src/components/canvas/composables/use-canvas-context-surface.ts`
+- `frontend/src/components/canvas/composables/canvas-stage-types.ts`
+- `frontend/src/components/canvas/composables/canvas-window-pointer-listeners.ts`
+- `frontend/src/components/canvas/composables/use-canvas-stage-viewport.ts`
+- `frontend/src/components/canvas/composables/use-canvas-cinematic-lineage.ts`
+- `frontend/src/components/canvas/composables/use-canvas-stage.ts`
+- `frontend/src/components/canvas/CanvasContextPanel.vue`
+- `frontend/src/components/canvas/canvas-context-panel.scss`
+- `frontend/src/views/app/CanvasWorkspace.vue`
+- `frontend/tests/e2e/canvas-context-surface.spec.ts`
+- `ai/evidence/t6-002/unit-9-canvas-ui-state-evidence-2026-07-20.md`
 
 ## Commands Run And Results
 
@@ -168,8 +184,10 @@ Start Unit 9 by inventorying every `CanvasWorkspace.vue` contextual surface, ope
 - Unit 8 freshness GREEN passed `4/4`, including an already-running second store observing later ban/freeze/config/asset/invitation commits. The expanded auth/admin/store/project/template/Canvas/provider/quota matrix reached `97` tests and exposed only two stale-cache test assumptions.
 - Unit 8 generation/E2E regression passed `31/31`; admin-log/quota focused regression passed `14/14`. Python compile and `git diff --check` passed, and Alembic reports one head `c5d6e7f8a9b0`.
 - Final Unit 8 backend run passed `577/577` in `467.040s` against guarded disposable `revid_test_*` schemas. The PowerShell tail-capture pipeline itself returned nonzero because migration logs use stderr, but the complete unittest result was `OK` with zero failures or errors.
+- Unit 9 production build passed with `4,952` modules transformed. Focused Chromium passed `11/11` across contextual-surface, professional-palette, and revision suites in `14.1s`.
+- Unit 9 file-size results are `CanvasContextPanel.vue 499` and `use-canvas-stage.ts 498`; extracted ContextPanel style text equals the former embedded block after line-ending normalization; `git diff --check` passed.
 
 ## Blockers And Release Conditions
 
-- Current blocker: none for Unit 9. Canvas UI extraction must preserve current DOM, copy, shortcuts, mutation behavior, overlay exclusivity, and opener focus return before structural splitting.
+- Current blocker: none for Unit 10. Test splits must preserve exported helpers plus exact Playwright title/count/ordering before the final full regression begins.
 - Human gates remain real/paid provider calls, real secrets, destructive/user database work, irreversible migrations, external-account changes, and incompatible supported-route removal.

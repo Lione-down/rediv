@@ -2,7 +2,7 @@
 
 - State: `DOING`
 - Verification outcome: `PENDING`
-- Active unit: `Unit 8 - Request-scoped repositories`
+- Active unit: `Unit 10 - Test fixture/spec splits and final regression`
 - Task: `ai/tasks/todo/TASK-T6-002.md`
 - Progress: `ai/tasks/doing/TASK-T6-002-PROGRESS.md`
 - Activation baseline: `HEAD == origin/main == 760d2ef3dcb217b6026e7da345a4702484f370c6`; ahead/behind `0/0`; tracked worktree clean.
@@ -83,13 +83,15 @@ Every behavior change follows test-driven delivery: add the smallest failing reg
 
 ### Unit 9 - Explicit Canvas UI state and production file splits
 
-- Status: `active`
+- Status: `completed`
 
 - Add a discriminated single `ContextSurface` with deterministic opener/focus return; preserve existing DOM, copy, shortcuts, and mutation behavior.
 - Stabilize overlay/focus regression before extracting contextual domains and Stage chrome.
 - Keep route orchestration in `CanvasWorkspace.vue`, move reusable presentation domain logic into `modules/canvas`, and target sub-500-line business files.
 
 ### Unit 10 - Test fixture/spec splits and final regression
+
+- Status: `active`
 
 - Capture exported helper and test title/count baselines, split only by behavior domain, and prove before/after identity.
 - Run full backend, build, functional Chromium, accessibility, headed performance, state validator, audit signals, diff/hygiene, exact staging, and origin agreement.

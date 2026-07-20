@@ -21,12 +21,11 @@ import CanvasGenerationParameterControls from './CanvasGenerationParameterContro
 import CanvasGenerationProgress from './CanvasGenerationProgress.vue'
 import CanvasCinematicSkillControls from './CanvasCinematicSkillControls.vue'
 import CanvasCinematicTakeReview from './CanvasCinematicTakeReview.vue'
-import { loadCinematicSkillSources } from '../../modules/canvas/cinematic-skills'
 import type { PreparedCinematicGeneration } from '../../modules/canvas/cinematic-skills'
-import { request } from '../../api/request'
 import CanvasScriptGenerationControls from './CanvasScriptGenerationControls.vue'
 import type { ScriptAuthoringCapabilities, ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
 import type { ScriptGenerationSubmission } from './composables/use-canvas-script-generation'
+import { useCanvasCinematicLineage } from './composables/use-canvas-cinematic-lineage'
 
 const props = withDefaults(defineProps<{
   error?: string
@@ -155,37 +154,13 @@ const staleScriptLineage = computed(() => {
     isStale: typeof currentText !== 'string' || currentText.trim() !== lineage.source_script_text,
   }
 })
-const currentCinematicRevisions = ref<Map<string, string> | null>(null)
-function record(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
-}
-const cinematicTaskSnapshot = computed(() => {
-  const task = props.generationTasks.find((candidate) => candidate.id === props.resultLineage?.taskId) ?? props.latestTask
-  const parameters = record(task?.request_parameters)
-  return record(parameters?.cinematic_skill)
+const { cinematicResultStale, cinematicTaskSnapshot } = useCanvasCinematicLineage({
+  getCanvasId: () => props.canvasId,
+  getGenerationTasks: () => props.generationTasks,
+  getLatestTask: () => props.latestTask,
+  getProjectId: () => props.projectId,
+  getResultTaskId: () => props.resultLineage?.taskId,
 })
-const cinematicResultStale = computed(() => {
-  const revisions = currentCinematicRevisions.value
-  const canonical = record(cinematicTaskSnapshot.value?.canonical_request)
-  const references = canonical?.references
-  if (!revisions || !Array.isArray(references)) return false
-  return references.some((rawReference) => {
-    const reference = record(rawReference)
-    return typeof reference?.node_id !== 'string' || typeof reference.source_revision !== 'string' ||
-      revisions.get(reference.node_id) !== reference.source_revision
-  })
-})
-
-async function refreshCinematicLineage() {
-  currentCinematicRevisions.value = null
-  if (!cinematicTaskSnapshot.value || !props.projectId || !props.canvasId) return
-  try {
-    const sources = await loadCinematicSkillSources(props.projectId, props.canvasId, request)
-    currentCinematicRevisions.value = new Map(sources.items.map((item) => [item.node_id, item.source_revision]))
-  } catch {
-    currentCinematicRevisions.value = new Map()
-  }
-}
 const mediaStateLabel = {
   included: '已作为参考图',
   'missing-asset': '缺少资源，未使用',
@@ -212,7 +187,6 @@ const statusLabel = computed(() => {
   if (props.latestTask?.status === 'queued') return '排队中'
   return props.mediaType ? '准备就绪' : '只读详情'
 })
-
 function mediaRequestRole(requestOrder: number | null) {
   const order = requestOrder ?? 0
   if (props.mediaType === 'image') return `参考图 R${order}`
@@ -259,16 +233,9 @@ function runTiming(task: ProjectGenerationTask) {
 watch(() => props.node.id, () => {
   prompt.value = props.node.content?.trim() || ''
 }, { flush: 'sync' })
-watch(
-  () => [props.node.id, props.projectId, props.canvasId, props.generationTasks.length],
-  () => { void refreshCinematicLineage() },
-  { immediate: true },
-)
-
 watch(() => props.node.content, (content) => {
   if (document.activeElement?.getAttribute('aria-label') !== '生成提示词') prompt.value = content?.trim() || ''
 })
-
 function updatePrompt(event: Event) {
   const value = (event.target as HTMLTextAreaElement).value
   prompt.value = value
@@ -529,124 +496,4 @@ function requestGeneration() {
   </aside>
 </template>
 
-<style scoped lang="scss">
-.context-panel { display: flex; width: 360px; max-width: 100vw; height: 100%; flex-direction: column; overflow: hidden; border: 1px solid var(--v2-border-standard); color: var(--v2-text-primary); background: var(--v2-surface-2); box-shadow: var(--v2-shadow-floating); }
-.context-panel.is-panel { border-radius: var(--v2-radius-md); }
-.context-panel.is-drawer { border-width: 0 0 0 1px; }
-header, header > div, header span, .section-heading, .generation-status, .feedback, dl > div { display: flex; }
-header { min-height: 56px; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--v2-border-subtle); }
-header > div { min-width: 0; align-items: center; gap: 9px; }
-header > .header-actions { flex-shrink: 0; gap: 2px; }
-header span { min-width: 0; flex-direction: column; }
-header strong, header small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-header strong { font-size: 13px; }
-header small { color: var(--v2-text-secondary); font-size: 11px; }
-button { min-width: 40px; min-height: 40px; border: 0; border-radius: var(--v2-radius-md); color: inherit; background: transparent; cursor: pointer; transition: color var(--v2-duration-fast), background-color var(--v2-duration-fast), transform var(--v2-duration-fast); }
-button:active:not(:disabled) { transform: scale(var(--v2-press-scale)); }
-button:focus-visible, textarea:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
-button:disabled { opacity: .42; cursor: not-allowed; }
-.generation-editor, .node-review { min-height: 0; flex: 1; overflow: auto; padding: 16px; }
-.result-branch { margin-top: 12px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
-.result-branch summary { display: flex; min-height: 40px; align-items: center; justify-content: space-between; gap: 8px; padding: 0 10px; color: var(--v2-text-secondary); cursor: pointer; font-size: 11px; list-style: none; }
-.result-branch summary::-webkit-details-marker { display: none; }
-.result-branch summary span, .result-branch button { display: flex; align-items: center; gap: 7px; }
-.result-branch summary small { color: var(--v2-text-muted); }
-.result-branch > div { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 6px 6px; }
-.recipe-branch-actions { display: grid; gap: 6px; padding: 0 6px 6px; }
-.result-branch .recipe-branch-actions button { width: 100%; }
-.result-branch button { min-width: 0; justify-content: flex-start; padding: 6px 8px; background: var(--v2-surface-2); }
-.result-branch button span { display: grid; min-width: 0; gap: 1px; text-align: left; }
-.result-branch button strong { font-size: 11px; font-weight: 600; }
-.result-branch button small { overflow: hidden; color: var(--v2-text-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.section-heading { align-items: center; justify-content: space-between; margin-bottom: 14px; color: var(--v2-text-secondary); font-size: 12px; }
-.recipe-summary { display: grid; gap: 6px; margin-bottom: 14px; padding: 11px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
-.recipe-summary span, .recipe-summary p { color: var(--v2-text-secondary); font-size: 11px; }
-.recipe-summary p { margin: 0; line-height: 1.55; }
-.generation-operation-note { margin: 0; padding: 10px; border: 1px solid color-mix(in srgb, var(--v2-accent) 32%, var(--v2-border-subtle)); border-radius: var(--v2-radius-md); color: var(--v2-accent); background: color-mix(in srgb, var(--v2-accent) 8%, var(--v2-surface-1)); font-size: 11px; line-height: 1.55; }
-.generation-submit-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-.generation-submit-summary span { display: inline-flex; min-height: 28px; align-items: center; gap: 5px; padding: 0 8px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: var(--v2-surface-1); font-size: 10px; }
-.generation-submit-summary strong { color: var(--v2-text-primary); font-weight: 600; }
-.prompt-field, .review-prompt { display: grid; gap: 7px; color: var(--v2-text-secondary); font-size: 11px; }
-textarea { width: 100%; resize: vertical; min-height: 132px; padding: 10px 11px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-md); color: var(--v2-text-primary); background: var(--v2-canvas); font: inherit; line-height: 1.6; }
-.connected-context { margin-top: 12px; padding: 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
-.context-summary, .context-summary span, .connected-context li { display: flex; align-items: center; }
-.context-summary { justify-content: space-between; gap: 8px; color: var(--v2-text-secondary); font-size: 11px; }
-.context-summary span { gap: 6px; }
-.context-summary strong { color: var(--v2-text-primary); font-weight: 600; }
-.connected-context ul { display: grid; gap: 5px; margin: 9px 0 0; padding: 0; list-style: none; }
-.connected-context li { gap: 7px; min-width: 0; padding: 6px 7px; border-radius: 6px; color: var(--v2-accent); background: var(--v2-surface-2); }
-.connected-context li.muted { color: var(--v2-text-muted); }
-.context-node-link { display: grid; flex: 1; grid-template-columns: 13px minmax(0, 1fr) 13px; width: auto; height: auto; min-height: 40px; align-items: center; gap: 7px; padding: 0; color: inherit; background: transparent; text-align: left; }
-.context-node-link:focus-visible, .lineage-node-link:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
-.input-origin-link { display: grid; flex: none; min-width: 40px; min-height: 40px; place-items: center; border: 1px solid transparent; border-radius: 6px; color: var(--v2-text-muted); background: transparent; }
-.input-origin-link:hover { border-color: var(--v2-border-subtle); color: var(--v2-accent); background: var(--v2-surface-3); }
-.input-origin-link:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
-.connected-context li span { display: grid; min-width: 0; gap: 1px; }
-.connected-context li > span:not(.input-order-actions) { flex: 1; }
-.connected-context li strong, .connected-context li small { overflow: hidden; white-space: nowrap; text-overflow: clip; }
-.connected-context li strong { color: var(--v2-text-primary); font-size: 11px; font-weight: 600; }
-.connected-context li small, .connected-context > p { color: var(--v2-text-muted); font-size: 10px; }
-.connected-context > p { margin: 8px 0 0; }
-.input-order-actions { display: flex; flex: none; grid-auto-flow: column; gap: 2px; opacity: 0; transition: opacity var(--v2-duration-fast); }
-.input-order-actions button { display: grid; min-width: 40px; min-height: 40px; place-items: center; }
-.connected-context li:hover .input-order-actions, .connected-context li:focus-within .input-order-actions { opacity: 1; }
-.request-preflight { margin-top: 10px; border-top: 1px solid var(--v2-border-subtle); }
-.request-preflight summary { min-height: 40px; padding: 12px 2px 0; color: var(--v2-text-primary); cursor: pointer; font-size: 11px; font-weight: 600; }
-.request-preflight summary:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
-.request-preflight__body { display: grid; gap: 10px; padding-top: 9px; }
-.request-preflight__body section { display: grid; gap: 6px; }
-.request-preflight__heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--v2-text-secondary); font-size: 10px; }
-.request-preflight__heading strong { color: var(--v2-text-muted); font-variant-numeric: tabular-nums; }
-.request-preflight pre { max-height: 180px; margin: 0; padding: 9px; overflow: auto; border-radius: var(--v2-radius-sm); color: var(--v2-text-primary); background: var(--v2-canvas); font: 11px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
-.request-preflight ol, .request-preflight ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.request-preflight li { display: flex; min-height: 30px; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 7px; border-radius: 5px; color: var(--v2-text-secondary); background: var(--v2-surface-2); font-size: 10px; }
-.request-preflight ol li > span { flex: none; color: var(--v2-accent); font-weight: 700; }
-.request-preflight li strong { min-width: 0; overflow: hidden; color: var(--v2-text-primary); font-size: 10px; text-overflow: clip; white-space: nowrap; }
-.request-preflight ul li > span { color: var(--v2-text-muted); text-align: right; }
-.generate-button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; color: var(--v2-text-on-accent); background: var(--v2-accent); font-weight: 600; }
-.compare-results-button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 7px; margin-top: 12px; border: 1px solid var(--v2-border-standard); color: var(--v2-text-primary); background: var(--v2-surface-3); font-size: 12px; }
-.compare-results-button:hover { border-color: color-mix(in srgb, var(--v2-accent) 52%, var(--v2-border-standard)); }
-.output-variant-summary { display: grid; gap: 8px; margin-top: 12px; padding: 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
-.output-variant-summary > div { display: flex; align-items: center; justify-content: space-between; color: var(--v2-text-secondary); font-size: 11px; }
-.output-variant-summary strong { color: var(--v2-text-primary); font-variant-numeric: tabular-nums; }
-.output-variant-summary .compare-results-button { margin-top: 0; }
-.generation-status { min-height: 42px; align-items: center; gap: 7px; margin: 14px 0 0; padding: 8px 10px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); color: var(--v2-text-secondary); background: var(--v2-surface-1); font-size: 12px; }
-.generation-status small { margin-left: auto; color: var(--v2-text-muted); }
-.run-history { margin-top: 8px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
-.run-history summary { display: flex; min-height: 40px; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; color: var(--v2-text-secondary); cursor: pointer; font-size: 11px; }
-.run-history summary strong { color: var(--v2-text-primary); font-variant-numeric: tabular-nums; }
-.run-history summary:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
-.run-history ol { display: grid; gap: 1px; margin: 0; padding: 0 8px 8px; list-style: none; }
-.run-history li { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 8px; padding: 8px 4px; border-top: 1px solid var(--v2-border-subtle); }
-.run-history__marker { width: 7px; height: 7px; margin-top: 5px; border-radius: 50%; background: var(--v2-text-muted); }
-.run-history li.is-succeeded .run-history__marker { background: var(--v2-success); }
-.run-history li.is-failed .run-history__marker, .run-history li.is-timed_out .run-history__marker { background: var(--v2-danger); }
-.run-history li.is-running .run-history__marker { background: var(--v2-accent); }
-.run-history li > div { display: grid; min-width: 0; gap: 2px; }
-.run-history li strong, .run-history li small, .run-history li p { overflow: hidden; text-overflow: clip; }
-.run-history li strong { color: var(--v2-text-primary); font-size: 11px; white-space: nowrap; }
-.run-history li small { color: var(--v2-text-muted); font-size: 10px; white-space: nowrap; }
-.run-history li p { display: -webkit-box; margin: 2px 0 0; color: var(--v2-danger); font-size: 10px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
-.run-history .run-history__availability { color: var(--v2-text-muted); }
-.run-history__result { display: flex; width: max-content; min-width: 0; min-height: 40px; align-items: center; gap: 4px; margin-top: 2px; padding: 0 4px; border-radius: var(--v2-radius-sm); color: var(--v2-accent); font-size: 10px; font-weight: 600; }
-.run-history__remainder { margin: 0; padding: 0 12px 10px; color: var(--v2-text-muted); font-size: 10px; }
-.feedback { align-items: flex-start; gap: 7px; margin: 10px 0 0; padding: 9px 10px; border-radius: var(--v2-radius-md); font-size: 12px; line-height: 1.55; }
-.feedback.is-error { color: var(--v2-danger); background: color-mix(in oklch, var(--v2-danger) 10%, transparent); }
-.feedback.is-success { color: var(--v2-success); background: color-mix(in oklch, var(--v2-success) 10%, transparent); }
-.review-prompt p { margin: 0; padding: 11px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); color: var(--v2-text-primary); background: var(--v2-surface-1); font-size: 12px; line-height: 1.65; white-space: pre-wrap; }
-.stale-lineage { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px; align-items: start; padding: 9px 12px; border-bottom: 1px solid var(--v2-border-subtle); color: var(--v2-warning); background: color-mix(in oklch, var(--v2-warning) 8%, transparent); font-size: 11px; line-height: 1.5; }.stale-lineage button { grid-column: 2; justify-self: start; min-height: 28px; padding: 0 7px; color: var(--v2-accent-hover); background: transparent; }
-.result-lineage-detail, .captured-frame-detail { margin-bottom: 16px; }
-.result-lineage-detail .section-heading, .captured-frame-detail .section-heading { margin-bottom: 8px; }
-.result-lineage-detail .section-heading strong, .captured-frame-detail .section-heading strong { color: var(--v2-accent); font-variant-numeric: tabular-nums; }
-.result-lineage-detail dd, .captured-frame-detail dd { max-width: 220px; overflow: hidden; text-overflow: clip; white-space: nowrap; }
-.lineage-node-link { display: inline-flex; width: auto; height: auto; min-height: 32px; align-items: center; gap: 5px; padding: 0 2px; color: var(--v2-text-primary); background: transparent; font-size: 12px; }
-dl { display: grid; gap: 1px; margin: 0 0 16px; overflow: hidden; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-md); background: var(--v2-border-subtle); }
-dl > div { justify-content: space-between; gap: 12px; padding: 9px 10px; background: var(--v2-surface-1); }
-dt, dd { margin: 0; font-size: 12px; }
-dt { color: var(--v2-text-secondary); }
-.is-spinning { animation: context-spin 900ms linear infinite; }
-@keyframes context-spin { to { transform: rotate(360deg); } }
-@media (hover: hover) { button:not(:disabled):hover { color: var(--v2-accent); background: var(--v2-surface-3); } .generate-button:hover { color: var(--v2-text-on-accent); background: var(--v2-accent-hover); } }
-@media (hover: none) { .input-order-actions { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { button, .input-order-actions { transition: none; } button:active:not(:disabled) { transform: none; } .is-spinning { animation: none; } }
-</style>
+<style scoped lang="scss" src="./canvas-context-panel.scss"></style>

@@ -2,15 +2,14 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useCanvasStore } from '../../../store/canvas'
 import {
   createMoveNodesCommand, isArrangeEligibleNode, resolveCanvasDragNodeIds,
-  type CanvasAlignment, type CanvasDistribution, type CanvasNodePosition,
+  type CanvasAlignment, type CanvasDistribution,
 } from '../../../modules/canvas/canvas-commands'
 import { isPointInsideCanvasNodeLayout, resolveCanvasNodeLayoutCenter } from '../../../modules/canvas/node-layout'
 import {
-  buildConnectionPath, clampZoom, minimapPointToWorld,
+  buildConnectionPath, minimapPointToWorld,
   nodeInputAnchor as getNodeInputAnchor, nodeOutputAnchor as getNodeOutputAnchor,
-  nodePortWorldAnchor as getNodePortWorldAnchor, normalizeViewport, nodeIntersectsRect,
-  rectFromPoints, snapDeltaToGrid, surfaceToWorld,
-  type Point, type ViewportInsets, type ViewportState,
+  nodePortWorldAnchor as getNodePortWorldAnchor, nodeIntersectsRect,
+  rectFromPoints, snapDeltaToGrid, surfaceToWorld, type Point,
 } from '../canvas-geometry'
 import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
 import { findCompatibleConnectionTarget, resolveCompatibleConnectionDraftPosition } from '../canvas-connection-target'
@@ -24,26 +23,23 @@ import { useCanvasStageKeyboard } from './use-canvas-stage-keyboard'
 import { useCanvasStageOverlays } from './use-canvas-stage-overlays'
 import { useCanvasStagePresentation } from './use-canvas-stage-presentation'
 import { useCanvasViewControls } from './use-canvas-view-controls'
-import { useCanvasGenerationRuntimeRenderer, type GenerationRuntimePresentationGetter } from './use-canvas-generation-runtime-renderer'
-interface DragState { pointerId: number | null; startWorldPoint: Point; origins: CanvasNodePosition[]; moved: boolean }
-interface PanState { pointerId: number | null; startClientX: number; startClientY: number; originX: number; originY: number }
-interface DraftConnectionState { originNodeId: string; originPort: string; direction: 'input' | 'output'; pointerId: number | null; currentX: number; currentY: number; startX: number; startY: number; moved: boolean }
-interface MarqueeState { pointerId: number | null; start: Point; current: Point; additive: boolean }
-interface NativePointerLikeEvent extends MouseEvent { pointerId?: number }
-interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLikeEvent }
-interface CanvasStageOptions {
-  getGenerationRuntimePresentations?: GenerationRuntimePresentationGetter
-  getViewportInsets?: () => Partial<ViewportInsets>
-  isProfessionalActionsBlocked?: () => boolean
-  isReadOnly?: () => boolean
-  onGraphPanelClosed?: () => void
-  onOpenContextSurface?: () => void
-  onOpenProfessionalActions?: (opener: HTMLElement) => void
-}
+import { useCanvasStageViewport } from './use-canvas-stage-viewport'
+import { useCanvasGenerationRuntimeRenderer } from './use-canvas-generation-runtime-renderer'
+import { createCanvasWindowPointerListeners } from './canvas-window-pointer-listeners'
+import type {
+  CanvasStageDraftConnectionState as DraftConnectionState,
+  CanvasStageDragState as DragState,
+  CanvasStageMarqueeState as MarqueeState,
+  CanvasStageOptions,
+  CanvasStagePanState as PanState,
+  LeaferPointerEvent,
+  NativePointerLikeEvent,
+} from './canvas-stage-types'
 export function useCanvasStage(options: CanvasStageOptions = {}) {
   const canvasStore = useCanvasStore()
   const stageRef = ref<HTMLElement | null>(null)
   const canvasSurfaceRef = ref<HTMLElement | null>(null)
+  const { cssVar, getViewport, updateViewport } = useCanvasStageViewport(canvasSurfaceRef)
   const minimapRef = ref<HTMLElement | null>(null)
   const draftConnection = ref<DraftConnectionState | null>(null)
   const marquee = ref<MarqueeState | null>(null)
@@ -55,7 +51,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   let resizeObserver: ResizeObserver | null = null
   let dragState: DragState | null = null
   let panState: PanState | null = null
-  let windowPointerListenersBound = false
   const viewportCursor = computed(() => {
     if (isPanning.value) return 'grabbing'
     if (canvasStore.mode === 'hand' || isSpacePressed.value) return 'grab'
@@ -120,19 +115,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     closeConnectionContinuation, connectionContinuation, continuationStyle,
     openConnectionContinuation, selectConnectionContinuation,
   } = useCanvasConnectionContinuation({ getViewportSize: () => surfaceViewportSize.value })
-  function cssVar(name: string, fallback: string) {
-    if (!canvasSurfaceRef.value) return fallback
-    return getComputedStyle(canvasSurfaceRef.value).getPropertyValue(name).trim() || fallback
-  }
-  function getViewport(): ViewportState { return normalizeViewport(canvasStore.viewport) }
-  function updateViewport(next: Partial<ViewportState>) {
-    const current = getViewport()
-    canvasStore.updateViewport({
-      zoom: clampZoom(next.zoom ?? current.zoom),
-      x: next.x ?? current.x,
-      y: next.y ?? current.y,
-    })
-  }
   const { minimapMetrics, minimapNodes, minimapNodeStyle, minimapViewportStyle } = useCanvasMinimapPresentation({
     getMinimapSize: () => minimapSize.value,
     getNodes: () => canvasStore.nodes,
@@ -219,20 +201,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   }
   function shouldStartPan(origin?: NativePointerLikeEvent, allowSpaceDrag = true) {
     return Boolean(origin && (origin.button === 1 || canvasStore.mode === 'hand' || (allowSpaceDrag && isSpacePressed.value && origin.button === 0)))
-  }
-  function bindWindowPointerListeners() {
-    if (windowPointerListenersBound) return
-    window.addEventListener('pointermove', handleWindowPointerMove)
-    window.addEventListener('pointerup', handleWindowPointerUp)
-    window.addEventListener('pointercancel', handleWindowPointerCancel)
-    windowPointerListenersBound = true
-  }
-  function unbindWindowPointerListeners() {
-    if (!windowPointerListenersBound) return
-    window.removeEventListener('pointermove', handleWindowPointerMove)
-    window.removeEventListener('pointerup', handleWindowPointerUp)
-    window.removeEventListener('pointercancel', handleWindowPointerCancel)
-    windowPointerListenersBound = false
   }
   function startPan(origin?: NativePointerLikeEvent) {
     if (!origin) return
@@ -393,6 +361,14 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     }
     if (!panState && !dragState && !draftConnection.value && !marquee.value) unbindWindowPointerListeners()
   }
+  const {
+    bind: bindWindowPointerListeners,
+    unbind: unbindWindowPointerListeners,
+  } = createCanvasWindowPointerListeners({
+    pointermove: handleWindowPointerMove,
+    pointerup: handleWindowPointerUp,
+    pointercancel: handleWindowPointerCancel,
+  })
   function handleSurfaceWheel(event: WheelEvent) {
     event.preventDefault()
     const point = toSurfacePoint(event.clientX, event.clientY)
