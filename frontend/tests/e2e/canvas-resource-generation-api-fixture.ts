@@ -98,7 +98,8 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
   await page.route('https://media.revid.test/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname
     if (state.capturedFrames[pathname]) {
-      return route.fulfill({ status: 200, headers: { 'content-type': 'image/png', 'access-control-allow-origin': '*' }, body: state.capturedFrames[pathname] })
+      const contentType = pathname.endsWith('.svg') ? 'image/svg+xml' : 'image/png'
+      return route.fulfill({ status: 200, headers: { 'content-type': contentType, 'access-control-allow-origin': '*' }, body: state.capturedFrames[pathname] })
     }
     const isBroken = pathname.includes('broken')
     const isVideo = pathname.endsWith('.mp4')

@@ -7,6 +7,7 @@ import { createResourceMockState, documentPatches, openResourceWorkspace } from 
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 't5-096', 'revid', '2026-07-20')
 const evidenceManifestPath = resolve(process.cwd(), '..', 'ai', 'evidence', 't5-096', 'revid-review-evidence-2026-07-20.json')
+const currentSnapshotOverlayPath = resolve(process.cwd(), '..', 'ai', 'evidence', 't6-003', 't5-096-snapshot-overlay-2026-07-21.json')
 const shouldUpdateEvidence = process.env.UPDATE_T5_096_EVIDENCE === '1'
 
 interface EvidenceManifest {
@@ -54,7 +55,9 @@ async function capture(page: Page, name: string) {
     await writeFile(resolve(evidenceDirectory, name), screenshot)
   } else {
     const manifest = JSON.parse(await readFile(evidenceManifestPath, 'utf8')) as EvidenceManifest
-    const evidence = manifest.files.find((file) => file.name === name)
+    const currentSnapshotOverlay = JSON.parse(await readFile(currentSnapshotOverlayPath, 'utf8')) as EvidenceManifest
+    const evidence = currentSnapshotOverlay.files.find((file) => file.name === name)
+      ?? manifest.files.find((file) => file.name === name)
     expect(evidence?.snapshot_sha256, `missing verification snapshot hash for ${name}`).toBeTruthy()
     const snapshot = await readFile(test.info().snapshotPath(snapshotName))
     const snapshotHash = createHash('sha256').update(snapshot).digest('hex')

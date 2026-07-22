@@ -9,6 +9,7 @@ import {
   Lightbulb,
   Maximize2,
   Paintbrush,
+  PanelRightOpen,
   ScanFace,
   Sparkles,
   WandSparkles,
@@ -22,6 +23,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   fullscreen: []
+  inspect: []
   openAction: [opener: HTMLElement, actionId: string]
 }>()
 
@@ -52,6 +54,7 @@ function openAction(event: MouseEvent, actionId: string) {
     <button
       v-for="action in actions"
       :key="action.id"
+      class="canvas-media-toolbar__action"
       type="button"
       :aria-label="action.label"
       :title="availableIds.has(action.id) ? action.label : `${action.label}（暂不可用）`"
@@ -59,8 +62,10 @@ function openAction(event: MouseEvent, actionId: string) {
       @click.stop="openAction($event, action.id)"
     >
       <component :is="action.icon" :size="15" aria-hidden="true" />
+      <span>{{ action.label }}</span>
     </button>
     <a
+      class="canvas-media-toolbar__utility is-leading"
       :href="target.url"
       :download="downloadName"
       target="_blank"
@@ -71,7 +76,10 @@ function openAction(event: MouseEvent, actionId: string) {
     >
       <Download :size="15" aria-hidden="true" />
     </a>
-    <button type="button" aria-label="全屏查看" title="全屏查看" @click.stop="emit('fullscreen')">
+    <button class="canvas-media-toolbar__utility" type="button" aria-label="打开节点详情" title="打开节点详情" @click.stop="emit('inspect')">
+      <PanelRightOpen :size="15" aria-hidden="true" />
+    </button>
+    <button class="canvas-media-toolbar__utility" type="button" aria-label="全屏查看" title="全屏查看" @click.stop="emit('fullscreen')">
       <Maximize2 :size="15" aria-hidden="true" />
     </button>
   </div>
@@ -86,16 +94,17 @@ function openAction(event: MouseEvent, actionId: string) {
   display: flex;
   box-sizing: border-box;
   width: 100%;
+  height: 50px;
   min-width: 0;
   align-items: center;
   gap: 4px;
   overflow-x: auto;
-  padding: 5px;
-  border: 1px solid var(--v2-border-standard);
+  padding: 6px;
+  border: 1px solid var(--v2-border-strong);
   border-radius: var(--v2-radius-sm);
-  background: color-mix(in oklch, var(--v2-surface-2) 94%, transparent);
+  background: var(--v2-surface-2);
   box-shadow: var(--v2-shadow-floating);
-  transform: translateY(calc(-100% - 8px));
+  transform: translateY(var(--canvas-media-toolbar-translate-y, calc(-100% - 8px)));
   pointer-events: auto;
   scrollbar-width: none;
   backdrop-filter: blur(10px);
@@ -108,7 +117,7 @@ function openAction(event: MouseEvent, actionId: string) {
   display: inline-grid;
   width: 28px;
   min-width: 28px;
-  height: 28px;
+  height: 36px;
   place-items: center;
   padding: 0;
   border: 0;
@@ -129,6 +138,23 @@ function openAction(event: MouseEvent, actionId: string) {
   cursor: not-allowed;
   opacity: 0.42;
 }
+
+.canvas-media-toolbar .canvas-media-toolbar__action {
+  display: inline-flex;
+  width: auto;
+  min-width: max-content;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.canvas-media-toolbar__action svg { flex: 0 0 auto; }
+
+.canvas-media-toolbar__utility.is-leading { margin-left: auto; }
 
 .canvas-media-toolbar button:focus-visible,
 .canvas-media-toolbar a:focus-visible {

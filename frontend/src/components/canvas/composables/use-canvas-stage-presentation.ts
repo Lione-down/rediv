@@ -2,15 +2,24 @@ import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-vue-next'
 import { computed } from 'vue'
 import type { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
+import { canBranchFromImageResult } from '../../../modules/canvas/resource-commands'
 import { canvasNodeWorldRect, worldToSurface, type CanvasNodeGeometryRole, type ViewportInsets, type ViewportSize, type ViewportState } from '../canvas-geometry'
 import { resolveKeyframeRailPlacement } from '../canvas-keyframe-placement'
 import { resolveCanvasAuthoringCardPresentation } from '../canvas-authoring-card-presentation'
+import { isMaterializedCardProjection } from '../canvas-materialized-card-projection'
+import {
+  CANVAS_MEDIA_TOOLBAR_ABOVE_GAP_PX,
+  CANVAS_MEDIA_TOOLBAR_HEIGHT_PX,
+  resolveCanvasMediaToolbarHorizontalPlacement,
+} from '../canvas-media-toolbar-geometry'
 
 type CanvasStore = ReturnType<typeof useCanvasStore>
 type StatusVisualState = Extract<NonNullable<CanvasNode['status']>, 'running' | 'success' | 'warning'>
 
 interface CanvasStagePresentationOptions {
   canvasStore: CanvasStore
+  getMediaToolbarNodeId: () => string | null
+  getPresentationNodes: () => readonly CanvasNode[]
   getViewport: () => ViewportState
   getViewportInsets: () => Partial<ViewportInsets>
   getViewportSize: () => ViewportSize
@@ -22,19 +31,21 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
   const statusIconMap: Record<StatusVisualState, typeof Loader2 | typeof CheckCircle2 | typeof AlertCircle> = {
     running: Loader2, success: CheckCircle2, warning: AlertCircle,
   }
-  const nodeAppearances = computed(() => canvasStore.nodes.map(({
+  const nodeAppearances = computed(() => options.getPresentationNodes().map(({
     id, type, title, content, contentData, status, width, height, isLocked,
   }) => ({ id, type, title, content, contentData, status, width, height, isLocked })))
-  const nodePositions = computed(() => canvasStore.nodes.map(({ id, x, y }) => ({ id, x, y })))
-  const statusNodes = computed(() => canvasStore.nodes.filter(
+  const nodePositions = computed(() => options.getPresentationNodes().map(({ id, x, y }) => ({ id, x, y })))
+  const statusNodes = computed(() => options.getPresentationNodes().filter(
     (node): node is CanvasNode & { status: StatusVisualState } =>
       (node.status === 'running' || node.status === 'success' || node.status === 'warning') &&
-      !resolveCanvasAuthoringCardPresentation(node),
+      !resolveCanvasAuthoringCardPresentation(node) &&
+      !isMaterializedCardProjection(node),
   ))
   const selectionSurfaceBounds = computed(() => {
     if (!canvasStore.selectedNodes.length) return null
     const viewport = options.getViewport()
-    const rects = canvasStore.selectedNodes.map((node) => canvasNodeWorldRect(node, 'content'))
+    const presentationById = new Map(options.getPresentationNodes().map((node) => [node.id, node]))
+    const rects = canvasStore.selectedNodes.map((node) => canvasNodeWorldRect(presentationById.get(node.id) ?? node, 'content'))
     return {
       left: Math.min(...rects.map((rect) => worldToSurface({ x: rect.left, y: rect.top }, viewport).x)),
       right: Math.max(...rects.map((rect) => worldToSurface({ x: rect.left + rect.width, y: rect.top }, viewport).x)),
@@ -61,7 +72,7 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     const insets = options.getViewportInsets()
     const { left, right, top, bottom } = bounds
     const halfWidth = canvasStore.selectedNodes.length === 1
-      ? canvasStore.selectedNodes[0].type === 'generation' ? 106 : 84
+      ? 108
       : 176
     const toolbarHeight = 44
     const safeLeft = Math.max(0, insets.left ?? 0)
@@ -95,6 +106,38 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
       const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)
       return { left: position.x, top: position.y, right: position.x + rect.width * viewport.zoom, bottom: position.y + rect.height * viewport.zoom }
     })
+    if (canvasStore.selectedNodes.length === 1) {
+      const selectedNode = canvasStore.selectedNodes[0]
+      const selectedRect = canvasNodeWorldRect(selectedNode, 'content')
+      const selectedPosition = worldToSurface({ x: selectedRect.left, y: selectedRect.top }, viewport)
+      const selectedWidth = selectedRect.width * viewport.zoom
+      const isMedia = selectedNode.contentData?.subtype === 'image' || selectedNode.contentData?.subtype === 'video'
+      if (isMedia && options.getMediaToolbarNodeId() === selectedNode.id) {
+        const toolbar = resolveCanvasMediaToolbarHorizontalPlacement({
+          insetLeft: options.getViewportInsets().left,
+          insetRight: options.getViewportInsets().right,
+          nodeLeft: selectedPosition.x,
+          nodeWidth: selectedWidth,
+          viewportWidth: options.getViewportSize().width,
+        })
+        hardOccupiedRects.push({
+          left: toolbar.left,
+          top: selectedPosition.y - CANVAS_MEDIA_TOOLBAR_HEIGHT_PX - CANVAS_MEDIA_TOOLBAR_ABOVE_GAP_PX,
+          right: toolbar.left + toolbar.width,
+          bottom: selectedPosition.y,
+        })
+      }
+      if (canBranchFromImageResult(selectedNode)) {
+        const composerRect = canvasNodeWorldRect(selectedNode, 'composer')
+        const composerPosition = worldToSurface({ x: composerRect.left, y: composerRect.top }, viewport)
+        hardOccupiedRects.push({
+          left: composerPosition.x,
+          top: composerPosition.y,
+          right: composerPosition.x + composerRect.width * viewport.zoom,
+          bottom: composerPosition.y + composerRect.height * viewport.zoom,
+        })
+      }
+    }
     const softOccupiedRects = canvasStore.selectedNodes.map((node) => {
       const rect = canvasNodeWorldRect(node, 'content')
       const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)
@@ -154,9 +197,19 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
     const rect = canvasNodeWorldRect(node, role)
     const position = worldToSurface({ x: rect.left, y: rect.top }, viewport)
     if (role === 'composer') {
+      const size = options.getViewportSize()
+      const insets = options.getViewportInsets()
+      const safeTop = Math.max(0, insets.top ?? 0) + 12
+      const safeBottom = size.height - Math.max(0, insets.bottom ?? 0) - 12
+      const scaledHeight = rect.height * viewport.zoom
+      const contentRect = canvasNodeWorldRect(node, 'content')
+      const contentPosition = worldToSurface({ x: contentRect.left, y: contentRect.top }, viewport)
+      const top = position.y + scaledHeight <= safeBottom
+        ? position.y
+        : Math.max(safeTop, contentPosition.y - (rect.height + 8) * viewport.zoom)
       return {
         left: `${position.x}px`,
-        top: `${position.y}px`,
+        top: `${top}px`,
         width: `${rect.width}px`,
         height: `${rect.height}px`,
         transform: `scale(${viewport.zoom})`,
@@ -168,6 +221,7 @@ export function useCanvasStagePresentation(options: CanvasStagePresentationOptio
       top: `${position.y}px`,
       width: `${rect.width * viewport.zoom}px`,
       height: `${rect.height * viewport.zoom}px`,
+      '--canvas-card-floating-gap': `${16 * viewport.zoom}px`,
       '--canvas-surface-zoom': `${viewport.zoom}`,
     }
   }

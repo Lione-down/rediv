@@ -193,10 +193,10 @@ export function nodePortWorldAnchors(
   if (definition.kind === 'unsupported') return []
   const ports = definition.ports.filter((port) => port.direction === direction)
   const size = resolveCanvasNodeLayoutSize(node)
-  return ports.map((port, index) => ({
+  return ports.map((port) => ({
     portId: port.id,
     x: direction === 'input' ? node.x : node.x + size.width,
-    y: node.y + (size.height * (index + 1)) / (ports.length + 1),
+    y: node.y + size.height / 2,
   }))
 }
 
@@ -226,9 +226,7 @@ export function nodeOutputAnchor(node: CanvasNode, viewport: ViewportState, port
   return worldToSurface(nodePortWorldAnchor(node, 'output', portId), viewport)
 }
 
-export function buildConnectionPath(from: Point, to: Point) {
-  return `M ${from.x} ${from.y} C ${from.x + 110} ${from.y}, ${to.x - 110} ${to.y}, ${to.x} ${to.y}`
-}
+export { buildConnectionPath } from './canvas-connection-path'
 
 export function calculateMinimapMetrics(
   nodes: CanvasNode[],

@@ -7,12 +7,27 @@ import {
   resolveEdgeInsertionOptions,
 } from '../../src/modules/canvas/edge-insertion'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
+import { clickCanvasEdgeOutsideNodes } from './canvas-edge-pointer-fixture'
 import {
   FIRST_CANVAS_ID,
-  createResourceMockState,
+  createResourceMockState as createBaseResourceMockState,
   documentPatches,
   openResourceWorkspace,
 } from './canvas-resource-generation-fixture'
+
+function createResourceMockState() {
+  const state = createBaseResourceMockState()
+  const source = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'generation-cover')
+  const result = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'result-existing')
+  if (source?.content) {
+    delete (source.content as Record<string, unknown>).generation_status
+    delete (source.content as Record<string, unknown>).generation_task_id
+    delete (source.content as Record<string, unknown>).result_materialized_task_id
+  }
+  if (result?.content) delete (result.content as Record<string, unknown>).source_task_id
+  state.tasks = state.tasks.filter((task) => task.canvas_node_id !== 'generation-cover')
+  return state
+}
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-021-edge-insertion')
 
@@ -79,7 +94,10 @@ test('edge insertion preserves upstream identity and creates one downstream edge
 test('selected result edge inserts one bridge node through one undoable patch', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
-  await page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }).click()
+  await clickCanvasEdgeOutsideNodes(
+    page,
+    page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }),
+  )
   await page.getByRole('button', { name: '在连线中插入节点' }).click()
 
   const chooser = page.getByRole('dialog', { name: '在线路中插入节点' })
@@ -131,7 +149,9 @@ test('compatible text edge exposes typed bridge choices without mutation', async
     target_port: 'prompt', status: 'active', metadata: {},
   }]
   await openResourceWorkspace(page, state)
-  await page.getByRole('button', { name: '选择连线：镜头脚本 到 封面生成' }).click()
+  const edge = page.getByRole('button', { name: '选择连线：镜头脚本 到 封面生成' })
+  await edge.focus()
+  await edge.press('Enter')
   await page.getByRole('button', { name: '在连线中插入节点' }).click()
   const chooser = page.getByRole('dialog', { name: '在线路中插入节点' })
   await expect(chooser.getByRole('menuitem')).toHaveCount(2)
@@ -148,7 +168,9 @@ test('compatible text edge exposes typed bridge choices without mutation', async
 test('edge insertion chooser stays quiet and clamped at compact desktop width', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state, { width: 920, height: 900 })
-  await page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }).click()
+  const edge = page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' })
+  await edge.focus()
+  await edge.press('Enter')
   await page.getByRole('button', { name: '在连线中插入节点' }).click()
   const chooser = page.getByRole('dialog', { name: '在线路中插入节点' })
   const chooserBox = await chooser.boundingBox()
@@ -163,7 +185,7 @@ test('Escape, outside dismissal, and readonly mode never mutate edge topology', 
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
   const edgeButton = page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' })
-  await edgeButton.click()
+  await clickCanvasEdgeOutsideNodes(page, edgeButton)
   await page.getByRole('button', { name: '在连线中插入节点' }).click()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: '在线路中插入节点' })).toHaveCount(0)

@@ -8,11 +8,13 @@ import {
 import type { GenerationCapabilities } from '../../../modules/canvas/generation-parameters'
 import { useCanvasStore } from '../../../store/canvas'
 import type { Asset } from '../../../types/asset'
+import type { CanvasNode } from '../../../types/canvas'
 
 interface CanvasImageOperationsOptions {
   assets: () => readonly Asset[]
   canvasId: ComputedRef<string>
   generationCapabilities: Ref<GenerationCapabilities | null>
+  getSelectedNodes?: () => readonly CanvasNode[]
   projectId: ComputedRef<string>
   revealNode?: (nodeId: string) => void
   userId: () => string
@@ -35,7 +37,7 @@ export function useCanvasImageOperations(options: CanvasImageOperationsOptions) 
       assets: options.assets(),
       capabilities: operationCapabilities,
       projectId,
-      selectedNodes: canvasStore.selectedNodes,
+      selectedNodes: options.getSelectedNodes?.() ?? canvasStore.selectedNodes,
       userId: options.userId(),
     })
     if (!sources) throw new Error('当前选择不支持该图片操作。')

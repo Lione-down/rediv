@@ -51,3 +51,13 @@ test('no compatible target returns null instead of claiming an incompatible port
     compatibleInput,
   )).toBeNull()
 })
+
+test('default compatible target acquisition uses an exact forty CSS pixel diameter', () => {
+  const anchor = nodePortWorldAnchor(compatible, 'input', 'prompt')
+  expect(findNearestConnectionTarget(
+    { x: anchor.x + 20, y: anchor.y }, source.id, [source, compatible], { x: 0, y: 0, zoom: 1 }, 'input',
+  )).toMatchObject({ node: { id: compatible.id }, portId: 'prompt', distance: 20 })
+  expect(findNearestConnectionTarget(
+    { x: anchor.x + 20.01, y: anchor.y }, source.id, [source, compatible], { x: 0, y: 0, zoom: 1 }, 'input',
+  )).toBeNull()
+})

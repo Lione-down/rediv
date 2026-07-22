@@ -53,9 +53,9 @@ test('shared presentation keeps card geometry fixed and exposes truthful progres
   ).get(node.id)!
   const card = resolveCanvasAuthoringCardPresentation(node, determinate)!
   expect(card.lifecycle).toMatchObject({ label: '模型生成中', progressPercent: 47, isIndeterminate: false })
-  expect(card.visualHeight).toBe(128)
-  expect(card.slots.status).toEqual({ x: 0, y: 98, width: 340, height: 30 })
-  expect(card.slots.progress).toEqual({ x: 0, y: 125, width: 340, height: 3 })
+  expect(card.visualHeight).toBe(160)
+  expect(card.slots.status).toEqual({ x: 0, y: 130, width: 340, height: 30 })
+  expect(card.slots.progress).toEqual({ x: 0, y: 157, width: 340, height: 3 })
 
   const persisting = resolveGenerationRuntimePresentations(
     [node], [generationTask({ progress_percent: 83, progress_stage: 'persisting' })],

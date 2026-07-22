@@ -170,9 +170,8 @@ test('recipe-flow toolbar isolates desktop results and compact drawer suppresses
   const resolvedMediaRects = (await Promise.all(mediaRects)).filter((item): item is NonNullable<typeof item> => item !== null)
   const stackedResults = resolvedMediaRects.filter((rect) => rect.x >= 500 && rect.x <= 700).sort((a, b) => a.y - b.y)
   expect(toolbar).not.toBeNull()
-  expect(stackedResults).toHaveLength(2)
+  expect(stackedResults).toHaveLength(1)
   expect(boxesOverlap(toolbar!, stackedResults[0])).toBe(false)
-  expect(boxesOverlap(toolbar!, stackedResults[1])).toBe(false)
   expect(JSON.stringify(document)).toBe(documentBeforeSelection)
   expect(documentPatches(state)).toHaveLength(documentPatchesBeforeSelection)
   expect(viewportPatches(state)).toHaveLength(viewportPatchesBeforeSelection)
@@ -205,7 +204,7 @@ test('recipe-flow toolbar isolates desktop results and compact drawer suppresses
   const compactRevealPatches = viewportPatches(compactState).slice(compactViewportPatchCount)
   expect(compactRevealPatches.length).toBeLessThanOrEqual(1)
   if (compactRevealPatches.length) {
-    expect(compactRevealPatches[0]).toEqual(expect.objectContaining({ body: { x: 120, y: 84, zoom: 1 } }))
+    expect(compactRevealPatches[0]).toEqual(expect.objectContaining({ body: { x: 120, y: 68, zoom: 1 } }))
   }
   await page.screenshot({ path: resolve(evidenceDirectory, 'recipe-flow-toolbar-isolation-920x900.png'), fullPage: true })
 })

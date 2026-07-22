@@ -8,13 +8,28 @@ import { resolveGenerationResultVariants } from '../../src/modules/canvas/genera
 import { mapCanvasConnection, mapCanvasNode } from '../../src/modules/canvas/mappers'
 import type { CanvasConnectionDto, CanvasNodeDto } from '../../src/modules/canvas/types'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
+import { clickCanvasEdgeOutsideNodes } from './canvas-edge-pointer-fixture'
 import { createMultiScenarioState } from './canvas-multi-scenario-fixture'
 import {
   FIRST_CANVAS_ID,
-  createResourceMockState,
+  createResourceMockState as createBaseResourceMockState,
   documentPatches,
   openResourceWorkspace,
 } from './canvas-resource-generation-fixture'
+
+function createResourceMockState() {
+  const state = createBaseResourceMockState()
+  const source = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'generation-cover')
+  const result = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'result-existing')
+  if (source?.content) {
+    delete (source.content as Record<string, unknown>).generation_status
+    delete (source.content as Record<string, unknown>).generation_task_id
+    delete (source.content as Record<string, unknown>).result_materialized_task_id
+  }
+  if (result?.content) delete (result.content as Record<string, unknown>).source_task_id
+  state.tasks = state.tasks.filter((task) => task.canvas_node_id !== 'generation-cover')
+  return state
+}
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-053-selected-edge-identity')
 const orderedEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-054-ordered-edge-identity')
@@ -143,16 +158,14 @@ test('selected prompt media and result edges expose one contextual semantic iden
   await expect(identity.getByText('封面生成')).toBeVisible()
   await expect(identity.getByRole('button', { name: '在连线中插入节点' })).toBeVisible()
 
-  await page.getByRole('button', {
+  await clickCanvasEdgeOutsideNodes(page, page.getByRole('button', {
     name: '选择连线：海岸环境与人物造型连续性参考图 到 封面生成',
-  }).click()
+  }))
   await expect(identity).toHaveAccessibleName(
     '选中连线：R1 参考图，海岸环境与人物造型连续性参考图 到 封面生成',
   )
 
-  await page.getByRole('button', {
-    name: '选择连线：封面生成 到 历史图片生成结果与收束画面',
-  }).click()
+  await selectEdge(page, '封面生成', '历史图片生成结果与收束画面')
   await expect(identity).toHaveAccessibleName(
     '选中连线：V1 生成结果，封面生成 到 历史图片生成结果与收束画面',
   )
@@ -193,9 +206,9 @@ test('selected edge identity stays bounded at compact width and passive in reado
   addInputEdges(state)
   await openResourceWorkspace(page, state, { width: 920, height: 760 })
 
-  await page.getByRole('button', {
+  await clickCanvasEdgeOutsideNodes(page, page.getByRole('button', {
     name: '选择连线：海岸环境与人物造型连续性参考图 到 封面生成',
-  }).click()
+  }))
   const identity = page.getByRole('group', {
     name: '选中连线：R1 参考图，海岸环境与人物造型连续性参考图 到 封面生成',
   })

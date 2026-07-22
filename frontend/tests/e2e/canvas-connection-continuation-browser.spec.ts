@@ -8,9 +8,18 @@ import {
   FIRST_CANVAS_ID,
   createResourceMockState,
   documentPatches,
-  openResourceWorkspace,
+  openResourceWorkspace as openResourceWorkspaceBase,
   type ResourceMockState,
 } from './canvas-resource-generation-fixture'
+
+async function openResourceWorkspace(
+  page: Page,
+  state: ResourceMockState,
+  viewport = { width: 1440, height: 900 },
+  options: { enableCanvasInspection?: boolean } = {},
+) {
+  await openResourceWorkspaceBase(page, state, viewport, { ...options, enableCanvasInspection: true })
+}
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-018-connection-continuation')
 const upstreamEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-019-reverse-port-drag')
@@ -28,8 +37,52 @@ async function surfacePoint(page: Page, point: { x: number; y: number }) {
   return { x: box.x + point.x, y: box.y + point.y }
 }
 
+async function portScreenPoint(
+  page: Page,
+  nodeId: string,
+  direction: 'input' | 'output',
+  portId: string,
+) {
+  return expect.poll(async () => page.locator('.canvas-surface').evaluate((element, request) => (
+    (element as HTMLElement & {
+      __revidCanvasInspection?: {
+        getPortScreenPoint?: (
+          requestedNodeId: string,
+          requestedDirection: 'input' | 'output',
+          requestedPortId: string,
+        ) => { x: number; y: number } | null
+      }
+    }).__revidCanvasInspection?.getPortScreenPoint?.(request.nodeId, request.direction, request.portId) ?? null
+  ), { nodeId, direction, portId })).not.toBeNull().then(async () => page.locator('.canvas-surface').evaluate((element, request) => (
+    (element as HTMLElement & {
+      __revidCanvasInspection?: {
+        getPortScreenPoint: (
+          requestedNodeId: string,
+          requestedDirection: 'input' | 'output',
+          requestedPortId: string,
+        ) => { x: number; y: number } | null
+      }
+    }).__revidCanvasInspection!.getPortScreenPoint(request.nodeId, request.direction, request.portId)!
+  ), { nodeId, direction, portId }))
+}
+
+async function portSurfacePoint(
+  page: Page,
+  nodeId: string,
+  direction: 'input' | 'output',
+  portId: string,
+) {
+  const [port, surface] = await Promise.all([
+    portScreenPoint(page, nodeId, direction, portId),
+    page.locator('.canvas-surface').boundingBox(),
+  ])
+  if (!surface) throw new Error('Canvas surface is unavailable')
+  return { x: port.x - surface.x, y: port.y - surface.y }
+}
+
 async function dragFromOutput(page: Page, state: ResourceMockState, target: { x: number; y: number }) {
-  const source = await surfacePoint(page, nodeOutputAnchor(mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out'))
+  void state
+  const source = await portScreenPoint(page, 'script-source', 'output', 'out')
   const destination = await surfacePoint(page, target)
   await page.mouse.move(source.x, source.y)
   await page.mouse.down()
@@ -43,8 +96,9 @@ async function dragFromOutputOffset(
   startOffset: { x: number; y: number },
   target: { x: number; y: number },
 ) {
-  const anchor = nodeOutputAnchor(mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out')
-  const source = await surfacePoint(page, { x: anchor.x + startOffset.x, y: anchor.y + startOffset.y })
+  void state
+  const anchor = await portScreenPoint(page, 'script-source', 'output', 'out')
+  const source = { x: anchor.x + startOffset.x, y: anchor.y + startOffset.y }
   const destination = await surfacePoint(page, target)
   await page.mouse.move(source.x, source.y)
   await page.mouse.down()
@@ -53,9 +107,8 @@ async function dragFromOutputOffset(
 }
 
 async function beginOutputDrag(page: Page, state: ResourceMockState, target: { x: number; y: number }) {
-  const canvas = state.canvases.find((candidate) => candidate.id === FIRST_CANVAS_ID)!
-  const viewport = { x: canvas.viewport_x, y: canvas.viewport_y, zoom: canvas.viewport_zoom }
-  const source = await surfacePoint(page, nodeOutputAnchor(mappedNode(state, 'script-source'), viewport, 'out'))
+  void state
+  const source = await portScreenPoint(page, 'script-source', 'output', 'out')
   const destination = await surfacePoint(page, target)
   await page.mouse.move(source.x, source.y)
   await page.mouse.down()
@@ -80,9 +133,8 @@ async function dragFromInput(
   portId: 'prompt' | 'media',
   target: { x: number; y: number },
 ) {
-  const origin = await surfacePoint(page, nodeInputAnchor(
-    mappedNode(state, 'generation-cover'), { x: 0, y: 0, zoom: 1 }, portId,
-  ))
+  void state
+  const origin = await portScreenPoint(page, 'generation-cover', 'input', portId)
   const destination = await surfacePoint(page, target)
   await page.mouse.move(origin.x, origin.y)
   await page.mouse.down()
@@ -179,11 +231,22 @@ test('output drag starts inside the forgiving hit target but outside the visible
   expect(documentPatches(state)).toHaveLength(0)
 })
 
-test('output drag does not start just outside the forgiving hit target', async ({ page }) => {
+test('output drag starts beyond the legacy circle after elastic edge acquisition', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
 
   await dragFromOutputOffset(page, state, { x: 26, y: 0 }, { x: 760, y: 620 })
+
+  await expect(page.getByRole('dialog', { name: '继续连接' })).toBeVisible()
+  expect(documentPatches(state)).toHaveLength(0)
+  expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(1)
+})
+
+test('output drag does not start outside the elastic edge acquisition band', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state)
+
+  await dragFromOutputOffset(page, state, { x: 50, y: 140 }, { x: 760, y: 620 })
 
   await expect(page.getByRole('dialog', { name: '继续连接' })).toHaveCount(0)
   expect(documentPatches(state)).toHaveLength(0)
@@ -194,9 +257,7 @@ test('non-primary port gestures retain pan and context-menu ownership', async ({
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
   const canvas = state.canvases.find((candidate) => candidate.id === FIRST_CANVAS_ID)!
-  let source = await surfacePoint(page, nodeOutputAnchor(
-    mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out',
-  ))
+  let source = await portScreenPoint(page, 'script-source', 'output', 'out')
 
   await page.mouse.move(source.x, source.y)
   await page.mouse.down({ button: 'middle' })
@@ -204,9 +265,7 @@ test('non-primary port gestures retain pan and context-menu ownership', async ({
   await page.mouse.up({ button: 'middle' })
   await expect.poll(() => [canvas.viewport_x, canvas.viewport_y]).toEqual([80, 40])
 
-  source = await surfacePoint(page, nodeOutputAnchor(mappedNode(state, 'script-source'), {
-    x: canvas.viewport_x, y: canvas.viewport_y, zoom: canvas.viewport_zoom,
-  }, 'out'))
+  source = await portScreenPoint(page, 'script-source', 'output', 'out')
   await page.mouse.click(source.x, source.y, { button: 'right' })
   await page.keyboard.press('Escape')
 
@@ -219,9 +278,7 @@ test('Space plus primary port drag retains pan ownership', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
   const canvas = state.canvases.find((candidate) => candidate.id === FIRST_CANVAS_ID)!
-  const source = await surfacePoint(page, nodeOutputAnchor(
-    mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out',
-  ))
+  const source = await portScreenPoint(page, 'script-source', 'output', 'out')
 
   await page.getByRole('region', { name: /Revid/ }).focus()
   await page.keyboard.down('Space')
@@ -322,7 +379,7 @@ test('pointer cancellation never opens continuation or mutates the graph', async
 test('direct compatible port drop bypasses continuation chooser', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
-  const target = nodeInputAnchor(mappedNode(state, 'generation-cover'), { x: 0, y: 0, zoom: 1 }, 'prompt')
+  const target = await portSurfacePoint(page, 'generation-cover', 'input', 'prompt')
   await dragFromOutput(page, state, target)
 
   await expect(page.getByRole('dialog', { name: '继续连接' })).toHaveCount(0)
@@ -331,6 +388,23 @@ test('direct compatible port drop bypasses continuation chooser', async ({ page 
     source_node_id: 'script-source', target_node_id: 'generation-cover',
     source_port: 'out', target_port: 'prompt',
   })
+})
+
+test('compatible drag target consumes the shared card interaction presentation', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state, { width: 1440, height: 900 }, { enableCanvasInspection: true })
+  const target = await portSurfacePoint(page, 'generation-cover', 'input', 'prompt')
+  await beginOutputDrag(page, state, target)
+
+  const presentation = await page.locator('.canvas-surface').evaluate((element) => (
+    (element as HTMLElement & {
+      __revidCanvasInspection?: {
+        getNodeInteractionPresentation?: (nodeId: string) => Record<string, unknown> | null
+      }
+    }).__revidCanvasInspection?.getNodeInteractionPresentation?.('generation-cover') ?? null
+  ))
+  expect(presentation).toMatchObject({ state: 'compatible-drag', outlineTone: 'compatible', portOpacity: 1 })
+  await page.mouse.up()
 })
 
 test('direct drop skips a nearer incompatible port for the exact compatible target', async ({ page }) => {
@@ -346,7 +420,10 @@ test('direct drop skips a nearer incompatible port for the exact compatible targ
 
   const nearestIncompatible = nodeInputAnchor(mappedNode(state, result.id), { x: 0, y: 0, zoom: 1 }, 'in')
   await beginOutputDrag(page, state, nearestIncompatible)
-  await expect(page.locator('.connection-target-port[data-node-id="generation-cover"][data-port-id="prompt"]')).toBeVisible()
+  const compatiblePort = page.locator('.connection-target-port[data-node-id="generation-cover"][data-port-id="prompt"]')
+  await expect(compatiblePort).toBeVisible()
+  await expect(compatiblePort).toHaveCSS('width', '20px')
+  await expect(compatiblePort).toHaveCSS('height', '20px')
   await expect(page.locator('.connection-target-port[data-node-id="result-existing"][data-port-id="in"]')).toHaveCount(0)
   const sourceAnchor = nodeOutputAnchor(mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out')
   await expect(page.locator('.draft-layer .draft')).toHaveAttribute('d', buildConnectionPath(sourceAnchor, generationAnchor))
@@ -385,7 +462,7 @@ test('chooser stays inside compact workspace and retains a quiet reduced-motion 
 test('input drag connects backward to an existing compatible output in canonical orientation', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
-  const source = nodeOutputAnchor(mappedNode(state, 'script-source'), { x: 0, y: 0, zoom: 1 }, 'out')
+  const source = await portSurfacePoint(page, 'script-source', 'output', 'out')
   await dragFromInput(page, state, 'prompt', source)
 
   await expect(page.getByRole('dialog', { name: '继续连接' })).toHaveCount(0)

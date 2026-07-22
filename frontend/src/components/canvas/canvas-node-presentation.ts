@@ -4,6 +4,7 @@ import {
   resolveCanvasNodeMediaLayoutAspectRatio,
 } from '../../modules/canvas/node-layout'
 import type { CanvasNode } from '../../types/canvas'
+import { isMaterializedCardProjection } from './canvas-materialized-card-projection'
 
 export type CanvasNodeMediaPresentation =
   | { kind: 'image'; url: string; label: string; aspectRatio: number | null }
@@ -79,7 +80,9 @@ export function buildCanvasNodePresentation(node: CanvasNode): CanvasNodePresent
       chrome: { bodyKind: 'unsupported', label: node.title, labelPlacement: 'internal' },
     }
   }
-  const media = definition.capabilities.canPreviewMedia ? getMediaPresentation(node) : null
+  const media = definition.capabilities.canPreviewMedia || isMaterializedCardProjection(node)
+    ? getMediaPresentation(node)
+    : null
   const bodyKind: CanvasNodeBodyKind = isNodeGroupContainer(node)
     ? 'group'
     : media ? 'media' : 'authoring'
@@ -92,7 +95,7 @@ export function buildCanvasNodePresentation(node: CanvasNode): CanvasNodePresent
     inputPorts: definition.ports.filter((port) => port.direction === 'input'),
     outputPorts: definition.ports.filter((port) => port.direction === 'output'),
     media,
-    chrome: { bodyKind, label: node.title, labelPlacement: 'external' },
+    chrome: { bodyKind, label: node.title, labelPlacement: bodyKind === 'authoring' ? 'internal' : 'external' },
   }
 }
 

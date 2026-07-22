@@ -8,6 +8,7 @@ import CanvasConnectionLayer from './CanvasConnectionLayer.vue'
 import CanvasConnectionTargetPorts from './CanvasConnectionTargetPorts.vue'
 import CanvasGraphAccessPanel from './CanvasGraphAccessPanel.vue'
 import CanvasMediaToolbar from './CanvasMediaToolbar.vue'
+import CanvasResultContinuationSurface from './CanvasResultContinuationSurface.vue'
 import CanvasNodeSurfaceLayer from './CanvasNodeSurfaceLayer.vue'
 import CanvasPendingGenerationLayer from './CanvasPendingGenerationLayer.vue'
 import CanvasStoryboardNumberLayer from './CanvasStoryboardNumberLayer.vue'
@@ -33,26 +34,37 @@ import {
 } from './canvas-geometry'
 import { useCanvasStage } from './composables/use-canvas-stage'
 import { resolveGenerationContext } from '../../modules/canvas/generation-context'
-import { getGenerationMediaType } from '../../modules/canvas/node-registry'
+import { getAuthoringConnectionPorts, getGenerationMediaType } from '../../modules/canvas/node-registry'
 import { resolveGenerationResultVariants, resolveResultLineage, resultLineageProvenance, resultVariantProvenance } from '../../modules/canvas/generation-lineage'
 import { moveSelectionGenerationInput, resolveSelectionGenerationIntent, type SelectionGenerationMoveDirection } from '../../modules/canvas/selection-generation'
 import { resolveCanvasNodeContinuationTrigger } from './canvas-node-continuation-trigger'
+import {
+  CANVAS_MEDIA_TOOLBAR_HEIGHT_PX,
+  resolveCanvasMediaToolbarHorizontalPlacement,
+  resolveCanvasMediaToolbarVerticalPlacement,
+} from './canvas-media-toolbar-geometry'
 import { resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
+import { createConnectionContinuationCommand, resolveConnectionContinuationOptions } from '../../modules/canvas/connection-continuation'
 import { createArrangeGenerationLineageCommand } from '../../modules/canvas/generation-lineage-arrangement'
 import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import type { GenerationResultProjection } from '../../modules/canvas/generation-result-projection'
 import type { OwnedMediaActionTarget } from '../../modules/canvas/professional-action-registry'
 import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
+import { resolveCanvasCardWorkModel, type CanvasCardWorkModeId } from './canvas-card-work-model'
+import { canBranchFromImageResult, type ResultBranchMediaType } from '../../modules/canvas/resource-commands'
+import { createConnectNodesCommand } from '../../modules/canvas/canvas-commands'
 import { useCanvasStoryboardGroups } from './composables/use-canvas-storyboard-groups'
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; professionalActionsBlocked?: boolean; readonly?: boolean; resourcesOpen?: boolean
+  cardWorkBusy?: boolean; cardWorkCanGenerate?: boolean; cardWorkError?: string; cardWorkHasSource?: boolean; cardWorkModelLabel?: string; cardWorkParameterSummary?: readonly string[]; cardWorkSourceCount?: number
   composerAttachments?: readonly ProjectAsset[]; composerBusy?: boolean; composerCapabilityError?: string; composerCapabilityLoading?: boolean; composerModelId?: string; composerModelLabel?: string
   generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>; pendingGenerationResults?: readonly GenerationResultProjection[]
   mediaActionTarget?: OwnedMediaActionTarget | null; professionalActionIds?: readonly string[]
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
   actionError: '', capturePending: false, contextOverlayOpen: false, professionalActionsBlocked: false, readonly: false, resourcesOpen: false,
+  cardWorkBusy: false, cardWorkCanGenerate: false, cardWorkError: '', cardWorkHasSource: false, cardWorkModelLabel: '', cardWorkParameterSummary: () => [], cardWorkSourceCount: 0,
   composerAttachments: () => [], composerBusy: false, composerCapabilityError: '', composerCapabilityLoading: false, composerModelId: '', composerModelLabel: '',
   generationRuntimePresentations: () => new Map(), pendingGenerationResults: () => [],
   mediaActionTarget: null, professionalActionIds: () => [],
@@ -60,18 +72,29 @@ const props = withDefaults(defineProps<{
 })
 const emit = defineEmits<{
   activateContextSurface: []
+  cardGenerate: [nodeId: string, prompt: string, mode: CanvasCardWorkModeId]
+  cardOpenAssets: [nodeId: string, opener: HTMLElement]
+  cardUpload: [nodeId: string, file: File]
+  openAudioGenerationPreflight: []
   captureVideoFrame: [nodeId: string, file: File, timeSeconds: number, aspectRatio: number]
   contextSurfaceState: [open: boolean]
+  materializedCardPointerSelect: []
   openComposerResources: [opener: HTMLElement]
   openResources: [opener: HTMLElement, tab?: 'assets' | 'templates' | 'tasks']
   openVideoEditPreflight: [opener: HTMLElement]
   openProfessionalActions: [opener: HTMLElement, query?: string]
+  openNodeDetails: []
   openRevisions: [opener: HTMLElement]
   removeComposerAttachment: [assetId: string]
   retryCapabilities: []
+  branchResult: [mediaType: ResultBranchMediaType]
   submitScript: [brief: string]
 }>()
 const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
+const textAuthoringNodeId = ref('')
+const textWorkflow = ref<{ nodeId: string; mode: CanvasCardWorkModeId } | null>(null)
+const cardReferenceTargetNodeId = ref('')
+let cardReferenceCandidateSnapshot = ''
 function restoreGraphPanelTriggerFocus() {
   void nextTick(() => graphPanelTriggerRef.value?.focus({ preventScroll: true }))
 }
@@ -85,6 +108,9 @@ const {
   connectionPaths,
   connectionTargetPorts,
   connectionTargetStates,
+  hiddenPresentationNodeIds,
+  presentationConnections,
+  presentationNodes,
   closeConnectionContinuation,
   connectionContinuation,
   continuationStyle,
@@ -111,6 +137,7 @@ const {
   marqueeStyle,
   viewportCursor,
   retryProjectLoad,
+  selectNodeBehindOverlay,
   selectionAggregateHullStyle,
   selectionToolbarStyle,
   deleteSelection,
@@ -154,10 +181,12 @@ const {
   zoomPercent,
 } = useCanvasStage({
   getGenerationRuntimePresentations: () => props.generationRuntimePresentations,
+  getMediaToolbarNodeId: () => props.mediaActionTarget?.nodeId ?? null,
   getViewportInsets: () => props.viewportInsets,
   isProfessionalActionsBlocked: () => props.professionalActionsBlocked,
   isReadOnly: () => props.readonly,
   onGraphPanelClosed: restoreGraphPanelTriggerFocus,
+  onMaterializedCardPointerSelect: () => emit('materializedCardPointerSelect'),
   onOpenContextSurface: () => emit('activateContextSurface'),
   onOpenProfessionalActions: (opener) => emit('openProfessionalActions', opener),
 })
@@ -176,10 +205,52 @@ const mediaToolbarStyle = computed(() => {
     !target || props.readonly || props.contextOverlayOpen ||
     canvasStore.selectedNodeIds.length !== 1 || canvasStore.selectedNodeIds[0] !== target.nodeId
   ) return null
-  const node = canvasStore.findNodeById(target.nodeId)
-  return node ? { ...surfaceNodeRectStyle(node), height: '0px' } : null
+  const node = presentationNodes.value.find((candidate) => candidate.id === target.nodeId) ??
+    canvasStore.findNodeById(target.nodeId)
+  if (!node) return null
+  const style = surfaceNodeRectStyle(node)
+  const left = Number.parseFloat(style.left)
+  const nodeWidth = Number.parseFloat(style.width)
+  const top = Number.parseFloat(style.top)
+  const nodeHeight = Number.parseFloat(style.height)
+  const toolbarHorizontal = resolveCanvasMediaToolbarHorizontalPlacement({
+    insetLeft: props.viewportInsets.left,
+    insetRight: props.viewportInsets.right,
+    nodeLeft: left,
+    nodeWidth,
+    viewportWidth: stageRef.value?.clientWidth ?? window.innerWidth,
+  })
+  const showsAttachedWorkSurface = resolveCanvasCardWorkModel(node, {
+    isReadOnly: props.readonly,
+    isSelected: true,
+  }).showsAttachedWorkSurface
+  const toolbarVertical = resolveCanvasMediaToolbarVerticalPlacement({
+    composerHeight: showsAttachedWorkSurface ? 190 : undefined,
+    composerTop: showsAttachedWorkSurface
+      ? top + nodeHeight + 16 * canvasStore.viewport.zoom
+      : undefined,
+    insetBottom: props.viewportInsets.bottom,
+    insetTop: props.viewportInsets.top,
+    nodeHeight,
+    nodeTop: top,
+    viewportHeight: stageRef.value?.clientHeight ?? window.innerHeight,
+  })
+  if (!toolbarVertical) return null
+  return {
+    ...style,
+    left: `${toolbarHorizontal.left}px`,
+    top: `${toolbarVertical.top}px`,
+    width: `${toolbarHorizontal.width}px`,
+    height: `${CANVAS_MEDIA_TOOLBAR_HEIGHT_PX}px`,
+    '--canvas-media-toolbar-translate-y': '0px',
+  }
 })
 const continuationTrigger = computed(() => resolveCanvasNodeContinuationTrigger(canvasStore.nodes, canvasStore.selectedNodeIds, props.readonly || props.contextOverlayOpen))
+const resultContinuation = computed(() => {
+  if (props.readonly || props.contextOverlayOpen || canvasStore.selectedNodeIds.length !== 1) return null
+  const node = canvasStore.selectedNode
+  return node && canBranchFromImageResult(node) ? node : null
+})
 const selectionGenerationIntent = computed(() => resolveSelectionGenerationIntent(canvasStore.selectedNodes))
 const {
   canCreateStoryboardGroup,
@@ -263,7 +334,9 @@ const lineageNodes = computed(() => {
     ...(generationNode ? [{ key: `generation-${generationNode.id}`, label: 'G', node: generationNode, selected: false }] : []),
     ...variants.flatMap((variant) => {
       const node = canvasStore.findNodeById(variant.nodeId)
-      return node ? [{ key: `variant-${variant.connectionId}`, label: `V${variant.order}`, node, selected: variant.isSelected }] : []
+      return node && !hiddenPresentationNodeIds.value.has(node.id)
+        ? [{ key: `variant-${variant.connectionId}`, label: `V${variant.order}`, node, selected: variant.isSelected }]
+        : []
     }),
   ]
 })
@@ -404,6 +477,52 @@ async function composeAndReveal(mediaType: 'image' | 'video') {
   revealNode(nodeId)
 }
 
+async function handleTextCardMode(nodeId: string, mode: CanvasCardWorkModeId) {
+  if (props.readonly) return
+  canvasStore.selectNode(nodeId)
+  if (mode === 'direct-write') {
+    textWorkflow.value = null
+    textAuthoringNodeId.value = nodeId
+    await nextTick()
+    canvasSurfaceRef.value?.querySelector<HTMLTextAreaElement>(`.canvas-node-surface[data-node-id="${nodeId}"] textarea`)?.focus()
+    return
+  }
+  textAuthoringNodeId.value = ''
+  if (mode === 'text-to-video') textWorkflow.value = { nodeId, mode }
+  else if (mode === 'text-to-music') {
+    textWorkflow.value = null
+    emit('openAudioGenerationPreflight')
+  }
+}
+
+async function submitTextWorkflow(nodeId: string, prompt: string, mode: CanvasCardWorkModeId) {
+  if (props.readonly || textWorkflow.value?.nodeId !== nodeId || textWorkflow.value.mode !== mode) return
+  await canvasStore.setNodeContent(nodeId, prompt)
+  canvasStore.selectNode(nodeId)
+  textWorkflow.value = null
+  await nextTick()
+  if (mode === 'text-to-video') {
+    const source = canvasStore.findNodeById(nodeId)
+    const option = source
+      ? resolveConnectionContinuationOptions(source, 'out').find((candidate) => candidate.type === 'generation' && candidate.subtype === 'video')
+      : null
+    if (!source || !option) return
+    const command = createConnectionContinuationCommand(source, option, {
+      x: source.x + source.width,
+      y: source.y + source.height / 2,
+    }, 'downstream', undefined, canvasStore.nodes)
+    await canvasStore.dispatchCommand({ source: 'toolbar', command })
+    canvasStore.selectNode(command.nodes[0].id)
+    await nextTick()
+    revealNode(command.nodes[0].id)
+  }
+}
+
+watch(() => canvasStore.selectedNodeId, (nodeId) => {
+  if (textAuthoringNodeId.value && nodeId !== textAuthoringNodeId.value) textAuthoringNodeId.value = ''
+  if (textWorkflow.value && nodeId !== textWorkflow.value.nodeId) textWorkflow.value = null
+})
+
 function openNodeContinuation(nodeId: string, portId: string) {
   const node = canvasStore.findNodeById(nodeId)
   if (!node) return
@@ -456,6 +575,131 @@ function commitNodeContent(nodeId: string, content: string) {
   void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)
 }
 
+async function attachCardReference(targetNodeId: string, sourceNodeId: string) {
+  if (props.readonly) return
+  const target = canvasStore.findNodeById(targetNodeId)
+  const source = canvasStore.findNodeById(sourceNodeId)
+  if (!target || !source || target.isLocked) return
+  const ports = getAuthoringConnectionPorts(source, target)
+  if (!ports) return
+  await canvasStore.dispatchCommand({
+    source: 'toolbar',
+    command: {
+      type: 'connect-nodes',
+      sourceNodeId,
+      targetNodeId,
+      sourcePort: ports.sourcePort,
+      targetPort: ports.targetPort,
+    },
+  }).catch(() => undefined)
+  canvasStore.selectNode(targetNodeId)
+  cancelCardReferenceMode()
+  await nextTick()
+  stageRef.value?.focus({ preventScroll: true })
+}
+
+function resolveCardReferenceCandidateSnapshot(targetNodeId: string) {
+  const target = presentationNodes.value.find((node) => node.id === targetNodeId)
+  if (!target) return ''
+  return presentationNodes.value.flatMap((candidate) => {
+    const assetId = candidate.contentData?.asset_id
+    if (
+      candidate.id === target.id || typeof assetId !== 'string' || !assetId.trim() ||
+      !createConnectNodesCommand(
+        presentationNodes.value,
+        presentationConnections.value,
+        candidate.id,
+        target.id,
+      )
+    ) return []
+    return [JSON.stringify({
+      assetId,
+      id: candidate.id,
+      sourceTaskId: candidate.contentData?.source_task_id ?? null,
+      url: candidate.contentData?.url ?? null,
+    })]
+  }).sort().join('|')
+}
+
+function startCardReferenceMode(targetNodeId: string) {
+  const target = canvasStore.findNodeById(targetNodeId)
+  if (!target || props.readonly || target.isLocked || getGenerationMediaType(target) === null) return
+  cardReferenceCandidateSnapshot = resolveCardReferenceCandidateSnapshot(targetNodeId)
+  cardReferenceTargetNodeId.value = targetNodeId
+}
+
+function cancelCardReferenceMode() {
+  cardReferenceTargetNodeId.value = ''
+  cardReferenceCandidateSnapshot = ''
+}
+
+function forwardCardGenerate(nodeId: string, prompt: string, mode: CanvasCardWorkModeId) {
+  if (cardReferenceTargetNodeId.value === nodeId) cancelCardReferenceMode()
+  emit('cardGenerate', nodeId, prompt, mode)
+}
+
+function handleCardReferenceKeydown(event: KeyboardEvent) {
+  if (!cardReferenceTargetNodeId.value) return
+  const key = event.key.toLowerCase()
+  if (key === 'escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    cancelCardReferenceMode()
+    return
+  }
+  if ((event.ctrlKey || event.metaKey) && (key === 'z' || key === 'y')) {
+    cancelCardReferenceMode()
+  }
+}
+
+function handleCardReferencePointerDown(event: PointerEvent) {
+  if (
+    event.target instanceof Element &&
+    event.target.closest('.canvas-card-work-surface') &&
+    selectNodeBehindOverlay(event)
+  ) {
+    event.preventDefault()
+    event.stopPropagation()
+    return
+  }
+  if (!cardReferenceTargetNodeId.value || !(event.target instanceof Element)) return
+  if (event.target.closest('.canvas-card-reference-candidate, .canvas-card-work-surface')) return
+  event.preventDefault()
+  event.stopPropagation()
+  cancelCardReferenceMode()
+}
+
+watch([
+  () => canvasStore.nodes.map((node) => node.id).join('|'),
+  () => props.readonly,
+  () => props.resourcesOpen,
+  () => props.contextOverlayOpen,
+], () => {
+  const target = cardReferenceTargetNodeId.value
+  const targetNode = target ? canvasStore.findNodeById(target) : null
+  if (target && (
+    props.readonly || props.resourcesOpen || props.contextOverlayOpen || !targetNode ||
+    targetNode.isLocked || getGenerationMediaType(targetNode) === null
+  )) {
+    cancelCardReferenceMode()
+  }
+})
+watch(() => {
+  const target = cardReferenceTargetNodeId.value
+  return target ? resolveCardReferenceCandidateSnapshot(target) : ''
+}, (snapshot) => {
+  if (cardReferenceTargetNodeId.value && snapshot !== cardReferenceCandidateSnapshot) {
+    cancelCardReferenceMode()
+  }
+})
+watch(() => {
+  const target = cardReferenceTargetNodeId.value
+  return target ? props.generationRuntimePresentations.get(target)?.phase ?? '' : ''
+}, (phase) => {
+  if (phase === 'failed' || phase === 'timed_out') cancelCardReferenceMode()
+})
+watch(() => canvasStore.activeCanvasId, cancelCardReferenceMode)
+
 function adoptMediaAspectRatio(nodeId: string, aspectRatio: number) {
   canvasStore.setNodeMediaAspectRatio(nodeId, aspectRatio)
 }
@@ -474,6 +718,8 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
     :aria-description="readonly ? '只读审阅模式' : '可编辑画布'"
     aria-keyshortcuts="/ Tab Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+D Meta+D Control+G Meta+G Control+Shift+G Meta+Shift+G Control+L Meta+L Control+0 Meta+0 Control++ Meta++ Control+- Meta+- Alt+Shift+F Delete Backspace Escape ?"
     tabindex="0"
+    @keydown.capture="handleCardReferenceKeydown"
+    @pointerdown.capture="handleCardReferencePointerDown"
   >
     <p
       v-if="commandFeedback"
@@ -525,7 +771,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :readonly="readonly"
         :visible="areEdgesVisible"
       />
-      <CanvasPendingGenerationLayer :projections="pendingGenerationResults" :viewport="canvasStore.viewport" />
+      <CanvasPendingGenerationLayer :nodes="canvasStore.nodes" :projections="pendingGenerationResults" :viewport="canvasStore.viewport" />
       <div
         v-if="selectedVersionStack && selectedVersionStackStyle"
         class="canvas-media-version-stack"
@@ -543,16 +789,39 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
       />
 
       <CanvasNodeSurfaceLayer
+        :card-work-busy="cardWorkBusy"
+        :card-work-can-generate="cardWorkCanGenerate"
+        :card-work-error="cardWorkError"
+        :card-work-has-source="cardWorkHasSource"
+        :card-work-model-label="cardWorkModelLabel"
+        :card-work-parameter-summary="cardWorkParameterSummary"
+        :card-work-source-count="cardWorkSourceCount"
         :capture-pending="capturePending"
+        :connections="presentationConnections"
+        :generation-runtime-presentations="generationRuntimePresentations"
+        :hidden-node-ids="hiddenPresentationNodeIds"
         :continuation-trigger="continuationTrigger"
-        :nodes="canvasStore.nodes"
+        :nodes="presentationNodes"
         :selected-node-ids="canvasStore.selectedNodeIds"
         :readonly="readonly"
+        :reference-target-node-id="cardReferenceTargetNodeId"
         :surface-node-rect-style="surfaceNodeRectStyle"
+        :text-authoring-node-id="textAuthoringNodeId"
+        :text-workflow-mode="textWorkflow?.mode ?? ''"
+        :text-workflow-node-id="textWorkflow?.nodeId ?? ''"
+        @card-generate="forwardCardGenerate"
+        @card-open-assets="(nodeId, opener) => emit('cardOpenAssets', nodeId, opener)"
+        @card-reference="attachCardReference"
+        @card-reference-cancel="cancelCardReferenceMode"
+        @card-reference-start="startCardReferenceMode"
+        @card-upload="(nodeId, file) => emit('cardUpload', nodeId, file)"
         @commit-content="commitNodeContent"
         @continue-node="openNodeContinuation"
         @capture-frame="forwardCapturedVideoFrame"
         @media-metadata="adoptMediaAspectRatio"
+        @text-mode="(nodeId, mode) => handleTextCardMode(nodeId, mode)"
+        @text-workflow-cancel="textWorkflow = null"
+        @text-workflow-submit="submitTextWorkflow"
       />
       <CanvasMediaToolbar
         v-if="mediaToolbarStyle && mediaActionTarget"
@@ -560,7 +829,13 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :style="mediaToolbarStyle"
         :target="mediaActionTarget"
         @fullscreen="fullscreenSelectedMedia"
+        @inspect="emit('openNodeDetails')"
         @open-action="openProfessionalActionFromMedia"
+      />
+      <CanvasResultContinuationSurface
+        v-if="resultContinuation"
+        :style="surfaceNodeRectStyle(resultContinuation, 'composer')"
+        @branch="emit('branchResult', $event)"
       />
       <CanvasStoryboardNumberLayer :nodes="canvasStore.nodes" :surface-node-rect-style="surfaceNodeRectStyle" />
 
@@ -637,7 +912,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
       <div v-if="marqueeStyle" class="selection-marquee" :style="marqueeStyle" aria-hidden="true"></div>
 
       <CanvasSelectionToolbar
-        v-if="selectionToolbarStyle && !readonly && !contextOverlayOpen"
+        v-if="selectionToolbarStyle && !mediaToolbarStyle && !readonly && !contextOverlayOpen"
         :count="canvasStore.selectedNodeIds.length"
         :can-connect="canConnectSelection"
         :can-compose="canComposeGenerationSelection"
@@ -671,6 +946,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         @arrange="arrangeSelectionFromToolbar"
         @toggle-lock="toggleLockSelection('toolbar')"
         @delete="deleteSelection('toolbar')"
+        @inspect="emit('openNodeDetails')"
       />
 
       <div v-if="isVisibleMinimap" :ref="setMinimapRef" class="minimap" aria-label="小地图" @pointerdown.stop="handleMinimapPointerDown">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight, Clapperboard, Copy, Group, Hash, Link2, LockKeyhole, LockKeyholeOpen, RefreshCcw, Trash2, Ungroup, WandSparkles, Workflow } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRight, Clapperboard, Copy, Group, Hash, Link2, LockKeyhole, LockKeyholeOpen, PanelRightOpen, RefreshCcw, Trash2, Ungroup, WandSparkles, Workflow } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import type { StoryboardGroupSettings } from '../../modules/canvas/storyboard-group'
 import CanvasSelectionGenerationMenu from './CanvasSelectionGenerationMenu.vue'
@@ -49,6 +49,7 @@ const emit = defineEmits<{
   compose: [mediaType: 'image' | 'video']
   reorderComposeSource: [nodeId: string, direction: 'up' | 'down']
   delete: []
+  inspect: []
   toggleLock: []
 }>()
 const isArrangeOpen = ref(false)
@@ -134,6 +135,9 @@ onBeforeUnmount(() => {
 <template>
   <div ref="toolbarRef" class="selection-toolbar" role="toolbar" :aria-label="`${count} 个已选节点的操作`" @keydown.esc.stop="closeMenus">
     <span class="selection-count">已选 {{ count }}</span>
+    <button v-if="count === 1" type="button" aria-label="打开节点详情" title="打开节点详情" @click="$emit('inspect')">
+      <PanelRightOpen :size="16" aria-hidden="true" />
+    </button>
     <button v-if="canCreateStoryboard" type="button" aria-label="创建分镜组" title="创建分镜组" @click="$emit('createStoryboard')">
       <Clapperboard :size="16" aria-hidden="true" />
     </button>

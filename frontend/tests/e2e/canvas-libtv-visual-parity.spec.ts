@@ -4,10 +4,19 @@ import { resolve } from 'node:path'
 import { canvasNodeWorldRect } from '../../src/components/canvas/canvas-geometry'
 import { buildCanvasNodePresentation, canvasNodeVisualSize } from '../../src/components/canvas/canvas-node-presentation'
 import type { CanvasNode } from '../../src/types/canvas'
-import { addEarlierVariant, createResourceMockState, openResourceWorkspace } from './canvas-resource-generation-fixture'
+import { addEarlierVariant, createResourceMockState, documentPatches, openResourceWorkspace } from './canvas-resource-generation-fixture'
 import { resolveOwnedMediaActionTarget } from '../../src/modules/canvas/professional-action-registry'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-015-final')
+
+function exposeCanonicalResult(state: ReturnType<typeof createResourceMockState>) {
+  const source = state.documents['canvas-first'].nodes.find((node) => node.id === 'generation-cover')!
+  const content = source.content as Record<string, unknown>
+  delete content.generation_status
+  delete content.generation_task_id
+  delete content.result_materialized_task_id
+  state.tasks = state.tasks.filter((task) => task.canvas_node_id !== 'generation-cover')
+}
 
 test('text, generation, and result nodes expose semantic presentation geometry', () => {
   const base = { x: 120, y: 80, width: 320, height: 180, title: 'Node', contentData: { serialization_version: 1 } }
@@ -18,8 +27,8 @@ test('text, generation, and result nodes expose semantic presentation geometry',
   expect(buildCanvasNodePresentation(text).visualKind).toBe('text')
   expect(buildCanvasNodePresentation(generation).visualKind).toBe('generation')
   expect(buildCanvasNodePresentation(result)).toMatchObject({ visualKind: 'result', media: { aspectRatio: 16 / 9 } })
-  expect(canvasNodeVisualSize(text).height).toBeLessThanOrEqual(150)
-  expect(canvasNodeVisualSize(generation).height).toBeLessThanOrEqual(165)
+  expect(canvasNodeVisualSize(text).height).toBe(160)
+  expect(canvasNodeVisualSize(generation).height).toBe(160)
   expect(canvasNodeVisualSize(result)).toEqual({ width: 320, height: 180 })
   expect(canvasNodeWorldRect(text, 'label').top).toBeLessThan(text.y)
   expect(canvasNodeWorldRect(text, 'composer').top).toBeGreaterThan(text.y + canvasNodeVisualSize(text).height)
@@ -27,6 +36,7 @@ test('text, generation, and result nodes expose semantic presentation geometry',
 
 test('result media has one visible surface, keeps its ratio, and visible edges stay passive', async ({ page }) => {
   const state = createResourceMockState()
+  exposeCanonicalResult(state)
   const result = state.documents['canvas-first'].nodes.find((node) => node.id === 'result-existing')!
   delete (result.content as Record<string, unknown>).width
   delete (result.content as Record<string, unknown>).height
@@ -56,15 +66,42 @@ test('result media has one visible surface, keeps its ratio, and visible edges s
     return { borderWidth: Number.parseFloat(style.borderTopWidth), radius: Number.parseFloat(style.borderTopLeftRadius) }
   })
   expect(viewportStyle.borderWidth).toBe(1)
-  expect(viewportStyle.radius).toBeGreaterThanOrEqual(6)
-  expect(viewportStyle.radius).toBeLessThanOrEqual(8)
+  expect(viewportStyle.radius).toBe(12)
   const resolution = page.getByLabel('媒体分辨率')
   await expect(resolution).toBeVisible()
   await expect(resolution).toHaveText(/\d+ × \d+/)
+  const metadataHeader = await resolution.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    const viewport = element.closest('.canvas-node-media')?.querySelector('.canvas-node-media__viewport')?.getBoundingClientRect()
+    const style = getComputedStyle(element)
+    return {
+      parentClass: element.parentElement?.className ?? '',
+      rect: { bottom: rect.bottom, right: rect.right },
+      viewport: viewport ? { right: viewport.right, top: viewport.top } : null,
+      background: style.backgroundColor,
+      backdropFilter: style.backdropFilter,
+      borderWidth: Number.parseFloat(style.borderTopWidth),
+      radius: Number.parseFloat(style.borderTopLeftRadius),
+    }
+  })
+  expect(metadataHeader.parentClass).toContain('canvas-node-media')
+  expect(metadataHeader.parentClass).not.toContain('viewport')
+  expect(metadataHeader.viewport).not.toBeNull()
+  expect(metadataHeader.rect.right).toBeCloseTo(metadataHeader.viewport!.right, 0)
+  expect(metadataHeader.viewport!.top - metadataHeader.rect.bottom).toBeGreaterThanOrEqual(4)
+  expect(metadataHeader.viewport!.top - metadataHeader.rect.bottom).toBeLessThanOrEqual(8)
+  expect(metadataHeader.background).toBe('rgba(0, 0, 0, 0)')
+  expect(metadataHeader.backdropFilter).toBe('none')
+  expect(metadataHeader.borderWidth).toBe(0)
+  expect(metadataHeader.radius).toBe(0)
   await expect(page.locator('.connection-hit')).toHaveCSS('pointer-events', 'stroke')
   await expect(page.locator('.connection-layer')).toHaveCSS('pointer-events', 'none')
   await expect(page.locator('.connection-flow')).toHaveCount(0)
   const activeEdge = page.locator('.connection-line.active').first()
+  await expect(activeEdge).toHaveCSS('stroke-width', '2px')
+  await expect(page.locator('.connection-hit').first()).toHaveCSS('stroke-width', '20px')
+  await expect(activeEdge).not.toHaveAttribute('marker-end', /.+/)
+  await expect(page.locator('#canvas-edge-arrow')).toHaveCount(0)
   await expect(activeEdge).toHaveCSS('pointer-events', 'none')
   await expect(activeEdge).toHaveCSS('stroke-dasharray', 'none')
   await page.locator('.connection-hit').first().focus()
@@ -73,9 +110,26 @@ test('result media has one visible surface, keeps its ratio, and visible edges s
   await expect(selectedFlow).toHaveCount(1)
   await expect(selectedFlow).toBeVisible()
   await expect(selectedFlow).toHaveCSS('animation-name', /canvas-connection-flow/)
+  await expect(selectedFlow).toHaveCSS('animation-duration', '3s')
   await expect(selectedFlow).toHaveCSS('pointer-events', 'none')
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'canvas-media-and-passive-edges.png'), fullPage: true })
+})
+
+test('edge hover owns one localized flow and clears without graph mutation', async ({ page }) => {
+  const state = createResourceMockState()
+  exposeCanonicalResult(state)
+  await openResourceWorkspace(page, state)
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  const baselinePatches = documentPatches(state).length
+
+  await page.locator('.connection-hit').first().hover({ force: true })
+  const hoverFlow = page.locator('.connection-flow[data-flow-reason="hover"]')
+  await expect(hoverFlow).toHaveCount(1)
+  await expect(hoverFlow).toHaveCSS('animation-duration', '3s')
+  await page.mouse.move(1, 1)
+  await expect(hoverFlow).toHaveCount(0)
+  expect(documentPatches(state)).toHaveLength(baselinePatches)
 })
 
 test('owned media action target fails closed on project, owner, status, and URL drift', () => {
@@ -126,6 +180,9 @@ test('selected owned image exposes contextual actions without fabricating unsupp
   for (const name of ['高清放大', '扩展画面', '局部重绘', '擦除区域', '主体抠图', '图片拆分', '下载媒体', '全屏查看']) {
     await expect(toolbar.getByLabel(name)).toBeVisible()
   }
+  for (const name of ['高清放大', '扩展画面', '多角度', '光影控制', '局部重绘', '擦除区域', '主体抠图', '图片拆分', '画笔', '裁剪']) {
+    await expect(toolbar.getByText(name, { exact: true })).toBeVisible()
+  }
   for (const name of ['多角度', '光影控制', '画笔', '裁剪']) {
     await expect(toolbar.getByLabel(name)).toBeDisabled()
   }
@@ -137,14 +194,17 @@ test('selected owned image exposes contextual actions without fabricating unsupp
     const mediaRect = document.querySelector<HTMLElement>('.canvas-node-surface[data-node-id="result-existing"]')!.getBoundingClientRect()
     return {
       bottomGap: mediaRect.top - toolbarRect.bottom,
-      leftDelta: Math.abs(mediaRect.left - toolbarRect.left),
-      widthDelta: Math.abs(mediaRect.width - toolbarRect.width),
+      centerDelta: Math.abs((mediaRect.left + mediaRect.width / 2) - (toolbarRect.left + toolbarRect.width / 2)),
+      toolbarWidth: toolbarRect.width,
+      widthRatio: toolbarRect.width / mediaRect.width,
     }
   })
-  expect(geometry.bottomGap).toBeGreaterThanOrEqual(6)
-  expect(geometry.bottomGap).toBeLessThanOrEqual(10)
-  expect(geometry.leftDelta).toBeLessThanOrEqual(1)
-  expect(geometry.widthDelta).toBeLessThanOrEqual(1)
+  expect(geometry.bottomGap).toBeGreaterThanOrEqual(26)
+  expect(geometry.bottomGap).toBeLessThanOrEqual(34)
+  expect(geometry.centerDelta).toBeLessThanOrEqual(2)
+  expect(geometry.toolbarWidth).toBeCloseTo(900, 0)
+  expect(geometry.widthRatio).toBeGreaterThanOrEqual(2.75)
+  expect(geometry.widthRatio).toBeLessThanOrEqual(2.9)
 
   await page.evaluate(() => {
     Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
@@ -239,7 +299,7 @@ test('16:9, 1:1, and 9:16 media remain recognizable without stretching', async (
     const result = state.documents['canvas-first'].nodes.find((node) => node.id === 'result-existing')!
     Object.assign(result.content as Record<string, unknown>, { url: item.url, width: item.width, height: item.height })
     await openResourceWorkspace(page, state)
-    const image = page.getByRole('img', { name: '图片结果' })
+    const image = page.getByRole('img', { name: '图片素材' })
     await expect(image).toBeVisible()
     const metrics = await image.evaluate((element: HTMLImageElement) => ({
       naturalWidth: element.naturalWidth,
@@ -251,7 +311,7 @@ test('16:9, 1:1, and 9:16 media remain recognizable without stretching', async (
     expect(metrics).toMatchObject({ naturalWidth: item.width, naturalHeight: item.height, objectFit: 'cover' })
     expect(metrics.surfaceRatio).toBeCloseTo(item.width / item.height, 1)
     expect(Math.abs(metrics.naturalWidth / metrics.naturalHeight - item.width / item.height)).toBeLessThan(1 / Math.max(item.width, item.height))
-    await expect(page.getByRole('img', { name: '图片结果' })).toHaveCount(1)
+    await expect(page.getByRole('img', { name: '图片素材' })).toHaveCount(1)
   }
 })
 
@@ -262,7 +322,7 @@ test('portrait media context menu resolves its complete visible surface', async 
     url: 'https://media.revid.test/portrait.png', width: 180, height: 320,
   })
   await openResourceWorkspace(page, state)
-  const image = page.getByRole('img', { name: '图片结果' })
+  const image = page.getByRole('img', { name: '图片素材' })
   await expect(image).toBeVisible()
   const surface = image.locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " canvas-node-surface ")]')
   const box = await surface.boundingBox()
@@ -282,9 +342,9 @@ test('minimap centers portrait media from canonical visible bounds', async ({ pa
   })
   await openResourceWorkspace(page, state)
 
-  await page.getByRole('button', { name: '定位到 历史图片生成结果' }).click()
+  await page.getByRole('button', { name: '定位到 封面生成' }).click()
 
-  const image = page.getByRole('img', { name: '图片结果' })
+  const image = page.getByRole('img', { name: '图片素材' })
   const surface = image.locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " canvas-node-surface ")]')
   const [canvasBox, surfaceBox] = await Promise.all([
     page.locator('.canvas-surface').boundingBox(),
@@ -364,7 +424,7 @@ test('dense overview keeps media recognizable while idle edges recede at 36% and
     )
   }
   await openResourceWorkspace(page, state, { width: 1440, height: 900 })
-  await expect(page.locator('.connection-line.active')).toHaveCount(72)
+  await expect(page.locator('.connection-line.active')).toHaveCount(48)
   await expect(page.locator('.canvas-node-surface.is-media')).toHaveCount(24)
 
   const zoom = page.getByLabel('缩放百分比')
@@ -374,11 +434,10 @@ test('dense overview keeps media recognizable while idle edges recede at 36% and
     await expect(zoom).toHaveValue(String(percent))
     const metrics = await page.evaluate(() => {
       const edge = document.querySelector<SVGPathElement>('.connection-line.active')!
-      const marker = document.querySelector<SVGMarkerElement>('#canvas-edge-arrow')!
       const media = document.querySelector<HTMLElement>('.canvas-node-surface.is-media')!.getBoundingClientRect()
       const style = getComputedStyle(edge)
       return {
-        markerWidth: Number(marker.getAttribute('markerWidth')),
+        markerCount: document.querySelectorAll('#canvas-edge-arrow').length,
         mediaHeight: media.height,
         mediaWidth: media.width,
         opacity: Number(style.opacity),
@@ -389,7 +448,7 @@ test('dense overview keeps media recognizable while idle edges recede at 36% and
     expect(metrics.mediaHeight).toBeCloseTo(180 * percent / 100, 0)
     expect(metrics.opacity).toBeLessThanOrEqual(percent === 36 ? 0.6 : 0.45)
     expect(metrics.strokeWidth).toBeLessThanOrEqual(percent === 36 ? 1.2 : 1)
-    expect(metrics.markerWidth).toBeLessThanOrEqual(percent === 36 ? 5 : 4)
+    expect(metrics.markerCount).toBe(0)
   }
 })
 
@@ -448,7 +507,18 @@ test('accepted viewport matrix retains desktop editing and mobile review-only hi
     await expect(stage).toHaveAttribute('aria-description', viewport.readonly ? '只读审阅模式' : '可编辑画布')
     await stage.focus()
     await page.keyboard.press('Control+0')
-    await expect(page.getByRole('img', { name: '图片结果' })).toBeVisible()
+    await expect(page.getByRole('img', { name: '图片素材' })).toBeVisible()
+    const resolution = page.getByLabel('媒体分辨率').first()
+    await expect(resolution).toBeVisible()
+    const [resolutionBox, mediaBox] = await Promise.all([
+      resolution.boundingBox(),
+      resolution.locator('xpath=..').locator('.canvas-node-media__viewport').boundingBox(),
+    ])
+    if (!resolutionBox || !mediaBox) throw new Error(`${viewport.name} media header geometry is unavailable`)
+    expect(resolutionBox.x + resolutionBox.width).toBeCloseTo(mediaBox.x + mediaBox.width, 0)
+    expect(resolutionBox.y + resolutionBox.height).toBeLessThanOrEqual(mediaBox.y)
+    expect(resolutionBox.x).toBeGreaterThanOrEqual(0)
+    expect(resolutionBox.x + resolutionBox.width).toBeLessThanOrEqual(viewport.width)
     if (viewport.width === 920) {
       await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
       await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()

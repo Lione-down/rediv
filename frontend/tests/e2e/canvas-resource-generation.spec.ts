@@ -294,7 +294,7 @@ test('mock provider failure remains durable, no-charge, no-result, and never aut
 test('resource and generation drawers are keyboard complete at desktop and 920px', async ({ page }) => {
   const desktopState = createResourceMockState()
   await openResourceWorkspace(page, desktopState)
-  await openResources(page)
+  const desktopTrigger = await openResources(page)
   const panel = page.getByRole('complementary', { name: '项目资源' })
   const panelBox = await panel.boundingBox()
   expect(panelBox?.width).toBeGreaterThanOrEqual(280)
@@ -325,6 +325,12 @@ test('resource and generation drawers are keyboard complete at desktop and 920px
   }, dragStart + 64)
   expect(Number(await separator.getAttribute('aria-valuenow'))).toBe(widthAfterCancel)
   await expectNoSeriousAxeFindings(page)
+  const desktopPatchesBeforeEscape = documentPatches(desktopState).length
+  await panel.getByRole('tab', { name: '项目资产' }).focus()
+  await page.keyboard.press('Escape')
+  await expect(panel).toHaveCount(0)
+  await expect(desktopTrigger).toBeFocused()
+  expect(documentPatches(desktopState)).toHaveLength(desktopPatchesBeforeEscape)
 
   const narrowState = createResourceMockState()
   await page.unrouteAll({ behavior: 'wait' })

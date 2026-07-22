@@ -73,8 +73,8 @@ test('runtime presentation bridges local submission and then yields to the newes
   expect(running.get(node.id)).toMatchObject({ phase: 'running', label: '模型生成中' })
   const card = resolveCanvasAuthoringCardPresentation(node, running.get(node.id))!
   expect(card.lifecycle).toMatchObject({ tone: 'progress', label: '模型生成中' })
-  expect(card.visualHeight).toBe(128)
-  expect(card.slots.status).toEqual({ x: 0, y: 98, width: 340, height: 30 })
+  expect(card.visualHeight).toBe(160)
+  expect(card.slots.status).toEqual({ x: 0, y: 130, width: 340, height: 30 })
   expect(changedGenerationRuntimeNodeIds(queued, running)).toEqual(['generation-cover'])
   expect(changedGenerationRuntimeNodeIds(running, new Map(running))).toEqual([])
 })

@@ -367,8 +367,10 @@ test('920px result branch disclosure and generation drawer stay in bounds', asyn
   await mkdir(bridgeEvidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(bridgeEvidenceDirectory, 'compact-v1-to-r1-920x900.png'), fullPage: true })
   await page.screenshot({ path: resolve(multiOriginEvidenceDirectory, 'origin-link-compact-920x900.png'), fullPage: true })
-  await page.getByRole('textbox', { name: '生成提示词' }).fill('保留海岸构图，增强远处雾气层次。')
-  await page.getByRole('button', { name: '开始图片生成' }).click()
+  await page.getByRole('button', { name: '关闭节点详情' }).click()
+  await expect(page.locator('.n-drawer:visible')).toHaveCount(0)
+  await page.getByRole('textbox', { name: '卡片生成提示词' }).fill('保留海岸构图，增强远处雾气层次。')
+  await page.getByRole('button', { name: '在当前卡片生成' }).click()
   await expect.poll(() => state.requests.filter((item) => item.path === '/api/image-generate').length).toBe(1)
   expect(state.requests.find((item) => item.path === '/api/image-generate')?.body).toEqual({
     project_id: PROJECT_ID,

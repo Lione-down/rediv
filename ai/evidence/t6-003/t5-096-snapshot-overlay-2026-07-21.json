@@ -1,0 +1,27 @@
+{
+  "task": "T6-003",
+  "reason": "Human-approved canonical authoring cards keep their internal hierarchy, while ready media now shares one external title and decoded-resolution header instead of an internal resolution pill.",
+  "source_manifest": "ai/evidence/t5-096/revid-review-evidence-2026-07-20.json",
+  "files": [
+    {
+      "name": "revid-populated-1440x900-fit.png",
+      "snapshot_sha256": "dd9150824c27768528207378269bb16a34a76fe9a857190c87be1e325233676f"
+    },
+    {
+      "name": "revid-populated-1366x768-fit.png",
+      "snapshot_sha256": "67e75749efde743d84360084ca03927200afef455929433f7fbbd0e7c34b8d5a"
+    },
+    {
+      "name": "revid-populated-920x900-fit.png",
+      "snapshot_sha256": "68b88df0d98760c6abee4d90d9d548066252795710c054d6861b96653df1f10b"
+    },
+    {
+      "name": "revid-image-selected-1440x900-100pct.png",
+      "snapshot_sha256": "0851a5ab780eba3e36770c55a1557e99ee2c5daabbf5ea06e8d2056a3e87ed48"
+    },
+    {
+      "name": "revid-image-selected-1440x900-200pct.png",
+      "snapshot_sha256": "126f802254b6954cd0b6e8da19b2b23c419af1cfb7f6620d12ff770a0547e51e"
+    }
+  ]
+}

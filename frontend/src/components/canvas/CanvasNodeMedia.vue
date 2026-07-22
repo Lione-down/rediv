@@ -103,9 +103,9 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
           <Camera :size="14" aria-hidden="true" />{{ isCapturing || capturePending ? '正在截取' : '截取当前帧' }}
         </button>
         <span v-if="captureError" class="canvas-node-media__capture-error" role="alert">{{ captureError }}</span>
-        <span v-if="state === 'ready' && resolutionLabel" class="canvas-node-media__metadata" aria-label="媒体分辨率">{{ resolutionLabel }}</span>
       </template>
     </div>
+    <span v-if="state === 'ready' && resolutionLabel" class="canvas-node-media__metadata" aria-label="媒体分辨率">{{ resolutionLabel }}</span>
     <CanvasVideoKeyframeRail v-if="media.kind === 'video' && canReadVideoFrames && state === 'ready'" :current-time="currentTime" :placement="keyframeRailPlacement" :src="media.url" @seek="seekToFrame" />
   </div>
 </template>
@@ -139,7 +139,7 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
 .canvas-node-media__capture:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 .canvas-node-media__capture:disabled { cursor: wait; opacity: 0.72; }
 .canvas-node-media__capture-error { position: absolute; z-index: 2; top: 46px; right: 8px; max-width: calc(100% - 16px); padding: 6px 8px; border-radius: var(--v2-radius-sm); color: var(--v2-danger); background: var(--v2-surface-2); font-size: 11px; }
-.canvas-node-media__metadata { position: absolute; z-index: 2; right: 8px; bottom: 8px; min-height: 20px; padding: 0 7px; border: 1px solid var(--v2-border-subtle); border-radius: var(--radius-pill); color: var(--v2-text-secondary); background: color-mix(in oklch, var(--v2-surface-1) 84%, transparent); font-size: 10px; font-variant-numeric: tabular-nums; line-height: 18px; white-space: nowrap; backdrop-filter: blur(8px); }
+.canvas-node-media__metadata { position: absolute; z-index: 2; top: -22px; right: 0; min-height: 16px; padding: 0; border: 0; border-radius: 0; color: var(--v2-text-secondary); background: transparent; font-size: 10px; font-variant-numeric: tabular-nums; line-height: 16px; white-space: nowrap; backdrop-filter: none; }
 .canvas-node-media__message { position: absolute; z-index: 1; padding: calc(8px * var(--canvas-surface-zoom, 1)) calc(12px * var(--canvas-surface-zoom, 1)); border-radius: calc(var(--v2-radius-sm) * var(--canvas-surface-zoom, 1)); color: var(--v2-text-secondary); background: var(--v2-surface-2); font-size: calc(12px * var(--canvas-surface-zoom, 1)); }
 .canvas-node-media__message.is-error { color: var(--v2-danger); }
 </style>

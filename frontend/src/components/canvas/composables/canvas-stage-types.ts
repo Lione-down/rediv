@@ -41,10 +41,12 @@ export interface LeaferPointerEvent { target?: unknown; origin?: NativePointerLi
 
 export interface CanvasStageOptions {
   getGenerationRuntimePresentations?: GenerationRuntimePresentationGetter
+  getMediaToolbarNodeId?: () => string | null
   getViewportInsets?: () => Partial<ViewportInsets>
   isProfessionalActionsBlocked?: () => boolean
   isReadOnly?: () => boolean
   onGraphPanelClosed?: () => void
+  onMaterializedCardPointerSelect?: () => void
   onOpenContextSurface?: () => void
   onOpenProfessionalActions?: (opener: HTMLElement) => void
 }

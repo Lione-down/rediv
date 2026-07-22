@@ -150,7 +150,7 @@ test('selection, editing, locked content, and supported viewports remain usable'
       await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
       await page.getByRole('button', { name: '选择并定位 合并四路上下文生成' }).click()
       await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
-      await expect(page.getByRole('region', { name: '节点内容编辑器' })).toBeVisible()
+      await expect(page.getByRole('textbox', { name: '卡片生成提示词' })).toBeVisible()
       if (viewport.width === 920) {
         const drawer = page.locator('.n-drawer:visible')
         await expect.poll(async () => {
@@ -162,7 +162,7 @@ test('selection, editing, locked content, and supported viewports remain usable'
         await expect(page.locator('.selection-toolbar')).toBeVisible()
       }
     } else {
-      await expect(page.getByRole('region', { name: '节点内容编辑器' })).toHaveCount(0)
+      await expect(page.getByRole('textbox', { name: '卡片生成提示词' })).toHaveCount(0)
       await expect(page.locator('.selection-toolbar')).toHaveCount(0)
       await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
       await page.getByRole('button', { name: '选择并定位 合并四路上下文生成' }).click()

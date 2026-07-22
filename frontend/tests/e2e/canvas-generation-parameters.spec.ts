@@ -430,7 +430,7 @@ test('readonly parameters remain reviewable and offline capability loading block
   offlineState.capabilitiesOutcome = 'failure'
   await openResourceWorkspace(page, offlineState)
   await selectNode(page, '封面生成')
-  await expect(page.getByRole('alert').first()).toContainText('capability')
+  await expect(page.getByRole('alert').first()).toContainText('模型服务暂不可用，请重试。')
   await expect(page.getByRole('button', { name: '开始图片生成' })).toBeDisabled()
   expect(offlineState.requests.filter((item) => item.path === '/api/image-generate')).toHaveLength(0)
   expect(offlineState.quotas.image).toBe(4)

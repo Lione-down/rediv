@@ -32,11 +32,11 @@ test('presentation exposes every registry port for generation nodes', () => {
   expect(presentation.chrome).toEqual({
     bodyKind: 'authoring',
     label: '节点',
-    labelPlacement: 'external',
+    labelPlacement: 'internal',
   })
 })
 
-test('supported authoring, media, and group nodes expose content-shaped external-label chrome', () => {
+test('canonical authoring uses an internal hierarchy while media and groups retain external labels', () => {
   expect(buildCanvasNodePresentation(node({
     type: 'script',
     title: '剧情脚本',
@@ -44,7 +44,7 @@ test('supported authoring, media, and group nodes expose content-shaped external
   })).chrome).toEqual({
     bodyKind: 'authoring',
     label: '剧情脚本',
-    labelPlacement: 'external',
+    labelPlacement: 'internal',
   })
 
   expect(buildCanvasNodePresentation(node({
@@ -68,9 +68,9 @@ test('supported authoring, media, and group nodes expose content-shaped external
   })
 })
 
-test('long script surfaces retain observed prompt-card height without changing short cards', () => {
-  expect(canvasNodeVisualSize(node({ content: '短镜头。', height: 260 }))).toEqual({ width: 320, height: 120 })
-  expect(canvasNodeVisualSize(node({ content: '中'.repeat(100), height: 260 }))).toEqual({ width: 320, height: 180 })
+test('authoring surfaces retain the approved compact, medium, and long height tiers', () => {
+  expect(canvasNodeVisualSize(node({ content: '短镜头。', height: 260 }))).toEqual({ width: 320, height: 160 })
+  expect(canvasNodeVisualSize(node({ content: '中'.repeat(100), height: 260 }))).toEqual({ width: 320, height: 190 })
   expect(canvasNodeVisualSize(node({ content: '长'.repeat(180), height: 260 }))).toEqual({ width: 320, height: 220 })
 })
 

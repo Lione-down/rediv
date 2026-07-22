@@ -1,7 +1,8 @@
 import { computed } from 'vue'
 import type { CanvasConnection, CanvasNode } from '../../../types/canvas'
 import { getAuthoringConnectionPorts, resolveNodeDefinition, type NodePortDirection } from '../../../modules/canvas/node-registry'
-import { buildConnectionPath, nodePortWorldAnchor, worldToSurface, type ViewportState } from '../canvas-geometry'
+import { nodePortWorldAnchor, worldToSurface, type ViewportState } from '../canvas-geometry'
+import { buildConnectionPath } from '../canvas-connection-path'
 
 interface CanvasConnectionPresentationOptions {
   getConnections: () => CanvasConnection[]
@@ -40,16 +41,15 @@ export function useCanvasConnectionPresentation(options: CanvasConnectionPresent
       const source = nodesById.get(connection.from)
       const target = nodesById.get(connection.to)
       if (!source || !target) return []
+      const sourceAnchor = nodePortWorldAnchor(source, 'output', connection.sourcePort)
+      const targetAnchor = nodePortWorldAnchor(target, 'input', connection.targetPort)
       return [{
         active: connection.active,
         connection,
         id: connection.id,
-        source: nodePortWorldAnchor(source, 'output', connection.sourcePort),
-        target: nodePortWorldAnchor(target, 'input', connection.targetPort),
-        path: buildConnectionPath(
-          nodePortWorldAnchor(source, 'output', connection.sourcePort),
-          nodePortWorldAnchor(target, 'input', connection.targetPort),
-        ),
+        source: sourceAnchor,
+        target: targetAnchor,
+        path: buildConnectionPath(sourceAnchor, targetAnchor),
       }]
     })
   })

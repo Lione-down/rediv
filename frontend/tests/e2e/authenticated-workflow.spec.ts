@@ -89,7 +89,7 @@ test('authenticated project and Canvas generation workflow survives reload', asy
   await page.reload()
   await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
   await expect(page.getByRole('button', { name: '定位到 生成封面' })).toBeVisible()
-  await expect(page.locator('.connection-line')).toHaveCount(2)
+  await expect(page.locator('.connection-line')).toHaveCount(1)
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await expect(page.getByRole('button', { name: '选择并定位 图片生成结果' })).toBeVisible()
   expect(state.authenticatedRequests).toContain('GET /me')

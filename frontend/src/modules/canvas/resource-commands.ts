@@ -121,6 +121,37 @@ export function createAssetInsertCommand(
   return { type: 'insert-graph', nodes: [node], connections: [] }
 }
 
+export function createCardSourceReferenceCommand(
+  asset: Asset,
+  targetNode: CanvasNode,
+  existingNodes: readonly CanvasNode[] = [],
+): InsertGraphCommand | null {
+  if (asset.type !== 'image' || targetNode.isLocked) return null
+  const insertion = createAssetInsertCommand(asset, {
+    x: targetNode.x - 416,
+    y: targetNode.y,
+  })
+  const sourceNode = insertion.nodes[0]
+  const position = findFirstUnoccupiedPosition(sourceNode, sourceNode, existingNodes, [targetNode.id])
+  const positionedSource = { ...sourceNode, ...position }
+  const ports = getAuthoringConnectionPorts(positionedSource, targetNode)
+  if (!ports) return null
+  return {
+    type: 'insert-graph',
+    nodes: [positionedSource],
+    connections: [{
+      id: createCanvasEntityId(),
+      from: positionedSource.id,
+      to: targetNode.id,
+      sourcePort: ports.sourcePort,
+      targetPort: ports.targetPort,
+      status: 'active',
+      active: true,
+      metadata: { input_order: 1, source_acquisition: 'card' },
+    }],
+  }
+}
+
 export function createVideoFrameAssetInsertCommand(
   sourceNode: CanvasNode,
   asset: Asset,

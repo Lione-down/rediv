@@ -87,13 +87,19 @@ test('selected playable video captures one PNG and inserts one durable image nod
   const toolbarRect = await page.locator('.selection-toolbar').boundingBox()
   const videoRect = await video.boundingBox()
   const railRect = await rail.boundingBox()
+  const resolutionRect = await video.locator('xpath=ancestor::div[contains(@class,"canvas-node-media")]').getByLabel('媒体分辨率').boundingBox()
   const inspectorRect = await page.locator('.context-panel-shell').boundingBox()
   expect(toolbarRect).not.toBeNull()
   expect(videoRect).not.toBeNull()
   expect(railRect).not.toBeNull()
+  expect(resolutionRect).not.toBeNull()
   expect(inspectorRect).not.toBeNull()
-  expect(boxesOverlap(toolbarRect!, videoRect!)).toBe(false)
+  expect(boxesOverlap(toolbarRect!, videoRect!), JSON.stringify({
+    toolbarRect, toolbarStyle: await page.locator('.selection-toolbar').getAttribute('style'), videoRect,
+  })).toBe(false)
   expect(boxesOverlap(toolbarRect!, railRect!)).toBe(false)
+  expect(boxesOverlap(resolutionRect!, railRect!)).toBe(false)
+  expect(boxesOverlap(resolutionRect!, videoRect!)).toBe(false)
   expect(boxDistance(toolbarRect!, videoRect!), JSON.stringify({
     inspectorRect, railRect, toolbarRect, toolbarStyle: await page.locator('.selection-toolbar').getAttribute('style'), videoRect,
   })).toBeLessThanOrEqual(72)
@@ -213,8 +219,9 @@ test('compact selected video keeps capture action clear of playback controls', a
   const patchCount = documentPatches(state).length
   await page.keyboard.press('Escape')
   await expect(page.locator('.n-drawer:visible')).toHaveCount(0)
-  await expect(page.locator('.selection-toolbar')).toHaveCount(0)
-  await expect(rail).toHaveCount(0)
+  await expect(page.locator('.selection-toolbar')).toBeVisible()
+  await expect(rail).toBeVisible()
+  await expect(action).toBeVisible()
   expect(documentPatches(state)).toHaveLength(patchCount)
   await page.screenshot({ path: resolve(evidenceDirectory, 'compact-drawer-dismissed-920x760.png'), fullPage: true })
 })

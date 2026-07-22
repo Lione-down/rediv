@@ -2,22 +2,29 @@
 import { Image as ImageIcon, Video as VideoIcon } from 'lucide-vue-next'
 import type { CSSProperties } from 'vue'
 import type { GenerationResultProjection } from '../../modules/canvas/generation-result-projection'
+import type { CanvasNode } from '../../types/canvas'
+import { canvasNodeVisualSize } from './canvas-node-presentation'
 import { formatGenerationProgressPercent } from '../../modules/canvas/generation-runtime-presentation'
 import type { ViewportState } from './canvas-geometry'
 import { worldToSurface } from './canvas-geometry'
 
 const props = defineProps<{
   projections: readonly GenerationResultProjection[]
+  nodes: readonly CanvasNode[]
   viewport: ViewportState
 }>()
 
 function projectionStyle(projection: GenerationResultProjection): CSSProperties {
-  const position = worldToSurface(projection, props.viewport)
+  const source = props.nodes.find((node) => node.id === projection.sourceNodeId)
+  const geometry = source
+    ? { x: source.x, y: source.y, ...canvasNodeVisualSize(source) }
+    : projection
+  const position = worldToSurface(geometry, props.viewport)
   return {
     left: `${position.x}px`,
     top: `${position.y}px`,
-    width: `${projection.width}px`,
-    height: `${projection.height}px`,
+    width: `${geometry.width}px`,
+    height: `${geometry.height}px`,
     transform: `scale(${props.viewport.zoom})`,
     transformOrigin: 'top left',
   }
@@ -35,7 +42,7 @@ function progressFillStyle(projection: GenerationResultProjection): CSSPropertie
     <div
       v-for="projection in projections"
       :key="projection.key"
-      class="pending-generation"
+      class="pending-generation is-card-local"
       :class="[`is-${projection.mediaType}`, `is-${projection.presentation.tone}`]"
       :style="projectionStyle(projection)"
       :data-world-x="projection.x"
@@ -67,7 +74,7 @@ function progressFillStyle(projection: GenerationResultProjection): CSSPropertie
 <style scoped lang="scss">
 .pending-generation-layer {
   position: absolute;
-  z-index: 2;
+  z-index: 3;
   inset: 0;
   overflow: hidden;
   pointer-events: none;

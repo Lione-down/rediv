@@ -1,6 +1,6 @@
 # Revid Product V2/V3 Direct Delivery Roadmap
 
-Last updated: 2026-07-20
+Last updated: 2026-07-22
 
 ## Active Product V3 / Phase 6 Outcome
 
@@ -10,8 +10,27 @@ Deliver backward-compatible Revid-native cinematic director Skills v2 on top of 
 |---:|---|---|---|---|---|
 | 1 | T6-001 | Detached-edge correction, cinematic director contracts, sequence canon, accepted-take continuation, and explicit retake workflow | DONE | PASS | T5-096 |
 | 2 | T6-002 | Project audit security, consistency, CI, persistence, Canvas-state, and maintainability remediation | DONE | PASS | T6-001 |
+| 3 | T6-003 | Canvas card UI and card-to-card interaction high-fidelity optimization | DONE | PASS | T6-002 |
 
-T6-001 and T6-002 are `DONE / PASS`; `REPORT-T6-001.md` and `REPORT-T6-002.md` are authoritative. The audit remediation delivered all ten dependency-ordered Units with RED/GREEN verification and no later Product V3 implementation Task is active.
+T6-001 through T6-003 are `DONE / PASS`; their REPORTs are authoritative and no implementation Task is active. T6-003 closes with Human acceptance, focused protected-snapshot verification `1/1`, final unexcluded Chromium `599/599` in `11.5m`, headed performance `2/2`, production build, dependency audit `0`, state, diff, and hygiene gates. Future Human-drawn UI sketches are outside this completed Task. The paragraphs below retain Unit-by-Unit historical verification and any earlier “pending Human” wording is superseded by this final closure record.
+
+Unit 6I implementation and machine verification are complete. The selected toolbar is now approximately `900 x 50 CSS px`, professional icons and visible labels share one horizontal row, standard placement remains above the media with `26..34 CSS px` clearance, true top collision still flips below, and the `920px` toolbar has no horizontal overflow. Build `4,972`, related `43/43`, three-axis `7/7` without snapshot updates, full Chromium `596/596`, headed performance `2/2`, dependency audit `0`, state validation, and diff check pass. Renewed Human acceptance is the remaining completion gate.
+
+Unit 6J implementation and machine verification are complete. Its isolated `1:1` capture exposed and corrected one bounded production mismatch: the composer used exactly `200%` width while the official measured relationship is `658.4 / 319.831 = 2.0586 x`; the shared rule is now transform-centered `206%`. A lawful `1024 x 1024` full-bleed fixture proves one visible stable card, aligned toolbar/media/composer centers, hidden canonical result/lineage shell, and zero document mutation. Exact acceptance `3/3`, related regression `44/44`, three-axis parity `7/7`, build `4,972`, full Chromium `597/597`, headed performance `2/2`, and audit `0` pass. Human acceptance remains the sole completion gate.
+
+Unit 6K implementation and machine verification supersede Unit 6J's cross-zoom width rule. Fresh authenticated official DOM evidence proves the selected composer is fixed at `660 x 191.6 CSS px` at 50%, approximately 82%, and 100% while the node scales; the gap is `16 world px`. Revid now uses a centered fixed `660px` screen-space surface and the same scaled gap. RED measured `112.03125px` at 17%; GREEN passes 17/36/50/82/100/200%, authenticated local 50/82% measurements, related `44/44`, three-axis `7/7`, build `4,972`, full Chromium `597/597`, and headed performance `2/2`. Human acceptance remains the sole completion gate.
+
+Unit 6L implementation and machine verification correct the remaining authenticated top-collision defect. The old 82% toolbar overlapped the lower composer by approximately `44.9px`; Revid now preserves standard above placement, external-header-safe narrow clamping, after-composer fallback, and bounded safe-bottom availability for oversized zoom. Authenticated ranges are metadata `94.363..110.363`, media `116.363..281.963`, composer `295.075..485.075`, and toolbar `493.087..543.087 CSS px`. Focused `2/2`, node geometry `7/7`, related `45/45`, three-axis `7/7`, build `4,972`, full Chromium `598/598`, and performance `2/2` pass. Human acceptance remains the sole completion gate.
+
+Unit 6M implementation and machine verification close the desktop project-resource keyboard gap found during the final authenticated audit. Escape from the focused card-source `项目资产` tab now uses the existing close/focus-restoration path, returns focus to the same card opener, preserves card selection/work surface, and makes zero document PATCHes; compact drawer behavior remains unchanged. Focused `2/2`, related `30/30`, build `4,972`, full Chromium `599/599`, headed performance `2/2`, and dependency audit `0` pass. Human acceptance remains the sole completion gate.
+
+Unit 6N corrects the Human acceptance evidence scale without changing production behavior. The isolated square fixture now captures a verified `960 x 562` frame at 67% Canvas zoom, producing approximately `214px` media against the official approximately `213px` while toolbar/composer remain approximately `900/660px`. Focused `1/1` proves center alignment, scaled `16 world px` gap, one-card projection, and zero document PATCHes. Human acceptance remains the sole completion gate.
+
+Unit 6O strengthens the original elastic-output requirement and corrects a real projection-boundary defect. In-band follow previously placed attached paths at persisted width `340px` while the visible materialized card and `+` used projected width `320px`; elastic hover and pointer-down now resolve the projected node first. A two-edge rest/follow/reset sequence proves both SVG starts always equal the visible port, with zero PATCHes. Focused `1/1`, related `52/52`, build `4,972`, full Chromium `599/599`, performance `2/2`, and audit `0` pass. Human acceptance remains the sole completion gate.
+
+Unit 6P completes the symmetric shared-anchor evidence. Two different source cards keep distinct `prompt` and `media` logical target IDs, while actual production SVG endpoints converge on the materialized card's one visible input midpoint. Focused `1/1`, node geometry `8/8`, one-card projection, and zero PATCHes pass; Unit 6O's production gates remain current. Human acceptance remains the sole completion gate.
+
+Unit 6Q is complete. The output control follows X/Y inside a separate outside `80 CSS px` circular acquisition surface with a `30 CSS px` radial clamp; the Human-corrected `+` text-box center equals the circle center within `1 CSS px`, while existing paths and drag origin remain fixed on the boundary midpoint. Focused interaction `1/1`, related `71/71`, edge insertion/reroute `11/11`, protected snapshot `1/1`, final unexcluded Chromium `599/599` in `11.5m`, build `4,972`, headed performance `2/2`, audit `0`, state, and diff checks pass.
 
 ## Completed Product V2 / Phase 5 Outcome
 

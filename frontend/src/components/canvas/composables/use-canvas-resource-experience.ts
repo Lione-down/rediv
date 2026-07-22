@@ -23,6 +23,7 @@ import { createCanvasImageGridSplitAction } from './use-canvas-image-grid-split'
 import { useGenerationCapabilities } from './use-generation-capabilities'
 import { useCanvasGenerationActions } from './use-canvas-generation-actions'
 import { useCanvasGenerationRuntime } from './use-canvas-generation-runtime'
+import { useCanvasCardSourceResources } from './use-canvas-card-source-resources'
 import type { PreparedCinematicGeneration } from '../../../modules/canvas/cinematic-skills'
 
 interface CanvasResourceExperienceOptions {
@@ -32,7 +33,7 @@ interface CanvasResourceExperienceOptions {
   projectId: ComputedRef<string>
 }
 
-export type CanvasResourceIntent = 'insert' | 'attach'
+export type CanvasResourceIntent = 'insert' | 'attach' | 'card-source'
 
 function errorMessage(error: unknown) {
   if (isAxiosError<{ detail?: unknown }>(error)) {
@@ -176,9 +177,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const generationSuccess = computed(() => (
     selectedNode.value ? generationSuccesses.value.get(selectedNode.value.id) ?? '' : ''
   ))
-  const isDesktopContextOpen = computed(() => (
-    !options.isCompact.value && Boolean(selectedNode.value)
-  ))
+  const isDesktopContextOpen = ref(false)
 
   function restoreResourceFocus() {
     const target = resourceOpener?.isConnected ? resourceOpener : document.querySelector<HTMLElement>('[aria-label="打开项目资源"]')
@@ -197,6 +196,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
 
   function closeResources(restoreFocus = true) {
     isResourceOpen.value = false
+    clearCardSourceTarget()
     if (restoreFocus) restoreResourceFocus()
   }
 
@@ -206,7 +206,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
 
   function insertionPoint() {
     const leftInset = !options.isCompact.value && isResourceOpen.value ? panelWidth.value + 32 : 0
-    const rightInset = !options.isCompact.value && selectedNode.value ? 392 : 0
+    const rightInset = !options.isCompact.value && isDesktopContextOpen.value ? 392 : 0
     const screenX = leftInset + Math.max(0, window.innerWidth - leftInset - rightInset) / 2
     const screenY = window.innerHeight / 2
     const zoom = Math.max(0.1, canvasStore.viewport.zoom)
@@ -241,13 +241,22 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     actionError.value = ''
     isUploading.value = true
     try {
-      await resourceStore.uploadAsset(options.projectId.value, options.canvasId.value, file, type)
+      return await resourceStore.uploadAsset(options.projectId.value, options.canvasId.value, file, type)
     } catch (error) {
       actionError.value = errorMessage(error)
     } finally {
       isUploading.value = false
     }
   }
+
+  const {
+    attachCardSourceAsset, cardSourceTargetNodeId, clearCardSourceTarget,
+    openCardSourceResources, uploadCardSource,
+  } = useCanvasCardSourceResources({
+    actionError, closeResources, formatError: errorMessage, isReviewOnly: options.isReviewOnly,
+    openResources: (opener) => openResources(opener, 'card-source', 'assets'),
+    projectId: options.projectId, uploadAsset,
+  })
 
   async function captureTemplate(name: string) {
     if (options.isReviewOnly.value) return
@@ -403,10 +412,22 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
 
   function closeContext() {
     isContextDrawerOpen.value = false
-    canvasStore.setSelection([], '')
+    isDesktopContextOpen.value = false
+  }
+
+  function openContext() {
+    if (!selectedNode.value) return
+    if (options.isCompact.value) {
+      isResourceOpen.value = false
+      isContextDrawerOpen.value = true
+    } else {
+      isDesktopContextOpen.value = true
+    }
   }
 
   let suppressNextCompactContextOpen = false
+  let shouldSuppressNextContextAutoOpen = false
+  function suppressNextContextAutoOpen() { shouldSuppressNextContextAutoOpen = true }
   function selectNodeForCanvasLocation(nodeId: string) { if (!canvasStore.findNodeById(nodeId)) return false; suppressNextCompactContextOpen = options.isCompact.value; canvasStore.selectNode(nodeId); return true }
   watch(options.projectId, (projectId) => {
     pendingDirectorPreflights.clear()
@@ -427,12 +448,21 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   }, { immediate: true, flush: 'post' })
 
   watch(() => selectedNode.value?.id, (nodeId) => {
-    if (!nodeId) isContextDrawerOpen.value = false
+    if (nodeId && shouldSuppressNextContextAutoOpen) {
+      shouldSuppressNextContextAutoOpen = false
+      isContextDrawerOpen.value = false
+      isDesktopContextOpen.value = false
+      return
+    }
+    if (!nodeId) {
+      isContextDrawerOpen.value = false
+      isDesktopContextOpen.value = false
+    }
     else if (options.isCompact.value) {
       isResourceOpen.value = false
       if (suppressNextCompactContextOpen) { suppressNextCompactContextOpen = false; isContextDrawerOpen.value = false }
       else isContextDrawerOpen.value = true
-    }
+    } else isDesktopContextOpen.value = true
   })
 
   watch(options.isCompact, (isCompact) => {
@@ -445,6 +475,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     panelWidth,
     isResourceOpen,
     resourceIntent,
+    cardSourceTargetNodeId,
     isContextDrawerOpen,
     isDesktopContextOpen,
     isUploading,
@@ -467,14 +498,19 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     generationSuccess,
     foregroundResultNodeId,
     openResources,
+    openCardSourceResources,
     closeResources,
     restoreResourceFocus,
     closeContext,
+    openContext,
+    suppressNextContextAutoOpen,
     selectNodeForCanvasLocation,
     setPanelWidth,
     getInsertionPoint: insertionPoint,
     insertAsset,
     uploadAsset,
+    uploadCardSource,
+    attachCardSourceAsset,
     captureVideoFrame,
     splitImageGrid,
     captureTemplate,

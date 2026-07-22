@@ -4,13 +4,28 @@ import { resolve } from 'node:path'
 import { nodeInputAnchor, nodeOutputAnchor } from '../../src/components/canvas/canvas-geometry'
 import { mapCanvasNode } from '../../src/modules/canvas/mappers'
 import type { CanvasNodeDto } from '../../src/modules/canvas/types'
+import { clickCanvasEdgeOutsideNodes } from './canvas-edge-pointer-fixture'
 import {
   FIRST_CANVAS_ID,
-  createResourceMockState,
+  createResourceMockState as createBaseResourceMockState,
   documentPatches,
   openResourceWorkspace,
   type ResourceMockState,
 } from './canvas-resource-generation-fixture'
+
+function createResourceMockState() {
+  const state = createBaseResourceMockState()
+  const source = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'generation-cover')
+  const result = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'result-existing')
+  if (source?.content) {
+    delete (source.content as Record<string, unknown>).generation_status
+    delete (source.content as Record<string, unknown>).generation_task_id
+    delete (source.content as Record<string, unknown>).result_materialized_task_id
+  }
+  if (result?.content) delete (result.content as Record<string, unknown>).source_task_id
+  state.tasks = state.tasks.filter((task) => task.canvas_node_id !== 'generation-cover')
+  return state
+}
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-020-edge-reroute')
 
@@ -58,7 +73,7 @@ test('Canvas edge selection stays quiet until selected and supports keyboard del
   const hit = page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' })
   await expect(hit).toBeVisible()
   await expect(page.getByRole('button', { name: '改接连线来源' })).toHaveCount(0)
-  await hit.click()
+  await clickCanvasEdgeOutsideNodes(page, hit)
   await expect(page.getByRole('button', { name: '改接连线来源' })).toBeVisible()
   await expect(page.getByRole('button', { name: '改接连线目标' })).toBeVisible()
   await expect(page.locator('.connection-line.selected')).toHaveCount(1)
@@ -71,7 +86,10 @@ test('target endpoint reroute preserves edge identity, autosave boundary, and un
   const state = createResourceMockState()
   addRerouteTargets(state)
   await openResourceWorkspace(page, state)
-  await page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }).click()
+  await clickCanvasEdgeOutsideNodes(
+    page,
+    page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }),
+  )
   const target = nodeInputAnchor(mappedNode(state, 'result-alt'), { x: 0, y: 0, zoom: 1 }, 'in')
   await dragHandle(page, '改接连线目标', target)
 
@@ -99,7 +117,10 @@ test('source endpoint reroute and cancelled empty release keep typed graph deter
   const state = createResourceMockState()
   addRerouteTargets(state)
   await openResourceWorkspace(page, state)
-  await page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }).click()
+  await clickCanvasEdgeOutsideNodes(
+    page,
+    page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }),
+  )
   const source = nodeOutputAnchor(mappedNode(state, 'generation-alt'), { x: 0, y: 0, zoom: 1 }, 'out')
   await dragHandle(page, '改接连线来源', source)
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections[0].source_node_id).toBe('generation-alt')
@@ -118,7 +139,9 @@ test('source endpoint reroute and cancelled empty release keep typed graph deter
 test('selected edge handles remain restrained at compact desktop width', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state, { width: 920, height: 900 })
-  await page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }).click()
+  const edge = page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' })
+  await edge.focus()
+  await edge.press('Enter')
   await expect(page.locator('.connection-line.selected')).toBeVisible()
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'selected-edge-920x900.png'), fullPage: true })
@@ -128,7 +151,10 @@ test('readonly and pointer cancellation never reroute a selected edge', async ({
   const state = createResourceMockState()
   addRerouteTargets(state)
   await openResourceWorkspace(page, state)
-  await page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }).click()
+  await clickCanvasEdgeOutsideNodes(
+    page,
+    page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }),
+  )
   const handle = page.getByRole('button', { name: '改接连线目标' })
   const box = await handle.boundingBox()
   if (!box) throw new Error('Missing target handle')

@@ -3,17 +3,65 @@ import type { ViewportState } from './canvas-geometry'
 import { surfaceToWorld } from './canvas-geometry'
 import { buildCanvasNodePresentation, canvasNodeVisualSize } from './canvas-node-presentation'
 import { resolveCanvasPortGeometry } from './canvas-port-presentation'
+import { resolveCanvasElasticOutputPortPosition } from './canvas-port-presentation'
+
+export interface CanvasElasticOutputTarget {
+  edgeDistancePx: number
+  nodeId: string
+  portId: string
+  localX: number
+  localY: number
+}
 
 interface CanvasPortPointerTargetOptions {
   surface: HTMLElement
   getNodes: () => CanvasNode[]
   getViewport: () => ViewportState
+  getReadOnly?: () => boolean
+  onElasticOutputChange?: (target: CanvasElasticOutputTarget | null) => void
   onPortPointerDown: (
     nodeId: string,
     portId: string,
     direction: 'input' | 'output',
     event: { origin: PointerEvent },
   ) => void
+}
+
+function resolveElasticOutputTarget(options: CanvasPortPointerTargetOptions, event: PointerEvent) {
+  const surfaceRect = options.surface.getBoundingClientRect()
+  const viewport = options.getViewport()
+  const point = surfaceToWorld({ x: event.clientX - surfaceRect.left, y: event.clientY - surfaceRect.top }, viewport)
+  return resolveCanvasElasticOutputTargetAtPoint(options.getNodes(), point, viewport.zoom, options.getReadOnly?.() ?? false)
+}
+
+export function resolveCanvasElasticOutputTargetAtPoint(
+  nodes: readonly CanvasNode[],
+  point: { x: number; y: number },
+  zoom: number,
+  isReadOnly = false,
+): CanvasElasticOutputTarget | null {
+  if (isReadOnly) return null
+  const orderedNodes = [...nodes].reverse()
+  const occupiedNode = orderedNodes.find((node) => {
+    const size = canvasNodeVisualSize(node)
+    return point.x >= node.x && point.x <= node.x + size.width && point.y >= node.y && point.y <= node.y + size.height
+  })
+  for (const node of orderedNodes) {
+    if (node.isLocked) continue
+    if (occupiedNode && occupiedNode.id !== node.id) continue
+    const presentation = buildCanvasNodePresentation(node)
+    const port = presentation.outputPorts[0]
+    if (!port) continue
+    const nodeSize = canvasNodeVisualSize(node)
+    const position = resolveCanvasElasticOutputPortPosition(
+      { x: point.x - node.x, y: point.y - node.y }, nodeSize, zoom,
+    )
+    if (position) return {
+      edgeDistancePx: Math.abs(point.x - node.x - nodeSize.width) * zoom,
+      nodeId: node.id, portId: port.id, localX: position.x, localY: position.y,
+    }
+  }
+  return null
 }
 
 interface CanvasPortPointerTarget {
@@ -24,6 +72,8 @@ interface CanvasPortPointerTarget {
 }
 
 function resolvePointerTarget(options: CanvasPortPointerTargetOptions, event: PointerEvent) {
+  const elasticOutput = resolveElasticOutputTarget(options, event)
+  if (elasticOutput) return { ...elasticOutput, direction: 'output' as const, distanceSquared: 0 }
   const surfaceRect = options.surface.getBoundingClientRect()
   const viewport = options.getViewport()
   const point = surfaceToWorld({ x: event.clientX - surfaceRect.left, y: event.clientY - surfaceRect.top }, viewport)
@@ -52,9 +102,27 @@ function resolvePointerTarget(options: CanvasPortPointerTargetOptions, event: Po
 }
 
 export function bindCanvasPortPointerTargets(options: CanvasPortPointerTargetOptions) {
+  let currentElasticKey = ''
+  const handlePointerMove = (event: PointerEvent) => {
+    const target = resolveElasticOutputTarget(options, event)
+    const nextKey = target ? `${target.nodeId}:${target.portId}:${target.localX}:${target.localY}` : ''
+    if (nextKey === currentElasticKey) return
+    currentElasticKey = nextKey
+    options.onElasticOutputChange?.(target)
+  }
+  const resetElasticOutput = () => {
+    if (!currentElasticKey) return
+    currentElasticKey = ''
+    options.onElasticOutputChange?.(null)
+  }
   const handlePointerDown = (event: PointerEvent) => {
     if (event.button !== 0 && event.button !== 1) return
-    if (!(event.target instanceof HTMLCanvasElement)) return
+    const targetElement = event.target
+    const isCanvasTarget = targetElement instanceof HTMLCanvasElement
+    const isConnectionTarget = targetElement instanceof SVGElement && (
+      targetElement.classList.contains('connection-hit') || targetElement.classList.contains('connection-line')
+    )
+    if (!isCanvasTarget && !isConnectionTarget) return
     const target = resolvePointerTarget(options, event)
     if (!target) return
     event.preventDefault()
@@ -62,5 +130,13 @@ export function bindCanvasPortPointerTargets(options: CanvasPortPointerTargetOpt
     options.onPortPointerDown(target.nodeId, target.portId, target.direction, { origin: event })
   }
   options.surface.addEventListener('pointerdown', handlePointerDown, true)
-  return () => options.surface.removeEventListener('pointerdown', handlePointerDown, true)
+  options.surface.addEventListener('pointermove', handlePointerMove, true)
+  options.surface.addEventListener('pointerleave', resetElasticOutput)
+  options.surface.addEventListener('pointercancel', resetElasticOutput)
+  return () => {
+    options.surface.removeEventListener('pointerdown', handlePointerDown, true)
+    options.surface.removeEventListener('pointermove', handlePointerMove, true)
+    options.surface.removeEventListener('pointerleave', resetElasticOutput)
+    options.surface.removeEventListener('pointercancel', resetElasticOutput)
+  }
 }

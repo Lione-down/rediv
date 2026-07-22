@@ -4,7 +4,9 @@ import { createReconnectConnectionCommand } from '../../modules/canvas/canvas-co
 import { useCanvasStore } from '../../store/canvas'
 import type { CanvasConnection } from '../../types/canvas'
 import type { CanvasGenerationProvenance } from '../../modules/canvas/generation-lineage'
-import { buildConnectionPath, normalizeViewport, surfaceToWorld, type Point } from './canvas-geometry'
+import { isPointInsideCanvasNodeLayout } from '../../modules/canvas/node-layout'
+import { normalizeViewport, surfaceToWorld, type Point } from './canvas-geometry'
+import { buildConnectionPath } from './canvas-connection-path'
 import { findCompatibleConnectionTarget } from './canvas-connection-target'
 import {
   createEdgeInsertionCommand,
@@ -15,6 +17,7 @@ import { resolveCanvasConnectionPresentation } from './canvas-connection-present
 import { resolveCanvasEdgeIdentityPlacement } from './canvas-edge-identity-placement'
 import {
   CANVAS_CONNECTION_FLOW_DASH_PATTERN,
+  CANVAS_CONNECTION_FLOW_DURATION_MS,
   CANVAS_CONNECTION_FLOW_PATH_LENGTH,
   CANVAS_CONNECTION_FLOW_SEGMENT_COUNT,
   resolveCanvasConnectionMotion,
@@ -48,11 +51,11 @@ interface RerouteDraft {
 const canvasStore = useCanvasStore()
 const layerRef = ref<SVGSVGElement | null>(null)
 const rerouteDraft = ref<RerouteDraft | null>(null)
+const hoveredConnectionId = ref('')
 const isInsertionMenuOpen = ref(false)
 const viewport = computed(() => normalizeViewport(canvasStore.viewport))
 const isOverview = computed(() => viewport.value.zoom <= 0.36)
 const isDeepOverview = computed(() => viewport.value.zoom <= 0.17)
-const edgeMarkerSize = computed(() => isDeepOverview.value ? 4 : isOverview.value ? 5 : 7)
 const provenanceByConnectionId = computed(() => new Map(
   (props.provenance ?? []).map((entry) => [entry.connectionId, entry]),
 ))
@@ -69,6 +72,7 @@ const connectionFlowPaths = computed(() => {
 
   const selectedConnectionId = canvasStore.selectedConnectionId
   append(selectedConnectionId, resolveCanvasConnectionMotion({ isSelected: Boolean(selectedConnectionId) }))
+  append(hoveredConnectionId.value, resolveCanvasConnectionMotion({ isHovered: Boolean(hoveredConnectionId.value) }))
   for (const provenance of props.provenance ?? []) {
     append(provenance.connectionId, resolveCanvasConnectionMotion({
       isIncluded: provenance.isIncluded,
@@ -169,8 +173,22 @@ function selectConnectionFromPointer(connectionId: string, event: PointerEvent) 
   if (event.button !== 0) return
   event.preventDefault()
   event.stopPropagation()
-  selectConnection(connectionId)
+  const surfacePoint = toSurfacePoint(event)
+  const worldPoint = surfacePoint ? surfaceToWorld(surfacePoint, viewport.value) : null
+  const overlappingNode = worldPoint
+    ? [...canvasStore.nodes].reverse().find((node) => (
+        node.type !== 'group' && isPointInsideCanvasNodeLayout(node, worldPoint)
+      )) ?? null
+    : null
+  if (overlappingNode) {
+    isInsertionMenuOpen.value = false
+    canvasStore.selectNode(overlappingNode.id)
+  } else selectConnection(connectionId)
   ;(event.currentTarget as SVGElement | null)?.blur()
+}
+
+function setConnectionHovered(connectionId: string, isHovered: boolean) {
+  if (isHovered || hoveredConnectionId.value === connectionId) hoveredConnectionId.value = isHovered ? connectionId : ''
 }
 
 function toSurfacePoint(event: PointerEvent) {
@@ -284,11 +302,6 @@ onBeforeUnmount(stopReroute)
     role="group"
     aria-label="画布连线"
   >
-    <defs>
-      <marker id="canvas-edge-arrow" viewBox="0 0 10 10" refX="9" refY="5" :markerWidth="edgeMarkerSize" :markerHeight="edgeMarkerSize" orient="auto">
-        <path d="M 0 0 L 10 5 L 0 10 z" class="connection-arrow" />
-      </marker>
-    </defs>
     <g :transform="`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`">
       <g v-show="visible">
         <g v-for="path in paths" :key="path.id">
@@ -298,6 +311,8 @@ onBeforeUnmount(stopReroute)
             role="button"
             tabindex="0"
             :aria-label="connectionLabel(path.connection)"
+            @pointerenter="setConnectionHovered(path.id, true)"
+            @pointerleave="setConnectionHovered(path.id, false)"
             @pointerdown="selectConnectionFromPointer(path.id, $event)"
             @keydown.enter.prevent="selectConnection(path.id)"
             @keydown.space.prevent="selectConnection(path.id)"
@@ -313,7 +328,6 @@ onBeforeUnmount(stopReroute)
               'provenance-selected-result': isSelectedResultProvenance(path.id),
             }"
             :d="path.path"
-            marker-end="url(#canvas-edge-arrow)"
             vector-effect="non-scaling-stroke"
           />
         </g>
@@ -347,6 +361,7 @@ onBeforeUnmount(stopReroute)
     v-if="(visible && connectionFlowPaths.length > 0) || Boolean(activeDraftPath)"
     class="connection-flow-layer"
     :class="{ 'draft-layer': Boolean(activeDraftPath) }"
+    :style="{ '--canvas-connection-flow-duration': `${CANVAS_CONNECTION_FLOW_DURATION_MS}ms` }"
     aria-hidden="true"
   >
     <g :transform="`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`">
@@ -421,21 +436,18 @@ onBeforeUnmount(stopReroute)
 <style scoped lang="scss">
 .connection-layer { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .connection-flow-layer { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-.connection-line, .draft { fill: none; stroke: var(--canvas-edge, var(--border-strong)); stroke-width: 1.6; pointer-events: none; }
+.connection-line, .draft { fill: none; stroke: var(--canvas-edge, var(--border-strong)); stroke-width: 2; pointer-events: none; }
 .connection-layer.is-overview .connection-line:not(.selected):not(.provenance) { stroke-width: 1.2; opacity: 0.58; }
 .connection-layer.is-deep-overview .connection-line:not(.selected):not(.provenance) { stroke-width: 1; opacity: 0.42; }
-.connection-layer.is-overview .connection-arrow { opacity: 0.68; }
-.connection-layer.is-deep-overview .connection-arrow { opacity: 0.52; }
 .connection-line.selected, .draft { stroke: var(--accent-select); stroke-width: 2.4; }
 .connection-line.provenance { stroke: var(--accent-select); stroke-width: 2.2; }
 .connection-line.provenance-excluded { stroke: var(--v2-text-muted); stroke-width: 1.6; stroke-dasharray: 3 5; }
 .connection-line.provenance-result { stroke: color-mix(in oklch, var(--accent-select) 58%, var(--border-strong)); stroke-width: 1.8; }
 .connection-line.provenance-selected-result { stroke: var(--accent-select); stroke-width: 2.6; }
-.connection-flow { fill: none; stroke: color-mix(in oklch, white 72%, var(--accent-select)); stroke-width: 2.8; stroke-linecap: round; pointer-events: none; animation: canvas-connection-flow 1200ms steps(9, end) infinite; }
+.connection-flow { fill: none; stroke: color-mix(in oklch, white 72%, var(--accent-select)); stroke-width: 2.8; stroke-linecap: round; pointer-events: none; animation: canvas-connection-flow var(--canvas-connection-flow-duration, 3000ms) steps(9, end) infinite; }
 .connection-flow.is-provenance { stroke-width: 2.4; opacity: 0.82; }
-.connection-hit { fill: none; stroke: transparent; stroke-width: 16; outline: none; pointer-events: stroke; cursor: pointer; }
+.connection-hit { fill: none; stroke: transparent; stroke-width: 20; outline: none; pointer-events: stroke; cursor: pointer; }
 .connection-hit:focus-visible { stroke: color-mix(in oklch, var(--accent-select) 18%, transparent); outline: none; }
-.connection-arrow { fill: var(--border-strong); pointer-events: none; }
 .edge-identity-leader { position: absolute; inset: 0; z-index: 5; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .edge-identity-leader line { stroke: color-mix(in oklch, var(--accent-select) 44%, var(--border-strong)); stroke-width: 1; stroke-dasharray: 2 3; }
 .connection-handle { fill: var(--bg-panel); stroke: var(--accent-select); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: all; cursor: crosshair; }

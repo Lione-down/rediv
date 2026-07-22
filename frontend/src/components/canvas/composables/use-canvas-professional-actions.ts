@@ -10,6 +10,7 @@ import { useCanvasStore } from '../../../store/canvas'
 import type { Asset } from '../../../types/asset'
 import type { ImageOperationCapabilities } from '../../../modules/canvas/image-operations'
 import type { ScriptAuthoringIntent } from '../../../modules/canvas/script-authoring'
+import type { CanvasNode } from '../../../types/canvas'
 
 interface CanvasProfessionalActionsOptions {
   assets: () => readonly Asset[]
@@ -24,6 +25,7 @@ interface CanvasProfessionalActionsOptions {
   openWorkflowBatch?: () => void
   openVideoEditPreflight?: () => void
   getInsertionPoint: () => { x: number; y: number }
+  getSelectedNodes?: () => readonly CanvasNode[]
   imageOperationCapabilities?: () => ImageOperationCapabilities | null
   isBlocked: () => boolean
   isBusy: () => boolean
@@ -41,8 +43,9 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
   const query = ref('')
   const error = ref('')
   let opener: HTMLElement | null = null
+  let selectedNodesOverride: readonly CanvasNode[] | null = null
 
-  function context(): ProfessionalCanvasActionContext {
+  function context(selectedNodes = selectedNodesOverride ?? options.getSelectedNodes?.() ?? canvasStore.selectedNodes): ProfessionalCanvasActionContext {
     const projectId = options.projectId.value
     const canvasId = options.canvasId.value
     return {
@@ -58,13 +61,13 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
       isReadOnly: options.isReadOnly(),
       isWorkflowView: options.isWorkflowView(),
       projectId,
-      selectedNodes: canvasStore.selectedNodes,
+      selectedNodes,
       userId: options.userId(),
     }
   }
 
-  function supportedActions(nextQuery = '') {
-    return resolveProfessionalCanvasActions(context(), nextQuery)
+  function supportedActions(nextQuery = '', selectedNodes?: readonly CanvasNode[]) {
+    return resolveProfessionalCanvasActions(context(selectedNodes), nextQuery)
       .filter((action) => action.eligibility.eligible)
       .filter((action) => action.intent.type !== 'create-shot-graph' || Boolean(options.createShotGraph))
       .filter((action) => action.intent.type !== 'create-cinematic-shot-graph' || Boolean(options.createCinematicShotGraph))
@@ -80,6 +83,9 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
 
   const actions = computed(() => supportedActions(query.value))
   const availableActionIds = computed(() => supportedActions().map((action) => action.id))
+  function availableActionIdsFor(selectedNodes: readonly CanvasNode[]) {
+    return supportedActions('', selectedNodes).map((action) => action.id)
+  }
 
   function restoreFocus() {
     const target = opener?.isConnected
@@ -94,14 +100,19 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
     isOpen.value = false
     query.value = ''
     error.value = ''
+    selectedNodesOverride = null
     restoreFocus()
   }
 
-  function open(nextOpener: HTMLElement, initialQuery = '') {
+  function open(nextOpener: HTMLElement, initialQuery = '', selectedNodes?: readonly CanvasNode[]) {
     if (isOpen.value || options.isBlocked()) return
+    selectedNodesOverride = selectedNodes ?? null
     query.value = initialQuery
     error.value = ''
-    if (!supportedActions(initialQuery).length) return
+    if (!supportedActions(initialQuery).length) {
+      selectedNodesOverride = null
+      return
+    }
     opener = nextOpener
     isOpen.value = true
   }
@@ -259,5 +270,5 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
     }
   }
 
-  return { actions, availableActionIds, close, error, execute, isOpen, open, query }
+  return { actions, availableActionIds, availableActionIdsFor, close, error, execute, isOpen, open, query }
 }

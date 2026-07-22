@@ -14,7 +14,7 @@ import { resolveGenerationTaskProgressSummary } from '../../modules/canvas/gener
 
 const props = withDefaults(defineProps<{
   activeTab: ProjectResourceTab
-  assetAction?: 'insert' | 'attach'
+  assetAction?: 'insert' | 'attach' | 'card-source'
   assets: ProjectAsset[]
   autofocus?: boolean
   error?: string
@@ -60,6 +60,7 @@ let resizeCleanup: (() => void) | null = null
 let activeResizePointerId: number | null = null
 
 const rootRole = computed(() => props.mode === 'panel' ? 'complementary' : 'dialog')
+const isAttachAction = computed(() => props.assetAction !== 'insert')
 
 function assetLabel(asset: ProjectAsset) {
   if (asset.content_text?.trim()) return asset.content_text.trim()
@@ -102,6 +103,13 @@ function handleTabKeydown(event: KeyboardEvent, index: number) {
   else if (event.key === 'End') nextIndex = tabs.length - 1
   else nextIndex = (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
   setActiveTab(tabs[nextIndex].id, true)
+}
+
+function handleSurfaceKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Escape') return
+  event.preventDefault()
+  event.stopPropagation()
+  emit('close')
 }
 
 function inferUploadType(file: File): 'image' | 'video' | 'audio' | null {
@@ -185,15 +193,17 @@ onBeforeUnmount(stopResize)
     aria-label="项目资源"
     :aria-modal="mode === 'drawer' ? 'true' : undefined"
     :style="mode === 'panel' ? { width: `${panelWidth}px` } : undefined"
+    @keydown.capture="handleSurfaceKeydown"
   >
     <header class="panel-header">
-      <div><Library :size="18" aria-hidden="true" /><strong>{{ assetAction === 'attach' ? '选择附件' : '项目资源' }}</strong></div>
+      <div><Library :size="18" aria-hidden="true" /><strong>{{ assetAction === 'card-source' ? '选择卡片图片来源' : assetAction === 'attach' ? '选择附件' : '项目资源' }}</strong></div>
       <div class="header-actions">
         <button type="button" aria-label="刷新项目资源" title="刷新项目资源" @click="emit('retry')"><RefreshCw :size="17" aria-hidden="true" /></button>
         <button type="button" aria-label="关闭项目资源" title="关闭项目资源" @click="emit('close')"><X :size="18" aria-hidden="true" /></button>
       </div>
     </header>
     <p v-if="assetAction === 'attach'" class="resource-intent" role="status">选择要附加到创作输入的素材 · Agnes 脚本写作当前支持公开图片</p>
+    <p v-else-if="assetAction === 'card-source'" class="resource-intent" role="status">选择一张项目图片，作为当前生成卡片的来源和画布引用。</p>
 
     <div class="resource-tabs" role="tablist" aria-label="项目资源分类">
       <button
@@ -234,10 +244,14 @@ onBeforeUnmount(stopResize)
             v-if="!readonly"
             type="button"
             class="insert-action"
-            :aria-label="assetAction === 'attach' ? (asset.type === 'image' ? `将资产 ${assetLabel(asset)}附加到创作输入` : `${assetTypeLabel(asset.type)}附件暂不支持 Agnes 脚本写作`) : `插入资产 ${assetLabel(asset)}到当前画布`"
-            :disabled="assetAction === 'attach' && asset.type !== 'image'"
-            @click="assetAction === 'attach' ? emit('attachAsset', asset) : emit('insertAsset', asset)"
-          ><Paperclip v-if="assetAction === 'attach'" :size="16" aria-hidden="true" /><Plus v-else :size="16" aria-hidden="true" />{{ assetAction === 'attach' ? '附加' : '插入' }}</button>
+            :aria-label="assetAction === 'card-source'
+              ? (asset.type === 'image' ? `将资产 ${assetLabel(asset)}作为当前卡片图片来源` : `${assetTypeLabel(asset.type)}暂不支持作为图片来源`)
+              : assetAction === 'attach'
+                ? (asset.type === 'image' ? `将资产 ${assetLabel(asset)}附加到创作输入` : `${assetTypeLabel(asset.type)}附件暂不支持 Agnes 脚本写作`)
+                : `插入资产 ${assetLabel(asset)}到当前画布`"
+            :disabled="isAttachAction && asset.type !== 'image'"
+            @click="isAttachAction ? emit('attachAsset', asset) : emit('insertAsset', asset)"
+          ><Paperclip v-if="isAttachAction" :size="16" aria-hidden="true" /><Plus v-else :size="16" aria-hidden="true" />{{ assetAction === 'card-source' ? '作为来源' : assetAction === 'attach' ? '附加' : '插入' }}</button>
         </li>
       </ul>
     </section>

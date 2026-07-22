@@ -6,9 +6,8 @@ import {
 } from '../../../modules/canvas/canvas-commands'
 import { isPointInsideCanvasNodeLayout, resolveCanvasNodeLayoutCenter } from '../../../modules/canvas/node-layout'
 import {
-  buildConnectionPath, minimapPointToWorld,
-  nodeInputAnchor as getNodeInputAnchor, nodeOutputAnchor as getNodeOutputAnchor,
-  nodePortWorldAnchor as getNodePortWorldAnchor, nodeIntersectsRect,
+  minimapPointToWorld,
+  nodeInputAnchor as getNodeInputAnchor, nodeOutputAnchor as getNodeOutputAnchor, nodeIntersectsRect,
   rectFromPoints, snapDeltaToGrid, surfaceToWorld, type Point,
 } from '../canvas-geometry'
 import { createCanvasRenderer, type CanvasRenderer } from '../canvas-renderer'
@@ -26,22 +25,29 @@ import { useCanvasViewControls } from './use-canvas-view-controls'
 import { useCanvasStageViewport } from './use-canvas-stage-viewport'
 import { useCanvasGenerationRuntimeRenderer } from './use-canvas-generation-runtime-renderer'
 import { createCanvasWindowPointerListeners } from './canvas-window-pointer-listeners'
+import { useCanvasStageCardInteractions } from './use-canvas-stage-card-interactions'
+import { isMaterializedCardProjection } from '../canvas-materialized-card-projection'
 import type {
-  CanvasStageDraftConnectionState as DraftConnectionState,
-  CanvasStageDragState as DragState,
-  CanvasStageMarqueeState as MarqueeState,
-  CanvasStageOptions,
-  CanvasStagePanState as PanState,
-  LeaferPointerEvent,
-  NativePointerLikeEvent,
+  CanvasStageDraftConnectionState as DraftConnectionState, CanvasStageDragState as DragState,
+  CanvasStageMarqueeState as MarqueeState, CanvasStageOptions, CanvasStagePanState as PanState,
+  LeaferPointerEvent, NativePointerLikeEvent,
 } from './canvas-stage-types'
 export function useCanvasStage(options: CanvasStageOptions = {}) {
   const canvasStore = useCanvasStore()
   const stageRef = ref<HTMLElement | null>(null)
   const canvasSurfaceRef = ref<HTMLElement | null>(null)
   const { cssVar, getViewport, updateViewport } = useCanvasStageViewport(canvasSurfaceRef)
-  const minimapRef = ref<HTMLElement | null>(null)
-  const draftConnection = ref<DraftConnectionState | null>(null)
+  const minimapRef = ref<HTMLElement | null>(null); const draftConnection = ref<DraftConnectionState | null>(null)
+  const {
+    hiddenPresentationNodeIds, presentationConnections, presentationNodes,
+    selectNodeBehindOverlay, temporaryConnectionPath,
+  } = useCanvasStageCardInteractions({
+    draftConnection, findNodeAtWorldPoint, focusCanvasStage,
+    getConnections: () => canvasStore.connections, getNodes: () => canvasStore.nodes,
+    getSelectedNodeIds: () => canvasStore.selectedNodeIds, getSelectedNodes: () => canvasStore.selectedNodes,
+    getViewport, isReadOnly: () => options.isReadOnly?.() ?? false,
+    selectNode: (nodeId) => canvasStore.selectNode(nodeId, 'toggle'), toSurfacePoint,
+  })
   const marquee = ref<MarqueeState | null>(null)
   const surfaceViewportSize = ref({ width: 0, height: 0 })
   const minimapSize = ref({ width: 160, height: 104 })
@@ -55,15 +61,6 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (isPanning.value) return 'grabbing'
     if (canvasStore.mode === 'hand' || isSpacePressed.value) return 'grab'
     return 'default'
-  })
-  const temporaryConnectionPath = computed(() => {
-    const draft = draftConnection.value
-    if (!draft) return ''
-    const pointer = surfaceToWorld({ x: draft.currentX, y: draft.currentY }, getViewport())
-    const origin = nodePortWorldPoint(draft.originNodeId, draft.originPort, draft.direction)
-    return draft.direction === 'output'
-      ? buildConnectionPath(origin, pointer)
-      : buildConnectionPath(pointer, origin)
   })
   const marqueeStyle = computed(() => {
     if (!marquee.value) return null
@@ -101,28 +98,24 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     hasLockedSelection: hasLockedSelectionNow,
     toggleLockSelection, ungroupSelection,
   } = useCanvasCommandInteractions({ isReadOnly: () => options.isReadOnly?.() ?? false })
-  const canConnectSelection = computed(() => canConnectSelectionNow())
-  const canComposeGenerationSelection = computed(() => canComposeGenerationSelectionNow())
-  const canDeleteSelection = computed(() => canDeleteSelectionNow())
-  const canDuplicateSelection = computed(() => canDuplicateSelectionNow())
-  const canGroupSelection = computed(() => canGroupSelectionNow())
-  const canUngroupSelection = computed(() => canUngroupSelectionNow())
-  const canAlignSelection = computed(() => canAlignSelectionNow())
-  const canDistributeSelection = computed(() => canDistributeSelectionNow())
-  const canAutoArrange = computed(() => canAutoArrangeNow())
-  const hasLockedSelection = computed(() => hasLockedSelectionNow())
+  const canConnectSelection = computed(() => canConnectSelectionNow()); const canComposeGenerationSelection = computed(() => canComposeGenerationSelectionNow())
+  const canDeleteSelection = computed(() => canDeleteSelectionNow()); const canDuplicateSelection = computed(() => canDuplicateSelectionNow())
+  const canGroupSelection = computed(() => canGroupSelectionNow()); const canUngroupSelection = computed(() => canUngroupSelectionNow())
+  const canAlignSelection = computed(() => canAlignSelectionNow()); const canDistributeSelection = computed(() => canDistributeSelectionNow())
+  const canAutoArrange = computed(() => canAutoArrangeNow()); const hasLockedSelection = computed(() => hasLockedSelectionNow())
   const {
     closeConnectionContinuation, connectionContinuation, continuationStyle,
     openConnectionContinuation, selectConnectionContinuation,
   } = useCanvasConnectionContinuation({ getViewportSize: () => surfaceViewportSize.value })
   const { minimapMetrics, minimapNodes, minimapNodeStyle, minimapViewportStyle } = useCanvasMinimapPresentation({
     getMinimapSize: () => minimapSize.value,
-    getNodes: () => canvasStore.nodes,
+    getNodes: () => presentationNodes.value,
     getViewport,
     getViewportSize: () => surfaceViewportSize.value,
   })
   const { connectionPaths, connectionTargetPorts, connectionTargetStates } = useCanvasConnectionPresentation({
-    getConnections: () => canvasStore.connections, getDraftConnection: () => draftConnection.value, getNodes: () => canvasStore.nodes, getViewport,
+    getConnections: () => presentationConnections.value, getDraftConnection: () => draftConnection.value,
+    getNodes: () => presentationNodes.value, getViewport,
   })
   const {
     applyZoomAtPoint, areEdgesVisible, fitGraph, fitNodes, fitSelection, handleViewKeyDown,
@@ -139,23 +132,22 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     nodeAppearances, nodePositions, selectionAggregateHullStyle, selectionToolbarStyle, stageNotice, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, surfaceNodeRectStyle,
   } = useCanvasStagePresentation({
-    canvasStore,
+    canvasStore, getMediaToolbarNodeId: () => options.getMediaToolbarNodeId?.() ?? null,
+    getPresentationNodes: () => presentationNodes.value,
     getViewport,
     getViewportInsets: () => options.getViewportInsets?.() ?? {},
     getViewportSize: () => surfaceViewportSize.value,
     isReadOnly: () => options.isReadOnly?.() ?? false,
   })
-  function findNode(nodeId: string) { return canvasStore.nodes.find((node) => node.id === nodeId) ?? null }
+  function findNode(nodeId: string) {
+    return presentationNodes.value.find((node) => node.id === nodeId) ??
+      canvasStore.nodes.find((node) => node.id === nodeId) ?? null
+  }
   function findNodeAtWorldPoint(point: Point) {
-    const orderedNodes = [...canvasStore.nodes].sort((left, right) => (
+    const orderedNodes = [...presentationNodes.value].sort((left, right) => (
       Number(left.type !== 'group') - Number(right.type !== 'group')
     ))
     return orderedNodes.reverse().find((node) => isPointInsideCanvasNodeLayout(node, point)) ?? null
-  }
-  function nodePortWorldPoint(nodeId: string, portId: string, direction: 'input' | 'output') {
-    const node = findNode(nodeId)
-    if (!node) return { x: 0, y: 0 }
-    return getNodePortWorldAnchor(node, direction, portId)
   }
   function nodePortSurfaceAnchor(nodeId: string, portId: string, direction: 'input' | 'output') {
     const node = findNode(nodeId)
@@ -190,10 +182,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
       y: surfaceViewportSize.value.height / 2 - worldPoint.y * viewport.zoom,
     })
   }
-  function retryProjectLoad() {
-    if (!canvasStore.activeProjectId) return
-    void canvasStore.reloadActiveDocument().catch(() => undefined)
-  }
+  function retryProjectLoad() { if (canvasStore.activeProjectId) void canvasStore.reloadActiveDocument().catch(() => undefined) }
   function toSurfacePoint(clientX: number, clientY: number) {
     const rect = stageRef.value?.getBoundingClientRect()
     if (!rect || clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null
@@ -232,6 +221,9 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     const point = event.origin ? toSurfacePoint(event.origin.clientX, event.origin.clientY) : null
     if (!node || !point) return
     const hasModifier = Boolean(event.origin?.ctrlKey || event.origin?.metaKey || event.origin?.shiftKey)
+    if (!canvasStore.selectedNodeIds.includes(nodeId) && isMaterializedCardProjection(node)) {
+      options.onMaterializedCardPointerSelect?.()
+    }
     if (hasModifier) canvasStore.selectNode(nodeId, 'toggle')
     else if (!canvasStore.selectedNodeIds.includes(nodeId)) canvasStore.selectNode(nodeId)
     if (options.isReadOnly?.()) return
@@ -426,7 +418,10 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     if (!surface || !stage) return
     surfaceViewportSize.value = { width: Math.max(stage.clientWidth, 1), height: Math.max(stage.clientHeight, 1) }
     renderer = createCanvasRenderer({
-      surface, getNodes: () => canvasStore.nodes, getSelectedNodeIds: () => canvasStore.selectedNodeIds, getGenerationRuntimePresentation: (nodeId) => options.getGenerationRuntimePresentations?.().get(nodeId) ?? null,
+      surface, getNodes: () => presentationNodes.value, getSelectedNodeIds: () => canvasStore.selectedNodeIds,
+      getCompatibleTargetNodeIds: () => new Set(connectionTargetStates.value.filter((target) => target.isCompatible).map((target) => target.node.id)),
+      getReadOnly: () => options.isReadOnly?.() ?? false,
+      getGenerationRuntimePresentation: (nodeId) => options.getGenerationRuntimePresentations?.().get(nodeId) ?? null,
       getViewport, cssVar, onStagePointerDown: handleStagePointerDown,
       onContextMenu: handleContextMenu, onStageDoubleClick: handleStageDoubleClick,
       onNodePointerDown: handleNodePointerDown, onPortPointerDown: handlePortPointerDown,
@@ -452,6 +447,8 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
   })
   watch(nodeAppearances, () => renderer?.syncNodes(), { deep: true })
   watch(() => [...canvasStore.selectedNodeIds], () => renderer?.syncNodes())
+  watch(() => options.isReadOnly?.() ?? false, () => renderer?.syncNodes())
+  watch(connectionTargetStates, () => renderer?.syncNodes(), { deep: true })
   useCanvasGenerationRuntimeRenderer(() => options.getGenerationRuntimePresentations?.() ?? new Map(), (nodeIds) => renderer?.updateNodeVisuals(nodeIds))
   watch(nodePositions, (positions, previousPositions = []) => {
     const previousById = new Map(previousPositions.map((position) => [position.id, position]))
@@ -471,19 +468,17 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     window.removeEventListener('keyup', handleWindowKeyUp, true)
     resizeObserver?.disconnect()
     renderer?.destroy()
-    resizeObserver = null
-    renderer = null
-    dragState = null
-    panState = null
-    draftConnection.value = null
-    marquee.value = null
+    resizeObserver = null; renderer = null
+    dragState = null; panState = null
+    draftConnection.value = null; marquee.value = null
     closeContextMenu()
   })
   return {
     canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionTargetPorts, connectionTargetStates,
+    hiddenPresentationNodeIds, presentationConnections, presentationNodes,
     closeConnectionContinuation, connectionContinuation, continuationStyle, openConnectionContinuation, selectConnectionContinuation,
     handleMinimapPointerDown, minimapNodeStyle, minimapNodes, minimapRef,
-    minimapViewportStyle, stageRef, statusBadgeStyle,
+    minimapViewportStyle, selectNodeBehindOverlay, stageRef, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
     viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu, selectionAggregateHullStyle, selectionToolbarStyle,
     canComposeGenerationSelection, canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection, closeGraphPanel, commandFeedback, composeGenerationSelection, connectSelection,

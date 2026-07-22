@@ -31,14 +31,12 @@ test('distinct image and video nodes submit concurrently with node-local locks a
   state.generationGate = new Promise<void>((resolve) => { releaseGeneration = resolve })
   await openResourceWorkspace(page, state)
 
-  for (const [title, mediaType] of [
-    ['封面生成', '图片'], ['图片生成 B', '图片'], ['视频生成 A', '视频'], ['视频生成 B', '视频'],
-  ] as const) {
+  for (const title of ['封面生成', '图片生成 B', '视频生成 A', '视频生成 B'] as const) {
     await selectNode(page, title)
-    const prompt = page.getByLabel('生成提示词')
+    const prompt = page.getByRole('textbox', { name: '卡片生成提示词' })
     await expect(prompt).toBeEnabled()
     await prompt.fill(`${title} concurrent prompt`)
-    const button = page.getByRole('button', { name: `开始${mediaType}生成` })
+    const button = page.getByRole('button', { name: '在当前卡片生成' })
     await expect(button).toBeEnabled()
     await button.click()
     await expect(button).toBeDisabled()

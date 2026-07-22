@@ -31,15 +31,19 @@ function readAspectRatio(content: Record<string, unknown> | undefined) {
 export function resolveCanvasAuthoringCardVisualHeight(node: CanvasNode) {
   if (node.type !== 'script' && node.type !== 'note' && node.type !== 'generation') return null
   if (resolveNodeDefinition(node.type, node.contentData).kind !== 'canonical') return null
-  if (node.type === 'generation') return 128
+  if (node.type === 'generation') {
+    if (typeof node.contentData?.materialized_result_node_id === 'string') return null
+    return Math.min(node.height, 160)
+  }
   const contentLength = (node.content ?? '').trim().length
-  const contentHeight = contentLength > 160 ? 220 : contentLength > 80 ? 180 : 120
+  const contentHeight = contentLength > 160 ? 220 : contentLength > 80 ? 190 : 160
   return Math.min(node.height, contentHeight)
 }
 
 export function resolveCanvasNodeMediaLayoutAspectRatio(node: CanvasNode) {
   const definition = resolveNodeDefinition(node.type, node.contentData)
-  if (definition.kind === 'unsupported' || !definition.capabilities.canPreviewMedia) return null
+  const isMaterializedProjection = typeof node.contentData?.materialized_result_node_id === 'string'
+  if (definition.kind === 'unsupported' || (!definition.capabilities.canPreviewMedia && !isMaterializedProjection)) return null
   const subtype = readString(node.contentData, 'subtype')
   if (subtype !== 'image' && subtype !== 'video' && subtype !== 'audio') return null
   const hasMediaSurface = Boolean(

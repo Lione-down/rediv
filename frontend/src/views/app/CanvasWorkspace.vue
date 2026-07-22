@@ -36,6 +36,9 @@ import { createReorderStoryboardGroupCommand } from '../../modules/canvas/storyb
 import { resolveOwnedMediaActionTarget } from '../../modules/canvas/professional-action-registry'
 import type { ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
 import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
+import type { CanvasCardWorkModeId } from '../../components/canvas/canvas-card-work-model'
+import { resolveCanvasMaterializedCardResult } from '../../components/canvas/canvas-materialized-card-projection'
+import type { GenerationNodeParameters, VideoReferenceMode } from '../../modules/canvas/generation-parameters'
 import {
   useCanvasContextSurface,
   type CanvasContextSurfaceKind,
@@ -119,6 +122,7 @@ const {
   panelWidth,
   isResourceOpen,
   resourceIntent,
+  cardSourceTargetNodeId,
   isContextDrawerOpen,
   isDesktopContextOpen,
   isUploading,
@@ -140,14 +144,19 @@ const {
   generationSuccess,
   foregroundResultNodeId,
   openResources,
+  openCardSourceResources,
   closeResources,
   restoreResourceFocus,
   closeContext,
+  openContext,
+  suppressNextContextAutoOpen,
   selectNodeForCanvasLocation,
   setPanelWidth,
   getInsertionPoint,
   insertAsset,
   uploadAsset,
+  uploadCardSource,
+  attachCardSourceAsset,
   captureVideoFrame,
   splitImageGrid,
   captureTemplate,
@@ -185,6 +194,23 @@ function openCanvasResources(opener: HTMLElement, tab: 'assets' | 'templates' | 
   openResources(opener, 'insert', tab)
 }
 
+function openSelectedCardAssets(nodeId: string, opener: HTMLElement) {
+  activateContextSurface('resources', opener)
+  openCardSourceResources(nodeId, opener)
+}
+
+async function uploadSelectedCardSource(nodeId: string, file: File) {
+  await uploadCardSource(nodeId, file)
+}
+
+async function handleResourceUpload(file: File, type: 'image' | 'video' | 'audio') {
+  if (resourceIntent.value === 'card-source' && cardSourceTargetNodeId.value) {
+    await uploadCardSource(cardSourceTargetNodeId.value, file)
+    return
+  }
+  await uploadAsset(file, type)
+}
+
 function attachComposerAsset(asset: ProjectAsset) {
   if (asset.project_id !== projectId.value) return
   if (composerAttachments.value.some((item) => item.id === asset.id)) {
@@ -193,6 +219,50 @@ function attachComposerAsset(asset: ProjectAsset) {
   }
   composerAttachments.value = [...composerAttachments.value, asset].slice(0, 8)
   closeResourceSurface()
+}
+
+function attachSelectedResource(asset: ProjectAsset) {
+  if (resourceIntent.value === 'card-source') {
+    void attachCardSourceAsset(asset)
+    return
+  }
+  attachComposerAsset(asset)
+}
+
+async function generateFromCard(nodeId: string, prompt: string, mode: CanvasCardWorkModeId) {
+  if (selectedNode.value?.id !== nodeId || !selectedMediaType.value) return
+  if (mode === 'image-upscale') {
+    openContext()
+    return
+  }
+  if (selectedMediaType.value === 'video') {
+    const referenceMode: VideoReferenceMode | null = mode === 'text-to-video'
+      ? 'text-to-video'
+      : mode === 'first-frame-video'
+        ? 'image-to-video'
+        : mode === 'keyframes-video' ? 'keyframes' : null
+    if (!referenceMode) return
+    const durationSeconds = selectedGenerationContext.value?.durationSeconds ??
+      generationCapabilities.value?.video.default_duration_seconds ?? 5
+    const primaryReferenceNodeId = selectedGenerationContext.value?.primaryReferenceNodeId ??
+      selectedGenerationContext.value?.mediaSources.find((source) => source.state === 'included')?.nodeId
+    const parameters: GenerationNodeParameters = {
+      schema_version: 1,
+      video: {
+        duration_seconds: durationSeconds,
+        reference_mode: referenceMode,
+        ...(referenceMode === 'image-to-video' && primaryReferenceNodeId
+          ? { primary_reference_node_id: primaryReferenceNodeId }
+          : {}),
+        ...(selectedGenerationContext.value?.shotControls
+          ? { shot_controls: selectedGenerationContext.value.shotControls }
+          : {}),
+      },
+    }
+    await canvasDocumentStore.setNodeGenerationParameters(nodeId, parameters)
+  }
+  updatePrompt(prompt)
+  await generate(prompt)
 }
 
 watch([projectId, canvasId], () => { composerAttachments.value = [] })
@@ -213,6 +283,15 @@ async function submitMainComposerScript(brief: string) {
   if (scriptGeneration.success.value) scriptAuthoringIntent.value = null
 }
 const { branchFromResult, branchVisualRecipe, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode, revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId) })
+const selectedProfessionalNodes = computed(() => {
+  const nodes = canvasDocumentStore.selectedNodes
+  if (nodes.length !== 1) return nodes
+  const node = nodes[0]
+  const result = resolveCanvasMaterializedCardResult(
+    node, canvasDocumentStore.nodes, canvasDocumentStore.connections,
+  )
+  return [result ?? node]
+})
 const { createCinematicShotGraph, createShotGraph, createStoryboardRecipe, createVisualAssetRecipe } = useCanvasStoryboardRecipes({
   assets: () => resourceStore.assets,
   branchVisualRecipe,
@@ -223,6 +302,7 @@ const { createCinematicShotGraph, createShotGraph, createStoryboardRecipe, creat
 })
 const { createImageOperation } = useCanvasImageOperations({
   assets: () => resourceStore.assets, canvasId, generationCapabilities, projectId,
+  getSelectedNodes: () => selectedProfessionalNodes.value,
   revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId),
   userId: () => authStore.user?.id ?? '',
 })
@@ -266,7 +346,7 @@ const professionalActionsBlocked = computed(() => (
 ))
 const {
   actions: professionalActions,
-  availableActionIds: professionalActionIds,
+  availableActionIdsFor,
   close: closeProfessionalActions,
   error: professionalActionError,
   execute: executeProfessionalAction,
@@ -321,7 +401,11 @@ function activateContextSurface(kind: CanvasContextSurfaceKind, opener?: HTMLEle
 
 function openProfessionalActionsExclusive(opener: HTMLElement, initialQuery = '') {
   activateContextSurface('professional', opener)
-  openProfessionalActions(opener, initialQuery)
+  openProfessionalActions(
+    opener,
+    initialQuery,
+    initialQuery && mediaActionTarget.value ? selectedProfessionalNodes.value : undefined,
+  )
 }
 const isDesktopContextVisible = computed(() => (
   isDesktopContextOpen.value &&
@@ -340,15 +424,20 @@ const mediaActionTarget = computed(() => {
   const selectedNode = selectedNodeIds.length === 1
     ? canvasDocumentStore.findNodeById(selectedNodeIds[0])
     : null
-  return resolveOwnedMediaActionTarget({
+  const target = resolveOwnedMediaActionTarget({
     assets: resourceStore.assets,
     projectId: projectId.value,
-    selectedNodes: selectedNode ? [selectedNode] : [],
+    selectedNodes: selectedProfessionalNodes.value,
     userId: authStore.user?.id ?? '',
   })
+  return target && selectedNode
+    ? { ...target, nodeId: selectedNode.id, title: selectedNode.title }
+    : target
 })
 const mediaProfessionalActionIds = computed(() => (
-  mediaActionTarget.value ? professionalActionIds.value : EMPTY_PROFESSIONAL_ACTION_IDS
+  mediaActionTarget.value
+    ? availableActionIdsFor(selectedProfessionalNodes.value)
+    : EMPTY_PROFESSIONAL_ACTION_IDS
 ))
 const storyboardItems = computed(() => projectCanvasStoryboard({
   nodes: canvasDocumentStore.nodes,
@@ -643,14 +732,28 @@ onBeforeUnmount(() => {
           :composer-capability-loading="isGenerationCapabilitiesLoading"
           :composer-model-id="scriptCapability?.model ?? ''"
           :composer-model-label="scriptCapability?.modelLabel ?? ''"
+          :card-work-busy="isGenerating"
+          :card-work-can-generate="viewMode === 'workflow' && Boolean(selectedMediaType) && selectedQuota > 0 && !isReviewOnly"
+          :card-work-error="generationError"
+          :card-work-has-source="Boolean(selectedGenerationContext?.imageIds.length)"
+          :card-work-model-label="selectedMediaType ? (generationCapabilities?.[selectedMediaType]?.model ?? '') : ''"
+          :card-work-parameter-summary="selectedGenerationContext?.parameterSummary ?? []"
+          :card-work-source-count="selectedGenerationContext?.imageIds.length ?? 0"
           :viewport-insets="canvasViewportInsets"
           @activate-context-surface="activateContextSurface('stage')"
+          @card-generate="generateFromCard"
+          @card-open-assets="openSelectedCardAssets"
+          @card-upload="uploadSelectedCardSource"
           @context-surface-state="updateStageContextSurface"
+          @materialized-card-pointer-select="suppressNextContextAutoOpen"
           @open-composer-resources="openComposerResources"
+          @open-audio-generation-preflight="openAudioGenerationPreflight"
           @open-resources="openCanvasResources"
           @open-video-edit-preflight="openVideoEditPreflight"
           @open-professional-actions="openProfessionalActionsExclusive"
+          @open-node-details="openContext"
           @open-revisions="openRevisionPanel"
+          @branch-result="branchFromResult"
           @capture-video-frame="captureSelectedVideoFrame"
           @remove-composer-attachment="removeComposerAttachment"
           @retry-capabilities="reloadGenerationCapabilities"
@@ -776,14 +879,14 @@ onBeforeUnmount(() => {
           :readonly="isReviewOnly"
           :tasks="resourceStore.tasks"
           :templates="resourceStore.templates"
-          @attach-asset="attachComposerAsset"
+          @attach-asset="attachSelectedResource"
           @capture-template="captureTemplate"
           @close="closeResourceSurface"
           @insert-asset="insertAsset"
           @instantiate-template="instantiateTemplate"
           @resize="setPanelWidth"
           @retry="retryProjectResources"
-          @upload="uploadAsset"
+          @upload="handleResourceUpload"
         />
       </div>
 
@@ -866,13 +969,13 @@ onBeforeUnmount(() => {
               :readonly="isReviewOnly"
               :tasks="resourceStore.tasks"
               :templates="resourceStore.templates"
-              @attach-asset="attachComposerAsset"
+              @attach-asset="attachSelectedResource"
               @capture-template="captureTemplate"
               @close="closeResourceSurface"
               @insert-asset="insertAsset"
               @instantiate-template="instantiateTemplate"
               @retry="retryProjectResources"
-              @upload="uploadAsset"
+              @upload="handleResourceUpload"
             />
           </div>
         </NDrawerContent>

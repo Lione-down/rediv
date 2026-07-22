@@ -106,7 +106,7 @@ test('selected multi-input generation shows ordered source and edge provenance',
 
   await selectNode(page, '宽银幕主镜头')
   await expect(markers).toHaveCount(4)
-  await expect(page.locator('.result-lineage-node')).toHaveCount(8)
+  await expect(page.locator('.result-lineage-node')).toHaveCount(7)
   await selectNode(page, '中文剧情约束')
   await expect(markers).toHaveCount(0)
   await expect(page.locator('.result-lineage-node')).toHaveCount(0)
@@ -337,6 +337,7 @@ test('persisted video reference remains visible as excluded legacy provenance', 
   const videoReference = document.nodes.find((node) => node.id === 'asset-portrait')!
   Object.assign(videoReference.content, {
     subtype: 'video', asset_id: 'asset-video-reference', url: 'https://media.revid.test/scenario.mp4',
+    aspect_ratio: 16 / 9, width: 320, height: 180,
   })
   const generation = document.nodes.find((node) => node.id === 'generation-compose')!
   await openResourceWorkspace(page, state)
