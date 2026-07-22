@@ -115,10 +115,15 @@ const operationRequiresPrompt = computed(() => imageOperation.value
   ? IMAGE_OPERATIONS[imageOperation.value.id].requiresPrompt
   : true)
 const usesPrompt = computed(() => !imageOperation.value || operationRequiresPrompt.value)
+const requestedOutputCount = computed(() => (
+  props.mediaType === 'image' && !props.generationContext?.imageBatch
+    ? props.generationContext?.outputCount ?? 1
+    : 1
+))
 const canGenerate = computed(() => Boolean(
   props.allowGenerationExecution && !isLocalImageOperation.value && props.mediaType &&
   (visualRecipe.value || !usesPrompt.value || prompt.value.trim() || props.generationContext?.prompt) &&
-  !props.generationContext?.parameterError && props.quota > 0 && !props.isGenerating,
+  !props.generationContext?.parameterError && props.quota >= requestedOutputCount.value && !props.isGenerating,
 ))
 const generationLabel = computed(() => props.mediaType === 'video' ? '视频' : '图片')
 const connectedInputCount = computed(() => (
@@ -386,7 +391,7 @@ function requestGeneration() {
       </section>
 
       <div v-if="generationContext && !isLocalImageOperation" class="generation-submit-summary" role="group" aria-label="生成提交摘要">
-        <span><strong>输出</strong>1 个</span>
+        <span><strong>输出</strong>{{ requestedOutputCount }} 个</span>
         <span><strong>成本</strong>估算不可用</span>
         <span v-if="mediaType === 'video'"><strong>音频</strong>暂不可用</span>
       </div>

@@ -175,9 +175,10 @@ export function createShotGraphInsertCommand(input: ShotGraphInsertInput): Inser
     id: groupId,
     ...groupDraft,
     ...layout.group,
-    title: '分镜计划',
+    title: '分镜资产组',
     contentData: {
       ...groupContent,
+      asset_group_generation: { concurrency: 1 },
       ...(schema.contract_version === 2 ? {
         source_script_node_id: schema.source_script_node_id,
         source_script_text: sourceText(currentSource),

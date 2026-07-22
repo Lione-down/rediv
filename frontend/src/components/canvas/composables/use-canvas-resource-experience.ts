@@ -23,6 +23,7 @@ import { createCanvasImageGridSplitAction } from './use-canvas-image-grid-split'
 import { useGenerationCapabilities } from './use-generation-capabilities'
 import { useCanvasGenerationActions } from './use-canvas-generation-actions'
 import { useCanvasGenerationRuntime } from './use-canvas-generation-runtime'
+import { useCanvasStoryboardGroupGeneration } from './use-canvas-storyboard-group-generation'
 import { useCanvasCardSourceResources } from './use-canvas-card-source-resources'
 import type { PreparedCinematicGeneration } from '../../../modules/canvas/cinematic-skills'
 
@@ -379,7 +380,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     target.value = next
   }
 
-  const { generate, generateRecipe, updatePrompt, updateGenerationParameters } = useCanvasGenerationActions({
+  const { generate, generateNode, generateRecipe, updatePrompt, updateGenerationParameters } = useCanvasGenerationActions({
     canvasId: options.canvasId,
     projectId: options.projectId,
     isReviewOnly: options.isReviewOnly,
@@ -400,6 +401,11 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
       pendingDirectorPreflights.delete(nodeId)
       return prepared
     },
+  })
+
+  const { generateStoryboardGroup, storyboardGenerationSummary } = useCanvasStoryboardGroupGeneration({
+    canvas: canvasStore, generateNode, generationCapabilities, getImageQuota: () => authStore.quotas.image,
+    isNodeGenerating: generationRuntime.isNodeActive, isReviewOnly: options.isReviewOnly,
   })
 
   function setDirectorPreflight(nodeId: string, prepared: PreparedCinematicGeneration) {
@@ -496,6 +502,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     visibleError,
     generationError,
     generationSuccess,
+    storyboardGenerationSummary,
     foregroundResultNodeId,
     openResources,
     openCardSourceResources,
@@ -516,6 +523,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     captureTemplate,
     instantiateTemplate,
     generate,
+    generateStoryboardGroup,
     setDirectorPreflight,
     generateRecipe,
     updatePrompt,

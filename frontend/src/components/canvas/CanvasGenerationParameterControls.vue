@@ -3,7 +3,9 @@ import { computed } from 'vue'
 import type {
   GenerationNodeParameters,
   ResolvedGenerationRequestContext,
+  VideoReferenceBinding,
   VideoReferenceMode,
+  VideoReferenceRole,
 } from '../../modules/canvas/generation-parameters'
 import CanvasImageOperationControls from './CanvasImageOperationControls.vue'
 import {
@@ -31,15 +33,27 @@ const selectedDuration = computed(() => (
 ))
 const selectedMode = computed(() => props.context.referenceMode ?? '')
 const selectedPrimaryNodeId = computed(() => props.context.primaryReferenceNodeId ?? '')
+const isStructuredReferenceContract = computed(() => props.context.capabilities?.contract_version === 6)
+const selectedVideoReferences = computed(() => props.context.videoReferences ?? [])
+const videoReferenceRoleLabels: Record<VideoReferenceRole, string> = {
+  'first-frame': '首帧',
+  'last-frame': '尾帧',
+  reference: '普通参考',
+}
 const activeShotControls = computed(() => (
   props.context.shotControlCapabilities?.supported_controls.map((control) => SHOT_CONTROL_DEFINITIONS[control]) ?? []
 ))
 
-function updateImage(aspectRatio: string, shotControls: ShotControls | undefined) {
+function updateImage(
+  aspectRatio: string,
+  shotControls: ShotControls | undefined,
+  outputCount = props.context.outputCount ?? props.context.capabilities?.image.default_output_count ?? 1,
+) {
   emit('updateParameters', {
     schema_version: 1,
     image: {
       aspect_ratio: aspectRatio,
+      ...(isStructuredReferenceContract.value ? { output_count: outputCount } : {}),
       ...(props.context.imageOperation ? { operation: props.context.imageOperation } : {}),
       ...(shotControls ? { shot_controls: shotControls } : {}),
     },
@@ -52,18 +66,28 @@ function updateVideo(change: {
   primaryReferenceNodeId?: string
   shotControls?: ShotControls
 }) {
+  const hasShotControlsChange = Object.prototype.hasOwnProperty.call(change, 'shotControls')
+  const shotControls = hasShotControlsChange ? change.shotControls : props.context.shotControls
+  if (isStructuredReferenceContract.value) {
+    emit('updateParameters', {
+      schema_version: 1,
+      video: {
+        duration_seconds: change.durationSeconds ?? selectedDuration.value,
+        reference_bindings: selectedVideoReferences.value,
+        ...(shotControls ? { shot_controls: shotControls } : {}),
+      },
+    })
+    return
+  }
   const referenceMode = change.referenceMode ?? props.context.referenceMode ?? (
     validMediaSources.value.length ? 'image-to-video' : 'text-to-video'
   )
   const primaryReferenceNodeId = referenceMode === 'image-to-video'
     ? change.primaryReferenceNodeId ?? props.context.primaryReferenceNodeId ?? validMediaSources.value[0]?.nodeId
     : undefined
-  const hasShotControlsChange = Object.prototype.hasOwnProperty.call(change, 'shotControls')
-  let shotControls: ShotControls | undefined = hasShotControlsChange
-    ? change.shotControls
-    : props.context.shotControls
-  if (referenceMode !== 'image-to-video' && shotControls && shotControls.temporal !== 'hold') {
-    shotControls = { ...shotControls, temporal: 'hold' } as ShotControls
+  let normalizedShotControls = shotControls
+  if (referenceMode !== 'image-to-video' && normalizedShotControls && normalizedShotControls.temporal !== 'hold') {
+    normalizedShotControls = { ...normalizedShotControls, temporal: 'hold' } as ShotControls
   }
   emit('updateParameters', {
     schema_version: 1,
@@ -71,7 +95,62 @@ function updateVideo(change: {
       duration_seconds: change.durationSeconds ?? selectedDuration.value,
       reference_mode: referenceMode,
       ...(primaryReferenceNodeId ? { primary_reference_node_id: primaryReferenceNodeId } : {}),
-      ...(shotControls ? { shot_controls: shotControls } : {}),
+      ...(normalizedShotControls ? { shot_controls: normalizedShotControls } : {}),
+    },
+  })
+}
+
+function hasVideoReferenceRole(nodeId: string, assetId: string | null, role: VideoReferenceRole) {
+  return selectedVideoReferences.value.some((binding) => (
+    binding.node_id === nodeId && binding.asset_id === assetId && binding.role === role
+  ))
+}
+
+function isVideoReferenceRoleDisabled(nodeId: string, assetId: string | null, role: VideoReferenceRole) {
+  if (props.disabled || !assetId) return true
+  return selectedVideoReferences.value.length >= (props.context.capabilities?.video.max_references ?? 0)
+    && !hasVideoReferenceRole(nodeId, assetId, role)
+}
+
+function toggleVideoReferenceRole(nodeId: string, assetId: string | null, role: VideoReferenceRole) {
+  if (!assetId) return
+  const identityMatches = (binding: VideoReferenceBinding) => (
+    binding.node_id === nodeId && binding.asset_id === assetId && binding.role === role
+  )
+  let bindings = selectedVideoReferences.value.filter((binding) => !identityMatches(binding))
+  if (bindings.length === selectedVideoReferences.value.length) {
+    if (bindings.length >= (props.context.capabilities?.video.max_references ?? 0)) return
+    if (role === 'first-frame' || role === 'last-frame') {
+      bindings = bindings.filter((binding) => binding.role !== role)
+    }
+    bindings.push({ node_id: nodeId, asset_id: assetId, role, order: bindings.length })
+  }
+  emit('updateParameters', {
+    schema_version: 1,
+    video: {
+      duration_seconds: selectedDuration.value,
+      reference_bindings: bindings.map((binding, order) => ({ ...binding, order })),
+      ...(props.context.shotControls ? { shot_controls: props.context.shotControls } : {}),
+    },
+  })
+}
+
+function videoReferenceTitle(binding: VideoReferenceBinding) {
+  return validMediaSources.value.find((source) => source.nodeId === binding.node_id)?.title ?? binding.node_id
+}
+
+function reorderVideoReference(index: number, direction: -1 | 1) {
+  const target = index + direction
+  if (target < 0 || target >= selectedVideoReferences.value.length) return
+  const bindings = selectedVideoReferences.value.map((binding) => ({ ...binding }))
+  const [moved] = bindings.splice(index, 1)
+  bindings.splice(target, 0, moved)
+  emit('updateParameters', {
+    schema_version: 1,
+    video: {
+      duration_seconds: selectedDuration.value,
+      reference_bindings: bindings.map((binding, order) => ({ ...binding, order })),
+      ...(props.context.shotControls ? { shot_controls: props.context.shotControls } : {}),
     },
   })
 }
@@ -123,13 +202,28 @@ function isShotControlDisabled(control: ShotControlId) {
           </label>
         </div>
       </fieldset>
+      <fieldset v-if="context.capabilities.contract_version === 6" :disabled="disabled">
+        <legend>输出数量</legend>
+        <div class="generation-parameters__choices">
+          <label v-for="count in context.capabilities.image.output_counts" :key="count">
+            <input
+              type="radio"
+              name="generation-output-count"
+              :checked="context.outputCount === count"
+              :value="count"
+              @change="updateImage(context.aspectRatio ?? context.capabilities.image.default_aspect_ratio, context.shotControls, count)"
+            />
+            <span>{{ count }} 张</span>
+          </label>
+        </div>
+      </fieldset>
       <p class="generation-parameters__hint">
         {{ context.capabilities.image.model }} · {{ context.capabilities.image.size }}
       </p>
     </template>
 
     <template v-else-if="context.capabilities && context.mediaType === 'video'">
-      <fieldset :disabled="disabled">
+      <fieldset v-if="context.capabilities.contract_version !== 6" :disabled="disabled">
         <legend>时长</legend>
         <div class="generation-parameters__choices">
           <label v-for="preset in context.capabilities.video.duration_presets" :key="preset.duration_seconds">
@@ -167,7 +261,7 @@ function isShotControlDisabled(control: ShotControlId) {
           </label>
         </div>
       </fieldset>
-      <fieldset v-if="selectedMode === 'image-to-video' && validMediaSources.length > 1" :disabled="disabled">
+      <fieldset v-if="context.capabilities.contract_version !== 6 && selectedMode === 'image-to-video' && validMediaSources.length > 1" :disabled="disabled">
         <legend>主参考图</legend>
         <div class="generation-parameters__choices is-primary">
           <label v-for="source in validMediaSources" :key="source.nodeId">
@@ -181,6 +275,33 @@ function isShotControlDisabled(control: ShotControlId) {
             <span>{{ source.title }}</span>
           </label>
         </div>
+      </fieldset>
+      <fieldset v-if="context.capabilities.contract_version === 6" :disabled="disabled">
+        <legend>视频参考角色 · 已用 {{ selectedVideoReferences.length }}/{{ context.capabilities.video.max_references }}</legend>
+        <div class="generation-parameters__reference-list">
+          <div v-for="source in validMediaSources" :key="source.nodeId" class="generation-parameters__reference-source">
+            <strong>{{ source.title }}</strong>
+            <div class="generation-parameters__choices is-mode">
+              <label v-for="role in context.capabilities.video.reference_roles" :key="role" :class="{ disabled: isVideoReferenceRoleDisabled(source.nodeId, source.assetId, role) }">
+                <input
+                  type="checkbox"
+                  :aria-label="`${source.title} ${videoReferenceRoleLabels[role]}`"
+                  :checked="hasVideoReferenceRole(source.nodeId, source.assetId, role)"
+                  :disabled="isVideoReferenceRoleDisabled(source.nodeId, source.assetId, role)"
+                  @change="toggleVideoReferenceRole(source.nodeId, source.assetId, role)"
+                />
+                <span>{{ videoReferenceRoleLabels[role] }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <ol v-if="selectedVideoReferences.length" class="generation-parameters__reference-order" aria-label="视频参考顺序">
+          <li v-for="(binding, index) in selectedVideoReferences" :key="`${binding.node_id}:${binding.asset_id}:${binding.role}`">
+            <span>{{ index + 1 }}. {{ videoReferenceTitle(binding) }} · {{ videoReferenceRoleLabels[binding.role] }}</span>
+            <button type="button" :aria-label="`前移 ${videoReferenceTitle(binding)} ${videoReferenceRoleLabels[binding.role]}`" :disabled="disabled || index === 0" @click="reorderVideoReference(index, -1)">↑</button>
+            <button type="button" :aria-label="`后移 ${videoReferenceTitle(binding)} ${videoReferenceRoleLabels[binding.role]}`" :disabled="disabled || index === selectedVideoReferences.length - 1" @click="reorderVideoReference(index, 1)">↓</button>
+          </li>
+        </ol>
       </fieldset>
       <p class="generation-parameters__hint">
         {{ context.capabilities.video.model }} · {{ context.capabilities.video.width }}×{{ context.capabilities.video.height }}
@@ -227,6 +348,15 @@ legend { margin-bottom: 6px; color: var(--v2-text-secondary); font-size: 10px; }
 .generation-parameters__choices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
 .generation-parameters__choices.is-mode { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .generation-parameters__choices.is-primary { grid-template-columns: 1fr; }
+.generation-parameters__reference-list { display: grid; gap: 8px; }
+.generation-parameters__reference-source { display: grid; gap: 5px; }
+.generation-parameters__reference-source > strong { overflow: hidden; color: var(--v2-text-secondary); font-size: 10px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.generation-parameters__reference-order { display: grid; gap: 4px; margin: 8px 0 0; padding: 0; list-style: none; }
+.generation-parameters__reference-order li { display: grid; grid-template-columns: minmax(0, 1fr) 26px 26px; align-items: center; gap: 4px; color: var(--v2-text-secondary); font-size: 10px; }
+.generation-parameters__reference-order li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.generation-parameters__reference-order button { width: 26px; height: 26px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: var(--v2-surface-2); cursor: pointer; }
+.generation-parameters__reference-order button:disabled { cursor: not-allowed; opacity: .4; }
+.generation-parameters__reference-order button:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 .generation-parameters__shot-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .generation-parameters__shot-controls label { display: grid; min-height: 0; gap: 4px; place-items: stretch; }
 .generation-parameters__shot-label { min-height: 0; padding: 0; border: 0; color: var(--v2-text-secondary); background: transparent; font-size: 10px; text-align: left; white-space: normal; }

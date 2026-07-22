@@ -13,6 +13,7 @@ from schemas.cinematic_sequence import (
 )
 from schemas.generation_task import GenerationTaskItem
 from core.generation_parameter_contract import (
+    IMAGE_OUTPUT_COUNTS,
     normalize_image_parameters,
     normalize_video_parameters,
 )
@@ -27,6 +28,31 @@ class QuotaBalances(BaseModel):
 
 
 ResourceId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=36)]
+
+
+class ImageBatchSnapshot(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    batch_id: UUID4
+    slot_index: int = Field(ge=1)
+    slot_count: int
+
+    @model_validator(mode="after")
+    def validate_slot(self):
+        if self.slot_count not in IMAGE_OUTPUT_COUNTS:
+            raise ValueError("image batch slot count is unsupported")
+        if self.slot_index > self.slot_count:
+            raise ValueError("image batch slot index is invalid")
+        return self
+
+
+class VideoReferenceBinding(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    node_id: str = Field(min_length=1, max_length=96)
+    asset_id: ResourceId
+    role: Literal["first-frame", "last-frame", "reference"]
+    order: int = Field(ge=0, le=8)
 
 
 class CinematicGenerationMention(BaseModel):
@@ -92,6 +118,7 @@ class ImageGenerateRequest(ScopedGenerationRequest):
     generation_recipe_version: int | None = Field(default=None, ge=1)
     image_operation: dict[str, Any] | None = None
     shot_controls: dict[str, Any] | None = None
+    batch: ImageBatchSnapshot | None = None
 
     @field_validator("image_ids")
     @classmethod
@@ -113,6 +140,7 @@ class ImageGenerateRequest(ScopedGenerationRequest):
             normalize_image_parameters(
                 aspect_ratio=self.aspect_ratio,
                 image_ids=self.image_ids,
+                batch=self.batch.model_dump(mode="json") if self.batch else None,
                 shot_controls=self.shot_controls,
             )
             return self
@@ -124,6 +152,7 @@ class ImageGenerateRequest(ScopedGenerationRequest):
             normalize_image_parameters(
                 aspect_ratio=self.aspect_ratio,
                 image_ids=self.image_ids,
+                batch=self.batch.model_dump(mode="json") if self.batch else None,
                 shot_controls=self.shot_controls,
             )
             return self
@@ -140,6 +169,7 @@ class ImageGenerateRequest(ScopedGenerationRequest):
         normalize_image_parameters(
             aspect_ratio=self.aspect_ratio,
             image_ids=self.image_ids,
+            batch=self.batch.model_dump(mode="json") if self.batch else None,
             recipe_id=recipe.id,
             recipe_version=recipe.version,
             recipe_size=recipe.output_size,
@@ -152,6 +182,7 @@ class VideoGenerateRequest(ScopedGenerationRequest):
     reference_mode: str | None = Field(default=None, max_length=32)
     duration_seconds: int | None = None
     shot_controls: dict[str, Any] | None = None
+    video_references: list[VideoReferenceBinding] | None = Field(default=None, max_length=9)
 
     @field_validator("image_ids")
     @classmethod
@@ -166,6 +197,10 @@ class VideoGenerateRequest(ScopedGenerationRequest):
             reference_mode=self.reference_mode,
             duration_seconds=self.duration_seconds,
             image_ids=self.image_ids,
+            video_references=(
+                [binding.model_dump(mode="json") for binding in self.video_references]
+                if self.video_references is not None else None
+            ),
             shot_controls=self.shot_controls,
         )
         return self

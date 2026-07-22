@@ -24,7 +24,6 @@ export interface ScriptGenerationSubmission {
   intent: ScriptAuthoringIntent
   locale: ScriptAuthoringLocale
   value: string
-  replace: boolean
   referenceAssetIds?: string[]
 }
 
@@ -123,12 +122,10 @@ export function useCanvasScriptGeneration(options: ScriptGenerationOptions) {
         return
       }
       const command = createScriptAuthoringResultCommand({
-        mode: submission.replace ? 'replace' : 'new',
         source: currentSource,
         sourceTextAtRequest,
         generatedText: response.content,
         lineage: response.script_authoring,
-        existingNodes: canvasStore.nodes,
       })
       if (!command) {
         error.value = '源脚本已变化；生成文本已保存在项目资源中，未自动应用。'
@@ -136,7 +133,7 @@ export function useCanvasScriptGeneration(options: ScriptGenerationOptions) {
       }
       await canvasStore.dispatchCommand({ source: 'toolbar', command })
       await canvasStore.flushPendingPersistence()
-      success.value = submission.replace ? '脚本已显式替换，可撤销。' : '已创建新的可编辑脚本节点。'
+      success.value = '当前脚本已替换，可撤销。'
     } catch (generationError) {
       if (requestController.signal.aborted) error.value = '脚本生成已取消；不会自动应用迟到结果。'
       else error.value = errorMessage(generationError)

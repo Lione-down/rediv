@@ -3,11 +3,13 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { Page } from '@playwright/test'
+import { createMockGenerationRequestParameters } from './canvas-generation-parameters-fixture'
 import {
   API_ORIGIN, FIRST_CANVAS_ID, GENERATED_VIDEO_BASE64, GENERATION_CAPABILITIES,
   NOW, PROJECT_ID, SECOND_CANVAS_ID, applyDocumentPatch,
   cinematicScriptGenerationResponse, corsHeaders, documentResponse, fulfillJson,
-  generationResponse, generationTask, instantiateTemplate, type ResourceMockState,
+  generationResponse, generationTask, instantiateTemplate, T6_GENERATION_CAPABILITIES,
+  type ResourceMockState,
 } from './canvas-resource-generation-state-fixture'
 
 function canonicalJson(value: unknown): string {
@@ -211,7 +213,7 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
     }
     if (method === 'GET' && path === '/api/generation-capabilities') {
       return state.capabilitiesOutcome === 'success'
-        ? fulfillJson(route, GENERATION_CAPABILITIES)
+        ? fulfillJson(route, state.capabilityVersion === 6 ? T6_GENERATION_CAPABILITIES : GENERATION_CAPABILITIES)
         : fulfillJson(route, { detail: 'mock capability unavailable' }, 503)
     }
     const cinematicSkillMatch = path.match(new RegExp(
@@ -427,10 +429,24 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       const mediaType = path === '/api/video-generate' ? 'video' : 'image'
       state.events.push(`generation-requested:${nodeId}`)
       await state.generationGate
-      if (state.generationOutcome === 'success') {
+      const batch = body?.batch as Record<string, unknown> | undefined
+      const slotIndex = Number(batch?.slot_index ?? 0)
+      const generationCall = state.events.filter((event) => event.startsWith('generation-requested:')).length
+      if (
+        state.generationOutcome === 'success' && !state.generationFailureSlots.includes(slotIndex) &&
+        !state.generationFailureCalls.includes(generationCall)
+      ) {
         return fulfillJson(route, generationResponse(state, canvasId, nodeId, mediaType, body ?? {}))
       }
-      const failedTask = generationTask({ id: 'task-failure', origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType, model: `mock-${mediaType}-v1`, status: 'failed', result_asset_id: null, provider_request_id: null, error_code: 'provider_error', error_message: 'mock provider unavailable' })
+      const failedTask = generationTask({
+        id: slotIndex ? `task-failure-${nodeId}-${state.generationCount + 1}` : 'task-failure',
+        origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType,
+        model: `mock-${mediaType}-v1`, status: 'failed', result_asset_id: null,
+        provider_request_id: null, client_request_id: body?.client_request_id,
+        request_fingerprint: 'b'.repeat(64),
+        request_parameters: createMockGenerationRequestParameters(mediaType, body ?? {}),
+        error_code: 'provider_error', error_message: 'mock provider unavailable',
+      })
       state.tasks = [failedTask, ...state.tasks.filter((item) => item.id !== failedTask.id)]
       return fulfillJson(route, { detail: 'mock provider unavailable' }, 503)
     }

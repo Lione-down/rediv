@@ -56,7 +56,7 @@ test('draft accepts a blank canonical script while refine requires current conte
   expect(resolveScriptAuthoringEligibility({ ...context, intent: 'script_draft', isReviewOnly: true })).toEqual(expect.objectContaining({ eligible: false }))
 })
 
-test('successful draft inserts one lineage node and edge while explicit replace is one update command', () => {
+test('draft and refine both replace the selected script through one stale-safe update command', () => {
   const source = scriptNode()
   const lineage = {
     contract_version: 1 as const,
@@ -67,32 +67,22 @@ test('successful draft inserts one lineage node and edge while explicit replace 
     source_model: 'agnes-2.0-flash',
     canvas_revision: 7,
   }
-  const inserted = createScriptAuthoringResultCommand({
-    mode: 'new', source, sourceTextAtRequest: '', generatedText: '第一场：雨夜车站。', lineage,
-    existingNodes: [source], createId: (() => { const ids = ['script-result', 'edge-lineage']; return () => ids.shift()! })(),
+  const drafted = createScriptAuthoringResultCommand({
+    source, sourceTextAtRequest: '', generatedText: '第一场：雨夜车站。', lineage,
   })
   const replaced = createScriptAuthoringResultCommand({
-    mode: 'replace', source: scriptNode({ content: '旧稿', contentData: { subtype: 'script', serialization_version: 1, text: '旧稿' } }),
+    source: scriptNode({ content: '旧稿', contentData: { subtype: 'script', serialization_version: 1, text: '旧稿' } }),
     sourceTextAtRequest: '旧稿', generatedText: '优化稿', lineage: { ...lineage, intent: 'script_refine' },
-    existingNodes: [source], createId: () => 'unused',
   })
 
-  expect(inserted).toEqual(expect.objectContaining({
-    type: 'insert-graph',
-    nodes: [expect.objectContaining({
-      id: 'script-result', type: 'script', content: '第一场：雨夜车站。',
-      contentData: expect.objectContaining({ source_task_id: 'task-script-1', generation_intent: 'script_draft' }),
-    })],
-    connections: [expect.objectContaining({
-      id: 'edge-lineage', from: source.id, to: 'script-result', sourcePort: 'out', targetPort: 'in',
-    })],
+  expect(drafted).toEqual(expect.objectContaining({
+    type: 'apply-script-authoring-result', nodeId: source.id, expectedContent: '', content: '第一场：雨夜车站。',
   }))
   expect(replaced).toEqual(expect.objectContaining({
     type: 'apply-script-authoring-result', nodeId: source.id, expectedContent: '旧稿', content: '优化稿',
   }))
   expect(createScriptAuthoringResultCommand({
-    mode: 'replace', source: { ...source, content: 'changed' }, sourceTextAtRequest: '', generatedText: 'late', lineage,
-    existingNodes: [source], createId: () => 'unused',
+    source: { ...source, content: 'changed' }, sourceTextAtRequest: '', generatedText: 'late', lineage,
   })).toBeNull()
 })
 
@@ -154,7 +144,7 @@ test('script authoring request sends structured intent and validates task lineag
   expect(quotaStore.quotas.text).toBe(4)
 })
 
-test('Canvas script authoring keeps generated text editable, reversible, and separate from cinematic decomposition', async ({ page }) => {
+test('Canvas script authoring directly replaces the selected card, stays reversible, and creates no version UI', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
@@ -182,31 +172,34 @@ test('Canvas script authoring keeps generated text editable, reversible, and sep
   })
   expect(draftRequest).not.toHaveProperty('cinematic_handoff')
   const sourceAfterDraft = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'script-source')!
-  expect((sourceAfterDraft.content as Record<string, unknown>).text).toBe('黄昏海岸，人物入画。')
+  expect((sourceAfterDraft.content as Record<string, unknown>).text).toBe('雨夜车站。摄影师穿过人群，寻找装着失踪胶卷的银色手提箱。')
   const generatedDraft = state.documents[FIRST_CANVAS_ID].nodes.find((item) => (
     item.id !== 'script-source' && item.node_type === 'script' &&
     (item.content as Record<string, unknown>).source_task_id === 'task-authoring-1'
   ))
-  expect(generatedDraft).toBeTruthy()
+  expect(generatedDraft).toBeUndefined()
+  await expect(authoring.getByRole('checkbox')).toHaveCount(0)
   expect(state.requests.filter((item) => ['/api/image-generate', '/api/video-generate'].includes(item.path))).toHaveLength(0)
 
   await stage.focus()
   await page.keyboard.press('Control+z')
   await expect.poll(() => documentPatches(state).length).toBe(2)
-  expect(state.documents[FIRST_CANVAS_ID].nodes.some((item) => item.id === generatedDraft!.id)).toBe(false)
+  expect((state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'script-source')!.content as Record<string, unknown>).text)
+    .toBe('黄昏海岸，人物入画。')
   await stage.focus()
   await page.keyboard.press('Control+Shift+z')
   await expect.poll(() => documentPatches(state).length).toBe(3)
-  expect(state.documents[FIRST_CANVAS_ID].nodes.some((item) => item.id === generatedDraft!.id)).toBe(true)
+  expect((state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'script-source')!.content as Record<string, unknown>).text)
+    .toBe('雨夜车站。摄影师穿过人群，寻找装着失踪胶卷的银色手提箱。')
   await page.reload()
   await expect(page.getByRole('region', { name: 'Revid 无限画布工作区' })).toBeVisible()
-  expect(state.documents[FIRST_CANVAS_ID].nodes.some((item) => item.id === generatedDraft!.id)).toBe(true)
+  expect((state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'script-source')!.content as Record<string, unknown>).text)
+    .toBe('雨夜车站。摄影师穿过人群，寻找装着失踪胶卷的银色手提箱。')
 
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本', exact: true }).click()
   const replaceAuthoring = page.getByRole('region', { name: 'AI 脚本写作' })
   await replaceAuthoring.getByRole('textbox', { name: '脚本优化要求' }).fill('提升节奏，保留人物和黄昏海岸。')
-  await replaceAuthoring.getByRole('checkbox', { name: '显式替换当前脚本（默认关闭，可撤销）' }).check()
   await replaceAuthoring.getByRole('button', { name: '生成优化版本' }).click()
   await expect.poll(() => state.requests.filter((item) => item.path === '/api/text-generate').length).toBe(2)
   await expect.poll(() => (state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'script-source')!.content as Record<string, unknown>).text)

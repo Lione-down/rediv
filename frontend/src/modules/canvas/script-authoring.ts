@@ -1,9 +1,6 @@
 import type { CanvasNode } from '../../types/canvas'
-import { createCanvasEntityId } from './canvas-autosave'
-import type { ApplyScriptAuthoringResultCommand, InsertGraphCommand } from './canvas-commands'
-import { findFirstUnoccupiedPosition } from './graph-placement'
-import { resolveCanvasNodeLayoutSize } from './node-layout'
-import { createRegistryNodeDraft, resolveNodeDefinition } from './node-registry'
+import type { ApplyScriptAuthoringResultCommand } from './canvas-commands'
+import { resolveNodeDefinition } from './node-registry'
 
 export type ScriptAuthoringIntent = 'script_draft' | 'script_refine'
 export type ScriptAuthoringLocale = 'zh-CN' | 'en-US'
@@ -95,71 +92,22 @@ export function resolveScriptAuthoringEligibility(input: {
 }
 
 export function createScriptAuthoringResultCommand(input: {
-  mode: 'new' | 'replace'
   source: CanvasNode
   sourceTextAtRequest: string
   generatedText: string
   lineage: ScriptAuthoringLineage
-  existingNodes: readonly CanvasNode[]
-  createId?: () => string
-}): InsertGraphCommand | ApplyScriptAuthoringResultCommand | null {
+}): ApplyScriptAuthoringResultCommand | null {
   const currentText = nodeText(input.source)
   const generatedText = input.generatedText.trim()
   if (
     currentText !== input.sourceTextAtRequest || !generatedText || generatedText.length > 12_000 ||
     input.lineage.source_node_id !== input.source.id
   ) return null
-  if (input.mode === 'replace') {
-    return {
-      type: 'apply-script-authoring-result',
-      nodeId: input.source.id,
-      expectedContent: input.sourceTextAtRequest,
-      content: generatedText,
-      lineage: input.lineage,
-    }
-  }
-  const createId = input.createId ?? createCanvasEntityId
-  const sourceSize = resolveCanvasNodeLayoutSize(input.source)
-  const draft = createRegistryNodeDraft('script', 'script', {
-    x: input.source.x + sourceSize.width + 96,
-    y: input.source.y,
-  })
-  const position = findFirstUnoccupiedPosition(draft, draft, input.existingNodes, [input.source.id])
-  const nodeId = createId()
-  const node = {
-    id: nodeId,
-    ...draft,
-    ...position,
-    title: input.lineage.intent === 'script_draft' ? 'AI 脚本初稿' : 'AI 优化脚本',
-    content: generatedText,
-    contentData: {
-      ...draft.contentData,
-      text: generatedText,
-      source_model: input.lineage.source_model,
-      source_task_id: input.lineage.source_task_id,
-      source_node_id: input.lineage.source_node_id,
-      source_canvas_revision: input.lineage.canvas_revision,
-      generation_intent: input.lineage.intent,
-      generation_locale: input.lineage.locale,
-      script_authoring_contract_version: input.lineage.contract_version,
-    },
-  }
   return {
-    type: 'insert-graph',
-    nodes: [node],
-    connections: [{
-      id: createId(),
-      from: input.source.id,
-      to: nodeId,
-      sourcePort: 'out',
-      targetPort: 'in',
-      status: 'active',
-      active: true,
-      metadata: {
-        relation: 'script-authoring',
-        source_task_id: input.lineage.source_task_id,
-        generation_intent: input.lineage.intent,
-      },
-    }],
+    type: 'apply-script-authoring-result',
+    nodeId: input.source.id,
+    expectedContent: input.sourceTextAtRequest,
+    content: generatedText,
+    lineage: input.lineage,
   }
 }

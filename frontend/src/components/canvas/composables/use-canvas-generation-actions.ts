@@ -9,6 +9,8 @@ import {
   resolveGenerationRequestContext,
   type GenerationCapabilities,
   type GenerationNodeParameters,
+  type ImageBatchSnapshot,
+  type VideoReferenceBinding,
 } from '../../../modules/canvas/generation-parameters'
 import { resolveVisualAssetRecipe, type VisualAssetRecipeId } from '../../../modules/canvas/visual-asset-recipes'
 import type { ShotControls } from '../../../modules/canvas/shot-controls'
@@ -16,6 +18,7 @@ import { useProjectResourceStore } from '../../../modules/canvas/project-resourc
 import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
+import { getGenerationMediaType } from '../../../modules/canvas/node-registry'
 import {
   parseCinematicSkillNodeSettings,
   prepareCinematicGeneration,
@@ -23,6 +26,7 @@ import {
   type PreparedCinematicGeneration,
 } from '../../../modules/canvas/cinematic-skills'
 import type { CinematicDirectorGenerationHandoff } from '../../../modules/canvas/cinematic-director-preflight'
+import { useCanvasImageGenerationBatch } from './use-canvas-image-generation-batch'
 
 interface GenerationRequestContext {
   authToken: string
@@ -54,6 +58,8 @@ interface CanvasGenerationActionOptions {
 interface GenerationExecutionOptions {
   prompt?: string
   imageIds?: string[]
+  imageBatch?: ImageBatchSnapshot
+  videoReferences?: VideoReferenceBinding[]
   aspectRatio?: string
   referenceMode?: 'text-to-video' | 'image-to-video' | 'keyframes'
   durationSeconds?: number
@@ -76,6 +82,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
   const authStore = useAuthStore()
   const canvasStore = useCanvasStore()
   const resourceStore = useProjectResourceStore()
+  const imageGenerationBatch = useCanvasImageGenerationBatch()
 
   function isExactGenerationContext(context: GenerationRequestContext) {
     return authStore.token === context.authToken &&
@@ -120,6 +127,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
   ) {
     const { clientRequestId, context, runtimeRequestId } = execution
     let shouldPollForRecovery = false
+    let succeeded = false
     try {
       if (!requestContext.isCanvasPrepared && requestContext.parameters) {
         await canvasStore.setNodeGenerationParameters(sourceNode.id, requestContext.parameters)
@@ -139,6 +147,8 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
         canvasNodeId: context.nodeId,
         prompt: requestContext.prompt,
         imageIds: requestContext.imageIds,
+        imageBatch: requestContext.imageBatch,
+        videoReferences: requestContext.videoReferences,
         aspectRatio: requestContext.aspectRatio,
         referenceMode: requestContext.referenceMode,
         durationSeconds: requestContext.durationSeconds,
@@ -159,6 +169,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
         const recipe = resolveVisualAssetRecipe(sourceNode)
         options.setGenerationSuccess(sourceNode.id, `${recipe?.title ?? (mediaType === 'video' ? '视频' : '图片')}生成已完成，结果已写入项目资源。`)
       }
+      succeeded = true
     } catch (error) {
       if (authStore.token === context.authToken) {
         await resourceStore.refreshIfCurrent(context.projectId).catch(() => undefined)
@@ -174,11 +185,12 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
       if (runtimeRequestId) options.settleRuntimeRequest(runtimeRequestId)
       if (shouldPollForRecovery) options.requestRuntimeRecoveryPolling()
     }
+    return succeeded
   }
 
-  async function generate(prompt?: string) {
-    const sourceNode = options.selectedNode.value
-    const mediaType = options.selectedMediaType.value
+  async function generate(prompt?: string, targetNodeId?: string) {
+    const sourceNode = targetNodeId ? canvasStore.findNodeById(targetNodeId) : options.selectedNode.value
+    const mediaType = targetNodeId && sourceNode ? getGenerationMediaType(sourceNode) : options.selectedMediaType.value
     if (!sourceNode || !mediaType || resolveVisualAssetRecipe(sourceNode)) return
     const context = resolveGenerationRequestContext(
       { ...sourceNode, content: prompt ?? sourceNode.content }, mediaType,
@@ -195,6 +207,36 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
     }
     if ((!operation || IMAGE_OPERATIONS[operation.id].requiresPrompt) && !context.prompt) {
       options.setGenerationError(sourceNode.id, '请填写提示词或连接至少一个有内容的脚本节点。')
+      return
+    }
+    if (mediaType === 'image' && !context.imageBatch && (context.outputCount ?? 1) > 1) {
+      const slotCount = context.outputCount ?? 1
+      if (authStore.quotas.image < slotCount) {
+        options.setGenerationError(sourceNode.id, `image quota 不足，需要 ${slotCount}，当前剩余 ${authStore.quotas.image}。`)
+        return
+      }
+      let plan
+      try {
+        plan = await imageGenerationBatch.prepare(sourceNode, slotCount)
+      } catch (error) {
+        options.setGenerationError(sourceNode.id, options.formatError(error))
+        return
+      }
+      const executions = plan.slots.flatMap((slot) => {
+        const node = canvasStore.findNodeById(slot.nodeId)
+        if (!node) return []
+        const execution = beginExecution(node, 'image')
+        return execution ? [{ node, execution, slot }] : []
+      })
+      await Promise.allSettled(executions.map(({ node, execution, slot }) => executeGeneration(node, 'image', {
+        prompt: context.prompt,
+        imageIds: context.imageIds,
+        imageBatch: slot.batch,
+        aspectRatio: context.aspectRatio,
+        imageOperation: operation,
+        shotControls: context.shotControls,
+        parameters: slot.parameters,
+      }, execution, prompt)))
       return
     }
     let execution: ActiveGenerationExecution | null = null
@@ -239,9 +281,11 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
       options.settleRuntimeRequest(execution.runtimeRequestId)
       return
     }
-    await executeGeneration(sourceNode, mediaType, {
+    return executeGeneration(sourceNode, mediaType, {
       prompt: prepared?.optimizedPrompt ?? context.prompt,
       imageIds: prepared?.imageIds ?? context.imageIds,
+      imageBatch: context.imageBatch,
+      videoReferences: prepared ? undefined : context.videoReferences,
       aspectRatio: context.aspectRatio,
       referenceMode: context.referenceMode,
       durationSeconds: context.durationSeconds,
@@ -294,5 +338,9 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
     }
   }
 
-  return { generate, generateRecipe, updatePrompt, updateGenerationParameters }
+  function generateNode(nodeId: string) {
+    return generate(undefined, nodeId)
+  }
+
+  return { generate, generateNode, generateRecipe, updatePrompt, updateGenerationParameters }
 }

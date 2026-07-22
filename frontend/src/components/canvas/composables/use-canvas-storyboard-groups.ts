@@ -30,6 +30,7 @@ export function useCanvasStoryboardGroups() {
         columns: resolved.content.columns,
         show_numbers: resolved.content.show_numbers,
       },
+      isAssetGroup: 'storyboard_kind' in resolved.content && resolved.content.storyboard_kind === 'shot-plan',
       canMoveEarlier: Boolean(nodeId && createReorderStoryboardGroupCommand(canvasStore.nodes, resolved.group.id, nodeId, -1)),
       canMoveLater: Boolean(nodeId && createReorderStoryboardGroupCommand(canvasStore.nodes, resolved.group.id, nodeId, 1)),
     }

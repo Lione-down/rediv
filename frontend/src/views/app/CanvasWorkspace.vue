@@ -142,6 +142,7 @@ const {
   visibleError,
   generationError,
   generationSuccess,
+  storyboardGenerationSummary,
   foregroundResultNodeId,
   openResources,
   openCardSourceResources,
@@ -162,6 +163,7 @@ const {
   captureTemplate,
   instantiateTemplate,
   generate,
+  generateStoryboardGroup,
   setDirectorPreflight,
   generateRecipe,
   updatePrompt,
@@ -248,16 +250,24 @@ async function generateFromCard(nodeId: string, prompt: string, mode: CanvasCard
       selectedGenerationContext.value?.mediaSources.find((source) => source.state === 'included')?.nodeId
     const parameters: GenerationNodeParameters = {
       schema_version: 1,
-      video: {
-        duration_seconds: durationSeconds,
-        reference_mode: referenceMode,
-        ...(referenceMode === 'image-to-video' && primaryReferenceNodeId
-          ? { primary_reference_node_id: primaryReferenceNodeId }
-          : {}),
-        ...(selectedGenerationContext.value?.shotControls
-          ? { shot_controls: selectedGenerationContext.value.shotControls }
-          : {}),
-      },
+      video: generationCapabilities.value?.contract_version === 6
+        ? {
+            duration_seconds: durationSeconds,
+            reference_bindings: selectedGenerationContext.value?.videoReferences ?? [],
+            ...(selectedGenerationContext.value?.shotControls
+              ? { shot_controls: selectedGenerationContext.value.shotControls }
+              : {}),
+          }
+        : {
+            duration_seconds: durationSeconds,
+            reference_mode: referenceMode,
+            ...(referenceMode === 'image-to-video' && primaryReferenceNodeId
+              ? { primary_reference_node_id: primaryReferenceNodeId }
+              : {}),
+            ...(selectedGenerationContext.value?.shotControls
+              ? { shot_controls: selectedGenerationContext.value.shotControls }
+              : {}),
+          },
     }
     await canvasDocumentStore.setNodeGenerationParameters(nodeId, parameters)
   }
@@ -277,7 +287,6 @@ async function submitMainComposerScript(brief: string) {
     intent: 'script_draft',
     locale: scriptCapability.value?.defaultLocale ?? 'zh-CN',
     value: brief,
-    replace: false,
     referenceAssetIds: composerAttachments.value.map((asset) => asset.id),
   })
   if (scriptGeneration.success.value) scriptAuthoringIntent.value = null
@@ -739,9 +748,11 @@ onBeforeUnmount(() => {
           :card-work-model-label="selectedMediaType ? (generationCapabilities?.[selectedMediaType]?.model ?? '') : ''"
           :card-work-parameter-summary="selectedGenerationContext?.parameterSummary ?? []"
           :card-work-source-count="selectedGenerationContext?.imageIds.length ?? 0"
+          :storyboard-generation-summary="storyboardGenerationSummary"
           :viewport-insets="canvasViewportInsets"
           @activate-context-surface="activateContextSurface('stage')"
           @card-generate="generateFromCard"
+          @generate-storyboard-group="generateStoryboardGroup"
           @card-open-assets="openSelectedCardAssets"
           @card-upload="uploadSelectedCardSource"
           @context-surface-state="updateStageContextSurface"

@@ -37,6 +37,60 @@ function scopedTask(mediaType: 'text' | 'image' | 'video', id: string) {
   }
 }
 
+test('generation service serializes structured video roles without legacy deduplication', async () => {
+  const calls: Array<{ path: string; payload: Record<string, unknown> }> = []
+  const videoReferences = [
+    { node_id: 'source-a', asset_id: 'asset-a', role: 'first-frame' as const, order: 0 },
+    { node_id: 'source-a', asset_id: 'asset-a', role: 'reference' as const, order: 1 },
+  ]
+  const transport = {
+    async post(path: string, payload: unknown) {
+      calls.push({ path, payload: payload as Record<string, unknown> })
+      const task = {
+        ...scopedTask('video', 'task-structured-video'),
+        request_parameters: {
+          contract_version: 1,
+          media_type: 'video',
+          reference_mode: 'keyframes',
+          duration_seconds: 5,
+          image_ids: ['asset-a', 'asset-a'],
+          video_references: videoReferences,
+        },
+      }
+      return {
+        data: {
+          asset: scopedAsset('video', 'task-structured-video'),
+          generation_task: task,
+          quotas: { text: 1, image: 1, video: 0 },
+          quota_revision: 1,
+        },
+      }
+    },
+  }
+
+  await requestCanvasGeneration({
+    mediaType: 'video',
+    projectId: 'project-service',
+    originCanvasId: 'canvas-service',
+    canvasNodeId: 'node-service',
+    prompt: 'structured roles',
+    durationSeconds: 5,
+    videoReferences,
+  }, createQuotaStore({ text: 1, image: 1, video: 1 }), transport)
+
+  expect(calls).toEqual([{
+    path: '/api/video-generate',
+    payload: {
+      project_id: 'project-service',
+      origin_canvas_id: 'canvas-service',
+      canvas_node_id: 'node-service',
+      prompt: 'structured roles',
+      duration_seconds: 5,
+      video_references: videoReferences,
+    },
+  }])
+})
+
 function scopedAsset(mediaType: 'text' | 'image' | 'video', id: string) {
   return {
     id: `asset-${id}`, user_id: 'user-service', project_id: 'project-service',

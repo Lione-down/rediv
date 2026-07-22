@@ -190,12 +190,18 @@ async def video_generate(
     user=Depends(current_user),
     provider: GenerationProvider = Depends(get_generation_provider),
 ):
+    video_references = (
+        [binding.model_dump(mode="json") for binding in payload.video_references]
+        if payload.video_references is not None else None
+    )
     normalized_parameters = normalize_video_parameters(
         reference_mode=payload.reference_mode,
         duration_seconds=payload.duration_seconds,
         image_ids=payload.image_ids,
+        video_references=video_references,
         shot_controls=payload.shot_controls,
     )
+    request_image_ids = normalized_parameters.request_parameters["image_ids"]
     cinematic_handoff = resolve_cinematic_generation_handoff(
         payload.cinematic_handoff,
         user_id=user["id"],
@@ -205,7 +211,7 @@ async def video_generate(
         provider_id="agnes",
         model_id=MODEL_NAME,
         prompt=payload.prompt,
-        image_ids=payload.image_ids,
+        image_ids=request_image_ids,
         expected_control_parameters={
             "reference_mode": normalized_parameters.reference_mode,
             "duration_seconds": normalized_parameters.duration_seconds,
@@ -226,7 +232,7 @@ async def video_generate(
             project_id=payload.project_id,
             origin_canvas_id=payload.origin_canvas_id,
             canvas_node_id=payload.canvas_node_id,
-            image_ids=payload.image_ids,
+            image_ids=request_image_ids,
             request_parameters=request_parameters,
             client_request_id=str(payload.client_request_id or uuid4()),
             request_fingerprint=fingerprint_generation_request(
@@ -238,7 +244,7 @@ async def video_generate(
                 provider="agnes",
                 model=MODEL_NAME,
                 prompt=payload.prompt,
-                image_ids=payload.image_ids,
+                image_ids=request_image_ids,
                 request_parameters=request_parameters,
                 cinematic_handoff=payload.cinematic_handoff,
             ),

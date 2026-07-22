@@ -30,7 +30,6 @@ const emit = defineEmits<{
 const intent = ref<ScriptAuthoringIntent>('script_draft')
 const locale = ref<ScriptAuthoringLocale>('zh-CN')
 const value = ref('')
-const replace = ref(false)
 const sourceText = computed(() => {
   const raw = props.node.content ?? props.node.contentData?.text
   return typeof raw === 'string' ? raw.trim() : ''
@@ -44,7 +43,6 @@ const canSubmit = computed(() => Boolean(
 watch(() => props.node.id, () => {
   intent.value = props.initialIntent ?? (sourceText.value ? 'script_refine' : 'script_draft')
   value.value = intent.value === 'script_draft' ? sourceText.value : ''
-  replace.value = false
   locale.value = props.capability?.defaultLocale ?? 'zh-CN'
 }, { immediate: true })
 
@@ -53,7 +51,6 @@ watch(() => props.initialIntent, (nextIntent) => {
   if (nextIntent === 'script_draft') {
     intent.value = nextIntent
     if (!value.value) value.value = sourceText.value
-    replace.value = false
     return
   }
   selectIntent(nextIntent)
@@ -63,12 +60,11 @@ function selectIntent(next: ScriptAuthoringIntent) {
   if (next === 'script_refine' && !canRefine.value) return
   intent.value = next
   value.value = ''
-  replace.value = false
 }
 
 function submit() {
   if (!canSubmit.value) return
-  emit('generate', { intent: intent.value, locale: locale.value, value: value.value.trim(), replace: replace.value })
+  emit('generate', { intent: intent.value, locale: locale.value, value: value.value.trim() })
 }
 </script>
 
@@ -79,7 +75,7 @@ function submit() {
       <strong v-if="capability">{{ capability.modelLabel }}</strong>
       <strong v-else>{{ capabilityLoading ? '正在加载模型…' : '模型未就绪' }}</strong>
     </div>
-    <p>只生成可编辑脚本文本；不会自动创建分镜、图片或视频。</p>
+    <p>生成结果会直接替换当前脚本，可通过 Canvas 撤销；不会自动创建分镜、图片或视频。</p>
     <div class="script-authoring__intents" role="group" aria-label="脚本写作意图">
       <button type="button" :aria-pressed="intent === 'script_draft'" :disabled="readonly || active" @click="selectIntent('script_draft')">从创意生成脚本</button>
       <button type="button" :aria-pressed="intent === 'script_refine'" :disabled="readonly || active || !canRefine" @click="selectIntent('script_refine')">优化当前脚本</button>
@@ -96,10 +92,6 @@ function submit() {
       />
     </label>
     <div v-else class="script-authoring__readonly" role="status">只读审阅模式不能调用 Agnes 或修改脚本。</div>
-    <label v-if="!readonly" class="script-authoring__replace">
-      <input v-model="replace" type="checkbox" :disabled="active" />
-      <span>显式替换当前脚本（默认关闭，可撤销）</span>
-    </label>
     <div class="script-authoring__actions">
       <button v-if="!capability && !capabilityLoading" type="button" class="secondary" aria-label="重试加载模型" @click="emit('retryCapability')"><RefreshCw :size="15" aria-hidden="true" />重试模型</button>
       <button v-if="active" type="button" class="secondary" @click="emit('cancel')"><X :size="15" aria-hidden="true" />取消</button>
@@ -130,7 +122,6 @@ function submit() {
 .script-authoring__field { display: grid; gap: 6px; color: var(--v2-text-secondary); font-size: var(--v2-font-size-caption); }
 .script-authoring__field textarea { min-height: 88px; resize: vertical; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); padding: 9px 10px; color: var(--v2-text-primary); background: var(--v2-surface-1); font: inherit; line-height: 1.5; }
 .script-authoring__field textarea:focus-visible, .script-authoring button:focus-visible, .script-authoring input:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
-.script-authoring__replace { display: flex; align-items: center; gap: 8px; color: var(--v2-text-secondary); font-size: 12px; }
 .script-authoring__actions { justify-content: flex-end; }
 .script-authoring__actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 11px; }
 .script-authoring__actions .secondary { background: transparent; }

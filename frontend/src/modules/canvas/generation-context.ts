@@ -3,7 +3,7 @@ import { getDefaultConnectionPorts } from './node-registry'
 import { orderedGenerationInputConnections } from './generation-input-order'
 
 export const GENERATION_PROMPT_LIMIT = 4_000
-export const GENERATION_IMAGE_LIMIT = 8
+export const GENERATION_IMAGE_LIMIT = 9
 
 export interface ConnectedTextContext {
   connectionId: string

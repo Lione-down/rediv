@@ -17,11 +17,12 @@ import {
   FIRST_CANVAS_ID,
   openResourceWorkspace,
 } from './canvas-resource-generation-fixture'
-import { GENERATION_CAPABILITIES } from './canvas-generation-parameters-fixture'
+import { GENERATION_CAPABILITIES, GENERATION_CAPABILITIES_V6 } from './canvas-generation-parameters-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-075-generation-parameters')
 const shotEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-086-shot-controls')
 const capabilities = parseGenerationCapabilities(GENERATION_CAPABILITIES)
+const capabilitiesV6 = parseGenerationCapabilities(GENERATION_CAPABILITIES_V6)
 
 function generationNode(mediaType: 'image' | 'video', parameters?: unknown): CanvasNode {
   return {
@@ -309,6 +310,60 @@ test('shot controls persist as one reversible parameter command and reach the ex
   ))).toEqual([])
   await mkdir(shotEvidenceDirectory, { recursive: true })
   await page.locator('.context-panel').screenshot({ path: resolve(shotEvidenceDirectory, 'shot-controls-1440x900.png') })
+})
+
+test('v6 controls persist image count and allow one video source in distinct roles within one nine-entry budget', async ({ page }) => {
+  const state = createResourceMockState()
+  state.capabilityVersion = 6
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '封面生成')
+  const imageControls = page.getByRole('region', { name: '生成参数' })
+  await imageControls.getByRole('radio', { name: '4 张' }).click()
+  await expect.poll(() => documentPatches(state).length).toBe(1)
+  const cover = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'generation-cover')!
+  expect((cover.content as Record<string, unknown>).generation_parameters).toEqual({
+    schema_version: 1,
+    image: { aspect_ratio: '4:3', output_count: 4 },
+  })
+
+  const document = state.documents[FIRST_CANVAS_ID]
+  const source = document.nodes.find((node) => node.id === 'result-existing')!
+  const video = structuredClone(cover)
+  video.id = 'generation-role-video'
+  video.position_x = 980
+  video.position_y = 480
+  video.content = {
+    title: '角色绑定视频', subtype: 'video', serialization_version: 1,
+    text: '同一来源同时作为首帧与普通参考。', generation_status: 'idle',
+  }
+  document.nodes.push(video)
+  document.connections.push({
+    id: 'connection-role-video', project_id: 'project-resources', canvas_id: FIRST_CANVAS_ID,
+    source_node_id: source.id, source_port: 'out', target_node_id: video.id,
+    target_port: 'media', status: 'active', metadata: { input_order: 1 },
+  })
+  await page.reload()
+  await selectNode(page, '角色绑定视频')
+  const videoControls = page.getByRole('region', { name: '生成参数' })
+  await expect(videoControls).toContainText('已用 1/9')
+  await videoControls.getByRole('checkbox', { name: '历史图片生成结果 普通参考' }).check()
+  await expect.poll(() => documentPatches(state).length).toBe(2)
+  await expect(videoControls).toContainText('已用 2/9')
+  const savedVideo = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === video.id)!
+  const expectedBindings = [
+    { node_id: source.id, asset_id: 'asset-generated', role: 'first-frame', order: 0 },
+    { node_id: source.id, asset_id: 'asset-generated', role: 'reference', order: 1 },
+  ]
+  expect((savedVideo.content as Record<string, unknown>).generation_parameters).toEqual({
+    schema_version: 1,
+    video: { duration_seconds: 5, reference_bindings: expectedBindings },
+  })
+  await page.getByRole('button', { name: '开始视频生成' }).click()
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/video-generate').length).toBe(1)
+  const request = state.requests.find((item) => item.path === '/api/video-generate')?.body
+  expect(request).toEqual(expect.objectContaining({ video_references: expectedBindings }))
+  expect(request).not.toHaveProperty('image_ids')
+  expect(request).not.toHaveProperty('reference_mode')
 })
 
 test('time advance is available only on a single-reference image-to-video branch and reaches its snapshot', async ({ page }) => {

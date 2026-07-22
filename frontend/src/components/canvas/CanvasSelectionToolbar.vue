@@ -33,7 +33,9 @@ const props = defineProps<{
     settings: StoryboardGroupSettings
     canMoveEarlier: boolean
     canMoveLater: boolean
+    isAssetGroup: boolean
   } | null
+  storyboardGenerationSummary: string
 }>()
 
 const emit = defineEmits<{
@@ -44,6 +46,7 @@ const emit = defineEmits<{
   convertStoryboard: [groupId: string]
   reorderStoryboard: [groupId: string, nodeId: string, direction: -1 | 1]
   updateStoryboardSettings: [groupId: string, settings: StoryboardGroupSettings]
+  generateStoryboardGroup: [groupId: string]
   ungroup: []
   connect: []
   compose: [mediaType: 'image' | 'video']
@@ -142,6 +145,7 @@ onBeforeUnmount(() => {
       <Clapperboard :size="16" aria-hidden="true" />
     </button>
     <div v-if="storyboardControls" class="storyboard-controls" aria-label="分镜组设置">
+      <button v-if="storyboardControls.isAssetGroup" type="button" aria-label="全部生成" title="全部生成" @click="$emit('generateStoryboardGroup', storyboardControls.groupId)"><WandSparkles :size="16" aria-hidden="true" /></button>
       <label>
         <span>比例</span>
         <select aria-label="分镜比例" :value="storyboardControls.settings.aspect_ratio" @change="updateStoryboardSetting({ aspect_ratio: ($event.target as HTMLSelectElement).value as StoryboardGroupSettings['aspect_ratio'] })">
@@ -167,6 +171,7 @@ onBeforeUnmount(() => {
       </template>
       <button type="button" aria-label="转为普通组合" title="转为普通组合" @click="$emit('convertStoryboard', storyboardControls.groupId)"><RefreshCcw :size="16" aria-hidden="true" /></button>
     </div>
+    <span v-if="storyboardGenerationSummary" class="storyboard-generation-summary" role="status" aria-label="资产组生成结果">{{ storyboardGenerationSummary }}</span>
     <div v-if="canCompose" class="compose-menu">
       <button
         type="button"
@@ -263,6 +268,7 @@ onBeforeUnmount(() => {
 
 .arrange-menu, .compose-menu { position: relative; }
 .storyboard-controls { display: flex; align-items: center; gap: 4px; padding-right: 4px; border-right: 1px solid var(--border-subtle); }
+.storyboard-generation-summary { max-width: 184px; overflow: hidden; color: var(--text-secondary); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .storyboard-controls label { display: flex; align-items: center; gap: 4px; color: var(--text-secondary); font-size: 10px; }
 .storyboard-controls select { min-height: 30px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary); background: var(--bg-panel-subtle); font: inherit; font-size: 11px; }
 .storyboard-controls select:focus-visible { outline: 2px solid var(--v2-focus-ring, var(--accent-select)); outline-offset: 2px; }

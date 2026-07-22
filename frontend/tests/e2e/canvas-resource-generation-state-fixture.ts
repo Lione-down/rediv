@@ -3,6 +3,7 @@ import type { Route } from '@playwright/test'
 import {
   createMockGenerationRequestParameters,
   GENERATION_CAPABILITIES as LEGACY_GENERATION_CAPABILITIES,
+  GENERATION_CAPABILITIES_V6,
 } from './canvas-generation-parameters-fixture'
 
 export const GENERATION_CAPABILITIES = {
@@ -34,6 +35,7 @@ export const GENERATION_CAPABILITIES = {
     task: { available: false, cancel_supported: false, resume_supported: false },
   },
 } as const
+export const T6_GENERATION_CAPABILITIES = GENERATION_CAPABILITIES_V6
 
 export const API_ORIGIN = 'http://localhost:8000'
 export const APP_ORIGIN = 'http://127.0.0.1:9099'
@@ -73,6 +75,7 @@ interface CanvasDocument {
 export interface ResourceMockState {
   assets: Array<Record<string, unknown>>
   capabilitiesOutcome: 'success' | 'failure'
+  capabilityVersion: 5 | 6
   cinematicAcknowledgementActive: boolean
   cinematicRequiresAcknowledgement: boolean
   capturedFrames: Record<string, Buffer>
@@ -81,6 +84,8 @@ export interface ResourceMockState {
   events: string[]
   generationGate: Promise<void> | null
   generationCount: number
+  generationFailureSlots: number[]
+  generationFailureCalls: number[]
   generationOutcome: 'success' | 'failure'
   requests: MockRequest[]
   shotSchemaCount: number
@@ -208,6 +213,7 @@ export function createResourceMockState(): ResourceMockState {
       { id: 'asset-generated', user_id: 'user-resource', project_id: PROJECT_ID, origin_canvas_id: FIRST_CANVAS_ID, canvas_node_id: 'generation-cover', type: 'image', url: 'https://media.revid.test/generated.png', content_text: null, source: 'generation', source_model: 'mock-image-v1', source_task_id: 'task-existing-success', status: 'active', created_at: NOW, updated_at: NOW },
     ],
     capabilitiesOutcome: 'success',
+    capabilityVersion: 5,
     cinematicAcknowledgementActive: false,
     cinematicRequiresAcknowledgement: false,
     capturedFrames: {},
@@ -216,6 +222,8 @@ export function createResourceMockState(): ResourceMockState {
     events: [],
     generationGate: null,
     generationCount: 0,
+    generationFailureSlots: [],
+    generationFailureCalls: [],
     generationOutcome: 'success',
     requests: [],
     shotSchemaCount: 0,

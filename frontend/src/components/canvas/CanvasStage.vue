@@ -61,6 +61,7 @@ const props = withDefaults(defineProps<{
   composerAttachments?: readonly ProjectAsset[]; composerBusy?: boolean; composerCapabilityError?: string; composerCapabilityLoading?: boolean; composerModelId?: string; composerModelLabel?: string
   generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>; pendingGenerationResults?: readonly GenerationResultProjection[]
   mediaActionTarget?: OwnedMediaActionTarget | null; professionalActionIds?: readonly string[]
+  storyboardGenerationSummary?: string
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
   actionError: '', capturePending: false, contextOverlayOpen: false, professionalActionsBlocked: false, readonly: false, resourcesOpen: false,
@@ -68,6 +69,7 @@ const props = withDefaults(defineProps<{
   composerAttachments: () => [], composerBusy: false, composerCapabilityError: '', composerCapabilityLoading: false, composerModelId: '', composerModelLabel: '',
   generationRuntimePresentations: () => new Map(), pendingGenerationResults: () => [],
   mediaActionTarget: null, professionalActionIds: () => [],
+  storyboardGenerationSummary: '',
   viewportInsets: () => ({}),
 })
 const emit = defineEmits<{
@@ -89,6 +91,7 @@ const emit = defineEmits<{
   retryCapabilities: []
   branchResult: [mediaType: ResultBranchMediaType]
   submitScript: [brief: string]
+  generateStoryboardGroup: [groupId: string]
 }>()
 const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
 const textAuthoringNodeId = ref('')
@@ -932,6 +935,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :can-ungroup="canUngroupSelection"
         :has-locked="hasLockedSelection"
         :storyboard-controls="storyboardControls"
+        :storyboard-generation-summary="storyboardGenerationSummary"
         :style="selectionToolbarStyle"
         @duplicate="duplicateSelection('toolbar')"
         @group="groupSelection('toolbar')"
@@ -939,6 +943,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         @convert-storyboard="convertStoryboardGroup"
         @reorder-storyboard="reorderStoryboardGroup"
         @update-storyboard-settings="updateStoryboardGroup"
+        @generate-storyboard-group="emit('generateStoryboardGroup', $event)"
         @reorder-compose-source="reorderSelectionGenerationInput"
         @ungroup="ungroupSelection('toolbar')"
         @connect="connectSelection('toolbar')"

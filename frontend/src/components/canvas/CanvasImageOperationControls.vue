@@ -10,6 +10,7 @@ import type {
   GenerationNodeParameters,
   ResolvedGenerationRequestContext,
 } from '../../modules/canvas/generation-parameters'
+import { replaceImageOperationParameters } from '../../modules/canvas/generation-parameters'
 
 const props = defineProps<{
   context: ResolvedGenerationRequestContext
@@ -33,14 +34,11 @@ function numberFromInput(event: Event) {
 
 function updateOperation(next: ImageOperationContract) {
   const capabilities = props.context.capabilities?.image.operations
-  if (!capabilities || !operation.value || !props.context.aspectRatio) return
+  if (!capabilities || !operation.value || !props.context.parameters || !('image' in props.context.parameters)) return
   try {
     const normalized = parseImageOperationContract(next, capabilities)
     validationError.value = ''
-    emit('updateParameters', {
-      schema_version: 1,
-      image: { aspect_ratio: props.context.aspectRatio, operation: normalized },
-    })
+    emit('updateParameters', replaceImageOperationParameters(props.context.parameters, normalized))
   } catch {
     validationError.value = '图片操作参数必须保持在当前 capability 允许的规范范围内。'
   }

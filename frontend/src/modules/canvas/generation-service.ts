@@ -2,7 +2,13 @@ import type { Asset } from '../../types/asset'
 import type { QuotaBalance } from '../../types/auth'
 import { IMAGE_OPERATIONS, type ImageOperationContract } from './image-operations'
 import type { GenerationTask } from './project-resource-types'
-import { parseGenerationCapabilities, type GenerationCapabilities, type VideoReferenceMode } from './generation-parameters'
+import {
+  parseGenerationCapabilities,
+  type GenerationCapabilities,
+  type ImageBatchSnapshot,
+  type VideoReferenceBinding,
+  type VideoReferenceMode,
+} from './generation-parameters'
 import type { ShotControls } from './shot-controls'
 import type { VisualAssetRecipeId, VisualAssetRecipeVersion } from './visual-asset-recipes'
 import type { CinematicGenerationHandoff } from './cinematic-skills'
@@ -55,6 +61,8 @@ export interface CanvasGenerationContext {
   canvasNodeId?: string | null
   prompt?: string
   imageIds?: string[]
+  imageBatch?: ImageBatchSnapshot
+  videoReferences?: VideoReferenceBinding[]
   aspectRatio?: string
   referenceMode?: VideoReferenceMode
   durationSeconds?: number
@@ -213,7 +221,7 @@ function assertGenerationRequestParameters(context: CanvasGenerationContext, tas
     }
     return
   }
-  const imageIds = context.imageIds ?? []
+  const imageIds = context.videoReferences?.map((binding) => binding.asset_id) ?? context.imageIds ?? []
   if (
     !isRecord(parameters) || parameters.contract_version !== 1 ||
     parameters.media_type !== context.mediaType || !hasSameIds(parameters.image_ids, imageIds)
@@ -254,13 +262,31 @@ function assertGenerationRequestParameters(context: CanvasGenerationContext, tas
     } else if (parameters.shot_controls !== undefined) {
       throw new Error('Generation response parameter snapshot mismatch')
     }
+    if (JSON.stringify(parameters.batch) !== JSON.stringify(context.imageBatch)) {
+      throw new Error('Generation response parameter snapshot mismatch')
+    }
     return
   }
   if (
-    !context.referenceMode || !context.durationSeconds ||
-    parameters.reference_mode !== context.referenceMode ||
+    !context.durationSeconds ||
+    parameters.reference_mode !== (
+      context.videoReferences
+        ? context.videoReferences.length === 0
+          ? 'text-to-video'
+          : context.videoReferences.length === 1 && context.videoReferences[0]?.role === 'first-frame'
+            ? 'image-to-video'
+            : 'keyframes'
+        : context.referenceMode
+    ) ||
     parameters.duration_seconds !== context.durationSeconds
   ) throw new Error('Generation response parameter snapshot mismatch')
+  if (context.videoReferences) {
+    if (JSON.stringify(parameters.video_references) !== JSON.stringify(context.videoReferences)) {
+      throw new Error('Generation response parameter snapshot mismatch')
+    }
+  } else if (parameters.video_references !== undefined) {
+    throw new Error('Generation response parameter snapshot mismatch')
+  }
   if (context.shotControls) {
     if (JSON.stringify(parameters.shot_controls) !== JSON.stringify(context.shotControls)) {
       throw new Error('Generation response parameter snapshot mismatch')
@@ -315,9 +341,11 @@ export async function requestCanvasGeneration(
         origin_canvas_id: context.originCanvasId,
         canvas_node_id: context.canvasNodeId ?? null,
         ...(prompt ? { prompt } : {}),
-        ...(context.imageIds?.length ? { image_ids: context.imageIds } : {}),
+        ...(!context.videoReferences && context.imageIds?.length ? { image_ids: context.imageIds } : {}),
         ...(context.aspectRatio ? { aspect_ratio: context.aspectRatio } : {}),
-        ...(context.referenceMode ? { reference_mode: context.referenceMode } : {}),
+        ...(context.imageBatch ? { batch: context.imageBatch } : {}),
+        ...(!context.videoReferences && context.referenceMode ? { reference_mode: context.referenceMode } : {}),
+        ...(context.videoReferences ? { video_references: context.videoReferences } : {}),
         ...(context.durationSeconds ? { duration_seconds: context.durationSeconds } : {}),
         ...(context.recipeId ? { generation_recipe_id: context.recipeId } : {}),
         ...(context.recipeVersion ? { generation_recipe_version: context.recipeVersion } : {}),

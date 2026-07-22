@@ -7,73 +7,45 @@ import {
 import { resolveVisualAssetRecipe } from './visual-asset-recipes'
 import {
   IMAGE_OPERATIONS,
-  parseImageOperationCapabilities,
   parseImageOperationContract,
   type ImageOperationContract,
-  type ImageOperationCapabilities,
   type ProviderImageOperationId,
 } from './image-operations'
 import {
   formatShotControls,
-  parseShotControlCapabilities,
   parseShotControls,
   type ShotControlCapabilities,
   type ShotControls,
 } from './shot-controls'
-import {
-  parseAudioGenerationCapabilities,
-  type AudioGenerationCapabilities,
-} from './audio-generation'
-import {
-  parseScriptAuthoringCapabilities,
-  type ScriptAuthoringCapabilities,
-} from './script-authoring'
+import type {
+  GenerationCapabilities,
+  GenerationNodeParameters,
+  ImageBatchSnapshot,
+  VideoReferenceBinding,
+  VideoReferenceMode,
+  VideoReferenceRole,
+} from './generation-capability-contract'
 
-export type VideoReferenceMode = 'text-to-video' | 'image-to-video' | 'keyframes'
+export { parseGenerationCapabilities } from './generation-capability-contract'
+export type {
+  GenerationCapabilities,
+  GenerationNodeParameters,
+  ImageBatchSnapshot,
+  VideoReferenceBinding,
+  VideoReferenceMode,
+  VideoReferenceRole,
+} from './generation-capability-contract'
 
-export interface GenerationCapabilities {
-  contract_version: 1 | 2 | 3 | 4 | 5
-  text: ScriptAuthoringCapabilities | null
-  image: {
-    model: string
-    size: string
-    aspect_ratios: string[]
-    default_aspect_ratio: string
-    operations: ImageOperationCapabilities | null
-    shotControls: ShotControlCapabilities | null
+export function replaceImageOperationParameters(
+  parameters: GenerationNodeParameters,
+  operation: ImageOperationContract,
+): GenerationNodeParameters {
+  if (!('image' in parameters)) throw new Error('图片操作只能更新图片生成参数。')
+  return {
+    schema_version: 1,
+    image: { ...parameters.image, operation },
   }
-  video: {
-    model: string
-    width: number
-    height: number
-    reference_modes: VideoReferenceMode[]
-    default_duration_seconds: number
-    min_keyframes: number
-    max_keyframes: number
-    duration_presets: Array<{
-      duration_seconds: number
-      num_frames: number
-      frame_rate: number
-    }>
-    shotControls: ShotControlCapabilities | null
-  }
-  audio: AudioGenerationCapabilities | null
 }
-
-export type GenerationNodeParameters =
-  | {
-      schema_version: 1
-      image: { aspect_ratio: string; operation?: ImageOperationContract; shot_controls?: ShotControls }
-    }
-  | {
-      schema_version: 1
-      video: {
-        duration_seconds: number
-        reference_mode: VideoReferenceMode
-        primary_reference_node_id?: string
-        shot_controls?: ShotControls
-      }
-    }
 
 export interface ResolvedGenerationRequestContext extends ResolvedGenerationContext {
   capabilities: GenerationCapabilities | null
@@ -82,17 +54,23 @@ export interface ResolvedGenerationRequestContext extends ResolvedGenerationCont
   parameterError: string
   parameters: GenerationNodeParameters | null
   aspectRatio?: string
+  outputCount?: number
+  imageBatch?: ImageBatchSnapshot
   durationSeconds?: number
   imageOperation?: ImageOperationContract
   shotControls?: ShotControls
   shotControlCapabilities?: ShotControlCapabilities
   referenceMode?: VideoReferenceMode
   primaryReferenceNodeId?: string
+  videoReferences?: VideoReferenceBinding[]
   parameterSummary: string[]
 }
 
 const VIDEO_REFERENCE_MODES = new Set<VideoReferenceMode>([
   'text-to-video', 'image-to-video', 'keyframes',
+])
+const VIDEO_REFERENCE_ROLES = new Set<VideoReferenceRole>([
+  'first-frame', 'last-frame', 'reference',
 ])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -103,96 +81,23 @@ function isPositiveInteger(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) > 0
 }
 
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && Boolean(value.trim())
+function parseImageBatch(value: unknown, outputCount: number): ImageBatchSnapshot | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value) || Object.keys(value).length !== 3 ||
+    !isNonEmptyString(value.batch_id) ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.batch_id) ||
+    !isPositiveInteger(value.slot_index) || !isPositiveInteger(value.slot_count) ||
+    value.slot_count !== outputCount || value.slot_index > value.slot_count
+  ) throw new Error('节点保存的图片 batch slot 无效，请重新生成。')
+  return {
+    batch_id: value.batch_id,
+    slot_index: value.slot_index,
+    slot_count: value.slot_count,
+  }
 }
 
-export function parseGenerationCapabilities(value: unknown): GenerationCapabilities {
-  if (!isRecord(value) || ![1, 2, 3, 4, 5].includes(Number(value.contract_version)) || !isRecord(value.image) || !isRecord(value.video)) {
-    throw new Error('生成参数 capability contract 无效。')
-  }
-  const image = value.image
-  const video = value.video
-  const ratios = image.aspect_ratios
-  const modes = video.reference_modes
-  const presets = video.duration_presets
-  let operations: ImageOperationCapabilities | null = null
-  let imageShotControls: ShotControlCapabilities | null = null
-  let videoShotControls: ShotControlCapabilities | null = null
-  let audio: AudioGenerationCapabilities | null = null
-  let text: ScriptAuthoringCapabilities | null = null
-  if (
-    !isNonEmptyString(image.model) || !isNonEmptyString(image.size) ||
-    !Array.isArray(ratios) || !ratios.length || ratios.some((item) => !isNonEmptyString(item)) ||
-    new Set(ratios).size !== ratios.length || !isNonEmptyString(image.default_aspect_ratio) ||
-    !ratios.includes(image.default_aspect_ratio) ||
-    !isNonEmptyString(video.model) || !isPositiveInteger(video.width) || !isPositiveInteger(video.height) ||
-    !Array.isArray(modes) || modes.length !== VIDEO_REFERENCE_MODES.size ||
-    modes.some((item) => typeof item !== 'string' || !VIDEO_REFERENCE_MODES.has(item as VideoReferenceMode)) ||
-    new Set(modes).size !== modes.length ||
-    !isPositiveInteger(video.default_duration_seconds) ||
-    !isPositiveInteger(video.min_keyframes) || !isPositiveInteger(video.max_keyframes) ||
-    video.min_keyframes > video.max_keyframes || !Array.isArray(presets) || !presets.length
-  ) throw new Error('生成参数 capability contract 无效。')
-  try {
-    if (value.contract_version === 2) {
-      operations = parseImageOperationCapabilities(image.operations)
-      if (image.shot_controls !== undefined || video.shot_controls !== undefined) throw new Error('legacy capability cannot declare shot controls')
-    } else if (value.contract_version === 3 || value.contract_version === 4 || value.contract_version === 5) {
-      operations = parseImageOperationCapabilities(image.operations)
-      imageShotControls = parseShotControlCapabilities(image.shot_controls, 'image')
-      videoShotControls = parseShotControlCapabilities(video.shot_controls, 'video')
-      if (value.contract_version === 4 || value.contract_version === 5) audio = parseAudioGenerationCapabilities(value.audio)
-      if (value.contract_version === 5) text = parseScriptAuthoringCapabilities(value.text)
-      else if (value.text !== undefined) throw new Error('legacy capability cannot declare script authoring')
-    } else if (image.operations !== undefined || image.shot_controls !== undefined || video.shot_controls !== undefined || value.audio !== undefined || value.text !== undefined) {
-      throw new Error('legacy capability cannot declare extensions')
-    }
-  } catch {
-    throw new Error('生成参数 capability contract 无效。')
-  }
-
-  const normalizedPresets = presets.map((preset) => {
-    if (
-      !isRecord(preset) || !isPositiveInteger(preset.duration_seconds) ||
-      !isPositiveInteger(preset.num_frames) || !isPositiveInteger(preset.frame_rate) ||
-      (preset.num_frames - 1) % 8 !== 0
-    ) throw new Error('生成参数 capability contract 无效。')
-    return {
-      duration_seconds: preset.duration_seconds,
-      num_frames: preset.num_frames,
-      frame_rate: preset.frame_rate,
-    }
-  })
-  if (
-    new Set(normalizedPresets.map((preset) => preset.duration_seconds)).size !== normalizedPresets.length ||
-    !normalizedPresets.some((preset) => preset.duration_seconds === video.default_duration_seconds)
-  ) throw new Error('生成参数 capability contract 无效。')
-
-  return {
-    contract_version: value.contract_version as 1 | 2 | 3 | 4 | 5,
-    text,
-    image: {
-      model: image.model,
-      size: image.size,
-      aspect_ratios: [...ratios],
-      default_aspect_ratio: image.default_aspect_ratio,
-      operations,
-      shotControls: imageShotControls,
-    },
-    video: {
-      model: video.model,
-      width: video.width,
-      height: video.height,
-      reference_modes: [...modes] as VideoReferenceMode[],
-      default_duration_seconds: video.default_duration_seconds,
-      min_keyframes: video.min_keyframes,
-      max_keyframes: video.max_keyframes,
-      duration_presets: normalizedPresets,
-      shotControls: videoShotControls,
-    },
-    audio,
-  }
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && Boolean(value.trim())
 }
 
 function readParameters(node: CanvasNode) {
@@ -231,6 +136,63 @@ function applyMediaSelection(
   }
 }
 
+function parseVideoReferenceBindings(
+  value: unknown,
+  sources: readonly ConnectedMediaContext[],
+  capabilities: GenerationCapabilities['video'],
+) {
+  if (!Array.isArray(value) || value.length > capabilities.max_references) {
+    throw new Error(`视频参考绑定最多允许 ${capabilities.max_references} 条。`)
+  }
+  const sourcesById = new Map(sources.map((source) => [source.nodeId, source]))
+  const identities = new Set<string>()
+  const roleCounts = new Map<VideoReferenceRole, number>()
+  return value.map((item, index) => {
+    if (!isRecord(item) || Object.keys(item).length !== 4 ||
+      !isNonEmptyString(item.node_id) || !isNonEmptyString(item.asset_id) ||
+      typeof item.role !== 'string' || !VIDEO_REFERENCE_ROLES.has(item.role as VideoReferenceRole) ||
+      item.order !== index
+    ) throw new Error('节点保存的视频参考绑定无效，请重新选择。')
+    const role = item.role as VideoReferenceRole
+    if (!capabilities.reference_roles.includes(role)) {
+      throw new Error('节点保存的视频参考角色不受当前 capability 支持。')
+    }
+    const source = sourcesById.get(item.node_id)
+    if (!source || source.assetId !== item.asset_id) {
+      throw new Error('节点保存的视频参考来源已失效，请重新选择。')
+    }
+    const identity = `${item.node_id}\u0000${item.asset_id}\u0000${role}`
+    if (identities.has(identity)) throw new Error('节点保存了重复的视频参考角色。')
+    identities.add(identity)
+    roleCounts.set(role, (roleCounts.get(role) ?? 0) + 1)
+    if ((role === 'first-frame' || role === 'last-frame') && roleCounts.get(role)! > 1) {
+      throw new Error(`视频参考最多允许一个 ${role}。`)
+    }
+    return { node_id: item.node_id, asset_id: item.asset_id, role, order: index }
+  })
+}
+
+function legacyVideoBindings(
+  mode: VideoReferenceMode,
+  sources: readonly ConnectedMediaContext[],
+  primaryReferenceNodeId?: string,
+) {
+  if (mode === 'text-to-video') return []
+  const selectedSources = mode === 'image-to-video'
+    ? sources.filter((source) => source.nodeId === primaryReferenceNodeId)
+    : [...sources]
+  return selectedSources.map((source, index): VideoReferenceBinding => ({
+    node_id: source.nodeId,
+    asset_id: source.assetId!,
+    role: mode === 'image-to-video'
+      ? 'first-frame'
+      : index === 0
+        ? 'first-frame'
+        : index === selectedSources.length - 1 ? 'last-frame' : 'reference',
+    order: index,
+  }))
+}
+
 function failedContext(
   base: ResolvedGenerationContext,
   mediaType: 'image' | 'video',
@@ -260,6 +222,9 @@ export function resolveGenerationRequestContext(
   if (!capabilities) {
     return failedContext(base, mediaType, null, '生成参数 capability 尚未加载，当前请求已阻止。')
   }
+  if (mediaType === 'image' && base.imageIds.length > 8) {
+    return failedContext(base, mediaType, capabilities, '图片生成最多允许 8 张有效参考图，当前请求已阻止。')
+  }
   if (recipe) {
     return {
       ...base,
@@ -286,6 +251,20 @@ export function resolveGenerationRequestContext(
       : isRecord(image) && isNonEmptyString(image.aspect_ratio) ? image.aspect_ratio : ''
     if (!capabilities.image.aspect_ratios.includes(aspectRatio)) {
       return failedContext(base, mediaType, capabilities, '节点保存的图片比例不受当前 capability 支持，请重新选择。')
+    }
+    const outputCount = capabilities.contract_version === 6
+      ? isRecord(image) && image.output_count !== undefined
+        ? Number(image.output_count)
+        : capabilities.image.default_output_count
+      : 1
+    if (!capabilities.image.output_counts.includes(outputCount)) {
+      return failedContext(base, mediaType, capabilities, '节点保存的图片输出数量不受当前 capability 支持，请重新选择。')
+    }
+    let imageBatch: ImageBatchSnapshot | undefined
+    try {
+      imageBatch = parseImageBatch(isRecord(image) ? image.batch : undefined, outputCount)
+    } catch (error) {
+      return failedContext(base, mediaType, capabilities, (error as Error).message)
     }
     let imageOperation: ImageOperationContract | undefined
     if (isRecord(image) && image.operation !== undefined) {
@@ -333,6 +312,8 @@ export function resolveGenerationRequestContext(
       schema_version: 1,
       image: {
         aspect_ratio: aspectRatio,
+        ...(capabilities.contract_version === 6 ? { output_count: outputCount } : {}),
+        ...(imageBatch ? { batch: imageBatch } : {}),
         ...(imageOperation ? { operation: imageOperation } : {}),
         ...(shotControls ? { shot_controls: shotControls } : {}),
       },
@@ -345,6 +326,8 @@ export function resolveGenerationRequestContext(
       parameterError: '',
       parameters,
       aspectRatio,
+      outputCount,
+      imageBatch,
       imageOperation,
       shotControls,
       shotControlCapabilities: capabilities.image.shotControls ?? undefined,
@@ -352,6 +335,7 @@ export function resolveGenerationRequestContext(
         ...(imageOperation ? [`操作 ${IMAGE_OPERATIONS[imageOperation.id].title}`] : []),
         ...formatShotControls(shotControls),
         `比例 ${aspectRatio}`,
+        ...(capabilities.contract_version === 6 ? [`输出 ${outputCount} 张`] : []),
         `规格 ${capabilities.image.size}`,
       ],
     }
@@ -368,7 +352,24 @@ export function resolveGenerationRequestContext(
 
   let referenceMode: VideoReferenceMode | null = null
   let primaryReferenceNodeId: string | undefined
-  if (saved === null) {
+  let videoReferences: VideoReferenceBinding[] | undefined
+  const hasStructuredReferences = capabilities.contract_version === 6 && isRecord(video) && video.reference_bindings !== undefined
+  if (hasStructuredReferences) {
+    try {
+      videoReferences = parseVideoReferenceBindings(
+        video.reference_bindings,
+        validSources,
+        capabilities.video,
+      )
+    } catch (error) {
+      return failedContext(base, mediaType, capabilities, (error as Error).message)
+    }
+    referenceMode = videoReferences.length === 0
+      ? 'text-to-video'
+      : videoReferences.length === 1 && videoReferences[0]?.role === 'first-frame'
+        ? 'image-to-video'
+        : 'keyframes'
+  } else if (saved === null) {
     if (!validSources.length) referenceMode = 'text-to-video'
     else if (validSources.length === 1) {
       referenceMode = 'image-to-video'
@@ -387,7 +388,9 @@ export function resolveGenerationRequestContext(
   }
 
   let selectedNodeIds = new Set<string>()
-  if (referenceMode === 'image-to-video') {
+  if (videoReferences) {
+    selectedNodeIds = new Set(videoReferences.map((binding) => binding.node_id))
+  } else if (referenceMode === 'image-to-video') {
     if (!primaryReferenceNodeId && validSources.length === 1) primaryReferenceNodeId = validSources[0].nodeId
     if (!primaryReferenceNodeId || !validSources.some((source) => source.nodeId === primaryReferenceNodeId)) {
       return failedContext(base, mediaType, capabilities, '图生视频需要选择一张仍然有效的主参考图。')
@@ -405,7 +408,13 @@ export function resolveGenerationRequestContext(
     }
     selectedNodeIds = new Set(validSources.map((source) => source.nodeId))
   }
-  const selected = applyMediaSelection(base, selectedNodeIds)
+  if (capabilities.contract_version === 6 && !videoReferences) {
+    videoReferences = legacyVideoBindings(referenceMode, validSources, primaryReferenceNodeId)
+  }
+  const mediaSelection = applyMediaSelection(base, selectedNodeIds)
+  const selected = videoReferences
+    ? { ...mediaSelection, imageIds: videoReferences.map((binding) => binding.asset_id) }
+    : mediaSelection
   let shotControls: ShotControls | undefined
   if (isRecord(video) && video.shot_controls !== undefined) {
     if (!capabilities.video.shotControls) {
@@ -426,8 +435,12 @@ export function resolveGenerationRequestContext(
     schema_version: 1,
     video: {
       duration_seconds: durationSeconds,
-      reference_mode: referenceMode,
-      ...(primaryReferenceNodeId ? { primary_reference_node_id: primaryReferenceNodeId } : {}),
+      ...(capabilities.contract_version === 6
+        ? { reference_bindings: videoReferences ?? [] }
+        : {
+            reference_mode: referenceMode,
+            ...(primaryReferenceNodeId ? { primary_reference_node_id: primaryReferenceNodeId } : {}),
+          }),
       ...(shotControls ? { shot_controls: shotControls } : {}),
     },
   }
@@ -442,10 +455,14 @@ export function resolveGenerationRequestContext(
     durationSeconds,
     referenceMode,
     primaryReferenceNodeId,
+    ...(capabilities.contract_version === 6 ? { videoReferences: videoReferences ?? [] } : {}),
     shotControls,
     shotControlCapabilities: capabilities.video.shotControls ?? undefined,
     parameterSummary: [
       `模式 ${referenceMode}`,
+      ...(capabilities.contract_version === 6
+        ? [`已用 ${(videoReferences ?? []).length}/${capabilities.video.max_references}`]
+        : []),
       `时长 ${durationSeconds}s`,
       `${framePreset.num_frames} 帧 @ ${framePreset.frame_rate}fps`,
       `${capabilities.video.width}×${capabilities.video.height}`,

@@ -145,6 +145,50 @@ class GenerationIdempotencyAdmissionTests(unittest.TestCase):
         self.assertEqual("generation_request_mismatch", conflict.json()["detail"]["code"])
         self.assertEqual(1, len(provider.calls))
 
+    def test_image_batch_slots_keep_independent_idempotency_quota_and_snapshots(self) -> None:
+        provider = _CountingImageProvider()
+        batch_id = str(uuid4())
+        first_request_id = str(uuid4())
+        second_request_id = str(uuid4())
+        first_payload = {
+            **self._payload(self.nodes[0]["id"], first_request_id, "shared batch prompt"),
+            "batch": {"batch_id": batch_id, "slot_index": 1, "slot_count": 2},
+        }
+        second_payload = {
+            **self._payload(self.nodes[1]["id"], second_request_id, "shared batch prompt"),
+            "batch": {"batch_id": batch_id, "slot_index": 2, "slot_count": 2},
+        }
+        with get_session() as session:
+            quota = session.scalar(select(Quota).where(Quota.user_id == self.user["id"]))
+            quota.image_quota = 4
+            session.commit()
+
+        with patch.object(backend_main, "_agnes", provider):
+            first = self.client.post("/api/image-generate", json=first_payload, headers=self.headers)
+            second = self.client.post("/api/image-generate", json=second_payload, headers=self.headers)
+            replay = self.client.post("/api/image-generate", json=first_payload, headers=self.headers)
+
+        self.assertEqual(200, first.status_code, first.text)
+        self.assertEqual(200, second.status_code, second.text)
+        self.assertEqual(200, replay.status_code, replay.text)
+        self.assertEqual(2, len(provider.calls))
+        self.assertEqual(first.json()["generation_task"]["id"], replay.json()["generation_task"]["id"])
+        with get_session() as session:
+            tasks = list(session.scalars(select(GenerationTask).where(
+                GenerationTask.user_id == self.user["id"],
+                GenerationTask.client_request_id.in_((first_request_id, second_request_id)),
+            )).all())
+            quota = session.scalar(select(Quota).where(Quota.user_id == self.user["id"]))
+        self.assertEqual(2, len(tasks))
+        self.assertEqual(
+            {(1, 2), (2, 2)},
+            {
+                (task.request_parameters["batch"]["slot_index"], task.request_parameters["batch"]["slot_count"])
+                for task in tasks
+            },
+        )
+        self.assertEqual(2, quota.image_quota)
+
     def test_unchanged_deterministic_failure_requires_input_change_before_resubmit(self) -> None:
         provider = _DeterministicFailingImageProvider()
         first_payload = self._payload(self.nodes[0]["id"], str(uuid4()), "same rejected prompt")

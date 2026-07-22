@@ -104,7 +104,7 @@ function opener(event: MouseEvent) {
     @pointerdown.stop
   >
     <div class="canvas-card-work-surface__toolbar">
-      <div class="canvas-card-work-surface__modes" role="list" aria-label="卡片工作模式">
+      <div class="canvas-card-work-surface__modes" role="group" aria-label="卡片工作模式">
         <button
           v-for="mode in workModel.modes"
           :key="mode.id"

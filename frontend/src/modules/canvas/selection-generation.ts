@@ -89,6 +89,7 @@ export function createSelectionGenerationCommand(
   if (context.provenance.length !== selectedNodes.length || context.provenance.some((item) => !item.isIncluded)) {
     return null
   }
+  if (mediaType === 'image' && context.imageIds.length > 8) return null
   if (mediaType === 'video') {
     const referenceMode: VideoReferenceMode = context.imageIds.length === 0
       ? 'text-to-video'

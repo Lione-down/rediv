@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
+from uuid import uuid4
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -26,13 +27,15 @@ class GenerationParameterContractTestCase(unittest.TestCase):
     def test_capability_document_has_exact_backend_owned_values(self) -> None:
         self.assertEqual(
             {
-                "contract_version": 5,
+                "contract_version": 6,
                 "text": build_script_authoring_capabilities(model="agnes-2.0-flash"),
                 "image": {
                     "model": "agnes-image-2.1-flash",
                     "size": "1K",
                     "aspect_ratios": ["1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9"],
                     "default_aspect_ratio": "4:3",
+                    "output_counts": [1, 2, 3, 4],
+                    "default_output_count": 1,
                     "operations": build_image_operation_capabilities(),
                     "shot_controls": build_shot_control_capabilities("image"),
                 },
@@ -44,6 +47,8 @@ class GenerationParameterContractTestCase(unittest.TestCase):
                     "default_duration_seconds": 5,
                     "min_keyframes": 2,
                     "max_keyframes": 8,
+                    "reference_roles": ["first-frame", "last-frame", "reference"],
+                    "max_references": 9,
                     "duration_presets": [
                         {"duration_seconds": 3, "num_frames": 81, "frame_rate": 24},
                         {"duration_seconds": 5, "num_frames": 121, "frame_rate": 24},
@@ -56,6 +61,106 @@ class GenerationParameterContractTestCase(unittest.TestCase):
             },
             build_generation_capabilities(),
         )
+
+    def test_image_batch_snapshot_is_strict_and_canonical(self) -> None:
+        batch = {
+            "batch_id": str(uuid4()),
+            "slot_index": 2,
+            "slot_count": 4,
+        }
+
+        normalized = normalize_image_parameters(
+            aspect_ratio="16:9",
+            image_ids=["asset-a"],
+            batch=batch,
+        )
+
+        self.assertEqual(batch, normalized.request_parameters["batch"])
+        invalid_batches = [
+            ({**batch, "batch_id": "not-a-uuid"}, "UUID"),
+            ({**batch, "slot_count": 5}, "slot count"),
+            ({**batch, "slot_index": 0}, "slot index"),
+            ({**batch, "slot_index": 4, "slot_count": 3}, "slot index"),
+            ({**batch, "extra": True}, "fields"),
+        ]
+        for invalid, message in invalid_batches:
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(GenerationParameterError, message):
+                    normalize_image_parameters(
+                        aspect_ratio="16:9",
+                        image_ids=["asset-a"],
+                        batch=invalid,
+                    )
+
+    def test_video_reference_bindings_preserve_roles_order_and_cross_role_reuse(self) -> None:
+        bindings = [
+            {"node_id": "node-a", "asset_id": "asset-a", "role": "first-frame", "order": 0},
+            {"node_id": "node-a", "asset_id": "asset-a", "role": "reference", "order": 1},
+            {"node_id": "node-b", "asset_id": "asset-b", "role": "last-frame", "order": 2},
+        ]
+
+        normalized = normalize_video_parameters(
+            reference_mode=None,
+            duration_seconds=5,
+            image_ids=None,
+            video_references=bindings,
+        )
+
+        self.assertEqual("keyframes", normalized.reference_mode)
+        self.assertEqual(bindings, normalized.request_parameters["video_references"])
+        self.assertEqual(
+            ["asset-a", "asset-a", "asset-b"],
+            normalized.request_parameters["image_ids"],
+        )
+
+    def test_video_reference_bindings_fail_closed_at_the_universal_nine_entry_gate(self) -> None:
+        reference = {
+            "node_id": "node-a",
+            "asset_id": "asset-a",
+            "role": "reference",
+            "order": 0,
+        }
+        invalid_cases = [
+            (
+                [
+                    {
+                        "node_id": f"node-{index}",
+                        "asset_id": f"asset-{index}",
+                        "role": "reference",
+                        "order": index,
+                    }
+                    for index in range(10)
+                ],
+                "maximum 9",
+            ),
+            ([reference, {**reference, "order": 1}], "duplicate"),
+            (
+                [
+                    {**reference, "role": "first-frame"},
+                    {**reference, "node_id": "node-b", "asset_id": "asset-b", "role": "first-frame", "order": 1},
+                ],
+                "at most one first-frame",
+            ),
+            ([{**reference, "extra": True}], "fields"),
+            ([{**reference, "order": 1}], "order"),
+        ]
+        for bindings, message in invalid_cases:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(GenerationParameterError, message):
+                    normalize_video_parameters(
+                        reference_mode=None,
+                        duration_seconds=5,
+                        image_ids=None,
+                        video_references=bindings,
+                    )
+
+        with self.assertRaisesRegex(GenerationParameterError, "mutually exclusive"):
+            normalize_video_parameters(
+                reference_mode="image-to-video",
+                duration_seconds=5,
+                image_ids=["asset-a"],
+                video_references=[reference],
+            )
 
     def test_image_operation_capabilities_are_versioned_and_provider_honest(self) -> None:
         self.assertEqual(

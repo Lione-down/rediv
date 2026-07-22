@@ -159,22 +159,24 @@ test('main creation composer Send runs script authoring and keeps exact input re
   await composer.getByRole('button', { name: '使用 Agnes 2.0 Flash 生成脚本' }).click()
 
   await expect.poll(() => state.generationCount).toBe(1)
-  await expect.poll(() => state.documents['canvas-first'].nodes.length).toBe(2)
-  const source = state.documents['canvas-first'].nodes.find((item) => (
-    (item.content as Record<string, unknown>).text === '黄昏海岸，人物从远景走入近景。'
-  ))
+  await expect.poll(() => state.documents['canvas-first'].nodes.length).toBe(1)
+  await expect.poll(() => (
+    state.documents['canvas-first'].nodes[0]?.content as Record<string, unknown>
+  ).source_task_id).toBe('task-authoring-1')
   const result = state.documents['canvas-first'].nodes.find((item) => (
     (item.content as Record<string, unknown>).source_task_id === 'task-authoring-1'
   ))
-  expect(source).toBeTruthy()
   expect(result).toBeTruthy()
-  expect((source!.content as Record<string, unknown>).reference_asset_ids).toEqual(['asset-reference'])
+  expect((result!.content as Record<string, unknown>).text).toBe(
+    '雨夜车站。摄影师穿过人群，寻找装着失踪胶卷的银色手提箱。',
+  )
+  expect((result!.content as Record<string, unknown>).reference_asset_ids).toEqual(['asset-reference'])
   expect(state.requests.find((item) => item.path === '/api/text-generate')?.body).toMatchObject({
-    intent: 'script_draft', brief: '黄昏海岸，人物从远景走入近景。', canvas_node_id: source!.id,
+    intent: 'script_draft', brief: '黄昏海岸，人物从远景走入近景。', canvas_node_id: result!.id,
     reference_asset_ids: ['asset-reference'],
   })
 
-  await expect(page.getByRole('region', { name: 'AI 脚本写作' })).toContainText('已创建新的可编辑脚本节点')
+  await expect(page.getByRole('region', { name: 'AI 脚本写作' })).toContainText('当前脚本已替换，可撤销')
 })
 
 test('main composer retains the prompt and recovers capability loading without reload', async ({ page }) => {
@@ -222,5 +224,6 @@ test('main composer keeps a failed script brief ready for bounded manual retry',
   state.generationOutcome = 'success'
   await authoring.getByRole('button', { name: '生成新脚本' }).click()
   await expect.poll(() => state.generationCount).toBe(1)
-  await expect(authoring).toContainText('已创建新的可编辑脚本节点')
+  await expect(authoring).toContainText('当前脚本已替换，可撤销')
+  expect(state.documents['canvas-first'].nodes).toHaveLength(1)
 })

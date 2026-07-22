@@ -72,15 +72,16 @@ def _resolve_input_image_urls(
 ) -> list[str] | None:
     if not image_ids:
         return None
-    ordered_ids = list(dict.fromkeys(image_ids))
+    ordered_ids = list(image_ids)
+    unique_ids = list(dict.fromkeys(ordered_ids))
     assets = list(
         session.scalars(
-            select(Asset).where(Asset.id.in_(ordered_ids)).with_for_update()
+            select(Asset).where(Asset.id.in_(unique_ids)).with_for_update()
         ).all()
     )
     assets_by_id = {asset.id: asset for asset in assets}
-    urls: list[str] = []
-    for image_id in ordered_ids:
+    urls_by_id: dict[str, str] = {}
+    for image_id in unique_ids:
         asset = assets_by_id.get(image_id)
         if asset is None or asset.status != "active":
             raise GenerationScopeNotFoundError("Image asset not found")
@@ -91,10 +92,10 @@ def _resolve_input_image_urls(
         if not asset.url:
             raise GenerationValidationError("Image asset URL is required")
         try:
-            urls.append(resolve_agnes_image_reference(asset.url, user_id=user_id))
+            urls_by_id[image_id] = resolve_agnes_image_reference(asset.url, user_id=user_id)
         except AgnesImageReferenceError as error:
             raise GenerationValidationError(str(error)) from error
-    return urls
+    return [urls_by_id[image_id] for image_id in ordered_ids]
 
 
 def _start_generation_task(

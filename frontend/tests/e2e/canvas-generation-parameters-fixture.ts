@@ -42,6 +42,46 @@ export const GENERATION_CAPABILITIES = {
   },
 } as const
 
+export const GENERATION_CAPABILITIES_V6 = {
+  ...GENERATION_CAPABILITIES,
+  contract_version: 6,
+  text: {
+    contract_version: 1,
+    available: true,
+    model: 'agnes-2.0-flash',
+    model_label: 'Agnes 2.0 Flash',
+    intents: ['script_draft', 'script_refine'],
+    locales: ['zh-CN', 'en-US'],
+    default_locale: 'zh-CN',
+    brief_max_length: 4000,
+    source_max_length: 12000,
+    output_max_length: 12000,
+    creates_media: false,
+    runs_cinematic_decomposition: false,
+  },
+  image: {
+    ...GENERATION_CAPABILITIES.image,
+    output_counts: [1, 2, 3, 4],
+    default_output_count: 1,
+  },
+  video: {
+    ...GENERATION_CAPABILITIES.video,
+    reference_roles: ['first-frame', 'last-frame', 'reference'],
+    max_references: 9,
+  },
+  audio: {
+    contract_version: 1,
+    execution_mode: 'unavailable',
+    model: null,
+    generation_modes: [],
+    provider_generation_modes: [],
+    audio_driven_video_modes: [],
+    provider_audio_driven_video_modes: [],
+    quota: { available: false, quota_type: null, unit_estimate: null },
+    task: { available: false, cancel_supported: false, resume_supported: false },
+  },
+} as const
+
 export function createMockGenerationRequestParameters(
   mediaType: 'image' | 'video',
   requestBody: Record<string, unknown>,
@@ -72,19 +112,32 @@ export function createMockGenerationRequestParameters(
       } : {}),
       ...(requestBody.image_operation ? { image_operation: requestBody.image_operation } : {}),
       ...(requestBody.shot_controls ? { shot_controls: requestBody.shot_controls } : {}),
+      ...(requestBody.batch ? { batch: requestBody.batch } : {}),
       ...cinematicSkill,
     }
   }
+  const videoReferences = Array.isArray(requestBody.video_references)
+    ? requestBody.video_references as Array<Record<string, unknown>>
+    : null
+  const structuredImageIds = videoReferences?.map((binding) => binding.asset_id) ?? imageIds
+  const structuredMode = videoReferences
+    ? videoReferences.length === 0
+      ? 'text-to-video'
+      : videoReferences.length === 1 && videoReferences[0]?.role === 'first-frame'
+        ? 'image-to-video'
+        : 'keyframes'
+    : requestBody.reference_mode
   const durationSeconds = Number(requestBody.duration_seconds ?? 5)
   const framePreset = GENERATION_CAPABILITIES.video.duration_presets.find((preset) => (
     preset.duration_seconds === durationSeconds
   ))
   return {
     contract_version: 1, media_type: 'video', model: GENERATION_CAPABILITIES.video.model,
-    reference_mode: requestBody.reference_mode, duration_seconds: durationSeconds,
+    reference_mode: structuredMode, duration_seconds: durationSeconds,
     num_frames: framePreset?.num_frames, frame_rate: framePreset?.frame_rate,
     width: GENERATION_CAPABILITIES.video.width, height: GENERATION_CAPABILITIES.video.height,
-    image_ids: imageIds,
+    image_ids: structuredImageIds,
+    ...(videoReferences ? { video_references: videoReferences } : {}),
     ...(requestBody.shot_controls ? { shot_controls: requestBody.shot_controls } : {}),
     ...cinematicSkill,
   }

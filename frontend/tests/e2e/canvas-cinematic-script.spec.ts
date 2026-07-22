@@ -53,7 +53,7 @@ test('explicit cinematic script action creates one atomic version-2 shot graph t
   await editor.blur()
   await expect.poll(() => documentPatches(state).length).toBe(2)
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
-  await page.getByRole('button', { name: '选择并定位 分镜计划', exact: true }).click()
+  await page.getByRole('button', { name: '选择并定位 分镜资产组', exact: true }).click()
   await expect(page.getByRole('status', { name: '旧来源版本' })).toContainText('基于旧脚本版本')
 
   await stage.focus()

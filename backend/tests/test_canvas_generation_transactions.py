@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import main as backend_main
 from api.router import include_routers
 from controllers import generation_transactions as generation_controller
+from controllers import generation_starts as generation_starts_controller
 from controllers.store import DatabaseStore, configure_store, store
 from core.security import create_token
 from models.asset import Asset
@@ -148,6 +149,68 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         )
         self.assertEqual([asset.id], [item["id"] for item in assets.json()["items"]])
         self.assertEqual([task.id], [item["id"] for item in tasks.json()["items"]])
+
+    def test_image_batch_slot_snapshot_preserves_the_single_result_transaction(self) -> None:
+        provider = _FakeImageProvider()
+        batch = {"batch_id": str(uuid4()), "slot_index": 2, "slot_count": 4}
+
+        response = self._generate_image(provider, batch=batch)
+
+        self.assertEqual(200, response.status_code, response.text)
+        with get_session() as session:
+            tasks = list(session.scalars(select(GenerationTask).where(
+                GenerationTask.user_id == self.user["id"],
+            )).all())
+            assets = list(session.scalars(select(Asset).where(
+                Asset.user_id == self.user["id"],
+                Asset.source == "generation",
+            )).all())
+        self.assertEqual(1, len(tasks))
+        self.assertEqual(1, len(assets))
+        self.assertEqual(batch, tasks[0].request_parameters["batch"])
+        self.assertEqual(assets[0].id, tasks[0].result_asset_id)
+
+    def test_video_reference_asset_lookup_is_unique_but_provider_order_keeps_cross_role_duplicates(self) -> None:
+        first = store.create_asset(
+            self.user["id"], "image", "https://example.com/first.png", None,
+            project_id=self.project["id"], origin_canvas_id=self.canvas_id,
+        )
+        second = store.create_asset(
+            self.user["id"], "image", "https://example.com/second.png", None,
+            project_id=self.project["id"], origin_canvas_id=self.canvas_id,
+        )
+        request_parameters = {
+            "contract_version": 1,
+            "media_type": "video",
+            "video_references": [
+                {"node_id": "node-a", "asset_id": first["id"], "role": "first-frame", "order": 0},
+                {"node_id": "node-b", "asset_id": second["id"], "role": "reference", "order": 1},
+                {"node_id": "node-a", "asset_id": first["id"], "role": "reference", "order": 2},
+            ],
+        }
+        with patch.object(
+            generation_starts_controller,
+            "resolve_agnes_image_reference",
+            side_effect=lambda url, **_kwargs: url,
+        ) as resolver:
+            started = generation_starts_controller.start_video_generation_request(
+                user_id=self.user["id"],
+                provider="agnes",
+                model="agnes-video-v2.0",
+                project_id=self.project["id"],
+                origin_canvas_id=self.canvas_id,
+                canvas_node_id=self.node["id"],
+                image_ids=[first["id"], second["id"], first["id"]],
+                request_parameters=request_parameters,
+                client_request_id=str(uuid4()),
+                request_fingerprint="f" * 64,
+            )
+
+        self.assertEqual(
+            ["https://example.com/first.png", "https://example.com/second.png", "https://example.com/first.png"],
+            started.input_image_urls,
+        )
+        self.assertEqual(2, resolver.call_count)
 
     def test_durable_progress_is_monotonic_and_success_reaches_100(self) -> None:
         task, _input_images = generation_controller.start_image_generation_task(
@@ -416,6 +479,7 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         origin_canvas_id: str | None = None,
         canvas_node_id: str | None | object = ...,
         image_ids: list[str] | None = None,
+        batch: dict | None = None,
     ):
         if canvas_node_id is ...:
             canvas_node_id = self.node["id"]
@@ -427,6 +491,8 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         }
         if image_ids is not None:
             payload["image_ids"] = image_ids
+        if batch is not None:
+            payload["batch"] = batch
         with patch.object(backend_main, "_agnes", provider):
             return self.client.post(
                 "/api/image-generate",
