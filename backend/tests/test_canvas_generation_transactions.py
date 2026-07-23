@@ -80,7 +80,7 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
     def tearDown(self) -> None:
         self.client.close()
 
-    def test_image_success_persists_one_linked_transaction_and_authoritative_quota(self) -> None:
+    def test_legacy_compatibility_image_response_exposes_full_task_snapshot_and_quota(self) -> None:
         provider = _FakeImageProvider()
         original_quota = self._database_quota("image")
 

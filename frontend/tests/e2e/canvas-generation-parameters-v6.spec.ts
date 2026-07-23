@@ -34,7 +34,7 @@ function mediaConnection(id: string, from: string, to: string, order: number): C
   }
 }
 
-test('v6 capability and persisted parameters preserve output counts and structured video roles', () => {
+test('legacy compatibility: v6 preserves output counts and keyframe-oriented video roles', () => {
   expect(capabilitiesV6.contract_version).toBe(6)
   expect(capabilitiesV6.image.output_counts).toEqual([1, 2, 3, 4])
   expect(capabilitiesV6.image.default_output_count).toBe(1)

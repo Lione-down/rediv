@@ -170,7 +170,7 @@ test('latest connected generated result is projected back into its source card',
   expect(resolveCanvasCardProjectedResult(first, [source, first, latest], connections)).toBeNull()
 })
 
-test('materialized generation family presents one stable media card and projects downstream edges', () => {
+test('legacy compatibility: materialized generation/result family projects one visible card and downstream edges', () => {
   const source = {
     ...node('generation', {
       subtype: 'image', serialization_version: 1, text: '三花小猫',

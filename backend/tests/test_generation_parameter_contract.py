@@ -92,7 +92,7 @@ class GenerationParameterContractTestCase(unittest.TestCase):
                         batch=invalid,
                     )
 
-    def test_video_reference_bindings_preserve_roles_order_and_cross_role_reuse(self) -> None:
+    def test_legacy_compatibility_video_reference_bindings_preserve_keyframe_roles_and_order(self) -> None:
         bindings = [
             {"node_id": "node-a", "asset_id": "asset-a", "role": "first-frame", "order": 0},
             {"node_id": "node-a", "asset_id": "asset-a", "role": "reference", "order": 1},
@@ -396,7 +396,7 @@ class GenerationParameterContractTestCase(unittest.TestCase):
                 recipe_size="1024x768",
             )
 
-    def test_video_modes_validate_exact_reference_counts_and_duration_mapping(self) -> None:
+    def test_legacy_compatibility_video_modes_validate_keyframe_counts_and_duration_mapping(self) -> None:
         text = normalize_video_parameters(
             reference_mode="text-to-video",
             duration_seconds=3,
@@ -450,7 +450,7 @@ class GenerationParameterContractTestCase(unittest.TestCase):
                         image_ids=image_ids,
                     )
 
-    def test_legacy_video_omission_keeps_count_mapping_only_at_backend_boundary(self) -> None:
+    def test_legacy_compatibility_video_omission_keeps_count_mapping_only_at_backend_boundary(self) -> None:
         self.assertEqual(
             "text-to-video",
             normalize_video_parameters(reference_mode=None, duration_seconds=None, image_ids=[]).reference_mode,

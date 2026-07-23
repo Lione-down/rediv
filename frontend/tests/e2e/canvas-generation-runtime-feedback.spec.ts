@@ -102,7 +102,7 @@ async function selectNode(page: Page, title: string) {
 }
 
 for (const mediaType of ['image', 'video'] as const) {
-  test(`held ${mediaType} request stays visible through submitting, queued, running, and success without poll mutations`, async ({ page }) => {
+  test(`legacy compatibility: held ${mediaType} request stays visible through project-wide polling without mutations`, async ({ page }) => {
     const state = createResourceMockState()
     const source = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')!
     const sourceContent = source.content as Record<string, unknown>
@@ -158,7 +158,7 @@ for (const mediaType of ['image', 'video'] as const) {
   })
 }
 
-test('readonly compact reload recovers a background running task and terminal status with bounded reduced-motion UI', async ({ page }) => {
+test('legacy compatibility: readonly compact reload recovers through project-wide task polling', async ({ page }) => {
   const state = createResourceMockState()
   const source = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')!
   source.content = {
@@ -193,7 +193,7 @@ test('readonly compact reload recovers a background running task and terminal st
   await expect(status).toContainText('已超时', { timeout: 6_000 })
 })
 
-test('task polling failure keeps the local indeterminate state and never fails or duplicates the long POST', async ({ page }) => {
+test('legacy compatibility: project-wide polling failure keeps the request-bound POST indeterminate', async ({ page }) => {
   const state = createResourceMockState()
   let releaseGeneration!: () => void
   state.generationGate = new Promise<void>((resolve) => { releaseGeneration = resolve })

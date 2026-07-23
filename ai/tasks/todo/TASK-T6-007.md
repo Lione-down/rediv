@@ -1,7 +1,7 @@
 # TASK-T6-007 - Characterize and freeze replacement contracts
 
-- State: `DOING`
-- Verification outcome: `PENDING`
+- State: `DONE`
+- Verification outcome: `PASS`
 - Phase: `Product V3 / Phase 6 contract-first reset`
 - Objective: turn the Human-approved T6-006 replacement workflows into focused failing backend and browser contracts before changing runtime behavior.
 - Dependency: `T6-006 - DONE / PASS`.
@@ -30,3 +30,12 @@
 4. Legacy compatibility expectations are labeled without changing runtime behavior.
 5. No snapshot is updated or assertion weakened to conceal a mismatch.
 6. Project state, UTF-8/no-BOM, diff, sensitive-path, and exact-staging checks pass.
+
+## Completion evidence
+
+- Backend replacement contracts: `10/10` expected RED failures across compact DTOs, `4 KiB` submit/status and `128 KiB` delta budgets, semantic references, and `revid.story-production`.
+- Browser replacement contracts: `11/11` expected RED failures across rename/history, compact durable submit/restore, same-card and image-batch results, built-in director ownership, semantic capability/context, and connected-image `@` bindings.
+- Every RED failure is an assertion with a named `T6-007 RED [...]` fingerprint caused by an absent replacement contract; no collection, fixture, authentication, preview, MySQL, or provider failure remains.
+- Legacy compatibility labels preserve existing behavior: backend `26/26` and Playwright `6/6` pass without assertion changes.
+- Production build passes with `4,988 modules transformed`; no runtime source, snapshot, schema, provider adapter, or production API changed.
+- REPORT: [REPORT-T6-007](../../reports/REPORT-T6-007.md).
