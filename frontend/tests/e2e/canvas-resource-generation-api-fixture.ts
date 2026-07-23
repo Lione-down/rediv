@@ -211,6 +211,33 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       if (state.taskListOutcome === 'failure') return fulfillJson(route, { detail: 'mock task list unavailable' }, 503)
       return fulfillJson(route, { items: state.tasks, total: state.tasks.length, page: 1, page_size: 100 })
     }
+    const generationJobResultMatch = path.match(/^\/api\/v2\/generation-jobs\/([^/]+)\/result$/)
+    if (method === 'GET' && generationJobResultMatch) {
+      const result = state.generationJobResults[generationJobResultMatch[1]]
+      return result
+        ? fulfillJson(route, result)
+        : fulfillJson(route, { detail: 'mock generation job result unavailable' }, 409)
+    }
+    const generationJobStatusMatch = path.match(/^\/api\/v2\/generation-jobs\/([^/]+)$/)
+    if (method === 'GET' && generationJobStatusMatch) {
+      const job = state.generationJobs[generationJobStatusMatch[1]]
+      return job
+        ? fulfillJson(route, job)
+        : fulfillJson(route, { detail: 'mock generation job missing' }, 404)
+    }
+    const generationJobDeltaMatch = path.match(
+      new RegExp(`^/api/v2/projects/${PROJECT_ID}/generation-jobs$`),
+    )
+    if (method === 'GET' && generationJobDeltaMatch) {
+      const canvasId = url.searchParams.get('canvas_id')
+      const items = Object.values(state.generationJobs).filter((job) => (
+        state.generationJobCanvasIds[String(job.job_id)] === canvasId
+      ))
+      return fulfillJson(route, {
+        items,
+        next_cursor: `cursor-${canvasId ?? 'missing'}`,
+      })
+    }
     if (method === 'GET' && path === '/api/generation-capabilities') {
       return state.capabilitiesOutcome === 'success'
         ? fulfillJson(route, state.capabilityVersion === 6 ? T6_GENERATION_CAPABILITIES : GENERATION_CAPABILITIES)

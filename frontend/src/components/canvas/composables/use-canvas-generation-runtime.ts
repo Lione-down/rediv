@@ -1,5 +1,6 @@
 import { computed, getCurrentInstance, onBeforeUnmount, ref, watch, type ComputedRef } from 'vue'
 import {
+  resolveGenerationJobRuntimePresentations,
   resolveGenerationRuntimePresentations,
   type LocalGenerationRuntimeRequest,
 } from '../../../modules/canvas/generation-runtime-presentation'
@@ -8,6 +9,12 @@ import {
   resolveTerminalGenerationResultPlacement,
 } from '../../../modules/canvas/generation-result-projection'
 import type { GenerationTask } from '../../../modules/canvas/project-resource-types'
+import { createGenerationJobStore } from '../../../modules/canvas/generation-job-store'
+import {
+  hasGenerationJobPollingWork,
+  syncGenerationJobs,
+} from '../../../modules/canvas/generation-job-runtime'
+import { request } from '../../../api/request'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
@@ -33,17 +40,35 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
   const canvasStore = useCanvasStore()
   const resourceStore = useProjectResourceStore()
   const localRequests = ref<ReadonlyMap<string, LocalGenerationRuntimeRequest>>(new Map())
+  const generationJobStore = createGenerationJobStore()
+  const generationJobRevision = ref(0)
   let timer: ReturnType<typeof setTimeout> | null = null
   let pollingGeneration = 0
   let pollingErrorCount = 0
+  const activeSyncKeys = new Set<string>()
 
-  const presentations = computed(() => resolveGenerationRuntimePresentations(
-    canvasStore.nodes,
-    resourceStore.tasks,
-    localRequests.value,
-    options.projectId.value,
-    options.canvasId.value,
-  ))
+  const generationJobSnapshot = computed(() => {
+    generationJobRevision.value
+    return generationJobStore.snapshot({
+      projectId: options.projectId.value,
+      canvasId: options.canvasId.value,
+    })
+  })
+  const presentations = computed(() => {
+    const next = resolveGenerationRuntimePresentations(
+      canvasStore.nodes,
+      resourceStore.tasks,
+      localRequests.value,
+      options.projectId.value,
+      options.canvasId.value,
+    )
+    const compact = resolveGenerationJobRuntimePresentations(
+      canvasStore.nodes,
+      [...generationJobSnapshot.value.statuses.values()],
+    )
+    for (const [nodeId, presentation] of compact) next.set(nodeId, presentation)
+    return next
+  })
   const pendingResultProjections = computed(() => resolveGenerationResultProjections(
     canvasStore.nodes,
     resourceStore.tasks,
@@ -52,10 +77,21 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
     options.canvasId.value,
   ))
 
-  function hasPollingWork() {
+  function hasCompactPollingWork() {
+    return hasGenerationJobPollingWork(
+      canvasStore.nodes,
+      generationJobSnapshot.value.statuses,
+    )
+  }
+
+  function hasLegacyPollingWork() {
     return [...presentations.value.values()].some((presentation) => (
-      presentation.phase === 'submitting' || presentation.phase === 'queued' || presentation.phase === 'running'
+      presentation.source !== 'job' && !presentation.isTerminal
     ))
+  }
+
+  function hasPollingWork() {
+    return hasCompactPollingWork() || hasLegacyPollingWork()
   }
 
   function stopPolling() {
@@ -69,19 +105,20 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
     const projectId = options.projectId.value
     const canvasId = options.canvasId.value
     const authToken = authStore.token
-    if (!projectId || !canvasId || !authToken || resourceStore.projectId !== projectId) return null
+    if (!projectId || !canvasId || !authToken) return null
     return { projectId, canvasId, authToken }
   }
 
   function isCurrentContext(context: NonNullable<ReturnType<typeof pollingContext>>) {
     return authStore.token === context.authToken &&
-      options.projectId.value === context.projectId && options.canvasId.value === context.canvasId &&
-      resourceStore.projectId === context.projectId
+      options.projectId.value === context.projectId && options.canvasId.value === context.canvasId
   }
 
   function schedulePolling(forceQuickDiscovery = false) {
     const context = pollingContext()
     if (!context || (!forceQuickDiscovery && !hasPollingWork())) return
+    const syncKey = `${context.projectId}\u0000${context.canvasId}`
+    if (activeSyncKeys.has(syncKey)) return
     if (timer && !forceQuickDiscovery) return
     if (timer) clearTimeout(timer)
     const generation = pollingGeneration
@@ -93,11 +130,29 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
     timer = setTimeout(async () => {
       timer = null
       if (generation !== pollingGeneration || !isCurrentContext(context)) return
+      activeSyncKeys.add(syncKey)
       try {
-        await resourceStore.refreshTasksIfCurrent(context.projectId)
+        const requests: Promise<unknown>[] = []
+        if (hasCompactPollingWork()) {
+          requests.push(syncGenerationJobs({
+            projectId: context.projectId,
+            canvasId: context.canvasId,
+            nodes: canvasStore.nodes,
+            store: generationJobStore,
+            transport: request,
+          }).then(() => {
+            generationJobRevision.value += 1
+          }))
+        }
+        if (hasLegacyPollingWork() && resourceStore.projectId === context.projectId) {
+          requests.push(resourceStore.refreshTasksIfCurrent(context.projectId))
+        }
+        await Promise.all(requests)
         pollingErrorCount = 0
       } catch {
         pollingErrorCount += 1
+      } finally {
+        activeSyncKeys.delete(syncKey)
       }
       if (generation !== pollingGeneration || !isCurrentContext(context)) return
       if (hasPollingWork()) schedulePolling()
@@ -106,8 +161,7 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
   }
 
   function isNodeActive(nodeId: string) {
-    const phase = presentations.value.get(nodeId)?.phase
-    return phase === 'submitting' || phase === 'queued' || phase === 'running'
+    return presentations.value.get(nodeId)?.isTerminal === false
   }
 
   function beginRequest(context: BeginGenerationRuntimeRequest, clientRequestId: string) {
@@ -141,7 +195,7 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
   }
 
   function requestRecoveryPolling() {
-    schedulePolling(true)
+    if (hasPollingWork()) schedulePolling(true)
   }
 
   function resolveTerminalResultPlacement(task: GenerationTask) {
@@ -164,6 +218,13 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
     stopPolling()
   }, { flush: 'sync' })
 
+  watch(() => canvasStore.nodes.map((node) => (
+    `${node.id}:${String(node.contentData?.active_generation_job_id ?? '')}`
+  )).join('|'), () => {
+    if (hasPollingWork()) schedulePolling(true)
+    else stopPolling()
+  }, { immediate: true, flush: 'post' })
+
   watch(() => [...presentations.value.values()].map((presentation) => presentation.key).join('|'), () => {
     if (hasPollingWork()) schedulePolling()
     else if (timer) stopPolling()
@@ -173,6 +234,7 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
 
   return {
     beginRequest,
+    generationJobResults: computed(() => generationJobSnapshot.value.results),
     pendingResultProjections,
     presentations,
     requestRecoveryPolling,

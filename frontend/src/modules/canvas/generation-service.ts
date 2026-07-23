@@ -14,6 +14,11 @@ import type { VisualAssetRecipeId, VisualAssetRecipeVersion } from './visual-ass
 import type { CinematicGenerationHandoff } from './cinematic-skills'
 import type { CinematicDirectorGenerationHandoff } from './cinematic-director-preflight'
 import type { ScriptAuthoringIntent, ScriptAuthoringLineage, ScriptAuthoringLocale } from './script-authoring'
+import {
+  submitGenerationJobRequest,
+  type GenerationJobSubmitInput,
+  type GenerationJobTransport,
+} from './generation-job-api'
 
 export type GenerationMediaType = keyof QuotaBalance
 
@@ -117,6 +122,13 @@ export function createGenerationClientRequestId() {
   const id = globalThis.crypto?.randomUUID?.()
   if (!id) throw new Error('Current browser cannot create a secure generation request ID')
   return id
+}
+
+export function submitGenerationJob(
+  input: GenerationJobSubmitInput,
+  transport: GenerationJobTransport,
+) {
+  return submitGenerationJobRequest(input, transport)
 }
 
 function assertGenerationResponseScope(

@@ -15,6 +15,7 @@ import {
   FIRST_CANVAS_ID,
   openResourceWorkspace,
   PROJECT_ID,
+  SECOND_CANVAS_ID,
 } from './canvas-resource-generation-fixture'
 
 const NOW = '2026-07-14T08:00:00Z'
@@ -215,4 +216,100 @@ test('legacy compatibility: project-wide polling failure keeps the request-bound
   releaseGeneration()
   await expect(page.getByLabel('生成状态')).toContainText('已完成', { timeout: 6_000 })
   expect(state.requests.filter((item) => item.method === 'POST' && item.path === '/api/image-generate')).toHaveLength(1)
+})
+
+test('persisted current-Canvas job sync uses compact v2 delta and fetches one terminal result', async ({ page }) => {
+  const state = createResourceMockState()
+  const source = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')!
+  source.content = {
+    ...(source.content as Record<string, unknown>),
+    active_generation_job_id: 'job-current-canvas',
+  }
+  state.generationJobCanvasIds['job-current-canvas'] = FIRST_CANVAS_ID
+  state.generationJobs['job-current-canvas'] = {
+    job_id: 'job-current-canvas',
+    node_id: 'generation-cover',
+    media_type: 'image',
+    status: 'running',
+    stage: 'provider',
+    progress: 35,
+    error: null,
+    result_asset_id: null,
+    version: 2,
+    updated_at: '2026-07-23T12:00:00Z',
+  }
+  await openResourceWorkspace(page, state)
+  await selectNode(page, '封面生成')
+
+  await expect(page.getByLabel('生成状态')).toContainText('模型生成中')
+  await expect.poll(() => state.requests.filter((item) => (
+    item.method === 'GET' &&
+    item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs` &&
+    item.query.includes(`canvas_id=${FIRST_CANVAS_ID}`)
+  )).length).toBeGreaterThan(0)
+  const legacyTaskReadCount = state.requests.filter((item) => item.path === '/api/generation-tasks').length
+  expect(legacyTaskReadCount).toBe(1)
+  expect(new TextEncoder().encode(JSON.stringify(state.generationJobs['job-current-canvas'])).byteLength)
+    .toBeLessThanOrEqual(4 * 1024)
+  const patchBaseline = documentPatches(state).length
+  const deltaReadsBeforeSwitch = state.requests.filter((item) => (
+    item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs`
+  )).length
+
+  await page.getByRole('button', { name: '画布 1' }).click()
+  await page.getByRole('option', { name: /分镜/ }).click()
+  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}$`))
+  await page.waitForTimeout(2_300)
+  expect(state.requests.filter((item) => item.path.endsWith('/cancel'))).toHaveLength(0)
+
+  await page.getByRole('button', { name: '分镜', exact: true }).click()
+  await page.getByRole('option', { name: /画布 1/ }).click()
+  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}$`))
+  await expect.poll(() => state.requests.filter((item) => (
+    item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs`
+  )).length).toBeGreaterThan(deltaReadsBeforeSwitch)
+  await selectNode(page, '封面生成')
+
+  state.generationJobs['job-current-canvas'] = {
+    ...state.generationJobs['job-current-canvas'],
+    status: 'succeeded',
+    stage: 'persisting',
+    progress: 100,
+    result_asset_id: 'asset-current-canvas',
+    version: 3,
+    updated_at: '2026-07-23T12:00:02Z',
+  }
+  state.generationJobResults['job-current-canvas'] = {
+    job_id: 'job-current-canvas',
+    node_id: 'generation-cover',
+    result: {
+      asset_id: 'asset-current-canvas',
+      media_type: 'image',
+      url: 'https://media.revid.test/current-canvas.png',
+    },
+    version: 3,
+  }
+
+  await expect(page.getByLabel('生成状态')).toContainText('已完成', { timeout: 6_000 })
+  await expect.poll(() => state.requests.filter((item) => (
+    item.path === '/api/v2/generation-jobs/job-current-canvas/result'
+  )).length).toBe(1)
+  const deltaReadCount = state.requests.filter((item) => (
+    item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs`
+  )).length
+  expect(new TextEncoder().encode(JSON.stringify({
+    items: Object.values(state.generationJobs),
+    next_cursor: `cursor-${FIRST_CANVAS_ID}`,
+  })).byteLength).toBeLessThanOrEqual(128 * 1024)
+  await page.waitForTimeout(2_300)
+  expect(state.requests.filter((item) => (
+    item.path === '/api/v2/generation-jobs/job-current-canvas/result'
+  ))).toHaveLength(1)
+  expect(state.requests.filter((item) => (
+    item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs`
+  ))).toHaveLength(deltaReadCount)
+  expect(state.requests.filter((item) => item.path === '/api/generation-tasks'))
+    .toHaveLength(legacyTaskReadCount)
+  expect(state.requests.filter((item) => item.path.endsWith('/cancel'))).toHaveLength(0)
+  expect(documentPatches(state)).toHaveLength(patchBaseline)
 })

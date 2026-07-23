@@ -86,6 +86,9 @@ export interface ResourceMockState {
   generationCount: number
   generationFailureSlots: number[]
   generationFailureCalls: number[]
+  generationJobCanvasIds: Record<string, string>
+  generationJobResults: Record<string, Record<string, unknown>>
+  generationJobs: Record<string, Record<string, unknown>>
   generationOutcome: 'success' | 'failure'
   requests: MockRequest[]
   shotSchemaCount: number
@@ -224,6 +227,9 @@ export function createResourceMockState(): ResourceMockState {
     generationCount: 0,
     generationFailureSlots: [],
     generationFailureCalls: [],
+    generationJobCanvasIds: {},
+    generationJobResults: {},
+    generationJobs: {},
     generationOutcome: 'success',
     requests: [],
     shotSchemaCount: 0,

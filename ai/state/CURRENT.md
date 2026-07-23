@@ -12,7 +12,7 @@ Last updated: 2026-07-23
 ## Product State
 
 - Phase 4 initial version and Product V2 / Phase 5: `DONE / PASS`.
-- Product V3 / Phase 6 Tasks T6-001 through T6-004 and T6-006 through T6-008: `DONE / PASS`.
+- Product V3 / Phase 6 Tasks T6-001 through T6-004 and T6-006 through T6-009: `DONE / PASS`.
 - T6-005: `BLOCKED / FAIL` after explicit Human visual/interaction rejection on 2026-07-23.
 - Database authority: MySQL-only.
 
@@ -21,31 +21,30 @@ Last updated: 2026-07-23
 - Active implementation Task: none during the post-verification delivery transition.
 - State: `DONE`
 - Verification outcome: `PASS`
-- Completed Task: [TASK-T6-008](../tasks/todo/TASK-T6-008.md).
-- Plan: [TASK-T6-008-PLAN](../tasks/doing/TASK-T6-008-PLAN.md).
-- Progress: [TASK-T6-008-PROGRESS](../tasks/doing/TASK-T6-008-PROGRESS.md).
-- Report: [REPORT-T6-008](../reports/REPORT-T6-008.md).
+- Completed Task: [TASK-T6-009](../tasks/todo/TASK-T6-009.md).
+- Plan: [TASK-T6-009-PLAN](../tasks/doing/TASK-T6-009-PLAN.md).
+- Progress: [TASK-T6-009-PROGRESS](../tasks/doing/TASK-T6-009-PROGRESS.md).
+- Report: [REPORT-T6-009](../reports/REPORT-T6-009.md).
 - Architecture: [REVID-T6-006-FULL-STACK-MODULAR-REFACTOR](../architecture/REVID-T6-006-FULL-STACK-MODULAR-REFACTOR.md).
 
 ## Live Gates
 
-- T6-005 machine proof remains historical implementation evidence only: build `4,988`, frontend `622/622`, backend `583/583`, performance `2/2`, and audit `0`; Human acceptance failed.
-- T6-005's visual design, interaction logic, business flow, and information architecture are all rejected. Its implementation is committed only as audit/reference evidence and creates no reuse presumption.
-- Primary concentration: `backend/controllers/store.py` `2,255` lines, `CanvasStage.vue` `1,133`, and `CanvasWorkspace.vue` `1,102`.
-- Confirmed direction is the Human-approved workflow redesign followed by a contract-first modular-monolith strangler refactor; framework replacement, microservices, second database, and second Canvas engine remain rejected.
-- The Human Owner supplied and confirmed the replacement LibTV-style card workflow, built-in director Skill ownership, semantic multi-image video, durable generation, and compact-response requirements.
-- Public MIT Skill `Emily2040/seedance-2.0` commit `57d01dc6` is a pinned T6-012 research baseline for directing/reference/continuity/eval patterns only; it is not installed, user-selectable, or authoritative for provider capabilities.
-- Read-only audit confirmed current keyframe coercion, plain-text-only script authoring, hard-coded text model, request-bound provider work, project-wide full-task polling with `request_parameters`, duplicated completion payloads, hidden result-node projection, and missing node rename UI.
-- T6-007 froze `10` backend and `11` browser expected RED assertions with named absent-contract fingerprints; T6-008 has made the five compact DTO/budget backend assertions GREEN.
-- T6-008 delivers compact v2 DTOs/APIs, MySQL lease/idempotency execution, restart reclaim, checkpointed fake-provider dispatch, cancellation/retry/result/delta reads, completion fencing, and compatibility reads.
-- T6-008 focused `24/24`, related backend `44/44`, and broad backend `606/606` pass. The broad gate excludes only the two future-owned semantic-reference and story-director RED modules and does not weaken them.
-- Project-state validation passed at activation; after durable `DONE / PASS` closure it has one intentional transition error until the required post-push T6-009 activation restores the single-active invariant.
-- Legacy media endpoints remain unchanged; T6-009 frontend synchronization and all later workflow Tasks remain out of scope.
+- T6-005 remains rejected audit/reference evidence and creates no reuse presumption.
+- The approved Phase 6 direction remains the contract-first modular-monolith strangler with the existing stack, database,
+  Canvas engine, and provider authority boundaries.
+- T6-007 froze the replacement contracts; T6-008 delivered compact v2 APIs and durable MySQL execution.
+- T6-009 delivers strict compact v2 parsing, scoped job/version/cursor state, refresh restoration, terminal result fetch,
+  Canvas-switch catch-up, and bounded active polling.
+- Persisted v2 jobs do not repeat project-wide task reads. One initial history/admin snapshot and unbound legacy request
+  fallback remain until T6-016.
+- T6-009 focused `13/13`, related `40/40`, broad `631/631`, headed performance `1/1`, and build `4,991` pass.
+- T6-010 card identity/rename is dependency-ready but must activate only in a new post-push goal-mode task.
 - Tests may use disposable MySQL and fake providers only; user/runtime migrations and real/paid provider calls remain prohibited.
+- Closed-state validation has one expected no-active transition error until post-push T6-010 activation.
 
 ## Exact Next Action
 
-Precisely stage, review, commit, and push the scoped T6-008 delivery, then create a new goal-mode Codex Task that activates T6-009 only.
+Precisely stage, commit, and push T6-009, then create a new goal-mode Codex task that activates T6-010 only.
 
 ## Worktree Ownership
 

@@ -3,10 +3,14 @@ import { getGenerationMediaType } from './node-registry'
 import type {
   GenerationTask,
   GenerationTaskProgressStage,
-  GenerationTaskStatus,
 } from './project-resource-types'
+import type {
+  GenerationJobMediaType,
+  GenerationJobStatus,
+  GenerationJobStatusValue,
+} from './generation-job-api'
 
-export type GenerationRuntimePhase = 'submitting' | GenerationTaskStatus
+export type GenerationRuntimePhase = 'submitting' | GenerationJobStatusValue
 export type GenerationRuntimeTone = 'progress' | 'success' | 'danger'
 
 export interface LocalGenerationRuntimeRequest {
@@ -25,13 +29,26 @@ export interface GenerationRuntimePresentation {
   phase: GenerationRuntimePhase
   label: string
   tone: GenerationRuntimeTone
-  source: 'local' | 'task'
+  source: 'job' | 'local' | 'task'
   taskId: string | null
   task: GenerationTask | null
   isTerminal: boolean
   progressPercent: number | null
   progressStage: GenerationTaskProgressStage | null
   isIndeterminate: boolean
+}
+
+export interface RestoredGenerationJobRuntime {
+  jobId: string
+  nodeId: string
+  mediaType: GenerationJobMediaType
+  phase: GenerationJobStatus['status']
+  stage: GenerationJobStatus['stage']
+  progress: number | null
+  resultAssetId: string | null
+  error: string | null
+  version: number
+  updatedAt: string
 }
 
 const PERSISTING_PRESENTATION = { label: '正在保存结果', tone: 'progress', isTerminal: false } as const
@@ -69,6 +86,8 @@ const PHASE_PRESENTATION: Record<GenerationRuntimePhase, {
   succeeded: { label: '已完成', tone: 'success', isTerminal: true },
   failed: { label: '失败', tone: 'danger', isTerminal: true },
   timed_out: { label: '已超时', tone: 'danger', isTerminal: true },
+  cancel_requested: { label: '正在取消', tone: 'progress', isTerminal: false },
+  cancelled: { label: '已取消', tone: 'danger', isTerminal: true },
 }
 
 function taskTime(task: GenerationTask) {
@@ -171,4 +190,90 @@ export function changedGenerationRuntimeNodeIds(
 ) {
   const nodeIds = new Set([...previous.keys(), ...next.keys()])
   return [...nodeIds].filter((nodeId) => previous.get(nodeId)?.key !== next.get(nodeId)?.key).sort()
+}
+
+function nodeGenerationJobMediaType(node: CanvasNode): GenerationJobMediaType | null {
+  const subtype = node.contentData?.subtype
+  if (subtype === 'text' || subtype === 'script' || subtype === 'image' || subtype === 'video') {
+    return subtype
+  }
+  if (node.type === 'text') return 'text'
+  if (node.type === 'script') return 'script'
+  if (node.type === 'image') return 'image'
+  if (node.type === 'video') return 'video'
+  return getGenerationMediaType(node)
+}
+
+export function restoreGenerationJobRuntime(input: {
+  projectId: string
+  canvasId: string
+  nodes: readonly CanvasNode[]
+  statuses: readonly GenerationJobStatus[]
+}) {
+  const restored = new Map<string, RestoredGenerationJobRuntime>()
+  if (!input.projectId.trim() || !input.canvasId.trim()) return restored
+  const statusesByJobId = new Map(input.statuses.map((status) => [status.job_id, status]))
+  for (const node of input.nodes) {
+    const activeJobId = node.contentData?.active_generation_job_id
+    if (typeof activeJobId !== 'string' || !activeJobId.trim()) continue
+    const status = statusesByJobId.get(activeJobId)
+    const mediaType = nodeGenerationJobMediaType(node)
+    if (!status || status.node_id !== node.id || status.media_type !== mediaType || status.version < 1) continue
+    restored.set(node.id, {
+      jobId: status.job_id,
+      nodeId: status.node_id,
+      mediaType: status.media_type,
+      phase: status.status,
+      stage: status.stage,
+      progress: status.progress,
+      resultAssetId: status.result_asset_id,
+      error: status.error,
+      version: status.version,
+      updatedAt: status.updated_at,
+    })
+  }
+  return restored
+}
+
+export function resolveGenerationJobRuntimePresentations(
+  nodes: readonly CanvasNode[],
+  statuses: readonly GenerationJobStatus[],
+) {
+  const presentations = new Map<string, GenerationRuntimePresentation>()
+  const restored = restoreGenerationJobRuntime({
+    projectId: 'current-project',
+    canvasId: 'current-canvas',
+    nodes,
+    statuses,
+  })
+  for (const runtime of restored.values()) {
+    const presentationKey = [
+      'job',
+      runtime.jobId,
+      runtime.version,
+      runtime.phase,
+      runtime.stage ?? 'none',
+      runtime.progress ?? 'none',
+    ].join(':')
+    const phasePresentation = runtime.phase === 'running' && runtime.stage === 'queued'
+      ? PHASE_PRESENTATION.queued
+      : runtime.phase === 'running' && runtime.stage === 'persisting'
+        ? PERSISTING_PRESENTATION
+        : PHASE_PRESENTATION[runtime.phase]
+    presentations.set(runtime.nodeId, {
+      key: presentationKey,
+      nodeId: runtime.nodeId,
+      phase: runtime.phase,
+      label: phasePresentation.label,
+      tone: phasePresentation.tone,
+      source: 'job',
+      taskId: runtime.jobId,
+      task: null,
+      isTerminal: phasePresentation.isTerminal,
+      progressPercent: normalizeGenerationProgressPercent(runtime.progress),
+      progressStage: runtime.stage,
+      isIndeterminate: !phasePresentation.isTerminal && runtime.progress === null,
+    })
+  }
+  return presentations
 }
