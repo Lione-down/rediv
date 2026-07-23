@@ -65,3 +65,30 @@ test('accepted card interaction direction remains deterministic across required 
   await testInfo.attach('review-375x812', { path: mobilePath, contentType: 'image/png' })
   expect(documentPatches(state)).toHaveLength(baselinePatches)
 })
+
+test('attached work surface stays inside the actual stage when the project panel narrows it', async ({ page }) => {
+  const state = createResourceMockState()
+  const generation = state.documents['canvas-first'].nodes.find(
+    (node) => node.id === 'generation-cover',
+  )!
+  generation.position_x = 800
+  await openResourceWorkspace(page, state, { width: 1440, height: 900 })
+
+  await page.getByRole('button', { name: '打开项目资源' }).click()
+  await expect(page.getByRole('complementary', { name: '项目资源' })).toBeVisible()
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  await page.getByRole('button', { name: '选择并定位 封面生成' }).click()
+
+  const stageRect = await page.locator('.workspace-stage').boundingBox()
+  const surfaceRect = await page.locator('.canvas-card-work-surface').boundingBox()
+  expect(stageRect).not.toBeNull()
+  expect(surfaceRect).not.toBeNull()
+  expect(surfaceRect!.x).toBeGreaterThanOrEqual(stageRect!.x + 32)
+  expect(surfaceRect!.x + surfaceRect!.width).toBeLessThanOrEqual(
+    stageRect!.x + stageRect!.width - 32,
+  )
+  expect(surfaceRect!.y).toBeGreaterThanOrEqual(stageRect!.y + 108)
+  expect(surfaceRect!.y + surfaceRect!.height).toBeLessThanOrEqual(
+    stageRect!.y + stageRect!.height - 108,
+  )
+})

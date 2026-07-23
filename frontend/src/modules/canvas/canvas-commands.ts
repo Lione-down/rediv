@@ -104,6 +104,12 @@ export interface SetNodesLockedCommand {
   locked: boolean
 }
 
+export interface RenameNodeCommand {
+  type: 'rename-node'
+  nodeId: string
+  title: string
+}
+
 export interface InsertGraphCommand {
   type: 'insert-graph'
   nodes: CanvasNode[]
@@ -150,6 +156,7 @@ export type CanvasCommand =
   | ReconnectConnectionCommand
   | ArrangeNodesCommand
   | SetNodesLockedCommand
+  | RenameNodeCommand
   | InsertGraphCommand
   | ReorderGenerationInputCommand
   | UpdateGenerationParametersCommand
@@ -212,6 +219,23 @@ export function createDuplicateNodesCommand(
 ): DuplicateNodesCommand | null {
   const targets = uniqueIds(nodeIds)
   return targets.length ? { type: 'duplicate-nodes', nodeIds: targets, offset: { ...offset } } : null
+}
+
+export function createRenameNodeCommand(
+  nodes: readonly CanvasNode[],
+  nodeId: string,
+  title: string,
+): RenameNodeCommand | null {
+  const target = nodes.find((node) => node.id === nodeId)
+  const normalizedTitle = title.trim()
+  if (
+    !target ||
+    target.isLocked ||
+    !isNodeMutationSupported(target) ||
+    !normalizedTitle ||
+    normalizedTitle === target.title
+  ) return null
+  return { type: 'rename-node', nodeId, title: normalizedTitle }
 }
 
 export function createDeleteSelectionCommand(

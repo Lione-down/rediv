@@ -63,7 +63,7 @@ import {
 } from '../../modules/canvas/script-reference-assets'
 import { resolveCanvasCardWorkModel, type CanvasCardWorkModeId } from './canvas-card-work-model'
 import { canBranchFromImageResult, type ResultBranchMediaType } from '../../modules/canvas/resource-commands'
-import { createConnectNodesCommand } from '../../modules/canvas/canvas-commands'
+import { createConnectNodesCommand, createRenameNodeCommand } from '../../modules/canvas/canvas-commands'
 import { useCanvasStoryboardGroups } from './composables/use-canvas-storyboard-groups'
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; professionalActionsBlocked?: boolean; readonly?: boolean; resourcesOpen?: boolean
@@ -146,6 +146,7 @@ const {
   minimapViewportStyle,
   openConnectionContinuation,
   stageRef,
+  stageSize,
   statusBadgeStyle,
   statusIconMap,
   statusLabel,
@@ -604,6 +605,13 @@ function commitNodeContent(nodeId: string, content: string) {
   void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)
 }
 
+function renameNode(nodeId: string, title: string) {
+  if (props.readonly) return
+  const command = createRenameNodeCommand(canvasStore.nodes, nodeId, title)
+  if (!command) return
+  void canvasStore.dispatchCommand({ source: 'keyboard', command }).catch(() => undefined)
+}
+
 async function attachCardReference(targetNodeId: string, sourceNodeId: string) {
   if (props.readonly) return
   const target = canvasStore.findNodeById(targetNodeId)
@@ -874,10 +882,12 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :script-authoring-intent="scriptAuthoringIntent"
         :script-authoring-success="scriptAuthoringSuccess"
         :script-quota="scriptQuota"
+        :stage-size="stageSize"
         :surface-node-rect-style="surfaceNodeRectStyle"
         :text-authoring-node-id="textAuthoringNodeId"
         :text-workflow-mode="textWorkflow?.mode ?? ''"
         :text-workflow-node-id="textWorkflow?.nodeId ?? ''"
+        :viewport-insets="viewportInsets"
         @card-generate="forwardCardGenerate"
         @card-open-assets="(nodeId, opener) => emit('cardOpenAssets', nodeId, opener)"
         @card-reference="attachCardReference"
@@ -892,6 +902,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         @continue-node="openNodeContinuation"
         @capture-frame="forwardCapturedVideoFrame"
         @media-metadata="adoptMediaAspectRatio"
+        @rename-node="renameNode"
         @generate-script="emit('generateScript', $event)"
         @retry-script-capability="emit('retryScriptCapability')"
         @text-mode="(nodeId, mode) => handleTextCardMode(nodeId, mode)"

@@ -12,19 +12,20 @@ Last updated: 2026-07-23
 ## Product State
 
 - Phase 4 initial version and Product V2 / Phase 5: `DONE / PASS`.
-- Product V3 / Phase 6 Tasks T6-001 through T6-004 and T6-006 through T6-009: `DONE / PASS`.
+- Product V3 / Phase 6 Tasks T6-001 through T6-004 and T6-006 through T6-010: `DONE / PASS`.
 - T6-005: `BLOCKED / FAIL` after explicit Human visual/interaction rejection on 2026-07-23.
+- T6-010: canonical card view model, geometry authority, and rename-command delivery is complete.
 - Database authority: MySQL-only.
 
 ## Active Delivery
 
-- Active implementation Task: none during the post-verification delivery transition.
+- Active implementation Task: none; T6-010 is closed and the post-push T6-011 activation must occur in a new goal-mode task.
 - State: `DONE`
 - Verification outcome: `PASS`
-- Completed Task: [TASK-T6-009](../tasks/todo/TASK-T6-009.md).
-- Plan: [TASK-T6-009-PLAN](../tasks/doing/TASK-T6-009-PLAN.md).
-- Progress: [TASK-T6-009-PROGRESS](../tasks/doing/TASK-T6-009-PROGRESS.md).
-- Report: [REPORT-T6-009](../reports/REPORT-T6-009.md).
+- Task: [TASK-T6-010](../tasks/todo/TASK-T6-010.md).
+- Plan: [TASK-T6-010-PLAN](../tasks/doing/TASK-T6-010-PLAN.md).
+- Progress: [TASK-T6-010-PROGRESS](../tasks/doing/TASK-T6-010-PROGRESS.md).
+- Report: [REPORT-T6-010](../reports/REPORT-T6-010.md).
 - Architecture: [REVID-T6-006-FULL-STACK-MODULAR-REFACTOR](../architecture/REVID-T6-006-FULL-STACK-MODULAR-REFACTOR.md).
 
 ## Live Gates
@@ -33,18 +34,16 @@ Last updated: 2026-07-23
 - The approved Phase 6 direction remains the contract-first modular-monolith strangler with the existing stack, database,
   Canvas engine, and provider authority boundaries.
 - T6-007 froze the replacement contracts; T6-008 delivered compact v2 APIs and durable MySQL execution.
-- T6-009 delivers strict compact v2 parsing, scoped job/version/cursor state, refresh restoration, terminal result fetch,
-  Canvas-switch catch-up, and bounded active polling.
-- Persisted v2 jobs do not repeat project-wide task reads. One initial history/admin snapshot and unbound legacy request
-  fallback remain until T6-016.
-- T6-009 focused `13/13`, related `40/40`, broad `631/631`, headed performance `1/1`, and build `4,991` pass.
-- T6-010 card identity/rename is dependency-ready but must activate only in a new post-push goal-mode task.
+- T6-010 delivered one typed card presentation model, one visible geometry authority, and one undoable/autosaved rename command.
+- Stable node IDs, graph/job/asset/reference bindings, legacy result persistence, and current compact v2 job sync remain intact.
+- T6-011 through T6-016 behavior, new same-card result application, and legacy compatibility removal are out of scope.
 - Tests may use disposable MySQL and fake providers only; user/runtime migrations and real/paid provider calls remain prohibited.
-- Closed-state validation has one expected no-active transition error until post-push T6-010 activation.
+- Automated browser evidence remains separate from explicit Human visual/interaction acceptance.
 
 ## Exact Next Action
 
-Precisely stage, commit, and push T6-009, then create a new goal-mode Codex task that activates T6-010 only.
+After T6-010 is committed and pushed, create a new `/goal` Codex task that activates only T6-011 and restores the
+single-active invariant before business-code edits.
 
 ## Worktree Ownership
 

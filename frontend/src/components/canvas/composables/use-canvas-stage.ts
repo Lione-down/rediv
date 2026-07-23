@@ -478,7 +478,7 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     hiddenPresentationNodeIds, presentationConnections, presentationNodes,
     closeConnectionContinuation, connectionContinuation, continuationStyle, openConnectionContinuation, selectConnectionContinuation,
     handleMinimapPointerDown, minimapNodeStyle, minimapNodes, minimapRef,
-    minimapViewportStyle, selectNodeBehindOverlay, stageRef, statusBadgeStyle,
+    minimapViewportStyle, selectNodeBehindOverlay, stageRef, stageSize: surfaceViewportSize, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
     viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu, selectionAggregateHullStyle, selectionToolbarStyle,
     canComposeGenerationSelection, canConnectSelection, canDuplicateSelection, canGroupSelection, canUngroupSelection, closeGraphPanel, commandFeedback, composeGenerationSelection, connectSelection,

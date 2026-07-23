@@ -278,8 +278,9 @@ async function createTextNode(page: Page, x: number) {
   const bounds = await canvasSurface.boundingBox()
   if (!bounds) throw new Error('Canvas surface is not available for node creation')
   const maxX = Math.max(40, bounds.width - 80)
-  const y = Math.min(x > maxX ? 280 : 520, Math.max(40, bounds.height - 80))
-  await canvasSurface.dblclick({ position: { x: Math.min(x, maxX), y } })
+  const y = Math.min(280, Math.max(40, bounds.height - 80))
+  const safeX = x > 900 ? 420 : Math.min(x, maxX)
+  await canvasSurface.dblclick({ position: { x: safeX, y } })
 }
 test('compatible graph edits batch into one document PATCH and reach Saved within one second', async ({ page }) => {
   const state = createState()

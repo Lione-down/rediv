@@ -11,6 +11,7 @@ import {
 import {
   canDeleteCanvasNode,
   createConnectNodesCommand,
+  createRenameNodeCommand,
   createReconnectConnectionCommand,
   createSetNodesLockedCommand,
   createGroupNodesCommand,
@@ -27,6 +28,7 @@ import {
   type GroupNodesCommand,
   type InsertGraphCommand,
   type MoveNodesCommand,
+  type RenameNodeCommand,
   type ReconnectConnectionCommand,
   type ReorderGenerationInputCommand,
   type SetNodesLockedCommand,
@@ -418,6 +420,13 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     }
   }
 
+  async function renameNode(command: RenameNodeCommand) {
+    if (!options.updateNodeState) throw new Error('Canvas node renaming is unavailable')
+    const validated = createRenameNodeCommand(options.getNodes(), command.nodeId, command.title)
+    if (!validated) return
+    await options.updateNodeState(validated.nodeId, { title: validated.title })
+  }
+
   async function insertGraph(command: InsertGraphCommand) {
     if (!options.insertGraph) throw new Error('Canvas graph insertion is unavailable')
     await options.insertGraph(command.nodes, command.connections)
@@ -540,6 +549,7 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'reconnect-connection') return reconnectConnection(command)
     if (command.type === 'arrange-nodes') return arrangeNodes(command)
     if (command.type === 'set-nodes-locked') return setNodesLocked(command)
+    if (command.type === 'rename-node') return renameNode(command)
     if (command.type === 'insert-graph') return insertGraph(command)
     if (command.type === 'reorder-generation-input') return reorderGenerationInput(command)
     if (command.type === 'update-generation-parameters') return updateGenerationParameters(command)

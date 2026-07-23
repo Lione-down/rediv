@@ -2,11 +2,16 @@
 import { computed } from 'vue'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import { buildCanvasNodeInteraction } from './canvas-node-interaction'
-import { buildCanvasNodePresentation } from './canvas-node-presentation'
+import {
+  buildCanvasCardViewModel,
+  buildCanvasNodePresentation,
+  resolveCanvasCardReferenceDisplayTitle,
+} from './canvas-node-presentation'
 import { resolveCanvasCardInteractionPresentation } from './canvas-card-interaction-presentation'
 import CanvasNodeComposer from './CanvasNodeComposer.vue'
 import CanvasNodeContinuationTrigger from './CanvasNodeContinuationTrigger.vue'
 import CanvasNodeMedia from './CanvasNodeMedia.vue'
+import CanvasNodeTitleEditor from './CanvasNodeTitleEditor.vue'
 import CanvasCardWorkSurface, { type CanvasCardReferenceCandidate } from './CanvasCardWorkSurface.vue'
 import CanvasTextCardModeChooser from './CanvasTextCardModeChooser.vue'
 import CanvasTextWorkflowComposer from './CanvasTextWorkflowComposer.vue'
@@ -25,6 +30,9 @@ import {
   readScriptReferenceAssetIds,
 } from '../../modules/canvas/script-reference-assets'
 import type { ScriptGenerationSubmission } from './composables/use-canvas-script-generation'
+import {
+  resolveCanvasAttachedSurfacePlacement,
+} from '../../modules/canvas/canvas-card-geometry'
 const props = withDefaults(defineProps<{
   cardWorkBusy?: boolean
   cardWorkCanGenerate?: boolean
@@ -52,10 +60,12 @@ const props = withDefaults(defineProps<{
   scriptAuthoringIntent?: ScriptAuthoringIntent | null
   scriptAuthoringSuccess?: string
   scriptQuota?: number
+  stageSize?: { width: number; height: number }
   surfaceNodeRectStyle: (node: CanvasNode, role?: 'content' | 'composer') => Record<string, string>
   textAuthoringNodeId?: string
   textWorkflowMode?: CanvasCardWorkModeId | ''
   textWorkflowNodeId?: string
+  viewportInsets?: Partial<{ top: number; right: number; bottom: number; left: number }>
 }>(), {
   cardWorkBusy: false,
   cardWorkCanGenerate: false,
@@ -80,6 +90,8 @@ const props = withDefaults(defineProps<{
   scriptAuthoringIntent: null,
   scriptAuthoringSuccess: '',
   scriptQuota: 0,
+  stageSize: () => ({ width: 0, height: 0 }),
+  viewportInsets: () => ({}),
 })
 const emit = defineEmits<{
   cardGenerate: [nodeId: string, prompt: string, mode: CanvasCardWorkModeId]
@@ -96,6 +108,7 @@ const emit = defineEmits<{
   continueNode: [nodeId: string, portId: string]
   captureFrame: [nodeId: string, file: File, timeSeconds: number, aspectRatio: number]
   mediaMetadata: [nodeId: string, aspectRatio: number]
+  renameNode: [nodeId: string, title: string]
   generateScript: [submission: ScriptGenerationSubmission]
   retryScriptCapability: []
   textMode: [nodeId: string, mode: CanvasCardWorkModeId, opener: HTMLElement]
@@ -108,8 +121,17 @@ const surfaces = computed(() => props.nodes.flatMap((node) => {
     ? props.nodes.find((candidate) => candidate.id === props.referenceTargetNodeId) ?? null
     : null
   const isSelected = props.selectedNodeIds.length === 1 && props.selectedNodeIds[0] === node.id
+  const viewModel = buildCanvasCardViewModel(node, {
+    isReadOnly: props.readonly,
+    isSelected,
+    runtimePresentation: props.generationRuntimePresentations.get(node.id) ?? null,
+  })
   const interaction = buildCanvasNodeInteraction(node, { isReadOnly: props.readonly, isSelected })
-  const workModel = resolveCanvasCardWorkModel(node, { isReadOnly: props.readonly, isSelected })
+  const resolvedWorkModel = resolveCanvasCardWorkModel(node, { isReadOnly: props.readonly, isSelected })
+  const workModel = {
+    ...resolvedWorkModel,
+    showsAttachedWorkSurface: viewModel.workSurface.isVisible,
+  }
   const projectedResult = isSelected
     ? resolveCanvasCardProjectedResult(node, props.nodes, props.connections)
     : null
@@ -148,7 +170,7 @@ const surfaces = computed(() => props.nodes.flatMap((node) => {
         return createConnectNodesCommand(props.nodes, props.connections, candidate.id, node.id)
           ? [{
               id: candidate.id,
-              title: candidate.title,
+              title: resolveCanvasCardReferenceDisplayTitle(candidate, props.nodes),
               previewUrl: (() => {
                 const media = buildCanvasNodePresentation(candidate).media
                 if (media?.kind === 'image') return media.url
@@ -166,7 +188,7 @@ const surfaces = computed(() => props.nodes.flatMap((node) => {
         const media = buildCanvasNodePresentation(sourceNode).media
         return [{
           id: source.nodeId,
-          title: source.title,
+          title: resolveCanvasCardReferenceDisplayTitle(sourceNode, props.nodes),
           previewUrl: media?.kind === 'image' ? media.url : media?.kind === 'video' ? media.poster ?? media.url : undefined,
         }]
       })
@@ -197,31 +219,67 @@ const surfaces = computed(() => props.nodes.flatMap((node) => {
         return [{
           id: candidate.id,
           previewUrl: media?.kind === 'image' ? media.url : undefined,
-          title: candidate.title,
+          title: resolveCanvasCardReferenceDisplayTitle(candidate, props.referenceSourceNodes),
         }]
       })
     : []
-  return [{ node, interaction, cardPresentation, workModel, projectedMedia, projectedResultId: projectedResult?.id ?? materializedResultId, connectedReferences, referenceCandidates, selectedReferences, runtimePresentation: props.generationRuntimePresentations.get(node.id) ?? null, showsTextModeChooser, showsTextWorkflow, showsScriptAuthoring, showsScriptEmptyState, isReferenceCandidate, scriptRoleReferenceCandidates, scriptRoleReferenceCount: scriptRoleReferenceIds.size }]
+  return [{ node, viewModel, interaction, cardPresentation, workModel, projectedMedia, projectedResultId: projectedResult?.id ?? materializedResultId, connectedReferences, referenceCandidates, selectedReferences, runtimePresentation: props.generationRuntimePresentations.get(node.id) ?? null, showsTextModeChooser, showsTextWorkflow, showsScriptAuthoring, showsScriptEmptyState, isReferenceCandidate, referenceDisplayTitle: resolveCanvasCardReferenceDisplayTitle(node, props.nodes), scriptRoleReferenceCandidates, scriptRoleReferenceCount: scriptRoleReferenceIds.size }]
+}))
+const titleSurfaces = computed(() => props.nodes.flatMap((node) => {
+  if (props.hiddenNodeIds.has(node.id)) return []
+  const style = props.surfaceNodeRectStyle(node, 'content')
+  const left = Number.parseFloat(style.left ?? '0')
+  const top = Number.parseFloat(style.top ?? '0')
+  const width = Number.parseFloat(style.width ?? '0')
+  const height = Number.parseFloat(style.height ?? '0')
+  const zoom = Number.parseFloat(style['--canvas-surface-zoom'] ?? '1')
+  const overscan = 64
+  const titleTop = top - 22 * zoom
+  if (
+    props.stageSize.width > 0 &&
+    props.stageSize.height > 0 &&
+    (
+      left + width < -overscan ||
+      left > props.stageSize.width + overscan ||
+      top + height < -overscan ||
+      titleTop > props.stageSize.height + overscan
+    )
+  ) return []
+  return [{ node, style }]
 }))
 function forwardContinuation(nodeId: string, portId: string) { emit('continueNode', nodeId, portId) }
 function forwardCaptureFrame(nodeId: string, file: File, timeSeconds: number, aspectRatio: number) { emit('captureFrame', nodeId, file, timeSeconds, aspectRatio) }
-function attachedSurfaceStyle(node: CanvasNode, surfaceHeight: number) {
-  const nodeStyle = props.surfaceNodeRectStyle(node, 'content')
-  const nodeLeft = Number.parseFloat(nodeStyle.left ?? '0')
-  const nodeTop = Number.parseFloat(nodeStyle.top ?? '0')
-  const nodeWidth = Number.parseFloat(nodeStyle.width ?? '0')
-  const nodeHeight = Number.parseFloat(nodeStyle.height ?? '0')
-  const gap = 16 * Number.parseFloat(nodeStyle['--canvas-surface-zoom'] ?? '1')
-  const surfaceWidth = Math.min(660, Math.max(0, window.innerWidth - 32))
-  const desiredLeft = nodeLeft + nodeWidth / 2 - surfaceWidth / 2
-  const clampedLeft = Math.min(Math.max(desiredLeft, 16), window.innerWidth - 16 - surfaceWidth)
-  const belowTop = nodeTop + nodeHeight + gap
-  const aboveTop = nodeTop - gap - surfaceHeight
-  const shouldFlipAbove = belowTop + surfaceHeight > window.innerHeight - 12 && aboveTop >= 12
+function attachedSurfaceStyle(
+  node: CanvasNode,
+  surfaceHeight: number,
+  containerRole: 'content' | 'composer' = 'content',
+) {
+  const contentStyle = props.surfaceNodeRectStyle(node, 'content')
+  const zoom = Number.parseFloat(contentStyle['--canvas-surface-zoom'] ?? '1')
+  const containerStyle = props.surfaceNodeRectStyle(node, containerRole)
+  const containerLeft = Number.parseFloat(containerStyle.left ?? '0')
+  const containerTop = Number.parseFloat(containerStyle.top ?? '0')
+  const containerScale = containerRole === 'composer' ? zoom : 1
+  const containerWidth = Number.parseFloat(containerStyle.width ?? '0') * containerScale
+  const containerHeight = Number.parseFloat(containerStyle.height ?? '0') * containerScale
+  const placement = resolveCanvasAttachedSurfacePlacement({
+    nodeSurfaceRect: {
+      left: containerLeft,
+      top: containerTop,
+      width: containerWidth,
+      height: containerHeight,
+    },
+    stageRect: { left: 0, top: 0, width: props.stageSize.width, height: props.stageSize.height },
+    insets: props.viewportInsets,
+    surfaceHeight: surfaceHeight * containerScale,
+    preferredWidth: 660 * containerScale,
+    gap: 16 * zoom,
+  })
   return {
-    '--canvas-attached-anchor-x': `${nodeLeft + nodeWidth / 2 - clampedLeft}px`,
-    left: `${clampedLeft - nodeLeft}px`,
-    ...(shouldFlipAbove ? { top: `${-surfaceHeight - gap}px` } : {}),
+    '--canvas-attached-anchor-x': `${placement.anchorX / containerScale}px`,
+    left: `${(placement.left - containerLeft) / containerScale}px`,
+    top: `${(placement.top - containerTop) / containerScale}px`,
+    width: `${placement.width / containerScale}px`,
     transform: 'none',
   }
 }
@@ -229,6 +287,14 @@ function attachedSurfaceStyle(node: CanvasNode, surfaceHeight: number) {
 <template>
   <div class="canvas-node-surface-layer">
     <CanvasNodeContinuationTrigger v-if="continuationTrigger" :node="continuationTrigger.node" :port-id="continuationTrigger.portId" :surface-node-rect-style="surfaceNodeRectStyle" @open="forwardContinuation" />
+    <CanvasNodeTitleEditor
+      v-for="surface in titleSurfaces"
+      :key="`title-${surface.node.id}`"
+      :node="surface.node"
+      :readonly="readonly"
+      :style="surface.style"
+      @commit="(nodeId, title) => emit('renameNode', nodeId, title)"
+    />
     <div v-for="surface in surfaces" :key="surface.node.id" class="canvas-node-surface" :class="[`is-${surface.interaction.kind}`, { 'has-script-empty-state': surface.showsScriptEmptyState }]" :data-card-state="surface.cardPresentation.state" :data-node-id="surface.node.id" :style="surfaceNodeRectStyle(surface.node, surface.showsScriptAuthoring || surface.showsScriptEmptyState ? 'content' : surface.interaction.kind === 'composer' ? 'composer' : 'content')">
       <CanvasNodeMedia v-if="surface.projectedMedia" :media="surface.projectedMedia" :capture-pending="capturePending" @metadata="emit('mediaMetadata', surface.projectedResultId, $event)" />
       <CanvasTextWorkflowComposer v-else-if="surface.showsTextWorkflow && textWorkflowMode" :mode="textWorkflowMode" :title="surface.node.title" @cancel="emit('textWorkflowCancel')" @submit="emit('textWorkflowSubmit', surface.node.id, $event, textWorkflowMode)" />
@@ -255,7 +321,11 @@ function attachedSurfaceStyle(node: CanvasNode, surfaceHeight: number) {
         :has-source="cardWorkHasSource"
         :model-label="cardWorkModelLabel"
         :node="surface.node"
-        :placement-style="attachedSurfaceStyle(surface.node, surface.selectedReferences.length ? 236 : 176)"
+        :placement-style="attachedSurfaceStyle(
+          surface.node,
+          surface.selectedReferences.length ? 236 : 176,
+          surface.interaction.kind === 'composer' ? 'composer' : 'content',
+        )"
         :parameter-summary="cardWorkParameterSummary"
         :connected-references="surface.connectedReferences"
         :reference-candidates="surface.referenceCandidates"
@@ -288,8 +358,8 @@ function attachedSurfaceStyle(node: CanvasNode, surfaceHeight: number) {
         @generate="emit('generateScript', $event)"
         @retry-capability="emit('retryScriptCapability')"
       />
-      <button v-if="surface.isReferenceCandidate && referenceTargetNodeId" type="button" class="canvas-card-reference-candidate" :aria-label="referenceTargetNodeId && nodes.find((node) => node.id === referenceTargetNodeId)?.type === 'script' ? `选择 ${surface.node.title} 作为剧本来源` : `选择 ${surface.node.title} 作为参考`" @click.stop="emit('cardReference', referenceTargetNodeId, surface.node.id)" @pointerdown.stop>
-        <span>{{ nodes.find((node) => node.id === referenceTargetNodeId)?.type === 'script' ? '作为剧本来源' : '作为参考' }}</span><small>{{ surface.node.title }}</small>
+      <button v-if="surface.isReferenceCandidate && referenceTargetNodeId" type="button" class="canvas-card-reference-candidate" :aria-label="referenceTargetNodeId && nodes.find((node) => node.id === referenceTargetNodeId)?.type === 'script' ? `选择 ${surface.referenceDisplayTitle} 作为剧本来源` : `选择 ${surface.referenceDisplayTitle} 作为参考`" @click.stop="emit('cardReference', referenceTargetNodeId, surface.node.id)" @pointerdown.stop>
+        <span>{{ nodes.find((node) => node.id === referenceTargetNodeId)?.type === 'script' ? '作为剧本来源' : '作为参考' }}</span><small>{{ surface.referenceDisplayTitle }}</small>
       </button>
     </div>
   </div>

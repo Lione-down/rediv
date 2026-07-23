@@ -1,4 +1,5 @@
 import { resolveNodeDefinition } from '../../modules/canvas/node-registry'
+import { resolveCanvasCardFamily } from '../../modules/canvas/canvas-card-view-model'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 
 export type CanvasCardFamily = 'text' | 'image' | 'video'
@@ -55,19 +56,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function resolveFamily(node: Pick<CanvasNode, 'type' | 'contentData'>): CanvasCardFamily | null {
-  if (node.type === 'text' || node.type === 'script' || node.type === 'note') return 'text'
-  if (node.type === 'image' || node.type === 'model') return 'image'
-  if (node.type === 'video') return 'video'
-
-  const subtype = node.contentData?.subtype
-  if (
-    (node.type === 'asset' || node.type === 'generation' || node.type === 'result') &&
-    (subtype === 'image' || subtype === 'video' || subtype === 'text')
-  ) return subtype
-  return null
-}
-
 function modesForFamily(family: CanvasCardFamily | null): readonly CanvasCardWorkMode[] {
   if (family === 'text') return textModes
   if (family === 'image') return imageModes
@@ -92,7 +80,7 @@ export function resolveCanvasCardWorkModel(
     }
   }
 
-  const family = resolveFamily(node)
+  const family = resolveCanvasCardFamily(node)
   const canMutate = !options.isReadOnly && !node.isLocked
   const isMediaFamily = family === 'image' || family === 'video'
   const generationParameters = node.contentData?.generation_parameters
@@ -123,14 +111,14 @@ export function resolveCanvasCardProjectedResult(
 ): CanvasNode | null {
   const sourceDefinition = resolveNodeDefinition(sourceNode.type, sourceNode.contentData)
   if (sourceDefinition.kind === 'unsupported' || !sourceDefinition.capabilities.canGenerate) return null
-  const sourceFamily = resolveFamily(sourceNode)
+  const sourceFamily = resolveCanvasCardFamily(sourceNode)
   if (sourceFamily !== 'image' && sourceFamily !== 'video') return null
   const nodesById = new Map(nodes.map((node) => [node.id, node]))
   for (let index = connections.length - 1; index >= 0; index -= 1) {
     const connection = connections[index]
     if (connection.from !== sourceNode.id) continue
     const result = nodesById.get(connection.to)
-    if (!result || result.type !== 'result' || resolveFamily(result) !== sourceFamily) continue
+    if (!result || result.type !== 'result' || resolveCanvasCardFamily(result) !== sourceFamily) continue
     const url = result.contentData?.url ?? result.contentData?.preview_url ?? result.contentData?.thumbnail_url
     if (typeof url === 'string' && url.trim()) return result
   }

@@ -9,7 +9,7 @@ import {
   updateCanvasGenerationProgressVisuals,
   type CanvasGenerationProgressVisuals,
 } from './canvas-generation-progress-visual'
-import { buildCanvasNodePresentation, canvasNodeVisualSize, isSupportedCanvasGroupNode } from './canvas-node-presentation'
+import { buildCanvasCardViewModel, canvasNodeVisualSize, isSupportedCanvasGroupNode } from './canvas-node-presentation'
 import { bindCanvasPortPointerTargets, type CanvasElasticOutputTarget } from './canvas-port-interaction'
 import { planKeyedReconciliation } from './canvas-renderer-reconciliation'
 import { resolveCanvasCardInteractionPresentation, type CanvasCardInteractionPresentation } from './canvas-card-interaction-presentation'
@@ -20,7 +20,6 @@ import {
 } from './canvas-card-interaction-renderer'
 
 const POINTER_DOWN = 'pointer.down'
-const compactNodeTitle = (title: string) => title.length > 28 ? `${title.slice(0, 27)}…` : title
 const POINTER_MENU = 'pointer.menu'
 const DOUBLE_CLICK = 'double_click'
 
@@ -159,8 +158,16 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     })
   }
 
+  function resolveNodeViewModel(node: CanvasNode) {
+    return buildCanvasCardViewModel(node, {
+      isReadOnly: options.getReadOnly(),
+      isSelected: options.getSelectedNodeIds().includes(node.id),
+      runtimePresentation: options.getGenerationRuntimePresentation(node.id),
+    })
+  }
+
   function getNodeVisualState(node: CanvasNode): NodeVisualState {
-    const presentation = buildCanvasNodePresentation(node)
+    const presentation = resolveNodeViewModel(node)
     const authoringCard = resolveCanvasAuthoringCardPresentation(node, options.getGenerationRuntimePresentation(node.id))
     const size = canvasNodeVisualSize(node)
     const mediaKey = presentation.media
@@ -230,7 +237,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
         : runtime.phase === 'failed' || runtime.phase === 'timed_out' ? 'danger' : 'none'
       : node.status === 'running' ? 'progress' : node.status === 'warning' ? 'danger' : 'none'
     return resolveCanvasCardInteractionPresentation({
-      bodyKind: buildCanvasNodePresentation(node).chrome.bodyKind,
+      bodyKind: resolveNodeViewModel(node).chrome.bodyKind,
       isCompatibleDrag: options.getCompatibleTargetNodeIds().has(node.id), isFocused: false, isHovered,
       isLocked: Boolean(node.isLocked), isReadOnly: options.getReadOnly(),
       isSelected: options.getSelectedNodeIds().includes(node.id), lifecycleTone,
@@ -286,7 +293,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
   function createNodeVisual(node: CanvasNode) {
     const state = getNodeVisualState(node)
     const interactionPresentation = resolveNodeInteraction(node)
-    const presentation = buildCanvasNodePresentation(node)
+    const presentation = resolveNodeViewModel(node)
     const authoringCard = resolveCanvasAuthoringCardPresentation(node, options.getGenerationRuntimePresentation(node.id))
     const isGroup = presentation.chrome.bodyKind === 'group'
     const isMedia = presentation.chrome.bodyKind === 'media'
@@ -325,7 +332,9 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     const typeText = new Text({
       x: 16,
       y: hasExternalLabel ? -22 : 14,
-      text: `${node.isLocked ? '已锁定 · ' : ''}${hasExternalLabel ? presentation.chrome.label : presentation.typeLabel}`,
+      text: hasExternalLabel
+        ? ''
+        : `${node.isLocked ? '已锁定 · ' : ''}${presentation.typeLabel}`,
       fill: options.cssVar('--text-muted', 'oklch(62% 0.014 245)'),
       fontSize: authoringCard ? 10 : 11,
       fontWeight: authoringCard ? 600 : 500,
@@ -334,7 +343,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       x: authoringCard ? 92 : 16,
       y: authoringCard ? 10 : 34,
       width: authoringCard ? size.width - 108 : size.width - 32,
-      text: hasExternalLabel ? '' : compactNodeTitle(node.title),
+      text: '',
       fill: options.cssVar('--text-primary', 'oklch(18% 0.014 245)'),
       fontSize: authoringCard ? 14 : 15,
       fontWeight: '600',
@@ -407,7 +416,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       createNodeVisual(node)
       return
     }
-    const presentation = buildCanvasNodePresentation(node)
+    const presentation = resolveNodeViewModel(node)
     const authoringCard = resolveCanvasAuthoringCardPresentation(node, options.getGenerationRuntimePresentation(node.id))
     const isGroup = presentation.chrome.bodyKind === 'group'
     const hasExternalLabel = presentation.chrome.labelPlacement === 'external'
@@ -431,14 +440,16 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     visual.mediaImage.height = Math.max(1, size.height)
     if (imageMedia) visual.mediaImage.url = imageMedia.url
     visual.typeText.y = hasExternalLabel ? -22 : 14
-    visual.typeText.text = `${node.isLocked ? '已锁定 · ' : ''}${hasExternalLabel ? presentation.chrome.label : presentation.typeLabel}`
+    visual.typeText.text = hasExternalLabel
+      ? ''
+      : `${node.isLocked ? '已锁定 · ' : ''}${presentation.typeLabel}`
     visual.typeText.fontSize = authoringCard ? 10 : 11
     visual.typeText.fontWeight = authoringCard ? 600 : 500
     visual.titleText.x = authoringCard ? 92 : 16
     visual.titleText.y = authoringCard ? 10 : 34
     visual.titleText.width = authoringCard ? size.width - 108 : size.width - 32
     visual.titleText.fontSize = authoringCard ? 14 : 15
-    visual.titleText.text = hasExternalLabel ? '' : compactNodeTitle(node.title)
+    visual.titleText.text = ''
     visual.contentText.width = size.width - 32
     visual.contentText.y = hasExternalLabel ? 16 : 62
     visual.contentText.height = hasExternalLabel
