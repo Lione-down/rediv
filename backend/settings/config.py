@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     agnes_http_pool_timeout_seconds: float = Field(default=2, gt=0, le=60)
     agnes_http_read_timeout_seconds: float = Field(default=300, gt=0, le=3_600)
     agnes_http_write_timeout_seconds: float = Field(default=30, gt=0, le=600)
+    generation_job_runner_lease_seconds: int = Field(default=120, ge=30, le=3_600)
+    generation_job_runner_poll_seconds: float = Field(default=1, gt=0, le=60)
 
     # === WeChat OAuth ===
     # Real OAuth callback exchanges use these env vars:

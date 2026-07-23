@@ -12,19 +12,19 @@ Last updated: 2026-07-23
 ## Product State
 
 - Phase 4 initial version and Product V2 / Phase 5: `DONE / PASS`.
-- Product V3 / Phase 6 Tasks T6-001 through T6-004 and T6-006 through T6-007: `DONE / PASS`.
+- Product V3 / Phase 6 Tasks T6-001 through T6-004 and T6-006 through T6-008: `DONE / PASS`.
 - T6-005: `BLOCKED / FAIL` after explicit Human visual/interaction rejection on 2026-07-23.
 - Database authority: MySQL-only.
 
 ## Active Delivery
 
-- Active implementation Task: none; T6-008 activation is reserved for a new goal-mode Task after T6-007 push.
+- Active implementation Task: none during the post-verification delivery transition.
 - State: `DONE`
 - Verification outcome: `PASS`
-- Task: [TASK-T6-007](../tasks/todo/TASK-T6-007.md).
-- Plan: [TASK-T6-007-PLAN](../tasks/doing/TASK-T6-007-PLAN.md).
-- Progress: [TASK-T6-007-PROGRESS](../tasks/doing/TASK-T6-007-PROGRESS.md).
-- Report: [REPORT-T6-007](../reports/REPORT-T6-007.md).
+- Completed Task: [TASK-T6-008](../tasks/todo/TASK-T6-008.md).
+- Plan: [TASK-T6-008-PLAN](../tasks/doing/TASK-T6-008-PLAN.md).
+- Progress: [TASK-T6-008-PROGRESS](../tasks/doing/TASK-T6-008-PROGRESS.md).
+- Report: [REPORT-T6-008](../reports/REPORT-T6-008.md).
 - Architecture: [REVID-T6-006-FULL-STACK-MODULAR-REFACTOR](../architecture/REVID-T6-006-FULL-STACK-MODULAR-REFACTOR.md).
 
 ## Live Gates
@@ -36,13 +36,16 @@ Last updated: 2026-07-23
 - The Human Owner supplied and confirmed the replacement LibTV-style card workflow, built-in director Skill ownership, semantic multi-image video, durable generation, and compact-response requirements.
 - Public MIT Skill `Emily2040/seedance-2.0` commit `57d01dc6` is a pinned T6-012 research baseline for directing/reference/continuity/eval patterns only; it is not installed, user-selectable, or authoritative for provider capabilities.
 - Read-only audit confirmed current keyframe coercion, plain-text-only script authoring, hard-coded text model, request-bound provider work, project-wide full-task polling with `request_parameters`, duplicated completion payloads, hidden result-node projection, and missing node rename UI.
-- T6-007 completed characterization with `10` backend and `11` browser expected RED assertions, all carrying named absent-contract fingerprints.
-- Legacy compatibility proof passes backend `26/26`, browser `6/6`, and build `4,988`; no runtime source, snapshot, schema, provider, or production API changed.
-- T6-008 owns durable compact generation jobs and is dependency-ready only after the scoped T6-007 commit is pushed.
+- T6-007 froze `10` backend and `11` browser expected RED assertions with named absent-contract fingerprints; T6-008 has made the five compact DTO/budget backend assertions GREEN.
+- T6-008 delivers compact v2 DTOs/APIs, MySQL lease/idempotency execution, restart reclaim, checkpointed fake-provider dispatch, cancellation/retry/result/delta reads, completion fencing, and compatibility reads.
+- T6-008 focused `24/24`, related backend `44/44`, and broad backend `606/606` pass. The broad gate excludes only the two future-owned semantic-reference and story-director RED modules and does not weaken them.
+- Project-state validation passed at activation; after durable `DONE / PASS` closure it has one intentional transition error until the required post-push T6-009 activation restores the single-active invariant.
+- Legacy media endpoints remain unchanged; T6-009 frontend synchronization and all later workflow Tasks remain out of scope.
+- Tests may use disposable MySQL and fake providers only; user/runtime migrations and real/paid provider calls remain prohibited.
 
 ## Exact Next Action
 
-Commit and push the exact T6-007-owned files, then create a new goal-mode Codex Task that re-reads the fact chain and activates T6-008 only.
+Precisely stage, review, commit, and push the scoped T6-008 delivery, then create a new goal-mode Codex Task that activates T6-009 only.
 
 ## Worktree Ownership
 

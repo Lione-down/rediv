@@ -163,6 +163,13 @@ def _set_task_failure(
     task.updated_at = utc_now()
 
 
+def _require_execution_lease(task: GenerationTask, lease_owner: str | None) -> None:
+    if lease_owner is None:
+        return
+    if task.status != "running" or task.lease_owner != lease_owner:
+        raise GenerationTaskStateError("Generation task execution lease is no longer owned")
+
+
 def complete_generation_task(
     task_id: str,
     *,
@@ -172,6 +179,7 @@ def complete_generation_task(
     source_model: str,
     duration_ms: int,
     provider_request_id: str | None,
+    lease_owner: str | None = None,
 ) -> dict:
     quota_unavailable = False
     ledger_payload = None
@@ -192,6 +200,8 @@ def complete_generation_task(
             except (KeyError, PermissionError) as error:
                 mapped_error = _map_scope_error(error)
                 task = _load_task_for_update(session, task_id)
+                if task is not None:
+                    _require_execution_lease(task, lease_owner)
                 if task is not None and task.status in ACTIVE_TASK_STATUSES:
                     _set_task_failure(
                         task,
@@ -211,6 +221,7 @@ def complete_generation_task(
             task = _load_task_for_update(session, task_id)
             if task is None:
                 raise GenerationScopeNotFoundError("Generation task not found")
+            _require_execution_lease(task, lease_owner)
             quota_payload = _quota_to_dict(quota) if quota is not None else {
                 "text": 0,
                 "image": 0,
@@ -236,7 +247,8 @@ def complete_generation_task(
                     f'Generation task is already terminal with status "{task.status}"'
                 )
             else:
-                quota_field = f"{task.media_type}_quota"
+                quota_type = "text" if task.media_type == "script" else task.media_type
+                quota_field = f"{quota_type}_quota"
                 if quota is None or getattr(quota, quota_field) < 1:
                     _set_task_failure(
                         task,
@@ -263,20 +275,24 @@ def complete_generation_task(
                     )
                     task.status = "succeeded"
                     task.progress_percent = 100
+                    if lease_owner is not None:
+                        task.progress_stage = None
                     task.duration_ms = duration_ms
                     task.provider_request_id = provider_request_id
                     task.result_asset_id = asset.id
                     task.error_code = None
                     task.error_message = None
+                    if lease_owner is not None:
+                        task.job_version += 1
                     task.updated_at = timestamp
                     setattr(quota, quota_field, getattr(quota, quota_field) - 1)
                     quota.revision += 1
                     ledger = QuotaLedger(
                         id=str(uuid4()),
                         user_id=task.user_id,
-                        quota_type=task.media_type,
+                        quota_type=quota_type,
                         change_amount=-1,
-                        reason=f"{task.media_type}_generate",
+                        reason=f"{quota_type}_generate",
                         related_task_id=task.id,
                         admin_id=None,
                         created_at=timestamp,

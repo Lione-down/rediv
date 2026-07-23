@@ -38,6 +38,7 @@ class GenerationTask(Base):
         ),
         Index("ix_generation_tasks_origin_canvas_id", "origin_canvas_id"),
         Index("ix_generation_tasks_project_status_created", "project_id", "status", "created_at"),
+        Index("ix_generation_tasks_status_lease", "status", "lease_expires_at"),
         UniqueConstraint("user_id", "client_request_id", name="uq_generation_tasks_user_client_request"),
         {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4", "comment": "Generation task diagnostics table"},
     )
@@ -88,7 +89,45 @@ class GenerationTask(Base):
         nullable=True,
         comment="Durable progress stage: queued/provider/persisting",
     )
-    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True, comment="Task status: queued/running/succeeded/failed/timed_out")
+    status: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        index=True,
+        comment="Task status including queued/running/terminal/cancellation states",
+    )
+    job_version: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        comment="Monotonic compact status version for this generation job",
+    )
+    lease_owner: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        comment="Durable runner instance currently owning provider execution",
+    )
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Bounded execution lease expiry used for process restart recovery",
+    )
+    attempt_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        comment="Number of durable runner claims including expired lease recovery",
+    )
+    retry_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        comment="Number of explicit user retry transitions for this generation job",
+    )
+    cancel_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Time cancellation was requested for queued or running execution",
+    )
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="Task duration in milliseconds")
     result_asset_id: Mapped[str | None] = mapped_column(
         ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True, comment="Result asset ID"

@@ -1,0 +1,89 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Annotated, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+GenerationJobMediaType = Literal["text", "script", "image", "video"]
+GenerationJobStatusValue = Literal[
+    "queued",
+    "running",
+    "succeeded",
+    "failed",
+    "timed_out",
+    "cancel_requested",
+    "cancelled",
+]
+GenerationJobStage = Literal["queued", "provider", "persisting"]
+
+
+class _StrictModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class GenerationJobSubmitReceipt(_StrictModel):
+    job_id: str
+    project_id: str
+    canvas_id: str
+    node_id: str
+    media_type: GenerationJobMediaType
+    status: GenerationJobStatusValue
+    model_id: str
+    quota_revision: int | None = None
+    version: int = Field(ge=1)
+
+
+class GenerationJobStatus(_StrictModel):
+    job_id: str
+    node_id: str
+    media_type: GenerationJobMediaType
+    status: GenerationJobStatusValue
+    stage: GenerationJobStage | None = None
+    progress: float | None = Field(default=None, ge=0, le=100)
+    error: str | None = None
+    result_asset_id: str | None = None
+    version: int = Field(ge=1)
+    updated_at: datetime
+
+
+class GenerationJobTextResult(_StrictModel):
+    media_type: Literal["text", "script"]
+    content: str
+
+
+class GenerationJobMediaResult(_StrictModel):
+    asset_id: str
+    media_type: Literal["image", "video"]
+    url: str
+
+
+class GenerationJobResult(_StrictModel):
+    job_id: str
+    node_id: str
+    result: Annotated[
+        GenerationJobTextResult | GenerationJobMediaResult,
+        Field(discriminator="media_type"),
+    ]
+    version: int = Field(ge=1)
+
+
+class GenerationJobDeltaPage(_StrictModel):
+    items: list[GenerationJobStatus] = Field(max_length=100)
+    next_cursor: str | None = None
+
+
+class GenerationJobInput(_StrictModel):
+    prompt: str = Field(min_length=1, max_length=16_000)
+
+
+class GenerationJobSubmitRequest(_StrictModel):
+    client_request_id: str = Field(min_length=36, max_length=36)
+    project_id: str
+    canvas_id: str
+    node_id: str
+    media_type: GenerationJobMediaType
+    provider_id: Literal["agnes"]
+    model_id: str = Field(min_length=1, max_length=255)
+    input: GenerationJobInput
