@@ -1,6 +1,6 @@
-# Revid T6-006 Proposed Full-Stack Modular Refactor
+# Revid T6-006 Accepted Full-Stack Modular Refactor
 
-- Status: `PROPOSED - HUMAN DECISION REQUIRED`
+- Status: `ACCEPTED`
 - Date: 2026-07-23
 - Task: [TASK-T6-006](../tasks/todo/TASK-T6-006.md).
 - Existing authority: [Revid V2 Canvas Architecture](REVID-V2-CANVAS-ARCHITECTURE.md).
@@ -10,6 +10,8 @@
 Redesign the product workflow first, then refactor through a contract-first modular-monolith strangler sequence. Do not replace the stack, split services, or change MySQL/Canvas ownership merely to perform the refactor.
 
 The Human Owner has rejected all four T6-005 outcome dimensions: visual design, interaction logic, business flow, and information architecture. T6-005 code is retained only as a rejected audit/reference snapshot. The codebase still contains useful domain modules, composables, stores, controllers, repositories, schemas, and regression proof that may support the new design without defining it.
+
+The replacement workflow is now supplied. It requires LibTV-style card work surfaces with Revid colors, custom node titles, same-card results, an automatic project-owned director Skill, editable roles/scenes/props/shots, truthful semantic multi-image video, durable browser-independent generation, and compact generation APIs.
 
 ## 2. Measured current state
 
@@ -91,23 +93,30 @@ Provider request normalization and response parsing sit behind explicit adapters
 
 ## 6. Contract policy
 
-- Product journeys, information hierarchy, interaction order, and visible workflow are open for redesign and must come from the Human Owner's replacement logic.
+- Product journeys, information hierarchy, interaction order, and visible workflow are defined by the confirmed 2026-07-23 replacement workflow and the active T6-006 plan.
 - Preserve current routes and payloads until a versioned replacement plus compatibility adapter is proved.
 - Preserve Canvas document revision, idempotency, history, autosave, graph identity, multi-canvas scope, and provider/model authority.
 - Preserve MySQL-only runtime and database-backed integration tests.
 - Preserve review-only mobile, keyboard parity, accessibility, and 200-node/300-connection thresholds.
 - Product behavior changes require a separate approved behavior matrix and visual/interaction acceptance.
+- Ordinary generation clients receive compact submit/status/result/delta DTOs. Full request snapshots, provider raw responses, request fingerprints, duplicated content/URLs, and base64 media remain outside polling responses.
+- Text, script, image, and video provider execution is owned by durable MySQL jobs, not browser request lifetimes.
+- A user-visible card has one stable node identity. New results update that card; legacy generation/result pairs remain compatibility data until safely migrated.
+- The built-in story director Skill is project-owned and automatic. Users choose an allowed text model, not a Skill.
+- Semantic video references preserve stable node/asset IDs, role, instruction, source revision, and order. Unsupported providers fail closed.
 
 ## 7. Recommended migration slices
 
-1. Convert the Human Owner's replacement logic into an approved product workflow and acceptance contract.
-2. Freeze durable API/data contracts and characterize only the infrastructure behavior that remains valid.
-3. Introduce backend application-service and unit-of-work ports without changing routes; migrate one low-risk domain first.
-4. Migrate auth/project/template/asset store consumers domain by domain; remove the matching facade methods only after full callers and tests move.
-5. Migrate generation/task/quota domains with exact transaction, idempotency, provider-error, and restart proof.
-6. Recompose the frontend route shell, feature controllers, Canvas interaction, renderer projection, and card workflows around the approved replacement design.
-7. Normalize typed API clients and shared error mapping, then remove compatibility adapters and dead facade paths.
-8. Run complete functional, browser, accessibility, performance, backend, MySQL, audit, state, and Human acceptance closure.
+1. Add replacement RED contract tests and payload budgets.
+2. Add compact durable MySQL generation jobs and a lease-backed runner behind versioned APIs.
+3. Replace project-wide full-task polling with current-Canvas cursor/delta synchronization.
+4. Establish one canonical card view model, one geometry authority, and user rename commands.
+5. Rebuild text cards with explicit allowed-model selection.
+6. Implement the project-owned story director Skill and versioned story-production schema.
+7. Rebuild script asset/shot editing and partial regeneration.
+8. Move image lifecycle/results into canonical image cards while preserving batch siblings.
+9. Implement truthful semantic multi-image video with per-image role/instruction and capability gating.
+10. Remove legacy payload/result coupling only after compatibility and full acceptance proof.
 
 Each slice must be independently usable and reversible at the application-code level. Schema work, if later proven necessary, requires a separate expand-first migration Task and Human authorization.
 
@@ -126,5 +135,10 @@ The Human Owner has decided:
 1. T6-005 visual design, interaction logic, business flow, and information architecture are all unacceptable.
 2. Product workflows and frontend/backend architecture will be redesigned together.
 3. T6-005 is committed only as rejected reference evidence.
+4. The replacement text/script/image/video/card workflow recorded in T6-006 is correct.
+5. The script director Skill is project-owned and non-selectable; Codex owns its design and implementation.
+6. Semantic multi-image video is role/instruction based, not merely ordered keyframes.
+7. Generation continues across browser refresh and returns to the original persisted card.
+8. Compact-response remediation applies to text, script, image, and video, not video alone.
 
-The remaining Human input is the replacement workflow logic. No business-code implementation begins before that logic and the aligned architecture are explicitly approved.
+On 2026-07-23, the Human Owner explicitly approved completion and continuation by directing Codex to complete T6-006 and start the next T6 Task in a new goal-mode session. T6-007 is therefore authorized as the sole active implementation Task. Later Tasks remain dependency-blocked, and all retained Human gates still apply.
