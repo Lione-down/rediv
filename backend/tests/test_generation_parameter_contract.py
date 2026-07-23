@@ -28,7 +28,17 @@ class GenerationParameterContractTestCase(unittest.TestCase):
         self.assertEqual(
             {
                 "contract_version": 6,
-                "text": build_script_authoring_capabilities(model="agnes-2.0-flash"),
+                "text": {
+                    **build_script_authoring_capabilities(model="agnes-2.0-flash"),
+                    "contract_version": 2,
+                    "models": [
+                        {
+                            "id": "agnes-2.0-flash",
+                            "label": "Agnes 2.0 Flash",
+                            "workflow_modes": ["text-to-video"],
+                        }
+                    ],
+                },
                 "image": {
                     "model": "agnes-image-2.1-flash",
                     "size": "1K",

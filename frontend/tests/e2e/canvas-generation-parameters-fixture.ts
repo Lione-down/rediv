@@ -46,10 +46,13 @@ export const GENERATION_CAPABILITIES_V6 = {
   ...GENERATION_CAPABILITIES,
   contract_version: 6,
   text: {
-    contract_version: 1,
+    contract_version: 2,
     available: true,
-    model: 'agnes-2.0-flash',
-    model_label: 'Agnes 2.0 Flash',
+    models: [{
+      id: 'agnes-2.0-flash',
+      label: 'Agnes 2.0 Flash',
+      workflow_modes: ['text-to-video'],
+    }],
     intents: ['script_draft', 'script_refine'],
     locales: ['zh-CN', 'en-US'],
     default_locale: 'zh-CN',

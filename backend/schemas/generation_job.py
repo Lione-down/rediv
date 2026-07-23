@@ -76,6 +76,8 @@ class GenerationJobDeltaPage(_StrictModel):
 
 class GenerationJobInput(_StrictModel):
     prompt: str = Field(min_length=1, max_length=16_000)
+    mode: Literal["text-to-video", "image-to-prompt", "text-to-music"] | None = None
+    content_revision: int | None = Field(default=None, ge=0)
 
 
 class GenerationJobSubmitRequest(_StrictModel):

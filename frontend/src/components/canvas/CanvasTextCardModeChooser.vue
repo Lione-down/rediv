@@ -2,7 +2,15 @@
 import { FileText, Image, Music2, Video } from 'lucide-vue-next'
 import type { CanvasCardWorkMode } from './canvas-card-work-model'
 
-defineProps<{ enabledModeIds: readonly CanvasCardWorkMode['id'][]; modes: readonly CanvasCardWorkMode[] }>()
+withDefaults(defineProps<{
+  enabledModeIds: readonly CanvasCardWorkMode['id'][]
+  error?: string
+  modes: readonly CanvasCardWorkMode[]
+  pending?: boolean
+}>(), {
+  error: '',
+  pending: false,
+})
 const emit = defineEmits<{ select: [modeId: CanvasCardWorkMode['id'], opener: HTMLElement] }>()
 
 const icons = {
@@ -19,10 +27,12 @@ function select(modeId: CanvasCardWorkMode['id'], event: MouseEvent) {
 
 <template>
   <div class="canvas-text-card-mode-chooser" role="group" aria-label="文本卡片创作方式" @pointerdown.stop @click.stop>
-    <button v-for="mode in modes" :key="mode.id" type="button" :disabled="!enabledModeIds.includes(mode.id)" :title="enabledModeIds.includes(mode.id) ? mode.label : `${mode.label}将在下一交付单元接入`" @click="select(mode.id, $event)">
+    <button v-for="mode in modes" :key="mode.id" type="button" :disabled="!enabledModeIds.includes(mode.id)" :title="enabledModeIds.includes(mode.id) ? mode.label : `${mode.label}：当前没有允许的模型`" @click="select(mode.id, $event)">
       <component :is="icons[mode.id as keyof typeof icons]" :size="15" aria-hidden="true" />
       <span>{{ mode.label }}</span>
     </button>
+    <p v-if="error" role="alert">{{ error }}</p>
+    <p v-else-if="pending" aria-live="polite">正在持久化生成任务…</p>
   </div>
 </template>
 
@@ -33,4 +43,5 @@ button:hover { border-color: var(--v2-accent); color: var(--v2-text-primary); ba
 button:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 button:disabled { cursor: not-allowed; opacity: .45; }
 span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+p { grid-column: 1 / -1; margin: 0; color: var(--v2-danger); font-size: 10px; }
 </style>

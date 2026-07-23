@@ -194,6 +194,10 @@ export function changedGenerationRuntimeNodeIds(
 
 function nodeGenerationJobMediaType(node: CanvasNode): GenerationJobMediaType | null {
   const subtype = node.contentData?.subtype
+  const boundMediaType = node.contentData?.active_generation_media_type
+  if (boundMediaType === 'text' || boundMediaType === 'script' || boundMediaType === 'image' || boundMediaType === 'video') {
+    return boundMediaType
+  }
   if (subtype === 'text' || subtype === 'script' || subtype === 'image' || subtype === 'video') {
     return subtype
   }

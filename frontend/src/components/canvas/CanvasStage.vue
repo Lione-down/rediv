@@ -35,7 +35,7 @@ import {
 import { useCanvasStage } from './composables/use-canvas-stage'
 import { resolveGenerationContext } from '../../modules/canvas/generation-context'
 import type { GenerationNodeParameters, ResolvedGenerationRequestContext } from '../../modules/canvas/generation-parameters'
-import type { ScriptAuthoringCapabilities, ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
+import type { ScriptAuthoringCapabilities, ScriptAuthoringIntent, TextWorkflowMode } from '../../modules/canvas/script-authoring'
 import type { ScriptGenerationSubmission } from './composables/use-canvas-script-generation'
 import { getAuthoringConnectionPorts, getGenerationMediaType } from '../../modules/canvas/node-registry'
 import { resolveGenerationResultVariants, resolveResultLineage, resultLineageProvenance, resultVariantProvenance } from '../../modules/canvas/generation-lineage'
@@ -49,7 +49,6 @@ import {
   resolveCanvasMediaToolbarVerticalPlacement,
 } from './canvas-media-toolbar-geometry'
 import { resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
-import { createConnectionContinuationCommand, resolveConnectionContinuationOptions } from '../../modules/canvas/connection-continuation'
 import { createArrangeGenerationLineageCommand } from '../../modules/canvas/generation-lineage-arrangement'
 import { resolveGenerationInputLineageBridges } from '../../modules/canvas/generation-input-lineage'
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
@@ -63,7 +62,7 @@ import {
 } from '../../modules/canvas/script-reference-assets'
 import { resolveCanvasCardWorkModel, type CanvasCardWorkModeId } from './canvas-card-work-model'
 import { canBranchFromImageResult, type ResultBranchMediaType } from '../../modules/canvas/resource-commands'
-import { createConnectNodesCommand, createRenameNodeCommand } from '../../modules/canvas/canvas-commands'
+import { createConnectNodesCommand, createRenameNodeCommand, createSetTextCardContentCommand } from '../../modules/canvas/canvas-commands'
 import { useCanvasStoryboardGroups } from './composables/use-canvas-storyboard-groups'
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; professionalActionsBlocked?: boolean; readonly?: boolean; resourcesOpen?: boolean
@@ -73,6 +72,8 @@ const props = withDefaults(defineProps<{
   generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>; pendingGenerationResults?: readonly GenerationResultProjection[]
   mediaActionTarget?: OwnedMediaActionTarget | null; professionalActionIds?: readonly string[]
   scriptAuthoringActive?: boolean; scriptAuthoringCapability?: ScriptAuthoringCapabilities | null; scriptAuthoringCapabilityError?: string; scriptAuthoringCapabilityLoading?: boolean; scriptAuthoringError?: string; scriptAuthoringIntent?: ScriptAuthoringIntent | null; scriptAuthoringSuccess?: string; scriptQuota?: number
+  textGenerationErrors?: ReadonlyMap<string, string>
+  textGenerationPendingNodeIds?: ReadonlySet<string>
   storyboardGenerationSummary?: string
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
@@ -83,6 +84,8 @@ const props = withDefaults(defineProps<{
   generationRuntimePresentations: () => new Map(), pendingGenerationResults: () => [],
   mediaActionTarget: null, professionalActionIds: () => [],
   scriptAuthoringActive: false, scriptAuthoringCapability: null, scriptAuthoringCapabilityError: '', scriptAuthoringCapabilityLoading: false, scriptAuthoringError: '', scriptAuthoringIntent: null, scriptAuthoringSuccess: '', scriptQuota: 0,
+  textGenerationErrors: () => new Map(),
+  textGenerationPendingNodeIds: () => new Set(),
   storyboardGenerationSummary: '',
   viewportInsets: () => ({}),
 })
@@ -109,6 +112,7 @@ const emit = defineEmits<{
   submitScript: [brief: string]
   generateStoryboardGroup: [groupId: string]
   generateScript: [submission: ScriptGenerationSubmission]
+  generateTextCard: [nodeId: string, prompt: string, mode: CanvasCardWorkModeId, modelId: string]
   retryScriptCapability: []
 }>()
 const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
@@ -518,34 +522,26 @@ async function handleTextCardMode(nodeId: string, mode: CanvasCardWorkModeId) {
     return
   }
   textAuthoringNodeId.value = ''
-  if (mode === 'text-to-video') textWorkflow.value = { nodeId, mode }
-  else if (mode === 'text-to-music') {
-    textWorkflow.value = null
-    emit('openAudioGenerationPreflight')
-  }
+  const isAllowed = props.scriptAuthoringCapability?.models.some((model) => (
+    model.workflowModes.includes(mode as TextWorkflowMode)
+  ))
+  textWorkflow.value = isAllowed ? { nodeId, mode } : null
 }
 
-async function submitTextWorkflow(nodeId: string, prompt: string, mode: CanvasCardWorkModeId) {
+function submitTextWorkflow(
+  nodeId: string,
+  prompt: string,
+  mode: CanvasCardWorkModeId,
+  modelId: string,
+) {
   if (props.readonly || textWorkflow.value?.nodeId !== nodeId || textWorkflow.value.mode !== mode) return
-  await canvasStore.setNodeContent(nodeId, prompt)
+  const isAllowed = props.scriptAuthoringCapability?.models.some((model) => (
+    model.id === modelId && model.workflowModes.includes(mode as TextWorkflowMode)
+  ))
+  if (!isAllowed) return
   canvasStore.selectNode(nodeId)
   textWorkflow.value = null
-  await nextTick()
-  if (mode === 'text-to-video') {
-    const source = canvasStore.findNodeById(nodeId)
-    const option = source
-      ? resolveConnectionContinuationOptions(source, 'out').find((candidate) => candidate.type === 'generation' && candidate.subtype === 'video')
-      : null
-    if (!source || !option) return
-    const command = createConnectionContinuationCommand(source, option, {
-      x: source.x + source.width,
-      y: source.y + source.height / 2,
-    }, 'downstream', undefined, canvasStore.nodes)
-    await canvasStore.dispatchCommand({ source: 'toolbar', command })
-    canvasStore.selectNode(command.nodes[0].id)
-    await nextTick()
-    revealNode(command.nodes[0].id)
-  }
+  emit('generateTextCard', nodeId, prompt, mode, modelId)
 }
 
 watch(() => canvasStore.selectedNodeId, (nodeId) => {
@@ -602,7 +598,16 @@ function closeTransientInteractions() {
 defineExpose({ arrangeSelectedProvenanceTrace, closeTransientInteractions, fitSelectedProvenanceTrace, openSelectedContinuation, revealNode })
 
 function commitNodeContent(nodeId: string, content: string) {
-  void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)
+  if (props.readonly) return
+  const command = createSetTextCardContentCommand(canvasStore.nodes, nodeId, content)
+  if (command) {
+    void canvasStore.dispatchCommand({ source: 'keyboard', command }).catch(() => undefined)
+    return
+  }
+  const target = canvasStore.findNodeById(nodeId)
+  if (target?.type === 'script' && target.contentData?.subtype === 'script' && !target.isLocked) {
+    void canvasStore.setNodeContent(nodeId, content).catch(() => undefined)
+  }
 }
 
 function renameNode(nodeId: string, title: string) {
@@ -885,6 +890,8 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :stage-size="stageSize"
         :surface-node-rect-style="surfaceNodeRectStyle"
         :text-authoring-node-id="textAuthoringNodeId"
+        :text-generation-errors="textGenerationErrors"
+        :text-generation-pending-node-ids="textGenerationPendingNodeIds"
         :text-workflow-mode="textWorkflow?.mode ?? ''"
         :text-workflow-node-id="textWorkflow?.nodeId ?? ''"
         :viewport-insets="viewportInsets"

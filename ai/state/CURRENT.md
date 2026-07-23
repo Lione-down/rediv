@@ -12,20 +12,20 @@ Last updated: 2026-07-23
 ## Product State
 
 - Phase 4 initial version and Product V2 / Phase 5: `DONE / PASS`.
-- Product V3 / Phase 6 Tasks T6-001 through T6-004 and T6-006 through T6-010: `DONE / PASS`.
+- Product V3 / Phase 6 Tasks T6-001 through T6-004 and T6-006 through T6-011: `DONE / PASS`.
 - T6-005: `BLOCKED / FAIL` after explicit Human visual/interaction rejection on 2026-07-23.
-- T6-010: canonical card view model, geometry authority, and rename-command delivery is complete.
+- T6-011: explicit-model text-card workflow delivery is complete.
 - Database authority: MySQL-only.
 
 ## Active Delivery
 
-- Active implementation Task: none; T6-010 is closed and the post-push T6-011 activation must occur in a new goal-mode task.
+- Active implementation Task: none; T6-011 is closed and the post-push T6-012 activation must occur in a new goal-mode task.
 - State: `DONE`
 - Verification outcome: `PASS`
-- Task: [TASK-T6-010](../tasks/todo/TASK-T6-010.md).
-- Plan: [TASK-T6-010-PLAN](../tasks/doing/TASK-T6-010-PLAN.md).
-- Progress: [TASK-T6-010-PROGRESS](../tasks/doing/TASK-T6-010-PROGRESS.md).
-- Report: [REPORT-T6-010](../reports/REPORT-T6-010.md).
+- Task: [TASK-T6-011](../tasks/todo/TASK-T6-011.md).
+- Plan: [TASK-T6-011-PLAN](../tasks/doing/TASK-T6-011-PLAN.md).
+- Progress: [TASK-T6-011-PROGRESS](../tasks/doing/TASK-T6-011-PROGRESS.md).
+- Report: [REPORT-T6-011](../reports/REPORT-T6-011.md).
 - Architecture: [REVID-T6-006-FULL-STACK-MODULAR-REFACTOR](../architecture/REVID-T6-006-FULL-STACK-MODULAR-REFACTOR.md).
 
 ## Live Gates
@@ -35,15 +35,16 @@ Last updated: 2026-07-23
   Canvas engine, and provider authority boundaries.
 - T6-007 froze the replacement contracts; T6-008 delivered compact v2 APIs and durable MySQL execution.
 - T6-010 delivered one typed card presentation model, one visible geometry authority, and one undoable/autosaved rename command.
+- T6-011 delivered truthful text empty/direct/assisted states, explicit allowed-model selection, durable text jobs, attached stage-bounded composition, and revision-safe same-card text application.
 - Stable node IDs, graph/job/asset/reference bindings, legacy result persistence, and current compact v2 job sync remain intact.
-- T6-011 through T6-016 behavior, new same-card result application, and legacy compatibility removal are out of scope.
+- Legacy capability/result projections remain readable; T6-012 through T6-016 behavior and compatibility removal were not started.
 - Tests may use disposable MySQL and fake providers only; user/runtime migrations and real/paid provider calls remain prohibited.
 - Automated browser evidence remains separate from explicit Human visual/interaction acceptance.
 
 ## Exact Next Action
 
-After T6-010 is committed and pushed, create a new `/goal` Codex task that activates only T6-011 and restores the
-single-active invariant before business-code edits.
+After T6-011 is committed and pushed, create a new `/goal` Codex task that defines and activates only T6-012 before any
+T6-012 business-code edit.
 
 ## Worktree Ownership
 

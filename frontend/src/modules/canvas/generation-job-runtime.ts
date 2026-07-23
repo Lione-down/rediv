@@ -25,8 +25,11 @@ function persistedJobBindings(nodes: readonly CanvasNode[]) {
   for (const node of nodes) {
     const jobId = node.contentData?.active_generation_job_id
     const subtype = node.contentData?.subtype
+    const boundMediaType = node.contentData?.active_generation_media_type
     let mediaType: GenerationJobMediaType | null = null
-    if (subtype === 'text' || subtype === 'script' || subtype === 'image' || subtype === 'video') {
+    if (boundMediaType === 'text' || boundMediaType === 'script' || boundMediaType === 'image' || boundMediaType === 'video') {
+      mediaType = boundMediaType
+    } else if (subtype === 'text' || subtype === 'script' || subtype === 'image' || subtype === 'video') {
       mediaType = subtype
     } else if (node.type === 'text') mediaType = 'text'
     else if (node.type === 'script') mediaType = 'script'

@@ -694,8 +694,9 @@ test('empty script role start persists exact image references and submits them w
   expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(baselineConnections)
 })
 
-test('text-to-video choice creates and selects a connected video generation card', async ({ page }) => {
+test('text workflow requires an allowed model and applies the result to the same revision-safe card', async ({ page }) => {
   const state = createResourceMockState()
+  state.capabilityVersion = 6
   const source = state.documents[FIRST_CANVAS_ID].nodes[0]
   state.documents[FIRST_CANVAS_ID].nodes.push({
     ...source,
@@ -708,25 +709,99 @@ test('text-to-video choice creates and selects a connected video generation card
     height: 180,
   })
   const baselineNodes = state.documents[FIRST_CANVAS_ID].nodes.length
-  const baselineConnections = state.documents[FIRST_CANVAS_ID].connections.length
   await openResourceWorkspace(page, state, { width: 1366, height: 768 }, { enableCanvasInspection: true })
+  let submittedBody: Record<string, unknown> | null = null
+  await page.route('**/api/v2/generation-jobs', async (route) => {
+    submittedBody = route.request().postDataJSON() as Record<string, unknown>
+    const jobId = 'job-text-same-card'
+    state.generationJobCanvasIds[jobId] = FIRST_CANVAS_ID
+    state.generationJobs[jobId] = {
+      job_id: jobId,
+      node_id: 'empty-text-to-video',
+      media_type: 'text',
+      status: 'succeeded',
+      stage: null,
+      progress: 100,
+      error: null,
+      result_asset_id: null,
+      version: 2,
+      updated_at: '2026-07-23T12:00:01.000Z',
+    }
+    state.generationJobResults[jobId] = {
+      job_id: jobId,
+      node_id: 'empty-text-to-video',
+      result: { media_type: 'text', content: '同卡生成结果：雨夜街道缓慢推进。' },
+      version: 2,
+    }
+    await route.fulfill({
+      status: 202,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        job_id: jobId,
+        project_id: 'project-resources',
+        canvas_id: FIRST_CANVAS_ID,
+        node_id: 'empty-text-to-video',
+        media_type: 'text',
+        status: 'queued',
+        model_id: 'agnes-2.0-flash',
+        quota_revision: 1,
+        version: 1,
+      }),
+    })
+  })
   await page.getByRole('region', { name: /Revid/ }).focus()
   await page.keyboard.press('Control+0')
   const chooser = page.locator('.canvas-node-surface[data-node-id="empty-text-to-video"]').getByRole('group', { name: '文本卡片创作方式' })
+  await expect(chooser.getByRole('button', { name: '图片反推提示词' })).toBeDisabled()
+  await expect(chooser.getByRole('button', { name: '文字生音乐' })).toBeDisabled()
   await chooser.getByRole('button', { name: '文生视频' }).click()
   const workflow = page.getByRole('form', { name: '视频文字起点 文生视频' })
   await expect(workflow).toBeVisible()
-  await workflow.getByRole('textbox', { name: '文本工作流提示词' }).fill('雨夜街道上的缓慢推进镜头')
-  await workflow.getByRole('button', { name: '创建视频卡片' }).click()
+  const cardRect = await page.locator('.canvas-node-surface[data-node-id="empty-text-to-video"]').boundingBox()
+  const workflowRect = await workflow.boundingBox()
+  expect(cardRect).not.toBeNull()
+  expect(workflowRect).not.toBeNull()
+  expect(
+    workflowRect!.y + workflowRect!.height <= cardRect!.y ||
+    workflowRect!.y >= cardRect!.y + cardRect!.height,
+  ).toBe(true)
+  expect(workflowRect!.y).toBeGreaterThanOrEqual(0)
+  expect(workflowRect!.y + workflowRect!.height).toBeLessThanOrEqual(768)
+  expect(workflowRect!.x).toBeGreaterThanOrEqual(0)
+  expect(workflowRect!.x + workflowRect!.width).toBeLessThanOrEqual(1366)
 
-  await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.length).toBe(baselineNodes + 1)
-  await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(baselineConnections + 1)
-  const created = state.documents[FIRST_CANVAS_ID].nodes.at(-1)
-  expect(created).toMatchObject({ node_type: 'generation', content: expect.objectContaining({ subtype: 'video' }) })
-  await expect(page.locator(`.canvas-node-surface[data-node-id="${created?.id}"]`).getByRole('region', { name: /卡片工作区/ })).toBeVisible()
+  const submit = workflow.getByRole('button', { name: '生成到当前卡片' })
+  await workflow.getByRole('textbox', { name: '文本工作流提示词' }).fill('雨夜街道上的缓慢推进镜头')
+  await expect(submit).toBeDisabled()
+  await workflow.getByRole('combobox', { name: '文本生成模型' }).selectOption('agnes-2.0-flash')
+  await submit.click()
+
+  await expect.poll(() => submittedBody).toMatchObject({
+    project_id: 'project-resources',
+    canvas_id: FIRST_CANVAS_ID,
+    node_id: 'empty-text-to-video',
+    media_type: 'text',
+    provider_id: 'agnes',
+    model_id: 'agnes-2.0-flash',
+    input: {
+      prompt: '雨夜街道上的缓慢推进镜头',
+      mode: 'text-to-video',
+      content_revision: 0,
+    },
+  })
+  await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.length).toBe(baselineNodes)
+  await expect.poll(() => (
+    state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'empty-text-to-video')?.content as Record<string, unknown>
+  )?.text).toBe('同卡生成结果：雨夜街道缓慢推进。')
+  expect(
+    state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'empty-text-to-video')?.content,
+  ).toMatchObject({
+    last_generation_job_id: 'job-text-same-card',
+    last_generation_result_version: 2,
+  })
 })
 
-test('text-to-music choice opens the existing safe audio preflight', async ({ page }) => {
+test('text-to-music remains visible but disabled when no allowed model advertises it', async ({ page }) => {
   const state = createResourceMockState()
   const source = state.documents[FIRST_CANVAS_ID].nodes[0]
   state.documents[FIRST_CANVAS_ID].nodes.push({
@@ -743,8 +818,106 @@ test('text-to-music choice opens the existing safe audio preflight', async ({ pa
   await page.getByRole('region', { name: /Revid/ }).focus()
   await page.keyboard.press('Control+0')
   const chooser = page.locator('.canvas-node-surface[data-node-id="empty-text-to-music"]').getByRole('group', { name: '文本卡片创作方式' })
-  await chooser.getByRole('button', { name: '文字生音乐' }).click()
-  await expect(page.getByRole('dialog', { name: '音频生成与驱动视频预检' })).toBeVisible()
+  await expect(chooser.getByRole('button', { name: '文字生音乐' })).toBeDisabled()
+  await expect(page.getByRole('dialog', { name: '音频生成与驱动视频预检' })).toHaveCount(0)
+})
+
+test('direct writing on an empty text card autosaves through one undoable command', async ({ page }) => {
+  const state = createResourceMockState()
+  const source = state.documents[FIRST_CANVAS_ID].nodes[0]
+  state.documents[FIRST_CANVAS_ID].nodes.push({
+    ...source,
+    id: 'empty-direct-text',
+    node_type: 'script',
+    content: { title: '直接编写文本', subtype: 'prompt', serialization_version: 1 },
+    position_x: 400,
+    position_y: 420,
+    width: 280,
+    height: 180,
+  })
+  await openResourceWorkspace(page, state, { width: 1366, height: 768 })
+  await page.getByRole('region', { name: /Revid/ }).focus()
+  await page.keyboard.press('Control+0')
+  const surface = page.locator('.canvas-node-surface[data-node-id="empty-direct-text"]')
+  await surface.getByRole('button', { name: '自己编写内容' }).click()
+  const editor = surface.getByRole('textbox', { name: /编辑.*直接编写文本.*内容/ })
+  await editor.fill('用户直接编写的文本')
+  await editor.blur()
+
+  await expect.poll(() => (
+    state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'empty-direct-text')?.content as Record<string, unknown>
+  )).toMatchObject({ text: '用户直接编写的文本', content_revision: 1 })
+  await page.locator('.workspace-stage').focus()
+  await page.keyboard.press('Control+z')
+  await expect.poll(() => (
+    state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'empty-direct-text')?.content as Record<string, unknown>
+  )?.text ?? '').toBe('')
+  await page.keyboard.press('Control+Shift+z')
+  await expect.poll(() => (
+    state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'empty-direct-text')?.content as Record<string, unknown>
+  )?.text).toBe('用户直接编写的文本')
+})
+
+test('refresh restores a persisted text job binding and applies its result to the original card', async ({ page }) => {
+  const state = createResourceMockState()
+  const source = state.documents[FIRST_CANVAS_ID].nodes[0]
+  const jobId = 'job-text-refresh'
+  state.documents[FIRST_CANVAS_ID].nodes.push({
+    ...source,
+    id: 'refresh-text-card',
+    node_type: 'script',
+    content: {
+      title: '刷新恢复文本',
+      subtype: 'prompt',
+      serialization_version: 1,
+      text: '提交时文本',
+      content_revision: 2,
+      active_generation_job_id: jobId,
+      active_generation_job_content_revision: 2,
+      active_generation_media_type: 'text',
+      active_generation_mode: 'text-to-video',
+      active_generation_model_id: 'agnes-2.0-flash',
+    },
+    position_x: 400,
+    position_y: 420,
+    width: 280,
+    height: 180,
+  })
+  state.generationJobCanvasIds[jobId] = FIRST_CANVAS_ID
+  state.generationJobs[jobId] = {
+    job_id: jobId,
+    node_id: 'refresh-text-card',
+    media_type: 'text',
+    status: 'succeeded',
+    stage: null,
+    progress: 100,
+    error: null,
+    result_asset_id: null,
+    version: 3,
+    updated_at: '2026-07-23T12:01:00.000Z',
+  }
+  state.generationJobResults[jobId] = {
+    job_id: jobId,
+    node_id: 'refresh-text-card',
+    result: { media_type: 'text', content: '刷新后写回原卡的结果' },
+    version: 3,
+  }
+  const baselineNodes = state.documents[FIRST_CANVAS_ID].nodes.length
+
+  await openResourceWorkspace(page, state, { width: 1366, height: 768 })
+  await expect.poll(() => (
+    state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'refresh-text-card')?.content as Record<string, unknown>
+  )?.text).toBe('刷新后写回原卡的结果')
+  expect(state.documents[FIRST_CANVAS_ID].nodes).toHaveLength(baselineNodes)
+  await page.reload()
+  await expect.poll(() => (
+    state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'refresh-text-card')?.content as Record<string, unknown>
+  )).toMatchObject({
+    text: '刷新后写回原卡的结果',
+    content_revision: 3,
+    last_generation_job_id: jobId,
+    last_generation_result_version: 3,
+  })
 })
 
 test('keyframes mode writes the matching video reference contract before mock generation', async ({ page }) => {

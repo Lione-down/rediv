@@ -23,7 +23,7 @@ import { resolveKeyframeRailPlacement } from './canvas-keyframe-placement'
 import type { CanvasNodeContinuationTrigger as ContinuationTrigger } from './canvas-node-continuation-trigger'
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import type { GenerationNodeParameters, ResolvedGenerationRequestContext } from '../../modules/canvas/generation-parameters'
-import type { ScriptAuthoringCapabilities, ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
+import type { ScriptAuthoringCapabilities, ScriptAuthoringIntent, TextWorkflowMode } from '../../modules/canvas/script-authoring'
 import {
   isScriptRoleReferenceCandidate,
   MAX_SCRIPT_REFERENCE_ASSETS,
@@ -63,6 +63,8 @@ const props = withDefaults(defineProps<{
   stageSize?: { width: number; height: number }
   surfaceNodeRectStyle: (node: CanvasNode, role?: 'content' | 'composer') => Record<string, string>
   textAuthoringNodeId?: string
+  textGenerationErrors?: ReadonlyMap<string, string>
+  textGenerationPendingNodeIds?: ReadonlySet<string>
   textWorkflowMode?: CanvasCardWorkModeId | ''
   textWorkflowNodeId?: string
   viewportInsets?: Partial<{ top: number; right: number; bottom: number; left: number }>
@@ -78,6 +80,8 @@ const props = withDefaults(defineProps<{
   generationContext: null,
   hiddenNodeIds: () => new Set(),
   textAuthoringNodeId: '',
+  textGenerationErrors: () => new Map(),
+  textGenerationPendingNodeIds: () => new Set(),
   textWorkflowMode: '',
   textWorkflowNodeId: '',
   referenceTargetNodeId: '',
@@ -113,8 +117,24 @@ const emit = defineEmits<{
   retryScriptCapability: []
   textMode: [nodeId: string, mode: CanvasCardWorkModeId, opener: HTMLElement]
   textWorkflowCancel: []
-  textWorkflowSubmit: [nodeId: string, prompt: string, mode: CanvasCardWorkModeId]
+  textWorkflowSubmit: [nodeId: string, prompt: string, mode: CanvasCardWorkModeId, modelId: string]
 }>()
+const enabledTextModeIds = computed<CanvasCardWorkModeId[]>(() => [
+  'direct-write',
+  ...new Set(
+    (props.scriptAuthoringCapability?.models ?? [])
+      .flatMap((model) => model.workflowModes),
+  ),
+])
+function textModelsForMode(mode: CanvasCardWorkModeId) {
+  return (props.scriptAuthoringCapability?.models ?? []).filter((model) => (
+    model.workflowModes.includes(mode as TextWorkflowMode)
+  ))
+}
+function submitTextWorkflow(nodeId: string, prompt: string, modelId: string) {
+  if (!props.textWorkflowMode) return
+  emit('textWorkflowSubmit', nodeId, prompt, props.textWorkflowMode, modelId)
+}
 const surfaces = computed(() => props.nodes.flatMap((node) => {
   if (props.hiddenNodeIds.has(node.id)) return []
   const referenceTarget = props.referenceTargetNodeId
@@ -297,7 +317,6 @@ function attachedSurfaceStyle(
     />
     <div v-for="surface in surfaces" :key="surface.node.id" class="canvas-node-surface" :class="[`is-${surface.interaction.kind}`, { 'has-script-empty-state': surface.showsScriptEmptyState }]" :data-card-state="surface.cardPresentation.state" :data-node-id="surface.node.id" :style="surfaceNodeRectStyle(surface.node, surface.showsScriptAuthoring || surface.showsScriptEmptyState ? 'content' : surface.interaction.kind === 'composer' ? 'composer' : 'content')">
       <CanvasNodeMedia v-if="surface.projectedMedia" :media="surface.projectedMedia" :capture-pending="capturePending" @metadata="emit('mediaMetadata', surface.projectedResultId, $event)" />
-      <CanvasTextWorkflowComposer v-else-if="surface.showsTextWorkflow && textWorkflowMode" :mode="textWorkflowMode" :title="surface.node.title" @cancel="emit('textWorkflowCancel')" @submit="emit('textWorkflowSubmit', surface.node.id, $event, textWorkflowMode)" />
       <CanvasScriptEmptyState
         v-else-if="surface.showsScriptEmptyState"
         :can-select-role-source="!readonly && !surface.node.isLocked && surface.scriptRoleReferenceCount < MAX_SCRIPT_REFERENCE_ASSETS"
@@ -309,7 +328,14 @@ function attachedSurfaceStyle(
         @select-script-source="emit('cardReferenceStart', surface.node.id)"
         @direct-write="(opener) => emit('textMode', surface.node.id, 'direct-write', opener)"
       />
-      <CanvasTextCardModeChooser v-else-if="surface.showsTextModeChooser" :enabled-mode-ids="['direct-write', 'text-to-video', 'text-to-music']" :modes="surface.workModel.modes" @select="(mode, opener) => emit('textMode', surface.node.id, mode, opener)" />
+      <CanvasTextCardModeChooser
+        v-else-if="surface.showsTextModeChooser"
+        :enabled-mode-ids="textGenerationPendingNodeIds.has(surface.node.id) || surface.runtimePresentation?.isTerminal === false ? ['direct-write'] : enabledTextModeIds"
+        :error="textGenerationErrors.get(surface.node.id) ?? ''"
+        :modes="surface.workModel.modes"
+        :pending="textGenerationPendingNodeIds.has(surface.node.id)"
+        @select="(mode, opener) => emit('textMode', surface.node.id, mode, opener)"
+      />
       <CanvasNodeComposer v-else-if="surface.interaction.kind === 'composer' && selectedNodeIds.length === 1 && !surface.workModel.showsAttachedWorkSurface" :label="surface.interaction.label" :model-value="surface.interaction.content" @commit="emit('commitContent', surface.node.id, $event)" />
       <CanvasNodeMedia v-else-if="surface.interaction.kind === 'media'" :media="surface.interaction.media" :can-capture-frame="!readonly && !surface.node.isLocked && selectedNodeIds.length === 1 && selectedNodeIds[0] === surface.node.id && surface.interaction.media.kind === 'video'" :capture-pending="capturePending" :keyframe-rail-placement="resolveKeyframeRailPlacement(surface.node, nodes)" @capture-frame="(file, timeSeconds, aspectRatio) => forwardCaptureFrame(surface.projectedResultId || surface.node.id, file, timeSeconds, aspectRatio)" @metadata="emit('mediaMetadata', surface.projectedResultId || surface.node.id, $event)" />
       <CanvasCardWorkSurface
@@ -339,6 +365,19 @@ function attachedSurfaceStyle(
         @cancel-reference="emit('cardReferenceCancel')"
         @update-parameters="emit('cardUpdateParameters', $event)"
         @update-prompt="emit('commitContent', surface.node.id, $event)"
+      />
+      <CanvasTextWorkflowComposer
+        v-if="surface.showsTextWorkflow && textWorkflowMode"
+        class="canvas-text-card-work-surface"
+        :style="attachedSurfaceStyle(surface.node, 210)"
+        :busy="surface.runtimePresentation?.isTerminal === false"
+        :error="textGenerationErrors.get(surface.node.id) ?? ''"
+        :mode="textWorkflowMode"
+        :models="textModelsForMode(textWorkflowMode)"
+        :runtime-presentation="surface.runtimePresentation"
+        :title="surface.node.title"
+        @cancel="emit('textWorkflowCancel')"
+        @submit="(prompt, modelId) => submitTextWorkflow(surface.node.id, prompt, modelId)"
       />
       <CanvasScriptGenerationControls
         v-if="surface.showsScriptAuthoring"

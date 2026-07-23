@@ -22,8 +22,24 @@ import type {
   ReorderStoryboardGroupCommand,
   UpdateStoryboardGroupCommand,
 } from './storyboard-commands'
+import type {
+  ApplyGenerationJobResultCommand,
+  BindTextGenerationJobCommand,
+  SetTextCardContentCommand,
+} from './text-card-commands'
 
 export { resolveCanvasDragNodeIds } from './canvas-drag-resolution'
+export {
+  createApplyGenerationJobResultCommand,
+  createBindTextGenerationJobCommand,
+  createSetTextCardContentCommand,
+  readTextCardContentRevision,
+} from './text-card-commands'
+export type {
+  ApplyGenerationJobResultCommand,
+  BindTextGenerationJobCommand,
+  SetTextCardContentCommand,
+} from './text-card-commands'
 
 export type CanvasCommandSource = 'pointer' | 'keyboard' | 'toolbar' | 'context-menu' | 'accessibility'
 
@@ -157,6 +173,9 @@ export type CanvasCommand =
   | ArrangeNodesCommand
   | SetNodesLockedCommand
   | RenameNodeCommand
+  | SetTextCardContentCommand
+  | BindTextGenerationJobCommand
+  | ApplyGenerationJobResultCommand
   | InsertGraphCommand
   | ReorderGenerationInputCommand
   | UpdateGenerationParametersCommand

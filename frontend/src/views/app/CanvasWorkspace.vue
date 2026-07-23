@@ -22,6 +22,7 @@ import { useCanvasProfessionalActions } from '../../components/canvas/composable
 import { useCanvasImageOperations } from '../../components/canvas/composables/use-canvas-image-operations'
 import { useCanvasScriptGeneration } from '../../components/canvas/composables/use-canvas-script-generation'
 import { useCanvasResourceExperience } from '../../components/canvas/composables/use-canvas-resource-experience'
+import { useCanvasTextGeneration } from '../../components/canvas/composables/use-canvas-text-generation'
 import { useCanvasStoryboardRecipes } from '../../components/canvas/composables/use-canvas-storyboard-recipes'
 import { useCanvasListStore } from '../../modules/canvas/canvas-list-store'
 import { useCanvasRevisionStore } from '../../modules/canvas/canvas-revision-store'
@@ -35,6 +36,7 @@ import { projectCanvasStoryboard } from '../../modules/canvas/storyboard-project
 import { createReorderStoryboardGroupCommand } from '../../modules/canvas/storyboard-commands'
 import { resolveOwnedMediaActionTarget } from '../../modules/canvas/professional-action-registry'
 import type { ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
+import type { TextWorkflowMode } from '../../modules/canvas/script-authoring'
 import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
 import type { CanvasCardWorkModeId } from '../../components/canvas/canvas-card-work-model'
 import type { StoryboardAssetEditIntent } from '../../modules/canvas/storyboard-asset-commands'
@@ -139,7 +141,7 @@ const {
   selectedResultLineage,
   selectedQuota,
   selectedRuntimePresentation,
-  generationRuntimePresentations, pendingGenerationResults,
+  generationRuntimePresentations, generationJobResults, pendingGenerationResults,
   latestTask,
   visibleError,
   generationError,
@@ -171,6 +173,13 @@ const {
   updatePrompt,
   updateGenerationParameters,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
+const textGeneration = useCanvasTextGeneration({
+  canvasId,
+  capabilities: generationCapabilities,
+  generationJobResults,
+  isReviewOnly,
+  projectId,
+})
 const scriptGeneration = useCanvasScriptGeneration({
   canvasId,
   generationCapabilities,
@@ -275,6 +284,21 @@ async function generateFromCard(nodeId: string, prompt: string, mode: CanvasCard
   }
   updatePrompt(prompt)
   await generate(prompt)
+}
+
+function generateTextCard(
+  nodeId: string,
+  prompt: string,
+  mode: CanvasCardWorkModeId,
+  modelId: string,
+) {
+  if (!['text-to-video', 'image-to-prompt', 'text-to-music'].includes(mode)) return
+  void textGeneration.submit({
+    nodeId,
+    prompt,
+    mode: mode as TextWorkflowMode,
+    modelId,
+  })
 }
 
 watch([projectId, canvasId], () => { composerAttachments.value = [] })
@@ -768,6 +792,8 @@ onBeforeUnmount(() => {
           :script-authoring-intent="scriptAuthoringIntent"
           :script-authoring-success="scriptGeneration.success.value"
           :script-quota="authStore.quotas.text"
+          :text-generation-errors="textGeneration.errors.value"
+          :text-generation-pending-node-ids="textGeneration.pendingNodeIds.value"
           :viewport-insets="canvasViewportInsets"
           @activate-context-surface="activateContextSurface('stage')"
           @card-generate="generateFromCard"
@@ -788,6 +814,7 @@ onBeforeUnmount(() => {
           @branch-result="branchFromResult"
           @capture-video-frame="captureSelectedVideoFrame"
           @generate-script="scriptGeneration.generate"
+          @generate-text-card="generateTextCard"
           @remove-composer-attachment="removeComposerAttachment"
           @retry-capabilities="reloadGenerationCapabilities"
           @retry-script-capability="reloadGenerationCapabilities"

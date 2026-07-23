@@ -4,12 +4,20 @@ import { resolveNodeDefinition } from './node-registry'
 
 export type ScriptAuthoringIntent = 'script_draft' | 'script_refine'
 export type ScriptAuthoringLocale = 'zh-CN' | 'en-US'
+export type TextWorkflowMode = 'text-to-video' | 'image-to-prompt' | 'text-to-music'
+
+export interface TextGenerationModel {
+  id: string
+  label: string
+  workflowModes: TextWorkflowMode[]
+}
 
 export interface ScriptAuthoringCapabilities {
-  contractVersion: 1
+  contractVersion: 1 | 2
   available: true
   model: string
   modelLabel: string
+  models: TextGenerationModel[]
   intents: ScriptAuthoringIntent[]
   locales: ScriptAuthoringLocale[]
   defaultLocale: ScriptAuthoringLocale
@@ -36,25 +44,69 @@ function isPositiveInteger(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) > 0
 }
 
+const TEXT_WORKFLOW_MODES = new Set<TextWorkflowMode>([
+  'text-to-video',
+  'image-to-prompt',
+  'text-to-music',
+])
+
+function parseTextGenerationModels(value: unknown): TextGenerationModel[] {
+  if (!Array.isArray(value) || !value.length) {
+    throw new Error('Script authoring capability contract is invalid')
+  }
+  const models = value.map((candidate) => {
+    if (!isRecord(candidate)) throw new Error('Script authoring capability contract is invalid')
+    const workflowModes = candidate.workflow_modes
+    if (
+      typeof candidate.id !== 'string' || !candidate.id.trim() ||
+      typeof candidate.label !== 'string' || !candidate.label.trim() ||
+      !Array.isArray(workflowModes) || !workflowModes.length ||
+      workflowModes.some((mode) => typeof mode !== 'string' || !TEXT_WORKFLOW_MODES.has(mode as TextWorkflowMode)) ||
+      new Set(workflowModes).size !== workflowModes.length
+    ) throw new Error('Script authoring capability contract is invalid')
+    return {
+      id: candidate.id,
+      label: candidate.label,
+      workflowModes: [...workflowModes] as TextWorkflowMode[],
+    }
+  })
+  if (new Set(models.map((model) => model.id)).size !== models.length) {
+    throw new Error('Script authoring capability contract is invalid')
+  }
+  return models
+}
+
 export function parseScriptAuthoringCapabilities(value: unknown): ScriptAuthoringCapabilities {
   if (!isRecord(value)) throw new Error('Script authoring capability contract is invalid')
   const intents = value.intents
   const locales = value.locales
   if (
-    value.contract_version !== 1 || value.available !== true ||
-    typeof value.model !== 'string' || !value.model.trim() ||
-    typeof value.model_label !== 'string' || !value.model_label.trim() ||
+    ![1, 2].includes(Number(value.contract_version)) || value.available !== true ||
     !Array.isArray(intents) || intents.length !== 2 || intents[0] !== 'script_draft' || intents[1] !== 'script_refine' ||
     !Array.isArray(locales) || locales.length !== 2 || locales[0] !== 'zh-CN' || locales[1] !== 'en-US' ||
     value.default_locale !== 'zh-CN' || !isPositiveInteger(value.brief_max_length) ||
     !isPositiveInteger(value.source_max_length) || !isPositiveInteger(value.output_max_length) ||
     value.creates_media !== false || value.runs_cinematic_decomposition !== false
   ) throw new Error('Script authoring capability contract is invalid')
+  const models = value.contract_version === 1
+    ? (
+        typeof value.model === 'string' && value.model.trim() &&
+        typeof value.model_label === 'string' && value.model_label.trim()
+          ? [{
+              id: value.model,
+              label: value.model_label,
+              workflowModes: [] as TextWorkflowMode[],
+            }]
+          : null
+      )
+    : parseTextGenerationModels(value.models)
+  if (!models) throw new Error('Script authoring capability contract is invalid')
   return {
-    contractVersion: 1,
+    contractVersion: value.contract_version as 1 | 2,
     available: true,
-    model: value.model,
-    modelLabel: value.model_label,
+    model: models[0].id,
+    modelLabel: models[0].label,
+    models,
     intents: [...intents] as ScriptAuthoringIntent[],
     locales: [...locales] as ScriptAuthoringLocale[],
     defaultLocale: 'zh-CN',

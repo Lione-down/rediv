@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 
 from core.agnes_contract import AGNES_CONTRACT
+from core.generation_parameter_contract import build_generation_capabilities
 from core.generation_task_utils import sanitize_error_message
 from models.asset import Asset
 from models.base import get_session
@@ -94,6 +95,28 @@ class GenerationJobService:
         allowed_contract = AGNES_CONTRACT.media.get(capability_media_type)
         if allowed_contract is None or model_id != allowed_contract.model:
             raise ValueError(f"Generation job model is not allowed for {media_type}")
+        if media_type != "text" and (
+            input_payload.get("mode") is not None
+            or input_payload.get("content_revision") is not None
+        ):
+            raise ValueError(
+                "Text workflow fields are not allowed for non-text generation jobs"
+            )
+        if media_type == "text" and input_payload.get("mode") is not None:
+            text_capabilities = build_generation_capabilities()["text"]
+            allowed_model = next(
+                (
+                    model
+                    for model in text_capabilities["models"]
+                    if model["id"] == model_id
+                ),
+                None,
+            )
+            if (
+                allowed_model is None
+                or input_payload["mode"] not in allowed_model["workflow_modes"]
+            ):
+                raise ValueError("Generation job model or mode is not allowed for text")
         fingerprint = _fingerprint({
             "user_id": user_id,
             "project_id": project_id,

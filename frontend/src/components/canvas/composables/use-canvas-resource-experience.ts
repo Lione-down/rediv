@@ -497,6 +497,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     selectedQuota,
     selectedRuntimePresentation,
     generationRuntimePresentations: generationRuntime.presentations,
+    generationJobResults: generationRuntime.generationJobResults,
     pendingGenerationResults: generationRuntime.pendingResultProjections,
     latestTask,
     visibleError,

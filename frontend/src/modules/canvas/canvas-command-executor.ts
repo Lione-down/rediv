@@ -29,6 +29,9 @@ import {
   type InsertGraphCommand,
   type MoveNodesCommand,
   type RenameNodeCommand,
+  type SetTextCardContentCommand,
+  type BindTextGenerationJobCommand,
+  type ApplyGenerationJobResultCommand,
   type ReconnectConnectionCommand,
   type ReorderGenerationInputCommand,
   type SetNodesLockedCommand,
@@ -36,7 +39,9 @@ import {
   type ApplyScriptAuthoringResultCommand,
   type UpdateGenerationParametersCommand,
   type UngroupNodesCommand,
+  readTextCardContentRevision,
 } from './canvas-commands'
+import { resolveCanvasCardFamily } from './canvas-card-view-model'
 import {
   resolveStoryboardAssetCommand,
   type StoryboardAssetCommand,
@@ -427,6 +432,89 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     await options.updateNodeState(validated.nodeId, { title: validated.title })
   }
 
+  function editableTextContentTarget(nodeId: string) {
+    const target = options.getNodes().find((node) => node.id === nodeId)
+    if (
+      !target ||
+      resolveCanvasCardFamily(target) !== 'text' ||
+      (target.type === 'script' && target.contentData?.subtype === 'script') ||
+      target.isLocked ||
+      !isNodeMutationSupported(target)
+    ) return null
+    return target
+  }
+
+  function textGenerationTarget(nodeId: string) {
+    return editableTextContentTarget(nodeId)
+  }
+
+  async function setTextCardContent(command: SetTextCardContentCommand) {
+    if (!options.updateNodeState) throw new Error('Text card editing is unavailable')
+    const target = editableTextContentTarget(command.nodeId)
+    const currentContent = target?.content ?? target?.contentData?.text ?? ''
+    if (
+      !target ||
+      currentContent !== command.expectedContent ||
+      readTextCardContentRevision(target) !== command.expectedContentRevision
+    ) return
+    await options.updateNodeState(target.id, {
+      content: command.content,
+      contentData: {
+        ...target.contentData,
+        text: command.content,
+        content_revision: command.expectedContentRevision + 1,
+      },
+    })
+  }
+
+  async function bindTextGenerationJob(command: BindTextGenerationJobCommand) {
+    if (!options.updateNodeState) throw new Error('Text generation binding is unavailable')
+    const target = textGenerationTarget(command.nodeId)
+    if (
+      !target ||
+      target.contentData?.active_generation_job_id
+    ) return
+    await options.updateNodeState(target.id, {
+      contentData: {
+        ...target.contentData,
+        active_generation_job_id: command.jobId,
+        active_generation_job_content_revision: command.expectedContentRevision,
+        active_generation_media_type: 'text',
+        active_generation_mode: command.mode,
+        active_generation_model_id: command.modelId,
+      },
+    })
+  }
+
+  async function applyGenerationJobResult(command: ApplyGenerationJobResultCommand) {
+    if (!options.updateNodeState) throw new Error('Generation job result application is unavailable')
+    const target = textGenerationTarget(command.nodeId)
+    if (
+      !target ||
+      target.contentData?.active_generation_job_id !== command.expectedJobId ||
+      target.contentData?.active_generation_job_content_revision !== command.expectedContentRevision ||
+      readTextCardContentRevision(target) !== command.expectedContentRevision
+    ) return
+    const {
+      active_generation_job_id: _activeJobId,
+      active_generation_job_content_revision: _activeContentRevision,
+      active_generation_media_type: _activeMediaType,
+      active_generation_mode: _activeMode,
+      active_generation_model_id: _activeModel,
+      ...retainedContentData
+    } = target.contentData ?? {}
+    await options.updateNodeState(target.id, {
+      content: command.content,
+      contentData: {
+        ...retainedContentData,
+        text: command.content,
+        content_revision: command.expectedContentRevision + 1,
+        last_generation_job_id: command.expectedJobId,
+        last_generation_result_version: command.resultVersion,
+      },
+    })
+  }
+
   async function insertGraph(command: InsertGraphCommand) {
     if (!options.insertGraph) throw new Error('Canvas graph insertion is unavailable')
     await options.insertGraph(command.nodes, command.connections)
@@ -550,6 +638,9 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'arrange-nodes') return arrangeNodes(command)
     if (command.type === 'set-nodes-locked') return setNodesLocked(command)
     if (command.type === 'rename-node') return renameNode(command)
+    if (command.type === 'set-text-card-content') return setTextCardContent(command)
+    if (command.type === 'bind-text-generation-job') return bindTextGenerationJob(command)
+    if (command.type === 'apply-generation-job-result') return applyGenerationJobResult(command)
     if (command.type === 'insert-graph') return insertGraph(command)
     if (command.type === 'reorder-generation-input') return reorderGenerationInput(command)
     if (command.type === 'update-generation-parameters') return updateGenerationParameters(command)

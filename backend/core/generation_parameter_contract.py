@@ -34,6 +34,7 @@ VIDEO_MAX_KEYFRAMES = 8
 VIDEO_REFERENCE_ROLES = ("first-frame", "last-frame", "reference")
 VIDEO_MAX_REFERENCES = 9
 VIDEO_DURATION_FRAMES = {3: 81, 5: 121, 10: 241, 18: 441}
+TEXT_WORKFLOW_MODES = ("text-to-video",)
 
 
 class GenerationParameterError(ValueError):
@@ -59,9 +60,21 @@ class NormalizedVideoParameters:
 
 
 def build_generation_capabilities(*, agnes_contract: AgnesContract = AGNES_CONTRACT) -> dict[str, Any]:
+    text_capabilities = build_script_authoring_capabilities(
+        model=agnes_contract.media["text"].model
+    )
+    model_label = text_capabilities["model_label"]
+    text_capabilities["contract_version"] = 2
+    text_capabilities["models"] = [
+        {
+            "id": agnes_contract.media["text"].model,
+            "label": model_label,
+            "workflow_modes": list(TEXT_WORKFLOW_MODES),
+        }
+    ]
     return {
         "contract_version": CAPABILITY_CONTRACT_VERSION,
-        "text": build_script_authoring_capabilities(model=agnes_contract.media["text"].model),
+        "text": text_capabilities,
         "image": {
             "model": agnes_contract.media["image"].model,
             "size": IMAGE_SIZE,
