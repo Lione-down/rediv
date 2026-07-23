@@ -159,7 +159,7 @@ test('Canvas script authoring directly replaces the selected card, stays reversi
 
   const authoring = page.getByRole('region', { name: 'AI 脚本写作' })
   await expect(authoring).toContainText('Agnes 2.0 Flash')
-  await expect(authoring.getByRole('button', { name: '从创意生成脚本' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(authoring.getByRole('textbox', { name: '创意 Brief' })).toBeVisible()
   await authoring.getByRole('textbox', { name: '创意 Brief' }).fill('雨夜车站，一名摄影师寻找失踪的胶卷。')
   await authoring.getByRole('button', { name: '生成新脚本' }).click()
 
@@ -200,7 +200,7 @@ test('Canvas script authoring directly replaces the selected card, stays reversi
   await page.getByRole('button', { name: '选择并定位 镜头脚本', exact: true }).click()
   const replaceAuthoring = page.getByRole('region', { name: 'AI 脚本写作' })
   await replaceAuthoring.getByRole('textbox', { name: '脚本优化要求' }).fill('提升节奏，保留人物和黄昏海岸。')
-  await replaceAuthoring.getByRole('button', { name: '生成优化版本' }).click()
+  await replaceAuthoring.getByRole('button', { name: '优化当前脚本' }).click()
   await expect.poll(() => state.requests.filter((item) => item.path === '/api/text-generate').length).toBe(2)
   await expect.poll(() => (state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'script-source')!.content as Record<string, unknown>).text)
     .toBe('黄昏海岸。主角在潮声中走入画面，停下并望向远处灯塔。')
@@ -223,5 +223,5 @@ test('script context replaces internal capability jargon with recoverable model 
   await authoring.getByRole('button', { name: '重试加载模型' }).click()
   await expect(authoring).toContainText('Agnes 2.0 Flash')
   await authoring.getByRole('textbox', { name: '脚本优化要求' }).fill('提升节奏。')
-  await expect(authoring.getByRole('button', { name: '生成优化版本' })).toBeEnabled()
+  await expect(authoring.getByRole('button', { name: '优化当前脚本' })).toBeEnabled()
 })

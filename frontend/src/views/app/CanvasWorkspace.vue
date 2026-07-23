@@ -37,6 +37,7 @@ import { resolveOwnedMediaActionTarget } from '../../modules/canvas/professional
 import type { ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
 import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
 import type { CanvasCardWorkModeId } from '../../components/canvas/canvas-card-work-model'
+import type { StoryboardAssetEditIntent } from '../../modules/canvas/storyboard-asset-commands'
 import { resolveCanvasMaterializedCardResult } from '../../components/canvas/canvas-materialized-card-projection'
 import type { GenerationNodeParameters, VideoReferenceMode } from '../../modules/canvas/generation-parameters'
 import {
@@ -68,6 +69,7 @@ const videoEditPreflightOpen = ref(false)
 const audioGenerationPreflightOpen = ref(false)
 const agentSkillPreflightOpen = ref(false)
 const scriptAuthoringIntent = ref<ScriptAuthoringIntent | null>(null)
+const storyboardAssetEditIntent = ref<StoryboardAssetEditIntent | null>(null)
 const revisionTriggerRef = ref<HTMLButtonElement | null>(null)
 const canvasStageRef = ref<CanvasStageHandle | null>(null)
 const isStageContextSurfaceOpen = ref(false)
@@ -492,8 +494,16 @@ function continueFromContextDrawer() { isDrawerContinuationPending = true; isCon
 function arrangeTraceFromContextDrawer() { isDrawerTraceArrangePending = true; isContextDrawerOpen.value = false }
 function fitTraceFromContextDrawer() { isDrawerTraceFitPending = true; isContextDrawerOpen.value = false }
 function locateNodeFromContext(nodeId: string) {
+  storyboardAssetEditIntent.value = null
   if (isCompact.value) { drawerLocateNodeId = nodeId; isContextDrawerOpen.value = false; return }
   if (selectNodeForCanvasLocation(nodeId)) void nextTick(() => canvasStageRef.value?.revealNode(nodeId))
+}
+function editStoryboardAssetFromContext(intent: StoryboardAssetEditIntent) {
+  storyboardAssetEditIntent.value = intent
+  if (isCompact.value) { drawerLocateNodeId = intent.promptNodeId; isContextDrawerOpen.value = false; return }
+  if (selectNodeForCanvasLocation(intent.promptNodeId)) {
+    void nextTick(() => canvasStageRef.value?.revealNode(intent.promptNodeId))
+  }
 }
 function handleContextDrawerAfterLeave() {
   if (isDrawerContinuationPending) { isDrawerContinuationPending = false; canvasStageRef.value?.openSelectedContinuation() }
@@ -744,17 +754,28 @@ onBeforeUnmount(() => {
           :card-work-busy="isGenerating"
           :card-work-can-generate="viewMode === 'workflow' && Boolean(selectedMediaType) && selectedQuota > 0 && !isReviewOnly"
           :card-work-error="generationError"
+          :card-work-generation-context="selectedGenerationContext"
           :card-work-has-source="Boolean(selectedGenerationContext?.imageIds.length)"
           :card-work-model-label="selectedMediaType ? (generationCapabilities?.[selectedMediaType]?.model ?? '') : ''"
           :card-work-parameter-summary="selectedGenerationContext?.parameterSummary ?? []"
           :card-work-source-count="selectedGenerationContext?.imageIds.length ?? 0"
           :storyboard-generation-summary="storyboardGenerationSummary"
+          :script-authoring-active="scriptGeneration.active.value"
+          :script-authoring-capability="scriptGeneration.capability.value"
+          :script-authoring-capability-error="composerCapabilityError"
+          :script-authoring-capability-loading="isGenerationCapabilitiesLoading"
+          :script-authoring-error="scriptGeneration.error.value"
+          :script-authoring-intent="scriptAuthoringIntent"
+          :script-authoring-success="scriptGeneration.success.value"
+          :script-quota="authStore.quotas.text"
           :viewport-insets="canvasViewportInsets"
           @activate-context-surface="activateContextSurface('stage')"
           @card-generate="generateFromCard"
           @generate-storyboard-group="generateStoryboardGroup"
           @card-open-assets="openSelectedCardAssets"
           @card-upload="uploadSelectedCardSource"
+          @card-update-parameters="updateGenerationParameters"
+          @cancel-script-authoring="scriptGeneration.cancel"
           @context-surface-state="updateStageContextSurface"
           @materialized-card-pointer-select="suppressNextContextAutoOpen"
           @open-composer-resources="openComposerResources"
@@ -766,8 +787,10 @@ onBeforeUnmount(() => {
           @open-revisions="openRevisionPanel"
           @branch-result="branchFromResult"
           @capture-video-frame="captureSelectedVideoFrame"
+          @generate-script="scriptGeneration.generate"
           @remove-composer-attachment="removeComposerAttachment"
           @retry-capabilities="reloadGenerationCapabilities"
+          @retry-script-capability="reloadGenerationCapabilities"
           @submit-script="submitMainComposerScript"
         />
       </div>
@@ -929,8 +952,10 @@ onBeforeUnmount(() => {
           :script-authoring-capability-loading="isGenerationCapabilitiesLoading"
           :script-authoring-error="scriptGeneration.error.value"
           :script-authoring-intent="scriptAuthoringIntent"
+          :script-authoring-in-card="!isReviewOnly"
           :script-authoring-success="scriptGeneration.success.value"
           :script-quota="authStore.quotas.text"
+          :storyboard-asset-edit-intent="storyboardAssetEditIntent"
           @cancel-script-authoring="scriptGeneration.cancel"
           @generate-script="scriptGeneration.generate"
           @retry-script-capability="reloadGenerationCapabilities"
@@ -941,6 +966,7 @@ onBeforeUnmount(() => {
           @compare-results="openResultComparison"
           @fit-trace="canvasStageRef?.fitSelectedProvenanceTrace()"
           @generate="generate"
+          @edit-storyboard-asset="editStoryboardAssetFromContext"
           @director-preflight-ready="setDirectorPreflight"
           @locate-node="locateNodeFromContext"
           @reorder-input="reorderGenerationInput"
@@ -1030,8 +1056,10 @@ onBeforeUnmount(() => {
               :script-authoring-capability-loading="isGenerationCapabilitiesLoading"
               :script-authoring-error="scriptGeneration.error.value"
               :script-authoring-intent="scriptAuthoringIntent"
+              :script-authoring-in-card="!isReviewOnly"
               :script-authoring-success="scriptGeneration.success.value"
               :script-quota="authStore.quotas.text"
+              :storyboard-asset-edit-intent="storyboardAssetEditIntent"
               @cancel-script-authoring="scriptGeneration.cancel"
               @generate-script="scriptGeneration.generate"
               @retry-script-capability="reloadGenerationCapabilities"
@@ -1043,6 +1071,7 @@ onBeforeUnmount(() => {
               @compare-results="openResultComparison"
               @fit-trace="fitTraceFromContextDrawer"
               @generate="generate"
+              @edit-storyboard-asset="editStoryboardAssetFromContext"
               @director-preflight-ready="setDirectorPreflight"
               @locate-node="locateNodeFromContext"
               @reorder-input="reorderGenerationInput"

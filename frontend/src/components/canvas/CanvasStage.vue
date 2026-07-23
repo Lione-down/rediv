@@ -34,11 +34,16 @@ import {
 } from './canvas-geometry'
 import { useCanvasStage } from './composables/use-canvas-stage'
 import { resolveGenerationContext } from '../../modules/canvas/generation-context'
+import type { GenerationNodeParameters, ResolvedGenerationRequestContext } from '../../modules/canvas/generation-parameters'
+import type { ScriptAuthoringCapabilities, ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
+import type { ScriptGenerationSubmission } from './composables/use-canvas-script-generation'
 import { getAuthoringConnectionPorts, getGenerationMediaType } from '../../modules/canvas/node-registry'
 import { resolveGenerationResultVariants, resolveResultLineage, resultLineageProvenance, resultVariantProvenance } from '../../modules/canvas/generation-lineage'
 import { moveSelectionGenerationInput, resolveSelectionGenerationIntent, type SelectionGenerationMoveDirection } from '../../modules/canvas/selection-generation'
 import { resolveCanvasNodeContinuationTrigger } from './canvas-node-continuation-trigger'
 import {
+  CANVAS_CARD_WORK_SURFACE_HEIGHT_PX,
+  CANVAS_CARD_WORK_SURFACE_WITH_REFERENCES_HEIGHT_PX,
   CANVAS_MEDIA_TOOLBAR_HEIGHT_PX,
   resolveCanvasMediaToolbarHorizontalPlacement,
   resolveCanvasMediaToolbarVerticalPlacement,
@@ -51,6 +56,11 @@ import type { GenerationRuntimePresentation } from '../../modules/canvas/generat
 import type { GenerationResultProjection } from '../../modules/canvas/generation-result-projection'
 import type { OwnedMediaActionTarget } from '../../modules/canvas/professional-action-registry'
 import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
+import type { CanvasNode } from '../../types/canvas'
+import {
+  createAddScriptReferenceAssetCommand,
+  createUpdateScriptReferenceAssetsCommand,
+} from '../../modules/canvas/script-reference-assets'
 import { resolveCanvasCardWorkModel, type CanvasCardWorkModeId } from './canvas-card-work-model'
 import { canBranchFromImageResult, type ResultBranchMediaType } from '../../modules/canvas/resource-commands'
 import { createConnectNodesCommand } from '../../modules/canvas/canvas-commands'
@@ -58,17 +68,21 @@ import { useCanvasStoryboardGroups } from './composables/use-canvas-storyboard-g
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; professionalActionsBlocked?: boolean; readonly?: boolean; resourcesOpen?: boolean
   cardWorkBusy?: boolean; cardWorkCanGenerate?: boolean; cardWorkError?: string; cardWorkHasSource?: boolean; cardWorkModelLabel?: string; cardWorkParameterSummary?: readonly string[]; cardWorkSourceCount?: number
+  cardWorkGenerationContext?: ResolvedGenerationRequestContext | null
   composerAttachments?: readonly ProjectAsset[]; composerBusy?: boolean; composerCapabilityError?: string; composerCapabilityLoading?: boolean; composerModelId?: string; composerModelLabel?: string
   generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>; pendingGenerationResults?: readonly GenerationResultProjection[]
   mediaActionTarget?: OwnedMediaActionTarget | null; professionalActionIds?: readonly string[]
+  scriptAuthoringActive?: boolean; scriptAuthoringCapability?: ScriptAuthoringCapabilities | null; scriptAuthoringCapabilityError?: string; scriptAuthoringCapabilityLoading?: boolean; scriptAuthoringError?: string; scriptAuthoringIntent?: ScriptAuthoringIntent | null; scriptAuthoringSuccess?: string; scriptQuota?: number
   storyboardGenerationSummary?: string
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
   actionError: '', capturePending: false, contextOverlayOpen: false, professionalActionsBlocked: false, readonly: false, resourcesOpen: false,
   cardWorkBusy: false, cardWorkCanGenerate: false, cardWorkError: '', cardWorkHasSource: false, cardWorkModelLabel: '', cardWorkParameterSummary: () => [], cardWorkSourceCount: 0,
+  cardWorkGenerationContext: null,
   composerAttachments: () => [], composerBusy: false, composerCapabilityError: '', composerCapabilityLoading: false, composerModelId: '', composerModelLabel: '',
   generationRuntimePresentations: () => new Map(), pendingGenerationResults: () => [],
   mediaActionTarget: null, professionalActionIds: () => [],
+  scriptAuthoringActive: false, scriptAuthoringCapability: null, scriptAuthoringCapabilityError: '', scriptAuthoringCapabilityLoading: false, scriptAuthoringError: '', scriptAuthoringIntent: null, scriptAuthoringSuccess: '', scriptQuota: 0,
   storyboardGenerationSummary: '',
   viewportInsets: () => ({}),
 })
@@ -77,6 +91,8 @@ const emit = defineEmits<{
   cardGenerate: [nodeId: string, prompt: string, mode: CanvasCardWorkModeId]
   cardOpenAssets: [nodeId: string, opener: HTMLElement]
   cardUpload: [nodeId: string, file: File]
+  cardUpdateParameters: [parameters: GenerationNodeParameters]
+  cancelScriptAuthoring: []
   openAudioGenerationPreflight: []
   captureVideoFrame: [nodeId: string, file: File, timeSeconds: number, aspectRatio: number]
   contextSurfaceState: [open: boolean]
@@ -92,6 +108,8 @@ const emit = defineEmits<{
   branchResult: [mediaType: ResultBranchMediaType]
   submitScript: [brief: string]
   generateStoryboardGroup: [groupId: string]
+  generateScript: [submission: ScriptGenerationSubmission]
+  retryScriptCapability: []
 }>()
 const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
 const textAuthoringNodeId = ref('')
@@ -227,8 +245,16 @@ const mediaToolbarStyle = computed(() => {
     isReadOnly: props.readonly,
     isSelected: true,
   }).showsAttachedWorkSurface
+  const context = props.cardWorkGenerationContext
+  const hasReferenceRail = context?.mediaType === 'video' && context.capabilities?.contract_version === 6
+    ? Boolean(context.videoReferences?.length)
+    : Boolean(context?.mediaSources.some((source) => source.state === 'included'))
   const toolbarVertical = resolveCanvasMediaToolbarVerticalPlacement({
-    composerHeight: showsAttachedWorkSurface ? 190 : undefined,
+    composerHeight: showsAttachedWorkSurface
+      ? hasReferenceRail
+        ? CANVAS_CARD_WORK_SURFACE_WITH_REFERENCES_HEIGHT_PX
+        : CANVAS_CARD_WORK_SURFACE_HEIGHT_PX
+      : undefined,
     composerTop: showsAttachedWorkSurface
       ? top + nodeHeight + 16 * canvasStore.viewport.zoom
       : undefined,
@@ -604,10 +630,11 @@ async function attachCardReference(targetNodeId: string, sourceNodeId: string) {
 function resolveCardReferenceCandidateSnapshot(targetNodeId: string) {
   const target = presentationNodes.value.find((node) => node.id === targetNodeId)
   if (!target) return ''
+  const isScriptTarget = target.type === 'script' && target.contentData?.subtype === 'script'
   return presentationNodes.value.flatMap((candidate) => {
     const assetId = candidate.contentData?.asset_id
     if (
-      candidate.id === target.id || typeof assetId !== 'string' || !assetId.trim() ||
+      candidate.id === target.id || (!isScriptTarget && (typeof assetId !== 'string' || !assetId.trim())) ||
       !createConnectNodesCommand(
         presentationNodes.value,
         presentationConnections.value,
@@ -616,7 +643,8 @@ function resolveCardReferenceCandidateSnapshot(targetNodeId: string) {
       )
     ) return []
     return [JSON.stringify({
-      assetId,
+      assetId: assetId ?? null,
+      content: isScriptTarget ? candidate.content ?? candidate.contentData?.text ?? null : null,
       id: candidate.id,
       sourceTaskId: candidate.contentData?.source_task_id ?? null,
       url: candidate.contentData?.url ?? null,
@@ -624,11 +652,39 @@ function resolveCardReferenceCandidateSnapshot(targetNodeId: string) {
   }).sort().join('|')
 }
 
+function canStartCardReferenceMode(target: CanvasNode | null | undefined) {
+  return Boolean(target && !target.isLocked && (
+    getGenerationMediaType(target) !== null ||
+    (target.type === 'script' && target.contentData?.subtype === 'script')
+  ))
+}
+
 function startCardReferenceMode(targetNodeId: string) {
   const target = canvasStore.findNodeById(targetNodeId)
-  if (!target || props.readonly || target.isLocked || getGenerationMediaType(target) === null) return
+  if (props.readonly || !canStartCardReferenceMode(target)) return
   cardReferenceCandidateSnapshot = resolveCardReferenceCandidateSnapshot(targetNodeId)
   cardReferenceTargetNodeId.value = targetNodeId
+}
+
+async function attachScriptRoleReference(targetNodeId: string, sourceNodeId: string) {
+  if (props.readonly) return
+  const command = createAddScriptReferenceAssetCommand(canvasStore.nodes, targetNodeId, sourceNodeId)
+  if (!command) return
+  await canvasStore.dispatchCommand({ source: 'toolbar', command }).catch(() => undefined)
+  canvasStore.selectNode(targetNodeId)
+  await nextTick()
+  canvasSurfaceRef.value?.querySelector<HTMLButtonElement>(
+    `.canvas-node-surface[data-node-id="${targetNodeId}"] .script-empty-state button[aria-expanded]`,
+  )?.focus({ preventScroll: true })
+}
+
+async function clearScriptRoleReferences(targetNodeId: string) {
+  if (props.readonly) return
+  const command = createUpdateScriptReferenceAssetsCommand(canvasStore.nodes, targetNodeId, [])
+  if (!command) return
+  await canvasStore.dispatchCommand({ source: 'toolbar', command }).catch(() => undefined)
+  canvasStore.selectNode(targetNodeId)
+  cancelCardReferenceMode()
 }
 
 function cancelCardReferenceMode() {
@@ -682,7 +738,7 @@ watch([
   const targetNode = target ? canvasStore.findNodeById(target) : null
   if (target && (
     props.readonly || props.resourcesOpen || props.contextOverlayOpen || !targetNode ||
-    targetNode.isLocked || getGenerationMediaType(targetNode) === null
+    !canStartCardReferenceMode(targetNode)
   )) {
     cancelCardReferenceMode()
   }
@@ -795,6 +851,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :card-work-busy="cardWorkBusy"
         :card-work-can-generate="cardWorkCanGenerate"
         :card-work-error="cardWorkError"
+        :generation-context="cardWorkGenerationContext"
         :card-work-has-source="cardWorkHasSource"
         :card-work-model-label="cardWorkModelLabel"
         :card-work-parameter-summary="cardWorkParameterSummary"
@@ -807,7 +864,16 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :nodes="presentationNodes"
         :selected-node-ids="canvasStore.selectedNodeIds"
         :readonly="readonly"
+        :reference-source-nodes="canvasStore.nodes"
         :reference-target-node-id="cardReferenceTargetNodeId"
+        :script-authoring-active="scriptAuthoringActive"
+        :script-authoring-capability="scriptAuthoringCapability"
+        :script-authoring-capability-error="scriptAuthoringCapabilityError"
+        :script-authoring-capability-loading="scriptAuthoringCapabilityLoading"
+        :script-authoring-error="scriptAuthoringError"
+        :script-authoring-intent="scriptAuthoringIntent"
+        :script-authoring-success="scriptAuthoringSuccess"
+        :script-quota="scriptQuota"
         :surface-node-rect-style="surfaceNodeRectStyle"
         :text-authoring-node-id="textAuthoringNodeId"
         :text-workflow-mode="textWorkflow?.mode ?? ''"
@@ -817,11 +883,17 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         @card-reference="attachCardReference"
         @card-reference-cancel="cancelCardReferenceMode"
         @card-reference-start="startCardReferenceMode"
+        @card-script-role-reference-clear="clearScriptRoleReferences"
+        @card-script-role-reference-select="attachScriptRoleReference"
         @card-upload="(nodeId, file) => emit('cardUpload', nodeId, file)"
+        @card-update-parameters="emit('cardUpdateParameters', $event)"
+        @cancel-script-authoring="emit('cancelScriptAuthoring')"
         @commit-content="commitNodeContent"
         @continue-node="openNodeContinuation"
         @capture-frame="forwardCapturedVideoFrame"
         @media-metadata="adoptMediaAspectRatio"
+        @generate-script="emit('generateScript', $event)"
+        @retry-script-capability="emit('retryScriptCapability')"
         @text-mode="(nodeId, mode) => handleTextCardMode(nodeId, mode)"
         @text-workflow-cancel="textWorkflow = null"
         @text-workflow-submit="submitTextWorkflow"

@@ -15,11 +15,16 @@ import {
   type ShotControls,
 } from '../../modules/canvas/shot-controls'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
+  compact?: boolean
   context: ResolvedGenerationRequestContext
   disabled?: boolean
   readonly?: boolean
-}>()
+}>(), {
+  compact: false,
+  disabled: false,
+  readonly: false,
+})
 
 const emit = defineEmits<{
   updateParameters: [parameters: GenerationNodeParameters]
@@ -173,7 +178,7 @@ function isShotControlDisabled(control: ShotControlId) {
 </script>
 
 <template>
-  <section class="generation-parameters" aria-label="生成参数">
+  <section class="generation-parameters" :class="{ 'is-compact': compact }" aria-label="生成参数">
     <div class="generation-parameters__heading">
       <span>生成参数</span>
       <strong>{{ context.isRecipe ? '配方固定' : '随节点保存' }}</strong>
@@ -374,4 +379,6 @@ label.disabled, fieldset:disabled label { cursor: not-allowed; opacity: .42; }
 .generation-parameters__summary { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; }
 .generation-parameters__summary div { padding: 5px 7px; border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: var(--v2-surface-2); }
 .generation-parameters__summary dd { margin: 0; font-size: 10px; }
+.generation-parameters.is-compact { max-height: 320px; margin-top: 0; overflow: auto; border-color: var(--canvas-composer-outline); background: var(--v2-surface-2); box-shadow: var(--v2-shadow-floating); }
+.generation-parameters.is-compact .generation-parameters__heading { position: sticky; z-index: 1; top: -10px; padding: 2px 0 8px; background: var(--v2-surface-2); }
 </style>

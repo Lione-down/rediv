@@ -298,7 +298,7 @@ test('shot controls persist as one reversible parameter command and reach the ex
 
   await page.reload()
   await selectNode(page, '封面生成')
-  await expect(page.getByLabel('镜头角度')).toHaveValue('high-angle')
+  await expect(page.getByLabel('镜头角度', { exact: true })).toHaveValue('high-angle')
   await page.getByRole('button', { name: '开始图片生成' }).click()
   await expect.poll(() => state.requests.filter((item) => item.path === '/api/image-generate').length).toBe(1)
   expect(state.requests.find((item) => item.path === '/api/image-generate')?.body).toEqual(expect.objectContaining({

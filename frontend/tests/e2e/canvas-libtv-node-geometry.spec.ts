@@ -134,7 +134,7 @@ async function expectHorizontalToolbarRhythm(toolbar: Locator) {
   expect(rhythm.overflow).toBeLessThanOrEqual(1)
 }
 
-test('media body and node-local composer consume the same geometry at official target zooms', async ({ page }) => {
+test('media and script bodies consume canonical geometry at official target zooms', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state, { width: 1440, height: 900 }, { enableCanvasInspection: true })
   const baselinePatches = documentPatches(state).length
@@ -167,7 +167,7 @@ test('media body and node-local composer consume the same geometry at official t
     const rect = await composer.boundingBox()
     expect(rect).not.toBeNull()
     expect(rect!.width).toBeCloseTo(320 * scale, 0)
-    expect(rect!.height).toBeCloseTo(76 * scale, 0)
+    expect(rect!.height).toBeCloseTo(160 * scale, 0)
   }
 
   expect(documentPatches(state)).toHaveLength(baselinePatches)
@@ -582,7 +582,7 @@ test('selected media toolbar recomputes its safe width during live viewport resi
   expect(documentPatches(state)).toHaveLength(baselinePatches)
 })
 
-test('source-attached composer flips above a bottom collision and stays inside the Canvas', async ({ page }) => {
+test('source-attached script workbench flips above a bottom collision and stays inside the Canvas', async ({ page }) => {
   const state = createResourceMockState()
   const script = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'script-source')!
   script.position_y = 750
@@ -596,7 +596,7 @@ test('source-attached composer flips above a bottom collision and stays inside t
     position: { x: nodeRect.x - surfaceRect.x + nodeRect.width / 2, y: nodeRect.y - surfaceRect.y + nodeRect.height / 2 },
   })
 
-  const composerRect = await page.locator('.canvas-node-surface.is-composer[data-node-id="script-source"]').boundingBox()
+  const composerRect = await page.locator('.canvas-script-card-work-surface').boundingBox()
   expect(composerRect).not.toBeNull()
   expect(composerRect!.y + composerRect!.height).toBeLessThanOrEqual(nodeRect.y - 6)
   expect(composerRect!.y).toBeGreaterThanOrEqual(surfaceRect.y + 12)

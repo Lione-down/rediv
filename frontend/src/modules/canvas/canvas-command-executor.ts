@@ -36,6 +36,14 @@ import {
   type UngroupNodesCommand,
 } from './canvas-commands'
 import {
+  resolveStoryboardAssetCommand,
+  type StoryboardAssetCommand,
+} from './storyboard-asset-commands'
+import {
+  createUpdateScriptReferenceAssetsCommand,
+  type UpdateScriptReferenceAssetsCommand,
+} from './script-reference-assets'
+import {
   createConvertStoryboardGroupCommand,
   createCreateStoryboardGroupCommand,
   createReorderStoryboardGroupCommand,
@@ -476,6 +484,47 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     })
   }
 
+  async function updateScriptReferenceAssets(command: UpdateScriptReferenceAssetsCommand) {
+    if (!options.updateNodeState) throw new Error('Script reference editing is unavailable')
+    const target = options.getNodes().find((node) => node.id === command.nodeId)
+    const validated = createUpdateScriptReferenceAssetsCommand(
+      options.getNodes(),
+      command.nodeId,
+      command.referenceAssetIds,
+    )
+    if (!target || !validated) return
+    const contentData = { ...target.contentData }
+    if (validated.referenceAssetIds.length) contentData.reference_asset_ids = validated.referenceAssetIds
+    else delete contentData.reference_asset_ids
+    await options.updateNodeState(target.id, { contentData })
+  }
+
+  async function mutateStoryboardAsset(command: StoryboardAssetCommand) {
+    if (!options.updateNodeState) throw new Error('Storyboard asset editing is unavailable')
+    const resolved = resolveStoryboardAssetCommand(options.getNodes(), command)
+    if (!resolved) return
+    const nodeById = new Map(options.getNodes().map((node) => [node.id, node]))
+    const snapshots = new Map(resolved.map(({ nodeId }) => {
+      const node = nodeById.get(nodeId)!
+      return [nodeId, {
+        content: node.content,
+        contentData: node.contentData ? structuredClone(toRaw(node.contentData)) : undefined,
+      }]
+    }))
+    const attemptedIds: string[] = []
+    try {
+      for (const update of resolved) {
+        attemptedIds.push(update.nodeId)
+        await options.updateNodeState(update.nodeId, update.updates)
+      }
+    } catch (error) {
+      for (const nodeId of attemptedIds.reverse()) {
+        await options.updateNodeState(nodeId, snapshots.get(nodeId)!).catch(() => undefined)
+      }
+      throw error
+    }
+  }
+
   async function executeCommand(envelope: CanvasCommandEnvelope) {
     const { command } = envelope
     if (command.type === 'move-nodes') return moveNodes(command)
@@ -496,6 +545,8 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'update-generation-parameters') return updateGenerationParameters(command)
     if (command.type === 'update-cinematic-skill-settings') return updateCinematicSkillSettings(command)
     if (command.type === 'apply-script-authoring-result') return applyScriptAuthoringResult(command)
+    if (command.type === 'update-script-reference-assets') return updateScriptReferenceAssets(command)
+    if (command.type === 'mutate-storyboard-asset') return mutateStoryboardAsset(command)
     if (command.type === 'apply-cinematic-sequence') return executeApplyCinematicSequenceCommand(
       options.getNodes(), options.updateNodeState, command,
     )

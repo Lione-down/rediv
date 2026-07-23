@@ -26,6 +26,9 @@ import CanvasScriptGenerationControls from './CanvasScriptGenerationControls.vue
 import type { ScriptAuthoringCapabilities, ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
 import type { ScriptGenerationSubmission } from './composables/use-canvas-script-generation'
 import { useCanvasCinematicLineage } from './composables/use-canvas-cinematic-lineage'
+import CanvasStoryboardAssetGroupDetails from './CanvasStoryboardAssetGroupDetails.vue'
+import CanvasStoryboardAssetEditor from './CanvasStoryboardAssetEditor.vue'
+import type { StoryboardAssetEditIntent } from '../../modules/canvas/storyboard-asset-commands'
 
 const props = withDefaults(defineProps<{
   error?: string
@@ -55,8 +58,10 @@ const props = withDefaults(defineProps<{
   scriptAuthoringCapabilityLoading?: boolean
   scriptAuthoringError?: string
   scriptAuthoringIntent?: ScriptAuthoringIntent | null
+  scriptAuthoringInCard?: boolean
   scriptAuthoringSuccess?: string
   scriptQuota?: number
+  storyboardAssetEditIntent?: StoryboardAssetEditIntent | null
 }>(), {
   error: '',
   allowGenerationExecution: true,
@@ -83,8 +88,10 @@ const props = withDefaults(defineProps<{
   scriptAuthoringCapabilityLoading: false,
   scriptAuthoringError: '',
   scriptAuthoringIntent: null,
+  scriptAuthoringInCard: false,
   scriptAuthoringSuccess: '',
   scriptQuota: 0,
+  storyboardAssetEditIntent: null,
 })
 
 const canvasStore = useCanvasStore()
@@ -106,6 +113,7 @@ const emit = defineEmits<{
   cancelScriptAuthoring: []
   generateScript: [submission: ScriptGenerationSubmission]
   retryScriptCapability: []
+  editStoryboardAsset: [intent: StoryboardAssetEditIntent]
 }>()
 const prompt = ref(props.node.content?.trim() || '')
 const visualRecipe = computed(() => resolveVisualAssetRecipe(props.node))
@@ -115,6 +123,13 @@ const operationRequiresPrompt = computed(() => imageOperation.value
   ? IMAGE_OPERATIONS[imageOperation.value.id].requiresPrompt
   : true)
 const usesPrompt = computed(() => !imageOperation.value || operationRequiresPrompt.value)
+const storyboardAssetEditing = computed(() => (
+  props.storyboardAssetEditIntent?.promptNodeId === props.node.id &&
+  props.node.type === 'script' && props.node.contentData?.subtype === 'prompt'
+))
+const isStoryboardAssetGroup = computed(() => (
+  props.node.type === 'group' && props.node.contentData?.storyboard_kind === 'shot-plan'
+))
 const requestedOutputCount = computed(() => (
   props.mediaType === 'image' && !props.generationContext?.imageBatch
     ? props.generationContext?.outputCount ?? 1
@@ -260,8 +275,20 @@ function requestGeneration() {
       <div><Sparkles v-if="mediaType" :size="18" aria-hidden="true" /><Info v-else :size="18" aria-hidden="true" /><span><strong>{{ node.title }}</strong><small>{{ node.type }} · {{ String(node.contentData?.subtype || node.type) }}</small></span></div>
       <div class="header-actions"><button v-if="canArrangeTrace" type="button" aria-label="整理完整生成链路" title="整理完整生成链路" @click="emit('arrangeTrace')"><Columns2 :size="17" aria-hidden="true" /></button><button v-if="canFitTrace" type="button" aria-label="适配完整生成链路" title="适配完整生成链路" @click="emit('fitTrace')"><Focus :size="17" aria-hidden="true" /></button><button v-if="canContinue" type="button" aria-label="继续此节点" title="继续此节点" @click="emit('continueNode')"><GitBranch :size="17" aria-hidden="true" /></button><button type="button" aria-label="关闭节点详情" title="关闭节点详情" @click="emit('close')"><X :size="18" aria-hidden="true" /></button></div>
     </header>
+    <CanvasStoryboardAssetGroupDetails
+      :node="node"
+      :readonly="readonly"
+      @edit-asset="emit('editStoryboardAsset', $event)"
+      @locate-node="emit('locateNode', $event)"
+    />
+    <CanvasStoryboardAssetEditor
+      v-if="storyboardAssetEditing && storyboardAssetEditIntent"
+      :intent="storyboardAssetEditIntent"
+      :node="node"
+      :readonly="readonly"
+    />
     <CanvasScriptGenerationControls
-      v-if="node.type === 'script' && node.contentData?.subtype === 'script'"
+      v-if="node.type === 'script' && node.contentData?.subtype === 'script' && !scriptAuthoringInCard"
       :active="scriptAuthoringActive"
       :capability="scriptAuthoringCapability"
       :capability-error="scriptAuthoringCapabilityError"
@@ -455,7 +482,7 @@ function requestGeneration() {
       <p v-else-if="latestTask?.error_message" class="feedback is-error" role="alert"><AlertTriangle :size="15" aria-hidden="true" />{{ latestTask.error_message }}</p>
     </section>
 
-    <section v-else class="node-review" aria-label="节点内容">
+    <section v-else-if="!storyboardAssetEditing && !isStoryboardAssetGroup" class="node-review" aria-label="节点内容">
       <dl><div><dt>节点类型</dt><dd>{{ node.type }}</dd></div><div><dt>状态</dt><dd>{{ node.status || 'idle' }}</dd></div><div><dt>位置</dt><dd>{{ Math.round(node.x) }}, {{ Math.round(node.y) }}</dd></div></dl>
       <section v-if="capturedFrameProvenance" class="captured-frame-detail" aria-label="视频帧来源">
         <div class="section-heading"><span>视频帧来源</span><strong>{{ formatCapturedFrameTime(capturedFrameProvenance.captureTimeSeconds) }}</strong></div>

@@ -9,6 +9,7 @@ import {
 } from './canvas-resource-generation-fixture'
 
 const EVIDENCE_DIRECTORY = resolve(process.cwd(), '..', 'output', 'playwright', 't6-004')
+const T6_005_EVIDENCE_DIRECTORY = resolve(process.cwd(), '..', 'output', 'playwright', 't6-005-yuque-workbench')
 
 async function createAssetGroup(page: Page) {
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
@@ -41,6 +42,54 @@ test('script-created asset group continues after one failure, reports counts, an
 
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 分镜资产组', exact: true }).click()
+  await page.getByRole('button', { name: '打开节点详情' }).click()
+  const groupDetails = page.getByRole('region', { name: '分镜资产组详情' })
+  await expect(groupDetails).toBeVisible()
+  await expect(groupDetails.getByRole('button', { name: '新增角色' })).toBeVisible()
+  await expect(groupDetails.getByRole('button', { name: '新增场景' })).toBeVisible()
+  await expect(groupDetails.getByRole('button', { name: '新增道具' })).toBeVisible()
+  await expect(groupDetails.getByRole('region', { name: '有序镜头资产' }).getByRole('button')).toHaveCount(2)
+
+  await groupDetails.getByRole('button', { name: '新增角色' }).click()
+  await groupDetails.getByRole('textbox', { name: '角色名称' }).fill('主角')
+  await groupDetails.getByRole('button', { name: '确认新增资产' }).click()
+  const roleEditor = page.getByRole('region', { name: '编辑角色' })
+  await expect(roleEditor).toBeVisible()
+  await expect(roleEditor.getByRole('textbox', { name: '角色名称' })).toHaveValue('主角')
+  await roleEditor.getByRole('textbox', { name: '角色名称' }).fill('女主角')
+  await roleEditor.getByRole('textbox', { name: '角色描述' }).fill('雨夜站台上的女主角，保持统一服装与侧逆光。')
+  await roleEditor.getByRole('button', { name: '保存角色' }).click()
+  await expect(roleEditor.getByRole('status')).toContainText('角色已保存到画布')
+  const editorAccessibility = await new AxeBuilder({ page }).include('.asset-editor').analyze()
+  expect(editorAccessibility.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([])
+  await mkdir(T6_005_EVIDENCE_DIRECTORY, { recursive: true })
+  await page.screenshot({ path: resolve(T6_005_EVIDENCE_DIRECTORY, 'asset-role-editor-1440x900.png'), fullPage: true })
+  await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.some((node) => {
+    const content = node.content as Record<string, unknown>
+    return Array.isArray(content.shot_characters) && content.shot_characters.includes('女主角') &&
+      content.text === '雨夜站台上的女主角，保持统一服装与侧逆光。'
+  })).toBe(true)
+
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  await page.getByRole('button', { name: '选择并定位 分镜资产组', exact: true }).click()
+  const editedRoleCard = groupDetails.getByRole('button', { name: '编辑角色 女主角' })
+  await expect(editedRoleCard).toBeVisible()
+  await page.screenshot({ path: resolve(T6_005_EVIDENCE_DIRECTORY, 'asset-group-detail-1440x900.png'), fullPage: true })
+  await editedRoleCard.focus()
+  await page.keyboard.press('Enter')
+  await expect(roleEditor).toBeVisible()
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  await page.getByRole('button', { name: '选择并定位 分镜资产组', exact: true }).click()
+  const removeRoleButton = groupDetails.getByRole('button', { name: '移除角色 女主角' })
+  await removeRoleButton.focus()
+  await page.keyboard.press('Enter')
+  await expect(groupDetails.getByRole('button', { name: '编辑角色 女主角' })).toHaveCount(0)
+  await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.every((node) => {
+    const content = node.content as Record<string, unknown>
+    return !Array.isArray(content.shot_characters) || !content.shot_characters.includes('女主角')
+  })).toBe(true)
+  expect(state.requests.filter((item) => item.path === '/api/image-generate')).toHaveLength(0)
+  await page.getByRole('button', { name: '关闭节点详情' }).click()
   await page.getByRole('button', { name: '全部生成' }).click()
   await expect.poll(() => state.requests.filter((item) => item.path === '/api/image-generate').length).toBe(2)
   await expect(page.getByRole('status', { name: '资产组生成结果' })).toContainText('完成 1 · 失败 1 · 跳过 0')

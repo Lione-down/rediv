@@ -124,7 +124,6 @@ test('v6 card generation preserves structured roles instead of writing a legacy 
   }).video.reference_bindings))
 
   const workSurface = page.getByRole('region', { name: /卡片工作区/ })
-  await workSurface.getByRole('button', { name: '首尾帧生成视频' }).click()
   await workSurface.getByRole('button', { name: '在当前卡片生成' }).evaluate((element: HTMLButtonElement) => element.click())
   await expect.poll(() => (((state.documents[FIRST_CANVAS_ID].nodes.find((node) => (
     node.id === 'generation-nine-reference-video'

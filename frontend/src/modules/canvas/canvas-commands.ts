@@ -4,6 +4,8 @@ import type { GenerationNodeParameters } from './generation-parameters'
 import type { CinematicSkillNodeSettings } from './cinematic-skills'
 import type { ScriptAuthoringLineage } from './script-authoring'
 import type { ApplyCinematicSequenceCommand } from './cinematic-sequence-command'
+import type { StoryboardAssetCommand } from './storyboard-asset-commands'
+import type { UpdateScriptReferenceAssetsCommand } from './script-reference-assets'
 import {
   reorderGenerationInputConnections,
   type GenerationInputDirection,
@@ -153,7 +155,9 @@ export type CanvasCommand =
   | UpdateGenerationParametersCommand
   | UpdateCinematicSkillSettingsCommand
   | ApplyScriptAuthoringResultCommand
+  | UpdateScriptReferenceAssetsCommand
   | ApplyCinematicSequenceCommand
+  | StoryboardAssetCommand
   | InsertNodeIntoConnectionCommand
 
 export interface CanvasCommandEnvelope {

@@ -1,7 +1,7 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { Buffer } from 'node:buffer'
 import { createResourceMockState, documentPatches, FIRST_CANVAS_ID, openResourceWorkspace } from './canvas-resource-generation-fixture'
 import { createT6VisualConvergenceState } from './canvas-card-visual-convergence-fixture'
 import { ACCEPTANCE_LANDSCAPE_URL, configureLandscapeMaterializedAcceptance, parkAcceptancePointer, resolveAcceptanceCaptureClip } from './canvas-card-acceptance-capture'
@@ -19,7 +19,7 @@ function expectMeasuredMediaToolbar(toolbar: ScreenRect, node: ScreenRect, stage
   expect(toolbar.x).toBeCloseTo(expectedLeft, 0)
 }
 
-test('selected generation card owns its modes sources prompt and canvas references', async ({ page }, testInfo) => {
+test('selected generation card follows the authenticated reference then mention workflow', async ({ page }, testInfo) => {
   const state = createT6VisualConvergenceState()
   const referenceNode = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'visual-reference-top')!
   const referenceAsset = state.assets.find((asset) => asset.id === 'asset-reference')!
@@ -46,34 +46,69 @@ test('selected generation card owns its modes sources prompt and canvas referenc
 
   const workSurface = page.getByRole('region', { name: /卡片工作区/ })
   await expect(workSurface).toBeVisible()
-  await expect(workSurface.getByRole('button', { name: '文生视频' })).toBeVisible()
-  await expect(workSurface.getByRole('button', { name: '首帧生成视频' })).toBeVisible()
-  await expect(workSurface.getByRole('button', { name: '首尾帧生成视频' })).toBeVisible()
-  await expect(workSurface.getByRole('textbox', { name: '卡片生成提示词' })).toBeVisible()
-  await expect(workSurface.getByRole('button', { name: '本地上传' })).toBeEnabled()
-  await expect(workSurface.getByRole('button', { name: '项目资产' })).toBeEnabled()
+  const [generationCardBox, workSurfaceBox] = await Promise.all([
+    page.locator('.canvas-node-surface[data-node-id="visual-generation"]').boundingBox(),
+    workSurface.boundingBox(),
+  ])
+  if (!generationCardBox || !workSurfaceBox) throw new Error('Selected generation workbench geometry is unavailable')
+  const workbenchGap = workSurfaceBox.y - (generationCardBox.y + generationCardBox.height)
+  expect(workbenchGap).toBeGreaterThanOrEqual(10)
+  expect(workbenchGap).toBeLessThanOrEqual(12)
+  await expect(workSurface.getByRole('button', { name: '文生视频' })).toHaveCount(0)
+  await expect(workSurface.getByRole('button', { name: '首帧生成视频' })).toHaveCount(0)
+  await expect(workSurface.getByRole('button', { name: '首尾帧生成视频' })).toHaveCount(0)
+  const prompt = workSurface.getByRole('textbox', { name: '卡片生成提示词' })
+  await expect(prompt).toBeVisible()
+  await expect(workSurface.getByRole('button', { name: '本地上传' })).toHaveCount(0)
+  await expect(workSurface.getByRole('button', { name: '项目资产' })).toHaveCount(0)
 
-  await workSurface.getByRole('button', { name: '画布参考' }).click()
+  const directReferenceBaseline = state.documents[FIRST_CANVAS_ID].connections.length
+  await prompt.fill('@')
+  const referencePicker = workSurface.getByRole('listbox', { name: '已连接的可引用素材' })
+  await expect(referencePicker).toBeVisible()
+  await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(directReferenceBaseline)
+  const connectedOptions = referencePicker.getByRole('option')
+  expect(await connectedOptions.count()).toBeGreaterThan(0)
+  await connectedOptions.first().click()
+  await expect(prompt).toHaveValue(/@/)
+  await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(directReferenceBaseline)
+
+  await prompt.fill('@')
+  await referencePicker.getByRole('option').first().focus()
+  await page.keyboard.press('Escape')
+  await expect(referencePicker).toHaveCount(0)
+  await expect(prompt).toBeFocused()
+
+  await workSurface.getByRole('button', { name: '参考', exact: true }).click()
   await expect(workSurface.getByText('正在从画布选择参考')).toBeVisible()
   const canvasCandidates = page.getByRole('button', { name: /^选择 .+ 作为参考$/ })
   await expect(canvasCandidates).toHaveCount(2)
   await page.keyboard.press('Escape')
   await expect(canvasCandidates).toHaveCount(0)
-  await workSurface.getByRole('button', { name: '画布参考' }).click()
+  await workSurface.getByRole('button', { name: '参考', exact: true }).click()
   await expect(canvasCandidates).toHaveCount(2)
   await page.mouse.click(420, 120)
   await expect(canvasCandidates).toHaveCount(0)
-  await workSurface.getByRole('button', { name: '画布参考' }).click()
+  await workSurface.getByRole('button', { name: '参考', exact: true }).click()
   await expect(canvasCandidates).toHaveCount(2)
   await page.keyboard.press('Control+z')
   await expect(canvasCandidates).toHaveCount(0)
-  await workSurface.getByRole('button', { name: '画布参考' }).click()
+  await workSurface.getByRole('button', { name: '参考', exact: true }).click()
   await expect(canvasCandidates).toHaveCount(2)
   const outputDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't6-003-card-work-model')
   await mkdir(outputDirectory, { recursive: true })
   const screenshotPath = resolve(outputDirectory, 'selected-video-card-work-surface.png')
   await page.screenshot({ path: screenshotPath, animations: 'disabled' })
   await testInfo.attach('selected-video-card-work-surface', { path: screenshotPath, contentType: 'image/png' })
+  const t6005Directory = resolve(process.cwd(), '..', 'output', 'playwright', 't6-005-yuque-workbench')
+  await mkdir(t6005Directory, { recursive: true })
+  const t6005VideoPath = resolve(t6005Directory, 'video-workbench-1440x900.png')
+  await page.screenshot({
+    path: t6005VideoPath,
+    animations: 'disabled',
+    clip: resolveAcceptanceCaptureClip([generationCardBox, workSurfaceBox], { width: 1440, height: 900 }, 32),
+  })
+  await testInfo.attach('t6-005-video-workbench-1440x900', { path: t6005VideoPath, contentType: 'image/png' })
 
   const referenceConnectionCount = state.documents[FIRST_CANVAS_ID].connections.length
   await page.getByRole('button', { name: '选择 额外画布参考 作为参考' }).click()
@@ -89,31 +124,83 @@ test('selected generation card owns its modes sources prompt and canvas referenc
   await page.keyboard.press('Control+Shift+z')
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(referenceConnectionCount + 1)
 
-  const baselineConnectionCount = state.documents[FIRST_CANVAS_ID].connections.length
-  await workSurface.getByLabel('上传本地素材到当前卡片').setInputFiles({
-    name: 'card-reference.png',
-    mimeType: 'image/png',
-    buffer: Buffer.from('89504e470d0a1a0a0000000049454e44ae426082', 'hex'),
-  })
-  await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(baselineConnectionCount + 1)
-  expect(state.documents[FIRST_CANVAS_ID].connections.at(-1)).toMatchObject({
-    target_node_id: 'visual-generation',
-    target_port: 'media',
-    metadata: { input_order: 1, source_acquisition: 'card' },
-  })
+})
 
-  const projectAssetsTrigger = workSurface.getByRole('button', { name: '项目资产' })
-  const patchesBeforeProjectAssetDismissal = documentPatches(state).length
-  await projectAssetsTrigger.click()
-  const projectAssetsPanel = page.getByRole('complementary', { name: '项目资源' })
-  await expect(projectAssetsPanel).toBeVisible()
-  await expect(page.getByText('选择一张项目图片，作为当前生成卡片的来源和画布引用。')).toBeVisible()
-  await projectAssetsPanel.getByRole('tab', { name: '项目资产' }).focus()
-  await page.keyboard.press('Escape')
-  await expect(projectAssetsPanel).toHaveCount(0)
-  await expect(projectAssetsTrigger).toBeFocused()
-  await expect(workSurface).toBeVisible()
-  expect(documentPatches(state)).toHaveLength(patchesBeforeProjectAssetDismissal)
+test('video reference rail exposes durable roles order removal and per-image prompt intent', async ({ page }, testInfo) => {
+  const state = createT6VisualConvergenceState()
+  state.capabilityVersion = 6
+  const generation = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'visual-generation')!
+  generation.content = {
+    ...generation.content,
+    generation_parameters: {
+      schema_version: 1,
+      video: {
+        duration_seconds: 5,
+        reference_bindings: [
+          { node_id: 'visual-reference-top', asset_id: 'asset-reference', role: 'first-frame', order: 0 },
+          { node_id: 'visual-selected', asset_id: 'asset-generated', role: 'last-frame', order: 1 },
+        ],
+      },
+    },
+  }
+  await openResourceWorkspace(page, state, { width: 1440, height: 900 }, { enableCanvasInspection: true })
+  await page.getByRole('region', { name: /Revid/ }).focus()
+  await page.keyboard.press('Control+0')
+  const target = await page.locator('.canvas-surface').evaluate((element) => (
+    (element as HTMLElement & {
+      __revidCanvasInspection?: { getNodeScreenRect?: (nodeId: string) => ScreenRect | null }
+    }).__revidCanvasInspection?.getNodeScreenRect?.('visual-generation') ?? null
+  ))
+  if (!target) throw new Error('Video generation card geometry is unavailable')
+  await page.mouse.click(target.x + target.width / 2, target.y + target.height / 2)
+  const workSurface = page.getByRole('region', { name: /卡片工作区/ })
+  const referenceRail = workSurface.getByRole('group', { name: '已选择视频参考' })
+  await expect(referenceRail.getByRole('article')).toHaveCount(2)
+  await expect(referenceRail.getByText('1')).toBeVisible()
+  await expect(referenceRail.getByText('2')).toBeVisible()
+  const accessibility = await new AxeBuilder({ page }).include('.canvas-card-work-surface').analyze()
+  expect(accessibility.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([])
+  const outputDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't6-005-yuque-workbench')
+  await mkdir(outputDirectory, { recursive: true })
+  const screenshotPath = resolve(outputDirectory, 'video-reference-rail-1440x900.png')
+  await page.screenshot({ path: screenshotPath, animations: 'disabled' })
+  await testInfo.attach('t6-005-video-reference-rail-1440x900', { path: screenshotPath, contentType: 'image/png' })
+
+  const environmentIntent = referenceRail.getByRole('button', { name: '为 环境参考 添加每图意图' })
+  await environmentIntent.focus()
+  await page.keyboard.press('Enter')
+  const prompt = workSurface.getByRole('textbox', { name: '卡片生成提示词' })
+  await expect(prompt).toHaveValue(/@环境参考/)
+  await expect(prompt).toBeFocused()
+
+  const selectedRole = referenceRail.getByRole('combobox', { name: '人物主参考 参考角色' })
+  await selectedRole.selectOption('reference')
+  await expect.poll(() => {
+    const content = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'visual-generation')?.content as Record<string, unknown>
+    const video = (content.generation_parameters as { video: { reference_bindings: Array<{ node_id: string; role: string }> } }).video
+    return video.reference_bindings.find((binding) => binding.node_id === 'visual-selected')?.role
+  }).toBe('reference')
+
+  await referenceRail.getByRole('button', { name: '前移 人物主参考' }).focus()
+  await page.keyboard.press('Enter')
+  await expect.poll(() => {
+    const content = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'visual-generation')?.content as Record<string, unknown>
+    const video = (content.generation_parameters as { video: { reference_bindings: Array<{ node_id: string }> } }).video
+    return video.reference_bindings[0]?.node_id
+  }).toBe('visual-selected')
+
+  const connectionCount = state.documents[FIRST_CANVAS_ID].connections.length
+  await referenceRail.getByRole('button', { name: '移除参考 人物主参考' }).focus()
+  await page.keyboard.press('Enter')
+  await expect(referenceRail.getByRole('article')).toHaveCount(1)
+  await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(connectionCount)
+  await page.locator('.workspace-stage').press('Control+z')
+  await expect(referenceRail.getByRole('article')).toHaveCount(2)
+  await page.locator('.workspace-stage').press('Control+Shift+z')
+  await expect(referenceRail.getByRole('article')).toHaveCount(1)
+  await prompt.fill('@')
+  const picker = workSurface.getByRole('listbox', { name: '已连接的可引用素材' })
+  await expect(picker.getByRole('option', { name: '引用 人物主参考' })).toBeVisible()
 })
 
 test('materialized result is visibly projected into the same generation card', async ({ page }, testInfo) => {
@@ -201,6 +288,44 @@ test('materialized result is visibly projected into the same generation card', a
   ))).not.toBeNull()
 })
 
+test('selected script keeps direct editing and exposes attached AI authoring', async ({ page }, testInfo) => {
+  const state = createT6VisualConvergenceState()
+  await openResourceWorkspace(page, state, { width: 1440, height: 900 }, { enableCanvasInspection: true })
+  await page.getByRole('region', { name: /Revid/ }).focus()
+  await page.keyboard.press('Control+0')
+  const target = await page.locator('.canvas-surface').evaluate((element) => (
+    (element as HTMLElement & {
+      __revidCanvasInspection?: { getNodeScreenRect?: (nodeId: string) => ScreenRect | null }
+    }).__revidCanvasInspection?.getNodeScreenRect?.('visual-script-a') ?? null
+  ))
+  if (!target) throw new Error('Script card geometry is unavailable')
+  await page.mouse.click(target.x + target.width / 2, target.y + target.height / 2)
+
+  const scriptSurface = page.locator('.canvas-node-surface[data-node-id="visual-script-a"]')
+  await expect(scriptSurface.getByRole('textbox', { name: /编辑/ })).toBeVisible()
+  const authoring = scriptSurface.getByRole('region', { name: 'AI 脚本写作' })
+  await expect(authoring).toBeVisible()
+  const [scriptBox, authoringBox] = await Promise.all([scriptSurface.boundingBox(), authoring.boundingBox()])
+  if (!scriptBox || !authoringBox) throw new Error('Attached script authoring geometry is unavailable')
+  const gap = authoringBox.y - (scriptBox.y + scriptBox.height)
+  expect(gap).toBeGreaterThanOrEqual(10)
+  expect(gap).toBeLessThanOrEqual(12)
+  expect(authoringBox.x).toBeGreaterThanOrEqual(16)
+  expect(authoringBox.x + authoringBox.width).toBeLessThanOrEqual(1424)
+  await expect(authoring.getByRole('button', { name: '从创意生成脚本' })).toHaveCount(0)
+  await expect(authoring.getByRole('button', { name: '优化当前脚本' })).toBeVisible()
+  await expect(authoring.getByRole('textbox', { name: '脚本优化要求' })).toBeVisible()
+  const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't6-005-yuque-workbench')
+  await mkdir(evidenceDirectory, { recursive: true })
+  const screenshotPath = resolve(evidenceDirectory, 'script-workbench-1440x900.png')
+  await page.screenshot({
+    path: screenshotPath,
+    animations: 'disabled',
+    clip: resolveAcceptanceCaptureClip([scriptBox, authoringBox], { width: 1440, height: 900 }, 32),
+  })
+  await testInfo.attach('t6-005-script-workbench-1440x900', { path: screenshotPath, contentType: 'image/png' })
+})
+
 test('selected materialized composer presents one continuous creator hierarchy', async ({ page }, testInfo) => {
   const state = createResourceMockState()
   configureLandscapeMaterializedAcceptance(state, FIRST_CANVAS_ID)
@@ -217,9 +342,11 @@ test('selected materialized composer presents one continuous creator hierarchy',
   const surface = page.locator('.canvas-card-work-surface')
   await expect(surface).toBeVisible()
   const hierarchy = await surface.evaluate((element) => {
-    const topBand = element.querySelector('.canvas-card-work-surface__toolbar')
+    const quickActions = element.querySelector('.canvas-card-work-surface__quick-actions')
     const modes = element.querySelector('.canvas-card-work-surface__modes')
     const sources = element.querySelector('.canvas-card-work-surface__sources')
+    const connectorNeck = getComputedStyle(element, '::before')
+    const promptShell = element.querySelector('.canvas-card-work-surface__prompt-shell')
     const prompt = element.querySelector('textarea')
     const footer = element.querySelector('footer')
     const submit = element.querySelector('.canvas-card-work-surface__submit')
@@ -227,20 +354,50 @@ test('selected materialized composer presents one continuous creator hierarchy',
     const surfaceRect = element.getBoundingClientRect()
     const promptStyle = getComputedStyle(prompt)
     return {
-      hasTopBand: Boolean(topBand),
-      controlsShareTopBand: modes?.parentElement === topBand && sources?.parentElement === topBand,
+      hasQuickActions: Boolean(quickActions),
+      hasPermanentModes: Boolean(modes),
+      hasPermanentSources: Boolean(sources),
+      hasPromptShell: Boolean(promptShell),
+      isSourceAttachedWorkbench: element.getAttribute('data-surface-style') === 'source-attached-media-workbench',
       submitBelongsToFooter: Boolean(footer?.contains(submit)),
       height: surfaceRect.height,
+      width: surfaceRect.width,
+      radius: Number.parseFloat(getComputedStyle(element).borderTopLeftRadius),
+      connectorContent: connectorNeck.content,
       promptBackground: promptStyle.backgroundColor,
       promptBorderWidth: Number.parseFloat(promptStyle.borderTopWidth),
     }
   })
-  expect(hierarchy.hasTopBand).toBe(true)
-  expect(hierarchy.controlsShareTopBand).toBe(true)
+  expect(hierarchy.hasQuickActions).toBe(true)
+  expect(hierarchy.hasPermanentModes).toBe(false)
+  expect(hierarchy.hasPermanentSources).toBe(false)
+  expect(hierarchy.hasPromptShell).toBe(true)
+  expect(hierarchy.isSourceAttachedWorkbench).toBe(true)
   expect(hierarchy.submitBelongsToFooter).toBe(true)
-  expect(hierarchy.height).toBeGreaterThanOrEqual(188)
-  expect(hierarchy.promptBackground).toBe('rgba(0, 0, 0, 0)')
+  expect(hierarchy.height).toBeGreaterThanOrEqual(154)
+  expect(hierarchy.width).toBeCloseTo(660, 0)
+  expect(hierarchy.radius).toBeGreaterThanOrEqual(15)
+  expect(hierarchy.connectorContent).toBe('none')
+  expect(hierarchy.promptBackground).not.toBe('rgba(0, 0, 0, 0)')
   expect(hierarchy.promptBorderWidth).toBe(0)
+
+  const mediaCard = page.locator('.canvas-node-surface[data-node-id="generation-cover"]')
+  const [mediaCardBox, attachedSurfaceBox] = await Promise.all([mediaCard.boundingBox(), surface.boundingBox()])
+  if (!mediaCardBox || !attachedSurfaceBox) throw new Error('Attached workbench geometry is unavailable')
+  const attachmentGap = attachedSurfaceBox.y - (mediaCardBox.y + mediaCardBox.height)
+  const resolvedAttachmentGap = await surface.evaluate((element) => Number.parseFloat(
+    getComputedStyle(element).getPropertyValue('--canvas-card-floating-gap'),
+  ))
+  expect(attachmentGap).toBeCloseTo(resolvedAttachmentGap, 0)
+
+  const settingsButton = surface.getByRole('button', { name: /生成参数/ })
+  await expect(settingsButton).toBeVisible()
+  await settingsButton.click()
+  const settingsPanel = surface.getByRole('region', { name: '生成参数' })
+  await expect(settingsPanel).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(settingsPanel).toHaveCount(0)
+  await expect(settingsButton).toBeFocused()
 
   const prompt = surface.locator('textarea')
   await prompt.focus()
@@ -269,6 +426,11 @@ test('selected materialized composer presents one continuous creator hierarchy',
   const screenshotPath = resolve(outputDirectory, 'selected-materialized-image-card-920x900.png')
   await page.screenshot({ path: screenshotPath, animations: 'disabled', clip: compactClip })
   await testInfo.attach('selected-materialized-image-card-920x900', { path: screenshotPath, contentType: 'image/png' })
+  const t6005Directory = resolve(process.cwd(), '..', 'output', 'playwright', 't6-005-yuque-workbench')
+  await mkdir(t6005Directory, { recursive: true })
+  const t6005ImagePath = resolve(t6005Directory, 'image-workbench-920x900.png')
+  await page.screenshot({ path: t6005ImagePath, animations: 'disabled', clip: compactClip })
+  await testInfo.attach('t6-005-image-workbench-920x900', { path: t6005ImagePath, contentType: 'image/png' })
 })
 
 test('card-local work surface projects pending and failure on the originating card', async ({ page }) => {
@@ -300,7 +462,7 @@ test('card-local work surface projects pending and failure on the originating ca
   if (!target) throw new Error('Generation card geometry is unavailable')
   await page.mouse.click(target.x + target.width / 2, target.y + target.height / 2)
   const workSurface = page.getByRole('region', { name: /封面生成 卡片工作区/ })
-  await workSurface.getByRole('button', { name: '画布参考' }).click()
+  await workSurface.getByRole('button', { name: '参考', exact: true }).click()
   await expect(workSurface.getByText('正在从画布选择参考')).toBeVisible()
   await workSurface.getByRole('textbox', { name: '卡片生成提示词' }).fill('保持当前卡片生成')
   const request = page.waitForRequest((candidate) => candidate.method() === 'POST' && candidate.url().endsWith('/api/image-generate'))
@@ -313,7 +475,7 @@ test('card-local work surface projects pending and failure on the originating ca
   await expect(workSurface.getByText('正在从画布选择参考')).toHaveCount(0)
 })
 
-test('canvas reference mode closes across return readonly Canvas switch reload and deletion', async ({ page }) => {
+test('canvas reference mode closes across return readonly Canvas switch reload and deletion', async ({ page }, testInfo) => {
   const state = createResourceMockState()
   const existingResult = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'result-existing')!
   state.documents[FIRST_CANVAS_ID].nodes.push({
@@ -357,26 +519,31 @@ test('canvas reference mode closes across return readonly Canvas switch reload a
 
   await selectGenerationCard()
   let workSurface = page.getByRole('region', { name: /封面生成 卡片工作区/ })
-  await workSurface.getByRole('button', { name: '画布参考' }).click()
+  await workSurface.getByRole('button', { name: '参考', exact: true }).click()
   await expect(canvasCandidates).toHaveCount(1)
   await workSurface.getByRole('button', { name: '退出参考选择' }).click()
   await expect(canvasCandidates).toHaveCount(0)
 
-  await workSurface.getByRole('button', { name: '画布参考' }).click()
+  await workSurface.getByRole('button', { name: '参考', exact: true }).click()
   await page.setViewportSize({ width: 375, height: 812 })
   await expect(canvasCandidates).toHaveCount(0)
   await expect(page.getByRole('region', { name: /Revid/ })).toHaveAttribute('aria-description', '只读审阅模式')
+  const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't6-005-yuque-workbench')
+  await mkdir(evidenceDirectory, { recursive: true })
+  const readonlyPath = resolve(evidenceDirectory, 'readonly-review-375x812.png')
+  await page.screenshot({ path: readonlyPath, animations: 'disabled' })
+  await testInfo.attach('t6-005-readonly-review-375x812', { path: readonlyPath, contentType: 'image/png' })
 
   await page.setViewportSize({ width: 1366, height: 768 })
   await selectGenerationCard()
   workSurface = page.getByRole('region', { name: /封面生成 卡片工作区/ })
-  await workSurface.getByRole('button', { name: '画布参考' }).click()
+  await workSurface.getByRole('button', { name: '参考', exact: true }).click()
   await page.reload()
   await expect(canvasCandidates).toHaveCount(0)
 
   await selectGenerationCard()
   workSurface = page.getByRole('region', { name: /封面生成 卡片工作区/ })
-  await workSurface.getByRole('button', { name: '画布参考' }).click()
+  await workSurface.getByRole('button', { name: '参考', exact: true }).click()
   await page.getByRole('region', { name: /Revid/ }).focus()
   await page.keyboard.press('Delete')
   await expect(canvasCandidates).toHaveCount(0)
@@ -386,14 +553,14 @@ test('canvas reference mode closes across return readonly Canvas switch reload a
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.some((node) => node.id === 'generation-cover')).toBe(true)
   await selectGenerationCard()
   workSurface = page.getByRole('region', { name: /封面生成 卡片工作区/ })
-  await workSurface.getByRole('button', { name: '画布参考' }).click()
+  await workSurface.getByRole('button', { name: '参考', exact: true }).click()
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
   await expect(page).toHaveURL(/\/canvases\/canvas-second$/)
   await expect(canvasCandidates).toHaveCount(0)
 })
 
-test('empty text card exposes multiple work choices and enters direct writing in place', async ({ page }) => {
+test('empty script card follows the reference source or direct-writing starts', async ({ page }, testInfo) => {
   const state = createResourceMockState()
   const source = state.documents[FIRST_CANVAS_ID].nodes[0]
   state.documents[FIRST_CANVAS_ID].nodes.push({
@@ -410,16 +577,121 @@ test('empty text card exposes multiple work choices and enters direct writing in
   await page.getByRole('region', { name: /Revid/ }).focus()
   await page.keyboard.press('Control+0')
   const surface = page.locator('.canvas-node-surface[data-node-id="empty-text-card"]')
-  const chooser = surface.getByRole('group', { name: '文本卡片创作方式' })
+  const chooser = surface.getByRole('region', { name: '分镜脚本创作方式' })
   await expect(chooser).toBeVisible()
-  await expect(chooser.getByRole('button', { name: '自己编写内容' })).toBeEnabled()
-  await expect(chooser.getByRole('button', { name: '文生视频' })).toBeEnabled()
-  await expect(chooser.getByRole('button', { name: '图片反推提示词' })).toBeDisabled()
-  await expect(chooser.getByRole('button', { name: '文字生音乐' })).toBeEnabled()
+  await expect(chooser.getByRole('button', { name: '剧本生成分镜脚本' })).toBeEnabled()
+  await expect(chooser.getByRole('button', { name: '角色生成分镜脚本' })).toBeEnabled()
+  await expect(chooser.getByRole('button', { name: '自己编写分镜脚本' })).toBeEnabled()
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  await page.getByRole('button', { name: '选择并定位 空文本卡片', exact: true }).click()
+  await expect(surface.getByRole('region', { name: 'AI 脚本写作' })).toBeVisible()
+  await page.getByRole('button', { name: '关闭节点详情' }).click()
+  const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't6-005-yuque-workbench')
+  await mkdir(evidenceDirectory, { recursive: true })
+  const emptyScriptPath = resolve(evidenceDirectory, 'empty-script-1440x900.png')
+  await page.screenshot({ path: emptyScriptPath, animations: 'disabled' })
+  await testInfo.attach('t6-005-empty-script-1440x900', { path: emptyScriptPath, contentType: 'image/png' })
 
-  await chooser.getByRole('button', { name: '自己编写内容' }).click()
+  const baselineConnections = state.documents[FIRST_CANVAS_ID].connections.length
+  await chooser.getByRole('button', { name: '剧本生成分镜脚本' }).click()
+  const sourceCandidate = page.getByRole('button', { name: '选择 镜头脚本 作为剧本来源' })
+  await expect(sourceCandidate).toBeVisible()
+  await sourceCandidate.click()
+  await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(baselineConnections + 1)
+  expect(state.documents[FIRST_CANVAS_ID].connections.at(-1)).toMatchObject({
+    source_node_id: 'script-source', target_node_id: 'empty-text-card', source_port: 'out', target_port: 'in',
+  })
+
+  await surface.getByRole('button', { name: '自己编写分镜脚本' }).click()
   await expect(surface.getByRole('textbox')).toBeVisible()
   await expect(surface.getByRole('textbox')).toBeFocused()
+})
+
+test('empty script role start persists exact image references and submits them without a graph edge', async ({ page }, testInfo) => {
+  const state = createResourceMockState()
+  const source = state.documents[FIRST_CANVAS_ID].nodes[0]
+  state.documents[FIRST_CANVAS_ID].nodes.push({
+    ...source,
+    id: 'role-script-card',
+    node_type: 'script',
+    content: { title: '角色分镜脚本', subtype: 'script', serialization_version: 1 },
+    position_x: 400,
+    position_y: 420,
+    width: 280,
+    height: 180,
+  })
+  const baselineConnections = state.documents[FIRST_CANVAS_ID].connections.length
+  await openResourceWorkspace(page, state, { width: 1366, height: 768 }, { enableCanvasInspection: true })
+  await page.getByRole('region', { name: /Revid/ }).focus()
+  await page.keyboard.press('Control+0')
+  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
+  await page.getByRole('button', { name: '选择并定位 角色分镜脚本', exact: true }).click()
+  await page.getByRole('button', { name: '关闭节点详情' }).click()
+  await page.setViewportSize({ width: 920, height: 900 })
+
+  const surface = page.locator('.canvas-node-surface[data-node-id="role-script-card"]')
+  const chooser = surface.getByRole('region', { name: '分镜脚本创作方式' })
+  const roleSourceButton = chooser.getByRole('button', { name: '角色生成分镜脚本' })
+  await roleSourceButton.click()
+  const candidate = page.getByRole('button', { name: '选择 历史图片生成结果 作为角色参考' })
+  await expect(candidate).toBeVisible()
+  const rolePicker = chooser.locator('.script-empty-state__role-picker')
+  await expect(rolePicker).toBeVisible()
+  const pickerBox = await rolePicker.boundingBox()
+  if (!pickerBox) throw new Error('Role reference picker geometry is unavailable')
+  expect(pickerBox.x).toBeGreaterThanOrEqual(16)
+  expect(pickerBox.x + pickerBox.width).toBeLessThanOrEqual(904)
+
+  await candidate.focus()
+  await page.keyboard.press('Escape')
+  await expect(rolePicker).toHaveCount(0)
+  await expect(roleSourceButton).toBeFocused()
+  expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(baselineConnections)
+  expect((state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'role-script-card')?.content as Record<string, unknown>).reference_asset_ids).toBeUndefined()
+
+  await roleSourceButton.click()
+  await expect(candidate).toBeVisible()
+  const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't6-005-yuque-workbench')
+  await mkdir(evidenceDirectory, { recursive: true })
+  const rolePickerPath = resolve(evidenceDirectory, 'empty-script-role-reference-panel.png')
+  await rolePicker.screenshot({ path: rolePickerPath, animations: 'disabled' })
+  await testInfo.attach('t6-005-empty-script-role-reference-panel', { path: rolePickerPath, contentType: 'image/png' })
+  const compactRolePickerPath = resolve(evidenceDirectory, 'empty-script-role-reference-920x900.png')
+  await page.screenshot({ path: compactRolePickerPath, animations: 'disabled' })
+  await testInfo.attach('t6-005-empty-script-role-reference-920x900', { path: compactRolePickerPath, contentType: 'image/png' })
+  await candidate.click()
+  await expect(roleSourceButton).toBeFocused()
+
+  await expect.poll(() => {
+    const node = state.documents[FIRST_CANVAS_ID].nodes.find((candidate) => candidate.id === 'role-script-card')
+    return (node?.content as Record<string, unknown>)?.reference_asset_ids
+  }).toEqual(['asset-generated'])
+  expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(baselineConnections)
+  await expect(surface.getByText('角色参考 1/8', { exact: true })).toBeVisible()
+
+  await page.getByRole('region', { name: /Revid/ }).focus()
+  await page.keyboard.press('Control+z')
+  await expect.poll(() => {
+    const node = state.documents[FIRST_CANVAS_ID].nodes.find((candidate) => candidate.id === 'role-script-card')
+    return (node?.content as Record<string, unknown>)?.reference_asset_ids
+  }).toBeUndefined()
+  await page.keyboard.press('Control+Shift+z')
+  await expect.poll(() => {
+    const node = state.documents[FIRST_CANVAS_ID].nodes.find((candidate) => candidate.id === 'role-script-card')
+    return (node?.content as Record<string, unknown>)?.reference_asset_ids
+  }).toEqual(['asset-generated'])
+
+  const authoring = surface.getByRole('region', { name: 'AI 脚本写作' })
+  await authoring.getByRole('textbox', { name: '创意 Brief' }).fill('根据角色参考生成一段雨夜车站分镜。')
+  await authoring.getByRole('button', { name: '生成新脚本' }).click()
+  await expect.poll(() => state.requests.find((request) => (
+    request.method === 'POST' && request.path.endsWith('/text-generate') &&
+    (request.body as Record<string, unknown>)?.canvas_node_id === 'role-script-card'
+  ))?.body).toMatchObject({
+    canvas_node_id: 'role-script-card',
+    reference_asset_ids: ['asset-generated'],
+  })
+  expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(baselineConnections)
 })
 
 test('text-to-video choice creates and selects a connected video generation card', async ({ page }) => {
@@ -429,7 +701,7 @@ test('text-to-video choice creates and selects a connected video generation card
     ...source,
     id: 'empty-text-to-video',
     node_type: 'script',
-    content: { title: '视频文字起点', subtype: 'script', serialization_version: 1 },
+    content: { title: '视频文字起点', subtype: 'prompt', serialization_version: 1 },
     position_x: 400,
     position_y: 420,
     width: 280,
@@ -461,7 +733,7 @@ test('text-to-music choice opens the existing safe audio preflight', async ({ pa
     ...source,
     id: 'empty-text-to-music',
     node_type: 'script',
-    content: { title: '音乐文字起点', subtype: 'script', serialization_version: 1 },
+    content: { title: '音乐文字起点', subtype: 'prompt', serialization_version: 1 },
     position_x: 400,
     position_y: 420,
     width: 280,
@@ -488,7 +760,12 @@ test('keyframes mode writes the matching video reference contract before mock ge
   if (!target) throw new Error('Video generation card geometry is unavailable')
   await page.mouse.click(target.x + target.width / 2, target.y + target.height / 2)
   const workSurface = page.getByRole('region', { name: /卡片工作区/ })
-  await workSurface.getByRole('button', { name: '首尾帧生成视频' }).click()
+  await workSurface.getByRole('button', { name: /生成参数/ }).click()
+  const parameterPanel = workSurface.getByRole('region', { name: '生成参数' })
+  const keyframesRadio = parameterPanel.getByRole('radio', { name: '关键帧' })
+  await keyframesRadio.focus()
+  await page.keyboard.press('Space')
+  await page.keyboard.press('Escape')
   await expect(workSurface.getByRole('button', { name: '在当前卡片生成' })).toBeEnabled()
   await workSurface.getByRole('button', { name: '在当前卡片生成' }).click()
 

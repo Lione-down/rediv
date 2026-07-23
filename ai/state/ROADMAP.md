@@ -1,6 +1,6 @@
 # Revid Product V2/V3 Direct Delivery Roadmap
 
-Last updated: 2026-07-22
+Last updated: 2026-07-23
 
 ## Active Product V3 / Phase 6 Outcome
 
@@ -12,8 +12,12 @@ Deliver backward-compatible Revid-native cinematic director Skills v2 on top of 
 | 2 | T6-002 | Project audit security, consistency, CI, persistence, Canvas-state, and maintainability remediation | DONE | PASS | T6-001 |
 | 3 | T6-003 | Canvas card UI and card-to-card interaction high-fidelity optimization | DONE | PASS | T6-002 |
 | 4 | T6-004 | Node workflow productionization for direct text, asset groups, image batches, video roles, partial retry, and preserved floating connections | DONE | PASS | T6-003 |
+| 5 | T6-005 | Yuque-authored inline node workflow visual and interaction convergence | BLOCKED | FAIL | T6-004 |
+| 6 | T6-006 | Full-stack modular refactor architecture and execution baseline | DOING | PENDING | T6-004 |
 
-T6-001 through T6-004 are `DONE / PASS`; their REPORTs are authoritative and no implementation Task is active. T6-004 closes with explicit Human visual/interaction acceptance, backend `583/583`, exact-current-source Chromium `610/610`, headed performance `2/2`, production build `4,976`, dependency audit `0`, state, diff, and hygiene gates. It delivers direct text replacement, script-created asset groups, image batches, structured video-reference roles, partial retry, and preserved floating connection behavior without real/paid provider calls or new durable authorities. The paragraphs below retain T6-003 Unit-by-Unit historical verification; earlier pending-Human wording there is superseded by its final closure record.
+T6-001 through T6-004 are `DONE / PASS`; their REPORTs remain authoritative. On 2026-07-23, the Human Owner explicitly rejected T6-005's visual and interaction result and requested state closure. T6-005 is terminal `BLOCKED / FAIL`: its machine evidence remains valid, but no REPORT, `DONE / PASS`, stage, commit, or push is allowed. The uncommitted T6-005 implementation remains preserved pending an explicit selective-reuse or full-removal decision.
+
+T6-006 is the sole active Task and is planning-only. The Human Owner has classified T6-005's visual design, interaction logic, business flow, and information architecture as entirely unacceptable, directed product workflows and frontend/backend architecture to be redesigned together, and authorized the current implementation to be committed only as rejected audit/reference evidence. T6-006 now waits for the Human Owner's replacement workflow logic before completing the aligned modular-monolith strangler architecture. No business-code implementation, migration, provider call, framework replacement, or destructive action is authorized inside the planning unit.
 
 Unit 6I implementation and machine verification are complete. The selected toolbar is now approximately `900 x 50 CSS px`, professional icons and visible labels share one horizontal row, standard placement remains above the media with `26..34 CSS px` clearance, true top collision still flips below, and the `920px` toolbar has no horizontal overflow. Build `4,972`, related `43/43`, three-axis `7/7` without snapshot updates, full Chromium `596/596`, headed performance `2/2`, dependency audit `0`, state validation, and diff check pass. Renewed Human acceptance is the remaining completion gate.
 
