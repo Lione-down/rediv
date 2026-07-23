@@ -698,3 +698,9 @@ Evidence:
 - The guarded live supervisor builds `frontend/dist` with its owned loopback API origin. After the supervisor cleans up, rebuild the ordinary frontend bundle before running preview-backed mock Chromium regression or the suite will target the closed live port and fail through login redirects and request timeouts.
 - Shared upload fixtures must preserve existing failure fingerprints. Add a separate deterministic failure mode for a new multi-upload flow instead of replacing an error string already asserted by another feature.
 - Autosave sorts persisted node upserts by entity ID. Durable grid order belongs in explicit one-based index and row/column metadata, not the server document array order.
+
+## 2026-07-23 Environment example files must remain outside Git
+
+- `.env.example` is still an environment-related file even when it contains only placeholders; allowing it through an ignore exception makes it easy to publish configuration shape or later-added sensitive values.
+- Ignore `.env`, `.env.*`, `*.env`, `*.env.*` and the corresponding `.ene` typo patterns without template exceptions.
+- Before every commit and push, inspect tracked files and the exact staging set for environment-related paths; an ignore rule does not untrack a file already committed.

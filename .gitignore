@@ -6,7 +6,12 @@ __pycache__/
 venv/
 .env
 .env.*
-!.env.example
+*.env
+*.env.*
+.ene
+.ene.*
+*.ene
+*.ene.*
 *.pem
 *.key
 *.p12

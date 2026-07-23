@@ -88,7 +88,7 @@ Do not paste long command output into state documents. Record the command, resul
 - Preserve unrelated user changes in a dirty worktree. Never reset or overwrite them.
 - Keep changes scoped; do not mix unrelated refactors.
 - Use existing frameworks, patterns, and dependencies unless an ADR approves a change.
-- Do not read, print, copy, infer, or commit secrets. Do not open `.env` files without explicit Human Owner authorization.
+- Do not read, print, copy, infer, or commit secrets. Any environment-related file, including `.env`, `.env.*`, `*.env`, `*.env.*`, `*.env.example`, `.ene`, `.ene.*`, `*.ene`, and `*.ene.*`, must remain untracked and must never be committed or pushed, even when it contains only example values. Do not open these files without explicit Human Owner authorization.
 - Runtime code may consume credentials already supplied through process environment variables, but evidence must never expose their values.
 - Do not make paid external calls without explicit Human Owner authorization for that call class.
 - Do not run destructive database operations against user or production data without explicit authorization.
