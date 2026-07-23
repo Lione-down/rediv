@@ -9,7 +9,12 @@ venv/
 
 .env
 .env.*
-!.env.example
+*.env
+*.env.*
+.ene
+.ene.*
+*.ene
+*.ene.*
 
 *.db
 *.sqlite
