@@ -208,12 +208,37 @@ test('compact selected video keeps capture action clear of playback controls', a
   const actionRect = await action.boundingBox()
   const videoRect = await video.boundingBox()
   const railRect = await rail.boundingBox()
+  const mediaLayout = await video.evaluate((element) => {
+    const viewport = element.closest<HTMLElement>('.canvas-node-media__viewport')
+    const media = element.closest<HTMLElement>('.canvas-node-media')
+    const body = element.closest<HTMLElement>('.canvas-runtime-card__body')
+    const describe = (target: HTMLElement | null) => target
+      ? {
+          rect: target.getBoundingClientRect().toJSON(),
+          display: getComputedStyle(target).display,
+          width: getComputedStyle(target).width,
+          height: getComputedStyle(target).height,
+          minHeight: getComputedStyle(target).minHeight,
+          overflow: getComputedStyle(target).overflow,
+        }
+      : null
+    return {
+      video: describe(element),
+      viewport: describe(viewport),
+      media: describe(media),
+      body: describe(body),
+    }
+  })
   expect(actionRect).not.toBeNull()
   expect(videoRect).not.toBeNull()
   expect(railRect).not.toBeNull()
   expect(actionRect!.y + actionRect!.height).toBeLessThan(videoRect!.y + videoRect!.height - 24)
   expect(railRect!.width).toBeLessThanOrEqual(videoRect!.width)
-  expect(railRect!.y >= videoRect!.y + videoRect!.height || railRect!.y + railRect!.height <= videoRect!.y).toBe(true)
+  expect(
+    railRect!.y >= videoRect!.y + videoRect!.height ||
+      railRect!.y + railRect!.height <= videoRect!.y,
+    JSON.stringify({ railRect, videoRect, mediaLayout }),
+  ).toBe(true)
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'compact-drawer-owns-toolbar-920x760.png'), fullPage: true })
   const patchCount = documentPatches(state).length
@@ -249,7 +274,7 @@ test('Canvas switch during frame upload never inserts into either document', asy
   await expect.poll(() => state.uploads.length).toBe(1)
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}\\?canvas_runtime=legacy$`))
   releaseUpload()
   await expect(page.getByRole('alert').filter({ hasText: 'Canvas 操作上下文已变化' })).toBeVisible()
   expect(documentPatches(state)).toHaveLength(0)

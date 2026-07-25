@@ -53,7 +53,7 @@ test('project resources stay visible across Canvas switches and asset insertion 
 
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}\\?canvas_runtime=legacy$`))
   await expect(resources.getByText('海边参考图')).toBeVisible()
   expect(state.requests.filter((item) => item.path === '/assets').every((item) => item.query.includes(`project_id=${PROJECT_ID}`) && !item.query.includes('origin_canvas_id'))).toBe(true)
 
@@ -130,10 +130,10 @@ test('template commit, Canvas switch, and double-click creation share one ordere
 
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}\\?canvas_runtime=legacy$`))
   expect(state.events.includes(`document-loaded:${SECOND_CANVAS_ID}`)).toBe(false)
   releaseTemplate()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}\\?canvas_runtime=legacy$`))
   await expect.poll(() => state.events.includes(`document-loaded:${SECOND_CANVAS_ID}`)).toBe(true)
   const surface = page.locator('.canvas-surface')
   const surfaceBox = await surface.boundingBox()
@@ -206,7 +206,7 @@ test('generation may finish after a Canvas switch and reconciles exactly once on
 
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}\\?canvas_runtime=legacy$`))
   await expect.poll(() => state.events.includes(`document-loaded:${SECOND_CANVAS_ID}`)).toBe(true)
   releaseGeneration()
   await expect.poll(() => state.tasks.some((item) => item.id === 'task-success')).toBe(true)
@@ -216,7 +216,7 @@ test('generation may finish after a Canvas switch and reconciles exactly once on
 
   await page.getByRole('button', { name: '分镜', exact: true }).click()
   await page.getByRole('option', { name: /画布 1/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}\\?canvas_runtime=legacy$`))
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.filter((item) => (
     (item.content as Record<string, unknown>).source_task_id === 'task-success'
   )).length).toBe(1)
@@ -265,7 +265,7 @@ test('mock provider failure remains durable, no-charge, no-result, and never aut
 
   const editor = page.getByRole('region', { name: '生成任务编辑器' })
   await editor.getByRole('button', { name: '开始图片生成' }).click()
-  await expect(editor.getByRole('alert')).toContainText('mock provider unavailable')
+  await expect(page.locator('.canvas-card-work-surface').getByRole('alert')).toContainText('mock provider unavailable')
   await page.waitForTimeout(700)
   expect(generationPosts(state)).toHaveLength(1)
   expect(state.quotas).toEqual(initialQuotas)

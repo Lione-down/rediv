@@ -44,6 +44,7 @@ test('authenticated project and Canvas generation workflow survives reload', asy
 
   await page.getByRole('button', { name: '进入项目 E2E 夏日短片' }).click()
   await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
+  await page.goto('/app/projects/project-e2e/canvases/canvas-first?canvas_runtime=legacy')
   await expect(page.getByRole('button', { name: '定位到 生成封面' })).toBeVisible()
   await expect(page.locator('.connection-line')).toHaveCount(1)
 
@@ -67,7 +68,7 @@ test('authenticated project and Canvas generation workflow survives reload', asy
   ))).toBe(true)
 
   await generationEditor.getByRole('button', { name: '开始图片生成' }).click()
-  await expect(generationEditor.getByRole('alert')).toContainText('mock provider unavailable')
+  await expect(page.locator('.canvas-card-work-surface').getByRole('alert')).toContainText('mock provider unavailable')
   expect(state.imageQuota).toBe(3)
   expect(state.generationTasks).toEqual(expect.arrayContaining([
     expect.objectContaining({ id: 'task-generated', status: 'succeeded', result_asset_id: 'asset-generated' }),
@@ -87,7 +88,7 @@ test('authenticated project and Canvas generation workflow survives reload', asy
   ])
 
   await page.reload()
-  await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
+  await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first\?canvas_runtime=legacy$/)
   await expect(page.getByRole('button', { name: '定位到 生成封面' })).toBeVisible()
   await expect(page.locator('.connection-line')).toHaveCount(1)
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
@@ -95,7 +96,7 @@ test('authenticated project and Canvas generation workflow survives reload', asy
   expect(state.authenticatedRequests).toContain('GET /me')
   expect(state.authenticatedRequests).toContain('GET /api/projects/project-e2e/canvases')
   expect(state.authenticatedRequests).toContain('GET /api/projects/project-e2e/canvases/canvas-first/document')
-  expect(state.authenticatedRequests).toContain('GET /api/generation-tasks')
+  expect(state.authenticatedRequests).not.toContain('GET /api/generation-tasks')
   expect(state.authenticatedRequests).toContain('PATCH /api/projects/project-e2e/canvases/canvas-first/document')
   expect(state.authenticatedRequests).toContain('POST /api/image-generate')
 })
@@ -121,6 +122,7 @@ for (const viewport of visualViewports) {
 
     await page.getByRole('button', { name: '进入项目 E2E 夏日短片' }).click()
     await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
+    await page.goto('/app/projects/project-e2e/canvases/canvas-first?canvas_runtime=legacy')
     await expect(page.getByRole('region', { name: 'Revid 无限画布工作区' })).toBeVisible()
     await expect(page.getByRole('region', { name: '项目与画布导航' })).toBeVisible()
     const projectName = page.getByText('E2E 夏日短片')
@@ -162,11 +164,11 @@ test('legacy and invalid canonical routes resolve only through the active Canvas
     )
   })
 
-  await page.goto('/app/workspace?project_id=project-e2e')
-  await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
+  await page.goto('/app/workspace?project_id=project-e2e&canvas_runtime=legacy')
+  await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first\?canvas_runtime=legacy$/)
   await expect(page.getByRole('button', { name: '定位到 生成封面' })).toBeVisible()
 
-  await page.goto('/app/projects/project-e2e/canvases/foreign-canvas')
-  await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first$/)
+  await page.goto('/app/projects/project-e2e/canvases/foreign-canvas?canvas_runtime=legacy')
+  await expect(page).toHaveURL(/\/app\/projects\/project-e2e\/canvases\/canvas-first\?canvas_runtime=legacy$/)
   expect(state.authenticatedRequests).toContain('GET /api/projects/project-e2e/canvases')
 })

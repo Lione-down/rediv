@@ -197,11 +197,13 @@ test('toolbar composes four mixed sources atomically and preserves undo redo and
   state.assets.push({ ...state.assets[0], id: 'asset-character', url: 'https://media.revid.test/character.png' })
   await openResourceWorkspace(page, state)
 
-  const surface = page.locator('.canvas-surface')
-  await surface.click({ position: { x: 560, y: 460 } })
-  await surface.click({ position: { x: 180, y: 200 }, modifiers: ['Control'] })
-  await surface.click({ position: { x: 560, y: 180 }, modifiers: ['Control'] })
-  await surface.click({ position: { x: 180, y: 490 }, modifiers: ['Control'] })
+  const selectCard = (nodeId: string, modifiers: 'Control'[] = []) => (
+    page.locator(`.canvas-runtime-card[data-node-id="${nodeId}"] .canvas-runtime-card__drag-region`).click({ modifiers })
+  )
+  await selectCard('asset-b')
+  await selectCard('script-a', ['Control'])
+  await selectCard('asset-a', ['Control'])
+  await selectCard('script-b', ['Control'])
   const toolbar = page.getByRole('toolbar', { name: '4 个已选节点的操作' })
   await expect(toolbar).toBeVisible()
   const inputRoles = page.locator('.selection-generation-intent span')

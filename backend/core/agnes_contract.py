@@ -23,6 +23,8 @@ _SECRET_PATTERNS = (
 class AgnesMediaContract:
     media_type: str
     model: str
+    models: tuple[str, ...]
+    known_models: tuple[str, ...]
     submit_path: str
     poll_path: str | None = None
 
@@ -34,20 +36,32 @@ class AgnesContract:
 
 
 def resolve_agnes_contract(config: Settings = settings) -> AgnesContract:
+    official_models = {
+        "text": ("agnes-2.0-flash", "agnes-2.5-flash", "agnes-2.5-pro-alpha"),
+        "image": ("agnes-image-2.0-flash", "agnes-image-2.1-flash"),
+        "video": ("agnes-video-v2.0",),
+    }
+
     media = {
         "text": AgnesMediaContract(
             media_type="text",
             model=config.agnes_model_text,
+            models=tuple(dict.fromkeys((config.agnes_model_text, "agnes-2.5-flash"))),
+            known_models=official_models["text"],
             submit_path="/v1/chat/completions",
         ),
         "image": AgnesMediaContract(
             media_type="image",
             model=config.agnes_model_image,
+            models=(config.agnes_model_image,),
+            known_models=official_models["image"],
             submit_path="/v1/images/generations",
         ),
         "video": AgnesMediaContract(
             media_type="video",
             model=config.agnes_model_video,
+            models=(config.agnes_model_video,),
+            known_models=official_models["video"],
             submit_path="/v1/videos",
             poll_path="/agnesapi",
         ),

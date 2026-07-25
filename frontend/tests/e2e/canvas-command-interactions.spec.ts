@@ -28,9 +28,13 @@ test('modifier selection stays deterministic and dragging one selected node move
   await expect(page.getByRole('toolbar', { name: '1 个已选节点的操作' })).toBeVisible()
   await clickNode(page, 520, ['Control'])
 
-  await page.mouse.move(surfaceBox.x + 260, surfaceBox.y + 320)
+  const dragHandle = page.getByLabel('移动 镜头 A')
+  const dragHandleBox = await dragHandle.boundingBox()
+  if (!dragHandleBox) throw new Error('DOM card drag handle is unavailable')
+  const dragStart = { x: dragHandleBox.x + 10, y: dragHandleBox.y + 21 }
+  await dragHandle.hover({ position: { x: 10, y: 21 } })
   await page.mouse.down()
-  await page.mouse.move(surfaceBox.x + 180, surfaceBox.y + 380, { steps: 4 })
+  await page.mouse.move(dragStart.x - 80, dragStart.y + 60, { steps: 4 })
   expect(state.requests.filter((request) => request.method === 'PUT')).toHaveLength(0)
   await page.mouse.up()
 
@@ -229,7 +233,7 @@ test('mobile review mode never exposes or dispatches selection mutation commands
   await page.keyboard.press('Control+d')
   await page.keyboard.press('Delete')
   await page.keyboard.press('Backspace')
-  await expect(page).toHaveURL(/\/app\/projects\/project-command\/canvases\/canvas-command$/)
+  await expect(page).toHaveURL(/\/app\/projects\/project-command\/canvases\/canvas-command\?canvas_runtime=legacy$/)
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toBeVisible()
   await expect(page.getByRole('button', { name: /删除节点/ })).toHaveCount(0)

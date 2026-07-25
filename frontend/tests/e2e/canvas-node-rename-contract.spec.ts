@@ -178,7 +178,7 @@ test('rename-node has one undo/redo boundary and persists the same stable node a
   })])
 })
 
-test('external title editor renames without drag and survives undo redo reload and Canvas switching', async ({ page }) => {
+test('canonical DOM card title renames without drag and survives undo redo reload and Canvas switching', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(
     page,
@@ -187,8 +187,8 @@ test('external title editor renames without drag and survives undo redo reload a
     { enableCanvasInspection: true },
   )
   const surface = page.locator('.canvas-node-surface[data-node-id="generation-cover"]')
-  const titleEditor = page.locator('.canvas-node-title-editor[data-node-id="generation-cover"]')
-  const titleButton = titleEditor.getByRole('button', { name: '重命名 封面生成' })
+  const runtimeCard = surface.locator('.canvas-runtime-card')
+  const titleButton = runtimeCard.locator('.canvas-runtime-card__title')
   const initialPosition = {
     x: state.documents['canvas-first'].nodes.find((node) => node.id === 'generation-cover')?.position_x,
     y: state.documents['canvas-first'].nodes.find((node) => node.id === 'generation-cover')?.position_y,
@@ -205,16 +205,18 @@ test('external title editor renames without drag and survives undo redo reload a
   const titleRect = await titleButton.boundingBox()
   expect(cardRect).not.toBeNull()
   expect(titleRect).not.toBeNull()
-  expect(Math.abs(titleRect!.x - cardRect!.x)).toBeLessThanOrEqual(1)
-  expect(titleRect!.y + titleRect!.height).toBeLessThanOrEqual(cardRect!.y + 1)
+  expect(titleRect!.x).toBeGreaterThanOrEqual(cardRect!.x)
+  expect(titleRect!.y).toBeGreaterThanOrEqual(cardRect!.y)
+  expect(titleRect!.x + titleRect!.width).toBeLessThanOrEqual(cardRect!.x + cardRect!.width)
+  expect(titleRect!.y + titleRect!.height).toBeLessThanOrEqual(cardRect!.y + cardRect!.height)
 
-  await titleButton.click()
-  const input = titleEditor.getByRole('textbox', { name: '节点标题' })
+  await titleButton.dblclick()
+  const input = runtimeCard.locator('.canvas-runtime-card__title-input')
   await expect(input).toBeFocused()
   await input.fill('镜头脚本')
   await input.press('Enter')
 
-  await expect(titleEditor.getByRole('button', { name: '重命名 镜头脚本' })).toBeVisible()
+  await expect(runtimeCard.locator('.canvas-runtime-card__title')).toHaveText('镜头脚本')
   await expect.poll(() => documentPatches(state).length).toBeGreaterThan(0)
   expect(state.documents['canvas-first'].nodes.find(
     (node) => node.id === 'generation-cover',
@@ -226,26 +228,24 @@ test('external title editor renames without drag and survives undo redo reload a
 
   await page.locator('.workspace-stage').focus()
   await page.keyboard.press('Control+z')
-  await expect(titleEditor.getByRole('button', { name: '重命名 封面生成' })).toBeVisible()
+  await expect(runtimeCard.locator('.canvas-runtime-card__title')).toHaveText('封面生成')
   await page.keyboard.press('Control+Shift+z')
-  await expect(titleEditor.getByRole('button', { name: '重命名 镜头脚本' })).toBeVisible()
+  await expect(runtimeCard.locator('.canvas-runtime-card__title')).toHaveText('镜头脚本')
 
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
-  await expect(page).toHaveURL(/\/canvases\/canvas-second$/)
+  await expect(page).toHaveURL(/\/canvases\/canvas-second\?canvas_runtime=legacy$/)
   await page.getByRole('button', { name: '分镜', exact: true }).click()
   await page.getByRole('option', { name: /画布 1/ }).click()
-  await expect(page).toHaveURL(/\/canvases\/canvas-first$/)
+  await expect(page).toHaveURL(/\/canvases\/canvas-first\?canvas_runtime=legacy$/)
   await expect(
-    page.locator('.canvas-node-title-editor[data-node-id="generation-cover"]')
-      .getByRole('button', { name: '重命名 镜头脚本' }),
-  ).toBeVisible()
+    page.locator('.canvas-node-surface[data-node-id="generation-cover"] .canvas-runtime-card__title'),
+  ).toHaveText('镜头脚本')
 
   await page.reload()
   await expect(
-    page.locator('.canvas-node-title-editor[data-node-id="generation-cover"]')
-      .getByRole('button', { name: '重命名 镜头脚本' }),
-  ).toBeVisible()
+    page.locator('.canvas-node-surface[data-node-id="generation-cover"] .canvas-runtime-card__title'),
+  ).toHaveText('镜头脚本')
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await expect(page.getByRole('button', { name: '选择并定位 镜头脚本' })).toHaveCount(2)
 })

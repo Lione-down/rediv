@@ -213,7 +213,9 @@ class GenerationTaskRepository:
                 raise GenerationJobStateError("Generation job lease is no longer owned")
             task.lease_expires_at = timestamp + timedelta(seconds=lease_seconds)
             if progress is not None:
-                task.progress_percent = progress
+                current_progress = task.progress_percent
+                if current_progress is None or progress > current_progress:
+                    task.progress_percent = progress
             task.job_version += 1
             task.updated_at = timestamp
             session.flush()

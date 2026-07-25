@@ -1,6 +1,5 @@
 import type { CanvasNode } from '../../types/canvas'
 import {
-  fetchGenerationJobDelta,
   fetchGenerationJobResult,
   fetchGenerationJobStatus,
   type GenerationJobMediaType,
@@ -80,19 +79,11 @@ export async function syncGenerationJobs(input: {
   const bindings = persistedJobBindings(input.nodes)
   let current = input.store.snapshot(scope)
   for (const binding of bindings) {
-    if (current.statuses.has(binding.jobId)) continue
+    const cached = current.statuses.get(binding.jobId)
+    if (cached && TERMINAL_JOB_STATUSES.has(cached.status)) continue
     const status = await fetchGenerationJobStatus(binding.jobId, input.transport)
     if (matchesBinding(binding, status)) input.store.applyStatuses(scope, [status])
   }
-
-  current = input.store.snapshot(scope)
-  const page = await fetchGenerationJobDelta({
-    projectId: scope.projectId,
-    canvasId: scope.canvasId,
-    after: current.cursor,
-    limit: 25,
-  }, input.transport)
-  input.store.applyDelta(scope, page)
 
   current = input.store.snapshot(scope)
   for (const binding of bindings) {

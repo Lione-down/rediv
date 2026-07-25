@@ -38,9 +38,11 @@ import {
   type UpdateCinematicSkillSettingsCommand,
   type ApplyScriptAuthoringResultCommand,
   type UpdateGenerationParametersCommand,
+  type SetCardConfigurationCommand,
   type UngroupNodesCommand,
   readTextCardContentRevision,
 } from './canvas-commands'
+import { serializeCanvasCardConfiguration } from './canvas-card-configuration'
 import { resolveCanvasCardFamily } from './canvas-card-view-model'
 import {
   resolveStoryboardAssetCommand,
@@ -488,11 +490,14 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
 
   async function applyGenerationJobResult(command: ApplyGenerationJobResultCommand) {
     if (!options.updateNodeState) throw new Error('Generation job result application is unavailable')
-    const target = textGenerationTarget(command.nodeId)
+    const target = command.mediaType
+      ? options.getNodes().find((node) => node.id === command.nodeId)
+      : textGenerationTarget(command.nodeId)
     if (
       !target ||
       target.contentData?.active_generation_job_id !== command.expectedJobId ||
-      target.contentData?.active_generation_job_content_revision !== command.expectedContentRevision ||
+      (!command.mediaType &&
+        target.contentData?.active_generation_job_content_revision !== command.expectedContentRevision) ||
       readTextCardContentRevision(target) !== command.expectedContentRevision
     ) return
     const {
@@ -503,6 +508,26 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
       active_generation_model_id: _activeModel,
       ...retainedContentData
     } = target.contentData ?? {}
+    if (command.mediaType) {
+      if (
+        target.type !== 'generation' ||
+        target.contentData?.subtype !== command.mediaType ||
+        !command.assetId ||
+        !command.url
+      ) return
+      await options.updateNodeState(target.id, {
+        contentData: {
+          ...retainedContentData,
+          asset_id: command.assetId,
+          result_asset_id: command.assetId,
+          asset_url: command.url,
+          url: command.url,
+          last_generation_job_id: command.expectedJobId,
+          last_generation_result_version: command.resultVersion,
+        },
+      })
+      return
+    }
     await options.updateNodeState(target.id, {
       content: command.content,
       contentData: {
@@ -541,7 +566,11 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
       !target || target.type !== 'generation' || target.isLocked || !isNodeMutationSupported(target) ||
       status === 'queued' || status === 'running'
     ) return
-    if (JSON.stringify(target.contentData?.generation_parameters) === JSON.stringify(command.parameters)) return
+    const parametersUnchanged = JSON.stringify(target.contentData?.generation_parameters) === JSON.stringify(command.parameters)
+    const configurationUnchanged = !command.configuration ||
+      JSON.stringify(target.contentData?.card_configuration) ===
+        JSON.stringify(serializeCanvasCardConfiguration(command.configuration))
+    if (parametersUnchanged && configurationUnchanged) return
     await options.updateGenerationParameters(command)
   }
 
@@ -555,6 +584,30 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     ) return
     if (JSON.stringify(target.contentData?.cinematic_skill) === JSON.stringify(command.settings)) return
     await options.updateCinematicSkillSettings(command)
+  }
+
+  async function setCardConfiguration(command: SetCardConfigurationCommand) {
+    if (!options.updateNodeState) throw new Error('Card configuration editing is unavailable')
+    const target = options.getNodes().find((node) => node.id === command.nodeId)
+    const status = target ? getPersistedGenerationStatus(target.contentData ?? {}) : null
+    if (
+      !target || target.isLocked || !isNodeMutationSupported(target) ||
+      status === 'queued' || status === 'running'
+    ) return
+    const persisted = serializeCanvasCardConfiguration(command.configuration)
+    const contentUnchanged = command.content === undefined || target.content === command.content
+    if (
+      JSON.stringify(target.contentData?.card_configuration) === JSON.stringify(persisted) &&
+      contentUnchanged
+    ) return
+    await options.updateNodeState(target.id, {
+      ...(command.content === undefined ? {} : { content: command.content }),
+      contentData: {
+        ...target.contentData,
+        ...(command.content === undefined ? {} : { text: command.content }),
+        card_configuration: persisted,
+      },
+    })
   }
 
   async function applyScriptAuthoringResult(command: ApplyScriptAuthoringResultCommand) {
@@ -644,6 +697,7 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'insert-graph') return insertGraph(command)
     if (command.type === 'reorder-generation-input') return reorderGenerationInput(command)
     if (command.type === 'update-generation-parameters') return updateGenerationParameters(command)
+    if (command.type === 'set-card-configuration') return setCardConfiguration(command)
     if (command.type === 'update-cinematic-skill-settings') return updateCinematicSkillSettings(command)
     if (command.type === 'apply-script-authoring-result') return applyScriptAuthoringResult(command)
     if (command.type === 'update-script-reference-assets') return updateScriptReferenceAssets(command)

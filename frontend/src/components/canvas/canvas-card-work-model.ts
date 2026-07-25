@@ -1,5 +1,6 @@
 import { resolveNodeDefinition } from '../../modules/canvas/node-registry'
 import { resolveCanvasCardFamily } from '../../modules/canvas/canvas-card-view-model'
+import type { VideoReferenceBinding, VideoReferenceMode } from '../../modules/canvas/generation-parameters'
 import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 
 export type CanvasCardFamily = 'text' | 'image' | 'video'
@@ -51,6 +52,42 @@ const videoModes: readonly CanvasCardWorkMode[] = [
 ]
 
 const sourceChoices: readonly CanvasCardSourceChoice[] = ['local-upload', 'project-asset']
+
+export function resolveCanvasCardVideoWorkMode(input: {
+  persistedGenerationMode: string | null
+  referenceMode: string | null
+  referenceRoles: readonly string[]
+}): Extract<CanvasCardWorkModeId, 'text-to-video' | 'first-frame-video' | 'keyframes-video'> {
+  if (
+    input.persistedGenerationMode === 'image-to-video' ||
+    input.persistedGenerationMode === 'first-frame-video'
+  ) return 'first-frame-video'
+  if (
+    input.persistedGenerationMode === 'keyframes' ||
+    input.persistedGenerationMode === 'keyframes-video'
+  ) return 'keyframes-video'
+  if (input.persistedGenerationMode === 'text-to-video') return 'text-to-video'
+  if (
+    input.referenceMode === 'keyframes' ||
+    input.referenceRoles.includes('last-frame')
+  ) return 'keyframes-video'
+  if (input.referenceMode === 'image-to-video' || input.referenceRoles.length > 0) {
+    return 'first-frame-video'
+  }
+  return 'text-to-video'
+}
+
+export function resolveCanvasCardVideoBindings(
+  mode: VideoReferenceMode,
+  bindings: readonly VideoReferenceBinding[],
+): VideoReferenceBinding[] {
+  if (mode === 'text-to-video') return []
+  if (mode === 'image-to-video') {
+    const primary = bindings.find((binding) => binding.role === 'first-frame') ?? bindings[0]
+    return primary ? [{ ...primary, role: 'first-frame', order: 0 }] : []
+  }
+  return bindings.map((binding, order) => ({ ...binding, order }))
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

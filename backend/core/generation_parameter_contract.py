@@ -35,6 +35,10 @@ VIDEO_REFERENCE_ROLES = ("first-frame", "last-frame", "reference")
 VIDEO_MAX_REFERENCES = 9
 VIDEO_DURATION_FRAMES = {3: 81, 5: 121, 10: 241, 18: 441}
 TEXT_WORKFLOW_MODES = ("text-to-video",)
+TEXT_MODEL_LABELS = {
+    "agnes-2.0-flash": "Agnes 2.0 Flash",
+    "agnes-2.5-flash": "Agnes 2.5 Flash",
+}
 
 
 class GenerationParameterError(ValueError):
@@ -67,16 +71,41 @@ def build_generation_capabilities(*, agnes_contract: AgnesContract = AGNES_CONTR
     text_capabilities["contract_version"] = 2
     text_capabilities["models"] = [
         {
-            "id": agnes_contract.media["text"].model,
-            "label": model_label,
+            "id": model,
+            "label": TEXT_MODEL_LABELS.get(
+                model,
+                model_label if model == agnes_contract.media["text"].model else model,
+            ),
             "workflow_modes": list(TEXT_WORKFLOW_MODES),
         }
+        for model in agnes_contract.media["text"].models
+    ]
+    text_capabilities["known_models"] = [
+        {
+            "id": model,
+            "availability": (
+                "allowed"
+                if model in agnes_contract.media["text"].models
+                else "gray"
+                if model == "agnes-2.5-flash"
+                else "paid-human-gated"
+            ),
+        }
+        for model in agnes_contract.media["text"].known_models
     ]
     return {
         "contract_version": CAPABILITY_CONTRACT_VERSION,
         "text": text_capabilities,
         "image": {
             "model": agnes_contract.media["image"].model,
+            "models": [
+                {"id": model, "label": model}
+                for model in agnes_contract.media["image"].models
+            ],
+            "known_models": [
+                {"id": model, "label": model}
+                for model in agnes_contract.media["image"].known_models
+            ],
             "size": IMAGE_SIZE,
             "aspect_ratios": list(IMAGE_ASPECT_RATIOS),
             "default_aspect_ratio": IMAGE_DEFAULT_ASPECT_RATIO,
@@ -87,6 +116,14 @@ def build_generation_capabilities(*, agnes_contract: AgnesContract = AGNES_CONTR
         },
         "video": {
             "model": agnes_contract.media["video"].model,
+            "models": [
+                {"id": model, "label": model}
+                for model in agnes_contract.media["video"].models
+            ],
+            "known_models": [
+                {"id": model, "label": model}
+                for model in agnes_contract.media["video"].known_models
+            ],
             "width": VIDEO_WIDTH,
             "height": VIDEO_HEIGHT,
             "reference_modes": list(VIDEO_REFERENCE_MODES),

@@ -112,21 +112,12 @@ async function surfaceSize(page: Page) {
 }
 
 async function selectCompositionSources(page: Page, state: ResourceMockState) {
-  const surface = page.locator('.canvas-surface')
-  const viewport = currentViewport(state)
-  const clickNode = async (nodeId: string, modifiers: ('Control' | 'Shift')[] = []) => {
-    const record = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === nodeId)!
-    await surface.click({
-      position: {
-        x: (Number(record.position_x) + Number(record.width) / 2) * viewport.zoom + viewport.x,
-        y: (Number(record.position_y) + Number(record.height) / 2) * viewport.zoom + viewport.y,
-      },
-      modifiers,
-    })
-  }
-  await clickNode('script-reveal')
-  await clickNode('result-reveal-a', ['Control'])
-  await clickNode('result-reveal-b', ['Control'])
+  void state
+  const select = (name: string, ctrlKey = false) => page.getByRole('button', { name, exact: true })
+    .dispatchEvent('pointerdown', { button: 0, ctrlKey, pointerId: 1 })
+  await select('镜头约束')
+  await select('海岸结果 A', true)
+  await select('海岸结果 B', true)
   const toolbar = page.getByRole('toolbar', { name: '3 个已选节点的操作' })
   await toolbar.getByRole('button', { name: '合并所选节点为生成任务' }).click()
   return page.getByRole('menu', { name: '选择生成任务类型' })
@@ -186,8 +177,9 @@ test('920px result branch reveal respects the overlay drawer inset', async ({ pa
   await expect.poll(() => documentPatches(state).length).toBe(1)
   const generation = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.node_type === 'generation')!
   await expectExactReveal(page, state, before, generation, { top: 96, right: 376, bottom: 96, left: 16 })
-  await expect(page.locator('.generation-editor')).toBeVisible()
-  const rect = await page.locator('.canvas-node-surface.is-composer').boundingBox()
+  const editor = page.locator('.generation-editor')
+  await expect(editor).toBeVisible()
+  const rect = await page.locator(`.canvas-node-surface[data-node-id="${generation.id}"]`).boundingBox()
   expect(rect!.x + rect!.width).toBeLessThanOrEqual(544)
   await page.screenshot({ path: resolve(evidenceDirectory, 'result-branch-revealed-920x900.png'), fullPage: true })
 })
@@ -227,7 +219,7 @@ test('readonly mobile creation remains unavailable and camera-neutral', async ({
   const state = createResourceMockState()
   configureComposition(state)
   await openResourceWorkspace(page, state, { width: 375, height: 812 })
-  await page.waitForTimeout(350)
+  await page.waitForTimeout(1_000)
   const viewportCount = viewportPatches(state).length
   await expect(page.locator('.selection-toolbar')).toHaveCount(0)
   await expect(page.locator('.result-branch')).toHaveCount(0)

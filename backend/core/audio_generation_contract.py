@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 
-AUDIO_CAPABILITY_CONTRACT_VERSION = 1
+AUDIO_CAPABILITY_CONTRACT_VERSION = 2
 
 
 def build_audio_generation_capabilities() -> dict[str, Any]:
@@ -11,7 +11,7 @@ def build_audio_generation_capabilities() -> dict[str, Any]:
     return {
         "contract_version": AUDIO_CAPABILITY_CONTRACT_VERSION,
         "execution_mode": "unavailable",
-        "model": None,
+        "models": [],
         "generation_modes": [],
         "provider_generation_modes": [],
         "audio_driven_video_modes": [],

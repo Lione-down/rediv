@@ -192,8 +192,17 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     resourceIntent.value = intent
     activeTab.value = tab
     isResourceOpen.value = true
+    if (tab === 'tasks' && options.projectId.value) {
+      void resourceStore.loadTaskHistory(options.projectId.value).catch(() => undefined)
+    }
     if (options.isCompact.value) isContextDrawerOpen.value = false
   }
+
+  watch(activeTab, (tab) => {
+    if (tab === 'tasks' && isResourceOpen.value && options.projectId.value) {
+      void resourceStore.loadTaskHistory(options.projectId.value).catch(() => undefined)
+    }
+  })
 
   function closeResources(restoreFocus = true) {
     isResourceOpen.value = false
@@ -437,7 +446,9 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   function selectNodeForCanvasLocation(nodeId: string) { if (!canvasStore.findNodeById(nodeId)) return false; suppressNextCompactContextOpen = options.isCompact.value; canvasStore.selectNode(nodeId); return true }
   watch(options.projectId, (projectId) => {
     pendingDirectorPreflights.clear()
-    if (projectId) void resourceStore.loadProject(projectId).catch(() => undefined)
+    if (projectId) {
+      void resourceStore.loadProject(projectId, { includeTaskHistory: false }).catch(() => undefined)
+    }
   }, { immediate: true })
 
   watch([

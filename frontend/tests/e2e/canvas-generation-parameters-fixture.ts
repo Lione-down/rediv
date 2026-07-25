@@ -52,6 +52,10 @@ export const GENERATION_CAPABILITIES_V6 = {
       id: 'agnes-2.0-flash',
       label: 'Agnes 2.0 Flash',
       workflow_modes: ['text-to-video'],
+    }, {
+      id: 'agnes-2.5-flash',
+      label: 'Agnes 2.5 Flash',
+      workflow_modes: ['text-to-video'],
     }],
     intents: ['script_draft', 'script_refine'],
     locales: ['zh-CN', 'en-US'],

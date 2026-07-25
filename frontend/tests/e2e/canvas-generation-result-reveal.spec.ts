@@ -30,19 +30,13 @@ function generatedResults(state: ResourceMockState) {
   ))
 }
 
-function visualHeight(node: Record<string, unknown>) {
-  const content = node.content as Record<string, unknown>
-  const ratio = Number(content.aspect_ratio)
-  return Number.isFinite(ratio) && ratio > 0 ? Number(node.width) / ratio : Number(node.height)
-}
-
 async function selectGeneration(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 封面生成' }).click()
   await expect(page.locator('.generation-editor')).toBeVisible()
 }
 
-test('foreground results form a visible variant column without changing zoom or selection', async ({ page }) => {
+test('foreground results return to the originating card without changing zoom or selection', async ({ page }) => {
   const state = createResourceMockState()
   const generation = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')!
   generation.position_x = 840
@@ -52,23 +46,26 @@ test('foreground results form a visible variant column without changing zoom or 
   await expect.poll(() => viewportPatches(state).length).toBeGreaterThan(0)
   await page.locator('.view-controls > button').first().click()
   await expect(page.locator('.resource-panel-shell')).toBeVisible()
+  const taskHistoryResponse = page.waitForResponse((response) => (
+    response.request().method() === 'GET' && response.url().includes('/api/generation-tasks?')
+  ))
+  await page.getByRole('tab', { name: '生成记录' }).click()
+  await taskHistoryResponse
+  await page.getByRole('tab', { name: '项目资产' }).click()
   await page.waitForTimeout(250)
 
   const initialViewport = latestViewport(state)
   const editor = page.locator('.generation-editor')
+  const sourceSurface = page.locator('.canvas-node-surface[data-node-id="generation-cover"]')
   await editor.locator('.generate-button').click()
   await expect.poll(() => generatedResults(state).length).toBe(1)
   await expect(editor).toBeVisible()
-  await expect.poll(() => latestViewport(state).x).not.toBe(initialViewport.x)
+  await page.waitForTimeout(350)
   expect(latestViewport(state).zoom).toBe(initialViewport.zoom)
+  await expect(sourceSurface.getByRole('img')).toBeVisible()
 
   const first = generatedResults(state)[0]
-  const firstViewport = latestViewport(state)
-  const firstLeft = Number(first.position_x) * firstViewport.zoom + firstViewport.x
-  const firstRight = firstLeft + Number(first.width) * firstViewport.zoom
-  expect(firstLeft).toBeGreaterThanOrEqual(40)
-  expect(firstRight).toBeLessThanOrEqual(672)
-
+  await expect(page.locator(`.canvas-node-surface[data-node-id="${first.id}"]`)).toHaveCount(0)
   await editor.locator('.generate-button').click()
   await expect.poll(() => generationPosts(state).length).toBe(2)
   await expect.poll(() => generatedResults(state).length).toBe(2)
@@ -79,11 +76,9 @@ test('foreground results form a visible variant column without changing zoom or 
     Number(firstPersisted.position_y) + Number(firstPersisted.height),
   )
   await page.waitForTimeout(350)
-  const secondViewport = latestViewport(state)
-  const secondTop = Number(secondPersisted.position_y) * secondViewport.zoom + secondViewport.y
-  const secondBottom = secondTop + visualHeight(secondPersisted) * secondViewport.zoom
-  expect(secondTop).toBeGreaterThanOrEqual(120)
-  expect(secondBottom).toBeLessThanOrEqual(780)
+  expect(latestViewport(state).zoom).toBe(initialViewport.zoom)
+  await expect(sourceSurface.getByRole('img')).toBeVisible()
+  await expect(page.locator(`.canvas-node-surface[data-node-id="${secondPersisted.id}"]`)).toHaveCount(0)
   await editor.locator('.run-history summary').click()
   await expect(editor.locator('.run-history')).toContainText('4 次')
 
@@ -114,15 +109,21 @@ test('920px drawer reveal keeps the foreground result in the unobscured Canvas a
   await openResourceWorkspace(page, state, { width: 920, height: 900 })
   await selectGeneration(page)
   await expect(page.locator('.n-drawer:visible')).toBeVisible()
+  await expect.poll(() => viewportPatches(state).length).toBeGreaterThan(0)
+  const before = latestViewport(state)
   await page.locator('.generation-editor .generate-button').click()
   await expect.poll(() => generatedResults(state).length).toBe(1)
   await page.waitForTimeout(350)
-  const result = generatedResults(state)[0]
   const viewport = latestViewport(state)
-  const left = Number(result.position_x) * viewport.zoom + viewport.x
-  const right = left + Number(result.width) * viewport.zoom
-  expect(left).toBeGreaterThanOrEqual(40)
-  expect(right).toBeLessThanOrEqual(520)
+  const [sourceBox, drawerBox] = await Promise.all([
+    page.locator('.canvas-node-surface[data-node-id="generation-cover"]').boundingBox(),
+    page.locator('.n-drawer:visible').boundingBox(),
+  ])
+  if (!sourceBox || !drawerBox) throw new Error('Compact source-card reveal geometry is unavailable')
+  expect(sourceBox.x).toBeGreaterThanOrEqual(24)
+  expect(sourceBox.x + sourceBox.width).toBeLessThanOrEqual(drawerBox.x - 16)
+  expect(viewport.zoom).toBe(before.zoom)
+  await expect(page.locator('.canvas-node-surface[data-node-id="generation-cover"]').getByRole('img')).toBeVisible()
   await expect(page.locator('.generation-editor')).toBeVisible()
 })
 
@@ -141,13 +142,13 @@ test('background reconciliation after a Canvas switch neither pans nor selects t
 
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}\\?canvas_runtime=legacy$`))
   releaseGeneration()
   await expect.poll(() => state.tasks.some((item) => item.id === 'task-success')).toBe(true)
 
   await page.getByRole('button', { name: '分镜', exact: true }).click()
   await page.getByRole('option', { name: /画布 1/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}\\?canvas_runtime=legacy$`))
   await expect.poll(() => generatedResults(state).length).toBe(1)
   await page.waitForTimeout(350)
   expect(latestViewport(state)).toEqual(before)

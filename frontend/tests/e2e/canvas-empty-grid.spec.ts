@@ -79,7 +79,7 @@ test('editable empty Canvas offers starters and an explicit zero-mutation blank 
   await installMockApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'mock-session-token'))
   await page.setViewportSize({ width: 1366, height: 768 })
-  await page.goto('/app/projects/project-e2e/canvases/canvas-first')
+  await page.goto('/app/projects/project-e2e/canvases/canvas-first?canvas_runtime=legacy')
 
   const guide = page.getByRole('region', { name: '空白画布起点' })
   await expect(guide).toBeVisible()
@@ -142,7 +142,7 @@ test('mobile review empty Canvas does not expose editing starters', async ({ pag
   await installMockApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'mock-session-token'))
   await page.setViewportSize({ width: 375, height: 812 })
-  await page.goto('/app/projects/project-e2e/canvases/canvas-first')
+  await page.goto('/app/projects/project-e2e/canvases/canvas-first?canvas_runtime=legacy')
 
   const guide = page.getByRole('region', { name: '空白画布起点' })
   await expect(guide).toContainText('当前没有可审阅的节点。')

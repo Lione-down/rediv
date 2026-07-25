@@ -10,7 +10,6 @@
 
 import asyncio
 import logging
-from math import isfinite
 from typing import Any, AsyncIterator
 
 import httpx
@@ -36,48 +35,25 @@ class AgnesProviderResponseError(RuntimeError):
 
 PROVIDER_STATUS_MAP = {
     "queued": "queued",
-    "pending": "queued",
-    "created": "queued",
-    "running": "running",
-    "processing": "running",
     "in_progress": "running",
     "completed": "succeeded",
-    "complete": "succeeded",
-    "succeeded": "succeeded",
-    "success": "succeeded",
     "failed": "failed",
-    "error": "failed",
-    "cancelled": "failed",
-    "canceled": "failed",
-    "timeout": "timed_out",
-    "timed_out": "timed_out",
 }
 
 
 def normalize_provider_status(provider_status: str | None) -> str:
-    if provider_status is None:
-        return "running"
-    return PROVIDER_STATUS_MAP.get(provider_status.lower(), "running")
+    if not isinstance(provider_status, str) or provider_status not in PROVIDER_STATUS_MAP:
+        raise AgnesProviderResponseError("Provider returned an unsupported video task status")
+    return PROVIDER_STATUS_MAP[provider_status]
 
 
-def extract_provider_progress_percent(response: object) -> float | None:
+def extract_provider_progress_percent(response: object) -> int | None:
     if not isinstance(response, dict):
         return None
-    containers = [response]
-    data = response.get("data")
-    if isinstance(data, dict):
-        containers.append(data)
-    for container in containers:
-        for field in ("progress_percent", "progress", "percentage", "percent"):
-            value = container.get(field)
-            if (
-                not isinstance(value, bool)
-                and isinstance(value, (int, float))
-                and isfinite(float(value))
-                and 0 <= float(value) <= 100
-            ):
-                return float(value)
-    return None
+    value = response.get("progress")
+    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 100:
+        return None
+    return value
 
 
 class AgnesProvider:

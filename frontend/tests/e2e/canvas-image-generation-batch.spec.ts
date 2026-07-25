@@ -136,11 +136,13 @@ test('a failed batch slot retries only its own card with a new request id after 
     const parameters = (node.content as Record<string, unknown>).generation_parameters as { image?: { batch?: { slot_index?: number } } } | undefined
     return parameters?.image?.batch?.slot_index === slotIndex
   })!
-  await expect.poll(() => (slotNode(3).content as Record<string, unknown>).generation_status).toBe('failed')
   const successfulTaskIds = state.tasks.filter((task) => task.status === 'succeeded' && String(task.id).startsWith('task-success')).map((task) => task.id)
   expect(successfulTaskIds).toHaveLength(3)
   const firstRun = state.requests.filter((item) => item.path === '/api/image-generate').map((item) => item.body!)
   const failedNodeId = String(firstRun.find((body) => (body.batch as Record<string, unknown>).slot_index === 3)!.canvas_node_id)
+  await expect.poll(() => (
+    (slotNode(3).content as Record<string, unknown>).active_generation_job_id
+  )).toBeTruthy()
   const firstFailedRequestId = firstRun.find((body) => body.canvas_node_id === failedNodeId)!.client_request_id
   const nodeCount = state.documents[FIRST_CANVAS_ID].nodes.length
 

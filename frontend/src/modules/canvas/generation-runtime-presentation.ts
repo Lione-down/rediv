@@ -36,6 +36,7 @@ export interface GenerationRuntimePresentation {
   progressPercent: number | null
   progressStage: GenerationTaskProgressStage | null
   isIndeterminate: boolean
+  error: string | null
 }
 
 export interface RestoredGenerationJobRuntime {
@@ -63,6 +64,17 @@ export function formatGenerationProgressPercent(value: unknown) {
   const normalized = normalizeGenerationProgressPercent(value)
   if (normalized === null) return null
   return `${new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 1 }).format(normalized)}%`
+}
+
+export function formatGenerationFailureMessage(value: unknown) {
+  const message = typeof value === 'string' ? value.trim() : ''
+  if (
+    !message ||
+    message.includes('结果未扣费') ||
+    message.includes('提交结果暂未确认') ||
+    message.includes('正在按当前卡片恢复任务')
+  ) return message
+  return `${message}。结果未扣费，可在确认服务恢复后手动重试。`
 }
 
 export function resolveGenerationTaskProgressSummary(task: GenerationTask) {
@@ -135,6 +147,7 @@ export function resolveGenerationTaskRuntimePresentation(task: GenerationTask): 
     progressPercent,
     progressStage,
     isIndeterminate: !presentation.isTerminal && progressPercent === null,
+    error: task.error_message,
   }
 }
 
@@ -153,6 +166,7 @@ export function resolveLocalGenerationRuntimePresentation(request: LocalGenerati
     progressPercent: null,
     progressStage: null,
     isIndeterminate: true,
+    error: null,
   }
 }
 
@@ -277,6 +291,7 @@ export function resolveGenerationJobRuntimePresentations(
       progressPercent: normalizeGenerationProgressPercent(runtime.progress),
       progressStage: runtime.stage,
       isIndeterminate: !phasePresentation.isTerminal && runtime.progress === null,
+      error: runtime.error,
     })
   }
   return presentations

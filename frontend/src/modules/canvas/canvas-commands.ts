@@ -2,6 +2,7 @@ import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import type { InsertNodeIntoConnectionCommand } from './edge-insertion'
 import type { GenerationNodeParameters } from './generation-parameters'
 import type { CinematicSkillNodeSettings } from './cinematic-skills'
+import type { CanvasCardConfigurationSnapshot } from './canvas-card-configuration'
 import type { ScriptAuthoringLineage } from './script-authoring'
 import type { ApplyCinematicSequenceCommand } from './cinematic-sequence-command'
 import type { StoryboardAssetCommand } from './storyboard-asset-commands'
@@ -142,12 +143,20 @@ export interface UpdateGenerationParametersCommand {
   type: 'update-generation-parameters'
   nodeId: string
   parameters: GenerationNodeParameters
+  configuration?: CanvasCardConfigurationSnapshot
 }
 
 export interface UpdateCinematicSkillSettingsCommand {
   type: 'update-cinematic-skill-settings'
   nodeId: string
   settings: CinematicSkillNodeSettings
+}
+
+export interface SetCardConfigurationCommand {
+  type: 'set-card-configuration'
+  nodeId: string
+  configuration: CanvasCardConfigurationSnapshot
+  content?: string
 }
 
 export interface ApplyScriptAuthoringResultCommand {
@@ -179,6 +188,7 @@ export type CanvasCommand =
   | InsertGraphCommand
   | ReorderGenerationInputCommand
   | UpdateGenerationParametersCommand
+  | SetCardConfigurationCommand
   | UpdateCinematicSkillSettingsCommand
   | ApplyScriptAuthoringResultCommand
   | UpdateScriptReferenceAssetsCommand

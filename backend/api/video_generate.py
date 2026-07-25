@@ -43,28 +43,17 @@ def _extract_video_id(response: object) -> str:
     if isinstance(video_id, str) and video_id:
         return validate_provider_identifier(video_id)
 
-    data = response.get("data")
-    if isinstance(data, dict):
-        nested_video_id = data.get("video_id")
-        if isinstance(nested_video_id, str) and nested_video_id:
-            return validate_provider_identifier(nested_video_id)
-
     raise ProviderResultError("Provider returned invalid video task identifier")
 
 
 def _extract_video_url(response: object) -> str | None:
     if not isinstance(response, dict):
         raise ProviderResultError("Provider returned invalid video result data")
-    for field in ("url", "video_url"):
-        video_url = response.get(field)
+    metadata = response.get("metadata")
+    if isinstance(metadata, dict):
+        video_url = metadata.get("url")
         if isinstance(video_url, str) and video_url:
             return validate_https_url(video_url, media_type="video")
-
-    data = response.get("data")
-    if isinstance(data, dict):
-        nested_video_url = data.get("video_url")
-        if isinstance(nested_video_url, str) and nested_video_url:
-            return validate_https_url(nested_video_url, media_type="video")
 
     return None
 
@@ -109,11 +98,14 @@ async def _poll_video_url(
         poll_status = response.get("status")
         normalized_status = normalize_provider_status(poll_status if isinstance(poll_status, str) else None)
         progress_percent = extract_provider_progress_percent(response)
-        if progress_percent is not None:
-            generation_controller.update_generation_task_state(
-                generation_task_id,
-                progress_percent=progress_percent,
-            )
+        if progress_percent is None:
+            raise ProviderResultError("Provider returned invalid video task progress")
+        if normalized_status == "succeeded" and progress_percent != 100:
+            raise ProviderResultError("Provider returned contradictory completed video progress")
+        generation_controller.update_generation_task_state(
+            generation_task_id,
+            progress_percent=progress_percent,
+        )
         if normalized_status == "succeeded":
             video_url = _extract_video_url(response)
             if video_url is None:

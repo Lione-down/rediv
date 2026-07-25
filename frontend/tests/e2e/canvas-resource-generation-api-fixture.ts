@@ -211,12 +211,62 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       if (state.taskListOutcome === 'failure') return fulfillJson(route, { detail: 'mock task list unavailable' }, 503)
       return fulfillJson(route, { items: state.tasks, total: state.tasks.length, page: 1, page_size: 100 })
     }
+    const boundGenerationTaskMatch = path.match(/^\/api\/generation-tasks\/([^/]+)$/)
+    if (method === 'GET' && boundGenerationTaskMatch) {
+      const task = state.tasks.find((candidate) => candidate.id === boundGenerationTaskMatch[1])
+      return task
+        ? fulfillJson(route, task)
+        : fulfillJson(route, { detail: 'mock generation task missing' }, 404)
+    }
     const generationJobResultMatch = path.match(/^\/api\/v2\/generation-jobs\/([^/]+)\/result$/)
     if (method === 'GET' && generationJobResultMatch) {
       const result = state.generationJobResults[generationJobResultMatch[1]]
       return result
         ? fulfillJson(route, result)
         : fulfillJson(route, { detail: 'mock generation job result unavailable' }, 409)
+    }
+    const generationJobRecoveryMatch = path.match(new RegExp(
+      `^/api/v2/projects/${PROJECT_ID}/canvases/([^/]+)/nodes/([^/]+)/generation-jobs/by-client-request/([^/]+)$`,
+    ))
+    if (method === 'GET' && generationJobRecoveryMatch) {
+      const [, canvasId, nodeId, clientRequestId] = generationJobRecoveryMatch
+      const task = state.tasks.find((candidate) => candidate.client_request_id === clientRequestId)
+      return task
+        ? fulfillJson(route, {
+            job_id: task.id,
+            project_id: PROJECT_ID,
+            canvas_id: canvasId,
+            node_id: nodeId,
+            media_type: task.media_type,
+            status: task.status,
+            model_id: task.model,
+            quota_revision: null,
+            version: 1,
+          })
+        : fulfillJson(route, { detail: 'mock generation job recovery missing' }, 404)
+    }
+    const cinematicLineageMatch = path.match(new RegExp(
+      `^/api/v2/projects/${PROJECT_ID}/canvases/([^/]+)/nodes/([^/]+)/generation-jobs/([^/]+)/cinematic-lineage$`,
+    ))
+    if (method === 'GET' && cinematicLineageMatch) {
+      const [, canvasId, nodeId, jobId] = cinematicLineageMatch
+      const task = state.tasks.find((candidate) => (
+        candidate.id === jobId &&
+        candidate.origin_canvas_id === canvasId &&
+        candidate.canvas_node_id === nodeId
+      ))
+      const requestParameters = task?.request_parameters as Record<string, unknown> | null
+      const handoff = requestParameters?.cinematic_handoff as Record<string, unknown> | undefined
+      return task
+        ? fulfillJson(route, {
+            job_id: jobId,
+            project_id: PROJECT_ID,
+            canvas_id: canvasId,
+            node_id: nodeId,
+            cinematic_skill: requestParameters?.cinematic_skill ?? handoff?.skill ?? null,
+            version: 1,
+          })
+        : fulfillJson(route, { detail: 'mock cinematic lineage missing' }, 404)
     }
     const generationJobStatusMatch = path.match(/^\/api\/v2\/generation-jobs\/([^/]+)$/)
     if (method === 'GET' && generationJobStatusMatch) {
@@ -475,6 +525,19 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
         error_code: 'provider_error', error_message: 'mock provider unavailable',
       })
       state.tasks = [failedTask, ...state.tasks.filter((item) => item.id !== failedTask.id)]
+      state.generationJobs[failedTask.id] = {
+        job_id: failedTask.id,
+        node_id: nodeId,
+        media_type: mediaType,
+        status: 'failed',
+        stage: 'provider',
+        progress: null,
+        error: 'mock provider unavailable',
+        result_asset_id: null,
+        version: 1,
+        updated_at: NOW,
+      }
+      state.generationJobCanvasIds[failedTask.id] = canvasId
       return fulfillJson(route, { detail: 'mock provider unavailable' }, 503)
     }
     if (method === 'POST' && path === '/api/text-generate') {

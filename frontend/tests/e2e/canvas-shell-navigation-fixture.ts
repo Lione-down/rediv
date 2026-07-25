@@ -225,7 +225,7 @@ export async function openShell(page: Page, state: ShellState, viewport = { widt
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await installShellApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'shell-token'))
-  await page.goto('/app/projects/project-shell/canvases/canvas-first')
+  await page.goto('/app/projects/project-shell/canvases/canvas-first?canvas_runtime=legacy')
   await expect(page.getByRole('region', { name: '项目与画布导航' })).toBeVisible()
 }
 

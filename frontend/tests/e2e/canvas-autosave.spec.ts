@@ -268,7 +268,7 @@ async function openCanvas(page: Page, state: AutosaveState, expectSaved = true) 
   await page.setViewportSize({ width: 1366, height: 768 })
   await installApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'autosave-token'))
-  await page.goto(`/app/projects/${PROJECT_ID}/canvases/${FIRST_CANVAS_ID}`)
+  await page.goto(`/app/projects/${PROJECT_ID}/canvases/${FIRST_CANVAS_ID}?canvas_runtime=legacy`)
   await expect(page.locator('.canvas-surface')).toBeVisible()
   if (expectSaved) await expect(page.locator('.sync-status')).toContainText('r7')
 }
@@ -431,7 +431,7 @@ test('Canvas switch flushes the graph batch before loading the next document', a
   await createTextNode(page, 900)
   await page.locator('.canvas-switcher').click()
   await page.locator('.canvas-row').nth(1).click()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}\\?canvas_runtime=legacy$`))
 
   const patchIndex = state.requests.findIndex(({ method, path }) => (
     method === 'PATCH' && path.endsWith(`/${FIRST_CANVAS_ID}/document`)
@@ -469,7 +469,7 @@ test('a recovery snapshot detected on load survives a clean Canvas switch', asyn
   await expect(page.locator('.sync-status')).toBeFocused()
   await page.locator('.canvas-switcher').click()
   await page.locator('.canvas-row').nth(1).click()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}\\?canvas_runtime=legacy$`))
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), RECOVERY_KEY)).not.toBeNull()
 })
 
@@ -496,6 +496,6 @@ test('a failed switch flush blocks navigation and keeps the local recovery copy'
   await page.locator('.canvas-switcher').click()
   await page.locator('.canvas-row').nth(1).click()
   await expect.poll(() => state.patchAttempts.length).toBe(2)
-  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}\\?canvas_runtime=legacy$`))
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), RECOVERY_KEY)).not.toBeNull()
 })

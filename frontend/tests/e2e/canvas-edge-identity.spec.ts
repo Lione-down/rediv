@@ -169,7 +169,7 @@ test('selected prompt media and result edges expose one contextual semantic iden
   await expect(identity).toHaveAccessibleName(
     '选中连线：V1 生成结果，封面生成 到 历史图片生成结果与收束画面',
   )
-  await expect(identity.getByRole('button', { name: '在连线中插入节点' })).toBeVisible()
+  await expect(identity.getByRole('button', { name: '在连线中插入节点' })).toHaveCount(0)
   await expect(page.locator('.selected-edge-identity')).toHaveCount(1)
   const identityBox = await identity.boundingBox()
   const surfaceBox = await page.locator('.canvas-surface').boundingBox()

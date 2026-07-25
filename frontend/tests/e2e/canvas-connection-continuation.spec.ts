@@ -20,10 +20,12 @@ test('text output offers registry-compatible script and generation continuations
     { type: 'script', subtype: 'prompt', targetPort: 'in' },
     { type: 'generation', subtype: 'image', targetPort: 'prompt' },
     { type: 'generation', subtype: 'video', targetPort: 'prompt' },
+    { type: 'generation', subtype: 'video-composition', targetPort: 'prompt' },
+    { type: 'generation', subtype: 'audio', targetPort: 'prompt' },
   ])
 })
 
-test('media and result outputs expose registry-compatible typed continuations', () => {
+test('media and legacy result outputs expose authoring-only typed continuations', () => {
   const media = resolveConnectionContinuationOptions(node('asset', 'asset', 'image'), 'out')
   const result = resolveConnectionContinuationOptions(node('result', 'result', 'image'), 'out')
   const videoAsset = resolveConnectionContinuationOptions(node('video-asset', 'asset', 'video'), 'out')
@@ -33,16 +35,15 @@ test('media and result outputs expose registry-compatible typed continuations', 
 
   expect(media.map((option) => option.key)).toEqual([
     'generation:image:media', 'generation:video:media',
+    'generation:video-composition:media', 'generation:audio:media',
   ])
   expect(result.map((option) => option.key)).toEqual([
     'generation:image:media', 'generation:video:media',
-    'result:image:in', 'result:video:in', 'result:text:in',
+    'generation:video-composition:media', 'generation:audio:media',
   ])
   expect(videoAsset.map((option) => option.key)).toEqual([])
   for (const options of [videoResult, textResult, generation]) {
-    expect(options.map((option) => option.key)).toEqual([
-      'result:image:in', 'result:video:in', 'result:text:in',
-    ])
+    expect(options.map((option) => option.key)).toEqual([])
   }
 })
 
@@ -76,9 +77,7 @@ test('input continuation offers only compatible upstream outputs', () => {
   const media = resolveConnectionContinuationOptions(node('generation', 'generation', 'video'), 'media', 'upstream')
 
   expect(prompt.map((option) => option.key)).toEqual(['script:script:out', 'script:prompt:out'])
-  expect(media.map((option) => option.key)).toEqual([
-    'asset:image:out', 'result:image:out',
-  ])
+  expect(media.map((option) => option.key)).toEqual([])
 })
 
 test('upstream continuation builds a correctly oriented atomic graph command', () => {

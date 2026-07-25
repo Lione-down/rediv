@@ -157,6 +157,7 @@ test('Canvas script authoring directly replaces the selected card, stays reversi
   await palette.getByRole('combobox', { name: '搜索专业操作' }).fill('agnes 创意')
   await palette.getByRole('option', { name: /Agnes：从创意生成脚本/ }).click()
 
+  await page.locator('.canvas-node-surface[data-node-id="script-source"]').getByRole('button', { name: '展开脚本工作流' }).click()
   const authoring = page.getByRole('region', { name: 'AI 脚本写作' })
   await expect(authoring).toContainText('Agnes 2.0 Flash')
   await expect(authoring.getByRole('textbox', { name: '创意 Brief' })).toBeVisible()
@@ -198,6 +199,7 @@ test('Canvas script authoring directly replaces the selected card, stays reversi
 
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本', exact: true }).click()
+  await page.locator('.canvas-node-surface[data-node-id="script-source"]').getByRole('button', { name: '展开脚本工作流' }).click()
   const replaceAuthoring = page.getByRole('region', { name: 'AI 脚本写作' })
   await replaceAuthoring.getByRole('textbox', { name: '脚本优化要求' }).fill('提升节奏，保留人物和黄昏海岸。')
   await replaceAuthoring.getByRole('button', { name: '优化当前脚本' }).click()
@@ -214,6 +216,7 @@ test('script context replaces internal capability jargon with recoverable model 
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本', exact: true }).click()
 
+  await page.locator('.canvas-node-surface[data-node-id="script-source"]').getByRole('button', { name: '展开脚本工作流' }).click()
   const authoring = page.getByRole('region', { name: 'AI 脚本写作' })
   await expect(authoring).toContainText('模型未就绪')
   await expect(authoring).not.toContainText('capability 未加载')

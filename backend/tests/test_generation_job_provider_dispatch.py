@@ -36,10 +36,11 @@ class _FakeProvider:
         self.calls.append(("video-poll", {"provider_request_id": provider_request_id}))
         self.video_polls += 1
         if self.video_polls == 1:
-            return {"status": "processing"}
+            return {"status": "in_progress", "progress": 47}
         return {
             "status": "completed",
-            "video_url": "https://example.com/generated.mp4",
+            "progress": 100,
+            "metadata": {"url": "https://example.com/generated.mp4"},
         }
 
 
@@ -72,6 +73,19 @@ class GenerationJobProviderDispatchTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("https://example.com/generated.png", image_result.url)
         self.assertEqual(["text-request-1", "image-request-1"], checkpoints)
 
+    async def test_text_dispatch_preserves_the_admitted_agnes_25_flash_model_id(self) -> None:
+        provider = _FakeProvider()
+        dispatcher = GenerationProviderDispatcher(provider)
+        job = _job("text")
+        job["model"] = "agnes-2.5-flash"
+
+        await dispatcher.dispatch(job, lambda _request_id: None)
+
+        self.assertEqual(
+            "agnes-2.5-flash",
+            provider.calls[0][1]["model"],
+        )
+
     async def test_video_dispatch_checkpoints_before_bounded_polling(self) -> None:
         provider = _FakeProvider()
         dispatcher = GenerationProviderDispatcher(
@@ -80,10 +94,16 @@ class GenerationJobProviderDispatchTests(unittest.IsolatedAsyncioTestCase):
             max_poll_attempts=2,
         )
         checkpoints: list[str] = []
+        progress: list[int] = []
 
-        result = await dispatcher.dispatch(_job("video"), checkpoints.append)
+        result = await dispatcher.dispatch(
+            _job("video"),
+            checkpoints.append,
+            progress.append,
+        )
 
         self.assertEqual(["video-request-1"], checkpoints)
+        self.assertEqual([47, 100], progress)
         self.assertEqual("video", result.asset_type)
         self.assertEqual("https://example.com/generated.mp4", result.url)
         self.assertEqual(2, provider.video_polls)
@@ -98,15 +118,62 @@ class GenerationJobProviderDispatchTests(unittest.IsolatedAsyncioTestCase):
             max_poll_attempts=2,
         )
         checkpoints: list[str] = []
+        progress: list[int] = []
         reclaimed_job = _job("video")
         reclaimed_job["provider_request_id"] = "video-request-1"
 
-        result = await dispatcher.dispatch(reclaimed_job, checkpoints.append)
+        result = await dispatcher.dispatch(
+            reclaimed_job,
+            checkpoints.append,
+            progress.append,
+        )
 
         self.assertEqual("video-request-1", result.provider_request_id)
         self.assertEqual([], checkpoints)
+        self.assertEqual([47, 100], progress)
         self.assertNotIn("video", [operation for operation, _kwargs in provider.calls])
         self.assertEqual(2, provider.video_polls)
+
+    async def test_video_dispatch_rejects_non_official_status_and_url_aliases(self) -> None:
+        provider = _FakeProvider()
+        provider.video_polls = 1
+
+        async def legacy_poll(_provider_request_id: str) -> dict:
+            return {
+                "status": "success",
+                "progress_percent": 100,
+                "video_url": "https://example.com/legacy.mp4",
+            }
+
+        provider.poll_video_result = legacy_poll
+        dispatcher = GenerationProviderDispatcher(
+            provider,
+            poll_interval_seconds=0,
+            max_poll_attempts=1,
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "status"):
+            await dispatcher.dispatch(
+                _job("video"),
+                lambda _request_id: None,
+                lambda _progress: None,
+            )
+
+    async def test_video_dispatch_rejects_nested_create_identifier(self) -> None:
+        provider = _FakeProvider()
+
+        async def nested_create(**_kwargs) -> dict:
+            return {"data": {"video_id": "legacy-video-id"}}
+
+        provider.generate_video = nested_create
+        dispatcher = GenerationProviderDispatcher(provider)
+
+        with self.assertRaisesRegex(ValueError, "video task"):
+            await dispatcher.dispatch(
+                _job("video"),
+                lambda _request_id: None,
+                lambda _progress: None,
+            )
 
     async def test_dispatch_rejects_non_v2_request_snapshot_without_provider_call(
         self,

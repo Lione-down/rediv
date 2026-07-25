@@ -25,6 +25,7 @@ import type {
   VideoReferenceMode,
   VideoReferenceRole,
 } from './generation-capability-contract'
+import { readCanvasCardConfiguration } from './canvas-card-view-model'
 
 export { parseGenerationCapabilities } from './generation-capability-contract'
 export type {
@@ -353,11 +354,25 @@ export function resolveGenerationRequestContext(
   let referenceMode: VideoReferenceMode | null = null
   let primaryReferenceNodeId: string | undefined
   let videoReferences: VideoReferenceBinding[] | undefined
-  const hasStructuredReferences = capabilities.contract_version === 6 && isRecord(video) && video.reference_bindings !== undefined
+  const hasCanonicalReferences = capabilities.contract_version === 6 &&
+    isRecord(generationNode.contentData?.card_configuration) &&
+    generationNode.contentData.card_configuration.schema_version === 1
+  const canonicalReferences = hasCanonicalReferences
+    ? readCanvasCardConfiguration(generationNode.contentData).references.map((reference) => ({
+        node_id: reference.stableId,
+        asset_id: reference.assetId,
+        role: reference.role,
+        order: reference.order,
+      }))
+    : undefined
+  const hasStructuredReferences = capabilities.contract_version === 6 && (
+    canonicalReferences !== undefined ||
+    (isRecord(video) && video.reference_bindings !== undefined)
+  )
   if (hasStructuredReferences) {
     try {
       videoReferences = parseVideoReferenceBindings(
-        video.reference_bindings,
+        canonicalReferences ?? (isRecord(video) ? video.reference_bindings : undefined),
         validSources,
         capabilities.video,
       )

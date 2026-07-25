@@ -212,6 +212,16 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     marquee.value = { pointerId: origin.pointerId ?? null, start: point, current: point, additive }
     bindWindowPointerListeners()
   }
+  function handleSurfacePointerDown(origin: PointerEvent) {
+    if (origin.target !== canvasSurfaceRef.value) return
+    handleStagePointerDown({ origin })
+  }
+  function handleSurfaceContextMenu(origin: MouseEvent) {
+    handleContextMenu({ origin })
+  }
+  function handleSurfaceDoubleClick(origin: MouseEvent) {
+    handleStageDoubleClick({ origin })
+  }
   function handleNodePointerDown(nodeId: string, event: LeaferPointerEvent) {
     focusCanvasStage()
     if (renderer?.isPortTarget(nodeId, event.target)) return
@@ -477,7 +487,9 @@ export function useCanvasStage(options: CanvasStageOptions = {}) {
     canvasStore, canvasSurfaceRef, centerNodeInViewport, connectionPaths, connectionTargetPorts, connectionTargetStates,
     hiddenPresentationNodeIds, presentationConnections, presentationNodes,
     closeConnectionContinuation, connectionContinuation, continuationStyle, openConnectionContinuation, selectConnectionContinuation,
-    handleMinimapPointerDown, minimapNodeStyle, minimapNodes, minimapRef,
+    handleMinimapPointerDown, handleNodePointerDown, handlePortPointerDown,
+    handleSurfaceContextMenu, handleSurfaceDoubleClick, handleSurfacePointerDown,
+    minimapNodeStyle, minimapNodes, minimapRef,
     minimapViewportStyle, selectNodeBehindOverlay, stageRef, stageSize: surfaceViewportSize, statusBadgeStyle,
     statusIconMap, statusLabel, statusNodes, stageNotice, surfaceNodeRectStyle, temporaryConnectionPath, marqueeStyle,
     viewportCursor, retryProjectLoad, contextMenu, contextMenuOptions, closeContextMenu, selectionAggregateHullStyle, selectionToolbarStyle,

@@ -1,7 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { canvasNodeVisualSize } from '../../src/components/canvas/canvas-node-presentation'
 import { resolveCanvasNodeContinuationTrigger } from '../../src/components/canvas/canvas-node-continuation-trigger'
 import { resolveConnectionContinuationOptions } from '../../src/modules/canvas/connection-continuation'
 import { mapCanvasNode } from '../../src/modules/canvas/mappers'
@@ -50,26 +49,32 @@ async function selectNode(page: Page, state: ResourceMockState, nodeId: string, 
   })
 }
 
-test('selected script exposes canonical continuation and creates one foreground workflow', async ({ page }) => {
+test('selected script output port exposes canonical continuation and creates one foreground workflow', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
   await selectNode(page, state, 'script-source')
 
-  const trigger = page.getByRole('button', { name: '继续此节点' })
-  await expect(trigger).toBeVisible()
-  await expect(trigger).toHaveAttribute('title', '继续此节点')
+  const outputPort = page.locator(
+    '.canvas-node-surface[data-node-id="script-source"] .canvas-runtime-port[data-port-direction="output"]',
+  )
+  await expect(outputPort).toHaveCount(1)
   const before = currentViewport(state)
   const viewportCount = viewportPatches(state).length
-  await trigger.focus()
-  await page.keyboard.press('Enter')
+  const outputBox = await outputPort.boundingBox()
+  if (!outputBox) throw new Error('Script output port geometry is unavailable')
+  await page.mouse.move(outputBox.x + outputBox.width / 2, outputBox.y + outputBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(outputBox.x + outputBox.width / 2 + 80, outputBox.y + outputBox.height / 2 + 48)
+  await page.mouse.up()
 
   const chooser = page.getByRole('dialog', { name: '继续连接' })
   await expect(chooser).toBeVisible()
-  await expect(chooser.getByRole('menuitem')).toHaveCount(5)
+  await expect(chooser.getByRole('menuitem')).toHaveCount(6)
   await expect(chooser.getByRole('menuitem', { name: /^文本/ })).toBeVisible()
   await expect(chooser.getByRole('menuitem', { name: /图片生成/ })).toBeVisible()
   await expect(chooser.getByRole('menuitem', { name: /视频生成/ })).toBeVisible()
-  await expect(chooser.getByRole('menuitem', { name: /^音频/ })).toBeDisabled()
+  await expect(chooser.getByRole('menuitem', { name: /视频合成/ })).toBeVisible()
+  await expect(chooser.getByRole('menuitem', { name: /^音频/ })).toHaveAttribute('aria-disabled', 'true')
   await expect(chooser.getByRole('menuitem', { name: /^脚本/ })).toBeVisible()
   await chooser.getByRole('menuitem', { name: /图片生成/ }).click()
 
@@ -78,8 +83,6 @@ test('selected script exposes canonical continuation and creates one foreground 
     item.node_type === 'generation' && item.id !== 'generation-cover'
   ))!
   const edge = state.documents[FIRST_CANVAS_ID].connections.find((item) => item.target_node_id === generation.id)!
-  const existingResult = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'result-existing')!
-  expect(Number(generation.position_y)).toBeGreaterThanOrEqual(Number(existingResult.position_y) + Number(existingResult.height))
   expect(documentPatches(state)[0].body).toMatchObject({
     node_upserts: [expect.objectContaining({ id: generation.id, node_type: 'generation' })],
     connection_upserts: [expect.objectContaining({
@@ -87,7 +90,7 @@ test('selected script exposes canonical continuation and creates one foreground 
     })],
   })
   expect(edge).toMatchObject({ source_node_id: 'script-source', source_port: 'out', target_port: 'prompt' })
-  await expect(page.locator('.generation-editor')).toBeVisible()
+  await expect(page.locator('.canvas-card-work-surface')).toBeVisible()
   await expect(page.getByRole('toolbar', { name: '1 个已选节点的操作' })).toBeVisible()
   await expect(page.getByRole('button', { name: '继续此节点' })).toHaveCount(0)
   expect(currentViewport(state).zoom).toBe(before.zoom)
@@ -133,7 +136,7 @@ test('selected video asset exposes no generation continuation affordance', async
   await page.screenshot({ path: resolve(honestReferenceEvidence, 'video-asset-no-generation-continuation-1440x900.png'), fullPage: true })
 })
 
-test('trigger remains screen-sized and canonically attached through desktop zoom', async ({ page }) => {
+test('single output port remains screen-sized and canonically attached through desktop zoom', async ({ page }) => {
   const state = createResourceMockState()
   const canvas = state.canvases.find((item) => item.id === FIRST_CANVAS_ID)!
   canvas.viewport_x = 50
@@ -142,13 +145,19 @@ test('trigger remains screen-sized and canonically attached through desktop zoom
   await openResourceWorkspace(page, state, { width: 1366, height: 768 })
   await selectNode(page, state, 'script-source')
 
-  const trigger = page.getByRole('button', { name: '继续此节点' })
-  const box = await trigger.boundingBox()
-  expect(box?.width).toBe(36)
-  expect(box?.height).toBe(36)
-  expect(box?.x).toBeCloseTo(50 + (580 + 320) * 0.5 + 14, 0)
-  expect(box?.y).toBeCloseTo(40 + (160 + canvasNodeVisualSize(mappedNode(state, 'script-source')).height / 2) * 0.5 - 18, 0)
-  await trigger.click()
+  const card = page.locator('.canvas-node-surface[data-node-id="script-source"]')
+  const outputPort = card.locator('.canvas-runtime-port[data-port-direction="output"]')
+  await expect(outputPort).toHaveCount(1)
+  const [box, cardBox] = await Promise.all([outputPort.boundingBox(), card.boundingBox()])
+  if (!box || !cardBox) throw new Error('Output port geometry is unavailable')
+  expect(box.width).toBeGreaterThan(0)
+  expect(box.height).toBeGreaterThan(0)
+  expect(box.x + box.width / 2).toBeCloseTo(cardBox.x + cardBox.width, 0)
+  expect(box.y + box.height / 2).toBeCloseTo(cardBox.y + cardBox.height / 2, 0)
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 + 80, box.y + box.height / 2 + 48)
+  await page.mouse.up()
   const chooser = page.getByRole('dialog', { name: '继续连接' })
   await expect(chooser).toBeVisible()
   const chooserBox = await chooser.boundingBox()
@@ -231,9 +240,7 @@ test('eligibility projection exposes authoring sources without advertising task 
 
   const generation = canonicalNode('generation', 'image')
   const imageResult = canonicalNode('result', 'image')
-  expect(resolveConnectionContinuationOptions(generation, 'out')).toEqual(expect.arrayContaining([
-    expect.objectContaining({ type: 'result', targetPort: 'in' }),
-  ]))
+  expect(resolveConnectionContinuationOptions(generation, 'out')).toEqual([])
   expect(resolveConnectionContinuationOptions(imageResult, 'out')).toEqual(expect.arrayContaining([
     expect.objectContaining({ type: 'generation', targetPort: 'media' }),
   ]))

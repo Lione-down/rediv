@@ -176,7 +176,7 @@ test('canonical card chrome keeps authoring type labels internal while media lab
   expect(buildCanvasCardViewModel(imageNode).chrome.labelPlacement).toBe('external')
 })
 
-test('duplicate reference titles add node type and stable suffix while unique titles stay quiet', () => {
+test('reference display titles stay quiet because structured tokens retain stable identity', () => {
   const resolveCanvasCardReferenceDisplayTitle = requireContractFunction<
     (node: CanvasNode, nodes: readonly CanvasNode[]) => string
   >(
@@ -206,8 +206,8 @@ test('duplicate reference titles add node type and stable suffix while unique ti
   }
   const fixture = [duplicateA, duplicateB, unique]
 
-  expect(resolveCanvasCardReferenceDisplayTitle(duplicateA, fixture)).toBe('主角 · 图片素材 · abc123')
-  expect(resolveCanvasCardReferenceDisplayTitle(duplicateB, fixture)).toBe('主角 · 图片结果 · def456')
+  expect(resolveCanvasCardReferenceDisplayTitle(duplicateA, fixture)).toBe('主角')
+  expect(resolveCanvasCardReferenceDisplayTitle(duplicateB, fixture)).toBe('主角')
   expect(resolveCanvasCardReferenceDisplayTitle(unique, fixture)).toBe('场景')
 })
 
@@ -255,9 +255,17 @@ test('canonical card geometry derives visible title selection composer and ports
   expect(geometry.ports.output.every(
     (port) => port.x === geometry.visible.left + geometry.visible.width,
   )).toBe(true)
-  expect([...geometry.ports.input, ...geometry.ports.output].every(
-    (port) => port.y === geometry.visible.top + geometry.visible.height / 2,
-  )).toBe(true)
+  expect(geometry.ports.input).toEqual([
+    { portId: 'prompt', x: geometry.visible.left, y: geometry.visible.top + geometry.visible.height / 3 },
+    { portId: 'media', x: geometry.visible.left, y: geometry.visible.top + geometry.visible.height * 2 / 3 },
+  ])
+  expect(geometry.ports.output).toEqual([
+    {
+      portId: 'out',
+      x: geometry.visible.left + geometry.visible.width,
+      y: geometry.visible.top + geometry.visible.height / 2,
+    },
+  ])
 })
 
 test('attached work surface clamps inside the actual stage rectangle and panel insets', () => {

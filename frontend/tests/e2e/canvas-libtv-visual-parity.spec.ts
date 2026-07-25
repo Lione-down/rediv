@@ -123,11 +123,11 @@ test('edge hover owns one localized flow and clears without graph mutation', asy
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   const baselinePatches = documentPatches(state).length
 
-  await page.locator('.connection-hit').first().hover({ force: true })
+  await page.locator('.connection-hit').first().dispatchEvent('pointerenter')
   const hoverFlow = page.locator('.connection-flow[data-flow-reason="hover"]')
   await expect(hoverFlow).toHaveCount(1)
   await expect(hoverFlow).toHaveCSS('animation-duration', '3s')
-  await page.mouse.move(1, 1)
+  await page.locator('.connection-hit').first().dispatchEvent('pointerleave')
   await expect(hoverFlow).toHaveCount(0)
   expect(documentPatches(state)).toHaveLength(baselinePatches)
 })
@@ -458,6 +458,7 @@ test('selected editable node opens a composer below the node content surface', a
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
   await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
+  await page.locator('.canvas-node-surface[data-node-id="script-source"] .canvas-runtime-card__body').dblclick()
   const editor = page.getByRole('textbox', { name: '编辑镜头脚本内容' })
   const composer = page.getByRole('region', { name: '节点内容编辑器' })
   await expect(editor).toBeVisible()
@@ -524,6 +525,9 @@ test('accepted viewport matrix retains desktop editing and mobile review-only hi
       await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
       const graphDialog = page.getByRole('dialog', { name: '画布内容与快捷键' })
       await expect(graphDialog).toHaveCount(0)
+      await page.getByRole('button', { name: '关闭节点详情' }).click()
+      await expect(page.locator('.n-drawer-mask')).toHaveCount(0)
+      await page.locator('.canvas-node-surface[data-node-id="script-source"] .canvas-runtime-card__body').dblclick()
       await expect(page.getByRole('region', { name: '节点内容编辑器' })).toBeVisible()
     }
     if (viewport.readonly) await expect(page.getByRole('textbox', { name: /编辑.*内容/ })).toHaveCount(0)

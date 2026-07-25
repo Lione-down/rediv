@@ -42,8 +42,10 @@ test('script-created asset group continues after one failure, reports counts, an
 
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 分镜资产组', exact: true }).click()
-  await page.getByRole('button', { name: '打开节点详情' }).click()
   const groupDetails = page.getByRole('region', { name: '分镜资产组详情' })
+  if (!await groupDetails.isVisible().catch(() => false)) {
+    await page.getByRole('button', { name: '打开节点详情' }).click()
+  }
   await expect(groupDetails).toBeVisible()
   await expect(groupDetails.getByRole('button', { name: '新增角色' })).toBeVisible()
   await expect(groupDetails.getByRole('button', { name: '新增场景' })).toBeVisible()
@@ -90,7 +92,10 @@ test('script-created asset group continues after one failure, reports counts, an
   })).toBe(true)
   expect(state.requests.filter((item) => item.path === '/api/image-generate')).toHaveLength(0)
   await page.getByRole('button', { name: '关闭节点详情' }).click()
-  await page.getByRole('button', { name: '全部生成' }).click()
+  await page.locator(`.canvas-node-surface[data-node-id="${group.id}"]`).getByLabel('移动 分镜资产组').click()
+  const groupToolbar = page.getByRole('toolbar', { name: /1 个已选节点的操作/ })
+  await expect(groupToolbar).toBeVisible()
+  await groupToolbar.getByRole('button', { name: '全部生成' }).click()
   await expect.poll(() => state.requests.filter((item) => item.path === '/api/image-generate').length).toBe(2)
   await expect(page.getByRole('status', { name: '资产组生成结果' })).toContainText('完成 1 · 失败 1 · 跳过 0')
   for (const childId of childIds) {
@@ -101,16 +106,20 @@ test('script-created asset group continues after one failure, reports counts, an
   await mkdir(EVIDENCE_DIRECTORY, { recursive: true })
   await page.screenshot({ path: resolve(EVIDENCE_DIRECTORY, 'asset-group-mixed-outcome-1440x900.png'), fullPage: true })
 
-  const failedChild = state.documents[FIRST_CANVAS_ID].nodes.find((node) => (
-    childIds.includes(String(node.id)) && (node.content as Record<string, unknown>).generation_status === 'failed'
-  ))!
+  const failedNodeId = String(state.tasks.find((task) => (
+    task.status === 'failed' && childIds.includes(String(task.canvas_node_id))
+  ))?.canvas_node_id ?? '')
+  const failedChild = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === failedNodeId)!
   expect(failedChild).toBeTruthy()
+  await expect.poll(() => (
+    (failedChild.content as Record<string, unknown>).active_generation_job_id
+  )).toBeTruthy()
   const positions = new Map(childIds.map((id) => {
     const node = state.documents[FIRST_CANVAS_ID].nodes.find((candidate) => candidate.id === id)!
     return [id, [node.position_x, node.position_y]]
   }))
 
-  await page.getByRole('button', { name: '取消组合' }).click()
+  await groupToolbar.getByRole('button', { name: '取消组合' }).click()
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.some((node) => node.id === group.id)).toBe(false)
   for (const childId of childIds) {
     const child = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === childId)!

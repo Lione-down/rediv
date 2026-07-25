@@ -23,7 +23,7 @@ interface ConnectionContinuationOptions {
 }
 
 const MENU_WIDTH = 248
-const MENU_MAX_HEIGHT = 304
+const MENU_MAX_HEIGHT = 340
 const MENU_MARGIN = 12
 
 export function useCanvasConnectionContinuation(options: ConnectionContinuationOptions) {

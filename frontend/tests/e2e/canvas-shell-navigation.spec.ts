@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { canvas, createState, getCanvasDocument, openShell, visualViewports } from './canvas-shell-navigation-fixture'
 
-test('Tab opens the canonical node menu and creates a registry-backed asset node', async ({ page }) => {
+test('Tab opens the canonical node menu and creates a registry-backed Script node', async ({ page }) => {
   const state = createState()
   await openShell(page, state)
 
@@ -15,20 +15,20 @@ test('Tab opens the canonical node menu and creates a registry-backed asset node
   const menu = page.getByRole('menu', { name: '添加节点' })
   await expect(menu).toBeVisible()
   await expect(menu.getByRole('menuitem')).toHaveCount(9)
-  await expect(menu.getByRole('menuitem', { name: '添加音频节点' })).toBeVisible()
+  await expect(menu.getByRole('menuitem', { name: '添加脚本卡片' })).toBeVisible()
   await page.screenshot({ path: '../output/playwright/t5-007-unit-a-node-menu-1440x900.png' })
 
-  await menu.getByRole('menuitem', { name: '添加音频节点' }).click()
+  await menu.getByRole('menuitem', { name: '添加脚本卡片' }).click()
   await expect.poll(() => state.requests.find((request) => (
     request.method === 'PATCH' && request.path.endsWith('/document') &&
     ((request.body as Record<string, unknown>).node_upserts as Array<Record<string, unknown>>)
-      .some((item) => item.node_type === 'asset')
+      .some((item) => item.node_type === 'script')
   ))).toBeTruthy()
   const created = getCanvasDocument(state, 'canvas-first').nodes.find((item) => (
-    item.node_type === 'asset' && item.content.subtype === 'audio'
+    item.node_type === 'script' && item.content.subtype === 'script'
   ))
-  expect(created).toEqual(expect.objectContaining({ width: 320, height: 240 }))
-  expect(created?.content).toEqual(expect.objectContaining({ subtype: 'audio', serialization_version: 1 }))
+  expect(created).toEqual(expect.objectContaining({ width: 320, height: 200 }))
+  expect(created?.content).toEqual(expect.objectContaining({ subtype: 'script', serialization_version: 1 }))
 
   await expect(menu).toHaveCount(0)
   await expect(addNodeButton).toBeFocused()
@@ -48,7 +48,7 @@ test('normal Canvas switches preserve independent undo stacks without cross-Canv
 
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
-  await expect(page).toHaveURL(/\/canvases\/canvas-second$/)
+  await expect(page).toHaveURL(/\/canvases\/canvas-second(?:\?canvas_runtime=legacy)?$/)
   await workspace.focus()
   await page.keyboard.press('Control+z')
   await page.waitForTimeout(650)
@@ -81,7 +81,7 @@ test('Canvas shell completes metadata navigation through server-confirmed items'
   await page.getByRole('button', { name: '新建画布' }).click()
   await page.getByLabel('画布名称').fill('视觉设计')
   await page.getByRole('button', { name: '创建并打开' }).click()
-  await expect(page).toHaveURL(/\/canvases\/canvas-created$/)
+  await expect(page).toHaveURL(/\/canvases\/canvas-created(?:\?canvas_runtime=legacy)?$/)
 
   await page.getByRole('button', { name: '视觉设计' }).click()
   await page.getByRole('button', { name: '重命名当前画布' }).click()
@@ -98,17 +98,17 @@ test('Canvas shell completes metadata navigation through server-confirmed items'
   await page.getByRole('button', { name: '复制当前画布' }).click()
   await page.getByLabel('画布名称').fill('视觉备份')
   await page.getByRole('button', { name: '复制并打开' }).click()
-  await expect(page).toHaveURL(/\/canvases\/canvas-copy$/)
+  await expect(page).toHaveURL(/\/canvases\/canvas-copy(?:\?canvas_runtime=legacy)?$/)
 
   await page.getByRole('button', { name: '视觉备份' }).click()
   await page.getByRole('button', { name: '归档当前画布' }).click()
   await page.getByRole('button', { name: '确认归档' }).click()
-  await expect(page).toHaveURL(/\/canvases\/canvas-first$/)
+  await expect(page).toHaveURL(/\/canvases\/canvas-first(?:\?canvas_runtime=legacy)?$/)
   expect(state.canvases.some((item) => item.id === 'canvas-copy')).toBe(false)
 
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
-  await expect(page).toHaveURL(/\/canvases\/canvas-second$/)
+  await expect(page).toHaveURL(/\/canvases\/canvas-second(?:\?canvas_runtime=legacy)?$/)
 })
 
 test('stale reorder reloads recovery state and succeeds on explicit retry', async ({ page }) => {
@@ -236,7 +236,10 @@ test('Canvas accessibility closure preserves language, focus, contrast, and redu
 
   const shell = page.locator('.canvas-workspace')
   await expect(shell).toHaveCSS('--v2-press-scale', '1')
-  await expect(shell).toHaveCSS('--v2-duration-fast', '0s')
+  const reducedMotionDuration = await shell.evaluate((element) => (
+    getComputedStyle(element).getPropertyValue('--v2-duration-fast').trim()
+  ))
+  expect(reducedMotionDuration).toMatch(/^0(?:s|ms)$/)
   await expect(page.locator('.node-status-overlay.is-running')).toHaveCSS('animation-name', 'none')
   await expect(page.locator('.node-status-overlay.is-running .status-icon')).toHaveCSS('animation-name', 'none')
   await expect(page.locator('.connection-line.active')).toHaveCSS('animation-name', 'none')

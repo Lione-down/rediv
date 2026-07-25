@@ -164,14 +164,22 @@ export function parseImageOperationCapabilities(value: unknown): ImageOperationC
 }
 
 function resolveImageResultAsset(node: CanvasNode, context: ImageOperationSourceContext) {
+  const assetId = typeof node.contentData?.asset_id === 'string' ? node.contentData.asset_id.trim() : ''
+  const url = typeof node.contentData?.url === 'string' ? node.contentData.url.trim() : ''
+  const isSameCardResult = (
+    node.type === 'generation' &&
+    node.contentData?.result_asset_id === assetId &&
+    typeof node.contentData?.last_generation_job_id === 'string' &&
+    node.contentData.last_generation_job_id.trim() !== ''
+  )
   if (
-    node.type !== 'result' || node.isLocked || node.parentNodeId ||
+    (node.type !== 'result' && !isSameCardResult) || node.isLocked || node.parentNodeId ||
     resolveNodeDefinition(node.type, node.contentData).kind !== 'canonical' ||
     node.contentData?.subtype !== 'image'
   ) return null
-  const assetId = typeof node.contentData.asset_id === 'string' ? node.contentData.asset_id.trim() : ''
-  const projectId = typeof node.contentData.project_id === 'string' ? node.contentData.project_id.trim() : ''
-  const url = typeof node.contentData.url === 'string' ? node.contentData.url.trim() : ''
+  const projectId = typeof node.contentData?.project_id === 'string'
+    ? node.contentData.project_id.trim()
+    : context.projectId
   if (!assetId || projectId !== context.projectId || !url) return null
   const asset = context.assets.find((candidate) => candidate.id === assetId)
   if (

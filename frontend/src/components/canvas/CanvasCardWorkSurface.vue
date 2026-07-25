@@ -4,24 +4,38 @@ import { computed, nextTick, ref, watch } from 'vue'
 import type { CanvasNode } from '../../types/canvas'
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
 import type {
+  CanvasCardPromptDocument,
+  CanvasCardReference,
+} from '../../modules/canvas/canvas-card-view-model'
+import type {
   GenerationNodeParameters,
   ResolvedGenerationRequestContext,
   VideoReferenceBinding,
   VideoReferenceRole,
 } from '../../modules/canvas/generation-parameters'
 import CanvasGenerationParameterControls from './CanvasGenerationParameterControls.vue'
+import CanvasInlineReferenceEditor from './CanvasInlineReferenceEditor.vue'
 import {
+  resolveCanvasCardVideoWorkMode,
   resolveCanvasCardWorkModel,
   type CanvasCardWorkModeId,
 } from './canvas-card-work-model'
+import { getPersistedGenerationStatus } from '../../modules/canvas/node-registry'
+import { formatGenerationFailureMessage } from '../../modules/canvas/generation-runtime-presentation'
 
 export interface CanvasCardReferenceCandidate {
+  assetId?: string
   id: string
   key?: string
   order?: number
   previewUrl?: string
   role?: VideoReferenceRole
   title: string
+}
+
+interface CanvasCardMentionOption {
+  candidate: CanvasCardReferenceCandidate
+  reference: CanvasCardReference
 }
 
 const props = withDefaults(defineProps<{
@@ -34,6 +48,9 @@ const props = withDefaults(defineProps<{
   node: CanvasNode
   placementStyle?: Record<string, string>
   parameterSummary?: readonly string[]
+  persistedGenerationMode?: string | null
+  promptDocument?: CanvasCardPromptDocument
+  canonicalReferences?: readonly CanvasCardReference[]
   connectedReferences?: readonly CanvasCardReferenceCandidate[]
   referenceCandidates?: readonly CanvasCardReferenceCandidate[]
   selectedReferences?: readonly CanvasCardReferenceCandidate[]
@@ -50,6 +67,9 @@ const props = withDefaults(defineProps<{
   modelLabel: '',
   placementStyle: () => ({}),
   parameterSummary: () => [],
+  persistedGenerationMode: null,
+  promptDocument: () => ({ schemaVersion: 1, segments: [] }),
+  canonicalReferences: () => [],
   connectedReferences: () => [],
   referenceCandidates: () => [],
   selectedReferences: () => [],
@@ -65,9 +85,14 @@ const emit = defineEmits<{
   cancelReference: []
   updateParameters: [parameters: GenerationNodeParameters]
   updatePrompt: [prompt: string]
+  updateComposition: [
+    prompt: string,
+    promptDocument: CanvasCardPromptDocument,
+    references: readonly CanvasCardReference[],
+  ]
 }>()
 
-const promptField = ref<HTMLTextAreaElement | null>(null)
+const promptField = ref<InstanceType<typeof CanvasInlineReferenceEditor> | null>(null)
 const settingsButton = ref<HTMLButtonElement | null>(null)
 const prompt = ref(props.node.content ?? '')
 const referencePickerOpen = ref(false)
@@ -79,11 +104,12 @@ const workModel = computed(() => resolveCanvasCardWorkModel(props.node, {
 const activeMode = computed<CanvasCardWorkModeId>(() => {
   if (workModel.value.family === 'image') return props.sourceCount > 0 ? 'image-to-image' : 'text-to-image'
   if (workModel.value.family === 'video') {
-    const referenceMode = props.generationContext?.referenceMode
     const videoReferences = props.generationContext?.videoReferences ?? []
-    if (referenceMode === 'keyframes' || videoReferences.some((binding) => binding.role === 'last-frame')) return 'keyframes-video'
-    if (referenceMode === 'image-to-video' || videoReferences.length > 0) return 'first-frame-video'
-    return 'text-to-video'
+    return resolveCanvasCardVideoWorkMode({
+      persistedGenerationMode: props.persistedGenerationMode,
+      referenceMode: props.generationContext?.referenceMode ?? null,
+      referenceRoles: videoReferences.map((binding) => binding.role),
+    })
   }
   return workModel.value.modes[0]?.id ?? 'direct-write'
 })
@@ -96,6 +122,19 @@ const requiredSourceCount = computed(() => {
 })
 const needsSource = computed(() => props.sourceCount < requiredSourceCount.value)
 const modeExecutable = computed(() => activeMode.value !== 'image-upscale')
+const persistedGenerationStatus = computed(() => getPersistedGenerationStatus(props.node.contentData ?? {}))
+const runtimePhase = computed(() => props.runtimePresentation?.phase ?? persistedGenerationStatus.value)
+const runtimeLabel = computed(() => {
+  if (props.runtimePresentation) return props.runtimePresentation.label
+  const labels = {
+    queued: '排队中',
+    running: '生成中',
+    succeeded: '已完成',
+    failed: '失败',
+    timed_out: '已超时',
+  }
+  return persistedGenerationStatus.value ? labels[persistedGenerationStatus.value] : ''
+})
 const submitDisabled = computed(() => (
   props.readonly || props.busy || !props.canGenerate || !modeExecutable.value || needsSource.value || !prompt.value.trim()
 ))
@@ -107,9 +146,44 @@ const referenceLimit = computed(() => (
 const parameterSummaryLabel = computed(() => props.parameterSummary.length
   ? props.parameterSummary.join(' · ')
   : '生成参数')
-const mentionReferences = computed(() => props.connectedReferences.length
-  ? props.connectedReferences
-  : props.selectedReferences)
+const mentionReferences = computed<CanvasCardMentionOption[]>(() => {
+  const candidates = props.connectedReferences.length
+    ? props.connectedReferences
+    : props.selectedReferences
+  return candidates.flatMap((candidate, order): CanvasCardMentionOption[] => {
+    const canonical = props.canonicalReferences.find((reference) => reference.stableId === candidate.id)
+    if (canonical) {
+      return [{
+        candidate: {
+          ...candidate,
+          title: canonical.displayName,
+          previewUrl: canonical.thumbnailUrl,
+        },
+        reference: canonical,
+      }]
+    }
+    const assetId = candidate.assetId?.trim()
+    if (!assetId) return []
+    return [{
+      candidate,
+      reference: {
+        stableId: candidate.id,
+        assetId,
+        displayName: candidate.title,
+        thumbnailUrl: candidate.previewUrl || `canvas-asset:${assetId}`,
+        sourceRevision: 0,
+        role: candidate.role ?? 'reference',
+        order,
+      } satisfies CanvasCardReference,
+    }]
+  })
+})
+const presentedSelectedReferences = computed(() => props.selectedReferences.map((reference) => {
+  const canonical = props.canonicalReferences.find((candidate) => candidate.stableId === reference.id)
+  return canonical
+    ? { ...reference, title: canonical.displayName, previewUrl: canonical.thumbnailUrl }
+    : reference
+}))
 const isStructuredVideoReference = computed(() => (
   props.generationContext?.mediaType === 'video' &&
   props.generationContext.capabilities?.contract_version === 6 &&
@@ -130,32 +204,40 @@ watch(() => props.node.content, (content) => {
   if (document.activeElement?.getAttribute('aria-label') !== '卡片生成提示词') prompt.value = content ?? ''
 })
 
-function updatePrompt(event: Event) {
-  prompt.value = (event.target as HTMLTextAreaElement).value
-  referencePickerOpen.value = /@\s*$/.test(prompt.value)
-  emit('updatePrompt', prompt.value)
+function updateComposition(
+  value: string,
+  promptDocument: CanvasCardPromptDocument,
+) {
+  prompt.value = value
+  const documentReferences = promptDocument.segments.flatMap((segment) => {
+    if (segment.kind !== 'reference') return []
+    const reference = props.canonicalReferences.find((candidate) => (
+      candidate.stableId === segment.stableId && candidate.assetId === segment.assetId
+    )) ?? mentionReferences.value.find(({ reference }) => (
+      reference.stableId === segment.stableId && reference.assetId === segment.assetId
+    ))?.reference
+    return reference ? [reference] : []
+  })
+  const references = [
+    ...props.canonicalReferences,
+    ...documentReferences.filter((reference) => !props.canonicalReferences.some((candidate) => (
+      candidate.stableId === reference.stableId && candidate.assetId === reference.assetId
+    ))),
+  ]
+  emit('updateComposition', value, promptDocument, references)
 }
 
-function insertConnectedMention(reference: CanvasCardReferenceCandidate) {
-  prompt.value = prompt.value.replace(/@\s*$/, `@${reference.title} `)
+function insertConnectedMention(reference: CanvasCardReference) {
   referencePickerOpen.value = false
-  emit('updatePrompt', prompt.value)
   void nextTick(() => {
-    const field = promptField.value
-    if (!field) return
-    field.focus({ preventScroll: true })
-    field.setSelectionRange(prompt.value.length, prompt.value.length)
+    promptField.value?.insertReference(reference)
   })
 }
 
-function insertReferenceIntent(reference: CanvasCardReferenceCandidate) {
-  const prefix = prompt.value.trimEnd()
-  prompt.value = `${prefix}${prefix ? ' ' : ''}@${reference.title} `
+function insertReferenceIntent() {
   referencePickerOpen.value = false
-  emit('updatePrompt', prompt.value)
   void nextTick(() => {
-    promptField.value?.focus({ preventScroll: true })
-    promptField.value?.setSelectionRange(prompt.value.length, prompt.value.length)
+    promptField.value?.focus()
   })
 }
 
@@ -205,7 +287,7 @@ function removeReference(reference: CanvasCardReferenceCandidate) {
 function closeTransientSurface() {
   if (referencePickerOpen.value) {
     referencePickerOpen.value = false
-    void nextTick(() => promptField.value?.focus({ preventScroll: true }))
+    void nextTick(() => promptField.value?.focus())
     return
   }
   if (settingsOpen.value) {
@@ -230,45 +312,44 @@ function closeTransientSurface() {
       <button class="canvas-card-work-surface__reference-action" type="button" :disabled="readonly || busy || !referenceCandidates.length" :aria-pressed="referenceModeActive" @click="referenceModeActive ? emit('cancelReference') : emit('beginReference')">
         <Link2 :size="13" aria-hidden="true" />{{ referenceModeActive ? '退出参考选择' : '参考' }}
       </button>
-      <span v-if="selectedReferences.length">已连接 {{ selectedReferences.length }}/{{ referenceLimit }}</span>
-    </div>
-
-    <div v-if="selectedReferences.length" class="canvas-card-work-surface__reference-list" role="group" :aria-label="isStructuredVideoReference ? '已选择视频参考' : '已连接参考素材'">
-      <article v-for="(reference, index) in selectedReferences" :key="reference.key ?? reference.id" class="canvas-card-work-surface__reference-chip">
-        <button type="button" class="canvas-card-work-surface__reference-intent" :aria-label="`为 ${reference.title} 添加每图意图`" :disabled="readonly || busy" @click="insertReferenceIntent(reference)">
-          <img v-if="reference.previewUrl" :src="reference.previewUrl" alt="" />
-          <span v-else aria-hidden="true">{{ reference.title.slice(0, 1) }}</span>
-          <b aria-hidden="true">{{ index + 1 }}</b>
-        </button>
-        <strong>{{ reference.title }}</strong>
-        <select v-if="isStructuredVideoReference && reference.role" :value="reference.role" :disabled="readonly || busy" :aria-label="`${reference.title} 参考角色`" @change="changeReferenceRole(reference, $event)">
-          <option v-for="role in generationContext?.capabilities?.video.reference_roles ?? []" :key="role" :value="role">{{ videoRoleLabels[role] }}</option>
-        </select>
-        <div v-if="isStructuredVideoReference" class="canvas-card-work-surface__reference-order">
-          <button type="button" :aria-label="`前移 ${reference.title}`" :disabled="readonly || busy || index === 0" @click="moveReference(reference, -1)"><ChevronLeft :size="12" aria-hidden="true" /></button>
-          <button type="button" :aria-label="`后移 ${reference.title}`" :disabled="readonly || busy || index === selectedReferences.length - 1" @click="moveReference(reference, 1)"><ChevronRight :size="12" aria-hidden="true" /></button>
-          <button type="button" :aria-label="`移除参考 ${reference.title}`" :disabled="readonly || busy" @click="removeReference(reference)"><X :size="12" aria-hidden="true" /></button>
-        </div>
-      </article>
+      <span v-if="presentedSelectedReferences.length">已连接 {{ presentedSelectedReferences.length }}/{{ referenceLimit }}</span>
     </div>
 
     <div class="canvas-card-work-surface__composer">
       <div class="canvas-card-work-surface__prompt-shell">
-        <textarea
+        <CanvasInlineReferenceEditor
           ref="promptField"
-          :value="prompt"
-          aria-label="卡片生成提示词"
-          maxlength="8000"
-          :placeholder="workModel.family === 'video' ? '描述镜头运动、主体动作和氛围，可输入 @ 引用已连接图片' : '可直接文字生图，或连接图片后输入编辑指令'"
+          :model-value="prompt"
+          :prompt-document="promptDocument"
+          :references="canonicalReferences"
           :disabled="readonly || busy"
-          @input="updatePrompt"
-        ></textarea>
+          @change="updateComposition"
+          @mention-state="referencePickerOpen = $event"
+        />
+      </div>
+      <div v-if="presentedSelectedReferences.length" class="canvas-card-work-surface__reference-list" role="group" :aria-label="isStructuredVideoReference ? '已选择视频参考' : '已连接参考素材'">
+          <article v-for="(reference, index) in presentedSelectedReferences" :key="reference.key ?? reference.id" class="canvas-card-work-surface__reference-chip" data-canonical-reference-control>
+            <button type="button" class="canvas-card-work-surface__reference-intent" :aria-label="`定位 ${reference.title} 引用 token`" :disabled="readonly || busy" @click="insertReferenceIntent">
+              <img v-if="reference.previewUrl" :src="reference.previewUrl" alt="" />
+              <span v-else aria-hidden="true">{{ reference.title.slice(0, 1) }}</span>
+              <b aria-hidden="true">{{ index + 1 }}</b>
+            </button>
+            <strong>{{ reference.title }}</strong>
+            <select v-if="isStructuredVideoReference && reference.role" :value="reference.role" :disabled="readonly || busy" :aria-label="`${reference.title} 参考角色`" @change="changeReferenceRole(reference, $event)">
+              <option v-for="role in generationContext?.capabilities?.video.reference_roles ?? []" :key="role" :value="role">{{ videoRoleLabels[role] }}</option>
+            </select>
+            <div v-if="isStructuredVideoReference" class="canvas-card-work-surface__reference-order">
+              <button type="button" :aria-label="`前移 ${reference.title}`" :disabled="readonly || busy || index === 0" @click="moveReference(reference, -1)"><ChevronLeft :size="12" aria-hidden="true" /></button>
+              <button type="button" :aria-label="`后移 ${reference.title}`" :disabled="readonly || busy || index === presentedSelectedReferences.length - 1" @click="moveReference(reference, 1)"><ChevronRight :size="12" aria-hidden="true" /></button>
+              <button type="button" :aria-label="`移除参考 ${reference.title}`" :disabled="readonly || busy" @click="removeReference(reference)"><X :size="12" aria-hidden="true" /></button>
+            </div>
+          </article>
       </div>
       <div v-if="referencePickerOpen" class="canvas-card-work-surface__reference-picker" role="listbox" aria-label="已连接的可引用素材">
-        <button v-for="reference in mentionReferences" :key="reference.id" type="button" role="option" :aria-label="`引用 ${reference.title}`" @click="insertConnectedMention(reference)">
-          <img v-if="reference.previewUrl" :src="reference.previewUrl" alt="" />
-          <span v-else aria-hidden="true">{{ reference.title.slice(0, 1) }}</span>
-          <strong>{{ reference.title }}</strong>
+        <button v-for="{ candidate, reference } in mentionReferences" :key="reference.stableId" type="button" role="option" :aria-label="`引用 ${candidate.title}`" @click="insertConnectedMention(reference)">
+          <img v-if="candidate.previewUrl" :src="candidate.previewUrl" alt="" />
+          <span v-else aria-hidden="true">{{ candidate.title.slice(0, 1) }}</span>
+          <strong>{{ candidate.title }}</strong>
         </button>
         <p v-if="!mentionReferences.length" role="status">暂无可引用资产，请先通过参考连接图片</p>
       </div>
@@ -283,8 +364,8 @@ function closeTransientSurface() {
         </button>
         <span v-if="needsSource" class="is-warning">此模式需要图片来源</span>
         <span v-else-if="!modeExecutable" class="is-warning">此模式请在高级图片操作中执行</span>
-        <span v-if="runtimePresentation" class="is-runtime" :class="`is-${runtimePresentation.phase}`" role="status">{{ runtimePresentation.label }}</span>
-        <span v-if="error" class="is-error" role="alert">{{ error }}</span>
+        <span v-if="runtimeLabel" class="is-runtime" :class="`is-${runtimePhase}`" role="status">{{ runtimeLabel }}</span>
+        <span v-if="error || runtimePresentation?.error" class="is-error" role="alert">{{ formatGenerationFailureMessage(error || runtimePresentation?.error) }}</span>
       </div>
       <button class="canvas-card-work-surface__submit" type="button" :disabled="submitDisabled" aria-label="在当前卡片生成" @click="emit('generate', prompt.trim(), activeMode)">
         <LoaderCircle v-if="busy" :size="15" class="is-spinning" aria-hidden="true" />
@@ -309,11 +390,11 @@ function closeTransientSurface() {
 .canvas-card-work-surface__quick-actions { min-height: 28px; padding-left: 4px; color: var(--v2-text-muted); font-size: 11px; }
 button { display: inline-flex; min-height: 32px; align-items: center; justify-content: center; gap: 5px; padding: 0 8px; border: 1px solid transparent; border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: transparent; font: inherit; font-size: 12px; cursor: pointer; transition: color var(--v2-duration-fast) var(--v2-ease-standard), border-color var(--v2-duration-fast) var(--v2-ease-standard), background var(--v2-duration-fast) var(--v2-ease-standard), transform var(--v2-duration-fast) var(--v2-ease-standard); }
 button:active:not(:disabled) { transform: scale(var(--v2-press-scale)); }
-button:focus-visible, textarea:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
+button:focus-visible, .canvas-card-work-surface__prompt-shell:focus-within { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 button:disabled { cursor: not-allowed; opacity: .42; }
 .canvas-card-work-surface__reference-action { min-height: 24px; padding-inline: 8px; border-radius: var(--v2-radius-pill); color: var(--v2-text-muted); background: var(--v2-surface-1); }
 .canvas-card-work-surface__reference-action[aria-pressed='true'] { color: var(--v2-accent-hover); background: var(--v2-accent-soft); }
-.canvas-card-work-surface__reference-list { display: flex; min-width: 0; gap: 7px; padding: 2px 4px 4px; overflow: auto hidden; scrollbar-width: none; }
+.canvas-card-work-surface__reference-list { display: inline-flex; max-width: 100%; min-width: 0; gap: 7px; padding: 7px 0 0; overflow: auto hidden; vertical-align: middle; scrollbar-width: none; }
 .canvas-card-work-surface__reference-chip { position: relative; display: grid; flex: 0 0 86px; min-width: 0; grid-template-columns: 42px minmax(0, 1fr); grid-template-rows: 21px 21px; gap: 2px 5px; padding: 4px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: var(--v2-surface-2); }
 .canvas-card-work-surface__reference-intent { position: relative; width: 42px; height: 42px; min-height: 42px; grid-row: 1 / 3; padding: 0; overflow: hidden; border-radius: var(--v2-radius-xs); }
 .canvas-card-work-surface__reference-intent img { width: 100%; height: 100%; object-fit: cover; }
@@ -332,8 +413,7 @@ button:disabled { cursor: not-allowed; opacity: .42; }
 .canvas-card-work-surface__reference-picker strong { overflow: hidden; font-weight: var(--v2-font-weight-medium); text-overflow: ellipsis; white-space: nowrap; }
 .canvas-card-work-surface__reference-picker p { margin: 0; padding: 9px 10px; color: var(--v2-text-muted); font-size: 11px; }
 .canvas-card-work-surface__composer { position: relative; min-height: 80px; }
-.canvas-card-work-surface__prompt-shell { height: 100%; }
-textarea { box-sizing: border-box; width: 100%; height: 100%; min-height: 80px; max-height: 112px; resize: none; padding: 9px 10px; border: 0; border-radius: var(--v2-radius-md); color: var(--v2-text-primary); background: var(--v2-surface-1); font: inherit; font-size: 13px; line-height: 1.75; }
+.canvas-card-work-surface__prompt-shell { display: flex; min-height: 80px; border-radius: var(--v2-radius-md); background: var(--v2-surface-1); }
 .canvas-card-work-surface__selection-status { margin: 0; padding: 7px 9px; border-radius: var(--v2-radius-sm); color: var(--v2-accent-hover); background: var(--v2-accent-soft); font-size: 11px; }
 footer { min-height: 36px; align-items: flex-end; }
 .canvas-card-work-surface__metadata { flex: 1 1 auto; flex-wrap: wrap; align-self: center; color: var(--v2-text-secondary); font-size: 11px; }

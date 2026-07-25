@@ -22,7 +22,7 @@ class _CheckpointingTextDispatcher:
         self.provider_request_was_persisted = False
         self.calls = 0
 
-    async def dispatch(self, job, persist_provider_request_id):
+    async def dispatch(self, job, persist_provider_request_id, persist_progress):
         try:
             from services.generation.provider_dispatch import ProviderDispatchResult
         except ModuleNotFoundError as error:
@@ -52,7 +52,7 @@ class _BlockingTextDispatcher:
         self.started = asyncio.Event()
         self.release = asyncio.Event()
 
-    async def dispatch(self, job, persist_provider_request_id):
+    async def dispatch(self, job, persist_provider_request_id, persist_progress):
         from services.generation.provider_dispatch import ProviderDispatchResult
 
         persist_provider_request_id("provider-long-running")
@@ -68,7 +68,7 @@ class _BlockingTextDispatcher:
 
 
 class _FailingDispatcher:
-    async def dispatch(self, job, persist_provider_request_id):
+    async def dispatch(self, job, persist_provider_request_id, persist_progress):
         raise RuntimeError("Authorization=Bearer secret-provider-token")
 
 

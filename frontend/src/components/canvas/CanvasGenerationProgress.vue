@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
+  formatGenerationFailureMessage,
   formatGenerationProgressPercent,
   normalizeGenerationProgressPercent,
   type GenerationRuntimePresentation,
@@ -9,6 +10,7 @@ import type { ProjectGenerationTask } from '../../modules/canvas/project-resourc
 
 const props = defineProps<{
   runtimePresentation: GenerationRuntimePresentation | null
+  suppressError?: string
   task: ProjectGenerationTask | null
 }>()
 
@@ -21,6 +23,10 @@ const isIndeterminate = computed(() => (
     props.runtimePresentation?.phase ?? progressTask.value?.status ?? '',
   )
 ))
+const runtimeError = computed(() => {
+  const candidate = props.runtimePresentation?.error ?? progressTask.value?.error_message ?? ''
+  return candidate && !props.suppressError ? formatGenerationFailureMessage(candidate) : ''
+})
 </script>
 
 <template>
@@ -35,6 +41,7 @@ const isIndeterminate = computed(() => (
     <span v-if="progressPercent !== null" aria-hidden="true">{{ formatGenerationProgressPercent(progressPercent) }}</span>
     <span v-else-if="isIndeterminate">进度由服务返回，当前未提供百分比</span>
     <span v-else>未记录百分比</span>
+    <p v-if="runtimeError" class="generation-progress-error" role="alert">{{ runtimeError }}</p>
   </div>
 </template>
 
@@ -42,4 +49,5 @@ const isIndeterminate = computed(() => (
 .generation-progress-detail { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 7px; color: var(--v2-text-muted); font-size: 11px; }
 progress { width: 100%; height: 6px; accent-color: var(--v2-accent); }
 span { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.generation-progress-error { grid-column: 1 / -1; margin: 0; color: var(--v2-danger); white-space: normal; }
 </style>

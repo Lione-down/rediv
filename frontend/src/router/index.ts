@@ -55,13 +55,23 @@ async function resolveLegacyWorkspace(to: { query: Record<string, unknown> }) {
 
   try {
     const canvas = await useCanvasListStore().resolveCanvas(projectId, undefined, false)
-    return canvas ? canvasRouteLocation(projectId, canvas.id) : { name: 'home', replace: true }
+    return canvas
+      ? {
+          ...canvasRouteLocation(projectId, canvas.id),
+          ...(to.query.canvas_runtime === 'legacy'
+            ? { query: { canvas_runtime: 'legacy' } }
+            : {}),
+        }
+      : { name: 'home', replace: true }
   } catch {
     return { name: 'home', replace: true }
   }
 }
 
-async function validateCanonicalWorkspace(to: { params: Record<string, unknown> }) {
+async function validateCanonicalWorkspace(to: {
+  params: Record<string, unknown>
+  query: Record<string, unknown>
+}) {
   const projectId = normalizeRouteIdentifier(to.params.projectId)
   const canvasId = normalizeRouteIdentifier(to.params.canvasId)
   if (!projectId || !canvasId) return { name: 'home', replace: true }
@@ -69,7 +79,14 @@ async function validateCanonicalWorkspace(to: { params: Record<string, unknown> 
   try {
     const canvas = await useCanvasListStore().resolveCanvas(projectId, canvasId)
     if (!canvas) return { name: 'home', replace: true }
-    return canvas.id === canvasId ? true : canvasRouteLocation(projectId, canvas.id)
+    return canvas.id === canvasId
+      ? true
+      : {
+          ...canvasRouteLocation(projectId, canvas.id),
+          ...(to.query.canvas_runtime === 'legacy'
+            ? { query: { canvas_runtime: 'legacy' } }
+            : {}),
+        }
   } catch {
     return { name: 'home', replace: true }
   }

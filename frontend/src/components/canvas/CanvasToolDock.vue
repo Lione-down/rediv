@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import { AudioLines, CirclePlus, FileClock, FileText, Image, Library, ScrollText, Upload, Video } from 'lucide-vue-next'
-import { nextTick, ref, watch } from 'vue'
-import type { CanonicalNodeType } from '../../modules/canvas/node-registry'
+import type { Component } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import {
+  getAuthoringNodeOptions,
+  type CanonicalNodeType,
+} from '../../modules/canvas/node-registry'
 import type { ProjectResourceTab } from '../../modules/canvas/project-resource-types'
 
-const props = defineProps<{ open: boolean }>()
+const props = withDefaults(defineProps<{
+  allowedAudioModelCount?: number
+  open: boolean
+}>(), {
+  allowedAudioModelCount: 0,
+})
 const emit = defineEmits<{
   'update:open': [open: boolean]
   openResources: [opener: HTMLElement, tab: ProjectResourceTab]
@@ -14,17 +23,47 @@ const emit = defineEmits<{
 
 const triggerRef = ref<HTMLButtonElement | null>(null)
 const itemRefs = ref<HTMLButtonElement[]>([])
-const catalogEntries = [
-  { id: 'text', label: '文本', ariaLabel: '添加文本节点', icon: FileText, node: { type: 'script', subtype: 'prompt' } },
-  { id: 'image', label: '图片', ariaLabel: '添加图片节点', icon: Image, node: { type: 'generation', subtype: 'image' } },
-  { id: 'video', label: '视频', ariaLabel: '添加视频节点', icon: Video, node: { type: 'generation', subtype: 'video' } },
-  { id: 'video-synthesis', label: '视频合成', badge: 'Beta', ariaLabel: '视频合成', icon: Video, action: 'video-preflight' },
-  { id: 'audio', label: '音频', ariaLabel: '添加音频节点', icon: AudioLines, node: { type: 'asset', subtype: 'audio' } },
-  { id: 'script', label: '脚本', ariaLabel: '添加脚本节点', icon: ScrollText, node: { type: 'script', subtype: 'script' } },
+
+interface CatalogEntry {
+  id: string
+  label: string
+  ariaLabel: string
+  icon: Component
+  authoring?: boolean
+  badge?: string
+  disabled?: boolean
+  disabledReason?: string
+  node?: { type: CanonicalNodeType; subtype: string }
+  resourceTab?: ProjectResourceTab
+  action?: 'video-preflight'
+}
+
+const authoringIcons = {
+  text: FileText,
+  script: ScrollText,
+  'image-generation': Image,
+  'video-generation': Video,
+  'video-composition': Video,
+  'audio-generation': AudioLines,
+} as const
+
+const catalogEntries = computed<readonly CatalogEntry[]>(() => [
+  ...getAuthoringNodeOptions({
+    allowedAudioModelCount: props.allowedAudioModelCount,
+  }).map((option) => ({
+    id: option.id,
+    label: option.label,
+    ariaLabel: `添加${option.label}卡片`,
+    icon: authoringIcons[option.id],
+    authoring: true,
+    disabled: option.availability === 'disabled',
+    disabledReason: option.unavailableReason,
+    node: { type: option.type, subtype: option.subtype },
+  })),
   { id: 'library', label: '素材库', badge: 'NEW', ariaLabel: '从素材库选择', icon: Library, resourceTab: 'assets' },
   { id: 'upload', label: '上传', ariaLabel: '上传素材', icon: Upload, resourceTab: 'assets' },
   { id: 'history', label: '从生成历史选择', ariaLabel: '从生成历史选择', icon: FileClock, resourceTab: 'tasks' },
-] as const
+])
 function toggleMenu() {
   emit('update:open', !props.open)
 }
@@ -35,20 +74,20 @@ function selectNode(type: string, subtype: string) {
   void nextTick(() => triggerRef.value?.focus({ preventScroll: true }))
 }
 
-function selectEntry(entry: typeof catalogEntries[number], event: MouseEvent) {
+function selectEntry(entry: CatalogEntry, event: MouseEvent) {
   if (!(event.currentTarget instanceof HTMLElement)) return
   const surfaceOpener = triggerRef.value ?? event.currentTarget
-  if ('resourceTab' in entry) {
+  if (entry.resourceTab) {
     emit('update:open', false)
-    emit('openResources', surfaceOpener, entry.resourceTab as ProjectResourceTab)
+    emit('openResources', surfaceOpener, entry.resourceTab)
     return
   }
-  if ('action' in entry && entry.action === 'video-preflight') {
+  if (entry.action === 'video-preflight') {
     emit('update:open', false)
     emit('openVideoEditPreflight', surfaceOpener)
     return
   }
-  if ('node' in entry) selectNode(entry.node.type, entry.node.subtype)
+  if (entry.node) selectNode(entry.node.type, entry.node.subtype)
 }
 
 function focusItem(index: number) {
@@ -97,11 +136,14 @@ watch(() => props.open, (open) => {
           type="button"
           role="menuitem"
           :aria-label="entry.ariaLabel"
+          :data-authoring-option="entry.authoring ? entry.id : undefined"
+          :disabled="entry.disabled"
+          :title="entry.disabledReason"
           @click="selectEntry(entry, $event)"
         >
           <component :is="entry.icon" :size="17" aria-hidden="true" />
           <span>{{ entry.label }}</span>
-          <small v-if="'badge' in entry">{{ entry.badge }}</small>
+          <small v-if="entry.badge">{{ entry.badge }}</small>
         </button>
       </div>
     </Transition>
@@ -191,6 +233,7 @@ watch(() => props.open, (open) => {
   font-size: 10px;
   font-weight: 600;
 }
+.node-menu button:disabled { cursor: not-allowed; opacity: .48; }
 
 button:active { transform: scale(var(--v2-press-scale, 0.96)); }
 button:focus-visible {

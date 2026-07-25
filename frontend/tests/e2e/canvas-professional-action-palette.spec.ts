@@ -85,15 +85,20 @@ test('Slash ownership excludes editable, IME, Graph Access, and open drawer cont
   await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
   await expect(page.locator('.n-drawer:visible')).toBeVisible()
   await page.getByRole('button', { name: '关闭节点详情' }).click()
+  await page.locator('.canvas-node-surface[data-node-id="script-source"] .canvas-runtime-card__body').dblclick()
   const editor = page.locator('textarea.canvas-node-editor')
   await expect(editor).toBeVisible()
   const originalValue = await editor.inputValue()
   await editor.fill(`${originalValue}/`)
   await editor.blur()
   await expect.poll(() => documentPatches(state).length).toBe(1)
-  await expect(editor).toHaveValue(`${originalValue}/`)
-  await editor.focus()
-  await editor.dispatchEvent('keydown', { key: '/', code: 'Slash', bubbles: true })
+  await expect.poll(() => (
+    state.documents['canvas-first'].nodes.find((node) => node.id === 'script-source')?.content.text
+  )).toBe(`${originalValue}/`)
+  await page.locator('.canvas-node-surface[data-node-id="script-source"] .canvas-runtime-card__body').dblclick()
+  const reopenedEditor = page.locator('textarea.canvas-node-editor')
+  await expect(reopenedEditor).toHaveValue(`${originalValue}/`)
+  await reopenedEditor.dispatchEvent('keydown', { key: '/', code: 'Slash', bubbles: true })
   await expect(page.getByRole('dialog', { name: '专业操作' })).toHaveCount(0)
   const patchCountAfterEdit = documentPatches(state).length
 

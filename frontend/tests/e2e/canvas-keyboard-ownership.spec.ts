@@ -137,7 +137,7 @@ async function openKeyboardCanvas(page: Page, state: KeyboardState) {
   await page.setViewportSize({ width: 1366, height: 768 })
   await installKeyboardApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'keyboard-token'))
-  await page.goto('/app/projects/project-keyboard/canvases/canvas-keyboard')
+  await page.goto('/app/projects/project-keyboard/canvases/canvas-keyboard?canvas_runtime=legacy')
   await expect(page.getByRole('region', { name: 'Revid 无限画布工作区' })).toBeVisible()
   const firstTitle = String((state.nodes[0].content as Record<string, unknown>).title)
   await expect(page.getByRole('button', { name: `定位到 ${firstTitle}` })).toBeVisible()

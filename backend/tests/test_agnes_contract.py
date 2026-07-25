@@ -138,6 +138,38 @@ class AgnesContractTestCase(unittest.TestCase):
             [model["id"] for model in cinematic["providers"][0]["models"]],
         )
 
+    def test_default_capabilities_publish_the_official_model_allowlists(self) -> None:
+        generation = build_generation_capabilities()
+
+        self.assertEqual(
+            ["agnes-2.0-flash", "agnes-2.5-flash"],
+            [model["id"] for model in generation["text"]["models"]],
+        )
+        self.assertEqual(
+            ["Agnes 2.0 Flash", "Agnes 2.5 Flash"],
+            [model["label"] for model in generation["text"]["models"]],
+        )
+        self.assertEqual(
+            [
+                ("agnes-2.0-flash", "allowed"),
+                ("agnes-2.5-flash", "allowed"),
+                ("agnes-2.5-pro-alpha", "paid-human-gated"),
+            ],
+            [(model["id"], model["availability"]) for model in generation["text"]["known_models"]],
+        )
+        self.assertEqual(
+            ["agnes-image-2.1-flash"],
+            [model["id"] for model in generation["image"]["models"]],
+        )
+        self.assertEqual(
+            ["agnes-image-2.0-flash", "agnes-image-2.1-flash"],
+            [model["id"] for model in generation["image"]["known_models"]],
+        )
+        self.assertEqual(
+            ["agnes-video-v2.0"],
+            [model["id"] for model in generation["video"]["models"]],
+        )
+
     def test_provider_error_keeps_only_safe_bounded_actionable_metadata(self) -> None:
         request = httpx.Request("POST", "https://provider.example/v1/images/generations")
         response = httpx.Response(

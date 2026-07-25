@@ -149,12 +149,13 @@ test('empty release offers typed continuation and commits one undoable graph ins
 
   const chooser = page.getByRole('dialog', { name: '继续连接' })
   await expect(chooser).toBeVisible()
-  await expect(chooser.getByRole('menuitem')).toHaveCount(5)
+  await expect(chooser.getByRole('menuitem')).toHaveCount(6)
   await expect(chooser.getByRole('menuitem', { name: /^脚本 / })).toBeVisible()
   await expect(chooser.getByRole('menuitem', { name: /^文本 / })).toBeVisible()
   await expect(chooser.getByRole('menuitem', { name: /音频/ })).toHaveAttribute('aria-disabled', 'true')
   await expect(chooser.getByRole('menuitem', { name: /图片生成/ })).toBeVisible()
   await expect(chooser.getByRole('menuitem', { name: /视频生成/ })).toBeVisible()
+  await expect(chooser.getByRole('menuitem', { name: /视频合成/ })).toBeVisible()
   expect(state.documents[FIRST_CANVAS_ID].nodes).toHaveLength(3)
   expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(1)
 
@@ -188,35 +189,35 @@ test('empty release offers typed continuation and commits one undoable graph ins
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(2)
 })
 
-test('foreground continuation keeps a five-category menu near its source at overview zoom', async ({ page }) => {
+test('output-port continuation keeps the six-workflow menu near its source at overview zoom', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
-  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
-  await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
 
   const zoom = page.getByLabel('缩放百分比')
   for (const percent of [100, 36, 17]) {
     await zoom.fill(String(percent))
     await zoom.press('Enter')
-    const trigger = page.getByRole('button', { name: '继续此节点' })
-    await trigger.click()
+    const origin = await portScreenPoint(page, 'script-source', 'output', 'out')
+    await page.mouse.move(origin.x, origin.y)
+    await page.mouse.down()
+    await page.mouse.move(origin.x + 80, origin.y + 48, { steps: 6 })
+    await page.mouse.up()
     const chooser = page.getByRole('dialog', { name: '继续连接' })
-    await expect(chooser.getByRole('menuitem')).toHaveCount(5)
+    await expect(chooser.getByRole('menuitem')).toHaveCount(6)
     await expect(chooser.getByRole('menuitem', { name: /音频/ })).toHaveAttribute('aria-disabled', 'true')
-    const [stageBox, triggerBox, chooserBox] = await Promise.all([
+    const [stageBox, chooserBox] = await Promise.all([
       page.getByRole('region', { name: 'Revid 无限画布工作区' }).boundingBox(),
-      trigger.boundingBox(),
       chooser.boundingBox(),
     ])
-    if (!stageBox || !triggerBox || !chooserBox) throw new Error('Continuation geometry is unavailable')
+    if (!stageBox || !chooserBox) throw new Error('Continuation geometry is unavailable')
     expect(chooserBox.x).toBeGreaterThanOrEqual(stageBox.x + 12)
     expect(chooserBox.x + chooserBox.width).toBeLessThanOrEqual(stageBox.x + stageBox.width - 12)
     const horizontalGap = Math.max(
-      chooserBox.x - (triggerBox.x + triggerBox.width),
-      triggerBox.x - (chooserBox.x + chooserBox.width),
+      chooserBox.x - origin.x,
+      origin.x - (chooserBox.x + chooserBox.width),
       0,
     )
-    expect(horizontalGap).toBeLessThanOrEqual(24)
+    expect(horizontalGap).toBeLessThanOrEqual(120)
     await page.keyboard.press('Escape')
   }
 })

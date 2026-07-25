@@ -142,7 +142,10 @@ test('returning to source captures two independent frames that compose in order'
   expect(frameRecords).toHaveLength(2)
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'repeat-capture-two-frames-1440x900.png'), fullPage: true })
-  const frames = frameRecords.map((record): CanvasNode => ({
+  const frames = frameRecords.toSorted((left, right) => (
+    Number((left.content as Record<string, unknown>).source_video_time_seconds) -
+    Number((right.content as Record<string, unknown>).source_video_time_seconds)
+  )).map((record): CanvasNode => ({
     id: String(record.id), type: 'asset', title: String((record.content as Record<string, unknown>).title),
     x: Number(record.position_x), y: Number(record.position_y), width: Number(record.width), height: Number(record.height),
     contentData: record.content as Record<string, unknown>,

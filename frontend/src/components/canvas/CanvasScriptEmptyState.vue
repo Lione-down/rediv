@@ -94,10 +94,10 @@ function selectRoleReference(sourceNodeId: string) {
 </template>
 
 <style scoped>
-.script-empty-state { position: relative; display: grid; box-sizing: border-box; width: 100%; height: 100%; align-content: center; gap: 8px; padding: 18px 24px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-md); color: var(--v2-text-secondary); background: var(--v2-surface-2); pointer-events: auto; }
-.script-empty-state__mark { justify-self: center; margin-bottom: 6px; color: var(--v2-text-muted); opacity: .48; }
+.script-empty-state { position: relative; display: grid; box-sizing: border-box; width: 100%; height: 100%; align-content: center; gap: 3px; padding: 7px 14px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-md); color: var(--v2-text-secondary); background: var(--v2-surface-2); pointer-events: auto; }
+.script-empty-state__mark { display: none; }
 .script-empty-state > span { color: var(--v2-text-muted); font-size: 11px; }
-.script-empty-state button { display: flex; min-height: 30px; align-items: center; gap: 9px; padding: 4px 6px; border: 0; border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.script-empty-state button { display: flex; min-height: 26px; align-items: center; gap: 8px; padding: 2px 6px; border: 0; border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: transparent; font: inherit; text-align: left; cursor: pointer; }
 .script-empty-state button:hover { color: var(--v2-text-primary); background: var(--v2-surface-3); }
 .script-empty-state button:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 .script-empty-state button:disabled { cursor: not-allowed; opacity: .38; }

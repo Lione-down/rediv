@@ -2,17 +2,24 @@ import { resolveNodeDefinition } from './node-registry'
 import type { Asset } from '../../types/asset'
 import type { CanvasNode } from '../../types/canvas'
 
-export const AUDIO_GENERATION_CONTRACT_VERSION = 1
+export const AUDIO_GENERATION_CONTRACT_VERSION = 2
 
 export type AudioExecutionMode = 'mock-only' | 'unavailable'
 export type AudioGenerationIntent = 'text-to-audio' | 'audio-driven-video'
 export type AudioGenerationMode = 'text-to-audio'
 export type AudioDrivenVideoMode = 'audio-driven-video'
 
+export interface AudioGenerationModel {
+  id: string
+  label: string
+  generation_modes: AudioGenerationMode[]
+  audio_driven_video_modes: AudioDrivenVideoMode[]
+}
+
 export interface AudioGenerationCapabilities {
-  contract_version: 1
+  contract_version: 1 | 2
   execution_mode: AudioExecutionMode
-  model: string | null
+  models: AudioGenerationModel[]
   generation_modes: AudioGenerationMode[]
   provider_generation_modes: AudioGenerationMode[]
   audio_driven_video_modes: AudioDrivenVideoMode[]
@@ -48,7 +55,7 @@ export interface AudioGenerationPreflightError {
 export interface AudioGenerationPreflight {
   capabilities: AudioGenerationCapabilities | null
   canvas_id: string
-  contract_version: 1
+  contract_version: 2
   errors: AudioGenerationPreflightError[]
   executable: boolean
   execution_mode: AudioExecutionMode
@@ -91,6 +98,27 @@ function isModeList<T extends string>(value: unknown, allowed: ReadonlySet<T>): 
     new Set(value).size === value.length
 }
 
+function parseAudioModels(value: unknown): AudioGenerationModel[] {
+  if (!Array.isArray(value)) throw new Error('invalid audio models')
+  const ids = new Set<string>()
+  return value.map((item) => {
+    if (!isRecord(item) || !isExactKeys(item, [
+      'audio_driven_video_modes', 'generation_modes', 'id', 'label',
+    ]) || typeof item.id !== 'string' || !item.id.trim() || ids.has(item.id) ||
+      typeof item.label !== 'string' || !item.label.trim() ||
+      !isModeList(item.generation_modes, GENERATION_MODES) ||
+      !isModeList(item.audio_driven_video_modes, AUDIO_DRIVEN_VIDEO_MODES)
+    ) throw new Error('invalid audio model')
+    ids.add(item.id)
+    return {
+      id: item.id,
+      label: item.label,
+      generation_modes: [...item.generation_modes],
+      audio_driven_video_modes: [...item.audio_driven_video_modes],
+    }
+  })
+}
+
 function isUnavailableQuota(value: unknown): value is AudioGenerationCapabilities['quota'] {
   return isRecord(value) && isExactKeys(value, ['available', 'quota_type', 'unit_estimate']) &&
     value.available === false && value.quota_type === null && value.unit_estimate === null
@@ -102,10 +130,7 @@ function isUnavailableTask(value: unknown): value is AudioGenerationCapabilities
 }
 
 export function parseAudioGenerationCapabilities(value: unknown): AudioGenerationCapabilities {
-  if (!isRecord(value) || !isExactKeys(value, [
-    'audio_driven_video_modes', 'contract_version', 'execution_mode', 'generation_modes', 'model',
-    'provider_audio_driven_video_modes', 'provider_generation_modes', 'quota', 'task',
-  ]) || value.contract_version !== AUDIO_GENERATION_CONTRACT_VERSION ||
+  if (!isRecord(value) || (value.contract_version !== 1 && value.contract_version !== 2) ||
     (value.execution_mode !== 'unavailable' && value.execution_mode !== 'mock-only') ||
     !isModeList(value.generation_modes, GENERATION_MODES) ||
     !isModeList(value.provider_generation_modes, GENERATION_MODES) ||
@@ -114,23 +139,52 @@ export function parseAudioGenerationCapabilities(value: unknown): AudioGeneratio
     !isUnavailableQuota(value.quota) || !isUnavailableTask(value.task)
   ) throw new Error('音频 generation capability contract 无效。')
 
+  const isLegacy = value.contract_version === 1
+  const expectedKeys = isLegacy
+    ? [
+        'audio_driven_video_modes', 'contract_version', 'execution_mode', 'generation_modes', 'model',
+        'provider_audio_driven_video_modes', 'provider_generation_modes', 'quota', 'task',
+      ]
+    : [
+        'audio_driven_video_modes', 'contract_version', 'execution_mode', 'generation_modes', 'models',
+        'provider_audio_driven_video_modes', 'provider_generation_modes', 'quota', 'task',
+      ]
+  if (!isExactKeys(value, expectedKeys)) throw new Error('音频 generation capability contract 无效。')
+
   const mode = value.execution_mode as AudioExecutionMode
   const generationModes = [...value.generation_modes] as AudioGenerationMode[]
   const providerGenerationModes = [...value.provider_generation_modes] as AudioGenerationMode[]
   const drivenModes = [...value.audio_driven_video_modes] as AudioDrivenVideoMode[]
   const providerDrivenModes = [...value.provider_audio_driven_video_modes] as AudioDrivenVideoMode[]
+  let models: AudioGenerationModel[]
+  try {
+    models = isLegacy
+      ? value.model === null
+        ? []
+        : value.model === 'revid-audio-mock-v1'
+          ? [{
+              id: value.model,
+              label: 'Revid Audio Mock',
+              generation_modes: generationModes,
+              audio_driven_video_modes: drivenModes,
+            }]
+          : (() => { throw new Error('invalid legacy audio model') })()
+      : parseAudioModels(value.models)
+  } catch {
+    throw new Error('音频 generation capability contract 无效。')
+  }
   if (mode === 'unavailable' && (
-    value.model !== null || generationModes.length || providerGenerationModes.length ||
+    models.length || generationModes.length || providerGenerationModes.length ||
     drivenModes.length || providerDrivenModes.length
   )) throw new Error('音频 generation capability contract 无效。')
   if (mode === 'mock-only' && (
-    value.model !== 'revid-audio-mock-v1' || providerGenerationModes.length || providerDrivenModes.length ||
-    (!generationModes.length && !drivenModes.length)
+    models.length !== 1 || providerGenerationModes.length || providerDrivenModes.length ||
+    (!models[0].generation_modes.length && !models[0].audio_driven_video_modes.length)
   )) throw new Error('音频 generation capability contract 无效。')
   return {
-    contract_version: 1,
+    contract_version: value.contract_version,
     execution_mode: mode,
-    model: value.model as string | null,
+    models,
     generation_modes: generationModes,
     provider_generation_modes: providerGenerationModes,
     audio_driven_video_modes: drivenModes,

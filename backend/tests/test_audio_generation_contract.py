@@ -9,9 +9,9 @@ class AudioGenerationContractTestCase(unittest.TestCase):
     def test_production_audio_capability_is_versioned_and_explicitly_unavailable(self) -> None:
         self.assertEqual(
             {
-                "contract_version": 1,
+                "contract_version": 2,
                 "execution_mode": "unavailable",
-                "model": None,
+                "models": [],
                 "generation_modes": [],
                 "provider_generation_modes": [],
                 "audio_driven_video_modes": [],

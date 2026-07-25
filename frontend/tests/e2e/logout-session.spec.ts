@@ -60,7 +60,7 @@ test('authenticated shells expose one responsive account session menu', async ({
   for (const path of [
     '/',
     '/app/space',
-    '/app/projects/project-e2e/canvases/canvas-first',
+    '/app/projects/project-e2e/canvases/canvas-first?canvas_runtime=legacy',
     '/admin',
   ]) {
     await page.goto(path)
@@ -88,7 +88,7 @@ test('authenticated shells expose one responsive account session menu', async ({
   await page.waitForTimeout(180)
   await page.screenshot({ path: testInfo.outputPath('logout-menu-home-mobile.png') })
 
-  await page.goto('/app/projects/project-e2e/canvases/canvas-first')
+  await page.goto('/app/projects/project-e2e/canvases/canvas-first?canvas_runtime=legacy')
   await openAccountMenu(page)
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth))

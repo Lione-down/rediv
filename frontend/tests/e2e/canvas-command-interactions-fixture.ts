@@ -208,7 +208,7 @@ export async function openCommandCanvas(page: Page, state: CommandState, width =
   await page.setViewportSize({ width, height: 768 })
   await installCommandApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'command-token'))
-  await page.goto('/app/projects/project-command/canvases/canvas-command')
+  await page.goto('/app/projects/project-command/canvases/canvas-command?canvas_runtime=legacy')
   await expect(page.getByRole('region', { name: 'Revid 无限画布工作区' })).toBeVisible()
   if (width >= 768) await expect(page.getByRole('button', { name: '定位到 镜头 A' })).toBeVisible()
   else await expect(page.getByText('浏览审阅模式', { exact: true })).toBeVisible()

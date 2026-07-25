@@ -130,3 +130,58 @@ test('v6 image requests retain the eight-source boundary and image operation edi
     },
   })
 })
+
+test('canonical card references override stale provider bindings at the request boundary', () => {
+  const first = referenceNode('reference-a')
+  const second = referenceNode('reference-b')
+  const video = generationNode('video', {
+    schema_version: 1,
+    video: {
+      duration_seconds: 5,
+      reference_bindings: [
+        { node_id: first.id, asset_id: 'asset-reference-a', role: 'first-frame', order: 0 },
+        { node_id: second.id, asset_id: 'asset-reference-b', role: 'last-frame', order: 1 },
+      ],
+    },
+  })
+  video.contentData = {
+    ...video.contentData,
+    card_configuration: {
+      schema_version: 1,
+      generation_mode: 'keyframes',
+      model_id: 'video-model',
+      references: [
+        {
+          stable_id: second.id, asset_id: 'asset-reference-b', display_name: second.title,
+          thumbnail_url: 'https://media.revid.test/b.png', source_revision: 1,
+          role: 'first-frame', order: 0,
+        },
+        {
+          stable_id: first.id, asset_id: 'asset-reference-a', display_name: first.title,
+          thumbnail_url: 'https://media.revid.test/a.png', source_revision: 1,
+          role: 'last-frame', order: 1,
+        },
+      ],
+    },
+  }
+
+  const resolved = resolveGenerationRequestContext(
+    video,
+    'video',
+    [video, first, second],
+    [
+      mediaConnection('edge-a', first.id, video.id, 1),
+      mediaConnection('edge-b', second.id, video.id, 2),
+    ],
+    capabilitiesV6,
+  )
+
+  expect(resolved.videoReferences).toEqual([
+    { node_id: second.id, asset_id: 'asset-reference-b', role: 'first-frame', order: 0 },
+    { node_id: first.id, asset_id: 'asset-reference-a', role: 'last-frame', order: 1 },
+  ])
+  expect(resolved.parameters).toEqual({
+    schema_version: 1,
+    video: { duration_seconds: 5, reference_bindings: resolved.videoReferences },
+  })
+})

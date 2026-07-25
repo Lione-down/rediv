@@ -210,7 +210,7 @@ async function openDocument(page: Page, state: DocumentState) {
   await page.setViewportSize({ width: 1366, height: 768 })
   await installDocumentApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'document-token'))
-  await page.goto('/app/projects/project-document/canvases/canvas-first')
+  await page.goto('/app/projects/project-document/canvases/canvas-first?canvas_runtime=legacy')
   await expect(page.getByRole('button', { name: '定位到 第一画布节点' })).toBeVisible()
 }
 
@@ -254,7 +254,7 @@ test('viewport writes are debounced, flushed before switch, and restored per Can
 
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
-  await expect(page).toHaveURL(/\/canvases\/canvas-second$/)
+  await expect(page).toHaveURL(/\/canvases\/canvas-second\?canvas_runtime=legacy$/)
   await expect(page.getByRole('button', { name: '定位到 第二画布节点' })).toBeVisible()
 
   const firstViewportPath = '/api/projects/project-document/canvases/canvas-first/viewport'

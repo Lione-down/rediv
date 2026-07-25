@@ -106,17 +106,17 @@ export function useCanvasTextGeneration(options: CanvasTextGenerationOptions) {
 
   async function reconcileResults() {
     for (const result of options.generationJobResults.value.values()) {
-      if (result.result.media_type !== 'text') continue
       const node = canvasStore.findNodeById(result.node_id)
       if (!node || node.contentData?.active_generation_job_id !== result.job_id) continue
       const command = createApplyGenerationJobResultCommand(node, result.job_id, result)
-      if (!command) {
+      if (!command && result.result.media_type === 'text') {
         setError(
           node.id,
           '生成结果已保留，但当前文本在生成期间发生变化。撤销该编辑可安全恢复并应用结果。',
         )
         continue
       }
+      if (!command) continue
       await canvasStore.dispatchCommand({ source: 'toolbar', command })
       setError(node.id, '')
     }

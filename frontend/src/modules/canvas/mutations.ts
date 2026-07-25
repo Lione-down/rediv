@@ -11,6 +11,12 @@ import type {
   UpdateGenerationParametersCommand,
 } from './canvas-commands'
 import { reorderGenerationInputConnections } from './generation-input-order'
+import {
+  applyCanvasCardConfiguration,
+  removeCanvasCardReference,
+  serializeCanvasCardConfiguration,
+} from './canvas-card-configuration'
+import { buildCanvasCardViewModel } from './canvas-card-view-model'
 
 interface CanvasMutationOptions {
   activeProjectId: Ref<string>
@@ -123,9 +129,25 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
   }
 
   async function deleteConnection(connectionId: string) {
-    if (!connections.value.some((connection) => connection.id === connectionId)) return
+    const deletedConnection = connections.value.find((connection) => connection.id === connectionId)
+    if (!deletedConnection) return
     mutateGraph(() => {
       connections.value = connections.value.filter((connection) => connection.id !== connectionId)
+      const stillBound = connections.value.some((connection) => (
+        connection.from === deletedConnection.from && connection.to === deletedConnection.to
+      ))
+      const target = findNodeById(deletedConnection.to)
+      if (!stillBound && target) {
+        const card = buildCanvasCardViewModel(target)
+        if (card.references.some((reference) => reference.stableId === deletedConnection.from)) {
+          const configuration = removeCanvasCardReference({
+            ...card.configuration,
+            schemaVersion: 1,
+            references: card.references,
+          }, deletedConnection.from)
+          updateNode(target.id, (node) => applyCanvasCardConfiguration(node, configuration))
+        }
+      }
       selectConnection('')
     })
   }
@@ -248,6 +270,9 @@ export function createCanvasMutationActions(options: CanvasMutationOptions) {
       contentData: {
         ...node.contentData,
         generation_parameters: cloneGraphEntity(command.parameters),
+        ...(command.configuration
+          ? { card_configuration: serializeCanvasCardConfiguration(command.configuration) }
+          : {}),
       },
     })))
   }

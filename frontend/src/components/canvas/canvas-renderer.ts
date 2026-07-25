@@ -106,6 +106,11 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     height: Math.max(options.surface.clientHeight, 1),
     fill: 'transparent',
   })
+  const leaferCanvas = options.surface.querySelector('canvas')
+  leaferCanvas?.setAttribute('data-card-visual-authority', 'dom')
+  if (leaferCanvas instanceof HTMLCanvasElement) {
+    leaferCanvas.style.pointerEvents = 'none'
+  }
   const worldGroup = new Group()
   leafer.add(worldGroup)
 
@@ -299,7 +304,7 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
     const isMedia = presentation.chrome.bodyKind === 'media'
     const hasExternalLabel = presentation.chrome.labelPlacement === 'external'
     const size = canvasNodeVisualSize(node)
-    const group = new Group({ x: node.x, y: node.y })
+    const group = new Group({ x: node.x, y: node.y, hittable: false })
     const card = new Rect({
       width: size.width,
       height: size.height,
@@ -315,6 +320,8 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       stroke: resolveCanvasCardOutlineColor(interactionPresentation, options.cssVar),
       strokeWidth: interactionPresentation.outlineWidth,
       shadow: resolveCanvasCardShadow(interactionPresentation, options.cssVar),
+      opacity: 0,
+      hittable: false,
     })
     const ports = createCanvasCardPortVisuals(node, options.getViewport().zoom, interactionPresentation, options.cssVar)
     const imageMedia = presentation.media?.kind === 'image' ? presentation.media : null
@@ -338,6 +345,8 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       fill: options.cssVar('--text-muted', 'oklch(62% 0.014 245)'),
       fontSize: authoringCard ? 10 : 11,
       fontWeight: authoringCard ? 600 : 500,
+      opacity: 0,
+      hittable: false,
     })
     const titleText = new Text({
       x: authoringCard ? 92 : 16,
@@ -350,6 +359,8 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       height: 22,
       textWrap: 'none',
       textOverflow: 'ellipsis',
+      opacity: 0,
+      hittable: false,
     })
     const contentText = new Text({
       x: 16,
@@ -366,11 +377,23 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
         ? Math.max(22, size.height - (authoringCard?.lifecycle ? 46 : 32))
         : Math.max(22, size.height - 70),
       textOverflow: 'hide',
+      opacity: 0,
+      hittable: false,
     })
     const progressVisuals = authoringCard?.lifecycle
       ? createCanvasGenerationProgressVisuals(authoringCard, size.width, options.cssVar)
       : {}
     const lifecycleVisuals = generationProgressVisualTargets(progressVisuals)
+    for (const target of lifecycleVisuals) {
+      target.opacity = 0
+      target.hittable = false
+    }
+    for (const port of ports) {
+      port.visual.visible = false
+      port.visual.hittable = false
+      port.marker.visible = false
+      port.marker.hittable = false
+    }
 
     group.add([card, mediaImage, ...ports.flatMap((port) => [port.visual, port.marker]), typeText, titleText, contentText, ...lifecycleVisuals])
     worldGroup.add(group)
@@ -387,23 +410,19 @@ export function createCanvasRenderer(options: CanvasRendererOptions): CanvasRend
       state,
     }
     nodeVisuals.set(node.id, visual)
-    ;[group, card, mediaImage, typeText, titleText, contentText, ...lifecycleVisuals].forEach((target) => {
-      interactiveTargets.add(target)
-    })
-    ;(group as unknown as { on: (type: string, handler: (event: PointerEventPayload) => void) => void }).on(
-      POINTER_DOWN,
-      (event) => options.onNodePointerDown(node.id, event),
-    )
-    const setHovered = (isHovered: boolean) => {
-      applyNodeInteraction(visual, resolveNodeInteraction(node, isHovered))
-    }
-    ;(group as unknown as { on: (type: string, handler: () => void) => void }).on('pointer.enter', () => setHovered(true))
-    ;(group as unknown as { on: (type: string, handler: () => void) => void }).on('pointer.leave', () => setHovered(false))
     return visual
   }
 
   function applyNodeInteraction(visual: NodeVisuals, presentation: CanvasCardInteractionPresentation) {
     applyCanvasCardInteractionToVisuals(visual.card, visual.ports, presentation, options.cssVar)
+    visual.card.opacity = 0
+    visual.card.hittable = false
+    for (const port of visual.ports) {
+      port.visual.visible = false
+      port.visual.hittable = false
+      port.marker.visible = false
+      port.marker.hittable = false
+    }
     visual.interactionPresentation = presentation
   }
 

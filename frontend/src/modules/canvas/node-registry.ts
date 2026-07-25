@@ -20,6 +20,15 @@ export interface NodeSubtypeDefinition {
   label: string
 }
 
+export interface AuthoringNodeOption {
+  id: 'text' | 'script' | 'image-generation' | 'video-generation' | 'video-composition' | 'audio-generation'
+  label: string
+  type: 'script' | 'generation'
+  subtype: string
+  availability: 'enabled' | 'disabled'
+  unavailableReason?: string
+}
+
 export interface NodePortDefinition {
   id: string
   direction: NodePortDirection
@@ -64,6 +73,20 @@ export interface UnsupportedNodeDefinition {
 }
 
 export type ResolvedNodeDefinition = NodeDefinition | UnsupportedNodeDefinition
+
+const CREATABLE_AUTHORING_TYPES = new Set<CanonicalNodeType>([
+  'script',
+  'generation',
+])
+
+const AUTHORING_NODE_OPTIONS: readonly Omit<AuthoringNodeOption, 'availability' | 'unavailableReason'>[] = [
+  { id: 'text', label: '文本', type: 'script', subtype: 'prompt' },
+  { id: 'script', label: '脚本', type: 'script', subtype: 'script' },
+  { id: 'image-generation', label: '图片生成', type: 'generation', subtype: 'image' },
+  { id: 'video-generation', label: '视频生成', type: 'generation', subtype: 'video' },
+  { id: 'video-composition', label: '视频合成', type: 'generation', subtype: 'video-composition' },
+  { id: 'audio-generation', label: '音频生成', type: 'generation', subtype: 'audio' },
+]
 
 const disabledCapabilities: NodeCapabilities = {
   canEditContent: false,
@@ -115,7 +138,12 @@ const canonicalDefinitions: readonly NodeDefinition[] = [
   },
   {
     type: 'generation', kind: 'canonical', label: '生成任务', icon: 'sparkles',
-    subtypes: [{ id: 'image', label: '图片生成' }, { id: 'video', label: '视频生成' }],
+    subtypes: [
+      { id: 'image', label: '图片生成' },
+      { id: 'video', label: '视频生成' },
+      { id: 'video-composition', label: '视频合成' },
+      { id: 'audio', label: '音频生成' },
+    ],
     defaultSubtype: 'image',
     ports: [
       { id: 'prompt', direction: 'input', dataType: 'text', accepts: ['text'] },
@@ -123,7 +151,11 @@ const canonicalDefinitions: readonly NodeDefinition[] = [
       { id: 'out', direction: 'output', dataType: 'result' },
     ],
     defaultSize: { width: 340, height: 220 },
-    capabilities: capabilities({ canEditContent: true, canGenerate: true }),
+    capabilities: capabilities({
+      canEditContent: true,
+      canGenerate: true,
+      canPreviewMedia: true,
+    }),
     serializationVersion: 1,
   },
   {
@@ -224,7 +256,23 @@ function unsupported(type: string, reason: UnsupportedNodeDefinition['reason']):
 }
 
 export function getCreatableNodeDefinitions(): readonly NodeDefinition[] {
-  return canonicalDefinitions
+  return canonicalDefinitions.filter((definition) => (
+    CREATABLE_AUTHORING_TYPES.has(definition.type as CanonicalNodeType)
+  ))
+}
+
+export function getAuthoringNodeOptions(options: {
+  allowedAudioModelCount?: number
+} = {}): readonly AuthoringNodeOption[] {
+  return AUTHORING_NODE_OPTIONS.map((option) => {
+    if (option.id !== 'audio-generation') return { ...option, availability: 'enabled' }
+    const isAvailable = Number(options.allowedAudioModelCount ?? 0) > 0
+    return {
+      ...option,
+      availability: isAvailable ? 'enabled' : 'disabled',
+      ...(isAvailable ? {} : { unavailableReason: '当前没有兼容的音频生成模型' }),
+    }
+  })
 }
 
 export function resolveNodeDefinition(
@@ -249,7 +297,14 @@ export function resolveNodeDefinition(
     subtype !== undefined &&
     (typeof subtype !== 'string' || !definition.subtypes.some((candidate) => candidate.id === subtype))
   ) return unsupported(type, 'subtype')
-  return definition
+  if (typeof subtype !== 'string') return definition
+  const subtypeDefinition = definition.subtypes.find((candidate) => candidate.id === subtype)
+  const label = type === 'script' && subtype === 'prompt'
+    ? '文本'
+    : type === 'asset'
+    ? '素材'
+    : subtypeDefinition?.label ?? definition.label
+  return label === definition.label ? definition : { ...definition, label }
 }
 
 export function createRegistryNodeDraft(
@@ -364,4 +419,24 @@ export function getAuthoringConnectionPorts(
   if (!ports) return null
   if (target.type === 'generation' && ports.targetPort === 'media' && !isGenerationImageReferenceSource(source)) return null
   return ports
+}
+
+export function resolveVisibleAcquisitionConnectionPorts(
+  source: Pick<CanvasNode, 'type' | 'contentData'>,
+  target: Pick<CanvasNode, 'type' | 'contentData'>,
+): { sourcePort: string; targetPort: string } | null {
+  const sourceDefinition = resolveNodeDefinition(source.type, source.contentData)
+  const targetDefinition = resolveNodeDefinition(target.type, target.contentData)
+  if (sourceDefinition.kind === 'unsupported' || targetDefinition.kind === 'unsupported') {
+    return null
+  }
+  const compatiblePairs = sourceDefinition.ports
+    .filter((port) => port.direction === 'output')
+    .flatMap((output) => targetDefinition.ports
+      .filter((port) => port.direction === 'input')
+      .flatMap((input) => {
+        const resolved = getAuthoringConnectionPorts(source, target, output.id, input.id)
+        return resolved ? [resolved] : []
+      }))
+  return compatiblePairs.length === 1 ? compatiblePairs[0] : null
 }

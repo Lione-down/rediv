@@ -32,7 +32,11 @@ class _FakeAgnesProvider:
         poll_error: Exception | None = None,
     ) -> None:
         self.create_response = create_response or {"task_id": "task-1", "video_id": "video-1"}
-        self.poll_responses = poll_responses or [{"status": "completed", "video_url": "https://example.com/generated-video.mp4"}]
+        self.poll_responses = poll_responses or [{
+            "status": "completed",
+            "progress": 100,
+            "metadata": {"url": "https://example.com/generated-video.mp4"},
+        }]
         self.create_error = create_error
         self.poll_error = poll_error
         self.generate_calls: list[dict] = []
@@ -50,7 +54,7 @@ class _FakeAgnesProvider:
             raise self.poll_error
         if self.poll_responses:
             return self.poll_responses.pop(0)
-        return {"status": "processing"}
+        return {"status": "in_progress", "progress": 47}
 
 
 class VideoGenerateApiTestCase(unittest.TestCase):
@@ -79,8 +83,8 @@ class VideoGenerateApiTestCase(unittest.TestCase):
     def test_video_generate_success_creates_video_asset_and_deducts_quota(self) -> None:
         fake_provider = _FakeAgnesProvider(
             poll_responses=[
-                {"status": "processing", "progress": 47},
-                {"status": "completed", "progress_percent": 83, "url": "https://example.com/generated-video.mp4"},
+                {"status": "in_progress", "progress": 47},
+                {"status": "completed", "progress": 100, "metadata": {"url": "https://example.com/generated-video.mp4"}},
             ],
         )
         original_quota = store.quotas[self.user["id"]]["video"]
@@ -117,7 +121,9 @@ class VideoGenerateApiTestCase(unittest.TestCase):
 
     def test_provider_progress_extraction_accepts_only_finite_bounded_numbers(self) -> None:
         self.assertEqual(12, extract_provider_progress_percent({"progress": 12}))
-        self.assertEqual(47.5, extract_provider_progress_percent({"data": {"progress_percent": 47.5}}))
+        self.assertIsNone(extract_provider_progress_percent({"data": {"progress": 47}}))
+        self.assertIsNone(extract_provider_progress_percent({"progress_percent": 47}))
+        self.assertIsNone(extract_provider_progress_percent({"progress": 47.5}))
         for response in (
             {},
             {"progress": None},
@@ -304,10 +310,12 @@ class VideoGenerateApiTestCase(unittest.TestCase):
     def test_video_generate_timeout_does_not_deduct_quota(self) -> None:
         fake_provider = _FakeAgnesProvider(
             poll_responses=[
-                {"status": "processing", "progress": 12},
-                {"status": "processing", "progress": 47},
-                {"status": "processing", "progress": 30},
-                *([{"status": "processing"}] * (video_generate_module.MAX_POLL_ATTEMPTS - 3)),
+                {"status": "in_progress", "progress": 12},
+                {"status": "in_progress", "progress": 47},
+                {"status": "in_progress", "progress": 30},
+                *([
+                    {"status": "in_progress", "progress": 47}
+                ] * (video_generate_module.MAX_POLL_ATTEMPTS - 3)),
             ],
         )
         original_quota = store.quotas[self.user["id"]]["video"]

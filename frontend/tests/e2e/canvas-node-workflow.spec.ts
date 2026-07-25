@@ -4,13 +4,24 @@ import { resolve } from 'node:path'
 import { buildCanvasNodeInteraction } from '../../src/components/canvas/canvas-node-interaction'
 import { isConnectionTargetCompatible } from '../../src/components/canvas/composables/use-canvas-connection-presentation'
 import type { CanvasNode } from '../../src/types/canvas'
-import { createResourceMockState, documentPatches, openResourceWorkspace } from './canvas-resource-generation-fixture'
+import {
+  createResourceMockState,
+  documentPatches,
+  FIRST_CANVAS_ID,
+  openResourceWorkspace,
+  PROJECT_ID,
+} from './canvas-resource-generation-fixture'
 
 const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-013')
 
 test('registry capability is the sole node-local editing gate', () => {
   const node: CanvasNode = { id: 'script', type: 'script', title: '脚本', x: 0, y: 0, width: 320, height: 200, content: '初稿', contentData: { subtype: 'script', serialization_version: 1 } }
-  expect(buildCanvasNodeInteraction(node, { isReadOnly: false, isSelected: true })).toMatchObject({ kind: 'composer', content: '初稿' })
+  expect(buildCanvasNodeInteraction(node, {
+    isReadOnly: false,
+    isSelected: true,
+    isDirectEditing: true,
+  })).toMatchObject({ kind: 'composer', content: '初稿' })
+  expect(buildCanvasNodeInteraction(node, { isReadOnly: false, isSelected: true })).toEqual({ kind: 'static' })
   expect(buildCanvasNodeInteraction(node, { isReadOnly: true, isSelected: true })).toEqual({ kind: 'static' })
 })
 
@@ -22,15 +33,58 @@ test('connection target compatibility follows typed registry ports', () => {
   expect(isConnectionTargetCompatible(source, note, 'out')).toBe(false)
 })
 
-test('queued durable tasks trigger bounded resource polling until terminal state', async ({ page }) => {
+test('persisted current-Canvas job binding triggers compact polling until terminal state', async ({ page }) => {
   const state = createResourceMockState()
-  const task = state.tasks.find((item) => item.id === 'task-existing-success')!
-  task.status = 'queued'
+  const jobId = 'job-current-canvas'
+  const source = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')!
+  source.content = {
+    ...(source.content as Record<string, unknown>),
+    active_generation_job_id: jobId,
+    active_generation_media_type: 'image',
+  }
+  state.generationJobCanvasIds[jobId] = FIRST_CANVAS_ID
+  state.generationJobs[jobId] = {
+    job_id: jobId,
+    node_id: 'generation-cover',
+    media_type: 'image',
+    status: 'queued',
+    stage: 'queued',
+    progress: null,
+    error: null,
+    result_asset_id: null,
+    version: 1,
+    updated_at: '2026-07-23T12:00:00.000Z',
+  }
   await openResourceWorkspace(page, state)
-  const taskRequests = () => state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks').length
-  await expect.poll(taskRequests, { timeout: 4_000 }).toBeGreaterThanOrEqual(2)
-  task.status = 'succeeded'
-  await expect.poll(taskRequests, { timeout: 5_000 }).toBeGreaterThanOrEqual(3)
+  const compactRequests = () => state.requests.filter((item) => (
+    item.method === 'GET' && item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs`
+  )).length
+  await expect.poll(compactRequests, { timeout: 5_000 }).toBeGreaterThanOrEqual(1)
+  state.generationJobs[jobId] = {
+    ...state.generationJobs[jobId],
+    status: 'succeeded',
+    stage: null,
+    progress: 100,
+    result_asset_id: 'asset-existing',
+    version: 2,
+    updated_at: '2026-07-23T12:00:02.000Z',
+  }
+  state.generationJobResults[jobId] = {
+    job_id: jobId,
+    node_id: 'generation-cover',
+    result: {
+      asset_id: 'asset-existing',
+      media_type: 'image',
+      url: 'https://media.revid.test/generated-cover.png',
+    },
+    version: 2,
+  }
+  await expect(
+    page.locator('.canvas-node-surface[data-node-id="generation-cover"] .canvas-runtime-card__status'),
+  ).toContainText('已完成', { timeout: 6_000 })
+  expect(state.requests.filter((item) => (
+    item.method === 'GET' && item.path === '/api/generation-tasks'
+  ))).toHaveLength(0)
 })
 
 test('selected editable node persists node-local content and native result media is visible', async ({ page }) => {
@@ -46,6 +100,7 @@ test('selected editable node persists node-local content and native result media
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
   await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
+  await page.locator('.canvas-node-surface[data-node-id="script-source"] .canvas-runtime-card__body').dblclick()
   const editor = page.getByRole('textbox', { name: '编辑镜头脚本内容' })
   await editor.fill('黄昏海岸，人物从画面右侧入场。')
   await editor.blur()
@@ -55,6 +110,7 @@ test('selected editable node persists node-local content and native result media
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
   await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
+  await page.locator('.canvas-node-surface[data-node-id="script-source"] .canvas-runtime-card__body').dblclick()
   await expect(page.getByRole('textbox', { name: '编辑镜头脚本内容' })).toHaveValue('黄昏海岸，人物从画面右侧入场。')
 })
 
@@ -64,6 +120,7 @@ test('IME composition owns the editor until compositionend', async ({ page }) =>
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本' }).click()
   await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
+  await page.locator('.canvas-node-surface[data-node-id="script-source"] .canvas-runtime-card__body').dblclick()
   const editor = page.getByRole('textbox', { name: '编辑镜头脚本内容' })
   const baseline = documentPatches(state).length
   await editor.dispatchEvent('compositionstart')

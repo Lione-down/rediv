@@ -1,10 +1,12 @@
 import { computed, getCurrentInstance, onBeforeUnmount, ref, watch, type ComputedRef } from 'vue'
+import { isAxiosError } from 'axios'
 import {
   resolveGenerationJobRuntimePresentations,
   resolveGenerationRuntimePresentations,
   type LocalGenerationRuntimeRequest,
 } from '../../../modules/canvas/generation-runtime-presentation'
 import {
+  resolveGenerationJobResultProjections,
   resolveGenerationResultProjections,
   resolveTerminalGenerationResultPlacement,
 } from '../../../modules/canvas/generation-result-projection'
@@ -18,6 +20,7 @@ import { request } from '../../../api/request'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
+import { recoverGenerationJobByClientRequest } from '../../../modules/canvas/generation-job-api'
 
 interface CanvasGenerationRuntimeOptions {
   canvasId: ComputedRef<string>
@@ -46,6 +49,7 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
   let pollingGeneration = 0
   let pollingErrorCount = 0
   const activeSyncKeys = new Set<string>()
+  const unboundRecoveryMisses = new Map<string, number>()
 
   const generationJobSnapshot = computed(() => {
     generationJobRevision.value
@@ -69,13 +73,21 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
     for (const [nodeId, presentation] of compact) next.set(nodeId, presentation)
     return next
   })
-  const pendingResultProjections = computed(() => resolveGenerationResultProjections(
-    canvasStore.nodes,
-    resourceStore.tasks,
-    localRequests.value,
-    options.projectId.value,
-    options.canvasId.value,
-  ))
+  const pendingResultProjections = computed(() => {
+    const compact = resolveGenerationJobResultProjections(
+      canvasStore.nodes,
+      [...generationJobSnapshot.value.statuses.values()],
+    )
+    const compactSourceNodeIds = new Set(compact.map((projection) => projection.sourceNodeId))
+    const legacyAndLocal = resolveGenerationResultProjections(
+      canvasStore.nodes,
+      resourceStore.tasks,
+      localRequests.value,
+      options.projectId.value,
+      options.canvasId.value,
+    ).filter((projection) => !compactSourceNodeIds.has(projection.sourceNodeId))
+    return [...compact, ...legacyAndLocal]
+  })
 
   function hasCompactPollingWork() {
     return hasGenerationJobPollingWork(
@@ -84,14 +96,15 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
     )
   }
 
-  function hasLegacyPollingWork() {
-    return [...presentations.value.values()].some((presentation) => (
-      presentation.source !== 'job' && !presentation.isTerminal
+  function hasUnboundRecoveryWork() {
+    return canvasStore.nodes.some((node) => (
+      typeof node.contentData?.active_generation_client_request_id === 'string' &&
+      !node.contentData.active_generation_job_id
     ))
   }
 
   function hasPollingWork() {
-    return hasCompactPollingWork() || hasLegacyPollingWork()
+    return hasCompactPollingWork() || hasUnboundRecoveryWork()
   }
 
   function stopPolling() {
@@ -114,6 +127,40 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
       options.projectId.value === context.projectId && options.canvasId.value === context.canvasId
   }
 
+  async function recoverUnboundJobs(context: NonNullable<ReturnType<typeof pollingContext>>) {
+    const candidates = canvasStore.nodes.filter((node) => (
+      typeof node.contentData?.active_generation_client_request_id === 'string' &&
+      !node.contentData.active_generation_job_id
+    ))
+    await Promise.all(candidates.map(async (node) => {
+      const clientRequestId = String(node.contentData?.active_generation_client_request_id)
+      const mediaType = node.contentData?.active_generation_media_type
+      if (!['text', 'script', 'image', 'video'].includes(String(mediaType))) return
+      try {
+        const receipt = await recoverGenerationJobByClientRequest({
+          projectId: context.projectId,
+          canvasId: context.canvasId,
+          nodeId: node.id,
+          clientRequestId,
+        }, request)
+        if (!isCurrentContext(context)) return
+        unboundRecoveryMisses.delete(node.id)
+        await canvasStore.setNodeGenerationState(node.id, 'running', '', false, {
+          clientRequestId,
+          jobId: receipt.job_id,
+          mediaType: mediaType as 'text' | 'script' | 'image' | 'video',
+        })
+      } catch (error) {
+        if (!isAxiosError(error) || error.response?.status !== 404) return
+        const misses = (unboundRecoveryMisses.get(node.id) ?? 0) + 1
+        unboundRecoveryMisses.set(node.id, misses)
+        if (misses < 3 || !isCurrentContext(context)) return
+        unboundRecoveryMisses.delete(node.id)
+        await canvasStore.setNodeGenerationState(node.id, 'failed')
+      }
+    }))
+  }
+
   function schedulePolling(forceQuickDiscovery = false) {
     const context = pollingContext()
     if (!context || (!forceQuickDiscovery && !hasPollingWork())) return
@@ -132,6 +179,7 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
       if (generation !== pollingGeneration || !isCurrentContext(context)) return
       activeSyncKeys.add(syncKey)
       try {
+        if (hasUnboundRecoveryWork()) await recoverUnboundJobs(context)
         const requests: Promise<unknown>[] = []
         if (hasCompactPollingWork()) {
           requests.push(syncGenerationJobs({
@@ -143,9 +191,6 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
           }).then(() => {
             generationJobRevision.value += 1
           }))
-        }
-        if (hasLegacyPollingWork() && resourceStore.projectId === context.projectId) {
-          requests.push(resourceStore.refreshTasksIfCurrent(context.projectId))
         }
         await Promise.all(requests)
         pollingErrorCount = 0
@@ -215,11 +260,13 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
     () => authStore.token,
   ], () => {
     localRequests.value = new Map()
+    unboundRecoveryMisses.clear()
     stopPolling()
   }, { flush: 'sync' })
 
   watch(() => canvasStore.nodes.map((node) => (
-    `${node.id}:${String(node.contentData?.active_generation_job_id ?? '')}`
+    `${node.id}:${String(node.contentData?.active_generation_client_request_id ?? '')}:` +
+    `${String(node.contentData?.active_generation_job_id ?? '')}`
   )).join('|'), () => {
     if (hasPollingWork()) schedulePolling(true)
     else stopPolling()

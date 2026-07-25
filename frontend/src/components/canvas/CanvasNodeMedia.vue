@@ -116,12 +116,14 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
   display: grid;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
   overflow: visible;
   border-radius: var(--canvas-media-radius, var(--v2-radius-sm));
   pointer-events: none;
 }
 
-.canvas-node-media__viewport { position: relative; display: grid; box-sizing: border-box; width: 100%; height: 100%; place-items: center; overflow: hidden; border: 1px solid var(--v2-border-subtle); border-radius: inherit; background: var(--v2-surface-1); }
+.canvas-node-media__viewport { position: relative; display: grid; box-sizing: border-box; width: 100%; height: 100%; min-width: 0; min-height: 0; place-items: center; overflow: hidden; border: 1px solid var(--v2-border-subtle); border-radius: inherit; background: var(--v2-surface-1); }
 
 .canvas-node-media__viewport img,
 .canvas-node-media__viewport video {
@@ -133,6 +135,15 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
   object-fit: cover;
 }
 
+.canvas-node-media__viewport video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
 .canvas-node-media__viewport video { pointer-events: auto; }
 .canvas-node-media__capture { position: absolute; z-index: 2; top: 8px; right: 8px; display: inline-flex; min-height: 30px; align-items: center; gap: 5px; padding: 0 9px; border: 1px solid color-mix(in oklch, var(--accent-select) 54%, var(--v2-border-standard)); border-radius: var(--radius-pill); color: var(--v2-text-primary); background: color-mix(in oklch, var(--v2-surface-1) 88%, transparent); box-shadow: 0 8px 20px oklch(3% 0.01 292 / 0.3); font: inherit; font-size: 11px; white-space: nowrap; backdrop-filter: blur(10px); pointer-events: auto; cursor: pointer; }
 .canvas-node-media__capture:hover { border-color: var(--accent-select); background: var(--v2-surface-2); }
@@ -140,6 +151,6 @@ onBeforeUnmount(() => window.removeEventListener(CANVAS_VIDEO_PLAY_EVENT, pauseF
 .canvas-node-media__capture:disabled { cursor: wait; opacity: 0.72; }
 .canvas-node-media__capture-error { position: absolute; z-index: 2; top: 46px; right: 8px; max-width: calc(100% - 16px); padding: 6px 8px; border-radius: var(--v2-radius-sm); color: var(--v2-danger); background: var(--v2-surface-2); font-size: 11px; }
 .canvas-node-media__metadata { position: absolute; z-index: 2; top: -22px; right: 0; min-height: 16px; padding: 0; border: 0; border-radius: 0; color: var(--v2-text-secondary); background: transparent; font-size: 10px; font-variant-numeric: tabular-nums; line-height: 16px; white-space: nowrap; backdrop-filter: none; }
-.canvas-node-media__message { position: absolute; z-index: 1; padding: calc(8px * var(--canvas-surface-zoom, 1)) calc(12px * var(--canvas-surface-zoom, 1)); border-radius: calc(var(--v2-radius-sm) * var(--canvas-surface-zoom, 1)); color: var(--v2-text-secondary); background: var(--v2-surface-2); font-size: calc(12px * var(--canvas-surface-zoom, 1)); }
+.canvas-node-media__message { position: absolute; z-index: 1; box-sizing: border-box; max-width: calc(100% - 8px * var(--canvas-surface-zoom, 1)); padding: calc(8px * var(--canvas-surface-zoom, 1)) calc(12px * var(--canvas-surface-zoom, 1)); overflow-wrap: anywhere; border-radius: calc(var(--v2-radius-sm) * var(--canvas-surface-zoom, 1)); color: var(--v2-text-secondary); background: var(--v2-surface-2); font-size: calc(12px * var(--canvas-surface-zoom, 1)); text-align: center; }
 .canvas-node-media__message.is-error { color: var(--v2-danger); }
 </style>

@@ -17,6 +17,48 @@ export type CanvasNodeMediaPresentation =
   | { kind: 'placeholder'; label: string }
 export type CanvasNodeVisualKind = 'text' | 'media' | 'generation' | 'result' | 'unknown'
 export type CanvasNodeBodyKind = 'authoring' | 'media' | 'group' | 'unsupported'
+export type CanvasCardRuntimePhase =
+  | 'idle'
+  | 'selected'
+  | 'editing'
+  | 'composing'
+  | 'submitting'
+  | 'running'
+  | 'succeeded'
+  | 'failed'
+export type CanvasCardOwnership =
+  | 'authoring'
+  | 'project-asset'
+  | 'generated-result'
+  | 'structural'
+  | 'legacy'
+  | 'unsupported'
+
+export interface CanvasCardReference {
+  stableId: string
+  assetId: string
+  displayName: string
+  thumbnailUrl: string
+  sourceRevision: number
+  role: string
+  order: number
+}
+
+export type CanvasCardPromptSegment =
+  | { kind: 'text'; text: string }
+  | { kind: 'reference'; stableId: string; assetId: string }
+
+export interface CanvasCardPromptDocument {
+  schemaVersion: 1
+  segments: readonly CanvasCardPromptSegment[]
+}
+
+export interface CanvasCardConfiguration {
+  schemaVersion: number
+  generationMode: string | null
+  modelId: string | null
+  promptDocument: CanvasCardPromptDocument
+}
 
 export interface CanvasNodeChromePresentation {
   bodyKind: CanvasNodeBodyKind
@@ -33,6 +75,18 @@ export interface CanvasCardViewModel {
   content: string
   canEditContent: boolean
   isUnsupported: boolean
+  configuration: CanvasCardConfiguration
+  references: readonly CanvasCardReference[]
+  ownership: CanvasCardOwnership
+  editability: {
+    title: boolean
+    body: boolean
+    configuration: boolean
+  }
+  state: {
+    phase: CanvasCardRuntimePhase
+    canDrag: boolean
+  }
   inputPorts: readonly NodePortDefinition[]
   outputPorts: readonly NodePortDefinition[]
   media: CanvasNodeMediaPresentation | null
@@ -120,21 +174,132 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+export function readCanvasCardConfiguration(content: Record<string, unknown> | undefined) {
+  const raw = content?.card_configuration
+  if (!isRecord(raw)) {
+    return {
+      configuration: {
+        schemaVersion: 1,
+        generationMode: null,
+        modelId: null,
+        promptDocument: { schemaVersion: 1, segments: [] },
+      } satisfies CanvasCardConfiguration,
+      references: [] as CanvasCardReference[],
+    }
+  }
+  const rawReferences = raw.references
+  const references = Array.isArray(rawReferences)
+    ? rawReferences.flatMap((value): CanvasCardReference[] => {
+        if (!isRecord(value)) return []
+        const {
+          stable_id: stableId,
+          asset_id: assetId,
+          display_name: displayName,
+          thumbnail_url: thumbnailUrl,
+          source_revision: sourceRevision,
+          role,
+          order,
+        } = value
+        if (
+          typeof stableId !== 'string' || !stableId.trim() ||
+          typeof assetId !== 'string' || !assetId.trim() ||
+          typeof displayName !== 'string' || !displayName.trim() ||
+          typeof thumbnailUrl !== 'string' || !thumbnailUrl.trim() ||
+          !Number.isSafeInteger(sourceRevision) || (sourceRevision as number) < 0 ||
+          typeof role !== 'string' || !role.trim() ||
+          !Number.isSafeInteger(order) || (order as number) < 0
+        ) return []
+        return [{
+          stableId: stableId.trim(),
+          assetId: assetId.trim(),
+          displayName: displayName.trim(),
+          thumbnailUrl: thumbnailUrl.trim(),
+          sourceRevision: sourceRevision as number,
+          role: role.trim(),
+          order: order as number,
+        }]
+      }).sort((left, right) => left.order - right.order)
+    : []
+  const schemaVersion = raw.schema_version
+  const generationMode = raw.generation_mode
+  const modelId = raw.model_id
+  const rawPromptDocument = raw.prompt_document
+  const promptSegments = isRecord(rawPromptDocument) && Array.isArray(rawPromptDocument.segments)
+    ? rawPromptDocument.segments.flatMap((value): CanvasCardPromptSegment[] => {
+        if (!isRecord(value)) return []
+        if (value.kind === 'text' && typeof value.text === 'string') {
+          return value.text ? [{ kind: 'text', text: value.text }] : []
+        }
+        if (
+          value.kind === 'reference' &&
+          typeof value.stable_id === 'string' && value.stable_id.trim() &&
+          typeof value.asset_id === 'string' && value.asset_id.trim()
+        ) {
+          return [{
+            kind: 'reference',
+            stableId: value.stable_id.trim(),
+            assetId: value.asset_id.trim(),
+          }]
+        }
+        return []
+      })
+    : []
+  return {
+    configuration: {
+      schemaVersion: Number.isSafeInteger(schemaVersion) && (schemaVersion as number) > 0
+        ? schemaVersion as number
+        : 1,
+      generationMode: typeof generationMode === 'string' && generationMode.trim()
+        ? generationMode.trim()
+        : null,
+      modelId: typeof modelId === 'string' && modelId.trim() ? modelId.trim() : null,
+      promptDocument: {
+        schemaVersion: 1,
+        segments: promptSegments,
+      },
+    } satisfies CanvasCardConfiguration,
+    references,
+  }
+}
+
+function resolveCardOwnership(node: CanvasNode, definitionKind: 'canonical' | 'compatibility') {
+  if (definitionKind === 'compatibility') return 'legacy' as const
+  if (node.type === 'asset') return 'project-asset' as const
+  if (node.type === 'result') return 'generated-result' as const
+  if (node.type === 'group') return 'structural' as const
+  return 'authoring' as const
+}
+
+function resolveCardRuntimePhase(
+  node: CanvasNode,
+  options: {
+    isSelected?: boolean
+    interactionState?: 'editing' | 'composing' | 'submitting'
+    runtimePresentation?: GenerationRuntimePresentation | null
+  },
+): CanvasCardRuntimePhase {
+  if (options.runtimePresentation?.phase === 'submitting') return 'submitting'
+  if (
+    options.runtimePresentation?.phase === 'queued' ||
+    options.runtimePresentation?.phase === 'running' ||
+    node.status === 'running'
+  ) return 'running'
+  if (options.runtimePresentation?.phase === 'succeeded' || node.status === 'success') return 'succeeded'
+  if (
+    options.runtimePresentation?.phase === 'failed' ||
+    options.runtimePresentation?.phase === 'timed_out' ||
+    node.status === 'warning'
+  ) return 'failed'
+  if (options.interactionState) return options.interactionState
+  return options.isSelected ? 'selected' : 'idle'
+}
+
 function hasSpecializedGenerationWorkflow(node: CanvasNode) {
   const generationParameters = node.contentData?.generation_parameters
   const imageParameters = isRecord(generationParameters) && isRecord(generationParameters.image)
     ? generationParameters.image
     : null
   return Boolean(node.contentData?.generation_recipe_id || imageParameters?.operation)
-}
-
-function cardReferenceTypeLabel(node: CanvasNode) {
-  const definition = resolveNodeDefinition(node.type, node.contentData)
-  if (definition.kind === 'unsupported') return definition.label
-  const subtype = node.contentData?.subtype
-  return typeof subtype === 'string'
-    ? definition.subtypes.find((candidate) => candidate.id === subtype)?.label ?? definition.label
-    : definition.label
 }
 
 function persistedLifecycle(node: CanvasNode): CanvasCardViewModel['lifecycle'] {
@@ -170,13 +335,9 @@ function persistedLifecycle(node: CanvasNode): CanvasCardViewModel['lifecycle'] 
 
 export function resolveCanvasCardReferenceDisplayTitle(
   node: CanvasNode,
-  nodes: readonly CanvasNode[],
+  _nodes: readonly CanvasNode[],
 ) {
-  const title = node.title.trim()
-  const duplicateCount = nodes.filter((candidate) => candidate.title.trim() === title).length
-  return duplicateCount > 1
-    ? `${title} · ${cardReferenceTypeLabel(node)} · ${node.id.slice(-6)}`
-    : title
+  return node.title.trim()
 }
 
 export function buildCanvasCardViewModel(
@@ -184,6 +345,7 @@ export function buildCanvasCardViewModel(
   options: {
     isReadOnly?: boolean
     isSelected?: boolean
+    interactionState?: 'editing' | 'composing' | 'submitting'
     runtimePresentation?: GenerationRuntimePresentation | null
   } = {},
 ): CanvasCardViewModel {
@@ -191,6 +353,9 @@ export function buildCanvasCardViewModel(
   const family = resolveCanvasCardFamily(node)
   const content = node.content ?? readString(node.contentData, 'text') ?? ''
   const runtime = options.runtimePresentation ?? null
+  const { configuration, references } = readCanvasCardConfiguration(node.contentData)
+  const statePhase = resolveCardRuntimePhase(node, options)
+  const canDrag = !options.isReadOnly && !node.isLocked
   if (definition.kind === 'unsupported') {
     return {
       nodeId: node.id,
@@ -201,6 +366,11 @@ export function buildCanvasCardViewModel(
       content: `节点类型 ${node.type} 暂不受支持，原始数据已保留。`,
       canEditContent: false,
       isUnsupported: true,
+      configuration,
+      references,
+      ownership: 'unsupported',
+      editability: { title: false, body: false, configuration: false },
+      state: { phase: statePhase, canDrag: false },
       inputPorts: [],
       outputPorts: [],
       media: null,
@@ -242,6 +412,11 @@ export function buildCanvasCardViewModel(
         isIndeterminate: runtime.isIndeterminate,
       }
     : persistedLifecycle(node)
+  const ownership = resolveCardOwnership(node, definition.kind)
+  const canEditTitle = !options.isReadOnly && !node.isLocked
+  const canEditConfiguration = ownership === 'authoring' && Boolean(
+    definition.capabilities.canGenerate && canEditTitle && (!runtime || runtime.isTerminal),
+  )
   return {
     nodeId: node.id,
     kind: isNodeGroupContainer(node) ? 'group' : family ?? 'unknown',
@@ -253,6 +428,15 @@ export function buildCanvasCardViewModel(
     content,
     canEditContent: definition.capabilities.canEditContent,
     isUnsupported: false,
+    configuration,
+    references,
+    ownership,
+    editability: {
+      title: canEditTitle,
+      body: canEditBody,
+      configuration: canEditConfiguration,
+    },
+    state: { phase: statePhase, canDrag },
     inputPorts,
     outputPorts,
     media,

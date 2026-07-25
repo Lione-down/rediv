@@ -1,11 +1,13 @@
 import type { CanvasNode } from '../../types/canvas'
 import { findFirstUnoccupiedPosition } from './graph-placement'
 import {
+  resolveGenerationJobRuntimePresentations,
   resolveGenerationTaskRuntimePresentation,
   resolveLocalGenerationRuntimePresentation,
   type GenerationRuntimePresentation,
   type LocalGenerationRuntimeRequest,
 } from './generation-runtime-presentation'
+import type { GenerationJobStatus } from './generation-job-api'
 import { getGenerationMediaType, createRegistryNodeDraft } from './node-registry'
 import type { GenerationTask } from './project-resource-types'
 
@@ -156,6 +158,45 @@ export function resolveGenerationResultProjections(
       taskId: candidate.taskId,
       mediaType: candidate.mediaType,
       presentation: candidate.presentation,
+      ...placement,
+    }
+    projections.push(projection)
+    occupiedNodes.push(virtualProjectionNode(projection))
+  }
+  return projections
+}
+
+export function resolveGenerationJobResultProjections(
+  nodes: readonly CanvasNode[],
+  statuses: readonly GenerationJobStatus[],
+) {
+  const statusesByJobId = new Map(statuses.map((status) => [status.job_id, status]))
+  const presentations = resolveGenerationJobRuntimePresentations(nodes, statuses)
+  const occupiedNodes = [...nodes]
+  const projections: GenerationResultProjection[] = []
+  for (const sourceNode of nodes) {
+    const jobId = sourceNode.contentData?.active_generation_job_id
+    const mediaType = getGenerationMediaType(sourceNode)
+    const boundMediaType = sourceNode.contentData?.active_generation_media_type
+    if (
+      typeof jobId !== 'string' || !jobId.trim() ||
+      (mediaType !== 'image' && mediaType !== 'video') ||
+      boundMediaType !== mediaType
+    ) continue
+    const status = statusesByJobId.get(jobId)
+    const presentation = presentations.get(sourceNode.id)
+    if (
+      !status || !presentation || presentation.isTerminal ||
+      status.node_id !== sourceNode.id || status.media_type !== mediaType ||
+      hasMaterializedResult(nodes, jobId)
+    ) continue
+    const placement = resolveGenerationResultPlacement(sourceNode, mediaType, occupiedNodes)
+    const projection: GenerationResultProjection = {
+      key: `job:${jobId}`,
+      sourceNodeId: sourceNode.id,
+      taskId: jobId,
+      mediaType,
+      presentation,
       ...placement,
     }
     projections.push(projection)

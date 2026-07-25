@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { v2CanvasNaiveTheme } from '../../assets/styles/v2-canvas-naive-theme'
 import CanvasAssetPanel from '../../components/canvas/CanvasAssetPanel.vue'
 import CanvasContextPanel from '../../components/canvas/CanvasContextPanel.vue'
+import { resolveCanvasCardWorkModel } from '../../components/canvas/canvas-card-work-model'
 import CanvasIdentityBar from '../../components/canvas/CanvasIdentityBar.vue'
 import CanvasProfessionalActionPalette from '../../components/canvas/CanvasProfessionalActionPalette.vue'
 import CanvasRevisionPanel from '../../components/canvas/CanvasRevisionPanel.vue'
@@ -13,6 +14,7 @@ import CanvasResultCompareTray from '../../components/canvas/CanvasResultCompare
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
 import CanvasStoryboardView from '../../components/canvas/CanvasStoryboardView.vue'
 import CanvasViewModeSwitch, { type CanvasViewMode } from '../../components/canvas/CanvasViewModeSwitch.vue'
+import CanvasReplacementRuntime from '../../components/canvas-runtime/CanvasReplacementRuntime.vue'
 import AccountSessionMenu from '../../components/layout/account-session-menu.vue'
 import { resolveCanvasNodeContinuationTrigger } from '../../components/canvas/canvas-node-continuation-trigger'
 import { resolveGenerationResultVariants } from '../../modules/canvas/generation-lineage'
@@ -38,10 +40,27 @@ import { resolveOwnedMediaActionTarget } from '../../modules/canvas/professional
 import type { ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
 import type { TextWorkflowMode } from '../../modules/canvas/script-authoring'
 import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
-import type { CanvasCardWorkModeId } from '../../components/canvas/canvas-card-work-model'
+import {
+  resolveCanvasCardVideoBindings,
+  type CanvasCardWorkModeId,
+} from '../../components/canvas/canvas-card-work-model'
+import type { CanvasCardConfigurationSnapshot } from '../../modules/canvas/canvas-card-configuration'
 import type { StoryboardAssetEditIntent } from '../../modules/canvas/storyboard-asset-commands'
 import { resolveCanvasMaterializedCardResult } from '../../components/canvas/canvas-materialized-card-projection'
-import type { GenerationNodeParameters, VideoReferenceMode } from '../../modules/canvas/generation-parameters'
+import type {
+  GenerationNodeParameters,
+  VideoReferenceBinding,
+  VideoReferenceMode,
+} from '../../modules/canvas/generation-parameters'
+import { buildCanvasCardViewModel } from '../../modules/canvas/canvas-card-view-model'
+import { createRegistryNodeDraft } from '../../modules/canvas/node-registry'
+import { createCanvasEntityId } from '../../modules/canvas/canvas-autosave'
+import { createConnectNodesCommand } from '../../modules/canvas/canvas-commands'
+import {
+  createConnectionContinuationCommand,
+  type ConnectionContinuationDirection,
+  type ConnectionContinuationOption,
+} from '../../modules/canvas/connection-continuation'
 import {
   useCanvasContextSurface,
   type CanvasContextSurfaceKind,
@@ -56,6 +75,7 @@ const projectStore = useProjectStore()
 const canvasListStore = useCanvasListStore()
 const canvasDocumentStore = useCanvasStore()
 const canvasRevisionStore = useCanvasRevisionStore()
+const isReplacementRuntime = computed(() => route.query.canvas_runtime !== 'legacy')
 const CanvasWorkflowBatchOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasWorkflowBatchOverlay.vue'))
 const CanvasVideoEditPreflightOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasVideoEditPreflightOverlay.vue'))
 const CanvasAudioGenerationPreflightOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasAudioGenerationPreflightOverlay.vue'))
@@ -173,12 +193,38 @@ const {
   updatePrompt,
   updateGenerationParameters,
 } = useCanvasResourceExperience({ projectId, canvasId, isCompact, isReviewOnly })
+const isCardRuntimeErrorAuthority = computed(() => Boolean(
+  selectedNode.value &&
+  resolveCanvasCardWorkModel(selectedNode.value, {
+    isReadOnly: isReviewOnly.value,
+    isSelected: true,
+  }).showsAttachedWorkSurface,
+))
 const textGeneration = useCanvasTextGeneration({
   canvasId,
   capabilities: generationCapabilities,
   generationJobResults,
   isReviewOnly,
   projectId,
+})
+const replacementModelOptions = computed(() => {
+  const node = selectedNode.value
+  const capabilities = generationCapabilities.value
+  if (!node || !capabilities) return []
+  const subtype = typeof node.contentData?.subtype === 'string' ? node.contentData.subtype : ''
+  if (subtype === 'image') {
+    return [{ id: capabilities.image.model, label: capabilities.image.model }]
+  }
+  if (subtype === 'video') {
+    return [{ id: capabilities.video.model, label: capabilities.video.model }]
+  }
+  if (subtype === 'audio') {
+    return capabilities.audio?.models.map((model) => ({ id: model.id, label: model.label })) ?? []
+  }
+  if (node.type === 'script' || node.type === 'text' || node.type === 'note') {
+    return capabilities.text?.models.map((model) => ({ id: model.id, label: model.label })) ?? []
+  }
+  return []
 })
 const scriptGeneration = useCanvasScriptGeneration({
   canvasId,
@@ -249,6 +295,7 @@ async function generateFromCard(nodeId: string, prompt: string, mode: CanvasCard
     return
   }
   if (selectedMediaType.value === 'video') {
+    const card = buildCanvasCardViewModel(selectedNode.value)
     const referenceMode: VideoReferenceMode | null = mode === 'text-to-video'
       ? 'text-to-video'
       : mode === 'first-frame-video'
@@ -259,12 +306,32 @@ async function generateFromCard(nodeId: string, prompt: string, mode: CanvasCard
       generationCapabilities.value?.video.default_duration_seconds ?? 5
     const primaryReferenceNodeId = selectedGenerationContext.value?.primaryReferenceNodeId ??
       selectedGenerationContext.value?.mediaSources.find((source) => source.state === 'included')?.nodeId
+    const contextBindings = selectedGenerationContext.value?.videoReferences ?? []
+    const bindingsByIdentity = new Map(contextBindings.map((binding) => [
+      `${binding.node_id}:${binding.asset_id}`,
+      binding,
+    ]))
+    const canonicalBindings = [...card.references]
+      .sort((left, right) => left.order - right.order)
+      .flatMap((reference, order) => {
+        const binding = bindingsByIdentity.get(`${reference.stableId}:${reference.assetId}`)
+        if (!binding || !['first-frame', 'last-frame', 'reference'].includes(reference.role)) return []
+        return [{
+          ...binding,
+          role: reference.role as VideoReferenceBinding['role'],
+          order,
+        }]
+      })
+    const referenceBindings = resolveCanvasCardVideoBindings(
+      referenceMode,
+      canonicalBindings.length ? canonicalBindings : contextBindings,
+    )
     const parameters: GenerationNodeParameters = {
       schema_version: 1,
       video: generationCapabilities.value?.contract_version === 6
         ? {
             duration_seconds: durationSeconds,
-            reference_bindings: selectedGenerationContext.value?.videoReferences ?? [],
+            reference_bindings: referenceBindings,
             ...(selectedGenerationContext.value?.shotControls
               ? { shot_controls: selectedGenerationContext.value.shotControls }
               : {}),
@@ -280,10 +347,72 @@ async function generateFromCard(nodeId: string, prompt: string, mode: CanvasCard
               : {}),
           },
     }
-    await canvasDocumentStore.setNodeGenerationParameters(nodeId, parameters)
+    const references = referenceBindings.map((binding) => {
+      const canonical = card.references.find((reference) => (
+        reference.stableId === binding.node_id && reference.assetId === binding.asset_id
+      ))
+      const source = canvasDocumentStore.findNodeById(binding.node_id)
+      const thumbnail = source?.contentData?.thumbnail_url ??
+        source?.contentData?.preview_url ??
+        source?.contentData?.url
+      const sourceRevision = source?.contentData?.content_revision
+      return {
+        stableId: binding.node_id,
+        assetId: binding.asset_id,
+        displayName: canonical?.displayName ?? (source?.title?.trim() || '未命名素材'),
+        thumbnailUrl: canonical?.thumbnailUrl ?? (typeof thumbnail === 'string' ? thumbnail : ''),
+        sourceRevision: canonical?.sourceRevision ?? (typeof sourceRevision === 'number' ? sourceRevision : 0),
+        role: binding.role,
+        order: binding.order,
+      }
+    })
+    await canvasDocumentStore.setNodeGenerationParameters(nodeId, parameters, {
+      schemaVersion: 1,
+      generationMode: referenceMode,
+      modelId: card.configuration.modelId ?? generationCapabilities.value?.video.model ?? null,
+      promptDocument: card.configuration.promptDocument,
+      references,
+    })
   }
   updatePrompt(prompt)
   await generate(prompt)
+}
+
+function generateFromReplacement() {
+  const node = selectedNode.value
+  if (!node) return
+  const subtype = typeof node.contentData?.subtype === 'string' ? node.contentData.subtype : ''
+  const prompt = node.content ?? ''
+  if (subtype === 'image') {
+    if (!generationCapabilities.value?.image.model) return
+    void generateFromCard(node.id, prompt, 'text-to-image')
+    return
+  }
+  if (subtype === 'video') {
+    if (!generationCapabilities.value?.video.model) return
+    const card = buildCanvasCardViewModel(node)
+    const persistedMode = card.configuration.generationMode
+    const mode: CanvasCardWorkModeId = persistedMode === 'keyframes' || persistedMode === 'keyframes-video'
+      ? 'keyframes-video'
+      : persistedMode === 'image-to-video' || persistedMode === 'first-frame-video'
+        ? 'first-frame-video'
+        : 'text-to-video'
+    void generateFromCard(node.id, prompt, mode)
+    return
+  }
+  if (subtype === 'audio') {
+    const modelId = buildCanvasCardViewModel(node).configuration.modelId ?? ''
+    const isAllowedModel = generationCapabilities.value?.audio?.models.some(
+      (model) => model.id === modelId,
+    )
+    if (!isAllowedModel) return
+    generateTextCard(
+      node.id,
+      prompt,
+      'text-to-music',
+      modelId,
+    )
+  }
 }
 
 function generateTextCard(
@@ -377,7 +506,9 @@ function openScriptAuthoring(intent: ScriptAuthoringIntent) {
 }
 const professionalActionsBlocked = computed(() => (
   isRevisionPanelOpen.value || isResultCompareOpen.value || isResourceOpen.value ||
-  isContextDrawerOpen.value || workflowBatchOpen.value || videoEditPreflightOpen.value || audioGenerationPreflightOpen.value || agentSkillPreflightOpen.value || viewMode.value !== 'workflow'
+  (!isReplacementRuntime.value && (isContextDrawerOpen.value || isDesktopContextOpen.value)) ||
+  workflowBatchOpen.value || videoEditPreflightOpen.value || audioGenerationPreflightOpen.value ||
+  agentSkillPreflightOpen.value || viewMode.value !== 'workflow'
 ))
 const {
   actions: professionalActions,
@@ -410,6 +541,9 @@ const {
   splitImageGrid,
   userId: () => authStore.user?.id ?? '',
 })
+const replacementProfessionalActions = computed(() => professionalActions.value.filter((action) => (
+  !/director|导演/i.test(`${action.id} ${action.title}`)
+)))
 const contextSurfaceController = useCanvasContextSurface({
   closeSurface(kind) {
     const closers: Record<CanvasContextSurfaceKind, () => void> = {
@@ -441,6 +575,10 @@ function openProfessionalActionsExclusive(opener: HTMLElement, initialQuery = ''
     initialQuery,
     initialQuery && mediaActionTarget.value ? selectedProfessionalNodes.value : undefined,
   )
+}
+
+function openReplacementActions(payload: { opener: HTMLElement; query: string }) {
+  openProfessionalActionsExclusive(payload.opener, payload.query)
 }
 const isDesktopContextVisible = computed(() => (
   isDesktopContextOpen.value &&
@@ -609,7 +747,10 @@ async function navigateToCanvas(nextCanvasId: string) {
     canvasListStore.rememberCanvas(projectId.value, nextCanvas.id)
     return
   }
-  await router.push(canvasRouteLocation(projectId.value, nextCanvas.id))
+  const location = canvasRouteLocation(projectId.value, nextCanvas.id)
+  await router.push(route.query.canvas_runtime === 'legacy'
+    ? { ...location, query: { canvas_runtime: 'legacy' } }
+    : location)
   canvasListStore.rememberCanvas(projectId.value, nextCanvas.id)
 }
 
@@ -668,6 +809,96 @@ function openRevisionPanel(event?: Event | HTMLElement) {
     )
   }
   isRevisionPanelOpen.value = true
+}
+
+function updateReplacementPrompt(payload: { nodeId: string; prompt: string }) {
+  void canvasDocumentStore.setNodeContent(payload.nodeId, payload.prompt)
+}
+
+function moveReplacementNode(payload: { nodeId: string; x: number; y: number }) {
+  void canvasDocumentStore.queueNodeMove(payload.nodeId, payload.x, payload.y)
+}
+
+function connectReplacementNodes(payload: {
+  sourceNodeId: string
+  sourcePort?: string
+  targetNodeId: string
+  targetPort?: string
+}) {
+  if (isReviewOnly.value || canvasRevisionStore.restoringRevision !== null) return
+  const command = createConnectNodesCommand(
+    canvasDocumentStore.nodes,
+    canvasDocumentStore.connections,
+    payload.sourceNodeId,
+    payload.targetNodeId,
+    payload.sourcePort,
+    payload.targetPort,
+  )
+  if (command) void canvasDocumentStore.dispatchCommand({ source: 'pointer', command })
+}
+
+function continueReplacementConnection(payload: {
+  direction: ConnectionContinuationDirection
+  option: ConnectionContinuationOption
+  originNodeId: string
+  point: { x: number; y: number }
+}) {
+  if (isReviewOnly.value || canvasRevisionStore.restoringRevision !== null) return
+  const origin = canvasDocumentStore.findNodeById(payload.originNodeId)
+  if (!origin) return
+  const command = createConnectionContinuationCommand(
+    origin,
+    payload.option,
+    payload.point,
+    payload.direction,
+    undefined,
+    canvasDocumentStore.nodes,
+  )
+  void canvasDocumentStore.dispatchCommand({ source: 'pointer', command })
+}
+
+function updateReplacementConfiguration(payload: {
+  configuration: CanvasCardConfigurationSnapshot
+  nodeId: string
+}) {
+  void canvasDocumentStore.setNodeCardConfiguration(payload.nodeId, payload.configuration)
+}
+
+async function createReplacementNode(
+  toolId:
+    | 'text'
+    | 'script'
+    | 'image-generation'
+    | 'video-generation'
+    | 'video-composition'
+    | 'audio-generation',
+  point?: { x: number; y: number },
+) {
+  if (isReviewOnly.value || canvasRevisionStore.restoringRevision !== null) return
+  if (toolId === 'audio-generation' && !generationCapabilities.value?.audio?.models.length) return
+  const target = {
+    text: { type: 'script' as const, subtype: 'prompt' },
+    script: { type: 'script' as const, subtype: 'script' },
+    'image-generation': { type: 'generation' as const, subtype: 'image' },
+    'video-generation': { type: 'generation' as const, subtype: 'video' },
+    'video-composition': { type: 'generation' as const, subtype: 'video-composition' },
+    'audio-generation': { type: 'generation' as const, subtype: 'audio' },
+  }[toolId]
+  const offset = (canvasDocumentStore.nodes.length % 5) * 28
+  const draft = createRegistryNodeDraft(target.type, target.subtype, point ?? {
+    x: (window.innerWidth / 2 - canvasDocumentStore.viewport.x) / canvasDocumentStore.viewport.zoom - 170 + offset,
+    y: (window.innerHeight / 2 - canvasDocumentStore.viewport.y) / canvasDocumentStore.viewport.zoom - 110 + offset,
+  })
+  const created = { id: createCanvasEntityId(), ...draft }
+  await canvasDocumentStore.dispatchCommand({
+    source: 'toolbar',
+    command: { type: 'insert-graph', nodes: [created], connections: [] },
+  })
+  canvasDocumentStore.selectNode(created.id)
+}
+
+function switchReplacementCanvas(canvasId: string) {
+  void navigateToCanvas(canvasId)
 }
 
 function closeRevisionPanel() {
@@ -744,7 +975,56 @@ onBeforeUnmount(() => {
 
 <template>
   <NConfigProvider :theme="darkTheme" :theme-overrides="v2CanvasNaiveTheme">
+    <template v-if="isReplacementRuntime">
+      <CanvasReplacementRuntime
+      :account-name="accountName"
+      :allowed-audio-model-count="generationCapabilities?.audio?.models.length ?? 0"
+      :assets="resourceStore.assets"
+      :can-redo="canvasDocumentStore.canRedo"
+      :can-undo="canvasDocumentStore.canUndo"
+      :canvas-count="canvasListStore.items.length"
+      :canvas-name="activeCanvas?.name || '画布'"
+      :canvases="canvasListStore.items"
+      :connections="canvasDocumentStore.connections"
+      :document-ready="!canvasDocumentStore.isLoading"
+      :generation-context="selectedGenerationContext"
+      :model-options="replacementModelOptions"
+      :nodes="canvasDocumentStore.nodes"
+      :project-name="projectName"
+      :selected-node-id="canvasDocumentStore.selectedNodeId"
+      :sync-label="syncLabel"
+      :runtime-presentations="generationRuntimePresentations"
+      :viewport="canvasDocumentStore.viewport"
+      :view-mode="viewMode"
+      @clear-selection="canvasDocumentStore.setSelection([])"
+      @connect-nodes="connectReplacementNodes"
+      @continue-connection="continueReplacementConnection"
+      @create-node="createReplacementNode"
+      @generate="generateFromReplacement"
+      @move-node="moveReplacementNode"
+      @open-actions="openReplacementActions"
+      @redo="canvasDocumentStore.redo()"
+      @select-node="canvasDocumentStore.selectNode"
+      @switch-canvas="switchReplacementCanvas"
+      @undo="canvasDocumentStore.undo()"
+      @update-configuration="updateReplacementConfiguration"
+      @update-generation-parameters="updateGenerationParameters"
+      @update-prompt="updateReplacementPrompt"
+      @update-viewport="canvasDocumentStore.updateViewport"
+      @update:view-mode="setViewMode"
+      />
+      <CanvasProfessionalActionPalette
+        v-if="professionalActionsOpen"
+        :actions="replacementProfessionalActions"
+        :error="professionalActionError"
+        :query="professionalActionQuery"
+        @close="closeProfessionalSurface"
+        @select="executeProfessionalAction"
+        @update:query="professionalActionQuery = $event"
+      />
+    </template>
     <div
+      v-else
       class="v2-canvas-theme canvas-workspace"
       :data-context-surface="contextSurface.kind"
       :class="{
@@ -780,6 +1060,7 @@ onBeforeUnmount(() => {
           :card-work-error="generationError"
           :card-work-generation-context="selectedGenerationContext"
           :card-work-has-source="Boolean(selectedGenerationContext?.imageIds.length)"
+          :allowed-audio-model-count="generationCapabilities?.audio?.models.length ?? 0"
           :card-work-model-label="selectedMediaType ? (generationCapabilities?.[selectedMediaType]?.model ?? '') : ''"
           :card-work-parameter-summary="selectedGenerationContext?.parameterSummary ?? []"
           :card-work-source-count="selectedGenerationContext?.imageIds.length ?? 0"
@@ -960,6 +1241,7 @@ onBeforeUnmount(() => {
           :is-generating="isGenerating"
           :latest-task="latestTask"
           :runtime-presentation="selectedRuntimePresentation"
+          :suppress-runtime-error="isCardRuntimeErrorAuthority"
           :generation-context="selectedGenerationContext"
           :generation-input-lineage="selectedGenerationInputLineage"
           :generation-tasks="resourceStore.tasks"
@@ -1064,6 +1346,7 @@ onBeforeUnmount(() => {
               :is-generating="isGenerating"
               :latest-task="latestTask"
               :runtime-presentation="selectedRuntimePresentation"
+              :suppress-runtime-error="isCardRuntimeErrorAuthority"
               :generation-context="selectedGenerationContext"
               :generation-input-lineage="selectedGenerationInputLineage"
               :generation-tasks="resourceStore.tasks"

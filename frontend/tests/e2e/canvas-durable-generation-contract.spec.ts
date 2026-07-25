@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test'
 import * as canvasCommands from '../../src/modules/canvas/canvas-commands'
 import * as generationRuntime from '../../src/modules/canvas/generation-runtime-presentation'
 import * as generationService from '../../src/modules/canvas/generation-service'
+import type { GenerationJobResult } from '../../src/modules/canvas/generation-job-api'
+import { applyGenerationNodeState } from '../../src/modules/canvas/generation-node-state'
 import { createImageGenerationBatchPlan } from '../../src/modules/canvas/image-generation-batch'
 import type { CanvasNode } from '../../src/types/canvas'
 
@@ -27,12 +29,11 @@ type RestoreGenerationJobRuntime = (input: {
   statuses: Array<Record<string, unknown>>
 }) => Map<string, Record<string, unknown>>
 
-type CreateApplyGenerationJobResultCommand = (input: {
-  node: CanvasNode
-  expectedJobId: string
-  result: Record<string, unknown>
-  version: number
-}) => Record<string, unknown> | null
+type CreateApplyGenerationJobResultCommand = (
+  node: CanvasNode,
+  expectedJobId: string,
+  result: GenerationJobResult,
+) => Record<string, unknown> | null
 
 function requireContractFunction<T extends (...args: never[]) => unknown>(
   source: object,
@@ -51,16 +52,21 @@ function generationCard(
 ): CanvasNode {
   return {
     id,
-    type: mediaType === 'script' ? 'script' : mediaType === 'text' ? 'text' : 'generation',
+    type: mediaType === 'script' || mediaType === 'text' ? 'script' : 'generation',
     title: `${mediaType} card`,
     x: 0,
     y: 0,
     width: 320,
     height: 200,
+    content: 'Original',
     contentData: {
-      subtype: mediaType,
+      subtype: mediaType === 'text' ? 'prompt' : mediaType,
       serialization_version: 1,
+      text: 'Original',
+      content_revision: 0,
       active_generation_job_id: activeJobId,
+      active_generation_job_content_revision: 0,
+      active_generation_media_type: mediaType,
     },
   }
 }
@@ -114,6 +120,29 @@ test('text, script, image, and video submit through one compact durable v2 endpo
   expect(calls.map((call) => call.path)).toEqual(Array(4).fill('/api/v2/generation-jobs'))
 })
 
+test('ambiguous legacy submit persists client binding before a job id and upgrades it on recovery', () => {
+  const pending = applyGenerationNodeState(generationCard('image-node', 'image', ''), 'running', '', false, {
+    clientRequestId: '00000000-0000-4000-8000-000000000001',
+    mediaType: 'image',
+  })
+  expect(pending.contentData).toMatchObject({
+    active_generation_client_request_id: '00000000-0000-4000-8000-000000000001',
+    active_generation_media_type: 'image',
+  })
+  expect(pending.contentData?.active_generation_job_id).toBeUndefined()
+
+  const recovered = applyGenerationNodeState(pending, 'running', '', false, {
+    clientRequestId: '00000000-0000-4000-8000-000000000001',
+    jobId: 'job-recovered',
+    mediaType: 'image',
+  })
+  expect(recovered.contentData?.active_generation_job_id).toBe('job-recovered')
+
+  const terminal = applyGenerationNodeState(recovered, 'failed')
+  expect(terminal.contentData?.active_generation_job_id).toBeUndefined()
+  expect(terminal.contentData?.active_generation_client_request_id).toBeUndefined()
+})
+
 test('refresh restoration is keyed by persisted project Canvas node and job identity for every media kind', () => {
   const restoreGenerationJobRuntime = requireContractFunction<RestoreGenerationJobRuntime>(
     generationRuntime,
@@ -161,35 +190,59 @@ test('terminal result creates one stale-safe same-card command and never a hidde
     'createApplyGenerationJobResultCommand',
     'T6-007 RED [same-card-generation-result-command-absent]: same-card result command is not implemented',
   )
-  const card = generationCard('image-card', 'image', 'job-image')
+  const card = generationCard('text-card', 'text', 'job-text')
 
-  const command = createApplyGenerationJobResultCommand({
-    node: card,
-    expectedJobId: 'job-image',
-    result: {
-      asset_id: 'asset-image',
-      media_type: 'image',
-      url: 'https://media.revid.test/image.png',
-    },
+  const result: GenerationJobResult = {
+    job_id: 'job-text',
+    node_id: 'text-card',
+    result: { media_type: 'text', content: 'Generated on the same card' },
     version: 7,
-  })
+  }
+  const command = createApplyGenerationJobResultCommand(card, 'job-text', result)
 
   expect(command).toEqual({
     type: 'apply-generation-job-result',
-    nodeId: 'image-card',
-    expectedJobId: 'job-image',
-    result: {
-      asset_id: 'asset-image',
-      media_type: 'image',
-      url: 'https://media.revid.test/image.png',
-    },
-    version: 7,
+    nodeId: 'text-card',
+    expectedJobId: 'job-text',
+    expectedContentRevision: 0,
+    content: 'Generated on the same card',
+    resultVersion: 7,
   })
   expect(command).not.toHaveProperty('resultNode')
-  expect(card.id).toBe('image-card')
+  expect(card.id).toBe('text-card')
 })
 
-test('image batch keeps slot one on the initiating card and applies later slots to sibling cards', () => {
+test('video terminal result updates the initiating card media without creating a Result node', () => {
+  const createApplyGenerationJobResultCommand = requireContractFunction<CreateApplyGenerationJobResultCommand>(
+    canvasCommands,
+    'createApplyGenerationJobResultCommand',
+    'T6-011 RED [same-card-video-result-command-absent]: video result mapping is not implemented',
+  )
+  const card = generationCard('video-card', 'video', 'job-video')
+  const result: GenerationJobResult = {
+    job_id: 'job-video',
+    node_id: 'video-card',
+    result: {
+      media_type: 'video',
+      asset_id: 'asset-video',
+      url: 'https://media.revid.test/video.mp4',
+    },
+    version: 9,
+  }
+
+  expect(createApplyGenerationJobResultCommand(card, 'job-video', result)).toEqual({
+    type: 'apply-generation-job-result',
+    nodeId: 'video-card',
+    expectedJobId: 'job-video',
+    expectedContentRevision: 0,
+    mediaType: 'video',
+    assetId: 'asset-video',
+    url: 'https://media.revid.test/video.mp4',
+    resultVersion: 9,
+  })
+})
+
+test('image batch keeps slot one on the initiating card and prepares sibling authoring cards without hidden results', () => {
   const source: CanvasNode = {
     id: 'image-card-1',
     type: 'generation',
@@ -217,28 +270,6 @@ test('image batch keeps slot one on the initiating card and applies later slots 
     createId: () => ids.shift()!,
   })
   const cards = [source, ...plan.command.nodes]
-  const createApplyGenerationJobResultCommand = requireContractFunction<CreateApplyGenerationJobResultCommand>(
-    canvasCommands,
-    'createApplyGenerationJobResultCommand',
-    'T6-007 RED [image-batch-same-card-result-absent]: batch slots still depend on hidden result nodes',
-  )
-
-  const commands = cards.map((card, index) => {
-    card.contentData = {
-      ...card.contentData,
-      active_generation_job_id: `job-${index + 1}`,
-    }
-    return createApplyGenerationJobResultCommand({
-      node: card,
-      expectedJobId: `job-${index + 1}`,
-      result: {
-        asset_id: `asset-${index + 1}`,
-        media_type: 'image',
-        url: `https://media.revid.test/image-${index + 1}.png`,
-      },
-      version: 2,
-    })
-  })
 
   expect(cards.map((card) => card.id)).toEqual([
     'image-card-1',
@@ -246,6 +277,7 @@ test('image batch keeps slot one on the initiating card and applies later slots 
     'image-card-3',
     'image-card-4',
   ])
-  expect(commands.map((command) => command?.nodeId)).toEqual(cards.map((card) => card.id))
-  expect(commands.every((command) => !command?.resultNode)).toBe(true)
+  expect(plan.slots.map((slot) => slot.nodeId)).toEqual(cards.map((card) => card.id))
+  expect(cards.every((card) => card.type === 'generation')).toBe(true)
+  expect(plan.command.nodes.every((card) => card.contentData?.materialized_result_node_id === undefined)).toBe(true)
 })

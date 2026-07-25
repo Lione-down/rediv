@@ -1,4 +1,5 @@
 import type { ComputedRef, Ref } from 'vue'
+import { isAxiosError } from 'axios'
 import { request } from '../../../api/request'
 import { createGenerationClientRequestId, requestCanvasGeneration } from '../../../modules/canvas/generation-service'
 import {
@@ -27,6 +28,9 @@ import {
 } from '../../../modules/canvas/cinematic-skills'
 import type { CinematicDirectorGenerationHandoff } from '../../../modules/canvas/cinematic-director-preflight'
 import { useCanvasImageGenerationBatch } from './use-canvas-image-generation-batch'
+import { buildCanvasCardViewModel } from '../../../modules/canvas/canvas-card-view-model'
+import { applyCanvasCardVideoReferenceBindings } from '../../../modules/canvas/canvas-card-configuration'
+import { recoverGenerationJobByClientRequest } from '../../../modules/canvas/generation-job-api'
 
 interface GenerationRequestContext {
   authToken: string
@@ -135,10 +139,11 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
       if (!requestContext.isCanvasPrepared && promptToPersist !== undefined) {
         await canvasStore.setNodeContent(sourceNode.id, promptToPersist)
       }
-      if (!requestContext.isCanvasPrepared) {
-        await canvasStore.setNodeGenerationState(sourceNode.id, 'running')
-        await canvasStore.flushPendingPersistence()
-      }
+      await canvasStore.setNodeGenerationState(sourceNode.id, 'running', '', false, {
+        clientRequestId,
+        mediaType,
+      })
+      await canvasStore.flushPendingPersistence()
       const response = await requestCanvasGeneration({
         mediaType,
         clientRequestId,
@@ -163,22 +168,47 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
       resourceStore.upsertTask(response.generation_task)
       await options.queueResourceReconciliation()
       if (isExactGenerationContext(context)) {
-        options.foregroundResultNodeId.value = canvasStore.nodes.find((node) => (
-          node.type === 'result' && node.contentData?.source_task_id === response.generation_task.id
-        ))?.id ?? ''
+        await canvasStore.setNodeGenerationState(
+          sourceNode.id,
+          'succeeded',
+          response.generation_task.id,
+          true,
+        )
+        options.foregroundResultNodeId.value = sourceNode.id
         const recipe = resolveVisualAssetRecipe(sourceNode)
         options.setGenerationSuccess(sourceNode.id, `${recipe?.title ?? (mediaType === 'video' ? '视频' : '图片')}生成已完成，结果已写入项目资源。`)
       }
       succeeded = true
     } catch (error) {
       if (authStore.token === context.authToken) {
-        await resourceStore.refreshIfCurrent(context.projectId).catch(() => undefined)
-        const reconciled = await options.queueResourceReconciliation().catch(() => 0)
         if (isExactGenerationContext(context)) {
-          options.setGenerationError(sourceNode.id, reconciled
-            ? options.formatError(error)
-            : '生成请求连接已中断，正在根据任务记录核对结果；请稍后刷新项目资源。')
-          shouldPollForRecovery = !reconciled
+          try {
+            const receipt = await recoverGenerationJobByClientRequest({
+              projectId: context.projectId,
+              canvasId: context.canvasId,
+              nodeId: context.nodeId,
+              clientRequestId,
+            }, request)
+            await canvasStore.setNodeGenerationState(sourceNode.id, 'running', '', false, {
+              clientRequestId,
+              jobId: receipt.job_id,
+              mediaType,
+            })
+            options.setGenerationError(sourceNode.id, '')
+            shouldPollForRecovery = true
+          } catch {
+            const isDefinitiveRejection = isAxiosError(error) &&
+              Boolean(error.response) &&
+              Number(error.response?.status) >= 400 &&
+              Number(error.response?.status) < 500
+            if (isDefinitiveRejection) {
+              await canvasStore.setNodeGenerationState(sourceNode.id, 'failed')
+              options.setGenerationError(sourceNode.id, options.formatError(error))
+            } else {
+              options.setGenerationError(sourceNode.id, '提交结果暂未确认，正在按当前卡片恢复任务。')
+              shouldPollForRecovery = true
+            }
+          }
         }
       }
     } finally {
@@ -334,6 +364,44 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
   function updateGenerationParameters(parameters: GenerationNodeParameters) {
     const node = options.selectedNode.value
     if (!options.isReviewOnly.value && node && !options.isNodeGenerating(node.id)) {
+      const referenceBindings = 'video' in parameters
+        ? parameters.video.reference_bindings
+        : undefined
+      if (referenceBindings) {
+        const card = buildCanvasCardViewModel(node)
+        const references = referenceBindings.map((binding) => {
+          const existing = card.references.find((reference) => (
+            reference.stableId === binding.node_id && reference.assetId === binding.asset_id
+          ))
+          if (existing) return existing
+          const source = canvasStore.findNodeById(binding.node_id)
+          const thumbnail = source?.contentData?.thumbnail_url ??
+            source?.contentData?.preview_url ??
+            source?.contentData?.url
+          return {
+            stableId: binding.node_id,
+            assetId: binding.asset_id,
+            displayName: source?.title?.trim() || binding.node_id,
+            thumbnailUrl: typeof thumbnail === 'string' && thumbnail.trim()
+              ? thumbnail.trim()
+              : `canvas-asset:${binding.asset_id}`,
+            sourceRevision: typeof source?.contentData?.content_revision === 'number'
+              ? source.contentData.content_revision
+              : 0,
+            role: binding.role,
+            order: binding.order,
+          }
+        })
+        const configuration = applyCanvasCardVideoReferenceBindings({
+          schemaVersion: 1,
+          generationMode: card.configuration.generationMode,
+          modelId: card.configuration.modelId,
+          promptDocument: card.configuration.promptDocument,
+          references,
+        }, referenceBindings)
+        void canvasStore.setNodeGenerationParameters(node.id, parameters, configuration)
+        return
+      }
       void canvasStore.setNodeGenerationParameters(node.id, parameters)
     }
   }

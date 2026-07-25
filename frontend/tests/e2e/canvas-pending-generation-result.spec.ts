@@ -2,10 +2,12 @@ import { expect, test, type Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import {
+  resolveGenerationJobResultProjections,
   resolveGenerationResultPlacement,
   resolveGenerationResultProjections,
   resolveTerminalGenerationResultPlacement,
 } from '../../src/modules/canvas/generation-result-projection'
+import type { GenerationJobStatus } from '../../src/modules/canvas/generation-job-api'
 import type { LocalGenerationRuntimeRequest } from '../../src/modules/canvas/generation-runtime-presentation'
 import type { ProjectGenerationTask } from '../../src/modules/canvas/project-resource-types'
 import type { CanvasNode } from '../../src/types/canvas'
@@ -15,6 +17,7 @@ import {
   FIRST_CANVAS_ID,
   openResourceWorkspace,
   PROJECT_ID,
+  type ResourceMockState,
 } from './canvas-resource-generation-fixture'
 
 const NOW = '2026-07-16T10:00:00Z'
@@ -46,6 +49,44 @@ function localRequest(knownTaskIds: string[] = []): LocalGenerationRuntimeReques
     id: 'local-request', projectId: PROJECT_ID, canvasId: FIRST_CANVAS_ID,
     nodeId: 'generation-cover', mediaType: 'image', knownTaskIds,
   }
+}
+
+function compactJob(
+  jobId: string,
+  overrides: Partial<GenerationJobStatus> = {},
+): GenerationJobStatus {
+  return {
+    job_id: jobId,
+    node_id: 'generation-cover',
+    media_type: 'image',
+    status: 'running',
+    stage: 'provider',
+    progress: 47,
+    error: null,
+    result_asset_id: null,
+    version: 2,
+    updated_at: NOW,
+    ...overrides,
+  }
+}
+
+function bindCompactJob(
+  state: ResourceMockState,
+  jobId: string,
+  overrides: Partial<GenerationJobStatus> = {},
+) {
+  const status = compactJob(jobId, overrides)
+  const sourceNode = state.documents[FIRST_CANVAS_ID].nodes.find(
+    (node) => node.id === status.node_id,
+  )!
+  sourceNode.content = {
+    ...(sourceNode.content as Record<string, unknown>),
+    subtype: status.media_type,
+    active_generation_job_id: jobId,
+    active_generation_media_type: status.media_type,
+  }
+  state.generationJobCanvasIds[jobId] = FIRST_CANVAS_ID
+  state.generationJobs[jobId] = status
 }
 
 async function selectGeneration(page: Page) {
@@ -107,27 +148,57 @@ test('local projection yields to a newly discovered strict task and ignores miss
   )).toEqual([])
 })
 
-test('recovered concurrent tasks keep stable non-overlapping virtual slots across polling order changes', async ({ page }) => {
+test('compact pending projection requires the exact persisted card binding and ignores terminal or mismatched jobs', () => {
+  const generation = source({
+    contentData: {
+      subtype: 'image',
+      serialization_version: 1,
+      active_generation_job_id: 'job-current',
+      active_generation_media_type: 'image',
+    },
+  })
+  expect(resolveGenerationJobResultProjections(
+    [generation],
+    [
+      compactJob('job-current'),
+      compactJob('job-unbound'),
+      compactJob('job-terminal', { status: 'succeeded', progress: 100 }),
+      compactJob('job-wrong-node', { node_id: 'foreign-node' }),
+    ],
+  )).toEqual([
+    expect.objectContaining({
+      key: 'job:job-current',
+      sourceNodeId: generation.id,
+      taskId: 'job-current',
+      mediaType: 'image',
+      presentation: expect.objectContaining({
+        source: 'job',
+        phase: 'running',
+        progressPercent: 47,
+      }),
+    }),
+  ])
+})
+
+test('recovered compact job keeps its virtual slot stable across status versions', async ({ page }) => {
   const state = createResourceMockState()
-  const older = task('task-active-a', { created_at: '2026-07-16T10:00:00Z' })
-  const newer = task('task-active-b', { created_at: '2026-07-16T10:01:00Z' })
-  state.tasks = [newer, older, ...state.tasks]
+  bindCompactJob(state, 'job-active')
   await openResourceWorkspace(page, state, { width: 1440, height: 1300 })
 
   const pending = page.locator('[data-pending-generation]')
-  await expect(pending).toHaveCount(2)
+  await expect(pending).toHaveCount(1)
   const before = await pending.evaluateAll((elements) => elements.map((element) => ({
     x: Number((element as HTMLElement).dataset.worldX),
     y: Number((element as HTMLElement).dataset.worldY),
   })))
-  expect(before[1].y).toBeGreaterThan(before[0].y + 280)
 
-  state.tasks = [
-    { ...older, updated_at: '2026-07-16T10:02:00Z' },
-    { ...newer, progress_percent: 47, updated_at: '2026-07-16T10:03:00Z' },
-    ...state.tasks.filter((item) => item.id !== older.id && item.id !== newer.id),
-  ]
-  await expect(pending.getByText('47%', { exact: true })).toBeVisible({ timeout: 6_000 })
+  state.generationJobs['job-active'] = {
+    ...state.generationJobs['job-active'],
+    progress: 73,
+    version: 3,
+    updated_at: '2026-07-16T10:03:00Z',
+  }
+  await expect(pending.getByText('73%', { exact: true })).toBeVisible({ timeout: 6_000 })
   const after = await pending.evaluateAll((elements) => elements.map((element) => ({
     x: Number((element as HTMLElement).dataset.worldX),
     y: Number((element as HTMLElement).dataset.worldY),
@@ -139,7 +210,7 @@ test('recovered concurrent tasks keep stable non-overlapping virtual slots acros
 
 test('pending reservation follows the saved world transform at 10, 100, and 800 percent zoom', async ({ page }) => {
   const state = createResourceMockState()
-  state.tasks = [task('task-zoom'), ...state.tasks]
+  bindCompactJob(state, 'job-zoom')
 
   for (const zoom of [0.1, 1, 8]) {
     state.canvases[0].viewport_zoom = zoom
@@ -156,7 +227,7 @@ test('pending reservation follows the saved world transform at 10, 100, and 800 
   }
 })
 
-test('pending image appears immediately, mirrors durable progress, and hands off at the exact canonical position', async ({ page }) => {
+test('pending image appears immediately and hands off at the exact canonical position', async ({ page }) => {
   const state = createResourceMockState()
   const sourceNode = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'generation-cover')!
   sourceNode.position_x = -200
@@ -181,13 +252,6 @@ test('pending image appears immediately, mirrors durable progress, and hands off
   const patchBaseline = documentPatches(state).length
   const minimapBaseline = await page.locator('.minimap-node').count()
 
-  state.tasks = [task('task-success', { status: 'queued', progress_stage: 'queued' }), ...state.tasks]
-  await expect(pending).toHaveCount(1, { timeout: 6_000 })
-  await expect(pending).toContainText('排队中')
-  state.tasks = state.tasks.map((item) => item.id === 'task-success'
-    ? { ...item, status: 'running', progress_stage: 'provider', progress_percent: 47, updated_at: '2026-07-16T10:02:00Z' }
-    : item)
-  await expect(pending).toContainText('47%', { timeout: 6_000 })
   expect(documentPatches(state)).toHaveLength(patchBaseline)
   expect(await page.locator('.minimap-node').count()).toBe(minimapBaseline)
   expect(await pending.getByRole('button').count()).toBe(0)
@@ -211,11 +275,11 @@ test('pending image appears immediately, mirrors durable progress, and hands off
 
 test('failure and readonly reload remove or reconstruct only the passive projection', async ({ page }) => {
   const state = createResourceMockState()
-  const sourceNode = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'generation-cover')!
-  sourceNode.content = { ...(sourceNode.content as Record<string, unknown>), subtype: 'video' }
-  state.tasks = [task('task-recovered', {
-    media_type: 'video', model: 'mock-video-v1', progress_percent: 83, progress_stage: 'persisting',
-  }), ...state.tasks]
+  bindCompactJob(state, 'job-recovered', {
+    media_type: 'video',
+    progress: 83,
+    stage: 'persisting',
+  })
   await openResourceWorkspace(page, state, { width: 375, height: 812 })
   const pending = page.locator('[data-pending-generation]')
   await expect(pending).toHaveCount(1)
@@ -227,12 +291,18 @@ test('failure and readonly reload remove or reconstruct only the passive project
   await page.screenshot({ path: resolve(evidenceDirectory, 'video-recovered-375x812.png'), fullPage: true })
 
   const patchBaseline = documentPatches(state).length
-  state.tasks = state.tasks.map((item) => item.id === 'task-recovered'
-    ? { ...item, status: 'failed', error_code: 'provider_error', error_message: 'mock failure', updated_at: '2026-07-16T10:03:00Z' }
-    : item)
+  state.generationJobs['job-recovered'] = {
+    ...state.generationJobs['job-recovered'],
+    status: 'failed',
+    stage: null,
+    progress: null,
+    error: 'mock failure',
+    version: 3,
+    updated_at: '2026-07-16T10:03:00Z',
+  }
   await expect(pending).toHaveCount(0, { timeout: 6_000 })
-  expect(documentPatches(state)).toHaveLength(patchBaseline + 1)
+  expect(documentPatches(state)).toHaveLength(patchBaseline)
   expect(state.documents[FIRST_CANVAS_ID].nodes.filter((node) => (
-    node.node_type === 'result' && (node.content as Record<string, unknown>).source_task_id === 'task-recovered'
+    node.node_type === 'result' && (node.content as Record<string, unknown>).source_task_id === 'job-recovered'
   ))).toHaveLength(0)
 })

@@ -127,6 +127,12 @@ class GenerationJobRunner:
                     owner_id=self.owner_id,
                     provider_request_id=provider_request_id,
                 ),
+                lambda progress: self.repository.heartbeat(
+                    job["id"],
+                    owner_id=self.owner_id,
+                    lease_seconds=self.lease_seconds,
+                    progress=progress,
+                ),
             )
         )
         heartbeat_task = asyncio.create_task(self._heartbeat_lease(job["id"]))

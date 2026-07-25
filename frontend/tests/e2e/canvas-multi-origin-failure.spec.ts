@@ -95,7 +95,7 @@ test('compact failed request unlocks the same mutable controls after settlement'
   await expect(context.getByRole('button', { name: '下移参考图 历史图片生成结果' })).toBeDisabled()
 
   gate.resolve()
-  await expect(drawer.getByRole('alert')).toContainText('mock provider unavailable')
+  await expect(page.locator('.canvas-card-work-surface').getByRole('alert')).toContainText('mock provider unavailable')
   await expect(drawer.getByRole('textbox')).toBeEnabled()
   await expect(context.getByRole('button', { name: '下移参考图 历史图片生成结果' })).toBeEnabled()
   const box = await drawer.boundingBox()
@@ -134,9 +134,10 @@ test('failed two-origin video preserves inputs and recovers through one explicit
     reference_mode: 'keyframes',
     duration_seconds: 5,
   })
-  await expect(editor.getByRole('alert')).toContainText('mock provider unavailable')
-  await expect(editor.getByRole('alert')).toContainText('结果未扣费')
-  await expect(editor.locator('.run-history')).toContainText('失败')
+  const cardFailure = page.locator('.canvas-card-work-surface').getByRole('alert')
+  await expect(cardFailure).toContainText('mock provider unavailable')
+  await expect(cardFailure).toContainText('结果未扣费')
+  await expect(editor.locator('.run-history')).toHaveCount(0)
   expect(state.tasks[0]).toEqual(expect.objectContaining({
     id: 'task-failure', status: 'failed', canvas_node_id: 'generation-two-origin-merge', result_asset_id: null,
   }))
@@ -147,10 +148,33 @@ test('failed two-origin video preserves inputs and recovers through one explicit
   expect(document.nodes.some((item) => (item.content as Record<string, unknown>).source_task_id === 'task-failure')).toBe(false)
   await expect(page.locator('.generation-source-provenance', { hasText: 'R1 · V1' })).toHaveCount(1)
   await expect(page.locator('.generation-source-provenance', { hasText: 'R2 · V2' })).toHaveCount(1)
+  await expect.poll(() => (
+    (document.nodes.find((item) => item.id === 'generation-two-origin-merge')?.content as Record<string, unknown>)
+      ?.active_generation_job_id
+  )).toBe('task-failure')
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'failed-no-charge-1440x900.png'), fullPage: true })
 
   const patchesBeforeReadonly = documentPatches(state).length
+  const failedSource = document.nodes.find((item) => item.id === 'generation-two-origin-merge')!
+  failedSource.content = {
+    ...(failedSource.content as Record<string, unknown>),
+    active_generation_job_id: 'task-failure',
+    active_generation_media_type: 'video',
+  }
+  state.generationJobCanvasIds['task-failure'] = FIRST_CANVAS_ID
+  state.generationJobs['task-failure'] = {
+    job_id: 'task-failure',
+    node_id: 'generation-two-origin-merge',
+    media_type: 'video',
+    status: 'failed',
+    stage: null,
+    progress: null,
+    error: 'mock provider unavailable',
+    result_asset_id: null,
+    version: 2,
+    updated_at: '2026-07-16T10:03:00Z',
+  }
   await openResourceWorkspace(page, state, { width: 375, height: 812 })
   await selectNode(page, '双源恢复视频')
   const readonlyDrawer = page.locator('.n-drawer:visible')
@@ -165,11 +189,21 @@ test('failed two-origin video preserves inputs and recovers through one explicit
   expect(documentPatches(state)).toHaveLength(patchesBeforeReadonly)
   await page.screenshot({ path: resolve(evidenceDirectory, 'failed-readonly-375x812.png'), fullPage: true })
 
+  const {
+    active_generation_job_id: _activeJobId,
+    active_generation_media_type: _activeMediaType,
+    ...retryContent
+  } = failedSource.content as Record<string, unknown>
+  failedSource.content = retryContent
+  delete state.generationJobCanvasIds['task-failure']
+  delete state.generationJobs['task-failure']
   await openResourceWorkspace(page, state, { width: 920, height: 900 })
   await selectNode(page, '双源恢复视频')
   const retryDrawer = page.locator('.n-drawer:visible')
   await expect(retryDrawer.getByRole('textbox')).toHaveValue(prompt)
-  await expect(retryDrawer.getByRole('alert')).toContainText('mock provider unavailable')
+  expect(state.requests.filter((item) => (
+    item.method === 'GET' && item.path === '/api/generation-tasks'
+  ))).toHaveLength(0)
   state.generationOutcome = 'success'
   await retryDrawer.getByRole('button', { name: '开始视频生成' }).click()
 

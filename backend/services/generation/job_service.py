@@ -11,8 +11,13 @@ from core.generation_task_utils import sanitize_error_message
 from models.asset import Asset
 from models.base import get_session
 from models.generation_task import GenerationTask
-from repositories.generation_tasks import GenerationTaskRepository
+from repositories.generation_tasks import (
+    GenerationJobForbiddenError,
+    GenerationJobNotFoundError,
+    GenerationTaskRepository,
+)
 from schemas.generation_job import (
+    GenerationJobCinematicLineage,
     GenerationJobDeltaPage,
     GenerationJobMediaResult,
     GenerationJobResult,
@@ -93,7 +98,7 @@ class GenerationJobService:
             raise ValueError("Generation job provider is not allowed")
         capability_media_type = "text" if media_type == "script" else media_type
         allowed_contract = AGNES_CONTRACT.media.get(capability_media_type)
-        if allowed_contract is None or model_id != allowed_contract.model:
+        if allowed_contract is None or model_id not in allowed_contract.models:
             raise ValueError(f"Generation job model is not allowed for {media_type}")
         if media_type != "text" and (
             input_payload.get("mode") is not None
@@ -156,6 +161,67 @@ class GenerationJobService:
 
     def get_status(self, user_id: str, job_id: str) -> GenerationJobStatus:
         return _status(self.repository.get_owned(user_id, job_id))
+
+    @staticmethod
+    def _assert_scope(task: dict, project_id: str, canvas_id: str, node_id: str) -> None:
+        if (
+            task["project_id"] != project_id
+            or task["origin_canvas_id"] != canvas_id
+            or task["canvas_node_id"] != node_id
+        ):
+            raise GenerationJobForbiddenError("Generation job scope mismatch")
+
+    def recover_by_client_request(
+        self,
+        *,
+        user_id: str,
+        project_id: str,
+        canvas_id: str,
+        node_id: str,
+        client_request_id: str,
+    ) -> GenerationJobSubmitReceipt:
+        task = self.repository.get_by_client_request(user_id, client_request_id)
+        if task is None:
+            raise GenerationJobNotFoundError("Generation job not found")
+        self._assert_scope(task, project_id, canvas_id, node_id)
+        return GenerationJobSubmitReceipt(
+            job_id=task["id"],
+            project_id=task["project_id"],
+            canvas_id=task["origin_canvas_id"],
+            node_id=task["canvas_node_id"],
+            media_type=task["media_type"],
+            status=task["status"],
+            model_id=task["model"],
+            quota_revision=None,
+            version=task.get("job_version") or 1,
+        )
+
+    def get_cinematic_lineage(
+        self,
+        *,
+        user_id: str,
+        project_id: str,
+        canvas_id: str,
+        node_id: str,
+        job_id: str,
+    ) -> GenerationJobCinematicLineage:
+        task = self.repository.get_owned(user_id, job_id)
+        self._assert_scope(task, project_id, canvas_id, node_id)
+        request_parameters = task.get("request_parameters")
+        cinematic_skill = (
+            request_parameters.get("cinematic_skill")
+            if isinstance(request_parameters, dict)
+            and isinstance(request_parameters.get("cinematic_skill"), dict)
+            else None
+        )
+        return GenerationJobCinematicLineage(
+            job_id=task["id"],
+            project_id=task["project_id"],
+            canvas_id=task["origin_canvas_id"],
+            node_id=task["canvas_node_id"],
+            cinematic_skill=cinematic_skill,
+            version=task.get("job_version") or 1,
+        )
 
     def get_result(self, user_id: str, job_id: str) -> GenerationJobResult:
         task = self.repository.get_owned(user_id, job_id)

@@ -84,7 +84,6 @@ const connectionFlowPaths = computed(() => {
 const selectedPath = computed(() => props.paths.find(
   (path) => path.id === canvasStore.selectedConnectionId,
 ) ?? null)
-const handleRadius = computed(() => 6 / viewport.value.zoom)
 const selectedEdgeContext = computed(() => {
   const path = selectedPath.value
   if (!path) return null
@@ -200,9 +199,9 @@ function toSurfacePoint(event: PointerEvent) {
 
 function stopReroute() {
   rerouteDraft.value = null
-  window.removeEventListener('pointermove', handlePointerMove)
-  window.removeEventListener('pointerup', handlePointerUp)
-  window.removeEventListener('pointercancel', handlePointerCancel)
+  window.removeEventListener('pointermove', handlePointerMove, true)
+  window.removeEventListener('pointerup', handlePointerUp, true)
+  window.removeEventListener('pointercancel', handlePointerCancel, true)
   window.removeEventListener('keydown', handleKeyDown, true)
 }
 
@@ -217,9 +216,9 @@ function startReroute(path: CanvasConnectionPath, endpoint: 'source' | 'target',
     pointerId: event.pointerId,
     current: endpoint === 'source' ? path.source : path.target,
   }
-  window.addEventListener('pointermove', handlePointerMove)
-  window.addEventListener('pointerup', handlePointerUp)
-  window.addEventListener('pointercancel', handlePointerCancel)
+  window.addEventListener('pointermove', handlePointerMove, true)
+  window.addEventListener('pointerup', handlePointerUp, true)
+  window.addEventListener('pointercancel', handlePointerCancel, true)
   window.addEventListener('keydown', handleKeyDown, true)
 }
 
@@ -333,28 +332,6 @@ onBeforeUnmount(stopReroute)
         </g>
       </g>
       <path v-if="activeDraftPath" class="draft" :d="activeDraftPath" vector-effect="non-scaling-stroke" />
-      <template v-if="visible && selectedPath && !readonly">
-        <circle
-          class="connection-handle is-source"
-          :cx="selectedPath.source.x"
-          :cy="selectedPath.source.y"
-          :r="handleRadius"
-          role="button"
-          aria-label="改接连线来源"
-          tabindex="0"
-          @pointerdown="startReroute(selectedPath, 'source', $event)"
-        />
-        <circle
-          class="connection-handle is-target"
-          :cx="selectedPath.target.x"
-          :cy="selectedPath.target.y"
-          :r="handleRadius"
-          role="button"
-          aria-label="改接连线目标"
-          tabindex="0"
-          @pointerdown="startReroute(selectedPath, 'target', $event)"
-        />
-      </template>
     </g>
   </svg>
   <svg
@@ -416,6 +393,22 @@ onBeforeUnmount(stopReroute)
     <span class="edge-identity-arrow" aria-hidden="true">→</span>
     <span class="edge-identity-title" :title="selectedEdgeContext.presentation.targetTitle">{{ selectedEdgeContext.presentation.targetTitle }}</span>
     <button
+      v-if="!readonly"
+      type="button"
+      class="edge-reroute-trigger"
+      aria-label="改接连线来源"
+      title="改接来源"
+      @pointerdown="startReroute(selectedEdgeContext.path, 'source', $event)"
+    >↤</button>
+    <button
+      v-if="!readonly"
+      type="button"
+      class="edge-reroute-trigger"
+      aria-label="改接连线目标"
+      title="改接目标"
+      @pointerdown="startReroute(selectedEdgeContext.path, 'target', $event)"
+    >↦</button>
+    <button
       v-if="insertionContext && !isInsertionMenuOpen"
       type="button"
       class="edge-insertion-trigger"
@@ -450,13 +443,14 @@ onBeforeUnmount(stopReroute)
 .connection-hit:focus-visible { stroke: color-mix(in oklch, var(--accent-select) 18%, transparent); outline: none; }
 .edge-identity-leader { position: absolute; inset: 0; z-index: 5; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .edge-identity-leader line { stroke: color-mix(in oklch, var(--accent-select) 44%, var(--border-strong)); stroke-width: 1; stroke-dasharray: 2 3; }
-.connection-handle { fill: var(--bg-panel); stroke: var(--accent-select); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: all; cursor: crosshair; }
-.connection-handle:focus-visible { outline: none; stroke: white; stroke-width: 3; }
 .selected-edge-identity { position: absolute; z-index: 6; display: flex; width: max-content; max-width: min(300px, calc(100% - 24px)); min-height: 32px; align-items: center; gap: 5px; padding: 4px 5px 4px 8px; overflow: hidden; border: 1px solid color-mix(in oklch, var(--accent-select) 36%, var(--border-subtle)); border-radius: var(--radius-lg); color: var(--v2-text-secondary); background: var(--bg-panel); box-shadow: var(--shadow-soft); font-size: 10px; line-height: 1.25; pointer-events: none; transform: translate(-50%, -50%); animation: edge-identity-in 120ms cubic-bezier(0.16, 1, 0.3, 1); }
 .selected-edge-identity strong { flex: none; padding: 3px 5px; border-radius: var(--radius-sm); color: var(--v2-text-primary); background: color-mix(in oklch, var(--accent-select) 16%, transparent); font-size: 9px; font-weight: 650; white-space: nowrap; }
 .edge-identity-state { flex: none; color: var(--v2-text-muted); font-size: 9px; white-space: nowrap; }
 .edge-identity-title { min-width: 0; max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .edge-identity-arrow { flex: none; color: var(--accent-select); }
+.edge-reroute-trigger { display: grid; flex: none; width: 22px; height: 22px; padding: 0; place-items: center; border: 1px solid var(--border-subtle); border-radius: 50%; color: var(--v2-text-secondary); background: var(--bg-panel); font: inherit; pointer-events: auto; cursor: crosshair; }
+.edge-reroute-trigger:hover { border-color: var(--accent-select); color: var(--v2-text-primary); }
+.edge-reroute-trigger:focus-visible { outline: 2px solid var(--accent-select); outline-offset: 2px; }
 .edge-insertion-trigger { position: relative; display: grid; flex: none; width: 24px; height: 24px; padding: 0; place-items: center; border: 1px solid var(--accent-select); border-radius: 50%; color: var(--v2-text-primary); background: var(--bg-panel); font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1; pointer-events: auto; cursor: pointer; transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms ease-out; }
 .edge-insertion-trigger::before { position: absolute; width: 40px; height: 40px; content: ''; }
 .edge-insertion-trigger:active { transform: scale(0.96); }

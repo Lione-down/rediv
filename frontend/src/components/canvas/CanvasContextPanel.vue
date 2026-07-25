@@ -14,7 +14,11 @@ import { useCanvasStore } from '../../store/canvas'
 import type { CanvasNode } from '../../types/canvas'
 import { formatCapturedFrameTime, resolveCapturedFrameProvenance } from '../../modules/canvas/captured-frame-provenance'
 import type { GenerationInputLineageBridge } from '../../modules/canvas/generation-input-lineage'
-import { resolveGenerationTaskProgressSummary, type GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
+import {
+  formatGenerationFailureMessage,
+  resolveGenerationTaskProgressSummary,
+  type GenerationRuntimePresentation,
+} from '../../modules/canvas/generation-runtime-presentation'
 import { resolveVisualAssetRecipe, VISUAL_ASSET_RECIPES, type VisualAssetRecipeId } from '../../modules/canvas/visual-asset-recipes'
 import { IMAGE_OPERATIONS } from '../../modules/canvas/image-operations'
 import CanvasGenerationParameterControls from './CanvasGenerationParameterControls.vue'
@@ -51,6 +55,7 @@ const props = withDefaults(defineProps<{
   readonly?: boolean
   resultLineage?: ResolvedResultLineage | null
   runtimePresentation?: GenerationRuntimePresentation | null
+  suppressRuntimeError?: boolean
   success?: string
   scriptAuthoringActive?: boolean
   scriptAuthoringCapability?: ScriptAuthoringCapabilities | null
@@ -81,6 +86,7 @@ const props = withDefaults(defineProps<{
   readonly: false,
   resultLineage: null,
   runtimePresentation: null,
+  suppressRuntimeError: false,
   success: '',
   scriptAuthoringActive: false,
   scriptAuthoringCapability: null,
@@ -176,8 +182,7 @@ const staleScriptLineage = computed(() => {
 })
 const { cinematicResultStale, cinematicTaskSnapshot } = useCanvasCinematicLineage({
   getCanvasId: () => props.canvasId,
-  getGenerationTasks: () => props.generationTasks,
-  getLatestTask: () => props.latestTask,
+  getGenerationNodeId: () => props.resultLineage?.generationNodeId,
   getProjectId: () => props.projectId,
   getResultTaskId: () => props.resultLineage?.taskId,
 })
@@ -442,7 +447,11 @@ function requestGeneration() {
         <span>{{ statusLabel }}</span>
         <small v-if="latestTask">{{ latestTask.id }}</small>
       </p>
-      <CanvasGenerationProgress :runtime-presentation="runtimePresentation" :task="latestTask" />
+      <CanvasGenerationProgress
+        :runtime-presentation="runtimePresentation"
+        :suppress-error="error || latestTask?.error_message || (suppressRuntimeError ? runtimePresentation?.error : '') || ''"
+        :task="latestTask"
+      />
       <section v-if="outputVariantCount > 1" class="output-variant-summary" aria-label="生成输出版本">
         <div><span>生成结果</span><strong>{{ outputVariantCount }} 个版本</strong></div>
         <button type="button" class="compare-results-button" :aria-label="`比较 ${outputVariantCount} 个生成结果`" @click="emit('compareResults')">
@@ -477,9 +486,9 @@ function requestGeneration() {
         </ol>
         <p v-if="runHistory.total > runHistory.runs.length" class="run-history__remainder">仅显示最近 {{ runHistory.runs.length }} 次</p>
       </details>
-      <p v-if="error" class="feedback is-error" role="alert"><AlertTriangle :size="15" aria-hidden="true" />{{ error }}。结果未扣费，可在确认服务恢复后手动重试。</p>
+      <p v-if="error && !suppressRuntimeError" class="feedback is-error" role="alert"><AlertTriangle :size="15" aria-hidden="true" />{{ formatGenerationFailureMessage(error) }}</p>
       <p v-else-if="success" class="feedback is-success"><CircleCheck :size="15" aria-hidden="true" />{{ success }}</p>
-      <p v-else-if="latestTask?.error_message" class="feedback is-error" role="alert"><AlertTriangle :size="15" aria-hidden="true" />{{ latestTask.error_message }}</p>
+      <p v-else-if="latestTask?.error_message && !suppressRuntimeError" class="feedback is-error" role="alert"><AlertTriangle :size="15" aria-hidden="true" />{{ formatGenerationFailureMessage(latestTask.error_message) }}</p>
     </section>
 
     <section v-else-if="!storyboardAssetEditing && !isStoryboardAssetGroup" class="node-review" aria-label="节点内容">

@@ -117,7 +117,12 @@ test('add menu exposes the observable media catalog and safe resource entries', 
 
   const menu = page.getByRole('menu', { name: '添加节点' })
   await expect(menu.getByRole('menuitem')).toHaveCount(9)
-  for (const name of ['添加文本节点', '添加图片节点', '添加视频节点', '视频合成', '添加音频节点', '添加脚本节点', '从素材库选择', '上传素材', '从生成历史选择']) {
+  await expect(menu.locator('[data-authoring-option]')).toHaveCount(6)
+  for (const name of ['添加文本卡片', '添加脚本卡片', '添加图片生成卡片', '添加视频生成卡片', '添加视频合成卡片', '添加音频生成卡片']) {
+    await expect(menu.getByRole('menuitem', { name })).toBeVisible()
+  }
+  await expect(menu.locator('[data-authoring-option="asset"]')).toHaveCount(0)
+  for (const name of ['从素材库选择', '上传素材', '从生成历史选择']) {
     await expect(menu.getByRole('menuitem', { name })).toBeVisible()
   }
 
@@ -176,6 +181,8 @@ test('main creation composer Send runs script authoring and keeps exact input re
     reference_asset_ids: ['asset-reference'],
   })
 
+  const scriptCard = page.locator(`.canvas-node-surface[data-node-id="${result!.id}"]`)
+  await scriptCard.getByRole('button', { name: '展开脚本工作流' }).click()
   await expect(page.getByRole('region', { name: 'AI 脚本写作' })).toContainText('当前脚本已替换，可撤销')
 })
 
@@ -213,6 +220,10 @@ test('main composer keeps a failed script brief ready for bounded manual retry',
   await composer.getByRole('textbox', { name: '主创作提示词' }).fill('雨夜车站，摄影师寻找失踪胶卷。')
   await composer.getByRole('button', { name: '使用 Agnes 2.0 Flash 生成脚本' }).click()
 
+  await expect.poll(() => state.documents['canvas-first'].nodes.length).toBe(1)
+  const scriptNode = state.documents['canvas-first'].nodes[0]
+  const scriptCard = page.locator(`.canvas-node-surface[data-node-id="${scriptNode.id}"]`)
+  await scriptCard.getByRole('button', { name: '展开脚本工作流' }).click()
   const authoring = page.getByRole('region', { name: 'AI 脚本写作' })
   await expect(authoring).toContainText('Agnes 当前不可用')
   await expect(authoring.getByRole('textbox', { name: '创意 Brief' })).toHaveValue('雨夜车站，摄影师寻找失踪胶卷。')

@@ -110,9 +110,16 @@ test('authoring hierarchy preserves one selected editor, media surface, and muta
 
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: /选择并定位.*镜头脚本/ }).click()
-  await expect(page.getByRole('region', { name: '节点内容编辑器' })).toHaveCount(1)
-  await expect(page.getByRole('textbox', { name: /编辑.*镜头脚本.*内容/ })).toHaveCount(1)
-  const composer = await page.locator('.canvas-node-surface.is-composer').boundingBox()
+  const scriptCard = page.locator('.canvas-node-surface[data-node-id="script-source"]')
+  await expect(scriptCard).toHaveAttribute('data-card-state', 'selected')
+  await expect(page.getByRole('region', { name: '节点内容编辑器' })).toHaveCount(0)
+  await scriptCard.locator('.canvas-runtime-card__body').dblclick()
+  const directEditor = page.getByRole('textbox', { name: /编辑.*镜头脚本.*内容/ })
+  await expect(directEditor).toHaveCount(1)
+  await directEditor.press('Tab')
+  await scriptCard.getByRole('button', { name: '展开脚本工作流' }).click()
+  await expect(scriptCard.getByRole('region', { name: 'AI 脚本写作' })).toBeVisible()
+  const composer = await scriptCard.getByRole('region', { name: 'AI 脚本写作' }).boundingBox()
   expect(composer?.width).toBeGreaterThan(250)
   expect(composer?.height).toBeGreaterThan(68)
 
@@ -128,9 +135,12 @@ test('DOM and Leafer surfaces consume the accepted selected card presentation wi
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: /选择并定位.*镜头脚本/ }).click()
 
-  const composerSurface = page.locator('.canvas-node-surface.is-composer[data-node-id="script-source"]')
-  await expect(composerSurface).toHaveAttribute('data-card-state', 'selected')
-  await expect(composerSurface).toHaveCSS('border-radius', '12px')
+  const selectedSurface = page.locator('.canvas-node-surface[data-node-id="script-source"]')
+  await expect(selectedSurface).toHaveAttribute('data-card-state', 'selected')
+  await selectedSurface.getByRole('button', { name: '展开脚本工作流' }).click()
+  const composerSurface = page.locator('.canvas-node-surface[data-node-id="script-source"]')
+  await expect(composerSurface).toHaveAttribute('data-card-state', 'composing')
+  await expect(composerSurface.locator('.canvas-runtime-card')).toHaveCSS('border-radius', '12px')
   const rendererPresentation = await page.locator('.canvas-surface').evaluate((element) => (
     (element as HTMLElement & {
       __revidCanvasInspection?: {

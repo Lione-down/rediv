@@ -17,6 +17,13 @@ function task(id: string, createdAt: string, overrides: Partial<ProjectGeneratio
 }
 
 async function selectGeneration(page: import('@playwright/test').Page) {
+  await page.getByRole('button', { name: '打开项目资源' }).click()
+  const taskHistoryResponse = page.waitForResponse((response) => (
+    response.request().method() === 'GET' && response.url().includes('/api/generation-tasks?')
+  ))
+  await page.getByRole('tab', { name: '生成记录' }).click()
+  await taskHistoryResponse
+  await page.getByRole('button', { name: '关闭项目资源' }).click()
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 封面生成' }).click()
 }

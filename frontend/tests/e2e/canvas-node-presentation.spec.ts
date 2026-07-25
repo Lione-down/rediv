@@ -25,7 +25,7 @@ test('presentation exposes every registry port for generation nodes', () => {
     contentData: { subtype: 'video', serialization_version: 1 },
   }))
 
-  expect(presentation.typeLabel).toBe('生成任务')
+  expect(presentation.typeLabel).toBe('视频生成')
   expect(presentation.inputPorts.map((port) => port.id)).toEqual(['prompt', 'media'])
   expect(presentation.outputPorts.map((port) => port.id)).toEqual(['out'])
   expect(presentation.isUnsupported).toBe(false)

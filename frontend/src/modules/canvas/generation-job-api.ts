@@ -70,6 +70,15 @@ export interface GenerationJobResult {
   version: number
 }
 
+export interface GenerationJobCinematicLineage {
+  job_id: string
+  project_id: string
+  canvas_id: string
+  node_id: string
+  cinematic_skill: Record<string, unknown> | null
+  version: number
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
@@ -154,7 +163,7 @@ export function parseGenerationJobStatus(value: unknown): GenerationJobStatus {
     value.progress !== null &&
     (
       typeof value.progress !== 'number' ||
-      !Number.isFinite(value.progress) ||
+      !Number.isSafeInteger(value.progress) ||
       value.progress < 0 ||
       value.progress > 100
     )
@@ -235,6 +244,27 @@ export function parseGenerationJobResult(value: unknown): GenerationJobResult {
   }
 }
 
+export function parseGenerationJobCinematicLineage(value: unknown): GenerationJobCinematicLineage {
+  if (!isRecord(value)) throw new TypeError('Generation job cinematic lineage is invalid.')
+  assertExactKeys(value, [
+    'job_id', 'project_id', 'canvas_id', 'node_id', 'cinematic_skill', 'version',
+  ], 'Generation job cinematic lineage')
+  if (value.cinematic_skill !== null && !isRecord(value.cinematic_skill)) {
+    throw new TypeError('Generation job cinematic lineage snapshot is invalid.')
+  }
+  if (!Number.isSafeInteger(value.version) || Number(value.version) < 1) {
+    throw new TypeError('Generation job cinematic lineage version is invalid.')
+  }
+  return {
+    job_id: requiredString(value.job_id, 'job_id'),
+    project_id: requiredString(value.project_id, 'project_id'),
+    canvas_id: requiredString(value.canvas_id, 'canvas_id'),
+    node_id: requiredString(value.node_id, 'node_id'),
+    cinematic_skill: value.cinematic_skill as Record<string, unknown> | null,
+    version: Number(value.version),
+  }
+}
+
 export async function submitGenerationJobRequest(
   input: GenerationJobSubmitInput,
   transport: GenerationJobTransport,
@@ -310,4 +340,61 @@ export async function fetchGenerationJobResult(
     `/api/v2/generation-jobs/${encodeURIComponent(requiredString(jobId?.trim(), 'job_id'))}/result`,
   )
   return parseGenerationJobResult(response.data)
+}
+
+export async function recoverGenerationJobByClientRequest(
+  input: {
+    projectId: string
+    canvasId: string
+    nodeId: string
+    clientRequestId: string
+  },
+  transport: GenerationJobReadTransport,
+) {
+  const projectId = requiredString(input.projectId?.trim(), 'project_id')
+  const canvasId = requiredString(input.canvasId?.trim(), 'canvas_id')
+  const nodeId = requiredString(input.nodeId?.trim(), 'node_id')
+  const clientRequestId = requiredString(input.clientRequestId?.trim(), 'client_request_id')
+  const response = await transport.get(
+    `/api/v2/projects/${encodeURIComponent(projectId)}` +
+    `/canvases/${encodeURIComponent(canvasId)}` +
+    `/nodes/${encodeURIComponent(nodeId)}` +
+    `/generation-jobs/by-client-request/${encodeURIComponent(clientRequestId)}`,
+  )
+  const receipt = parseGenerationJobSubmitReceipt(response.data)
+  if (
+    receipt.project_id !== projectId ||
+    receipt.canvas_id !== canvasId ||
+    receipt.node_id !== nodeId
+  ) throw new Error('Generation job recovery scope mismatch.')
+  return receipt
+}
+
+export async function fetchGenerationJobCinematicLineage(
+  input: {
+    projectId: string
+    canvasId: string
+    nodeId: string
+    jobId: string
+  },
+  transport: GenerationJobReadTransport,
+) {
+  const projectId = requiredString(input.projectId?.trim(), 'project_id')
+  const canvasId = requiredString(input.canvasId?.trim(), 'canvas_id')
+  const nodeId = requiredString(input.nodeId?.trim(), 'node_id')
+  const jobId = requiredString(input.jobId?.trim(), 'job_id')
+  const response = await transport.get(
+    `/api/v2/projects/${encodeURIComponent(projectId)}` +
+    `/canvases/${encodeURIComponent(canvasId)}` +
+    `/nodes/${encodeURIComponent(nodeId)}` +
+    `/generation-jobs/${encodeURIComponent(jobId)}/cinematic-lineage`,
+  )
+  const lineage = parseGenerationJobCinematicLineage(response.data)
+  if (
+    lineage.job_id !== jobId ||
+    lineage.project_id !== projectId ||
+    lineage.canvas_id !== canvasId ||
+    lineage.node_id !== nodeId
+  ) throw new Error('Generation job cinematic lineage scope mismatch.')
+  return lineage
 }

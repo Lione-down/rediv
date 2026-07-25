@@ -22,7 +22,7 @@ async function openEmptyWorkspace(page: Page, viewport = { width: 1440, height: 
   return state
 }
 
-async function capture(page: Page, name: string) {
+async function capture(page: Page, name: string, baseline: 't5-096' | 't6-011-candidate' = 't5-096') {
   await page.evaluate(async () => {
     await document.fonts.ready
     await Promise.all(Array.from(document.images).map(async (image) => {
@@ -49,11 +49,11 @@ async function capture(page: Page, name: string) {
     mask: [page.locator('video')],
     maskColor: '#ff00ff',
   })
-  const snapshotName = `t5-096-${name}`
+  const snapshotName = `${baseline}-${name}`
   if (shouldUpdateEvidence) {
     await mkdir(evidenceDirectory, { recursive: true })
     await writeFile(resolve(evidenceDirectory, name), screenshot)
-  } else {
+  } else if (baseline === 't5-096') {
     const manifest = JSON.parse(await readFile(evidenceManifestPath, 'utf8')) as EvidenceManifest
     const currentSnapshotOverlay = JSON.parse(await readFile(currentSnapshotOverlayPath, 'utf8')) as EvidenceManifest
     const evidence = currentSnapshotOverlay.files.find((file) => file.name === name)
@@ -147,11 +147,11 @@ test('L096-DISCLOSURE-ADD-ESC exposes the scoped nine-action catalog without mut
   await expect(menu.getByRole('menuitem')).toHaveCount(9)
   await expect(menu.getByRole('menuitem').allTextContents()).resolves.toEqual([
     '文本',
-    '图片',
-    '视频',
-    '视频合成Beta',
-    '音频',
     '脚本',
+    '图片生成',
+    '视频生成',
+    '视频合成',
+    '音频生成',
     '素材库NEW',
     '上传',
     '从生成历史选择',
@@ -164,19 +164,21 @@ test('L096-DISCLOSURE-ADD-ESC exposes the scoped nine-action catalog without mut
   expect(documentPatches(state)).toHaveLength(0)
 })
 
-test('L096-DISCLOSURE-ADD-VIDEO-SYNTHESIS opens the existing video preflight authority', async ({ page }) => {
+test('L096-DISCLOSURE-ADD-VIDEO-SYNTHESIS creates the authoritative Video Composition card', async ({ page }) => {
   const state = await openEmptyWorkspace(page)
 
   await page.getByRole('button', { name: '添加节点' }).click()
   await page.getByRole('menuitem', { name: '视频合成' }).click()
 
-  const dialog = page.getByRole('dialog', { name: '视频编辑预检' })
-  await expect(dialog).toBeVisible()
-  await dialog.getByRole('button', { name: '关闭视频编辑预检' }).click()
-  await expect(page.getByRole('button', { name: '添加节点' })).toBeFocused()
-  expect(state.documents['canvas-first'].nodes).toHaveLength(0)
+  await expect.poll(() => state.documents['canvas-first'].nodes.length).toBe(1)
+  const composition = state.documents['canvas-first'].nodes[0]
+  expect(composition.content.subtype).toBe('video-composition')
+  const card = page.locator(`.canvas-runtime-card[data-node-id="${composition.id}"]`)
+  await card.locator('.canvas-runtime-card__drag-region').click()
+  await expect(page.locator('[data-capability-workflow="video-composition"]')).toBeVisible()
+  await expect(page.getByRole('dialog', { name: '视频编辑预检' })).toHaveCount(0)
   expect(state.documents['canvas-first'].connections).toHaveLength(0)
-  expect(documentPatches(state)).toHaveLength(0)
+  expect(documentPatches(state)).toHaveLength(1)
 })
 
 test('L096-DISCLOSURE-ADD-HISTORY opens the existing generation history authority', async ({ page }) => {
@@ -216,9 +218,9 @@ test('L096-CONTEXT-OVERLAY-EXCLUSIVE keeps one active contextual surface without
 
   await page.getByRole('button', { name: '添加节点' }).click()
   await expect(page.getByRole('dialog', { name: '画布内容与快捷键' })).toHaveCount(0)
-  await page.getByRole('menuitem', { name: '视频合成' }).click()
+  await page.getByRole('menuitem', { name: '上传' }).click()
 
-  await expect(page.getByRole('dialog', { name: '视频编辑预检' })).toBeVisible()
+  await expect(page.getByRole('complementary', { name: '项目资源' })).toBeVisible()
   await expect(page.getByRole('dialog', { name: '修订历史与恢复' })).toHaveCount(0)
   expect(state.documents['canvas-first'].nodes).toHaveLength(0)
   expect(state.documents['canvas-first'].connections).toHaveLength(0)
@@ -264,12 +266,16 @@ test('L096-REVID-POPULATED-CONTEXT records media-first graph and selected high-z
     await expect(page.getByLabel('缩放百分比')).toHaveValue(fittedZoom)
     expect(responsiveState.documents['canvas-first'].nodes.filter((node) => node.node_type === 'group')).toHaveLength(1)
     expect(responsiveState.documents['canvas-first'].nodes.filter((node) => node.node_type !== 'group')).toHaveLength(10)
-    await expect(page.locator('.canvas-node-surface:not(.is-composer)')).toHaveCount(9)
+    await expect(page.locator('.canvas-node-surface:not(.is-composer)')).toHaveCount(11)
     await expect(page.locator('.connection-line.active')).toHaveCount(11)
     await expect(page.locator('.canvas-node-surface.is-media')).toHaveCount(9)
     await expect(page.getByRole('toolbar', { name: '空媒体恢复操作' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: '为当前媒体上传素材' })).toHaveCount(0)
-    await capture(page, `revid-populated-${viewport.width}x${viewport.height}-fit.png`)
+    await capture(
+      page,
+      `revid-populated-${viewport.width}x${viewport.height}-fit.png`,
+      't6-011-candidate',
+    )
     expect(documentPatches(responsiveState)).toHaveLength(0)
   }
 
@@ -290,9 +296,9 @@ test('L096-REVID-POPULATED-CONTEXT records media-first graph and selected high-z
   await page.keyboard.press('Escape')
   await expect(contextPanel).toBeVisible()
 
-  await capture(page, 'revid-image-selected-1440x900-100pct.png')
+  await capture(page, 'revid-image-selected-1440x900-100pct.png', 't6-011-candidate')
   await setZoom(page, 200)
-  await capture(page, 'revid-image-selected-1440x900-200pct.png')
+  await capture(page, 'revid-image-selected-1440x900-200pct.png', 't6-011-candidate')
   await page.keyboard.press('Escape')
   expect(documentPatches(state)).toHaveLength(0)
 })

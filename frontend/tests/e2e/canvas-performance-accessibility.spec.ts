@@ -180,7 +180,7 @@ async function openCanvas(page: Page, state: PerformanceState, viewport = { widt
   await installPerformanceApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'performance-token'))
   const startedAt = Date.now()
-  await page.goto('/app/projects/project-performance/canvases/canvas-performance')
+  await page.goto('/app/projects/project-performance/canvases/canvas-performance?canvas_runtime=legacy')
   await expect(page.getByRole('region', { name: 'Revid 无限画布工作区' })).toBeVisible()
   await expect(page.locator('.minimap-node')).toHaveCount(state.nodeCount)
   return Date.now() - startedAt
@@ -402,7 +402,10 @@ test('Canvas accessibility and required viewport matrix remain usable', async ({
   await expect(reducedMotionFlow).toHaveAttribute('data-flow-segments', '3')
   await expect(reducedMotionFlow).toHaveCSS('animation-name', 'none')
   await expect(reducedMotionFlow).toHaveCSS('pointer-events', 'none')
-  await expect(page.locator('.canvas-workspace')).toHaveCSS('--v2-duration-fast', '0s')
+  const reducedMotionDuration = await page.locator('.canvas-workspace').evaluate((element) => (
+    getComputedStyle(element).getPropertyValue('--v2-duration-fast').trim()
+  ))
+  expect(reducedMotionDuration).toMatch(/^0(?:s|ms)$/)
 
   await page.evaluate(() => { document.documentElement.style.zoom = '200%' })
   for (const locator of [

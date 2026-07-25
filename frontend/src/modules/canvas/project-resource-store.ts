@@ -97,6 +97,11 @@ export interface ProjectResourceSnapshot {
   tasks: GenerationTask[]
 }
 
+type ProjectLoadOptions = boolean | {
+  force?: boolean
+  includeTaskHistory?: boolean
+}
+
 function errorMessage(error: unknown) {
   if (isAxiosError<ResourceErrorResponse>(error)) {
     const detail = error.response?.data?.detail
@@ -151,7 +156,11 @@ export const useProjectResourceStore = defineStore('canvas-project-resources', (
     templateRevisions.clear()
   }
 
-  async function loadProject(nextProjectId: string, force = false) {
+  async function loadProject(nextProjectId: string, options: ProjectLoadOptions = false) {
+    const force = typeof options === 'boolean' ? options : options.force ?? false
+    const includeTaskHistory = typeof options === 'boolean'
+      ? true
+      : options.includeTaskHistory ?? true
     const normalizedProjectId = nextProjectId.trim()
     if (!normalizedProjectId) {
       resetProjectResources()
@@ -191,7 +200,7 @@ export const useProjectResourceStore = defineStore('canvas-project-resources', (
         const [assetResponse, templateResponse, taskResponse] = await Promise.all([
           fetchProjectAssets(normalizedProjectId),
           fetchTemplates(),
-          fetchProjectGenerationTasks(normalizedProjectId),
+          includeTaskHistory ? fetchProjectGenerationTasks(normalizedProjectId) : Promise.resolve(null),
         ])
         if (
           generation === requestedGeneration &&
@@ -204,10 +213,12 @@ export const useProjectResourceStore = defineStore('canvas-project-resources', (
           templates.value = mergeAfterRequest(
             templateResponse.data.items, templates.value, templateRevisions, requestedResourceRevision,
           )
-          tasks.value = mergeAfterRequest(
-            taskResponse.data.items.filter((task) => task.project_id === normalizedProjectId),
-            tasks.value, taskRevisions, requestedResourceRevision,
-          )
+          if (taskResponse) {
+            tasks.value = mergeAfterRequest(
+              taskResponse.data.items.filter((task) => task.project_id === normalizedProjectId),
+              tasks.value, taskRevisions, requestedResourceRevision,
+            )
+          }
           hasLoaded.value = true
         }
         return snapshot()
@@ -247,7 +258,7 @@ export const useProjectResourceStore = defineStore('canvas-project-resources', (
   function refreshIfCurrent(expectedProjectId: string) {
     const normalizedProjectId = expectedProjectId.trim()
     return normalizedProjectId && normalizedProjectId === projectId.value
-      ? loadProject(normalizedProjectId, true)
+      ? loadProject(normalizedProjectId, { force: true, includeTaskHistory: false })
       : Promise.resolve(snapshot())
   }
 
@@ -281,6 +292,10 @@ export const useProjectResourceStore = defineStore('canvas-project-resources', (
     return promise.finally(() => {
       if (taskRefreshRequest === currentRequest) taskRefreshRequest = null
     })
+  }
+
+  function loadTaskHistory(expectedProjectId: string) {
+    return refreshTasksIfCurrent(expectedProjectId)
   }
 
   function upsertById<T extends { id: string }>(items: T[], item: T) {
@@ -461,6 +476,7 @@ export const useProjectResourceStore = defineStore('canvas-project-resources', (
     refresh,
     refreshIfCurrent,
     refreshTasksIfCurrent,
+    loadTaskHistory,
     uploadAsset,
     captureTemplate,
     instantiateTemplate,

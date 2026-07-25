@@ -1,0 +1,113 @@
+{
+  "runId": "t6-011-r8k-figma-2026-07-25",
+  "fileKey": "4CT3rjl2lj5jauBOO7wRP9",
+  "fileUrl": "https://www.figma.com/design/4CT3rjl2lj5jauBOO7wRP9",
+  "phase": "phase2",
+  "step": "blocked-by-starter-mcp-call-quota",
+  "entities": {
+    "collections": {
+      "Revid Primitives": "VariableCollectionId:2:2",
+      "Revid Canvas Semantic": "VariableCollectionId:2:3",
+      "Revid Dimensions": "VariableCollectionId:2:4"
+    },
+    "variables": {
+      "totalCount": 66,
+      "primitiveCount": 25,
+      "semanticCount": 24,
+      "dimensionCount": 17,
+      "color/canvas/background": "VariableID:3:27",
+      "color/card/background": "VariableID:3:28",
+      "color/card/background-hover": "VariableID:3:29",
+      "color/card/background-prominent": "VariableID:3:30",
+      "color/text/primary": "VariableID:3:32",
+      "color/text/secondary": "VariableID:3:33",
+      "color/text/muted": "VariableID:3:34",
+      "color/text/on-accent": "VariableID:3:35",
+      "color/action/accent": "VariableID:3:36",
+      "color/action/accent-hover": "VariableID:3:37",
+      "color/action/accent-soft": "VariableID:3:39",
+      "color/border/subtle": "VariableID:3:40",
+      "color/border/standard": "VariableID:3:41",
+      "color/border/strong": "VariableID:3:42",
+      "color/border/selected": "VariableID:3:43",
+      "color/border/focus": "VariableID:3:44",
+      "color/port/active": "VariableID:3:45",
+      "color/port/idle": "VariableID:3:46",
+      "color/edge/default": "VariableID:3:47",
+      "color/status/success": "VariableID:3:48",
+      "color/status/warning": "VariableID:3:49",
+      "color/status/danger": "VariableID:3:50",
+      "spacing/1": "VariableID:4:2",
+      "spacing/2": "VariableID:4:3",
+      "spacing/3": "VariableID:4:4",
+      "spacing/4": "VariableID:4:5",
+      "spacing/5": "VariableID:4:6",
+      "spacing/6": "VariableID:4:7",
+      "spacing/8": "VariableID:4:8",
+      "radius/xs": "VariableID:4:9",
+      "radius/sm": "VariableID:4:10",
+      "radius/md": "VariableID:4:11",
+      "radius/lg": "VariableID:4:12",
+      "radius/pill": "VariableID:4:13",
+      "geometry/control-min-size": "VariableID:4:14",
+      "geometry/grid-size": "VariableID:4:15",
+      "geometry/panel-width": "VariableID:4:16",
+      "geometry/panel-width-wide": "VariableID:4:17",
+      "geometry/media-radius": "VariableID:4:18"
+    },
+    "styles": {
+      "Canvas/Caption": "S:11af7e4fbe7b26be30899fa57728882e63fa6c89,",
+      "Canvas/Body": "S:50127c89608c8d287042850f6a997bcd3cf96ac9,",
+      "Canvas/Control": "S:05716f42687912c88007efbb5beae1ad0b2b5fae,",
+      "Canvas/Title": "S:456adab7e41ce8c782d07297f03a07dde8241f77,",
+      "Canvas/Floating": "S:a2a3d6183b2424fbd9223aca1d142a89dd2c5af8,",
+      "Canvas/Prominent": "S:3f393afb207f8a6f63b20a1e07407b1d9752c1fd,"
+    },
+    "pages": {
+      "00 Authority & Foundations": "0:1",
+      "01 Components": "5:4",
+      "02 Canvas States & Geometry": "5:5"
+    },
+    "components": {},
+    "screens": {
+      "Cover": "5:6"
+    }
+  },
+  "pendingValidations": [
+    "Foundations:metadata",
+    "Foundations:screenshot",
+    "Port:metadata",
+    "Port:screenshot",
+    "Card:metadata",
+    "Card:screenshot",
+    "Composer:metadata",
+    "Composer:screenshot",
+    "ProgressMedia:metadata",
+    "ProgressMedia:screenshot",
+    "CanvasStates:metadata",
+    "CanvasStates:screenshot"
+  ],
+  "completedSteps": [
+    "P0.a",
+    "P0.b",
+    "P0.c",
+    "P0.d",
+    "P0.e",
+    "P0.f",
+    "P1.a",
+    "P1.b",
+    "P1.c",
+    "P1.d",
+    "P1.e",
+    "P1.f",
+    "P1.g",
+    "P1.h",
+    "P2.a-partial",
+    "P2.b-cover"
+  ],
+  "blocker": {
+    "message": "You've reached the Figma MCP tool call limit on the Starter plan.",
+    "releaseCondition": "Reuse this file and resume remaining Phase 2-4 calls after the same authenticated plan exposes additional Figma MCP calls or the Human Owner changes the Figma plan.",
+    "failedCallWasAtomic": true
+  }
+}

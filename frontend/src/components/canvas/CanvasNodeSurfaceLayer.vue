@@ -7,12 +7,12 @@ import {
   buildCanvasNodePresentation,
   resolveCanvasCardReferenceDisplayTitle,
 } from './canvas-node-presentation'
-import { resolveCanvasCardInteractionPresentation } from './canvas-card-interaction-presentation'
+import { resolveCanvasCardProductionInteractionState } from './canvas-card-production-state'
 import CanvasNodeComposer from './CanvasNodeComposer.vue'
-import CanvasNodeContinuationTrigger from './CanvasNodeContinuationTrigger.vue'
 import CanvasNodeMedia from './CanvasNodeMedia.vue'
-import CanvasNodeTitleEditor from './CanvasNodeTitleEditor.vue'
+import CanvasRuntimeCard from './CanvasRuntimeCard.vue'
 import CanvasCardWorkSurface, { type CanvasCardReferenceCandidate } from './CanvasCardWorkSurface.vue'
+import CanvasCapabilityCardComposer from './CanvasCapabilityCardComposer.vue'
 import CanvasTextCardModeChooser from './CanvasTextCardModeChooser.vue'
 import CanvasTextWorkflowComposer from './CanvasTextWorkflowComposer.vue'
 import CanvasScriptGenerationControls from './CanvasScriptGenerationControls.vue'
@@ -20,9 +20,13 @@ import CanvasScriptEmptyState from './CanvasScriptEmptyState.vue'
 import { resolveCanvasCardProjectedResult, resolveCanvasCardWorkModel, type CanvasCardWorkModeId } from './canvas-card-work-model'
 import { createConnectNodesCommand } from '../../modules/canvas/canvas-commands'
 import { resolveKeyframeRailPlacement } from './canvas-keyframe-placement'
-import type { CanvasNodeContinuationTrigger as ContinuationTrigger } from './canvas-node-continuation-trigger'
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
+import type { VideoReferenceRole } from '../../modules/canvas/generation-capability-contract'
 import type { GenerationNodeParameters, ResolvedGenerationRequestContext } from '../../modules/canvas/generation-parameters'
+import type {
+  CanvasCardPromptDocument,
+  CanvasCardReference,
+} from '../../modules/canvas/canvas-card-view-model'
 import type { ScriptAuthoringCapabilities, ScriptAuthoringIntent, TextWorkflowMode } from '../../modules/canvas/script-authoring'
 import {
   isScriptRoleReferenceCandidate,
@@ -46,7 +50,6 @@ const props = withDefaults(defineProps<{
   generationRuntimePresentations?: ReadonlyMap<string, GenerationRuntimePresentation>
   generationContext?: ResolvedGenerationRequestContext | null
   hiddenNodeIds?: ReadonlySet<string>
-  continuationTrigger: ContinuationTrigger | null
   nodes: CanvasNode[]
   selectedNodeIds: string[]
   readonly: boolean
@@ -59,6 +62,7 @@ const props = withDefaults(defineProps<{
   scriptAuthoringError?: string
   scriptAuthoringIntent?: ScriptAuthoringIntent | null
   scriptAuthoringSuccess?: string
+  scriptWorkflowNodeId?: string
   scriptQuota?: number
   stageSize?: { width: number; height: number }
   surfaceNodeRectStyle: (node: CanvasNode, role?: 'content' | 'composer') => Record<string, string>
@@ -93,6 +97,7 @@ const props = withDefaults(defineProps<{
   scriptAuthoringError: '',
   scriptAuthoringIntent: null,
   scriptAuthoringSuccess: '',
+  scriptWorkflowNodeId: '',
   scriptQuota: 0,
   stageSize: () => ({ width: 0, height: 0 }),
   viewportInsets: () => ({}),
@@ -107,15 +112,27 @@ const emit = defineEmits<{
   cardReference: [targetNodeId: string, sourceNodeId: string, restoreMentionFocus?: boolean]
   cardUpload: [nodeId: string, file: File]
   cardUpdateParameters: [parameters: GenerationNodeParameters]
+  cardUpdateComposition: [
+    nodeId: string,
+    prompt: string,
+    promptDocument: CanvasCardPromptDocument,
+    references: readonly CanvasCardReference[],
+  ]
   cancelScriptAuthoring: []
   commitContent: [nodeId: string, content: string]
-  continueNode: [nodeId: string, portId: string]
+  directEditClose: [nodeId: string]
   captureFrame: [nodeId: string, file: File, timeSeconds: number, aspectRatio: number]
   mediaMetadata: [nodeId: string, aspectRatio: number]
+  nodePointerDown: [nodeId: string, event: PointerEvent]
+  portPointerDown: [nodeId: string, portId: string, direction: 'input' | 'output', event: PointerEvent]
+  referenceReorder: [nodeId: string, stableId: string, direction: -1 | 1]
   renameNode: [nodeId: string, title: string]
+  selectNode: [nodeId: string, event: PointerEvent]
   generateScript: [submission: ScriptGenerationSubmission]
   retryScriptCapability: []
-  textMode: [nodeId: string, mode: CanvasCardWorkModeId, opener: HTMLElement]
+  scriptWorkflowClose: []
+  scriptWorkflowOpen: [nodeId: string]
+  textMode: [nodeId: string, mode: CanvasCardWorkModeId, opener?: HTMLElement]
   textWorkflowCancel: []
   textWorkflowSubmit: [nodeId: string, prompt: string, mode: CanvasCardWorkModeId, modelId: string]
 }>()
@@ -141,17 +158,12 @@ const surfaces = computed(() => props.nodes.flatMap((node) => {
     ? props.nodes.find((candidate) => candidate.id === props.referenceTargetNodeId) ?? null
     : null
   const isSelected = props.selectedNodeIds.length === 1 && props.selectedNodeIds[0] === node.id
-  const viewModel = buildCanvasCardViewModel(node, {
+  const interaction = buildCanvasNodeInteraction(node, {
+    isDirectEditing: props.textAuthoringNodeId === node.id,
     isReadOnly: props.readonly,
     isSelected,
-    runtimePresentation: props.generationRuntimePresentations.get(node.id) ?? null,
   })
-  const interaction = buildCanvasNodeInteraction(node, { isReadOnly: props.readonly, isSelected })
-  const resolvedWorkModel = resolveCanvasCardWorkModel(node, { isReadOnly: props.readonly, isSelected })
-  const workModel = {
-    ...resolvedWorkModel,
-    showsAttachedWorkSurface: viewModel.workSurface.isVisible,
-  }
+  const workModel = resolveCanvasCardWorkModel(node, { isReadOnly: props.readonly, isSelected })
   const projectedResult = isSelected
     ? resolveCanvasCardProjectedResult(node, props.nodes, props.connections)
     : null
@@ -166,22 +178,40 @@ const surfaces = computed(() => props.nodes.flatMap((node) => {
   const showsTextWorkflow = props.textWorkflowNodeId === node.id && Boolean(props.textWorkflowMode)
   const scriptContent = node.content ?? node.contentData?.text
   const isCanonicalScript = node.type === 'script' && node.contentData?.subtype === 'script'
+  const capabilitySubtype = node.contentData?.subtype
+  const capabilityWorkflow: 'audio' | 'video-composition' | null = node.type === 'generation' && (
+    capabilitySubtype === 'video-composition' || capabilitySubtype === 'audio'
+  )
+    ? capabilitySubtype
+    : null
   const isEmptyScript = isCanonicalScript && (typeof scriptContent !== 'string' || !scriptContent.trim())
-  const showsScriptEmptyState = isEmptyScript && props.textAuthoringNodeId !== node.id && !showsTextWorkflow
+  const scriptRoleReferenceIds = new Set(readScriptReferenceAssetIds(node))
+  const hasScriptSource = isCanonicalScript && props.connections.some((connection) => {
+    if (connection.to !== node.id) return false
+    const sourceNode = props.nodes.find((candidate) => candidate.id === connection.from)
+    return sourceNode?.type === 'script' && sourceNode.contentData?.subtype === 'script'
+  })
+  const hasScriptWorkflowSource = hasScriptSource || scriptRoleReferenceIds.size > 0
+  const showsScriptEmptyState = isEmptyScript && !hasScriptWorkflowSource &&
+    props.textAuthoringNodeId !== node.id && !showsTextWorkflow
   const showsTextModeChooser = workModel.showsEmptyModeChooser && !isCanonicalScript && props.textAuthoringNodeId !== node.id && !showsTextWorkflow
-  const showsScriptAuthoring = isSelected && !props.readonly && !showsTextWorkflow && props.textAuthoringNodeId !== node.id &&
-    isCanonicalScript
-  if (interaction.kind === 'static' && !workModel.showsAttachedWorkSurface && !projectedMedia && !showsTextModeChooser && !showsScriptEmptyState && !isReferenceCandidate) return []
-  const cardPresentation = resolveCanvasCardInteractionPresentation({
-    bodyKind: interaction.kind === 'media' ? 'media' : 'authoring',
-    isCompatibleDrag: false,
-    isFocused: false,
-    isHovered: false,
-    isLocked: Boolean(node.isLocked),
+  const showsScriptAuthoring = isSelected && props.scriptWorkflowNodeId === node.id &&
+    !props.readonly && !showsTextWorkflow && props.textAuthoringNodeId !== node.id &&
+    isCanonicalScript && (!isEmptyScript || hasScriptWorkflowSource)
+  const runtimePresentation = props.generationRuntimePresentations.get(node.id) ?? null
+  const interactionState = resolveCanvasCardProductionInteractionState({
+    hasInlineEditor: props.textAuthoringNodeId === node.id || (
+      interaction.kind === 'composer' && isSelected && !workModel.showsAttachedWorkSurface
+    ),
+    hasAttachedComposer: workModel.showsAttachedWorkSurface || showsTextWorkflow ||
+      showsScriptAuthoring || Boolean(isSelected && capabilityWorkflow),
+    isSubmitting: runtimePresentation?.phase === 'submitting',
+  })
+  const viewModel = buildCanvasCardViewModel(node, {
     isReadOnly: props.readonly,
     isSelected,
-    lifecycleTone: node.status === 'running' ? 'progress' : node.status === 'warning' ? 'danger' : 'none',
-    reducedMotion: typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    interactionState,
+    runtimePresentation,
   })
   const referenceCandidates: CanvasCardReferenceCandidate[] = workModel.canSelectCanvasReference
     ? props.nodes.flatMap((candidate) => {
@@ -207,6 +237,7 @@ const surfaces = computed(() => props.nodes.flatMap((node) => {
         if (!sourceNode) return []
         const media = buildCanvasNodePresentation(sourceNode).media
         return [{
+          assetId: source.assetId ?? undefined,
           id: source.nodeId,
           title: resolveCanvasCardReferenceDisplayTitle(sourceNode, props.nodes),
           previewUrl: media?.kind === 'image' ? media.url : media?.kind === 'video' ? media.poster ?? media.url : undefined,
@@ -215,20 +246,38 @@ const surfaces = computed(() => props.nodes.flatMap((node) => {
     : []
   const selectedReferences: CanvasCardReferenceCandidate[] = props.generationContext?.mediaType === 'video' &&
     props.generationContext.capabilities?.contract_version === 6
-    ? (props.generationContext.videoReferences ?? []).flatMap((binding) => {
-        const connected = connectedReferences.find((reference) => reference.id === binding.node_id)
-        return connected ? [{
-          ...connected,
-          key: `${binding.node_id}:${binding.asset_id}:${binding.role}:${binding.order}`,
-          order: binding.order,
-          role: binding.role,
-        }] : []
-      })
+    ? (
+        viewModel.references.length
+          ? [...viewModel.references].sort((left, right) => left.order - right.order).flatMap((reference) => {
+              const connected = connectedReferences.find((candidate) => (
+                candidate.id === reference.stableId && candidate.assetId === reference.assetId
+              ))
+              const role = ['first-frame', 'last-frame', 'reference'].includes(reference.role)
+                ? reference.role as VideoReferenceRole
+                : 'reference'
+              return connected ? [{
+                ...connected,
+                key: `${reference.stableId}:${reference.assetId}:${reference.role}:${reference.order}`,
+                order: reference.order,
+                previewUrl: reference.thumbnailUrl,
+                role,
+                title: reference.displayName,
+              }] : []
+            })
+          : (props.generationContext.videoReferences ?? []).flatMap((binding) => {
+              const connected = connectedReferences.find((reference) => reference.id === binding.node_id)
+              return connected ? [{
+                ...connected,
+                key: `${binding.node_id}:${binding.asset_id}:${binding.role}:${binding.order}`,
+                order: binding.order,
+                role: binding.role,
+              }] : []
+            })
+      )
     : connectedReferences
   const materializedResultId = typeof node.contentData?.materialized_result_node_id === 'string'
     ? node.contentData.materialized_result_node_id
     : ''
-  const scriptRoleReferenceIds = new Set(readScriptReferenceAssetIds(node))
   const scriptRoleReferenceCandidates = isCanonicalScript
     ? props.referenceSourceNodes.flatMap((candidate) => {
         const candidateAssetId = typeof candidate.contentData?.asset_id === 'string'
@@ -243,31 +292,11 @@ const surfaces = computed(() => props.nodes.flatMap((node) => {
         }]
       })
     : []
-  return [{ node, viewModel, interaction, cardPresentation, workModel, projectedMedia, projectedResultId: projectedResult?.id ?? materializedResultId, connectedReferences, referenceCandidates, selectedReferences, runtimePresentation: props.generationRuntimePresentations.get(node.id) ?? null, showsTextModeChooser, showsTextWorkflow, showsScriptAuthoring, showsScriptEmptyState, isReferenceCandidate, referenceDisplayTitle: resolveCanvasCardReferenceDisplayTitle(node, props.nodes), scriptRoleReferenceCandidates, scriptRoleReferenceCount: scriptRoleReferenceIds.size }]
+  const zoom = Number.parseFloat(
+    props.surfaceNodeRectStyle(node, 'content')['--canvas-surface-zoom'] ?? '1',
+  )
+  return [{ node, viewModel, interaction, workModel, projectedMedia, projectedResultId: projectedResult?.id ?? materializedResultId, capabilityWorkflow, connectedReferences, referenceCandidates, selectedReferences, runtimePresentation, showsTextModeChooser, showsTextWorkflow, showsScriptAuthoring, showsScriptEmptyState, isCanonicalScript, isReferenceCandidate, referenceDisplayTitle: resolveCanvasCardReferenceDisplayTitle(node, props.nodes), scriptRoleReferenceCandidates, scriptRoleReferenceCount: scriptRoleReferenceIds.size, zoom }]
 }))
-const titleSurfaces = computed(() => props.nodes.flatMap((node) => {
-  if (props.hiddenNodeIds.has(node.id)) return []
-  const style = props.surfaceNodeRectStyle(node, 'content')
-  const left = Number.parseFloat(style.left ?? '0')
-  const top = Number.parseFloat(style.top ?? '0')
-  const width = Number.parseFloat(style.width ?? '0')
-  const height = Number.parseFloat(style.height ?? '0')
-  const zoom = Number.parseFloat(style['--canvas-surface-zoom'] ?? '1')
-  const overscan = 64
-  const titleTop = top - 22 * zoom
-  if (
-    props.stageSize.width > 0 &&
-    props.stageSize.height > 0 &&
-    (
-      left + width < -overscan ||
-      left > props.stageSize.width + overscan ||
-      top + height < -overscan ||
-      titleTop > props.stageSize.height + overscan
-    )
-  ) return []
-  return [{ node, style }]
-}))
-function forwardContinuation(nodeId: string, portId: string) { emit('continueNode', nodeId, portId) }
 function forwardCaptureFrame(nodeId: string, file: File, timeSeconds: number, aspectRatio: number) { emit('captureFrame', nodeId, file, timeSeconds, aspectRatio) }
 function attachedSurfaceStyle(
   node: CanvasNode,
@@ -298,7 +327,9 @@ function attachedSurfaceStyle(
   return {
     '--canvas-attached-anchor-x': `${placement.anchorX / containerScale}px`,
     left: `${(placement.left - containerLeft) / containerScale}px`,
-    top: `${(placement.top - containerTop) / containerScale}px`,
+    top: placement.placement === 'below'
+      ? 'calc(100% + var(--canvas-card-floating-gap, 16px))'
+      : `${(placement.top - containerTop) / containerScale}px`,
     width: `${placement.width / containerScale}px`,
     transform: 'none',
   }
@@ -306,38 +337,50 @@ function attachedSurfaceStyle(
 </script>
 <template>
   <div class="canvas-node-surface-layer">
-    <CanvasNodeContinuationTrigger v-if="continuationTrigger" :node="continuationTrigger.node" :port-id="continuationTrigger.portId" :surface-node-rect-style="surfaceNodeRectStyle" @open="forwardContinuation" />
-    <CanvasNodeTitleEditor
-      v-for="surface in titleSurfaces"
-      :key="`title-${surface.node.id}`"
-      :node="surface.node"
-      :readonly="readonly"
-      :style="surface.style"
-      @commit="(nodeId, title) => emit('renameNode', nodeId, title)"
-    />
-    <div v-for="surface in surfaces" :key="surface.node.id" class="canvas-node-surface" :class="[`is-${surface.interaction.kind}`, { 'has-script-empty-state': surface.showsScriptEmptyState }]" :data-card-state="surface.cardPresentation.state" :data-node-id="surface.node.id" :style="surfaceNodeRectStyle(surface.node, surface.showsScriptAuthoring || surface.showsScriptEmptyState ? 'content' : surface.interaction.kind === 'composer' ? 'composer' : 'content')">
-      <CanvasNodeMedia v-if="surface.projectedMedia" :media="surface.projectedMedia" :capture-pending="capturePending" @metadata="emit('mediaMetadata', surface.projectedResultId, $event)" />
-      <CanvasScriptEmptyState
-        v-else-if="surface.showsScriptEmptyState"
-        :can-select-role-source="!readonly && !surface.node.isLocked && surface.scriptRoleReferenceCount < MAX_SCRIPT_REFERENCE_ASSETS"
-        :can-select-script-source="!readonly && !surface.node.isLocked"
-        :role-reference-candidates="surface.scriptRoleReferenceCandidates"
-        :role-reference-count="surface.scriptRoleReferenceCount"
-        @clear-role-references="emit('cardScriptRoleReferenceClear', surface.node.id)"
-        @select-role-reference="(sourceNodeId) => emit('cardScriptRoleReferenceSelect', surface.node.id, sourceNodeId)"
-        @select-script-source="emit('cardReferenceStart', surface.node.id)"
-        @direct-write="(opener) => emit('textMode', surface.node.id, 'direct-write', opener)"
-      />
-      <CanvasTextCardModeChooser
-        v-else-if="surface.showsTextModeChooser"
-        :enabled-mode-ids="textGenerationPendingNodeIds.has(surface.node.id) || surface.runtimePresentation?.isTerminal === false ? ['direct-write'] : enabledTextModeIds"
-        :error="textGenerationErrors.get(surface.node.id) ?? ''"
-        :modes="surface.workModel.modes"
-        :pending="textGenerationPendingNodeIds.has(surface.node.id)"
-        @select="(mode, opener) => emit('textMode', surface.node.id, mode, opener)"
-      />
-      <CanvasNodeComposer v-else-if="surface.interaction.kind === 'composer' && selectedNodeIds.length === 1 && !surface.workModel.showsAttachedWorkSurface" :label="surface.interaction.label" :model-value="surface.interaction.content" @commit="emit('commitContent', surface.node.id, $event)" />
-      <CanvasNodeMedia v-else-if="surface.interaction.kind === 'media'" :media="surface.interaction.media" :can-capture-frame="!readonly && !surface.node.isLocked && selectedNodeIds.length === 1 && selectedNodeIds[0] === surface.node.id && surface.interaction.media.kind === 'video'" :capture-pending="capturePending" :keyframe-rail-placement="resolveKeyframeRailPlacement(surface.node, nodes)" @capture-frame="(file, timeSeconds, aspectRatio) => forwardCaptureFrame(surface.projectedResultId || surface.node.id, file, timeSeconds, aspectRatio)" @metadata="emit('mediaMetadata', surface.projectedResultId || surface.node.id, $event)" />
+    <div v-for="surface in surfaces" :key="surface.node.id" class="canvas-node-surface" :class="[`is-${surface.interaction.kind}`, `is-${surface.viewModel.state.phase}`, { 'has-script-empty-state': surface.showsScriptEmptyState }]" :data-card-state="surface.viewModel.state.phase" :data-node-id="surface.node.id" :style="surfaceNodeRectStyle(surface.node, 'content')">
+      <CanvasRuntimeCard
+        :node="surface.node"
+        :readonly="readonly"
+        :view-model="surface.viewModel"
+        :zoom="surface.zoom"
+        @drag-start="(nodeId, event) => emit('nodePointerDown', nodeId, event)"
+        @direct-edit="(nodeId) => emit('textMode', nodeId, 'direct-write')"
+        @port-start="(nodeId, portId, direction, event) => emit('portPointerDown', nodeId, portId, direction, event)"
+        @rename="(nodeId, title) => emit('renameNode', nodeId, title)"
+        @select="(nodeId, event) => emit('selectNode', nodeId, event)"
+      >
+        <CanvasNodeMedia v-if="surface.projectedMedia" :media="surface.projectedMedia" :capture-pending="capturePending" @metadata="emit('mediaMetadata', surface.projectedResultId, $event)" />
+        <CanvasScriptEmptyState
+          v-else-if="surface.showsScriptEmptyState"
+          :can-select-role-source="!readonly && !surface.node.isLocked && surface.scriptRoleReferenceCount < MAX_SCRIPT_REFERENCE_ASSETS"
+          :can-select-script-source="!readonly && !surface.node.isLocked"
+          :role-reference-candidates="surface.scriptRoleReferenceCandidates"
+          :role-reference-count="surface.scriptRoleReferenceCount"
+          @clear-role-references="emit('cardScriptRoleReferenceClear', surface.node.id)"
+          @select-role-reference="(sourceNodeId) => emit('cardScriptRoleReferenceSelect', surface.node.id, sourceNodeId)"
+          @select-script-source="emit('cardReferenceStart', surface.node.id)"
+          @direct-write="(opener) => emit('textMode', surface.node.id, 'direct-write', opener)"
+        />
+        <CanvasTextCardModeChooser
+          v-else-if="surface.showsTextModeChooser"
+          :enabled-mode-ids="textGenerationPendingNodeIds.has(surface.node.id) || surface.runtimePresentation?.isTerminal === false ? ['direct-write'] : enabledTextModeIds"
+          :error="textGenerationErrors.get(surface.node.id) ?? ''"
+          :modes="surface.workModel.modes"
+          :pending="textGenerationPendingNodeIds.has(surface.node.id)"
+          @select="(mode, opener) => emit('textMode', surface.node.id, mode, opener)"
+        />
+        <CanvasNodeComposer v-else-if="surface.interaction.kind === 'composer' && selectedNodeIds.length === 1 && !surface.workModel.showsAttachedWorkSurface" :label="surface.interaction.label" :model-value="surface.interaction.content" @commit="emit('commitContent', surface.node.id, $event)" @close="emit('directEditClose', surface.node.id)" />
+        <CanvasNodeMedia v-else-if="surface.interaction.kind === 'media'" :media="surface.interaction.media" :can-capture-frame="!readonly && !surface.node.isLocked && selectedNodeIds.length === 1 && selectedNodeIds[0] === surface.node.id && surface.interaction.media.kind === 'video'" :capture-pending="capturePending" :keyframe-rail-placement="resolveKeyframeRailPlacement(surface.node, nodes)" @capture-frame="(file, timeSeconds, aspectRatio) => forwardCaptureFrame(surface.projectedResultId || surface.node.id, file, timeSeconds, aspectRatio)" @metadata="emit('mediaMetadata', surface.projectedResultId || surface.node.id, $event)" />
+        <div v-else class="canvas-runtime-card-primary">
+          <p>{{ surface.viewModel.body.content || '尚未添加内容' }}</p>
+          <button
+            v-if="surface.isCanonicalScript && selectedNodeIds.length === 1 && selectedNodeIds[0] === surface.node.id"
+            type="button"
+            @click.stop="emit('scriptWorkflowOpen', surface.node.id)"
+            @pointerdown.stop
+          >展开脚本工作流</button>
+        </div>
+      </CanvasRuntimeCard>
       <CanvasCardWorkSurface
         v-if="surface.workModel.showsAttachedWorkSurface"
         :busy="cardWorkBusy"
@@ -353,6 +396,9 @@ function attachedSurfaceStyle(
           surface.interaction.kind === 'composer' ? 'composer' : 'content',
         )"
         :parameter-summary="cardWorkParameterSummary"
+        :persisted-generation-mode="surface.viewModel.configuration.generationMode"
+        :prompt-document="surface.viewModel.configuration.promptDocument"
+        :canonical-references="surface.viewModel.references"
         :connected-references="surface.connectedReferences"
         :reference-candidates="surface.referenceCandidates"
         :selected-references="surface.selectedReferences"
@@ -364,7 +410,18 @@ function attachedSurfaceStyle(
         @begin-reference="emit('cardReferenceStart', surface.node.id)"
         @cancel-reference="emit('cardReferenceCancel')"
         @update-parameters="emit('cardUpdateParameters', $event)"
-        @update-prompt="emit('commitContent', surface.node.id, $event)"
+        @update-composition="(prompt, document, references) => emit(
+          'cardUpdateComposition',
+          surface.node.id,
+          prompt,
+          document,
+          references,
+        )"
+      />
+      <CanvasCapabilityCardComposer
+        v-if="surface.capabilityWorkflow && selectedNodeIds.length === 1"
+        :kind="surface.capabilityWorkflow"
+        :placement-style="attachedSurfaceStyle(surface.node, 132)"
       />
       <CanvasTextWorkflowComposer
         v-if="surface.showsTextWorkflow && textWorkflowMode"
@@ -393,7 +450,7 @@ function attachedSurfaceStyle(
         :quota="scriptQuota"
         :readonly="readonly"
         :success="scriptAuthoringSuccess"
-        @cancel="emit('cancelScriptAuthoring')"
+        @cancel="emit('scriptWorkflowClose')"
         @generate="emit('generateScript', $event)"
         @retry-capability="emit('retryScriptCapability')"
       />

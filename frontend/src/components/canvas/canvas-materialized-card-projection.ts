@@ -20,12 +20,31 @@ function hasSpecializedGenerationWorkflow(node: CanvasNode) {
   return Boolean(node.contentData?.generation_recipe_id || image?.operation)
 }
 
+function hasSameCardGenerationResult(node: CanvasNode) {
+  const assetId = node.contentData?.asset_id
+  const resultAssetId = node.contentData?.result_asset_id
+  return (
+    node.type === 'generation' &&
+    typeof assetId === 'string' &&
+    assetId.trim() !== '' &&
+    assetId === resultAssetId &&
+    typeof node.contentData?.last_generation_job_id === 'string' &&
+    node.contentData.last_generation_job_id.trim() !== '' &&
+    typeof node.contentData?.url === 'string' &&
+    node.contentData.url.trim() !== ''
+  )
+}
+
 export function resolveCanvasMaterializedCardResult(
   source: CanvasNode,
   nodes: readonly CanvasNode[],
   connections: readonly CanvasConnection[],
 ) {
-  if (source.type !== 'generation' || hasSpecializedGenerationWorkflow(source)) return null
+  if (
+    source.type !== 'generation' ||
+    hasSpecializedGenerationWorkflow(source) ||
+    hasSameCardGenerationResult(source)
+  ) return null
   const materializedTaskId = source.contentData?.result_materialized_task_id
   if (typeof materializedTaskId !== 'string' || !materializedTaskId.trim()) return null
   const result = resolveCanvasCardProjectedResult(source, nodes, connections)

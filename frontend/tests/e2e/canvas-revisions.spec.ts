@@ -142,7 +142,7 @@ async function openCanvas(page: Page, state: RevisionState, width = 1366, expect
   await page.setViewportSize({ width, height: width < 768 ? 812 : 768 })
   await installApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'revision-token'))
-  await page.goto(`/app/projects/${PROJECT_ID}/canvases/${CANVAS_ID}`)
+  await page.goto(`/app/projects/${PROJECT_ID}/canvases/${CANVAS_ID}?canvas_runtime=legacy`)
   await expect(page.locator('.canvas-surface')).toBeVisible()
   if (expectSaved) await expect(page.locator('.sync-status')).toContainText(`r${state.revision}`)
 }

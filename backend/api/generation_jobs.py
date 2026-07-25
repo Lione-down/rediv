@@ -10,6 +10,7 @@ from repositories.generation_tasks import (
     GenerationJobStateError,
 )
 from schemas.generation_job import (
+    GenerationJobCinematicLineage,
     GenerationJobDeltaPage,
     GenerationJobResult,
     GenerationJobStatus,
@@ -86,6 +87,54 @@ def get_generation_job(job_id: str, user=Depends(current_user)):
 def get_generation_job_result(job_id: str, user=Depends(current_user)):
     try:
         return _service().get_result(user["id"], job_id)
+    except Exception as error:
+        raise _map_error(error) from error
+
+
+@router.get(
+    "/projects/{project_id}/canvases/{canvas_id}/nodes/{node_id}"
+    "/generation-jobs/by-client-request/{client_request_id}",
+    response_model=GenerationJobSubmitReceipt,
+)
+def recover_generation_job(
+    project_id: str,
+    canvas_id: str,
+    node_id: str,
+    client_request_id: str,
+    user=Depends(current_user),
+):
+    try:
+        return _service().recover_by_client_request(
+            user_id=user["id"],
+            project_id=project_id,
+            canvas_id=canvas_id,
+            node_id=node_id,
+            client_request_id=client_request_id,
+        )
+    except Exception as error:
+        raise _map_error(error) from error
+
+
+@router.get(
+    "/projects/{project_id}/canvases/{canvas_id}/nodes/{node_id}"
+    "/generation-jobs/{job_id}/cinematic-lineage",
+    response_model=GenerationJobCinematicLineage,
+)
+def get_generation_job_cinematic_lineage(
+    project_id: str,
+    canvas_id: str,
+    node_id: str,
+    job_id: str,
+    user=Depends(current_user),
+):
+    try:
+        return _service().get_cinematic_lineage(
+            user_id=user["id"],
+            project_id=project_id,
+            canvas_id=canvas_id,
+            node_id=node_id,
+            job_id=job_id,
+        )
     except Exception as error:
         raise _map_error(error) from error
 

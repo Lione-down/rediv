@@ -113,12 +113,11 @@ function resolvePortAnchors(
 ) {
   const definition = resolveNodeDefinition(node.type, node.contentData)
   if (definition.kind === 'unsupported') return []
-  return definition.ports
-    .filter((port) => port.direction === direction)
-    .map((port) => ({
+  const ports = definition.ports.filter((port) => port.direction === direction)
+  return ports.map((port, index) => ({
       portId: port.id,
       x: direction === 'input' ? visible.left : visible.left + visible.width,
-      y: visible.top + visible.height / 2,
+      y: visible.top + visible.height * (index + 1) / (ports.length + 1),
     }))
 }
 

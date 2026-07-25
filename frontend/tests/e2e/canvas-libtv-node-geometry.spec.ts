@@ -22,16 +22,28 @@ async function setZoom(page: Page, percent: number) {
   await expect(zoom).toHaveValue(String(percent))
 }
 
-async function portPoint(page: Page, direction: 'input' | 'output', nodeId = 'generation-cover') {
+async function portPoint(
+  page: Page,
+  direction: 'input' | 'output',
+  nodeId = 'generation-cover',
+  portId = direction === 'input' ? 'prompt' : 'out',
+) {
   return page.locator('.canvas-surface').evaluate((element, request) => (
     (element as HTMLElement & {
       __revidCanvasInspection?: {
         getPortScreenPoint: (nodeId: string, direction: 'input' | 'output', portId: string) => { x: number; y: number } | null
       }
     }).__revidCanvasInspection?.getPortScreenPoint(
-       request.nodeId, request.direction, request.direction === 'input' ? 'prompt' : 'out',
+       request.nodeId, request.direction, request.portId,
     ) ?? null
-  ), { direction, nodeId })
+  ), { direction, nodeId, portId })
+}
+
+async function domPortPoint(page: Page, nodeId: string, portId: string) {
+  const rect = await page.locator(
+    `.canvas-node-surface[data-node-id="${nodeId}"] .canvas-runtime-port[data-port-id="${portId}"]`,
+  ).boundingBox()
+  return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : null
 }
 
 async function portMarkerPoint(page: Page, direction: 'input' | 'output', nodeId = 'generation-cover') {
@@ -107,7 +119,7 @@ function expectViewportStableToolbar(toolbar: ScreenRect, node: ScreenRect, surf
   expect(toolbar.height).toBeLessThanOrEqual(52)
 }
 
-async function expectHorizontalToolbarRhythm(toolbar: Locator) {
+async function expectHorizontalToolbarRhythm(toolbar: Locator, allowHorizontalOverflow = false) {
   const rhythm = await toolbar.evaluate((element) => {
     const action = element.querySelector<HTMLElement>('.canvas-media-toolbar__action')!
     const icon = action.querySelector<SVGElement>('svg')!
@@ -131,7 +143,8 @@ async function expectHorizontalToolbarRhythm(toolbar: Locator) {
   expect(rhythm.actionHeight).toBeGreaterThanOrEqual(36)
   expect(rhythm.iconLabelCenterDelta).toBeLessThanOrEqual(1.5)
   expect(rhythm.labelGap).toBeGreaterThanOrEqual(4)
-  expect(rhythm.overflow).toBeLessThanOrEqual(1)
+  if (allowHorizontalOverflow) expect(rhythm.overflow).toBeGreaterThan(0)
+  else expect(rhythm.overflow).toBeLessThanOrEqual(1)
 }
 
 test('media and script bodies consume canonical geometry at official target zooms', async ({ page }) => {
@@ -152,14 +165,15 @@ test('media and script bodies consume canonical geometry at official target zoom
     expect(surface!.width).toBeCloseTo(320 * scale, 0)
     expect(surface!.height).toBeCloseTo(180 * scale, 0)
     expect(viewport!.width).toBeCloseTo(surface!.width, 0)
-    expect(viewport!.height).toBeCloseTo(surface!.height, 0)
+    expect(viewport!.height).toBeCloseTo(surface!.height - 42 * scale, 0)
     expect(viewport!.x).toBeCloseTo(surface!.x, 0)
-    expect(viewport!.y).toBeCloseTo(surface!.y, 0)
+    expect(viewport!.y).toBeCloseTo(surface!.y + 42 * scale, 0)
   }
 
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: /选择并定位.*镜头脚本/ }).click()
-  const composer = page.locator('.canvas-node-surface.is-composer[data-node-id="script-source"]')
+  await page.locator('.canvas-node-surface[data-node-id="script-source"]').getByRole('button', { name: '展开脚本工作流' }).click()
+  const composer = page.locator('.canvas-node-surface[data-node-id="script-source"]')
 
   for (const percent of [17, 36, 100, 200]) {
     await setZoom(page, percent)
@@ -173,7 +187,7 @@ test('media and script bodies consume canonical geometry at official target zoom
   expect(documentPatches(state)).toHaveLength(baselinePatches)
 })
 
-test('output plus floats outside in X/Y while outgoing paths stay on the shared boundary anchor', async ({ page }, testInfo) => {
+test('single DOM output stays on the shared boundary through hover and draft drag', async ({ page }) => {
   const state = createResourceMockState()
   const document = state.documents[FIRST_CANVAS_ID]
   const source = document.nodes.find((candidate) => candidate.id === 'generation-cover')!
@@ -220,7 +234,7 @@ test('output plus floats outside in X/Y while outgoing paths stay on the shared 
   expect(bottomTarget).not.toBeNull()
   expect(resting).not.toBeNull()
   expect(resting!.y).toBeCloseTo(node!.y + node!.height / 2, 0)
-  expect(resting!.x).toBeGreaterThan(node!.x + node!.width)
+  expect(resting!.x).toBeCloseTo(node!.x + node!.width, 0)
   await expectPortMarkerCentered(page, resting!)
 
   const topEdge = page.getByRole('button', { name: '选择连线：封面生成 到 灵动目标上' })
@@ -237,39 +251,25 @@ test('output plus floats outside in X/Y while outgoing paths stay on the shared 
     }))
   }
 
-  const captureClip = {
-    x: Math.max(0, Math.floor(Math.min(node!.x, topTarget!.x, bottomTarget!.x) - 80)),
-    y: Math.max(0, Math.floor(Math.min(node!.y, topTarget!.y, bottomTarget!.y) - 80)),
-    width: Math.min(1440, Math.ceil(Math.max(
-      node!.x + node!.width, topTarget!.x + topTarget!.width, bottomTarget!.x + bottomTarget!.width,
-    ) + 80)) - Math.max(0, Math.floor(Math.min(node!.x, topTarget!.x, bottomTarget!.x) - 80)),
-    height: Math.min(900, Math.ceil(Math.max(
-      node!.y + node!.height, topTarget!.y + topTarget!.height, bottomTarget!.y + bottomTarget!.height,
-    ) + 80)) - Math.max(0, Math.floor(Math.min(node!.y, topTarget!.y, bottomTarget!.y) - 80)),
-  }
-  const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't6-003-detached-output')
-  await mkdir(evidenceDirectory, { recursive: true })
-  await page.mouse.move(4, 4)
-  await expectEdgesAtBoundary()
-  const restingPath = resolve(evidenceDirectory, '01-resting-shared-anchor.png')
-  await page.screenshot({ path: restingPath, animations: 'disabled', clip: captureClip })
-  await testInfo.attach('elastic-output-resting', { path: restingPath, contentType: 'image/png' })
-
-  const acquisitionCenter = { x: node!.x + node!.width + 40, y: node!.y + node!.height / 2 }
-  const following = { x: acquisitionCenter.x + 12, y: acquisitionCenter.y - 8 }
-  await page.mouse.move(following.x, following.y)
-  await expect.poll(() => portPoint(page, 'output')).toEqual(expect.objectContaining({
-    x: expect.closeTo(following.x, 0),
-    y: expect.closeTo(following.y, 0),
+  const visiblePort = page.locator(
+    '.canvas-node-surface[data-node-id="generation-cover"] .canvas-runtime-port[data-port-id="out"]',
+  )
+  await expect(visiblePort).toHaveCount(1)
+  expect(await domPortPoint(page, 'generation-cover', 'out')).toEqual(expect.objectContaining({
+    x: expect.closeTo(fixedBoundaryAnchor.x, 0),
+    y: expect.closeTo(fixedBoundaryAnchor.y, 0),
   }))
-  await expectPortMarkerCentered(page, following)
   await expectEdgesAtBoundary()
-  const followingPath = resolve(evidenceDirectory, '02-following-shared-anchor.png')
-  await page.screenshot({ path: followingPath, animations: 'disabled', clip: captureClip })
-  await testInfo.attach('elastic-output-following', { path: followingPath, contentType: 'image/png' })
+  await visiblePort.dispatchEvent('pointerenter')
+  await expect.poll(() => portPoint(page, 'output')).toEqual(expect.objectContaining({
+    x: expect.closeTo(fixedBoundaryAnchor.x, 0),
+    y: expect.closeTo(fixedBoundaryAnchor.y, 0),
+  }))
+  await expectEdgesAtBoundary()
 
+  await page.mouse.move(fixedBoundaryAnchor.x, fixedBoundaryAnchor.y)
   await page.mouse.down()
-  await page.mouse.move(following.x + 80, following.y + 40)
+  await page.mouse.move(fixedBoundaryAnchor.x + 80, fixedBoundaryAnchor.y + 40)
   const draft = page.locator('path.draft')
   await expect(draft).toBeVisible()
   await expect.poll(() => edgeScreenStart(draft)).toEqual(expect.objectContaining({
@@ -278,35 +278,12 @@ test('output plus floats outside in X/Y while outgoing paths stay on the shared 
   }))
   await page.mouse.up()
   await page.keyboard.press('Escape')
-
-  const distantPointer = { x: acquisitionCenter.x + 32, y: acquisitionCenter.y + 20 }
-  await page.mouse.move(distantPointer.x, distantPointer.y)
-  const distance = Math.hypot(distantPointer.x - acquisitionCenter.x, distantPointer.y - acquisitionCenter.y)
-  const clamped = {
-    x: acquisitionCenter.x + (distantPointer.x - acquisitionCenter.x) * 30 / distance,
-    y: acquisitionCenter.y + (distantPointer.y - acquisitionCenter.y) * 30 / distance,
-  }
-  await expect.poll(() => portPoint(page, 'output')).toEqual(expect.objectContaining({
-    x: expect.closeTo(clamped.x, 0),
-    y: expect.closeTo(clamped.y, 0),
-  }))
-  await expectPortMarkerCentered(page, clamped)
+  await visiblePort.dispatchEvent('pointerleave')
   await expectEdgesAtBoundary()
-
-  await page.mouse.move(node!.x + node!.width + 90, node!.y + node!.height / 2)
-  await expect.poll(() => portPoint(page, 'output')).toEqual(expect.objectContaining({
-    x: expect.closeTo(resting!.x, 0),
-    y: expect.closeTo(resting!.y, 0),
-  }))
-  await expectPortMarkerCentered(page, resting!)
-  await expectEdgesAtBoundary()
-  const resetPath = resolve(evidenceDirectory, '03-reset-shared-anchor.png')
-  await page.screenshot({ path: resetPath, animations: 'disabled', clip: captureClip })
-  await testInfo.attach('elastic-output-reset', { path: resetPath, contentType: 'image/png' })
   expect(documentPatches(state)).toHaveLength(baselinePatches)
 })
 
-test('prompt and media paths converge on one visible materialized input anchor', async ({ page }, testInfo) => {
+test('prompt and media paths terminate at their distinct visible DOM input anchors', async ({ page }, testInfo) => {
   const state = createResourceMockState()
   const document = state.documents[FIRST_CANVAS_ID]
   const target = document.nodes.find((candidate) => candidate.id === 'generation-cover')!
@@ -344,29 +321,38 @@ test('prompt and media paths converge on one visible materialized input anchor',
   await openResourceWorkspace(page, state, { width: 1440, height: 900 }, { enableCanvasInspection: true })
   await setZoom(page, 100)
   const baselinePatches = documentPatches(state).length
-  const [targetRect, firstSourceRect, secondSourceRect, inputPoint] = await Promise.all([
+  const [targetRect, firstSourceRect, secondSourceRect, promptPoint, mediaPoint] = await Promise.all([
     rendererRect(page),
     rendererRect(page, 'script-source'),
     rendererRect(page, 'script-source-reference'),
-    portPoint(page, 'input'),
+    portPoint(page, 'input', 'generation-cover', 'prompt'),
+    portPoint(page, 'input', 'generation-cover', 'media'),
   ])
   expect(targetRect).not.toBeNull()
   expect(firstSourceRect).not.toBeNull()
   expect(secondSourceRect).not.toBeNull()
-  expect(inputPoint).not.toBeNull()
-  expect(inputPoint!.x).toBeCloseTo(targetRect!.x, 0)
-  expect(inputPoint!.y).toBeCloseTo(targetRect!.y + targetRect!.height / 2, 0)
+  expect(promptPoint).not.toBeNull()
+  expect(mediaPoint).not.toBeNull()
+  expect(promptPoint!.x).toBeCloseTo(targetRect!.x, 0)
+  expect(mediaPoint!.x).toBeCloseTo(targetRect!.x, 0)
+  expect(promptPoint!.y).not.toBeCloseTo(mediaPoint!.y, 0)
+  expect(await domPortPoint(page, 'generation-cover', 'prompt')).toEqual(expect.objectContaining({
+    x: expect.closeTo(promptPoint!.x, 0), y: expect.closeTo(promptPoint!.y, 0),
+  }))
+  expect(await domPortPoint(page, 'generation-cover', 'media')).toEqual(expect.objectContaining({
+    x: expect.closeTo(mediaPoint!.x, 0), y: expect.closeTo(mediaPoint!.y, 0),
+  }))
 
   const promptEdge = page.locator('.connection-hit[aria-label*="镜头脚本 到 封面生成"]')
   const mediaEdge = page.locator('.connection-hit[aria-label*="补充参考 到 封面生成"]')
   await expect(promptEdge).toBeVisible()
   await expect(mediaEdge).toBeVisible()
-  for (const edge of [promptEdge, mediaEdge]) {
-    await expect.poll(() => edgeScreenEnd(edge)).toEqual(expect.objectContaining({
-      x: expect.closeTo(inputPoint!.x, 0),
-      y: expect.closeTo(inputPoint!.y, 0),
-    }))
-  }
+  await expect.poll(() => edgeScreenEnd(promptEdge)).toEqual(expect.objectContaining({
+    x: expect.closeTo(promptPoint!.x, 0), y: expect.closeTo(promptPoint!.y, 0),
+  }))
+  await expect.poll(() => edgeScreenEnd(mediaEdge)).toEqual(expect.objectContaining({
+    x: expect.closeTo(mediaPoint!.x, 0), y: expect.closeTo(mediaPoint!.y, 0),
+  }))
   expect(document.connections.filter((connection) => (
     connection.id === 'connection-shared-prompt' || connection.id === 'connection-shared-media'
   )).map((connection) => connection.target_port)).toEqual(['prompt', 'media'])
@@ -398,7 +384,7 @@ test('prompt and media paths converge on one visible materialized input anchor',
   expect(documentPatches(state)).toHaveLength(baselinePatches)
 })
 
-test('portrait metadata keeps the detached output control outside the current visible node boundary', async ({ page }) => {
+test('portrait metadata keeps the canonical DOM ports on the current visible node boundary', async ({ page }) => {
   const state = createResourceMockState()
   const portrait = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'result-existing')!
   portrait.width = 560
@@ -465,8 +451,10 @@ test('portrait metadata keeps the detached output control outside the current vi
     expect(inputPort).not.toBeNull()
     expect(outputPort).not.toBeNull()
     expect(inputPort!.x).toBeCloseTo(rect.x, 0)
-    expect(inputPort!.y).toBeCloseTo(rect.y + rect.height / 2, 0)
-    expect(outputPort!.x).toBeCloseTo(rect.x + rect.width + 15 * percent / 100, 0)
+    expect(await domPortPoint(page, 'generation-cover', 'prompt')).toEqual(expect.objectContaining({
+      x: expect.closeTo(inputPort!.x, 0), y: expect.closeTo(inputPort!.y, 0),
+    }))
+    expect(outputPort!.x).toBeCloseTo(rect.x + rect.width, 0)
     expect(outputPort!.y).toBeCloseTo(rect.y + rect.height / 2, 0)
     const toolbarRect = await toolbar.boundingBox()
     expect(toolbarRect).not.toBeNull()
@@ -478,18 +466,6 @@ test('portrait metadata keeps the detached output control outside the current vi
   await toolbar.getByLabel('打开节点详情').click()
   await expect(page.getByRole('button', { name: '关闭节点详情' })).toBeVisible()
   await page.getByRole('button', { name: '关闭节点详情' }).click()
-  const rect = await node.boundingBox()
-  const canvas = await page.locator('.canvas-surface').boundingBox()
-  if (!rect || !canvas) throw new Error('Portrait node geometry is unavailable')
-
-  const source = { x: rect.x + rect.width + 12, y: rect.y + rect.height / 2 }
-  const target = { x: canvas.x + 760, y: canvas.y + 680 }
-  await page.mouse.move(source.x, source.y)
-  await page.mouse.down()
-  await page.mouse.move(target.x, target.y, { steps: 8 })
-  await page.mouse.up()
-
-  await expect(page.getByRole('dialog', { name: '继续连接' })).toBeVisible()
   expect(documentPatches(state)).toHaveLength(baselinePatches)
 })
 
@@ -568,16 +544,19 @@ test('selected media toolbar recomputes its safe width during live viewport resi
   await expectHorizontalToolbarRhythm(toolbar)
 
   await page.setViewportSize({ width: 920, height: 900 })
-  await expect.poll(async () => (await toolbar.boundingBox())?.width ?? 0).toBeCloseTo(864, 0)
+  const compactNodeRect = await rendererRect(page)
+  const compactSurface = await page.locator('.workspace-stage').boundingBox()
   const compactRect = await toolbar.boundingBox()
-  expect(compactRect?.x).toBeCloseTo(28, 0)
-  if (!compactRect) throw new Error('Compact toolbar geometry is unavailable')
-  expect(compactRect.height).toBeGreaterThanOrEqual(48)
-  expect(compactRect.height).toBeLessThanOrEqual(52)
-  await expectHorizontalToolbarRhythm(toolbar)
+  if (!compactRect || !compactNodeRect || !compactSurface) throw new Error('Compact toolbar geometry is unavailable')
+  expectViewportStableToolbar(compactRect, compactNodeRect, compactSurface)
+  await expectHorizontalToolbarRhythm(toolbar, true)
 
   await page.setViewportSize({ width: 1440, height: 900 })
-  await expect.poll(async () => (await toolbar.boundingBox())?.width ?? 0).toBeCloseTo(900, 0)
+  const desktopNodeRect = await rendererRect(page)
+  const desktopSurface = await page.locator('.workspace-stage').boundingBox()
+  const desktopToolbar = await toolbar.boundingBox()
+  if (!desktopToolbar || !desktopNodeRect || !desktopSurface) throw new Error('Desktop toolbar geometry is unavailable')
+  expectViewportStableToolbar(desktopToolbar, desktopNodeRect, desktopSurface)
   await expectHorizontalToolbarRhythm(toolbar)
   expect(documentPatches(state)).toHaveLength(baselinePatches)
 })
@@ -591,11 +570,11 @@ test('source-attached script workbench flips above a bottom collision and stays 
   const nodeRect = await rendererRect(page, 'script-source')
   const surfaceRect = await page.locator('.canvas-surface').boundingBox()
   if (!nodeRect || !surfaceRect) throw new Error('Composer placement geometry is unavailable')
-  await page.locator('.canvas-surface').click({
-    force: true,
-    position: { x: nodeRect.x - surfaceRect.x + nodeRect.width / 2, y: nodeRect.y - surfaceRect.y + nodeRect.height / 2 },
-  })
-
+  const scriptCard = page.locator('.canvas-node-surface[data-node-id="script-source"]')
+  await scriptCard.locator('.canvas-runtime-card').dispatchEvent('pointerdown', { pointerId: 1, button: 0 })
+  await expect(scriptCard).toHaveAttribute('data-card-state', 'selected')
+  await scriptCard.getByRole('button', { name: '展开脚本工作流' }).dispatchEvent('click')
+  await expect(scriptCard).toHaveAttribute('data-card-state', 'composing')
   const composerRect = await page.locator('.canvas-script-card-work-surface').boundingBox()
   expect(composerRect).not.toBeNull()
   expect(composerRect!.y + composerRect!.height).toBeLessThanOrEqual(nodeRect.y - 6)

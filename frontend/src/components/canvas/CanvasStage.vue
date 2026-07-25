@@ -64,8 +64,15 @@ import { resolveCanvasCardWorkModel, type CanvasCardWorkModeId } from './canvas-
 import { canBranchFromImageResult, type ResultBranchMediaType } from '../../modules/canvas/resource-commands'
 import { createConnectNodesCommand, createRenameNodeCommand, createSetTextCardContentCommand } from '../../modules/canvas/canvas-commands'
 import { useCanvasStoryboardGroups } from './composables/use-canvas-storyboard-groups'
+import {
+  buildCanvasCardViewModel,
+  type CanvasCardPromptDocument,
+  type CanvasCardReference,
+} from '../../modules/canvas/canvas-card-view-model'
+import { reorderCanvasCardReferences } from '../../modules/canvas/canvas-card-configuration'
 const props = withDefaults(defineProps<{
   actionError?: string; capturePending?: boolean; contextOverlayOpen?: boolean; professionalActionsBlocked?: boolean; readonly?: boolean; resourcesOpen?: boolean
+  allowedAudioModelCount?: number
   cardWorkBusy?: boolean; cardWorkCanGenerate?: boolean; cardWorkError?: string; cardWorkHasSource?: boolean; cardWorkModelLabel?: string; cardWorkParameterSummary?: readonly string[]; cardWorkSourceCount?: number
   cardWorkGenerationContext?: ResolvedGenerationRequestContext | null
   composerAttachments?: readonly ProjectAsset[]; composerBusy?: boolean; composerCapabilityError?: string; composerCapabilityLoading?: boolean; composerModelId?: string; composerModelLabel?: string
@@ -77,7 +84,7 @@ const props = withDefaults(defineProps<{
   storyboardGenerationSummary?: string
   viewportInsets?: Partial<ViewportInsets>
 }>(), {
-  actionError: '', capturePending: false, contextOverlayOpen: false, professionalActionsBlocked: false, readonly: false, resourcesOpen: false,
+  actionError: '', allowedAudioModelCount: 0, capturePending: false, contextOverlayOpen: false, professionalActionsBlocked: false, readonly: false, resourcesOpen: false,
   cardWorkBusy: false, cardWorkCanGenerate: false, cardWorkError: '', cardWorkHasSource: false, cardWorkModelLabel: '', cardWorkParameterSummary: () => [], cardWorkSourceCount: 0,
   cardWorkGenerationContext: null,
   composerAttachments: () => [], composerBusy: false, composerCapabilityError: '', composerCapabilityLoading: false, composerModelId: '', composerModelLabel: '',
@@ -118,12 +125,17 @@ const emit = defineEmits<{
 const graphPanelTriggerRef = ref<HTMLButtonElement | null>(null)
 const textAuthoringNodeId = ref('')
 const textWorkflow = ref<{ nodeId: string; mode: CanvasCardWorkModeId } | null>(null)
+const scriptWorkflowNodeId = ref('')
 const cardReferenceTargetNodeId = ref('')
 let cardReferenceCandidateSnapshot = ''
 function restoreGraphPanelTriggerFocus() {
   void nextTick(() => graphPanelTriggerRef.value?.focus({ preventScroll: true }))
 }
 function forwardCapturedVideoFrame(nodeId: string, file: File, timeSeconds: number, aspectRatio: number) { emit('captureVideoFrame', nodeId, file, timeSeconds, aspectRatio) }
+function selectRuntimeCard(nodeId: string, event: PointerEvent) {
+  const mode = event.ctrlKey || event.metaKey || event.shiftKey ? 'toggle' : undefined
+  canvasStore.selectNode(nodeId, mode)
+}
 
 const {
   canvasStore,
@@ -144,6 +156,11 @@ const {
   contextMenuOptions,
   handleContextMenuSelect,
   handleMinimapPointerDown,
+  handleNodePointerDown,
+  handlePortPointerDown,
+  handleSurfaceContextMenu,
+  handleSurfaceDoubleClick,
+  handleSurfacePointerDown,
   minimapNodeStyle,
   minimapNodes,
   minimapRef,
@@ -216,6 +233,34 @@ const {
   onOpenContextSurface: () => emit('activateContextSurface'),
   onOpenProfessionalActions: (opener) => emit('openProfessionalActions', opener),
 })
+
+function startDomCardDrag(nodeId: string, event: PointerEvent) {
+  handleNodePointerDown(nodeId, { origin: event })
+}
+
+function openScriptWorkflow(nodeId: string) {
+  if (props.readonly) return
+  canvasStore.selectNode(nodeId)
+  scriptWorkflowNodeId.value = nodeId
+}
+
+function closeScriptWorkflow() {
+  scriptWorkflowNodeId.value = ''
+  emit('cancelScriptAuthoring')
+}
+
+function closeDirectEdit(nodeId: string) {
+  if (textAuthoringNodeId.value === nodeId) textAuthoringNodeId.value = ''
+}
+
+function startDomPortDrag(
+  nodeId: string,
+  portId: string,
+  direction: 'input' | 'output',
+  event: PointerEvent,
+) {
+  handlePortPointerDown(nodeId, portId, direction, { origin: event })
+}
 const isStageContextSurfaceOpen = computed(() => (
   isNodeMenuOpen.value || isGraphPanelOpen.value || contextMenu.value.show
 ))
@@ -279,7 +324,6 @@ const mediaToolbarStyle = computed(() => {
     '--canvas-media-toolbar-translate-y': '0px',
   }
 })
-const continuationTrigger = computed(() => resolveCanvasNodeContinuationTrigger(canvasStore.nodes, canvasStore.selectedNodeIds, props.readonly || props.contextOverlayOpen))
 const resultContinuation = computed(() => {
   if (props.readonly || props.contextOverlayOpen || canvasStore.selectedNodeIds.length !== 1) return null
   const node = canvasStore.selectedNode
@@ -544,9 +588,46 @@ function submitTextWorkflow(
   emit('generateTextCard', nodeId, prompt, mode, modelId)
 }
 
+function reorderCardReference(nodeId: string, stableId: string, direction: -1 | 1) {
+  if (props.readonly) return
+  const node = canvasStore.findNodeById(nodeId)
+  if (!node) return
+  const viewModel = buildCanvasCardViewModel(node)
+  if (viewModel.configuration.schemaVersion !== 1 || !viewModel.editability.configuration) return
+  const configuration = reorderCanvasCardReferences({
+    schemaVersion: 1,
+    generationMode: viewModel.configuration.generationMode,
+    modelId: viewModel.configuration.modelId,
+    promptDocument: viewModel.configuration.promptDocument,
+    references: viewModel.references,
+  }, stableId, direction)
+  void canvasStore.setNodeCardConfiguration(nodeId, configuration)
+}
+
+function updateCardComposition(
+  nodeId: string,
+  prompt: string,
+  promptDocument: CanvasCardPromptDocument,
+  references: readonly CanvasCardReference[],
+) {
+  if (props.readonly) return
+  const node = canvasStore.findNodeById(nodeId)
+  if (!node) return
+  const viewModel = buildCanvasCardViewModel(node)
+  if (!viewModel.editability.configuration) return
+  void canvasStore.setNodeCardConfiguration(nodeId, {
+    schemaVersion: 1,
+    generationMode: viewModel.configuration.generationMode,
+    modelId: viewModel.configuration.modelId,
+    promptDocument,
+    references,
+  }, prompt)
+}
+
 watch(() => canvasStore.selectedNodeId, (nodeId) => {
   if (textAuthoringNodeId.value && nodeId !== textAuthoringNodeId.value) textAuthoringNodeId.value = ''
   if (textWorkflow.value && nodeId !== textWorkflow.value.nodeId) textWorkflow.value = null
+  if (scriptWorkflowNodeId.value && nodeId !== scriptWorkflowNodeId.value) scriptWorkflowNodeId.value = ''
 })
 
 function openNodeContinuation(nodeId: string, portId: string) {
@@ -599,6 +680,7 @@ defineExpose({ arrangeSelectedProvenanceTrace, closeTransientInteractions, fitSe
 
 function commitNodeContent(nodeId: string, content: string) {
   if (props.readonly) return
+  if (textAuthoringNodeId.value === nodeId) textAuthoringNodeId.value = ''
   const command = createSetTextCardContentCommand(canvasStore.nodes, nodeId, content)
   if (command) {
     void canvasStore.dispatchCommand({ source: 'keyboard', command }).catch(() => undefined)
@@ -685,9 +767,10 @@ async function attachScriptRoleReference(targetNodeId: string, sourceNodeId: str
   if (!command) return
   await canvasStore.dispatchCommand({ source: 'toolbar', command }).catch(() => undefined)
   canvasStore.selectNode(targetNodeId)
+  scriptWorkflowNodeId.value = targetNodeId
   await nextTick()
-  canvasSurfaceRef.value?.querySelector<HTMLButtonElement>(
-    `.canvas-node-surface[data-node-id="${targetNodeId}"] .script-empty-state button[aria-expanded]`,
+  canvasSurfaceRef.value?.querySelector<HTMLElement>(
+    `.canvas-node-surface[data-node-id="${targetNodeId}"] .canvas-script-card-work-surface`,
   )?.focus({ preventScroll: true })
 }
 
@@ -835,6 +918,9 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
       class="canvas-surface"
       :class="[`cursor-${viewportCursor}`, { 'is-grid-hidden': !isGridEnabled }]"
       :style="canvasGridStyle"
+      @contextmenu="handleSurfaceContextMenu"
+      @dblclick="handleSurfaceDoubleClick"
+      @pointerdown="handleSurfacePointerDown"
     >
       <CanvasConnectionLayer
         :draft-path="temporaryConnectionPath"
@@ -855,6 +941,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :options="connectionContinuation.options"
         :origin-title="canvasStore.findNodeById(connectionContinuation.originNodeId)?.title ?? '当前节点'"
         :direction="connectionContinuation.direction"
+        :allowed-audio-model-count="allowedAudioModelCount"
         :style="continuationStyle"
         @cancel="closeConnectionContinuation"
         @select="selectForegroundContinuation"
@@ -873,7 +960,6 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :connections="presentationConnections"
         :generation-runtime-presentations="generationRuntimePresentations"
         :hidden-node-ids="hiddenPresentationNodeIds"
-        :continuation-trigger="continuationTrigger"
         :nodes="presentationNodes"
         :selected-node-ids="canvasStore.selectedNodeIds"
         :readonly="readonly"
@@ -886,6 +972,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         :script-authoring-error="scriptAuthoringError"
         :script-authoring-intent="scriptAuthoringIntent"
         :script-authoring-success="scriptAuthoringSuccess"
+        :script-workflow-node-id="scriptWorkflowNodeId"
         :script-quota="scriptQuota"
         :stage-size="stageSize"
         :surface-node-rect-style="surfaceNodeRectStyle"
@@ -904,14 +991,21 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
         @card-script-role-reference-select="attachScriptRoleReference"
         @card-upload="(nodeId, file) => emit('cardUpload', nodeId, file)"
         @card-update-parameters="emit('cardUpdateParameters', $event)"
-        @cancel-script-authoring="emit('cancelScriptAuthoring')"
+        @card-update-composition="updateCardComposition"
+        @cancel-script-authoring="closeScriptWorkflow"
         @commit-content="commitNodeContent"
-        @continue-node="openNodeContinuation"
+        @direct-edit-close="closeDirectEdit"
         @capture-frame="forwardCapturedVideoFrame"
         @media-metadata="adoptMediaAspectRatio"
+        @node-pointer-down="startDomCardDrag"
+        @port-pointer-down="startDomPortDrag"
+        @reference-reorder="reorderCardReference"
         @rename-node="renameNode"
+        @select-node="selectRuntimeCard"
         @generate-script="emit('generateScript', $event)"
         @retry-script-capability="emit('retryScriptCapability')"
+        @script-workflow-close="closeScriptWorkflow"
+        @script-workflow-open="openScriptWorkflow"
         @text-mode="(nodeId, mode) => handleTextCardMode(nodeId, mode)"
         @text-workflow-cancel="textWorkflow = null"
         @text-workflow-submit="submitTextWorkflow"
@@ -1065,6 +1159,7 @@ function reorderSelectionGenerationInput(nodeId: string, direction: SelectionGen
       <div class="canvas-action-rail" role="toolbar" aria-label="画布主要操作">
         <CanvasToolDock
           v-if="!readonly"
+          :allowed-audio-model-count="allowedAudioModelCount"
           :open="isNodeMenuOpen"
           @open-resources="(opener, tab) => emit('openResources', opener, tab)"
           @open-video-edit-preflight="emit('openVideoEditPreflight', $event)"

@@ -142,6 +142,67 @@ test('compact submit rejects a receipt from another Canvas scope', async () => {
   })).rejects.toThrow(/scope mismatch/i)
 })
 
+test('cinematic lineage uses an exact scoped compact endpoint and rejects legacy task fields', async () => {
+  const calls: string[] = []
+  const lineage = await generationJobApi.fetchGenerationJobCinematicLineage({
+    projectId: 'project-one',
+    canvasId: 'canvas-one',
+    nodeId: 'node-one',
+    jobId: 'job-one',
+  }, {
+    async get(path: string) {
+      calls.push(path)
+      return { data: {
+        job_id: 'job-one',
+        project_id: 'project-one',
+        canvas_id: 'canvas-one',
+        node_id: 'node-one',
+        cinematic_skill: { canonical_request: { references: [] } },
+        version: 2,
+      } }
+    },
+  })
+
+  expect(calls).toEqual([
+    '/api/v2/projects/project-one/canvases/canvas-one/nodes/node-one/generation-jobs/job-one/cinematic-lineage',
+  ])
+  expect(lineage.cinematic_skill).toEqual({ canonical_request: { references: [] } })
+  expect(() => generationJobApi.parseGenerationJobCinematicLineage({
+    ...lineage,
+    request_parameters: { prompt: 'must-not-enter-canvas-runtime' },
+  })).toThrow(/unexpected field/i)
+})
+
+test('ambiguous submit recovery is bound to client request and exact Canvas node scope', async () => {
+  const calls: string[] = []
+  const receipt = await generationJobApi.recoverGenerationJobByClientRequest({
+    projectId: 'project-one',
+    canvasId: 'canvas-one',
+    nodeId: 'node-one',
+    clientRequestId: '00000000-0000-4000-8000-000000000001',
+  }, {
+    async get(path: string) {
+      calls.push(path)
+      return { data: {
+        job_id: 'job-one',
+        project_id: 'project-one',
+        canvas_id: 'canvas-one',
+        node_id: 'node-one',
+        media_type: 'image',
+        status: 'queued',
+        model_id: 'agnes-image-1',
+        quota_revision: null,
+        version: 1,
+      } }
+    },
+  })
+
+  expect(receipt.job_id).toBe('job-one')
+  expect(calls).toEqual([
+    '/api/v2/projects/project-one/canvases/canvas-one/nodes/node-one/generation-jobs/by-client-request/00000000-0000-4000-8000-000000000001',
+  ])
+})
+
 test('job state advances one Canvas cursor while ignoring stale job versions', () => {
   const createGenerationJobStore = requireContractFunction<CreateGenerationJobStore>(
     generationJobStore,
@@ -265,15 +326,127 @@ test('reload sync restores a persisted job then fetches its successful result on
   expect(second.results.get('job-one')).toMatchObject({ version: 5 })
   expect(calls).toEqual([
     { path: '/api/v2/generation-jobs/job-one', params: undefined },
-    {
-      path: '/api/v2/projects/project-one/generation-jobs',
-      params: { canvas_id: 'canvas-one', limit: 25 },
-    },
     { path: '/api/v2/generation-jobs/job-one/result', params: undefined },
-    {
-      path: '/api/v2/projects/project-one/generation-jobs',
-      params: { canvas_id: 'canvas-one', after: 'cursor-one', limit: 25 },
+  ])
+})
+
+test('bound nonterminal job refreshes direct compact status without reading the Canvas delta', async () => {
+  const createGenerationJobStore = requireContractFunction<CreateGenerationJobStore>(
+    generationJobStore,
+    'createGenerationJobStore',
+    'T6-009 RED [generation-job-version-store-absent]: versioned Canvas job state is not implemented',
+  )
+  const syncGenerationJobs = requireContractFunction<SyncGenerationJobs>(
+    generationJobRuntime,
+    'syncGenerationJobs',
+    'T6-009 RED [generation-job-reload-sync-absent]: persisted-job reload sync is not implemented',
+  )
+  const node: CanvasNode = {
+    id: 'node-one',
+    type: 'generation',
+    title: 'Video card',
+    x: 0,
+    y: 0,
+    width: 340,
+    height: 220,
+    contentData: {
+      subtype: 'video',
+      serialization_version: 1,
+      active_generation_job_id: 'job-one',
+      active_generation_media_type: 'video',
     },
+  }
+  const store = createGenerationJobStore()
+  const scope = { projectId: 'project-one', canvasId: 'canvas-one' }
+  store.applyDelta(scope, {
+    items: [compactStatus({
+      media_type: 'video',
+      progress: 0,
+      version: 1,
+    })],
+    next_cursor: 'cursor-one',
+  })
+  const calls: string[] = []
+
+  const snapshot = await syncGenerationJobs({
+    ...scope,
+    nodes: [node],
+    store,
+    transport: {
+      async get(path) {
+        calls.push(path)
+        if (path === '/api/v2/generation-jobs/job-one') {
+          return { data: compactStatus({
+            media_type: 'video',
+            progress: 47,
+            version: 2,
+          }) }
+        }
+        return { data: { items: [], next_cursor: 'cursor-one' } }
+      },
+    },
+  })
+
+  expect(snapshot.statuses.get('job-one')).toMatchObject({
+    progress: 47,
+    version: 2,
+  })
+  expect(calls).toEqual([
+    '/api/v2/generation-jobs/job-one',
+  ])
+})
+
+test('repeated persisted binding sync uses exact status without Canvas delta', async () => {
+  const store = generationJobStore.createGenerationJobStore()
+  const node: CanvasNode = {
+    id: 'node-one',
+    type: 'generation',
+    title: 'Video card',
+    x: 0,
+    y: 0,
+    width: 340,
+    height: 220,
+    contentData: {
+      subtype: 'video',
+      serialization_version: 1,
+      active_generation_job_id: 'job-one',
+      active_generation_media_type: 'video',
+    },
+  }
+  const calls: string[] = []
+  const transport = {
+    async get(path: string) {
+      calls.push(path)
+      if (path === '/api/v2/generation-jobs/job-one') {
+        return { data: compactStatus({
+          media_type: 'video',
+          progress: calls.length === 1 ? 14 : 52,
+          version: calls.length === 1 ? 1 : 2,
+        }) }
+      }
+      throw new Error(`Unexpected generation-job read: ${path}`)
+    },
+  }
+
+  await generationJobRuntime.syncGenerationJobs({
+    projectId: 'project-one',
+    canvasId: 'canvas-one',
+    nodes: [node],
+    store,
+    transport,
+  })
+  const second = await generationJobRuntime.syncGenerationJobs({
+    projectId: 'project-one',
+    canvasId: 'canvas-one',
+    nodes: [node],
+    store,
+    transport,
+  })
+
+  expect(second.statuses.get('job-one')).toMatchObject({ progress: 52, version: 2 })
+  expect(calls).toEqual([
+    '/api/v2/generation-jobs/job-one',
+    '/api/v2/generation-jobs/job-one',
   ])
 })
 

@@ -182,7 +182,7 @@ test('failed composed generation binds the dynamic node without charge, result, 
   const initialQuotas = { ...state.quotas }
   const initialRevision = state.quotaRevision
   const generationNode = await prepareAndCompose(page, state, 'video')
-  await expect(page.locator('.generation-editor [role="alert"]')).toContainText('mock provider unavailable')
+  await expect(page.locator('.canvas-card-work-surface').getByRole('alert')).toContainText('mock provider unavailable')
   await page.waitForTimeout(700)
   expect(generationPosts(state, 'video')).toHaveLength(1)
   expect(state.tasks.find((item) => item.id === 'task-failure')).toEqual(expect.objectContaining({
@@ -193,7 +193,12 @@ test('failed composed generation binds the dynamic node without charge, result, 
   expect(state.quotaRevision).toBe(initialRevision)
   await expect.poll(() => (
     state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === generationNode.id)?.content as Record<string, unknown>
-  ).generation_status).toBe('failed')
+  ).active_generation_job_id).toBe('task-failure')
+  expect(state.requests.filter((item) => item.path === '/api/generation-tasks')).toHaveLength(0)
   await page.reload()
-  expect((state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === generationNode.id)?.content as Record<string, unknown>).generation_task_id).toBe('task-failure')
+  const reloadedContent = state.documents[FIRST_CANVAS_ID].nodes.find(
+    (item) => item.id === generationNode.id,
+  )?.content as Record<string, unknown>
+  expect(reloadedContent.active_generation_job_id).toBe('task-failure')
+  expect(reloadedContent.generation_task_id).toBeUndefined()
 })

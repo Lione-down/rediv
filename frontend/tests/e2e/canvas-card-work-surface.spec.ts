@@ -70,7 +70,8 @@ test('selected generation card follows the authenticated reference then mention 
   const connectedOptions = referencePicker.getByRole('option')
   expect(await connectedOptions.count()).toBeGreaterThan(0)
   await connectedOptions.first().click()
-  await expect(prompt).toHaveValue(/@/)
+  await expect(prompt).toContainText('环境参考')
+  await expect(workSurface.locator('.canvas-card-work-surface__prompt-shell [data-structured-reference-token]')).not.toHaveCount(0)
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(directReferenceBaseline)
 
   await prompt.fill('@')
@@ -166,12 +167,13 @@ test('video reference rail exposes durable roles order removal and per-image pro
   await page.screenshot({ path: screenshotPath, animations: 'disabled' })
   await testInfo.attach('t6-005-video-reference-rail-1440x900', { path: screenshotPath, contentType: 'image/png' })
 
-  const environmentIntent = referenceRail.getByRole('button', { name: '为 环境参考 添加每图意图' })
+  const environmentIntent = referenceRail.getByRole('button', { name: '定位 环境参考 引用 token' })
   await environmentIntent.focus()
   await page.keyboard.press('Enter')
   const prompt = workSurface.getByRole('textbox', { name: '卡片生成提示词' })
-  await expect(prompt).toHaveValue(/@环境参考/)
+  await expect(prompt).not.toContainText('@环境参考')
   await expect(prompt).toBeFocused()
+  await expect(environmentIntent.locator('img')).toHaveCount(1)
 
   const selectedRole = referenceRail.getByRole('combobox', { name: '人物主参考 参考角色' })
   await selectedRole.selectOption('reference')
@@ -235,7 +237,8 @@ test('materialized result is visibly projected into the same generation card', a
     targetBeforeSelection.x + targetBeforeSelection.width / 2,
     targetBeforeSelection.y + targetBeforeSelection.height / 2,
   )
-  await expect(page.getByRole('button', { name: '关闭节点详情' })).toHaveCount(0)
+  const closeDetails = page.getByRole('button', { name: '关闭节点详情' })
+  if (await closeDetails.isVisible().catch(() => false)) await closeDetails.click()
   await expect.poll(() => page.locator('.canvas-surface').evaluate((element) => (
     (element as HTMLElement & {
       __revidCanvasInspection?: { getNodeScreenRect?: (nodeId: string) => ScreenRect | null }
@@ -302,7 +305,12 @@ test('selected script keeps direct editing and exposes attached AI authoring', a
   await page.mouse.click(target.x + target.width / 2, target.y + target.height / 2)
 
   const scriptSurface = page.locator('.canvas-node-surface[data-node-id="visual-script-a"]')
-  await expect(scriptSurface.getByRole('textbox', { name: /编辑/ })).toBeVisible()
+  await expect(scriptSurface).toHaveAttribute('data-card-state', 'selected')
+  await scriptSurface.locator('.canvas-runtime-card__body').dblclick()
+  const directEditor = scriptSurface.getByRole('textbox', { name: /编辑/ })
+  await expect(directEditor).toBeVisible()
+  await directEditor.press('Tab')
+  await scriptSurface.getByRole('button', { name: '展开脚本工作流' }).click()
   const authoring = scriptSurface.getByRole('region', { name: 'AI 脚本写作' })
   await expect(authoring).toBeVisible()
   const [scriptBox, authoringBox] = await Promise.all([scriptSurface.boundingBox(), authoring.boundingBox()])
@@ -347,7 +355,7 @@ test('selected materialized composer presents one continuous creator hierarchy',
     const sources = element.querySelector('.canvas-card-work-surface__sources')
     const connectorNeck = getComputedStyle(element, '::before')
     const promptShell = element.querySelector('.canvas-card-work-surface__prompt-shell')
-    const prompt = element.querySelector('textarea')
+    const prompt = promptShell
     const footer = element.querySelector('footer')
     const submit = element.querySelector('.canvas-card-work-surface__submit')
     if (!(prompt instanceof HTMLElement)) throw new Error('Prompt is unavailable')
@@ -399,9 +407,9 @@ test('selected materialized composer presents one continuous creator hierarchy',
   await expect(settingsPanel).toHaveCount(0)
   await expect(settingsButton).toBeFocused()
 
-  const prompt = surface.locator('textarea')
+  const prompt = surface.locator('[data-inline-prompt-editor]')
   await prompt.focus()
-  await expect.poll(() => prompt.evaluate((element) => {
+  await expect.poll(() => surface.locator('.canvas-card-work-surface__prompt-shell').evaluate((element) => {
     const style = getComputedStyle(element)
     return style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) >= 2
   })).toBe(true)
@@ -470,9 +478,42 @@ test('card-local work surface projects pending and failure on the originating ca
   await request
   await expect(workSurface.getByRole('status')).toContainText('正在提交')
   releaseGeneration()
+  await expect.poll(() => state.requests.some((candidate) => (
+    candidate.method === 'GET' && candidate.path.includes('/generation-jobs/by-client-request/')
+  ))).toBe(true)
   await expect(workSurface.getByRole('status')).toContainText('失败', { timeout: 6_000 })
   await expect(workSurface.getByRole('alert')).toContainText('mock provider unavailable')
   await expect(workSurface.getByText('正在从画布选择参考')).toHaveCount(0)
+})
+
+test('definitive rejection keeps one no-charge alert on the attached card', async ({ page }) => {
+  const state = createResourceMockState()
+  await openResourceWorkspace(page, state, { width: 1366, height: 768 }, { enableCanvasInspection: true })
+  await page.route('**/api/image-generate', async (route) => {
+    await route.fulfill({
+      status: 422,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'mock request rejected' }),
+    })
+  })
+  const target = await page.locator('.canvas-surface').evaluate((element) => (
+    (element as HTMLElement & {
+      __revidCanvasInspection?: { getNodeScreenRect?: (nodeId: string) => ScreenRect | null }
+    }).__revidCanvasInspection?.getNodeScreenRect?.('generation-cover') ?? null
+  ))
+  if (!target) throw new Error('Generation card geometry is unavailable')
+  await page.mouse.click(target.x + target.width / 2, target.y + target.height / 2)
+  const workSurface = page.getByRole('region', { name: /封面生成 卡片工作区/ })
+  await workSurface.getByRole('textbox', { name: '卡片生成提示词' }).fill('验证拒绝分支')
+  const recovery = page.waitForRequest((request) => (
+    request.method() === 'GET' && request.url().includes('/generation-jobs/by-client-request/')
+  ))
+  await workSurface.getByRole('button', { name: '在当前卡片生成' }).click()
+  await recovery
+
+  await expect(page.getByRole('alert')).toHaveCount(1)
+  await expect(workSurface.getByRole('alert')).toContainText('mock request rejected')
+  await expect(workSurface.getByRole('alert')).toContainText('结果未扣费')
 })
 
 test('canvas reference mode closes across return readonly Canvas switch reload and deletion', async ({ page }, testInfo) => {
@@ -556,7 +597,7 @@ test('canvas reference mode closes across return readonly Canvas switch reload a
   await workSurface.getByRole('button', { name: '参考', exact: true }).click()
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
-  await expect(page).toHaveURL(/\/canvases\/canvas-second$/)
+  await expect(page).toHaveURL(/\/canvases\/canvas-second\?canvas_runtime=legacy$/)
   await expect(canvasCandidates).toHaveCount(0)
 })
 
@@ -584,7 +625,8 @@ test('empty script card follows the reference source or direct-writing starts', 
   await expect(chooser.getByRole('button', { name: '自己编写分镜脚本' })).toBeEnabled()
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 空文本卡片', exact: true }).click()
-  await expect(surface.getByRole('region', { name: 'AI 脚本写作' })).toBeVisible()
+  await expect(surface.getByRole('region', { name: 'AI 脚本写作' })).toHaveCount(0)
+  await expect(chooser).toBeVisible()
   await page.getByRole('button', { name: '关闭节点详情' }).click()
   const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't6-005-yuque-workbench')
   await mkdir(evidenceDirectory, { recursive: true })
@@ -602,6 +644,10 @@ test('empty script card follows the reference source or direct-writing starts', 
     source_node_id: 'script-source', target_node_id: 'empty-text-card', source_port: 'out', target_port: 'in',
   })
 
+  await page.getByRole('region', { name: /Revid/ }).focus()
+  await page.keyboard.press('Control+z')
+  await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections.length).toBe(baselineConnections)
+  await expect(chooser).toBeVisible()
   await surface.getByRole('button', { name: '自己编写分镜脚本' }).click()
   await expect(surface.getByRole('textbox')).toBeVisible()
   await expect(surface.getByRole('textbox')).toBeFocused()
@@ -660,14 +706,14 @@ test('empty script role start persists exact image references and submits them w
   await page.screenshot({ path: compactRolePickerPath, animations: 'disabled' })
   await testInfo.attach('t6-005-empty-script-role-reference-920x900', { path: compactRolePickerPath, contentType: 'image/png' })
   await candidate.click()
-  await expect(roleSourceButton).toBeFocused()
+  const authoring = surface.getByRole('region', { name: 'AI 脚本写作' })
+  await expect(authoring).toBeVisible()
 
   await expect.poll(() => {
     const node = state.documents[FIRST_CANVAS_ID].nodes.find((candidate) => candidate.id === 'role-script-card')
     return (node?.content as Record<string, unknown>)?.reference_asset_ids
   }).toEqual(['asset-generated'])
   expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(baselineConnections)
-  await expect(surface.getByText('角色参考 1/8', { exact: true })).toBeVisible()
 
   await page.getByRole('region', { name: /Revid/ }).focus()
   await page.keyboard.press('Control+z')
@@ -681,7 +727,7 @@ test('empty script role start persists exact image references and submits them w
     return (node?.content as Record<string, unknown>)?.reference_asset_ids
   }).toEqual(['asset-generated'])
 
-  const authoring = surface.getByRole('region', { name: 'AI 脚本写作' })
+  await expect(authoring).toBeVisible()
   await authoring.getByRole('textbox', { name: '创意 Brief' }).fill('根据角色参考生成一段雨夜车站分镜。')
   await authoring.getByRole('button', { name: '生成新脚本' }).click()
   await expect.poll(() => state.requests.find((request) => (

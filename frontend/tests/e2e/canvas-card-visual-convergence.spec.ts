@@ -106,10 +106,12 @@ test('approved dense selected-media composition is represented by one honest Rev
   const selectedSurface = page.locator('.canvas-node-surface[data-node-id="visual-selected"]')
   const selectedImage = selectedSurface.locator('img')
   const target = visibleRects[T6_VISUAL_NODE_IDS.indexOf('visual-selected')]
-  expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.classList.contains('connection-hit') ?? false, {
+  expect(await page.evaluate(({ x, y }) => (
+    document.elementFromPoint(x, y)?.closest<HTMLElement>('.canvas-runtime-card')?.dataset.nodeId ?? null
+  ), {
     x: target.x + target.width / 2,
     y: target.y + target.height / 2,
-  })).toBe(true)
+  })).toBe('visual-selected')
   await page.mouse.click(target.x + target.width / 2, target.y + target.height / 2)
   await expect(page.getByRole('complementary', { name: '节点详情 人物主参考' })).toBeVisible()
   await page.getByRole('button', { name: '关闭节点详情' }).click()
@@ -151,7 +153,7 @@ test('approved dense selected-media composition is represented by one honest Rev
   expect.soft(cssAlpha(toolbarSurface.border), 'media toolbar border alpha').toBeGreaterThanOrEqual(0.16)
 
   const focalEdge = page.getByRole('button', { name: '选择连线：人物主参考 到 生成视频' })
-  await focalEdge.hover({ force: true })
+  await focalEdge.dispatchEvent('pointerenter')
   await expect(page.locator('.connection-flow[data-flow-reason="hover"]')).toHaveCount(1)
   await expect(page.locator('.connection-flow')).toHaveCount(1)
 

@@ -1,12 +1,14 @@
 import { computed, ref, watch } from 'vue'
 import { request } from '../../../api/request'
 import { loadCinematicSkillSources } from '../../../modules/canvas/cinematic-skills'
-import type { ProjectGenerationTask } from '../../../modules/canvas/project-resource-types'
+import {
+  fetchGenerationJobCinematicLineage,
+  type GenerationJobCinematicLineage,
+} from '../../../modules/canvas/generation-job-api'
 
 interface CanvasCinematicLineageOptions {
   getCanvasId: () => string
-  getGenerationTasks: () => ProjectGenerationTask[]
-  getLatestTask: () => ProjectGenerationTask | null
+  getGenerationNodeId: () => string | null | undefined
   getProjectId: () => string
   getResultTaskId: () => string | null | undefined
 }
@@ -19,11 +21,9 @@ function record(value: unknown): Record<string, unknown> | null {
 
 export function useCanvasCinematicLineage(options: CanvasCinematicLineageOptions) {
   const currentRevisions = ref<Map<string, string> | null>(null)
-  const taskSnapshot = computed(() => {
-    const task = options.getGenerationTasks().find((candidate) => candidate.id === options.getResultTaskId())
-      ?? options.getLatestTask()
-    return record(record(task?.request_parameters)?.cinematic_skill)
-  })
+  const boundLineage = ref<GenerationJobCinematicLineage | null>(null)
+  let boundTaskRequestGeneration = 0
+  const taskSnapshot = computed(() => record(boundLineage.value?.cinematic_skill))
   const isResultStale = computed(() => {
     const canonical = record(taskSnapshot.value?.canonical_request)
     const references = canonical?.references
@@ -49,9 +49,39 @@ export function useCanvasCinematicLineage(options: CanvasCinematicLineageOptions
     }
   }
 
+  async function refreshBoundTask() {
+    const requestGeneration = ++boundTaskRequestGeneration
+    const taskId = options.getResultTaskId()?.trim()
+    const projectId = options.getProjectId().trim()
+    const canvasId = options.getCanvasId().trim()
+    const nodeId = options.getGenerationNodeId()?.trim()
+    boundLineage.value = null
+    if (taskId && projectId && canvasId && nodeId) {
+      try {
+        const lineage = await fetchGenerationJobCinematicLineage({
+          projectId,
+          canvasId,
+          nodeId,
+          jobId: taskId,
+        }, request)
+        if (requestGeneration !== boundTaskRequestGeneration || options.getResultTaskId() !== taskId) return
+        boundLineage.value = lineage
+      } catch {
+        if (requestGeneration !== boundTaskRequestGeneration) return
+        boundLineage.value = null
+      }
+    }
+    if (requestGeneration === boundTaskRequestGeneration) await refresh()
+  }
+
   watch(
-    () => [options.getResultTaskId(), options.getProjectId(), options.getCanvasId(), options.getGenerationTasks().length],
-    () => { void refresh() },
+    () => [
+      options.getResultTaskId(),
+      options.getProjectId(),
+      options.getCanvasId(),
+      options.getGenerationNodeId(),
+    ],
+    () => { void refreshBoundTask() },
     { immediate: true },
   )
 

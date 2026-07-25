@@ -225,14 +225,17 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         )
         self.assertIsNone(task["progress_percent"])
         self.assertEqual("queued", task["progress_stage"])
+        self.assertEqual(1, task["job_version"])
 
         first = generation_controller.update_generation_task_state(
             task["id"], status="running", progress_stage="provider", progress_percent=12,
         )
         self.assertEqual(12, first["progress_percent"])
         self.assertEqual("provider", first["progress_stage"])
+        self.assertEqual(2, first["job_version"])
         advanced = generation_controller.update_generation_task_state(task["id"], progress_percent=47)
         self.assertEqual(47, advanced["progress_percent"])
+        self.assertEqual(3, advanced["job_version"])
         self.assertEqual(
             47,
             generation_controller.update_generation_task_state(task["id"], progress_percent=30)["progress_percent"],
@@ -246,7 +249,11 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         with self.assertRaises(generation_controller.GenerationTaskStateError):
             generation_controller.update_generation_task_state(task["id"], progress_percent=101)
 
-        generation_controller.update_generation_task_state(task["id"], progress_stage="persisting")
+        persisting = generation_controller.update_generation_task_state(
+            task["id"],
+            progress_stage="persisting",
+        )
+        self.assertEqual(4, persisting["job_version"])
         result = generation_controller.complete_generation_task(
             task["id"],
             asset_type="image",
@@ -259,6 +266,7 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         self.assertEqual("succeeded", result["generation_task"]["status"])
         self.assertEqual(100, result["generation_task"]["progress_percent"])
         self.assertEqual("persisting", result["generation_task"]["progress_stage"])
+        self.assertEqual(5, result["generation_task"]["job_version"])
 
     def test_failure_preserves_last_valid_progress_without_result_or_charge(self) -> None:
         original_quota = self._database_quota("image")
@@ -288,6 +296,7 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         self.assertEqual("timed_out", failed["status"])
         self.assertEqual(47, failed["progress_percent"])
         self.assertEqual("provider", failed["progress_stage"])
+        self.assertEqual(3, failed["job_version"])
         self.assertIsNone(failed["result_asset_id"])
         self.assertEqual(original_quota, self._database_quota("image"))
         with get_session() as session:

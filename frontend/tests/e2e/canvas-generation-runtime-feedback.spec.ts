@@ -103,7 +103,7 @@ async function selectNode(page: Page, title: string) {
 }
 
 for (const mediaType of ['image', 'video'] as const) {
-  test(`legacy compatibility: held ${mediaType} request stays visible through project-wide polling without mutations`, async ({ page }) => {
+  test(`held legacy ${mediaType} POST stays indeterminate without project-wide polling or mutations`, async ({ page }) => {
     const state = createResourceMockState()
     const source = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')!
     const sourceContent = source.content as Record<string, unknown>
@@ -129,24 +129,24 @@ for (const mediaType of ['image', 'video'] as const) {
       created_at: NOW, updated_at: NOW,
     }
     state.tasks = [runtimeTask, ...state.tasks]
-    await expect(page.getByLabel('生成状态')).toContainText('排队中', { timeout: 6_000 })
+    await page.waitForTimeout(2_300)
+    await expect(page.getByLabel('生成状态')).toContainText('正在提交')
     expect(documentPatches(state)).toHaveLength(patchBaseline)
+    expect(state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks')).toHaveLength(0)
 
     await selectNode(page, '镜头脚本')
     state.tasks = state.tasks.map((item) => item.id === runtimeTask.id
       ? { ...item, status: 'running', updated_at: '2026-07-14T08:01:00Z' }
       : item)
-    await expect.poll(() => state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks').length).toBeGreaterThan(2)
     const viewportBeforeReselect = state.requests.filter((item) => item.method === 'PATCH' && item.path.endsWith('/viewport')).length
     await selectNode(page, '封面生成')
-    await expect(page.getByLabel('生成状态')).toContainText('模型生成中')
+    await expect(page.getByLabel('生成状态')).toContainText('正在提交')
     await expect.poll(() => state.requests.filter((item) => item.method === 'PATCH' && item.path.endsWith('/viewport')).length).toBeGreaterThan(viewportBeforeReselect)
     const viewportBaseline = state.requests.filter((item) => item.method === 'PATCH' && item.path.endsWith('/viewport')).length
-    const taskReadBaseline = state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks').length
-    await expect.poll(() => state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks').length).toBeGreaterThan(taskReadBaseline)
 
     expect(state.requests.filter((item) => item.method === 'GET' && item.path === '/assets')).toHaveLength(assetReads)
     expect(state.requests.filter((item) => item.method === 'GET' && item.path === '/templates')).toHaveLength(templateReads)
+    expect(state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks')).toHaveLength(0)
     expect(documentPatches(state)).toHaveLength(patchBaseline)
     expect(state.requests.filter((item) => item.method === 'PATCH' && item.path.endsWith('/viewport'))).toHaveLength(viewportBaseline)
     if (mediaType === 'image') {
@@ -159,7 +159,7 @@ for (const mediaType of ['image', 'video'] as const) {
   })
 }
 
-test('legacy compatibility: readonly compact reload recovers through project-wide task polling', async ({ page }) => {
+test('legacy task history does not become ordinary readonly Canvas runtime state', async ({ page }) => {
   const state = createResourceMockState()
   const source = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')!
   source.content = {
@@ -171,9 +171,7 @@ test('legacy compatibility: readonly compact reload recovers through project-wid
   await selectNode(page, String((source.content as Record<string, unknown>).title))
 
   const status = page.getByLabel('生成状态')
-  await expect(status).toContainText('模型生成中')
-  await expect(status.locator('.is-spinning')).toHaveCSS('animation-name', 'none')
-  await expect(page.getByRole('button', { name: '开始图片生成' })).toHaveCount(0)
+  await expect(status).toContainText('准备就绪')
   const panel = page.getByRole('complementary', { name: /节点详情/ })
   await expect.poll(async () => {
     const box = await panel.boundingBox()
@@ -187,14 +185,16 @@ test('legacy compatibility: readonly compact reload recovers through project-wid
   await page.screenshot({ path: resolve(evidenceDirectory, 'recovered-readonly-375x812.png'), fullPage: true })
 
   const taskReadBaseline = state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks').length
+  expect(taskReadBaseline).toBe(0)
   state.tasks = state.tasks.map((item) => item.id === 'task-recovered'
     ? { ...item, status: 'timed_out', updated_at: '2026-07-14T08:02:00Z' }
     : item)
-  await expect.poll(() => state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks').length).toBeGreaterThan(taskReadBaseline)
-  await expect(status).toContainText('已超时', { timeout: 6_000 })
+  await page.waitForTimeout(2_300)
+  expect(state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks')).toHaveLength(taskReadBaseline)
+  await expect(status).toContainText('准备就绪')
 })
 
-test('legacy compatibility: project-wide polling failure keeps the request-bound POST indeterminate', async ({ page }) => {
+test('legacy task-list failure is irrelevant because request-bound POST does not poll it', async ({ page }) => {
   const state = createResourceMockState()
   let releaseGeneration!: () => void
   state.generationGate = new Promise<void>((resolve) => { releaseGeneration = resolve })
@@ -207,7 +207,8 @@ test('legacy compatibility: project-wide polling failure keeps the request-bound
   await expect(page.getByLabel('生成状态')).toContainText('正在提交')
   state.taskListOutcome = 'failure'
   const taskReadBaseline = state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks').length
-  await expect.poll(() => state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks').length).toBeGreaterThan(taskReadBaseline)
+  await page.waitForTimeout(2_300)
+  expect(state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks')).toHaveLength(taskReadBaseline)
   await expect(page.getByLabel('生成状态')).toContainText('正在提交')
   await expect(page.getByText('项目资源加载失败，请重试。')).toHaveCount(0)
   expect(state.requests.filter((item) => item.method === 'POST' && item.path === '/api/image-generate')).toHaveLength(1)
@@ -218,7 +219,7 @@ test('legacy compatibility: project-wide polling failure keeps the request-bound
   expect(state.requests.filter((item) => item.method === 'POST' && item.path === '/api/image-generate')).toHaveLength(1)
 })
 
-test('persisted current-Canvas job sync uses compact v2 delta and fetches one terminal result', async ({ page }) => {
+test('persisted current-Canvas job sync uses exact compact status and fetches one terminal result', async ({ page }) => {
   const state = createResourceMockState()
   const source = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')!
   source.content = {
@@ -244,30 +245,35 @@ test('persisted current-Canvas job sync uses compact v2 delta and fetches one te
   await expect(page.getByLabel('生成状态')).toContainText('模型生成中')
   await expect.poll(() => state.requests.filter((item) => (
     item.method === 'GET' &&
-    item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs` &&
-    item.query.includes(`canvas_id=${FIRST_CANVAS_ID}`)
+    item.path === '/api/v2/generation-jobs/job-current-canvas'
   )).length).toBeGreaterThan(0)
+  expect(state.requests.filter((item) => (
+    item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs`
+  ))).toHaveLength(0)
   const legacyTaskReadCount = state.requests.filter((item) => item.path === '/api/generation-tasks').length
-  expect(legacyTaskReadCount).toBe(1)
+  expect(legacyTaskReadCount).toBe(0)
   expect(new TextEncoder().encode(JSON.stringify(state.generationJobs['job-current-canvas'])).byteLength)
     .toBeLessThanOrEqual(4 * 1024)
   const patchBaseline = documentPatches(state).length
-  const deltaReadsBeforeSwitch = state.requests.filter((item) => (
-    item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs`
+  const exactReadsBeforeSwitch = state.requests.filter((item) => (
+    item.path === '/api/v2/generation-jobs/job-current-canvas'
   )).length
 
   await page.getByRole('button', { name: '画布 1' }).click()
   await page.getByRole('option', { name: /分镜/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}\\?canvas_runtime=legacy$`))
   await page.waitForTimeout(2_300)
   expect(state.requests.filter((item) => item.path.endsWith('/cancel'))).toHaveLength(0)
 
   await page.getByRole('button', { name: '分镜', exact: true }).click()
   await page.getByRole('option', { name: /画布 1/ }).click()
-  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}$`))
+  await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}\\?canvas_runtime=legacy$`))
   await expect.poll(() => state.requests.filter((item) => (
+    item.path === '/api/v2/generation-jobs/job-current-canvas'
+  )).length).toBeGreaterThan(exactReadsBeforeSwitch)
+  expect(state.requests.filter((item) => (
     item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs`
-  )).length).toBeGreaterThan(deltaReadsBeforeSwitch)
+  ))).toHaveLength(0)
   await selectNode(page, '封面生成')
 
   state.generationJobs['job-current-canvas'] = {
@@ -290,26 +296,20 @@ test('persisted current-Canvas job sync uses compact v2 delta and fetches one te
     version: 3,
   }
 
-  await expect(page.getByLabel('生成状态')).toContainText('已完成', { timeout: 6_000 })
   await expect.poll(() => state.requests.filter((item) => (
     item.path === '/api/v2/generation-jobs/job-current-canvas/result'
   )).length).toBe(1)
-  const deltaReadCount = state.requests.filter((item) => (
-    item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs`
-  )).length
-  expect(new TextEncoder().encode(JSON.stringify({
-    items: Object.values(state.generationJobs),
-    next_cursor: `cursor-${FIRST_CANVAS_ID}`,
-  })).byteLength).toBeLessThanOrEqual(128 * 1024)
+  await expect(page.getByLabel('生成状态')).toContainText('准备就绪', { timeout: 6_000 })
+  await expect(page.getByRole('progressbar', { name: '生成进度' })).toHaveCount(0)
   await page.waitForTimeout(2_300)
   expect(state.requests.filter((item) => (
     item.path === '/api/v2/generation-jobs/job-current-canvas/result'
   ))).toHaveLength(1)
   expect(state.requests.filter((item) => (
     item.path === `/api/v2/projects/${PROJECT_ID}/generation-jobs`
-  ))).toHaveLength(deltaReadCount)
+  ))).toHaveLength(0)
   expect(state.requests.filter((item) => item.path === '/api/generation-tasks'))
     .toHaveLength(legacyTaskReadCount)
   expect(state.requests.filter((item) => item.path.endsWith('/cancel'))).toHaveLength(0)
-  expect(documentPatches(state)).toHaveLength(patchBaseline)
+  await expect.poll(() => documentPatches(state).length).toBe(patchBaseline + 1)
 })

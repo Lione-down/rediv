@@ -1,5 +1,6 @@
 import type { CanvasNode } from '../../types/canvas'
-import { nodePortWorldAnchors, worldToSurface, type Point, type ViewportState } from './canvas-geometry'
+import { resolveCanvasCardPortAnchors } from '../../modules/canvas/canvas-card-geometry'
+import { worldToSurface, type Point, type ViewportState } from './canvas-geometry'
 import { getAuthoringConnectionPorts, type NodePortDirection } from '../../modules/canvas/node-registry'
 import { CANVAS_PORT_HIT_TARGET_PX } from './canvas-port-presentation'
 
@@ -16,7 +17,7 @@ export function findNearestConnectionTarget(
   let matchedDistance = Number.POSITIVE_INFINITY
   for (const node of nodes) {
     if (node.id === sourceNodeId || node.isLocked) continue
-    for (const anchor of nodePortWorldAnchors(node, targetDirection)) {
+    for (const anchor of resolveCanvasCardPortAnchors(node, targetDirection)) {
       if (!isCompatible(node, anchor.portId)) continue
       const surfaceAnchor = worldToSurface(anchor, viewport)
       const distance = Math.hypot(surfaceAnchor.x - point.x, surfaceAnchor.y - point.y)

@@ -48,6 +48,7 @@ test('explicit cinematic script action creates one atomic version-2 shot graph t
 
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本', exact: true }).click()
+  await page.locator('.canvas-node-surface[data-node-id="script-source"] .canvas-runtime-card__body').dblclick()
   const editor = page.getByRole('textbox', { name: '编辑镜头脚本内容' })
   await editor.fill('脚本已显式修改；旧分镜必须保留并标记 stale。')
   await editor.blur()

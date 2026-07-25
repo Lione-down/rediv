@@ -1,7 +1,9 @@
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { expect, type Page, type Route, type TestInfo } from '@playwright/test'
-import { GENERATION_CAPABILITIES } from './canvas-generation-parameters-fixture'
+import {
+  GENERATION_CAPABILITIES_V6,
+} from './canvas-generation-parameters-fixture'
 
 const API_ORIGIN = 'http://localhost:8000'
 export const APP_ORIGIN = 'http://127.0.0.1:9099'
@@ -248,8 +250,77 @@ export async function installMockApi(page: Page, state: MockState) {
       return
     }
 
+    if (
+      request.method() === 'GET' &&
+      pathname === '/api/v2/projects/project-e2e/generation-jobs'
+    ) {
+      await fulfillJson(route, {
+        items: [],
+        next_cursor: `cursor-${url.searchParams.get('canvas_id') ?? 'missing'}`,
+      })
+      return
+    }
+
+    const generationRecoveryMatch = pathname.match(
+      /^\/api\/v2\/projects\/project-e2e\/canvases\/canvas-first\/nodes\/node-image\/generation-jobs\/by-client-request\/([^/]+)$/,
+    )
+    if (request.method() === 'GET' && generationRecoveryMatch) {
+      const task = state.generationTasks.find((candidate) => (
+        candidate.client_request_id === generationRecoveryMatch[1]
+      ))
+      await fulfillJson(route, task
+        ? {
+            job_id: task.id,
+            project_id: 'project-e2e',
+            canvas_id: 'canvas-first',
+            node_id: 'node-image',
+            media_type: 'image',
+            status: task.status,
+            model_id: task.model,
+            quota_revision: null,
+            version: 1,
+          }
+        : { detail: 'mock generation job recovery missing' }, task ? 200 : 404)
+      return
+    }
+
+    const generationJobStatusMatch = pathname.match(/^\/api\/v2\/generation-jobs\/([^/]+)$/)
+    if (request.method() === 'GET' && generationJobStatusMatch) {
+      const task = state.generationTasks.find((candidate) => candidate.id === generationJobStatusMatch[1])
+      await fulfillJson(route, task
+        ? {
+            job_id: task.id,
+            node_id: 'node-image',
+            media_type: 'image',
+            status: task.status,
+            stage: 'provider',
+            progress: null,
+            error: task.error_message,
+            result_asset_id: task.result_asset_id,
+            version: 1,
+            updated_at: task.updated_at,
+          }
+        : { detail: 'mock generation job missing' }, task ? 200 : 404)
+      return
+    }
+
     if (request.method() === 'GET' && pathname === '/api/generation-capabilities') {
-      await fulfillJson(route, GENERATION_CAPABILITIES)
+      await fulfillJson(route, GENERATION_CAPABILITIES_V6)
+      return
+    }
+
+    if (
+      request.method() === 'PATCH' &&
+      pathname === '/api/projects/project-e2e/canvases/canvas-first/viewport'
+    ) {
+      const payload = request.postDataJSON() as Record<string, unknown>
+      const activeCanvas = state.canvases.find((canvas) => canvas.id === 'canvas-first')
+      if (activeCanvas) {
+        activeCanvas.viewport_x = Number(payload.x)
+        activeCanvas.viewport_y = Number(payload.y)
+        activeCanvas.viewport_zoom = Number(payload.zoom)
+      }
+      await fulfillJson(route, activeCanvas)
       return
     }
 
@@ -291,11 +362,13 @@ export async function installMockApi(page: Page, state: MockState) {
 
     if (request.method() === 'POST' && pathname === '/api/image-generate') {
       state.generationAttempts += 1
-      state.generationBodies.push(request.postDataJSON())
+      const generationBody = request.postDataJSON() as Record<string, unknown>
+      state.generationBodies.push(generationBody)
 
       if (state.generationAttempts === 2) {
         const failedTask = generationTask({
           id: 'task-failed',
+          client_request_id: generationBody.client_request_id,
           provider_request_id: null,
           status: 'failed',
           duration_ms: null,
@@ -311,7 +384,15 @@ export async function installMockApi(page: Page, state: MockState) {
         return
       }
 
-      const task = generationTask({})
+      const task = generationTask({
+        client_request_id: generationBody.client_request_id,
+        request_parameters: {
+          contract_version: 1,
+          media_type: 'image',
+          image_ids: [],
+          aspect_ratio: generationBody.aspect_ratio,
+        },
+      })
       const asset = {
         id: 'asset-generated',
         user_id: user.id,
@@ -324,7 +405,7 @@ export async function installMockApi(page: Page, state: MockState) {
         source: 'generation',
         source_model: 'mock-image-model',
         source_task_id: 'task-generated',
-        status: 'ready',
+        status: 'active',
         created_at: NOW,
         updated_at: NOW,
       }

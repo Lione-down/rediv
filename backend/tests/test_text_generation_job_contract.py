@@ -44,7 +44,12 @@ class TextGenerationJobContractTests(unittest.TestCase):
                     "id": TEXT_MODEL_ID,
                     "label": "Agnes 2.0 Flash",
                     "workflow_modes": ["text-to-video"],
-                }
+                },
+                {
+                    "id": "agnes-2.5-flash",
+                    "label": "Agnes 2.5 Flash",
+                    "workflow_modes": ["text-to-video"],
+                },
             ],
             capabilities["text"]["models"],
         )

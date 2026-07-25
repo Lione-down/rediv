@@ -14,9 +14,14 @@ const USER_ID = 'user-audio-generation'
 
 function audioCapabilities(executionMode: 'mock-only' | 'unavailable') {
   return parseAudioGenerationCapabilities({
-    contract_version: 1,
+    contract_version: 2,
     execution_mode: executionMode,
-    model: executionMode === 'mock-only' ? 'revid-audio-mock-v1' : null,
+    models: executionMode === 'mock-only' ? [{
+      id: 'revid-audio-mock-v1',
+      label: 'Revid Audio Mock',
+      generation_modes: ['text-to-audio'],
+      audio_driven_video_modes: ['audio-driven-video'],
+    }] : [],
     generation_modes: executionMode === 'mock-only' ? ['text-to-audio'] : [],
     provider_generation_modes: [],
     audio_driven_video_modes: executionMode === 'mock-only' ? ['audio-driven-video'] : [],
@@ -87,7 +92,7 @@ test('audio capability/preflight is versioned, mock-only when synthetic, and pro
   expect(aggregate).toMatchObject({ contract_version: 4, audio: { execution_mode: 'unavailable', provider_generation_modes: [] } })
   const unavailablePlan = preflight()
   expect(unavailablePlan).toMatchObject({
-    contract_version: 1, executable: false, intent: 'text-to-audio', execution_mode: 'unavailable',
+    contract_version: 2, executable: false, intent: 'text-to-audio', execution_mode: 'unavailable',
     quota: { available: false }, task: { available: false }, errors: [{ code: 'capability_unavailable' }],
   })
 

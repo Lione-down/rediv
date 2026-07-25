@@ -236,13 +236,21 @@ export function resolveOwnedMediaActionTarget(
   const definition = resolveNodeDefinition(node.type, node.contentData)
   const kind = node.contentData?.subtype
   if (
-    definition.kind !== 'canonical' || (node.type !== 'asset' && node.type !== 'result') ||
+    definition.kind !== 'canonical' ||
+    (node.type !== 'asset' && node.type !== 'result' && node.type !== 'generation') ||
     (kind !== 'image' && kind !== 'video') || node.isLocked || node.parentNodeId
   ) return null
   const assetId = readString(node.contentData?.asset_id)
   const nodeProjectId = readString(node.contentData?.project_id)
   const url = readString(node.contentData?.url)
-  if (!assetId || nodeProjectId !== context.projectId || !url) return null
+  if (!assetId || !url) return null
+  if (node.type === 'generation') {
+    const resultAssetId = readString(node.contentData?.result_asset_id)
+    const jobId = readString(node.contentData?.last_generation_job_id)
+    if (resultAssetId !== assetId || !jobId) return null
+    return { assetId, kind, nodeId: node.id, title: node.title, url }
+  }
+  if (nodeProjectId !== context.projectId) return null
   const asset = context.assets.find((candidate) => candidate.id === assetId)
   if (
     !asset || asset.user_id !== context.userId || asset.project_id !== context.projectId ||

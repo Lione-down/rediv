@@ -19,7 +19,9 @@ export async function openResourceWorkspace(
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await installResourceMockApi(page, state)
   await page.addInitScript(() => window.localStorage.setItem('revid_token', 'resource-token'))
-  const inspectionQuery = options.enableCanvasInspection ? '?revidCanvasInspection=1' : ''
+  const inspectionQuery = options.enableCanvasInspection
+    ? '?canvas_runtime=legacy&revidCanvasInspection=1'
+    : '?canvas_runtime=legacy'
   await page.goto(`/app/projects/${PROJECT_ID}/canvases/${FIRST_CANVAS_ID}${inspectionQuery}`)
   await expect(page.getByRole('region', { name: '项目与画布导航' })).toBeVisible()
 }

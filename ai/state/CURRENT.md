@@ -1,6 +1,6 @@
 # Revid Current Project State
 
-Last updated: 2026-07-23
+Last updated: 2026-07-25
 
 ## Delivery Mode
 
@@ -14,12 +14,12 @@ Last updated: 2026-07-23
 - Phase 4 initial version and Product V2 / Phase 5: `DONE / PASS`.
 - Product V3 / Phase 6 Tasks T6-001 through T6-004 and T6-006 through T6-011: `DONE / PASS`.
 - T6-005: `BLOCKED / FAIL` after explicit Human visual/interaction rejection on 2026-07-23.
-- T6-011: explicit-model text-card workflow delivery is complete.
+- T6-011: `DONE / PASS` by Human `ACCEPT_WITH_DECLARED_BOUNDARIES` on 2026-07-25.
 - Database authority: MySQL-only.
 
 ## Active Delivery
 
-- Active implementation Task: none; T6-011 is closed and the post-push T6-012 activation must occur in a new goal-mode task.
+- Active implementation Task: none; T6-011 is closed and the next dependency-ready Task must activate in the requested new Codex session.
 - State: `DONE`
 - Verification outcome: `PASS`
 - Task: [TASK-T6-011](../tasks/todo/TASK-T6-011.md).
@@ -30,30 +30,25 @@ Last updated: 2026-07-23
 
 ## Live Gates
 
-- T6-005 remains rejected audit/reference evidence and creates no reuse presumption.
-- The approved Phase 6 direction remains the contract-first modular-monolith strangler with the existing stack, database,
-  Canvas engine, and provider authority boundaries.
-- T6-007 froze the replacement contracts; T6-008 delivered compact v2 APIs and durable MySQL execution.
-- T6-010 delivered one typed card presentation model, one visible geometry authority, and one undoable/autosaved rename command.
-- T6-011 delivered truthful text empty/direct/assisted states, explicit allowed-model selection, durable text jobs, attached stage-bounded composition, and revision-safe same-card text application.
-- Stable node IDs, graph/job/asset/reference bindings, legacy result persistence, and current compact v2 job sync remain intact.
-- Legacy capability/result projections remain readable; T6-012 through T6-016 behavior and compatibility removal were not started.
-- Tests may use disposable MySQL and fake providers only; user/runtime migrations and real/paid provider calls remain prohibited.
-- Automated browser evidence remains separate from explicit Human visual/interaction acceptance.
+- T6-005 and the earlier rejected T6-011 delivery remain audit/reference evidence and create no reuse presumption.
+- T6-011 replaced the visible Canvas shell/card runtime while retaining Leafer world/camera authority, MySQL, stable IDs, graph/history/autosave, durable jobs, provider/quota admission, and legacy readability.
+- Human accepted the overall result; unspecified minor issues are deferred to a future independently planned Task and are not silently included in T6-012.
+- Final R8N evidence is browser `62/62`, backend compact/job-runner `18/18`, build `5,034`, state/diff/sensitive-path audit PASS, and local `5173/8000` HTTP `200`.
+- Normal persisted-card polling uses exact compact bound-job status/result routes and makes zero current-Canvas delta-list calls.
+- Director is absent; Video Composition and capability-gated Audio Generation remain retained product boundaries.
+- Tests used mock/local fixtures and disposable data only; no real/paid provider call or secret/environment-file access occurred.
+- Automated evidence remains distinct from the Human acceptance decision.
 
 ## Exact Next Action
 
-After T6-011 is committed and pushed, create a new `/goal` Codex task that defines and activates only T6-012 before any
-T6-012 business-code edit.
+Commit and push the exact accepted T6-011 delivery, verify `HEAD == origin/main`, then create a new Codex session that defines and activates only the next dependency-ready Task before business-code edits.
 
 ## Worktree Ownership
 
 - Preserve user-owned untracked `.codex/`, `.hermes/plans/`, `output/`, `storage/`, and `test-results/`.
-- Preserve the rejected T6-005 snapshot as committed audit/reference evidence; do not reuse it implicitly.
 - Preserve unrelated concurrent work and stop if a future owned path overlaps unknown changes.
 
 ## Boundaries And Human Gates
 
-- Human approval of the T6-006 architecture and T6-007 characterization was obtained on 2026-07-23.
 - Revid retains the approved technology stack, MySQL-only runtime, multi-canvas scope, graph/history/persistence/provider contracts, accessibility, and review-only mobile unless a new ADR explicitly changes them.
 - Real/paid provider calls, secrets, destructive operations, irreversible migrations, external accounts, framework/runtime replacements, and incompatible contracts remain Human gates.

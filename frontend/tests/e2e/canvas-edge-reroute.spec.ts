@@ -1,9 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { nodeInputAnchor, nodeOutputAnchor } from '../../src/components/canvas/canvas-geometry'
-import { mapCanvasNode } from '../../src/modules/canvas/mappers'
-import type { CanvasNodeDto } from '../../src/modules/canvas/types'
 import { clickCanvasEdgeOutsideNodes } from './canvas-edge-pointer-fixture'
 import {
   FIRST_CANVAS_ID,
@@ -43,16 +40,16 @@ function addRerouteTargets(state: ResourceMockState) {
   )
 }
 
-function mappedNode(state: ResourceMockState, nodeId: string) {
-  const dto = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === nodeId)
-  if (!dto) throw new Error(`Missing fixture node: ${nodeId}`)
-  return mapCanvasNode(dto as unknown as CanvasNodeDto)
-}
-
 async function clientPoint(page: Page, surfacePoint: { x: number; y: number }) {
   const box = await page.locator('.canvas-surface').boundingBox()
   if (!box) throw new Error('Canvas surface is unavailable')
   return { x: box.x + surfacePoint.x, y: box.y + surfacePoint.y }
+}
+
+async function renderedPortCenter(page: Page, name: string) {
+  const box = await page.getByRole('button', { name }).boundingBox()
+  if (!box) throw new Error(`Missing rendered port: ${name}`)
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
 }
 
 async function dragHandle(page: Page, name: string, target: { x: number; y: number }) {
@@ -60,6 +57,17 @@ async function dragHandle(page: Page, name: string, target: { x: number; y: numb
   const box = await handle.boundingBox()
   if (!box) throw new Error(`Missing edge handle: ${name}`)
   const destination = await clientPoint(page, target)
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(destination.x, destination.y, { steps: 8 })
+  await page.mouse.up()
+}
+
+async function dragHandleToPort(page: Page, handleName: string, portName: string) {
+  const handle = page.getByRole('button', { name: handleName })
+  const box = await handle.boundingBox()
+  if (!box) throw new Error(`Missing edge handle: ${handleName}`)
+  const destination = await renderedPortCenter(page, portName)
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()
   await page.mouse.move(destination.x, destination.y, { steps: 8 })
@@ -90,8 +98,7 @@ test('target endpoint reroute preserves edge identity, autosave boundary, and un
     page,
     page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }),
   )
-  const target = nodeInputAnchor(mappedNode(state, 'result-alt'), { x: 0, y: 0, zoom: 1 }, 'in')
-  await dragHandle(page, '改接连线目标', target)
+  await dragHandleToPort(page, '改接连线目标', '备用结果 输入端口 in')
 
   await expect.poll(() => documentPatches(state).length).toBe(1)
   expect(state.documents[FIRST_CANVAS_ID].connections).toHaveLength(1)
@@ -121,8 +128,7 @@ test('source endpoint reroute and cancelled empty release keep typed graph deter
     page,
     page.getByRole('button', { name: '选择连线：封面生成 到 历史图片生成结果' }),
   )
-  const source = nodeOutputAnchor(mappedNode(state, 'generation-alt'), { x: 0, y: 0, zoom: 1 }, 'out')
-  await dragHandle(page, '改接连线来源', source)
+  await dragHandleToPort(page, '改接连线来源', '备用生成 输出端口 out')
   await expect.poll(() => state.documents[FIRST_CANVAS_ID].connections[0].source_node_id).toBe('generation-alt')
 
   const reroutedConnection = page.getByRole('button', { name: '选择连线：备用生成 到 历史图片生成结果' })

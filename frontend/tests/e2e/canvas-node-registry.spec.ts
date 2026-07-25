@@ -7,18 +7,21 @@ import {
   getLegacyGenerationQuotaType,
   getCreatableNodeDefinitions,
   getDefaultConnectionPorts,
+  resolveVisibleAcquisitionConnectionPorts,
   resolveNodeDefinition,
 } from '../../src/modules/canvas/node-registry'
 import { mapCanvasNode } from '../../src/modules/canvas/mappers'
 import { toCanvasDocumentNodeUpsert } from '../../src/modules/canvas/node-serialization'
 
-test('registry exposes complete metadata for the six canonical creation types', () => {
+test('registry retains six canonical storage types but exposes only authoring creation types', () => {
   expect(CANONICAL_NODE_TYPES).toEqual([
     'script', 'note', 'asset', 'generation', 'result', 'group',
   ])
 
   const definitions = getCreatableNodeDefinitions()
-  expect(definitions.map((definition) => definition.type)).toEqual(CANONICAL_NODE_TYPES)
+  expect(definitions.map((definition) => definition.type)).toEqual([
+    'script', 'generation',
+  ])
   for (const definition of definitions) {
     expect(definition.kind).toBe('canonical')
     expect(definition.subtypes.length).toBeGreaterThan(0)
@@ -174,4 +177,27 @@ test('authoring compatibility accepts only consumable image generation reference
     expect(getDefaultConnectionPorts(source, target)).toEqual({ sourcePort: 'out', targetPort: 'media' })
     expect(getAuthoringConnectionPorts(source, target)).toBeNull()
   }
+})
+
+test('one visible acquisition resolves exactly one compatible logical pair and fails closed otherwise', () => {
+  const videoGeneration = {
+    type: 'generation',
+    contentData: { subtype: 'video', serialization_version: 1 },
+  }
+  expect(resolveVisibleAcquisitionConnectionPorts(
+    { type: 'script', contentData: { subtype: 'script', serialization_version: 1 } },
+    videoGeneration,
+  )).toEqual({ sourcePort: 'out', targetPort: 'prompt' })
+  expect(resolveVisibleAcquisitionConnectionPorts(
+    { type: 'asset', contentData: { subtype: 'image', serialization_version: 1 } },
+    videoGeneration,
+  )).toEqual({ sourcePort: 'out', targetPort: 'media' })
+  expect(resolveVisibleAcquisitionConnectionPorts(
+    { type: 'asset', contentData: { subtype: 'video', serialization_version: 1 } },
+    videoGeneration,
+  )).toBeNull()
+  expect(resolveVisibleAcquisitionConnectionPorts(
+    { type: 'future-node', contentData: {} },
+    videoGeneration,
+  )).toBeNull()
 })

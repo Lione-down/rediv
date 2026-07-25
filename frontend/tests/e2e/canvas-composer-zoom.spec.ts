@@ -19,7 +19,7 @@ async function setZoom(page: import('@playwright/test').Page, percent: number) {
 }
 
 async function composerMetrics(page: import('@playwright/test').Page) {
-  return page.locator('.canvas-node-surface.is-composer').evaluate((element) => {
+  return page.locator('.canvas-card-work-surface').evaluate((element) => {
     const rect = element.getBoundingClientRect()
     const style = getComputedStyle(element)
     return {
@@ -27,13 +27,12 @@ async function composerMetrics(page: import('@playwright/test').Page) {
       left: rect.left,
       top: rect.top,
       transform: style.transform,
-      transformOrigin: style.transformOrigin,
       width: rect.width,
     }
   })
 }
 
-test('generation composer scales as one world-space surface from 10% through 800%', async ({ page }) => {
+test('generation composer stays readable as one attached screen-space surface from 10% through 800%', async ({ page }) => {
   await openResourceWorkspace(page, createMultiScenarioState())
   await selectGeneration(page)
   const metrics = new Map<number, Awaited<ReturnType<typeof composerMetrics>>>()
@@ -44,14 +43,13 @@ test('generation composer scales as one world-space surface from 10% through 800
   }
 
   const normal = metrics.get(100)!
-  expect(normal.width).toBeCloseTo(340, 0)
-  expect(normal.height).toBeCloseTo(76, 0)
+  expect(normal.width).toBeCloseTo(660, 0)
+  expect(normal.height).toBeGreaterThanOrEqual(190)
   for (const percent of [10, 50, 800]) {
     const current = metrics.get(percent)!
-    expect(current.width).toBeCloseTo(normal.width * percent / 100, 0)
-    expect(current.height).toBeCloseTo(normal.height * percent / 100, 0)
-    expect(current.transform).not.toBe('none')
-    expect(current.transformOrigin).toMatch(/^0px 0px/)
+    expect(current.width).toBeCloseTo(normal.width, 0)
+    expect(current.height).toBeCloseTo(normal.height, 0)
+    expect(current.transform).toBe('none')
   }
 })
 
@@ -62,14 +60,14 @@ test('full trace fit keeps low-zoom composer content proportional and aligned', 
 
   const zoom = Number(await page.getByLabel('缩放百分比').inputValue())
   expect(zoom).toBeLessThan(70)
-  const surface = page.locator('.canvas-node-surface.is-composer')
+  const surface = page.locator('.canvas-card-work-surface')
   const editor = page.getByRole('textbox', { name: '卡片生成提示词' })
   await expect(surface).toBeVisible()
   await expect(editor).toBeVisible()
   const metrics = await composerMetrics(page)
-  expect(Math.abs(metrics.width - 340 * zoom / 100)).toBeLessThanOrEqual(2)
-  expect(Math.abs(metrics.height - 76 * zoom / 100)).toBeLessThanOrEqual(1)
-  expect(metrics.transform).not.toBe('none')
+  expect(metrics.width).toBeCloseTo(660, 0)
+  expect(metrics.height).toBeGreaterThanOrEqual(190)
+  expect(metrics.transform).toBe('none')
 
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'desktop-full-trace-1440x900.png'), fullPage: true })
@@ -81,13 +79,13 @@ test('compact keeps the scaled composer editable while mobile retains review-onl
   await expect(page.getByRole('textbox', { name: '卡片生成提示词' })).toBeVisible()
   await page.getByRole('button', { name: '适配完整生成链路' }).click()
   await expect(page.locator('.n-drawer')).toHaveCount(0)
-  await expect(page.locator('.canvas-node-surface.is-composer')).toBeVisible()
+  await expect(page.locator('.canvas-card-work-surface')).toBeVisible()
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'compact-full-trace-920x760.png'), fullPage: true })
 
   await openResourceWorkspace(page, createMultiScenarioState(), { width: 375, height: 812 })
   await selectGeneration(page)
-  await expect(page.locator('.canvas-node-surface.is-composer')).toHaveCount(0)
+  await expect(page.locator('.canvas-card-work-surface')).toHaveCount(0)
   await expect(page.getByRole('textbox', { name: '卡片生成提示词' })).toHaveCount(0)
   await page.screenshot({ path: resolve(evidenceDirectory, 'readonly-trace-375x812.png'), fullPage: true })
 })

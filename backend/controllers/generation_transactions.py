@@ -65,8 +65,30 @@ def update_generation_task_state(task_id: str, **fields) -> dict:
         if task.status in ACTIVE_TASK_STATUSES:
             if fields.get("status", task.status) not in ACTIVE_TASK_STATUSES:
                 raise GenerationTaskStateError("Running task updates cannot set a terminal state")
+            previous_state = tuple(
+                getattr(task, field)
+                for field in (
+                    "duration_ms",
+                    "progress_percent",
+                    "progress_stage",
+                    "provider_request_id",
+                    "status",
+                )
+            )
             apply_generation_task_state_updates(task, fields)
-            task.updated_at = utc_now()
+            current_state = tuple(
+                getattr(task, field)
+                for field in (
+                    "duration_ms",
+                    "progress_percent",
+                    "progress_stage",
+                    "provider_request_id",
+                    "status",
+                )
+            )
+            if current_state != previous_state:
+                task.job_version += 1
+                task.updated_at = utc_now()
         session.flush()
         task_payload = _task_to_dict(task)
         session.commit()
@@ -97,6 +119,7 @@ def fail_generation_task(
             task.result_asset_id = None
             task.error_code = error_code
             task.error_message = error_message
+            task.job_version += 1
             task.updated_at = utc_now()
         session.flush()
         task_payload = _task_to_dict(task)
@@ -160,6 +183,7 @@ def _set_task_failure(
     task.result_asset_id = None
     task.error_code = error_code
     task.error_message = error_message
+    task.job_version += 1
     task.updated_at = utc_now()
 
 
@@ -282,8 +306,7 @@ def complete_generation_task(
                     task.result_asset_id = asset.id
                     task.error_code = None
                     task.error_message = None
-                    if lease_owner is not None:
-                        task.job_version += 1
+                    task.job_version += 1
                     task.updated_at = timestamp
                     setattr(quota, quota_field, getattr(quota, quota_field) - 1)
                     quota.revision += 1

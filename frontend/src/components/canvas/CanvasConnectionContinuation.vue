@@ -8,6 +8,7 @@ const props = defineProps<{
   options: ConnectionContinuationOption[]
   originTitle: string
   direction: 'downstream' | 'upstream'
+  allowedAudioModelCount: number
 }>()
 const emit = defineEmits<{
   cancel: []
@@ -20,33 +21,21 @@ const displayOptions = computed<DisplayOption[]>(() => {
   const options = props.options.map((option) => ({
     ...option,
     displayLabel: option.type === 'script' && option.subtype === 'prompt' ? '文本' : option.label,
-    isAvailable: true,
+    isAvailable: option.subtype !== 'audio' || props.allowedAudioModelCount > 0,
+    ...(option.subtype === 'audio' && props.allowedAudioModelCount === 0
+      ? { availabilityLabel: '无兼容模型' }
+      : {}),
   }))
-  const isTextContinuation = props.direction === 'downstream' && options.some((option) => (
-    option.type === 'generation' && option.targetPort === 'prompt'
-  ))
-  if (!isTextContinuation) return options
-  const audio: DisplayOption = {
-    key: 'unavailable:audio',
-    type: 'asset',
-    subtype: 'audio',
-    label: '音频',
-    displayLabel: '音频',
-    icon: 'audio-lines',
-    sourcePort: 'out',
-    targetPort: 'media',
-    isAvailable: false,
-    availabilityLabel: '暂不可用',
-  }
   const order = (option: DisplayOption) => {
     if (option.type === 'script' && option.subtype === 'prompt') return 0
-    if (option.type === 'generation' && option.subtype === 'image') return 1
-    if (option.type === 'generation' && option.subtype === 'video') return 2
-    if (!option.isAvailable && option.subtype === 'audio') return 3
-    if (option.type === 'script') return 4
-    return 5
+    if (option.type === 'script') return 1
+    if (option.type === 'generation' && option.subtype === 'image') return 2
+    if (option.type === 'generation' && option.subtype === 'video') return 3
+    if (option.type === 'generation' && option.subtype === 'video-composition') return 4
+    if (option.type === 'generation' && option.subtype === 'audio') return 5
+    return 6
   }
-  return [...options, audio].sort((left, right) => order(left) - order(right))
+  return options.sort((left, right) => order(left) - order(right))
 })
 
 function focusItem(index: number) {

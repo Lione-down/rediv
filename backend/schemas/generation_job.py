@@ -41,7 +41,7 @@ class GenerationJobStatus(_StrictModel):
     media_type: GenerationJobMediaType
     status: GenerationJobStatusValue
     stage: GenerationJobStage | None = None
-    progress: float | None = Field(default=None, ge=0, le=100)
+    progress: int | None = Field(default=None, ge=0, le=100)
     error: str | None = None
     result_asset_id: str | None = None
     version: int = Field(ge=1)
@@ -72,6 +72,15 @@ class GenerationJobResult(_StrictModel):
 class GenerationJobDeltaPage(_StrictModel):
     items: list[GenerationJobStatus] = Field(max_length=100)
     next_cursor: str | None = None
+
+
+class GenerationJobCinematicLineage(_StrictModel):
+    job_id: str
+    project_id: str
+    canvas_id: str
+    node_id: str
+    cinematic_skill: dict | None = None
+    version: int = Field(ge=1)
 
 
 class GenerationJobInput(_StrictModel):

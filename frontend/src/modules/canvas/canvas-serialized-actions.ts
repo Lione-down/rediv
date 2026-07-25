@@ -2,7 +2,9 @@ import type { CanvasNode } from '../../types/canvas'
 import type { CanvasCommandEnvelope } from './canvas-commands'
 import type { GenerationNodeParameters } from './generation-parameters'
 import type { CinematicSkillNodeSettings } from './cinematic-skills'
+import type { CanvasCardConfigurationSnapshot } from './canvas-card-configuration'
 import type { PersistedGenerationStatus } from './node-registry'
+import type { ActiveGenerationBinding } from './generation-node-state'
 import type { CanvasDocumentPatchResponse } from './types'
 
 export interface CanvasDocumentContext {
@@ -43,6 +45,7 @@ interface CanvasSerializedActionsOptions {
     status: PersistedGenerationStatus,
     taskId?: string,
     isResultMaterialized?: boolean,
+    activeBinding?: ActiveGenerationBinding,
   ) => void
 }
 
@@ -138,10 +141,25 @@ export function createCanvasSerializedActions(options: CanvasSerializedActionsOp
     return run(() => options.applyNodeContent(nodeId, content))
   }
 
-  function setNodeGenerationParameters(nodeId: string, parameters: GenerationNodeParameters) {
+  function setNodeGenerationParameters(
+    nodeId: string,
+    parameters: GenerationNodeParameters,
+    configuration?: CanvasCardConfigurationSnapshot,
+  ) {
     return options.runSerialized(({ execute }) => execute({
       source: 'toolbar',
-      command: { type: 'update-generation-parameters', nodeId, parameters },
+      command: { type: 'update-generation-parameters', nodeId, parameters, configuration },
+    }))
+  }
+
+  function setNodeCardConfiguration(
+    nodeId: string,
+    configuration: CanvasCardConfigurationSnapshot,
+    content?: string,
+  ) {
+    return options.runSerialized(({ execute }) => execute({
+      source: 'accessibility',
+      command: { type: 'set-card-configuration', nodeId, configuration, content },
     }))
   }
 
@@ -157,9 +175,10 @@ export function createCanvasSerializedActions(options: CanvasSerializedActionsOp
     status: PersistedGenerationStatus,
     taskId = '',
     isResultMaterialized = false,
+    activeBinding?: ActiveGenerationBinding,
   ) {
     return run(() => options.applyNodeGenerationState(
-      nodeId, status, taskId, isResultMaterialized,
+      nodeId, status, taskId, isResultMaterialized, activeBinding,
     ))
   }
 
@@ -174,6 +193,7 @@ export function createCanvasSerializedActions(options: CanvasSerializedActionsOp
     setNodeStatus,
     setNodeContent,
     setNodeGenerationParameters,
+    setNodeCardConfiguration,
     setNodeCinematicSkillSettings,
     setNodeGenerationState,
   }

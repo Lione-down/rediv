@@ -13,6 +13,7 @@ import {
   type CanvasDocumentContext,
 } from '../modules/canvas/canvas-serialized-actions'
 import { applyGenerationNodeState } from '../modules/canvas/generation-node-state'
+import type { ActiveGenerationBinding } from '../modules/canvas/generation-node-state'
 import type { PersistedGenerationStatus } from '../modules/canvas/node-registry'
 import {
   isSameCanvasSelection,
@@ -186,10 +187,11 @@ export const useCanvasStore = defineStore('canvas', () => {
     status: PersistedGenerationStatus,
     taskId = '',
     isResultMaterialized = false,
+    activeBinding?: ActiveGenerationBinding,
   ) {
     if (!findNodeById(nodeId)) return
     updateNode(nodeId, (node) => applyGenerationNodeState(
-      node, status, taskId, isResultMaterialized,
+      node, status, taskId, isResultMaterialized, activeBinding,
     ))
     canvasAutosave.queue()
   }
@@ -385,7 +387,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     commitScopedCanvasMutation,
     reconcileGeneration,
     setNodeStatus,
-    setNodeContent, setNodeGenerationParameters, setNodeCinematicSkillSettings,
+    setNodeContent, setNodeGenerationParameters, setNodeCardConfiguration, setNodeCinematicSkillSettings,
     setNodeGenerationState,
   } = serializedActions
 
@@ -478,7 +480,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     setSelection,
     setMode,
     setNodeStatus,
-    setNodeContent, setNodeGenerationParameters, setNodeCinematicSkillSettings,
+    setNodeContent, setNodeGenerationParameters, setNodeCardConfiguration, setNodeCinematicSkillSettings,
     setNodeMediaAspectRatio,
     setNodeGenerationState,
     findNodeById,
