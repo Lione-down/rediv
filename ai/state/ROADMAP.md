@@ -23,6 +23,7 @@ Deliver backward-compatible Revid-native cinematic director Skills v2 on top of 
 | 13 | T6-013 | Restore usable Script/storyboard and core Canvas interaction contracts | DONE | DEFERRED | T6-011; T6-012 audit/selective reuse |
 | 14 | T6-017 | Freeze PRD V1 and declarative workflow-template contracts | DONE | PASS | T6-013 |
 | 15 | T6-018 | Additive MySQL workflow-template persistence foundation | DONE | PASS | T6-017 |
+| 16 | T6-019 | Owner-scoped workflow-template definition/version lifecycle and API | DONE | PASS | T6-018 |
 
 T6-001 through T6-004 are `DONE / PASS`; their REPORTs remain authoritative. On 2026-07-23, the Human Owner explicitly rejected T6-005's visual and interaction result and requested state closure. T6-005 is terminal `BLOCKED / FAIL`: its machine evidence remains valid, but no REPORT or false `DONE / PASS` is allowed. The committed T6-005 snapshot remains preserved as rejected audit/reference evidence pending an explicit selective-reuse or full-removal decision.
 
@@ -53,6 +54,15 @@ binding/step/run persistence with composite scope, state, fingerprint, idempoten
 real-MySQL evidence passed `11`, legacy Template/Canvas and historical migration regression passed `40`, and full
 backend classification recorded `691` passing tests plus `203` passing subtests and seven unchanged out-of-scope
 contract REDs. The legacy `templates` table remains unchanged and runtime does not switch before T6-019.
+
+T6-019 is `DONE / PASS`. It delivers strict owner-scoped create/list/get/draft-update/new-version/publish/retire APIs,
+three server-owned read-only V1 built-ins, normalized slot persistence, definition-row lifecycle serialization,
+published payload immutability, retired exact-version readability, and bounded error contracts on the T6-018 schema.
+Guarded real-MySQL lifecycle/restart evidence passed `8`, the frozen workflow-template group passed `49`, legacy
+Template and Canvas regression passed `38` plus `3` subtests, and full backend classification recorded `700` passing
+tests plus `203` passing subtests and the same seven out-of-scope contract REDs recorded by T6-018. Capture/preflight,
+Canvas instantiate, frontend/UI, generation, WorkflowRun, and version diff/upgrade/clone/detach remain assigned to
+T6-020 through T6-026.
 
 Unit 6I implementation and machine verification are complete. The selected toolbar is now approximately `900 x 50 CSS px`, professional icons and visible labels share one horizontal row, standard placement remains above the media with `26..34 CSS px` clearance, true top collision still flips below, and the `920px` toolbar has no horizontal overflow. Build `4,972`, related `43/43`, three-axis `7/7` without snapshot updates, full Chromium `596/596`, headed performance `2/2`, dependency audit `0`, state validation, and diff check pass. Renewed Human acceptance is the remaining completion gate.
 

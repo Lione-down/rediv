@@ -18,17 +18,16 @@
 - T6-013: `DONE / DEFERRED`; baseline `515b8c90097108b05e8cc838e3ba6402e30c366b` is pushed.
 - T6-017: `DONE / PASS`; V1 PRD/schema/cross-language contract and sanitized fixtures are verified.
 - T6-018: `DONE / PASS`; additive MySQL persistence foundation is verified.
+- T6-019: `DONE / PASS`; owner-scoped lifecycle domain/API is verified.
 - Old T6-014 through T6-016 were provisional scopes superseded before formal Task creation.
 - Database authority remains MySQL-only.
 
 ## Active Delivery
 
-- No active implementation Task; T6-018 repository work is complete.
-- State: `DONE`
-- Verification outcome: `PASS`
-- Task: [TASK-T6-018](../tasks/todo/TASK-T6-018.md).
-- Plan: [TASK-T6-018-PLAN](../tasks/doing/TASK-T6-018-PLAN.md).
-- Progress: [TASK-T6-018-PROGRESS](../tasks/doing/TASK-T6-018-PROGRESS.md).
+- No active implementation Task; T6-019 repository work is complete.
+- Task: [TASK-T6-019](../tasks/todo/TASK-T6-019.md).
+- Plan: [TASK-T6-019-PLAN](../tasks/doing/TASK-T6-019-PLAN.md).
+- Progress: [TASK-T6-019-PROGRESS](../tasks/doing/TASK-T6-019-PROGRESS.md).
 - Requirements: [Reusable cinematic template PRD](../requirements/REVID-V3-REUSABLE-CINEMATIC-TEMPLATE-PRD.md).
 
 ## Live Gates
@@ -36,24 +35,24 @@
 - T6-017 contract authority and V1 defaults remain frozen.
 - T6-018 added only definition/version/slot/instance/binding/step/run persistence, constraints, indexes, comments,
   migration compatibility, and guarded disposable MySQL evidence.
-- The legacy `templates` table and Graph Template runtime remain unchanged; T6-019 lifecycle API and all later behavior
-  are excluded.
+- The legacy `templates` table and Graph Template runtime remain unchanged.
+- T6-019 added built-in/private definition/version lifecycle and owner-scoped API on the T6-018 tables.
+- Capture/preflight, instantiate/lineage, UI, generation, WorkflowRun, upgrade/clone/detach, and release proof remain
+  assigned to T6-020 through T6-027.
 - Program-level final visual, interaction, and journey acceptance remains T6-027.
 
 ## Exact Next Action
 
-Precisely commit/push T6-018, verify `HEAD == origin/main`, then create the separate T6-019 goal session; this checkout
-must not receive T6-019 changes from the current session.
+Precisely commit/push T6-019, verify `HEAD == origin/main`, then create the separate T6-020 goal session in the
+correct saved `project_revid`; this checkout must not receive T6-020 changes from the current session.
 
 ## Worktree Ownership
 
 - Preserve untracked `.codex/`, `.hermes/`, `ai/evidence/t6-012/`, `output/`, `storage/`, and `test-results/`.
-- The `.hermes` redesign plan remains untracked planning evidence.
 - Do not read, stage, commit, or push environment, secret, provider-raw, prompt, source-content, or user-owned evidence.
 
 ## Completion Gate
 
-- T6-017 is `DONE / PASS`; machine evidence is recorded in [REPORT-T6-017](../reports/REPORT-T6-017.md).
-- T6-018 is `DONE / PASS`; classified machine evidence is recorded in
-  [REPORT-T6-018](../reports/REPORT-T6-018.md).
-- Create T6-019 only after the T6-018 scoped commit is pushed and `HEAD == origin/main`.
+- T6-017 through T6-019 are `DONE / PASS`; classified machine evidence is in their REPORTs, including
+  [REPORT-T6-019](../reports/REPORT-T6-019.md).
+- T6-020 may activate only after the T6-019 scoped commit is pushed and `HEAD == origin/main`.

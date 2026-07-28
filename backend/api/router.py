@@ -18,6 +18,7 @@ from api import (
     templates,
     text_generate,
     video_generate,
+    workflow_templates,
 )
 
 
@@ -41,3 +42,4 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(text_generate.router)
     app.include_router(image_generate.router)
     app.include_router(video_generate.router)
+    app.include_router(workflow_templates.router)

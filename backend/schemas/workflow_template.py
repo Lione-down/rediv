@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -376,3 +377,30 @@ class WorkflowTemplatePreflight(StrictContractModel):
     canvas_id: str
     bindings: list[WorkflowTemplateBinding]
     fingerprint: Fingerprint = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class WorkflowTemplateLifecycleCreateRequest(StrictContractModel):
+    manifest: dict[str, Any]
+
+
+class WorkflowTemplateLifecycleUpdateRequest(StrictContractModel):
+    manifest: dict[str, Any]
+
+
+class WorkflowTemplateLifecycleNewVersionRequest(StrictContractModel):
+    source_version: int = Field(ge=1)
+
+
+class WorkflowTemplateLifecycleResponse(StrictContractModel):
+    template_id: str
+    scope: Literal["built_in", "private"]
+    version: int = Field(ge=1)
+    lifecycle: Literal["draft", "published", "retired"]
+    fingerprint: Fingerprint = Field(pattern=r"^[0-9a-f]{64}$")
+    manifest: WorkflowTemplateManifest
+    published_at: datetime | None
+
+
+class WorkflowTemplateLifecycleListResponse(StrictContractModel):
+    items: list[WorkflowTemplateLifecycleResponse]
+    total: int = Field(ge=0)
