@@ -66,6 +66,7 @@ const props = defineProps<{
   nodes: readonly CanvasNode[]
   projectName: string
   projectId: string
+  readonly: boolean
   selectedNodeId: string
   syncLabel: string
   runtimePresentations: ReadonlyMap<string, GenerationRuntimePresentation>
@@ -572,6 +573,7 @@ const {
       :canvas-id="canvasId"
       :node="selectedNode"
       :project-id="projectId"
+      :readonly="readonly"
       :generation-context="generationContext"
       :generation-quota="generationQuota"
       :model-options="modelOptions"

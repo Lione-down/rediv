@@ -9,7 +9,7 @@ from tests.mysql_test_database import MySQLTestDatabase
 
 
 PARENT_REVISION = "e0f1a2b3c4d5"
-CURRENT_HEAD_REVISION = "f1a2b3c4d5e6"
+CURRENT_HEAD_REVISION = "g2b3c4d5e6f7"
 
 
 class WorkflowRunCostConfirmationMigrationTests(unittest.TestCase):

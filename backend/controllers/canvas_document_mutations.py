@@ -16,6 +16,10 @@ from models.base import get_session, utc_now
 from models.canvas_connection import CanvasConnection
 from models.canvas_node import CanvasNode
 from models.canvas_revision import CanvasRevision
+from services.workflow_templates.instance_reconciliation import (
+    WorkflowTemplateInstanceReconciliationError,
+    reconcile_template_instances_for_canvas_patch,
+)
 
 
 class CanvasDocumentValidationError(CanvasDomainError):
@@ -102,6 +106,7 @@ def _patch_document(
     *,
     session: Session | None,
     should_commit: bool,
+    reconcile_workflow_template_instances: bool,
 ) -> dict:
     try:
         fingerprint = mutation_fingerprint(payload)
@@ -259,6 +264,17 @@ def _patch_document(
             current_nodes[node_id].status = "deleted"
             current_nodes[node_id].updated_at = timestamp
         session.flush()
+        if reconcile_workflow_template_instances:
+            try:
+                reconcile_template_instances_for_canvas_patch(
+                    session,
+                    project_id=project_id,
+                    canvas_id=canvas_id,
+                    owner_user_id=user_id,
+                    changed_node_ids=set(node_upserts) | node_delete_ids,
+                )
+            except WorkflowTemplateInstanceReconciliationError as error:
+                raise CanvasDocumentValidationError(str(error)) from error
 
         all_connection_deletes = connection_delete_ids | implicit_connection_deletes
         for connection_id in all_connection_deletes:
@@ -328,6 +344,7 @@ def patch_document(project_id: str, canvas_id: str, user_id: str, payload: dict)
         payload,
         session=None,
         should_commit=True,
+        reconcile_workflow_template_instances=True,
     )
 
 
@@ -345,4 +362,5 @@ def apply_document_patch_in_session(
         payload,
         session=session,
         should_commit=False,
+        reconcile_workflow_template_instances=False,
     )

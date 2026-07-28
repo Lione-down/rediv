@@ -741,6 +741,9 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     if (command.type === 'apply-cinematic-sequence') return executeApplyCinematicSequenceCommand(
       options.getNodes(), options.updateNodeState, command,
     )
+    if (command.type === 'apply-workflow-template-lifecycle') {
+      throw new Error('工作流模板生命周期命令只能采用已提交的服务器变更。')
+    }
     return insertNodeIntoConnection(command)
   }
 

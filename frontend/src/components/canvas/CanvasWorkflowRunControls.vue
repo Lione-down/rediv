@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { LoaderCircle, Play, ShieldCheck, Square } from 'lucide-vue-next'
 import type { CanvasNode } from '../../types/canvas'
+import CanvasWorkflowTemplateLifecycleControls from './CanvasWorkflowTemplateLifecycleControls.vue'
 import {
   resolveWorkflowRunInstanceId,
   useWorkflowRun,
@@ -41,6 +42,12 @@ const statusLabel = computed(() => {
 </script>
 
 <template>
+  <CanvasWorkflowTemplateLifecycleControls
+    :canvas-id="canvasId"
+    :node="node"
+    :project-id="projectId"
+    :readonly="readonly"
+  />
   <section
     v-if="workflow.isAvailable.value"
     class="workflow-run-controls"

@@ -8,9 +8,12 @@ import type {
   TemplateUseResponse,
   WorkflowTemplateInstantiateRequest,
   WorkflowTemplateInstantiateResponse,
+  WorkflowTemplateInstanceLifecycleResponse,
+  WorkflowTemplateInstanceState,
   WorkflowTemplateLifecycleListResponse,
   WorkflowTemplatePreflightRequest,
   WorkflowTemplatePreflightResponse,
+  WorkflowTemplateVersionDiff,
   WorkflowRun,
 } from './types'
 
@@ -115,6 +118,89 @@ export function instantiateWorkflowTemplate(
   const path = `/api/projects/${encodeURIComponent(normalizedProjectId)}` +
     `/canvases/${encodeURIComponent(normalizedCanvasId)}/workflow-template-instances`
   return request.post<WorkflowTemplateInstantiateResponse>(path, payload)
+}
+
+function resolveWorkflowTemplateInstancePath(
+  projectId: string,
+  canvasId: string,
+  instanceId: string,
+) {
+  const values = [projectId, canvasId, instanceId].map((value) => value.trim())
+  if (values.some((value) => !value)) {
+    throw new TypeError('Workflow template instance scope is required.')
+  }
+  return `/api/projects/${encodeURIComponent(values[0])}` +
+    `/canvases/${encodeURIComponent(values[1])}` +
+    `/workflow-template-instances/${encodeURIComponent(values[2])}`
+}
+
+export function previewWorkflowTemplateVersionDiff(
+  projectId: string,
+  canvasId: string,
+  instanceId: string,
+  targetVersion: number,
+) {
+  return request.post<WorkflowTemplateVersionDiff>(
+    `${resolveWorkflowTemplateInstancePath(projectId, canvasId, instanceId)}/version-diff`,
+    { target_version: targetVersion },
+  )
+}
+
+export function getWorkflowTemplateInstanceState(
+  projectId: string,
+  canvasId: string,
+  instanceId: string,
+) {
+  return request.get<WorkflowTemplateInstanceState>(
+    resolveWorkflowTemplateInstancePath(projectId, canvasId, instanceId),
+  )
+}
+
+export function upgradeWorkflowTemplateInstance(
+  projectId: string,
+  canvasId: string,
+  instanceId: string,
+  payload: {
+    target_version: number
+    base_revision: number
+    client_mutation_id: string
+    diff_fingerprint: string
+  },
+) {
+  return request.post<WorkflowTemplateInstanceLifecycleResponse>(
+    `${resolveWorkflowTemplateInstancePath(projectId, canvasId, instanceId)}/upgrade`,
+    payload,
+  )
+}
+
+export function cloneWorkflowTemplateInstance(
+  projectId: string,
+  canvasId: string,
+  instanceId: string,
+  payload: {
+    base_revision: number
+    client_mutation_id: string
+  },
+) {
+  return request.post<WorkflowTemplateInstanceLifecycleResponse>(
+    `${resolveWorkflowTemplateInstancePath(projectId, canvasId, instanceId)}/clone`,
+    payload,
+  )
+}
+
+export function detachWorkflowTemplateInstance(
+  projectId: string,
+  canvasId: string,
+  instanceId: string,
+  payload: {
+    base_revision: number
+    client_mutation_id: string
+  },
+) {
+  return request.post<WorkflowTemplateInstanceLifecycleResponse>(
+    `${resolveWorkflowTemplateInstancePath(projectId, canvasId, instanceId)}/detach`,
+    payload,
+  )
 }
 
 function resolveWorkflowRunPath(projectId: string, canvasId: string, instanceId: string) {

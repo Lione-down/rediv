@@ -1274,6 +1274,7 @@ onBeforeUnmount(() => {
       :nodes="replacementMaterializedProjection.nodes"
       :project-name="projectName"
       :project-id="projectId"
+      :readonly="isReviewOnly"
       :selected-node-id="canvasDocumentStore.selectedNodeId"
       :sync-label="syncLabel"
       :runtime-presentations="generationRuntimePresentations"

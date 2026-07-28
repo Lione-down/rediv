@@ -97,6 +97,7 @@ export function createCanvasSerializedActions(options: CanvasSerializedActionsOp
     expectedProjectId: string,
     expectedCanvasId: string,
     requestMutation: (baseRevision: number) => Promise<T>,
+    historyEnvelope?: CanvasCommandEnvelope,
   ) {
     return options.runSerialized(async ({ adoptCommittedMutation }) => {
       const context = requireContext(expectedProjectId, expectedCanvasId)
@@ -107,7 +108,7 @@ export function createCanvasSerializedActions(options: CanvasSerializedActionsOp
         !options.isCurrentDocument(context) || response.project_id !== context.projectId ||
         response.canvas_id !== context.canvasId
       ) throw new Error('Canvas 服务器变更上下文不匹配。')
-      await adoptCommittedMutation(response.mutation)
+      await adoptCommittedMutation(response.mutation, historyEnvelope)
       if (!options.isCurrentDocument(context)) throw new Error('Canvas 操作上下文已变化，请重试。')
       return response
     })

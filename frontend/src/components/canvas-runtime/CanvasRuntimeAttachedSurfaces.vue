@@ -47,6 +47,7 @@ const props = defineProps<{
   modelOptions: readonly ReplacementModelOption[]
   node: CanvasNode
   projectId: string
+  readonly: boolean
   runtimePresentation: GenerationRuntimePresentation | null
   scriptActive: boolean
   scriptCapability: ScriptAuthoringCapabilities | null
@@ -488,6 +489,7 @@ function openActions(event: MouseEvent, query = '') {
         output-kind="story_production"
         :project-id="projectId"
         :quota="scriptQuota"
+        :readonly="readonly"
         :success="scriptSuccess"
         @cancel="emit('cancelScript')"
         @generate="emit('generateScript', $event)"

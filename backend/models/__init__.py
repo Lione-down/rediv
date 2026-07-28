@@ -28,6 +28,9 @@ from models.workflow_template import (
     WorkflowTemplateSlot,
     WorkflowTemplateVersion,
 )
+from models.workflow_template_instance_lifecycle import (
+    WorkflowTemplateInstanceLifecycleCommit,
+)
 
 __all__ = [
     "AdminLog",
@@ -57,6 +60,7 @@ __all__ = [
     "WorkflowTemplateDefinition",
     "WorkflowTemplateInstance",
     "WorkflowTemplateInstanceCommit",
+    "WorkflowTemplateInstanceLifecycleCommit",
     "WorkflowTemplateInstanceStep",
     "WorkflowTemplateSlot",
     "WorkflowTemplateVersion",

@@ -1,7 +1,7 @@
 # Revid Current Project State
 
-- State: `DONE`
-- Verification outcome: `PASS`
+- State: `DOING`
+- Verification outcome: `PENDING`
 - Last updated: `2026-07-29`
 
 ## Delivery Mode
@@ -17,22 +17,20 @@
 - T6-013: `DONE / DEFERRED`; baseline `515b8c90097108b05e8cc838e3ba6402e30c366b` is pushed.
 - T6-017 through T6-019: `DONE / PASS`; contract, persistence, and lifecycle API are verified.
 - T6-020 and T6-021: `DONE / PASS`; portable preflight plus atomic instantiate/lineage are verified.
-- T6-022: `DONE / PASS`; Template Library/configuration UI is implemented and machine verified.
-- T6-023: `DONE / PASS`; template-aware Script/Image and old T6-014 closeout is delivered.
-- T6-024: `DONE / PASS`; provider-valid Video compiler and old T6-015 replacement are delivered.
-- T6-025: `DONE / PASS`; explicit durable WorkflowRun orchestration is delivered and machine verified.
-- Old T6-014 through T6-016 were provisional scopes superseded before formal Task creation.
-- Database authority remains MySQL-only.
+- T6-022 through T6-026: `DONE / PASS`; Library/configuration UI, Script/Image, provider-valid Video, durable
+  WorkflowRun orchestration, and template-instance compatibility lifecycle are delivered and machine verified.
+- Old T6-014 through T6-016 were provisional scopes superseded before formal Task creation; database authority
+  remains MySQL-only.
 
 ## Active Delivery
 
-- Completed Task: `T6-025 - Durable WorkflowRun orchestration`;
-  [TASK-T6-025](../tasks/todo/TASK-T6-025.md).
-- Plan: [TASK-T6-025-PLAN](../tasks/doing/TASK-T6-025-PLAN.md).
-- Progress: [TASK-T6-025-PROGRESS](../tasks/doing/TASK-T6-025-PROGRESS.md).
-- Report: [REPORT-T6-025](../reports/REPORT-T6-025.md).
-- Final T6-025 evidence: focused backend `33/33`; related backend `152 passed, 31 subtests passed`; fresh build
-  `5,052 modules`; production-preview browser `21/21`; final explicit start/reload/cancel journey `1/1`.
+- No implementation Task is active. T6-026 is closed; T6-027 was not created or activated.
+- Completed Task: [TASK-T6-026](../tasks/todo/TASK-T6-026.md).
+- Plan: [TASK-T6-026-PLAN](../tasks/doing/TASK-T6-026-PLAN.md).
+- Progress: [TASK-T6-026-PROGRESS](../tasks/doing/TASK-T6-026-PROGRESS.md).
+- Report: [REPORT-T6-026](../reports/REPORT-T6-026.md).
+- Activation baseline: `9c0c4b57186b5e448180af5932ced6b792a3648b`; delivery commit and remote parity are
+  verified in the current run.
 
 ## Live Gates
 
@@ -42,12 +40,15 @@
 - T6-022 owns only Library/configuration UI and existing-route adoption, without provider execution or a second
   Canvas authority.
 - Video compilation is delivered by T6-024, and explicit durable WorkflowRun orchestration is delivered by T6-025.
-  Version diff/upgrade/clone/detach and release proof remain assigned to inactive T6-026 and T6-027.
+  T6-026 may add only explicit additive-compatible version lifecycle around those frozen authorities.
+- T6-026 protects detected local overrides and keeps upgrade/clone/detach on typed Canvas
+  mutation/history/autosave plus authoritative backend transactions with zero implicit run/job/provider work.
 - Program-level final visual, interaction, and journey acceptance remains T6-027.
 
 ## Exact Next Action
 
-Stop. T6-025 is closed; do not create or activate T6-026 in this task.
+Stop. Do not create or activate T6-027 in this delivery; any later T6-027 work requires a separate dependency-ready
+Direct Delivery activation.
 
 ## Worktree Ownership
 
@@ -55,6 +56,5 @@ Stop. T6-025 is closed; do not create or activate T6-026 in this task.
 - Do not read, stage, commit, or push environment, secret, provider-raw, prompt, source-content, or user-owned evidence.
 
 ## Completion Gate
-
-- Every non-deferred T6-025 acceptance criterion, scoped commit/push, and remote parity gate passes.
+- T6-026 non-deferred acceptance, scoped commit/push, and remote parity are complete.
 - Machine browser/build evidence is not Human acceptance; final program-level acceptance remains T6-027.

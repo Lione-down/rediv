@@ -175,6 +175,12 @@ export interface ApplyScriptAuthoringResultCommand {
   storyProduction?: Record<string, unknown>
 }
 
+export interface ApplyWorkflowTemplateLifecycleCommand {
+  type: 'apply-workflow-template-lifecycle'
+  instanceId: string
+  action: 'upgrade' | 'clone' | 'detach'
+}
+
 export type CanvasCommand =
   | MoveNodesCommand
   | MoveNodeMembershipCommand
@@ -200,6 +206,7 @@ export type CanvasCommand =
   | SetCardConfigurationCommand
   | UpdateCinematicSkillSettingsCommand
   | ApplyScriptAuthoringResultCommand
+  | ApplyWorkflowTemplateLifecycleCommand
   | UpdateScriptReferenceAssetsCommand
   | ApplyCinematicSequenceCommand
   | StoryboardAssetCommand

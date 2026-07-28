@@ -264,6 +264,66 @@ export interface WorkflowTemplateInstantiateResponse extends WorkflowTemplateIns
   mutation: CanvasDocumentPatchResponse
 }
 
+export interface WorkflowTemplateVersionChange {
+  path: string
+  kind: 'added' | 'removed' | 'changed'
+  compatible: boolean
+  summary: string
+}
+
+export interface WorkflowTemplateVersionBlocker {
+  code: string
+  path: string
+  message: string
+}
+
+export interface WorkflowTemplateLocalOverride {
+  path: string
+  kind: string
+  protected: true
+  display_name: string
+}
+
+export interface WorkflowTemplateVersionDiff {
+  contract_version: 1
+  instance_id: string
+  template_id: string
+  source_version: number
+  target_version: number
+  canvas_revision: number
+  state: 'instantiated' | 'locally_modified' | 'upgrade_available'
+  compatible: boolean
+  changes: WorkflowTemplateVersionChange[]
+  blocking_reasons: WorkflowTemplateVersionBlocker[]
+  local_overrides: WorkflowTemplateLocalOverride[]
+  fingerprint: string
+}
+
+export interface WorkflowTemplateInstanceState {
+  instance_id: string
+  template_id: string
+  template_version: number
+  project_id: string
+  canvas_id: string
+  state: 'instantiated' | 'locally_modified' | 'upgrade_available' | 'detached'
+  node_id_map: Record<string, string>
+  local_overrides: WorkflowTemplateLocalOverride[]
+}
+
+export interface WorkflowTemplateInstanceLifecycleResponse {
+  instance_id: string
+  source_instance_id: string | null
+  template_id: string
+  template_version: number
+  project_id: string
+  canvas_id: string
+  state: 'instantiated' | 'locally_modified' | 'detached'
+  node_id_map: Record<string, string>
+  connection_id_map: Record<string, string>
+  local_overrides: WorkflowTemplateLocalOverride[]
+  mutation: CanvasDocumentPatchResponse
+}
+
 export type WorkflowRunStatus =
   | 'ready'
   | 'submitting'

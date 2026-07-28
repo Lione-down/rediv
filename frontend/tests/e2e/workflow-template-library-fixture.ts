@@ -245,7 +245,12 @@ function instantiatedNode(
   subtype: string | undefined,
   x: number,
   zIndex: number,
+  templateVersion = 1,
+  managed = true,
 ) {
+  const instanceId = id.startsWith('clone-node-')
+    ? 'workflow-template-clone-e2e'
+    : 'workflow-template-instance-e2e'
   return {
     id,
     project_id: 'project-e2e',
@@ -255,19 +260,29 @@ function instantiatedNode(
       serialization_version: 1,
       template_placeholder: true,
       ...(subtype ? { subtype } : {}),
-      ...(id === 'instance-node-script'
+      ...(nodeType === 'script'
         ? {
+            title: '本地脚本标题',
             workflow_template_lineage: {
               contract_version: 1,
               template_id: 'revid.product-ad',
-              template_version: 1,
-              instance_id: 'workflow-template-instance-e2e',
-              instance_step_id: 'instance-step-script-e2e',
+              template_version: templateVersion,
+              instance_id: instanceId,
+              instance_step_id: id.startsWith('clone-node-')
+                ? 'clone-step-script-e2e'
+                : 'instance-step-script-e2e',
               step_id: 'compile-story',
-              script_node_id: 'instance-node-script',
+              script_node_id: id,
             },
           }
         : {}),
+      workflow_template_instance: {
+        contract_version: 1,
+        template_id: 'revid.product-ad',
+        template_version: templateVersion,
+        instance_id: instanceId,
+        managed,
+      },
     },
     position_x: x,
     position_y: 120,
@@ -286,6 +301,9 @@ function instantiatedNode(
 export async function installWorkflowTemplateFixture(page: Page): Promise<WorkflowTemplateFixture> {
   const state = createVisualState()
   let workflowRun: Record<string, unknown> | null = null
+  let canvasRevision = 0
+  let sourceVersion = 1
+  const detachedInstances = new Set<string>()
   const asset = {
     id: 'asset-template-reference',
     user_id: 'user-e2e',
@@ -401,6 +419,7 @@ export async function installWorkflowTemplateFixture(page: Page): Promise<Workfl
       }))
       state.canvasNodes.push(...nodes)
       state.canvasConnections.push(...connections)
+      canvasRevision = 1
       return fulfillJson(route, {
         instance_id: 'workflow-template-instance-e2e',
         template_id: body.template_id,
@@ -444,6 +463,210 @@ export async function installWorkflowTemplateFixture(page: Page): Promise<Workfl
         ? request.postDataJSON() as Record<string, unknown>
         : undefined
       requests.push({ method: request.method(), path, body })
+      const instancePath = path.match(
+        /^\/api\/projects\/project-e2e\/canvases\/canvas-first\/workflow-template-instances\/([^/]+)$/,
+      )
+      if (instancePath && request.method() === 'GET') {
+        const instanceId = decodeURIComponent(instancePath[1])
+        const isClone = instanceId === 'workflow-template-clone-e2e'
+        const activeVersion = isClone ? 2 : sourceVersion
+        const prefix = isClone ? 'clone' : 'instance'
+        return fulfillJson(route, {
+          instance_id: instanceId,
+          template_id: 'revid.product-ad',
+          template_version: activeVersion,
+          project_id: 'project-e2e',
+          canvas_id: 'canvas-first',
+          state: detachedInstances.has(instanceId)
+            ? 'detached'
+            : 'locally_modified',
+          node_id_map: {
+            brief: `${prefix}-node-brief`,
+            script: `${prefix}-node-script`,
+            images: `${prefix}-node-images`,
+            videos: `${prefix}-node-videos`,
+          },
+          local_overrides: [{
+            path: `${prefix}.nodes.${prefix}-node-script.content.script_document`,
+            kind: 'content_changed',
+            protected: true,
+            display_name: '脚本内容',
+          }],
+        })
+      }
+      const lifecyclePath = path.match(
+        /^\/api\/projects\/project-e2e\/canvases\/canvas-first\/workflow-template-instances\/([^/]+)\/(version-diff|upgrade|clone|detach)$/,
+      )
+      if (lifecyclePath) {
+        const instanceId = decodeURIComponent(lifecyclePath[1])
+        const action = lifecyclePath[2]
+        const isClone = instanceId === 'workflow-template-clone-e2e'
+        const activeVersion = isClone ? 2 : sourceVersion
+        const prefix = isClone ? 'clone' : 'instance'
+        const nodes = [
+          instantiatedNode(`${prefix}-node-brief`, 'text', 'text', 80, 0, activeVersion),
+          instantiatedNode(`${prefix}-node-script`, 'script', 'script', 500, 1, activeVersion),
+          instantiatedNode(`${prefix}-node-images`, 'generation', 'image', 920, 2, activeVersion),
+          instantiatedNode(`${prefix}-node-videos`, 'generation', 'video', 1340, 3, activeVersion),
+        ]
+        const nodeIdMap = {
+          brief: `${prefix}-node-brief`,
+          script: `${prefix}-node-script`,
+          images: `${prefix}-node-images`,
+          videos: `${prefix}-node-videos`,
+        }
+        if (action === 'version-diff' && request.method() === 'POST') {
+          if (activeVersion !== 1 || body?.target_version !== 2) {
+            return fulfillJson(route, {
+              detail: {
+                code: 'workflow_template_version_not_found',
+                message: 'Workflow-template target version was not found',
+              },
+            }, 404)
+          }
+          return fulfillJson(route, {
+            contract_version: 1,
+            instance_id: instanceId,
+            template_id: 'revid.product-ad',
+            source_version: 1,
+            target_version: 2,
+            canvas_revision: canvasRevision,
+            state: 'upgrade_available',
+            compatible: true,
+            changes: [{
+              path: 'variables.campaign_note',
+              kind: 'added',
+              compatible: true,
+              summary: '新增 optional variable campaign_note',
+            }],
+            blocking_reasons: [],
+            local_overrides: [{
+              path: `${prefix}.nodes.${prefix}-node-script.content.script_document`,
+              kind: 'content_changed',
+              protected: true,
+              display_name: '脚本内容',
+            }],
+            fingerprint: 'd'.repeat(64),
+          })
+        }
+        if (action === 'upgrade' && request.method() === 'POST') {
+          sourceVersion = 2
+          canvasRevision += 1
+          const upgradedNodes = nodes.map((node) => instantiatedNode(
+            node.id,
+            node.node_type,
+            node.content.subtype as string | undefined,
+            node.position_x,
+            node.z_index,
+            2,
+          ))
+          return fulfillJson(route, {
+            instance_id: instanceId,
+            source_instance_id: null,
+            template_id: 'revid.product-ad',
+            template_version: 2,
+            project_id: 'project-e2e',
+            canvas_id: 'canvas-first',
+            state: 'locally_modified',
+            node_id_map: nodeIdMap,
+            connection_id_map: {},
+            local_overrides: [{
+              path: `${prefix}.nodes.${prefix}-node-script.content.script_document`,
+              kind: 'content_changed',
+              protected: true,
+              display_name: '脚本内容',
+            }],
+            mutation: {
+              revision: canvasRevision,
+              node_upserts: upgradedNodes,
+              node_deletes: [],
+              connection_upserts: [],
+              connection_deletes: [],
+              server_timestamp: NOW,
+              save_state: 'saved',
+            },
+          })
+        }
+        if (action === 'clone' && request.method() === 'POST') {
+          canvasRevision += 1
+          const cloneNodes = [
+            instantiatedNode('clone-node-brief', 'text', 'text', 80, 4, activeVersion),
+            instantiatedNode('clone-node-script', 'script', 'script', 500, 5, activeVersion),
+            instantiatedNode('clone-node-images', 'generation', 'image', 920, 6, activeVersion),
+            instantiatedNode('clone-node-videos', 'generation', 'video', 1340, 7, activeVersion),
+          ]
+          return fulfillJson(route, {
+            instance_id: 'workflow-template-clone-e2e',
+            source_instance_id: instanceId,
+            template_id: 'revid.product-ad',
+            template_version: activeVersion,
+            project_id: 'project-e2e',
+            canvas_id: 'canvas-first',
+            state: 'locally_modified',
+            node_id_map: {
+              brief: 'clone-node-brief',
+              script: 'clone-node-script',
+              images: 'clone-node-images',
+              videos: 'clone-node-videos',
+            },
+            connection_id_map: {},
+            local_overrides: [{
+              path: 'canvas.nodes.clone-node-script.content.script_document',
+              kind: 'content_changed',
+              protected: true,
+              display_name: '脚本内容',
+            }],
+            mutation: {
+              revision: canvasRevision,
+              node_upserts: cloneNodes,
+              node_deletes: [],
+              connection_upserts: [],
+              connection_deletes: [],
+              server_timestamp: NOW,
+              save_state: 'saved',
+            },
+          }, 201)
+        }
+        if (action === 'detach' && request.method() === 'POST') {
+          canvasRevision += 1
+          detachedInstances.add(instanceId)
+          const detachedNodes = nodes.map((node) => instantiatedNode(
+            node.id,
+            node.node_type,
+            node.content.subtype as string | undefined,
+            node.position_x,
+            node.z_index,
+            activeVersion,
+            false,
+          ))
+          return fulfillJson(route, {
+            instance_id: instanceId,
+            source_instance_id: null,
+            template_id: 'revid.product-ad',
+            template_version: activeVersion,
+            project_id: 'project-e2e',
+            canvas_id: 'canvas-first',
+            state: 'detached',
+            node_id_map: nodeIdMap,
+            connection_id_map: {},
+            local_overrides: [{
+              path: `${prefix}.nodes.${prefix}-node-script.content.script_document`,
+              kind: 'content_changed',
+              protected: true,
+              display_name: '脚本内容',
+            }],
+            mutation: {
+              revision: canvasRevision,
+              node_upserts: detachedNodes,
+              node_deletes: [],
+              connection_upserts: [],
+              connection_deletes: [],
+              server_timestamp: NOW,
+              save_state: 'saved',
+            },
+          })
+        }
+      }
       if (path.endsWith('/runs/preflight') && request.method() === 'POST') {
         const confirmed = body?.cost_confirmed === true
         return fulfillJson(route, {
