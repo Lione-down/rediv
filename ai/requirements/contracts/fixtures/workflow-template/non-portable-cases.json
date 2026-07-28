@@ -1,0 +1,15 @@
+[
+  {"path": "graph.nodes.*.local_id", "classification": "remap_local_id"},
+  {"path": "graph.connections.*.local_id", "classification": "remap_local_id"},
+  {"path": "canvas.project_asset_id", "classification": "promote_to_asset_slot"},
+  {"path": "binding.source_revision", "classification": "revalidate_binding"},
+  {"path": "generation.job_id", "classification": "strip"},
+  {"path": "generation.provider_task_id", "classification": "strip"},
+  {"path": "generation.result_url", "classification": "strip"},
+  {"path": "generation.result_base64", "classification": "strip"},
+  {"path": "billing.quota_ledger_id", "classification": "strip"},
+  {"path": "ownership.owner_id", "classification": "strip"},
+  {"path": "runtime.local_path", "classification": "strip"},
+  {"path": "prompt.system_contract", "classification": "server_owned_reference"},
+  {"path": "layout.position", "classification": "portable"}
+]

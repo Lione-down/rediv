@@ -1,0 +1,41 @@
+[
+  {
+    "name": "text provider endpoint",
+    "base_index": 0,
+    "path": "request.provider_endpoint",
+    "value": "https://invalid.example"
+  },
+  {
+    "name": "Image 2.0 tags",
+    "base_index": 1,
+    "path": "request.tags",
+    "value": ["identity", "style"]
+  },
+  {
+    "name": "Image 2.1 top-level response format",
+    "base_index": 2,
+    "path": "request.response_format",
+    "value": "url"
+  },
+  {
+    "name": "Video resolution alias",
+    "base_index": 3,
+    "path": "request.resolution",
+    "value": "1080p"
+  },
+  {
+    "name": "Video semantic fusion",
+    "base_index": 5,
+    "path": "request.extra_body.semantic_references",
+    "value": {
+      "character": ["https://fixture.invalid/character.png"],
+      "scene": ["https://fixture.invalid/scene.png"]
+    }
+  },
+  {
+    "name": "Video mixed single-image and keyframe modes",
+    "base_index": 5,
+    "path": "request.image",
+    "value": "https://fixture.invalid/frame.png"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {"name": "unknown root field", "path": "runtime_code", "value": "alert('x')"},
+  {"name": "step script", "path": "steps.0.script", "value": "print('x')"},
+  {"name": "provider endpoint", "path": "steps.0.provider_endpoint", "value": "https://invalid.example"},
+  {"name": "provider headers", "path": "steps.0.headers", "value": {"Authorization": "redacted"}},
+  {"name": "provider token", "path": "steps.0.token", "value": "redacted-token"},
+  {"name": "local path", "path": "metadata.local_path", "value": "C:/private/file"},
+  {"name": "provider task id", "path": "provider_task_id", "value": "task-redacted"},
+  {"name": "result url", "path": "result_url", "value": "https://invalid.example/result"},
+  {"name": "result base64", "path": "result_base64", "value": "ZGF0YQ=="},
+  {"name": "quota ledger", "path": "quota_ledger_id", "value": "ledger-redacted"},
+  {"name": "owner spoofing", "path": "owner_id", "value": "user-foreign"},
+  {"name": "forged team scope", "path": "scope", "value": "team"},
+  {"name": "private asset id", "path": "asset_slots.0.asset_id", "value": "asset-private"},
+  {"name": "unsupported slot type", "path": "variables.0.type", "value": "code"}
+]

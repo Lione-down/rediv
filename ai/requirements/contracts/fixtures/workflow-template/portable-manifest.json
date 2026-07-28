@@ -1,0 +1,136 @@
+{
+  "schema_id": "revid.workflow-template",
+  "schema_version": 1,
+  "template_id": "revid.product-ad",
+  "template_version": 1,
+  "lifecycle": "published",
+  "scope": "built_in",
+  "metadata": {
+    "name": "商品广告短片",
+    "category": "commercial",
+    "tags": ["product", "15-60s"],
+    "description": "从商品 Brief 创建脚本、分镜图和可执行视频卡片"
+  },
+  "variables": [
+    {
+      "key": "product_name",
+      "type": "text",
+      "required": true,
+      "label": "商品名称",
+      "max_length": 120
+    },
+    {
+      "key": "shot_count",
+      "type": "integer",
+      "required": true,
+      "label": "镜头数量",
+      "default": 6,
+      "minimum": 1,
+      "maximum": 25
+    },
+    {
+      "key": "aspect_ratio",
+      "type": "enum",
+      "required": true,
+      "label": "画幅",
+      "default": "9:16",
+      "options": ["16:9", "9:16", "1:1"]
+    }
+  ],
+  "asset_slots": [
+    {
+      "slot_id": "product_reference",
+      "media_type": "image",
+      "role": "identity",
+      "required": true,
+      "minimum_items": 1,
+      "maximum_items": 3,
+      "revision_policy": "exact"
+    }
+  ],
+  "graph": {
+    "nodes": [
+      {"local_id": "brief", "node_type": "text"},
+      {"local_id": "script", "node_type": "script"},
+      {"local_id": "images", "node_type": "generation", "subtype": "image"},
+      {"local_id": "videos", "node_type": "generation", "subtype": "video"}
+    ],
+    "connections": [
+      {
+        "local_id": "brief-script",
+        "source_node_local_id": "brief",
+        "source_port": "out",
+        "target_node_local_id": "script",
+        "target_port": "prompt"
+      },
+      {
+        "local_id": "script-images",
+        "source_node_local_id": "script",
+        "source_port": "out",
+        "target_node_local_id": "images",
+        "target_port": "prompt"
+      },
+      {
+        "local_id": "images-videos",
+        "source_node_local_id": "images",
+        "source_port": "out",
+        "target_node_local_id": "videos",
+        "target_port": "media"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step_id": "compile-story",
+      "node_local_id": "script",
+      "intent": "story-production",
+      "model_policy": "agnes-text-default",
+      "input_bindings": ["product_name", "shot_count", "product_reference"],
+      "depends_on": [],
+      "capability_requirements": ["text.tool_calling"]
+    },
+    {
+      "step_id": "create-shot-images",
+      "node_local_id": "images",
+      "intent": "shot-image",
+      "model_policy": "agnes-image-quality-default",
+      "input_bindings": ["aspect_ratio", "product_reference"],
+      "depends_on": ["compile-story"],
+      "capability_requirements": ["image.text_or_single_image"]
+    },
+    {
+      "step_id": "create-shot-videos",
+      "node_local_id": "videos",
+      "intent": "shot-video",
+      "model_policy": "agnes-video-default",
+      "input_bindings": ["aspect_ratio"],
+      "depends_on": ["create-shot-images"],
+      "capability_requirements": ["video.text_or_single_image_or_keyframes"]
+    }
+  ],
+  "override_policy": {
+    "allowed_fields": [
+      "variables.product_name",
+      "variables.shot_count",
+      "variables.aspect_ratio",
+      "steps.create-shot-images.parameters",
+      "steps.create-shot-videos.parameters"
+    ],
+    "locked_fields": [
+      "schema_id",
+      "schema_version",
+      "graph.connections",
+      "security"
+    ]
+  },
+  "result_policy": {
+    "same_card": true,
+    "image_batch_siblings": true,
+    "ingest_provider_media": true
+  },
+  "security": {
+    "arbitrary_code": false,
+    "auto_execute": false,
+    "cross_project_lookup": false
+  }
+}

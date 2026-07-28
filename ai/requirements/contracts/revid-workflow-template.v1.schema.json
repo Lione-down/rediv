@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://revid.local/contracts/revid-workflow-template.v1.schema.json",
+  "title": "Revid Workflow Template Manifest V1",
+  "description": "Portable, declarative, non-executable Revid workflow-template manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "template_id",
+    "template_version",
+    "lifecycle",
+    "scope",
+    "metadata",
+    "variables",
+    "asset_slots",
+    "graph",
+    "steps",
+    "override_policy",
+    "result_policy",
+    "security"
+  ],
+  "properties": {
+    "schema_id": {"const": "revid.workflow-template"},
+    "schema_version": {"const": 1},
+    "template_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9.-]{2,127}$"
+    },
+    "template_version": {"type": "integer", "minimum": 1},
+    "lifecycle": {"enum": ["draft", "published", "retired"]},
+    "scope": {"enum": ["built_in", "private"]},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "variables": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {"$ref": "#/$defs/variable"}
+    },
+    "asset_slots": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {"$ref": "#/$defs/asset_slot"}
+    },
+    "graph": {"$ref": "#/$defs/graph"},
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {"$ref": "#/$defs/step"}
+    },
+    "override_policy": {"$ref": "#/$defs/override_policy"},
+    "result_policy": {"$ref": "#/$defs/result_policy"},
+    "security": {"$ref": "#/$defs/security"}
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "category", "tags", "description"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 120},
+        "category": {"type": "string", "minLength": 1, "maxLength": 64},
+        "tags": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "description": {"type": "string", "minLength": 1, "maxLength": 500}
+      }
+    },
+    "variable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "type", "required", "label"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "type": {
+          "enum": ["text", "multiline", "integer", "boolean", "enum", "bounded_list"]
+        },
+        "required": {"type": "boolean"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 120},
+        "default": {
+          "oneOf": [
+            {"type": "string"},
+            {"type": "integer"},
+            {"type": "boolean"},
+            {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          ]
+        },
+        "max_length": {"type": "integer", "minimum": 1, "maximum": 20000},
+        "minimum": {"type": "integer"},
+        "maximum": {"type": "integer"},
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"type": {"const": "enum"}}},
+          "then": {"required": ["options"]},
+          "else": {"not": {"required": ["options"]}}
+        },
+        {
+          "if": {"properties": {"type": {"const": "integer"}}},
+          "else": {
+            "not": {
+              "anyOf": [
+                {"required": ["minimum"]},
+                {"required": ["maximum"]}
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {"enum": ["text", "multiline"]}
+            }
+          },
+          "else": {"not": {"required": ["max_length"]}}
+        }
+      ]
+    },
+    "asset_slot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot_id",
+        "media_type",
+        "role",
+        "required",
+        "minimum_items",
+        "maximum_items",
+        "revision_policy"
+      ],
+      "properties": {
+        "slot_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "media_type": {"enum": ["image", "video", "audio"]},
+        "role": {
+          "enum": ["identity", "style", "subject", "first_frame", "last_frame", "reference"]
+        },
+        "required": {"type": "boolean"},
+        "minimum_items": {"type": "integer", "minimum": 0, "maximum": 9},
+        "maximum_items": {"type": "integer", "minimum": 1, "maximum": 9},
+        "revision_policy": {"enum": ["exact", "latest_compatible"]}
+      }
+    },
+    "graph_node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local_id", "node_type"],
+      "properties": {
+        "local_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "node_type": {"enum": ["text", "script", "generation", "group", "asset"]},
+        "subtype": {"enum": ["image", "video"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"node_type": {"const": "generation"}}},
+          "then": {"required": ["subtype"]},
+          "else": {"not": {"required": ["subtype"]}}
+        }
+      ]
+    },
+    "graph_connection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "local_id",
+        "source_node_local_id",
+        "source_port",
+        "target_node_local_id",
+        "target_port"
+      ],
+      "properties": {
+        "local_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "source_node_local_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "source_port": {"type": "string", "minLength": 1, "maxLength": 64},
+        "target_node_local_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "target_port": {"type": "string", "minLength": 1, "maxLength": 64}
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "connections"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 250,
+          "items": {"$ref": "#/$defs/graph_node"}
+        },
+        "connections": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {"$ref": "#/$defs/graph_connection"}
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id",
+        "node_local_id",
+        "intent",
+        "model_policy",
+        "input_bindings",
+        "depends_on",
+        "capability_requirements"
+      ],
+      "properties": {
+        "step_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "node_local_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "intent": {
+          "enum": ["story-production", "shot-image", "image-precomposition", "shot-video"]
+        },
+        "model_policy": {
+          "enum": [
+            "agnes-text-default",
+            "agnes-image-quality-default",
+            "agnes-image-precomposition",
+            "agnes-video-default"
+          ]
+        },
+        "input_bindings": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        },
+        "depends_on": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+          },
+          "uniqueItems": true
+        },
+        "capability_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
+    },
+    "override_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_fields", "locked_fields"],
+      "properties": {
+        "allowed_fields": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "locked_fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
+    },
+    "result_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["same_card", "image_batch_siblings", "ingest_provider_media"],
+      "properties": {
+        "same_card": {"const": true},
+        "image_batch_siblings": {"const": true},
+        "ingest_provider_media": {"const": true}
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["arbitrary_code", "auto_execute", "cross_project_lookup"],
+      "properties": {
+        "arbitrary_code": {"const": false},
+        "auto_execute": {"const": false},
+        "cross_project_lookup": {"const": false}
+      }
+    }
+  }
+}

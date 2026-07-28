@@ -21,6 +21,7 @@ Deliver backward-compatible Revid-native cinematic director Skills v2 on top of 
 | 11 | T6-011 | Replace the complete Canvas frontend and card/workflow runtime from the Human video contract | DONE | PASS | T6-010 |
 | 12 | T6-012 | Implement the automatic project-owned story director and strict story-production contract | BLOCKED | FAIL | T6-011 |
 | 13 | T6-013 | Restore usable Script/storyboard and core Canvas interaction contracts | DONE | DEFERRED | T6-011; T6-012 audit/selective reuse |
+| 14 | T6-017 | Freeze PRD V1 and declarative workflow-template contracts | DONE | PASS | T6-013 |
 
 T6-001 through T6-004 are `DONE / PASS`; their REPORTs remain authoritative. On 2026-07-23, the Human Owner explicitly rejected T6-005's visual and interaction result and requested state closure. T6-005 is terminal `BLOCKED / FAIL`: its machine evidence remains valid, but no REPORT or false `DONE / PASS` is allowed. The committed T6-005 snapshot remains preserved as rejected audit/reference evidence pending an explicit selective-reuse or full-removal decision.
 
@@ -39,6 +40,12 @@ Old T6-014 through T6-016 were provisional scopes only and never received formal
 workflow-template program supersedes those provisional scopes: old T6-014 value is absorbed into T6-023, old T6-015
 is replaced by provider-valid T6-024, and old T6-016 compatibility retirement is deferred to T6-027. No historical
 `DONE`, `FAIL`, or REPORT is fabricated for those numbers.
+
+T6-017 is `DONE / PASS`. It freezes the approved V1 product defaults, strict declarative schema, behavior matrix,
+cross-language parser/fingerprint contract, portability rules, abuse cases, and provider projection fixtures. Focused
+and provider checks passed `61` tests plus `58` subtests, legacy Template/Canvas regression passed `23`, provider-free
+browser contract proof passed `3/3`, and the fresh build transformed `5,041` modules. It made no runtime UI,
+persistence, migration, provider call, or T6-018 implementation change.
 
 Unit 6I implementation and machine verification are complete. The selected toolbar is now approximately `900 x 50 CSS px`, professional icons and visible labels share one horizontal row, standard placement remains above the media with `26..34 CSS px` clearance, true top collision still flips below, and the `920px` toolbar has no horizontal overflow. Build `4,972`, related `43/43`, three-axis `7/7` without snapshot updates, full Chromium `596/596`, headed performance `2/2`, dependency audit `0`, state validation, and diff check pass. Renewed Human acceptance is the remaining completion gate.
 

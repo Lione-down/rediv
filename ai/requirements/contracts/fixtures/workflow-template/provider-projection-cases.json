@@ -1,0 +1,97 @@
+[
+  {
+    "name": "agnes text tool contract",
+    "projection_version": 1,
+    "provider": "agnes",
+    "contract_id": "agnes.text.chat-completions.v1",
+    "intent": "story-production",
+    "request": {
+      "model": "agnes-2.5-flash",
+      "messages": [{"role": "user", "content": "Create a bounded storyboard fixture."}],
+      "tools": [{"type": "function", "function": {"name": "submit_revid_storyboard"}}]
+    }
+  },
+  {
+    "name": "agnes image 2.0 composition",
+    "projection_version": 1,
+    "provider": "agnes",
+    "contract_id": "agnes.image-2.0.generations.v1",
+    "intent": "image-precomposition",
+    "request": {
+      "model": "agnes-image-2.0-flash",
+      "prompt": "Compose the approved fixture references.",
+      "extra_body": {
+        "image": ["https://fixture.invalid/one.png", "https://fixture.invalid/two.png"],
+        "response_format": "url"
+      }
+    }
+  },
+  {
+    "name": "agnes image 2.1 single image",
+    "projection_version": 1,
+    "provider": "agnes",
+    "contract_id": "agnes.image-2.1.generations.v1",
+    "intent": "shot-image",
+    "request": {
+      "model": "agnes-image-2.1-flash",
+      "prompt": "Create the approved shot image fixture.",
+      "size": "2K",
+      "ratio": "9:16",
+      "extra_body": {
+        "image": ["https://fixture.invalid/reference.png"],
+        "response_format": "url"
+      }
+    }
+  },
+  {
+    "name": "agnes video text",
+    "projection_version": 1,
+    "provider": "agnes",
+    "contract_id": "agnes.video-v2.0.v1",
+    "intent": "shot-video",
+    "request": {
+      "model": "agnes-video-v2.0",
+      "prompt": "Create the approved text video fixture.",
+      "width": 648,
+      "height": 1152,
+      "num_frames": 241,
+      "frame_rate": 24
+    }
+  },
+  {
+    "name": "agnes video single image",
+    "projection_version": 1,
+    "provider": "agnes",
+    "contract_id": "agnes.video-v2.0.v1",
+    "intent": "shot-video",
+    "request": {
+      "model": "agnes-video-v2.0",
+      "prompt": "Animate the approved frame fixture.",
+      "image": "https://fixture.invalid/frame.png",
+      "negative_prompt": "No text overlays.",
+      "width": 1152,
+      "height": 648,
+      "num_frames": 241,
+      "frame_rate": 24
+    }
+  },
+  {
+    "name": "agnes video ordered keyframes",
+    "projection_version": 1,
+    "provider": "agnes",
+    "contract_id": "agnes.video-v2.0.v1",
+    "intent": "shot-video",
+    "request": {
+      "model": "agnes-video-v2.0",
+      "prompt": "Transition between the approved temporal fixtures.",
+      "width": 1152,
+      "height": 648,
+      "num_frames": 241,
+      "frame_rate": 24,
+      "extra_body": {
+        "mode": "keyframes",
+        "image": ["https://fixture.invalid/first.png", "https://fixture.invalid/last.png"]
+      }
+    }
+  }
+]

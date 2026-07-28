@@ -80,7 +80,11 @@ def _validate_t6_chain(errors: list[str]) -> dict[str, tuple[str, str]]:
                 _validate_links(report, errors)
         elif report.exists():
             _error(errors, f"active task {task_id} has a premature REPORT")
-    unfinished_ids = [task_id for task_id, metadata in task_states.items() if metadata[0] != "DONE"]
+    unfinished_ids = [
+        task_id
+        for task_id, metadata in task_states.items()
+        if metadata[0] in {"TODO", "DOING", "VERIFYING"}
+    ]
     if len(active_ids) > 1 or (unfinished_ids and len(active_ids) != 1):
         _error(errors, f"expected one active T6 Task while unfinished Tasks exist, found {active_ids}")
     return task_states
