@@ -22,6 +22,7 @@ Deliver backward-compatible Revid-native cinematic director Skills v2 on top of 
 | 12 | T6-012 | Implement the automatic project-owned story director and strict story-production contract | BLOCKED | FAIL | T6-011 |
 | 13 | T6-013 | Restore usable Script/storyboard and core Canvas interaction contracts | DONE | DEFERRED | T6-011; T6-012 audit/selective reuse |
 | 14 | T6-017 | Freeze PRD V1 and declarative workflow-template contracts | DONE | PASS | T6-013 |
+| 15 | T6-018 | Additive MySQL workflow-template persistence foundation | DONE | PASS | T6-017 |
 
 T6-001 through T6-004 are `DONE / PASS`; their REPORTs remain authoritative. On 2026-07-23, the Human Owner explicitly rejected T6-005's visual and interaction result and requested state closure. T6-005 is terminal `BLOCKED / FAIL`: its machine evidence remains valid, but no REPORT or false `DONE / PASS` is allowed. The committed T6-005 snapshot remains preserved as rejected audit/reference evidence pending an explicit selective-reuse or full-removal decision.
 
@@ -46,6 +47,12 @@ cross-language parser/fingerprint contract, portability rules, abuse cases, and 
 and provider checks passed `61` tests plus `58` subtests, legacy Template/Canvas regression passed `23`, provider-free
 browser contract proof passed `3/3`, and the fresh build transformed `5,041` modules. It made no runtime UI,
 persistence, migration, provider call, or T6-018 implementation change.
+
+T6-018 is `DONE / PASS`. Revision `c8d9e0f1a2b3` additively establishes commented definition/version/slot/instance/
+binding/step/run persistence with composite scope, state, fingerprint, idempotency, and lineage constraints. Focused
+real-MySQL evidence passed `11`, legacy Template/Canvas and historical migration regression passed `40`, and full
+backend classification recorded `691` passing tests plus `203` passing subtests and seven unchanged out-of-scope
+contract REDs. The legacy `templates` table remains unchanged and runtime does not switch before T6-019.
 
 Unit 6I implementation and machine verification are complete. The selected toolbar is now approximately `900 x 50 CSS px`, professional icons and visible labels share one horizontal row, standard placement remains above the media with `26..34 CSS px` clearance, true top collision still flips below, and the `920px` toolbar has no horizontal overflow. Build `4,972`, related `43/43`, three-axis `7/7` without snapshot updates, full Chromium `596/596`, headed performance `2/2`, dependency audit `0`, state validation, and diff check pass. Renewed Human acceptance is the remaining completion gate.
 

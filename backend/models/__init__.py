@@ -16,6 +16,16 @@ from models.provider_cost_acknowledgement import ProviderCostAcknowledgement
 from models.quota import Quota, QuotaLedger
 from models.template import Template
 from models.user import User
+from models.workflow_template import (
+    WorkflowRun,
+    WorkflowRunStep,
+    WorkflowTemplateBinding,
+    WorkflowTemplateDefinition,
+    WorkflowTemplateInstance,
+    WorkflowTemplateInstanceStep,
+    WorkflowTemplateSlot,
+    WorkflowTemplateVersion,
+)
 
 __all__ = [
     "AdminLog",
@@ -38,6 +48,14 @@ __all__ = [
     "StoreConfig",
     "Template",
     "User",
+    "WorkflowRun",
+    "WorkflowRunStep",
+    "WorkflowTemplateBinding",
+    "WorkflowTemplateDefinition",
+    "WorkflowTemplateInstance",
+    "WorkflowTemplateInstanceStep",
+    "WorkflowTemplateSlot",
+    "WorkflowTemplateVersion",
     "dispose_engine",
     "get_session",
     "init_engine",
