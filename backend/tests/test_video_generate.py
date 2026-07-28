@@ -20,6 +20,9 @@ from core.agnes_contract import AgnesProviderError
 from core.agnes_provider import extract_provider_progress_percent
 from core.security import create_token
 from models.asset import Asset
+from services.workflow_templates.provider_projection import (
+    compile_workflow_template_video_projection,
+)
 from tests.mysql_test_database import MySQLTestDatabase
 
 
@@ -118,6 +121,41 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("agnes-video-v2.0", fake_provider.generate_calls[0]["model"])
         self.assertEqual("Create a dramatic cinematic shot", fake_provider.generate_calls[0]["prompt"])
         self.assertEqual(["video-1", "video-1"], fake_provider.poll_calls)
+
+    def test_video_generate_dispatches_through_provider_valid_compiler(self) -> None:
+        fake_provider = _FakeAgnesProvider()
+
+        with (
+            patch.object(backend_main, "_agnes", fake_provider),
+            patch.object(video_generate_module.asyncio, "sleep", new=self._fake_sleep),
+            patch.object(
+                video_generate_module,
+                "compile_workflow_template_video_projection",
+                wraps=compile_workflow_template_video_projection,
+            ) as compile_projection,
+        ):
+            response = self.client.post(
+                "/api/video-generate",
+                json=self._payload(
+                    "Compile the provider-valid text clip.",
+                    reference_mode="text-to-video",
+                    duration_seconds=3,
+                    resolution="480p",
+                ),
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(200, response.status_code, response.text)
+        compile_projection.assert_called_once()
+        self.assertEqual(
+            {
+                "width": 832,
+                "height": 448,
+                "num_frames": 81,
+                "frame_rate": 24,
+            },
+            fake_provider.generate_calls[0]["kwargs"],
+        )
 
     def test_video_generate_accepts_processing_and_direct_video_url_without_fake_progress(self) -> None:
         generated_url = "https://example.com/generated-video-direct.mp4"

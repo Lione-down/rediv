@@ -2,13 +2,12 @@
 
 - State: `DONE`
 - Verification outcome: `PASS`
-- Last updated: `2026-07-28`
+- Last updated: `2026-07-29`
 
 ## Delivery Mode
 
 - Mode: `CODEX_DIRECT_DELIVERY`; Codex is the single engineering owner.
-- Human gates remain real/paid provider calls, secrets, external accounts, destructive user data/filesystem operations,
-  arbitrary-code templates, and public/team marketplace scope.
+- Human gates remain paid providers, secrets, external accounts, destructive operations, arbitrary code, and public/team scope.
 - Decision: [ADR-2026-07-10-CODEX-DIRECT-DELIVERY](../decisions/ADR-2026-07-10-CODEX-DIRECT-DELIVERY.md).
 
 ## Product State
@@ -20,16 +19,19 @@
 - T6-020 and T6-021: `DONE / PASS`; portable preflight plus atomic instantiate/lineage are verified.
 - T6-022: `DONE / PASS`; Template Library/configuration UI is implemented and machine verified.
 - T6-023: `DONE / PASS`; template-aware Script/Image and old T6-014 closeout is delivered.
+- T6-024: `DONE / PASS`; provider-valid Video compiler and old T6-015 replacement are delivered.
 - Old T6-014 through T6-016 were provisional scopes superseded before formal Task creation.
 - Database authority remains MySQL-only.
 
 ## Active Delivery
 
-- Latest completed Task: `T6-023 - Template-aware Script/Image and old T6-014 closeout`;
-  [TASK-T6-023](../tasks/todo/TASK-T6-023.md).
-- Plan: [TASK-T6-023-PLAN](../tasks/doing/TASK-T6-023-PLAN.md).
-- Progress: [TASK-T6-023-PROGRESS](../tasks/doing/TASK-T6-023-PROGRESS.md).
-- Report: [REPORT-T6-023](../reports/REPORT-T6-023.md).
+- Latest completed Task: `T6-024 - Provider-valid Video compiler and old T6-015 replacement`;
+  [TASK-T6-024](../tasks/todo/TASK-T6-024.md).
+- Plan: [TASK-T6-024-PLAN](../tasks/doing/TASK-T6-024-PLAN.md).
+- Progress: [TASK-T6-024-PROGRESS](../tasks/doing/TASK-T6-024-PROGRESS.md).
+- Report: [REPORT-T6-024](../reports/REPORT-T6-024.md).
+- Dependency baseline: T6-023 `DONE / PASS`;
+  `HEAD == origin/main == c79bf1e8c0deac88f4fa1111ba8dd8a3b7327d7c` at activation.
 
 ## Live Gates
 
@@ -38,12 +40,13 @@
 - T6-018 through T6-021 own persistence, lifecycle, capture/preflight, atomic instantiate, and durable lineage.
 - T6-022 owns only Library/configuration UI and existing-route adoption, without provider execution or a second
   Canvas authority.
-- Generation, WorkflowRun, upgrade/clone/detach, and release proof remain assigned to T6-023 through T6-027.
+- Video compilation is delivered by T6-024; WorkflowRun, upgrade/clone/detach, and release proof remain
+  assigned to inactive T6-025 through T6-027.
 - Program-level final visual, interaction, and journey acceptance remains T6-027.
 
 ## Exact Next Action
 
-Stop. T6-024 is dependency-ready for a new Direct Delivery session but is not active.
+Stop. T6-025 is dependency-ready but remains inactive.
 
 ## Worktree Ownership
 
@@ -52,5 +55,5 @@ Stop. T6-024 is dependency-ready for a new Direct Delivery session but is not ac
 
 ## Completion Gate
 
-- T6-023 is closed `DONE / PASS`; no deferred T6-023 acceptance remains.
-- Final Human visual, interaction, and journey acceptance remains T6-027.
+- T6-024 is closed `DONE / PASS`; no deferred T6-024 implementation remains.
+- Machine browser/build evidence is not Human acceptance; final program-level acceptance remains T6-027.

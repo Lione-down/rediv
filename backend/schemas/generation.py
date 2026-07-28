@@ -205,6 +205,7 @@ class VideoGenerateRequest(ScopedGenerationRequest):
     negative_prompt: StrictStr | None = Field(default=None, max_length=2000)
     shot_controls: dict[str, Any] | None = None
     video_references: list[VideoReferenceBinding] | None = Field(default=None, max_length=8)
+    template_lineage: StoryShotTemplateLineage | None = None
 
     @field_validator("image_ids")
     @classmethod

@@ -267,21 +267,21 @@ export function resolveGenerationRequestContext(
   } catch (error) {
     return failedContext(base, mediaType, capabilities, (error as Error).message)
   }
+  let templateLineage: WorkflowTemplateShotLineage | null
+  try {
+    templateLineage = parseWorkflowTemplateShotLineage(
+      generationNode.contentData?.template_lineage,
+      typeof generationNode.contentData?.source_script_node_id === 'string'
+        ? generationNode.contentData.source_script_node_id
+        : '',
+      typeof generationNode.contentData?.shot_id === 'string'
+        ? generationNode.contentData.shot_id
+        : '',
+    )
+  } catch (error) {
+    return failedContext(base, mediaType, capabilities, (error as Error).message)
+  }
   if (mediaType === 'image') {
-    let templateLineage: WorkflowTemplateShotLineage | null
-    try {
-      templateLineage = parseWorkflowTemplateShotLineage(
-        generationNode.contentData?.template_lineage,
-        typeof generationNode.contentData?.source_script_node_id === 'string'
-          ? generationNode.contentData.source_script_node_id
-          : '',
-        typeof generationNode.contentData?.shot_id === 'string'
-          ? generationNode.contentData.shot_id
-          : '',
-      )
-    } catch (error) {
-      return failedContext(base, mediaType, capabilities, (error as Error).message)
-    }
     const image = saved?.image
     const imageSize = capabilities.contract_version === 7
       ? saved === null
@@ -596,6 +596,7 @@ export function resolveGenerationRequestContext(
     primaryReferenceNodeId,
     ...(capabilities.contract_version >= 6 ? { videoReferences: videoReferences ?? [] } : {}),
     ...(negativePrompt ? { negativePrompt } : {}),
+    ...(templateLineage ? { templateLineage } : {}),
     shotControls,
     shotControlCapabilities: capabilities.video.shotControls ?? undefined,
     parameterSummary: [

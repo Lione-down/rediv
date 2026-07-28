@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.generation_common import fingerprint_generation_request, map_generation_error, resolve_cinematic_generation_handoff
 from controllers import generation_transactions as generation_controller
+from controllers import canvas_documents as document_controller
+from controllers.canvases import CanvasDomainError
 from core.agnes_provider import extract_provider_progress_percent, normalize_provider_status
 from core.generation_provider import GenerationProvider, get_generation_provider
 from core.generation_parameter_contract import VIDEO_MODEL, normalize_video_parameters
@@ -28,6 +30,13 @@ from core.generation_task_utils import (
 )
 from core.security import current_user
 from schemas.generation import VideoGenerateRequest, VideoGenerateResponse
+from services.workflow_templates.story_lineage import (
+    WorkflowTemplateStoryLineageError,
+    resolve_workflow_template_story_lineage,
+)
+from services.workflow_templates.provider_projection import (
+    compile_workflow_template_video_projection,
+)
 
 
 MODEL_NAME = VIDEO_MODEL
@@ -35,6 +44,61 @@ POLL_INTERVAL_SECONDS = 5
 MAX_POLL_ATTEMPTS = 120
 
 router = APIRouter(prefix="/api", tags=["video-generate"])
+
+
+def _resolve_video_template_lineage(
+    payload: VideoGenerateRequest,
+    *,
+    user_id: str,
+) -> dict | None:
+    lineage = payload.template_lineage
+    if lineage is None:
+        return None
+    try:
+        resolve_workflow_template_story_lineage(
+            lineage=lineage,
+            owner_user_id=user_id,
+            project_id=payload.project_id,
+            canvas_id=payload.origin_canvas_id,
+            script_node_id=lineage.script_node_id,
+        )
+        document = document_controller.get_document(
+            payload.project_id,
+            payload.origin_canvas_id,
+            user_id,
+        )
+    except (CanvasDomainError, WorkflowTemplateStoryLineageError, KeyError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "workflow_template_video_lineage_stale",
+                "message": "模板视频来源已变化，请刷新 Canvas 后重试。",
+            },
+        ) from error
+    node = next(
+        (
+            candidate
+            for candidate in document["nodes"]
+            if candidate["id"] == payload.canvas_node_id
+        ),
+        None,
+    )
+    content = node.get("content") if isinstance(node, dict) else None
+    snapshot = lineage.model_dump(mode="json")
+    if (
+        not isinstance(content, dict)
+        or content.get("source_script_node_id") != lineage.script_node_id
+        or content.get("shot_id") != lineage.shot_id
+        or content.get("template_lineage") != snapshot
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "workflow_template_video_lineage_stale",
+                "message": "模板视频来源已变化，请刷新 Canvas 后重试。",
+            },
+        )
+    return snapshot
 
 
 def _extract_video_id(response: object) -> str:
@@ -203,6 +267,10 @@ async def video_generate(
     user=Depends(current_user),
     provider: GenerationProvider = Depends(get_generation_provider),
 ):
+    template_lineage = _resolve_video_template_lineage(
+        payload,
+        user_id=user["id"],
+    )
     video_references = (
         [binding.model_dump(mode="json") for binding in payload.video_references]
         if payload.video_references is not None else None
@@ -239,6 +307,8 @@ async def video_generate(
         },
     )
     request_parameters = dict(normalized_parameters.request_parameters)
+    if template_lineage is not None:
+        request_parameters["template_lineage"] = template_lineage
     fingerprint_parameters = dict(request_parameters)
     if normalized_parameters.negative_prompt is not None:
         fingerprint_parameters["negative_prompt_sha256"] = hashlib.sha256(
@@ -288,27 +358,36 @@ async def video_generate(
         generation_controller.update_generation_task_state(
             task["id"], status="running", progress_stage="provider"
         )
-        generation_options = {
-            "width": normalized_parameters.width,
-            "height": normalized_parameters.height,
-            "num_frames": normalized_parameters.num_frames,
-            "frame_rate": normalized_parameters.frame_rate,
-        }
-        if normalized_parameters.negative_prompt is not None:
-            generation_options["negative_prompt"] = normalized_parameters.negative_prompt
-        if normalized_parameters.reference_mode == "image-to-video" and input_images:
-            generation_options = {"image": input_images[0], "mode": "img2vid"}
-            generation_options.update({
-                "width": normalized_parameters.width,
-                "height": normalized_parameters.height,
-                "num_frames": normalized_parameters.num_frames,
-                "frame_rate": normalized_parameters.frame_rate,
-            })
-        elif normalized_parameters.reference_mode == "keyframes" and input_images:
-            generation_options.update({"extra_images": input_images, "mode": "keyframes"})
-        create_response = await provider.generate_video(
-            model=MODEL_NAME,
+        projection = compile_workflow_template_video_projection(
             prompt=payload.prompt,
+            normalized_parameters=normalized_parameters,
+            image_urls=input_images or [],
+        )
+        provider_request = projection.request
+        generation_options = {
+            key: provider_request[key]
+            for key in (
+                "width",
+                "height",
+                "num_frames",
+                "frame_rate",
+                "negative_prompt",
+            )
+            if key in provider_request
+        }
+        if "image" in provider_request:
+            generation_options.update({
+                "image": provider_request["image"],
+                "mode": "img2vid",
+            })
+        elif "extra_body" in provider_request:
+            generation_options.update({
+                "extra_images": provider_request["extra_body"]["image"],
+                "mode": "keyframes",
+            })
+        create_response = await provider.generate_video(
+            model=provider_request["model"],
+            prompt=provider_request["prompt"],
             **generation_options,
         )
         video_id = _extract_video_id(create_response)
