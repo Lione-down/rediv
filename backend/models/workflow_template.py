@@ -369,6 +369,8 @@ class WorkflowTemplateInstance(Base):
 
 from models.workflow_run import WorkflowRun, WorkflowRunStep  # noqa: E402
 from models.workflow_template_lineage import (  # noqa: E402
+    WorkflowTemplateAssetBindingItem,
     WorkflowTemplateBinding,
+    WorkflowTemplateInstanceCommit,
     WorkflowTemplateInstanceStep,
 )

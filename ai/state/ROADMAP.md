@@ -25,6 +25,7 @@ Deliver backward-compatible Revid-native cinematic director Skills v2 on top of 
 | 15 | T6-018 | Additive MySQL workflow-template persistence foundation | DONE | PASS | T6-017 |
 | 16 | T6-019 | Owner-scoped workflow-template definition/version lifecycle and API | DONE | PASS | T6-018 |
 | 17 | T6-020 | Portable Canvas capture, asset-slot promotion, and provider-free preflight | DONE | PASS | T6-019 |
+| 18 | T6-021 | Exact-version atomic Canvas instantiate and instance/binding/step-node lineage | DONE | PASS | T6-020 |
 
 T6-001 through T6-004 are `DONE / PASS`; their REPORTs remain authoritative. On 2026-07-23, the Human Owner explicitly rejected T6-005's visual and interaction result and requested state closure. T6-005 is terminal `BLOCKED / FAIL`: its machine evidence remains valid, but no REPORT or false `DONE / PASS` is allowed. The committed T6-005 snapshot remains preserved as rejected audit/reference evidence pending an explicit selective-reuse or full-removal decision.
 
@@ -75,6 +76,15 @@ tests plus `203` passing subtests and the same seven out-of-scope contract REDs 
 baseline. Success and failure paths leave zero Canvas revision, template instance/lineage/run, quota ledger,
 generation task/job, or provider request side effect. T6-021 atomic instantiate/lineage is the next dependency-ready
 Task; final Human visual/interaction acceptance remains T6-027.
+
+T6-021 is `DONE / PASS`. It delivers exact immutable-version and provider-free-preflight revalidation, deterministic
+stable instance/node/connection IDs, one existing Canvas document patch, and durable typed binding, ordered
+asset/source-revision, step/node, and strict replay lineage in one transaction. Focused guarded MySQL evidence
+passed `24` tests plus `3` subtests; related regression passed `125` plus `6` subtests; broad backend classification
+recorded `734` passing tests plus `206` passing subtests and the same seven out-of-scope baseline REDs. Fresh build
+transformed `5,041` modules. Stale, foreign, invalid, collision, and concurrent conflicts leave zero partial Canvas,
+lineage, quota, generation, WorkflowRun, or provider side effect. T6-022 UI is next dependency-ready; execution,
+upgrade, and release scopes remain assigned to T6-023 through T6-027.
 
 Unit 6I implementation and machine verification are complete. The selected toolbar is now approximately `900 x 50 CSS px`, professional icons and visible labels share one horizontal row, standard placement remains above the media with `26..34 CSS px` clearance, true top collision still flips below, and the `920px` toolbar has no horizontal overflow. Build `4,972`, related `43/43`, three-axis `7/7` without snapshot updates, full Chromium `596/596`, headed performance `2/2`, dependency audit `0`, state validation, and diff check pass. Renewed Human acceptance is the remaining completion gate.
 

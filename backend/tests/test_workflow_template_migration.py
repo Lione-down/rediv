@@ -17,6 +17,7 @@ from tests.mysql_test_database import MySQLTestDatabase
 
 BASE_REVISION = "b7c8d9e0f1a2"
 FOUNDATION_REVISION = "c8d9e0f1a2b3"
+CURRENT_HEAD_REVISION = "e0f1a2b3c4d5"
 FOUNDATION_TABLES = {
     "workflow_template_definitions",
     "workflow_template_versions",
@@ -165,8 +166,8 @@ class WorkflowTemplateMigrationTests(unittest.TestCase):
 
         restart = database.restart_runtime()
         self.assertTrue(restart["match"])
-        self.assertEqual(FOUNDATION_REVISION, restart["head"])
-        self.assertEqual(FOUNDATION_REVISION, restart["current"])
+        self.assertEqual(CURRENT_HEAD_REVISION, restart["head"])
+        self.assertEqual(CURRENT_HEAD_REVISION, restart["current"])
 
 
 if __name__ == "__main__":

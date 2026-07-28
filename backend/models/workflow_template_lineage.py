@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
+from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, utc_now
@@ -99,6 +100,118 @@ class WorkflowTemplateBinding(Base):
         nullable=False,
         default=utc_now,
         comment="Binding update time",
+    )
+
+
+class WorkflowTemplateAssetBindingItem(Base):
+    __tablename__ = "workflow_template_asset_binding_items"
+    __table_args__ = (
+        UniqueConstraint(
+            "binding_id",
+            "position",
+            name="uq_workflow_template_asset_binding_items_position",
+        ),
+        UniqueConstraint(
+            "binding_id",
+            "asset_id",
+            name="uq_workflow_template_asset_binding_items_asset",
+        ),
+        CheckConstraint(
+            "position >= 0 AND position < 9",
+            name="ck_workflow_template_asset_binding_items_position",
+        ),
+        CheckConstraint(
+            "BINARY source_revision = BINARY LOWER(source_revision) "
+            "AND source_revision REGEXP '^[0-9a-f]{64}$'",
+            name="ck_workflow_template_asset_binding_items_revision",
+        ),
+        Index(
+            "ix_workflow_template_asset_binding_items_binding",
+            "binding_id",
+            "position",
+        ),
+        {
+            **MYSQL_TABLE_OPTIONS,
+            "comment": "Ordered asset items for one workflow-template slot binding",
+        },
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, comment="Asset-binding item unique identifier"
+    )
+    binding_id: Mapped[str] = mapped_column(
+        ForeignKey("workflow_template_bindings.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="Owning per-slot binding identifier",
+    )
+    asset_id: Mapped[str] = mapped_column(
+        ForeignKey("assets.id", ondelete="RESTRICT"),
+        nullable=False,
+        comment="Validated target-project asset identifier",
+    )
+    source_revision: Mapped[str] = mapped_column(
+        String(64), nullable=False, comment="Validated asset source revision"
+    )
+    position: Mapped[int] = mapped_column(
+        mysql.INTEGER(unsigned=True),
+        nullable=False,
+        comment="Stable zero-based item order within the slot",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        comment="Asset-binding item creation time",
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        comment="Asset-binding item update time",
+    )
+
+
+class WorkflowTemplateInstanceCommit(Base):
+    __tablename__ = "workflow_template_instance_commits"
+    __table_args__ = (
+        CheckConstraint(
+            "BINARY request_fingerprint = BINARY LOWER(request_fingerprint) "
+            "AND request_fingerprint REGEXP '^[0-9a-f]{64}$'",
+            name="ck_workflow_template_instance_commits_fingerprint",
+        ),
+        CheckConstraint(
+            "canvas_revision >= 1",
+            name="ck_workflow_template_instance_commits_revision",
+        ),
+        {
+            **MYSQL_TABLE_OPTIONS,
+            "comment": "Immutable instantiate replay snapshot independent of Canvas retention",
+        },
+    )
+
+    instance_id: Mapped[str] = mapped_column(
+        ForeignKey("workflow_template_instances.id", ondelete="CASCADE"),
+        primary_key=True,
+        comment="Committed workflow-template instance identifier",
+    )
+    request_fingerprint: Mapped[str] = mapped_column(
+        String(64), nullable=False, comment="Canonical instantiate request SHA-256"
+    )
+    canvas_revision: Mapped[int] = mapped_column(
+        mysql.INTEGER(unsigned=True),
+        nullable=False,
+        comment="Canvas revision committed by instantiate",
+    )
+    response_snapshot: Mapped[dict] = mapped_column(
+        JSON,
+        nullable=False,
+        comment="Sanitized immutable instantiate response snapshot",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        comment="Instance commit creation time",
     )
 
 

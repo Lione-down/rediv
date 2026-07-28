@@ -22,6 +22,7 @@ from models.workflow_run import WorkflowRun
 from models.workflow_template import WorkflowTemplateInstance
 from models.workflow_template_lineage import (
     WorkflowTemplateBinding,
+    WorkflowTemplateInstanceCommit,
     WorkflowTemplateInstanceStep,
 )
 from tests.mysql_test_database import MySQLTestDatabase
@@ -314,6 +315,9 @@ class WorkflowTemplateCapturePreflightSupport(unittest.TestCase):
                 ),
                 session.scalar(
                     select(func.count()).select_from(WorkflowTemplateInstanceStep)
+                ),
+                session.scalar(
+                    select(func.count()).select_from(WorkflowTemplateInstanceCommit)
                 ),
                 session.scalar(select(func.count()).select_from(WorkflowRun)),
                 session.scalar(select(func.count()).select_from(GenerationTask)),
