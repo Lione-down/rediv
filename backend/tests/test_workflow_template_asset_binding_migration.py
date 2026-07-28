@@ -14,7 +14,7 @@ from tests.mysql_test_database import MySQLTestDatabase
 
 PARENT_REVISION = "c8d9e0f1a2b3"
 ASSET_ITEM_REVISION = "d9e0f1a2b3c4"
-CURRENT_HEAD_REVISION = "e0f1a2b3c4d5"
+CURRENT_HEAD_REVISION = "f1a2b3c4d5e6"
 TABLE_NAME = "workflow_template_asset_binding_items"
 
 

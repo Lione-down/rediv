@@ -255,6 +255,19 @@ function instantiatedNode(
       serialization_version: 1,
       template_placeholder: true,
       ...(subtype ? { subtype } : {}),
+      ...(id === 'instance-node-script'
+        ? {
+            workflow_template_lineage: {
+              contract_version: 1,
+              template_id: 'revid.product-ad',
+              template_version: 1,
+              instance_id: 'workflow-template-instance-e2e',
+              instance_step_id: 'instance-step-script-e2e',
+              step_id: 'compile-story',
+              script_node_id: 'instance-node-script',
+            },
+          }
+        : {}),
     },
     position_x: x,
     position_y: 120,
@@ -272,6 +285,7 @@ function instantiatedNode(
 
 export async function installWorkflowTemplateFixture(page: Page): Promise<WorkflowTemplateFixture> {
   const state = createVisualState()
+  let workflowRun: Record<string, unknown> | null = null
   const asset = {
     id: 'asset-template-reference',
     user_id: 'user-e2e',
@@ -418,6 +432,101 @@ export async function installWorkflowTemplateFixture(page: Page): Promise<Workfl
           save_state: 'saved',
         },
       }, 201)
+    },
+  )
+
+  await page.route(
+    `${API_ORIGIN}/api/projects/project-e2e/canvases/canvas-first/workflow-template-instances/**`,
+    async (route) => {
+      const request = route.request()
+      const path = new URL(request.url()).pathname
+      const body = request.postData()
+        ? request.postDataJSON() as Record<string, unknown>
+        : undefined
+      requests.push({ method: request.method(), path, body })
+      if (path.endsWith('/runs/preflight') && request.method() === 'POST') {
+        const confirmed = body?.cost_confirmed === true
+        return fulfillJson(route, {
+          contract_version: 1,
+          template: {
+            id: 'revid.product-ad',
+            version: 1,
+            fingerprint: 'a'.repeat(64),
+          },
+          executable: confirmed,
+          errors: confirmed ? [] : [{
+            code: 'workflow_template_cost_confirmation_required',
+            message: 'Cost confirmation is required',
+          }],
+          warnings: [],
+          resolved_slots: [],
+          graph_summary: { nodes: 4, connections: 3 },
+          capability_snapshot: { version: 7 },
+          quota_estimate: { text: 1, image: 6, video: 6 },
+          cost_class: 'requires_confirmation',
+          fingerprint: confirmed ? 'r'.repeat(64) : '',
+        })
+      }
+      if (path.endsWith('/runs/latest') && request.method() === 'GET') {
+        return workflowRun
+          ? fulfillJson(route, workflowRun)
+          : fulfillJson(route, {
+              detail: {
+                code: 'workflow_run_not_found',
+                message: 'Workflow run not found',
+              },
+            }, 404)
+      }
+      if (path.endsWith('/runs') && request.method() === 'POST') {
+        workflowRun = {
+          run_id: 'workflow-run-e2e',
+          instance_id: 'workflow-template-instance-e2e',
+          status: 'queued',
+          preflight_fingerprint: body?.preflight_fingerprint,
+          quota_estimate: { text: 1, image: 6, video: 6 },
+          cost_class: 'requires_confirmation',
+          created_at: NOW,
+          updated_at: NOW,
+          completed_at: null,
+          steps: [
+            {
+              run_step_id: 'workflow-run-step-script-e2e',
+              instance_step_id: 'instance-step-script-e2e',
+              step_id: 'compile-story',
+              node_id: 'instance-node-script',
+              status: 'succeeded',
+              generation_job_id: null,
+              result_asset_id: null,
+              error_code: null,
+            },
+            {
+              run_step_id: 'workflow-run-step-image-e2e',
+              instance_step_id: 'instance-step-image-e2e',
+              step_id: 'create-images',
+              node_id: 'instance-node-images',
+              status: 'queued',
+              generation_job_id: 'workflow-job-image-e2e',
+              result_asset_id: null,
+              error_code: null,
+            },
+          ],
+        }
+        return fulfillJson(route, workflowRun, 202)
+      }
+      if (
+        path.endsWith('/runs/workflow-run-e2e') &&
+        request.method() === 'GET' &&
+        workflowRun
+      ) return fulfillJson(route, workflowRun)
+      if (
+        path.endsWith('/runs/workflow-run-e2e/cancel') &&
+        request.method() === 'POST' &&
+        workflowRun
+      ) {
+        workflowRun = { ...workflowRun, status: 'cancelled', completed_at: NOW }
+        return fulfillJson(route, workflowRun)
+      }
+      return fulfillJson(route, { detail: `Unhandled workflow run route: ${request.method()} ${path}` }, 501)
     },
   )
 

@@ -20,18 +20,19 @@
 - T6-022: `DONE / PASS`; Template Library/configuration UI is implemented and machine verified.
 - T6-023: `DONE / PASS`; template-aware Script/Image and old T6-014 closeout is delivered.
 - T6-024: `DONE / PASS`; provider-valid Video compiler and old T6-015 replacement are delivered.
+- T6-025: `DONE / PASS`; explicit durable WorkflowRun orchestration is delivered and machine verified.
 - Old T6-014 through T6-016 were provisional scopes superseded before formal Task creation.
 - Database authority remains MySQL-only.
 
 ## Active Delivery
 
-- Latest completed Task: `T6-024 - Provider-valid Video compiler and old T6-015 replacement`;
-  [TASK-T6-024](../tasks/todo/TASK-T6-024.md).
-- Plan: [TASK-T6-024-PLAN](../tasks/doing/TASK-T6-024-PLAN.md).
-- Progress: [TASK-T6-024-PROGRESS](../tasks/doing/TASK-T6-024-PROGRESS.md).
-- Report: [REPORT-T6-024](../reports/REPORT-T6-024.md).
-- Dependency baseline: T6-023 `DONE / PASS`;
-  `HEAD == origin/main == c79bf1e8c0deac88f4fa1111ba8dd8a3b7327d7c` at activation.
+- Completed Task: `T6-025 - Durable WorkflowRun orchestration`;
+  [TASK-T6-025](../tasks/todo/TASK-T6-025.md).
+- Plan: [TASK-T6-025-PLAN](../tasks/doing/TASK-T6-025-PLAN.md).
+- Progress: [TASK-T6-025-PROGRESS](../tasks/doing/TASK-T6-025-PROGRESS.md).
+- Report: [REPORT-T6-025](../reports/REPORT-T6-025.md).
+- Final T6-025 evidence: focused backend `33/33`; related backend `152 passed, 31 subtests passed`; fresh build
+  `5,052 modules`; production-preview browser `21/21`; final explicit start/reload/cancel journey `1/1`.
 
 ## Live Gates
 
@@ -40,13 +41,13 @@
 - T6-018 through T6-021 own persistence, lifecycle, capture/preflight, atomic instantiate, and durable lineage.
 - T6-022 owns only Library/configuration UI and existing-route adoption, without provider execution or a second
   Canvas authority.
-- Video compilation is delivered by T6-024; WorkflowRun, upgrade/clone/detach, and release proof remain
-  assigned to inactive T6-025 through T6-027.
+- Video compilation is delivered by T6-024, and explicit durable WorkflowRun orchestration is delivered by T6-025.
+  Version diff/upgrade/clone/detach and release proof remain assigned to inactive T6-026 and T6-027.
 - Program-level final visual, interaction, and journey acceptance remains T6-027.
 
 ## Exact Next Action
 
-Stop. T6-025 is dependency-ready but remains inactive.
+Stop. T6-025 is closed; do not create or activate T6-026 in this task.
 
 ## Worktree Ownership
 
@@ -55,5 +56,5 @@ Stop. T6-025 is dependency-ready but remains inactive.
 
 ## Completion Gate
 
-- T6-024 is closed `DONE / PASS`; no deferred T6-024 implementation remains.
+- Every non-deferred T6-025 acceptance criterion, scoped commit/push, and remote parity gate passes.
 - Machine browser/build evidence is not Human acceptance; final program-level acceptance remains T6-027.

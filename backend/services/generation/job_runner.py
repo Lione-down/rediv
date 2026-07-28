@@ -68,7 +68,7 @@ class GenerationJobRunner:
             lease_seconds=self.lease_seconds,
         )
         if job is None:
-            return False
+            return self._reconcile_workflow_run()
         try:
             result = await self._dispatch_with_heartbeat(job)
             current = self.repository.get(job["id"])
@@ -116,7 +116,24 @@ class GenerationJobRunner:
                         error_code=error_code_for_exception(error),
                         error_message=sanitize_error_message(error),
                     )
+        finally:
+            self._reconcile_workflow_run(job["id"])
         return True
+
+    @staticmethod
+    def _reconcile_workflow_run(job_id: str | None = None) -> bool:
+        from services.workflow_templates.runs import (
+            reconcile_next_workflow_run,
+            reconcile_workflow_run_for_job,
+        )
+
+        with suppress(Exception):
+            return (
+                reconcile_workflow_run_for_job(job_id)
+                if job_id is not None
+                else reconcile_next_workflow_run()
+            )
+        return False
 
     async def _dispatch_with_heartbeat(self, job: dict):
         dispatch_task = asyncio.create_task(

@@ -18,6 +18,7 @@ from core.generation_results import (
     validate_provider_identifier,
 )
 from core.generation_task_utils import extract_provider_request_id
+from schemas.workflow_template import WorkflowTemplateProviderProjection
 
 
 @dataclass(frozen=True)
@@ -57,6 +58,12 @@ class GenerationProviderDispatcher:
             raise ValueError("Generation job request snapshot is invalid")
         prompt = input_payload["prompt"]
         model = job["model"]
+        workflow_projection = self._workflow_projection(
+            input_payload,
+            media_type=job["media_type"],
+            model=model,
+            prompt=prompt,
+        )
         if job["media_type"] in {"text", "script"}:
             response = await self.provider.chat(
                 model=model,
@@ -75,7 +82,16 @@ class GenerationProviderDispatcher:
                 source_model=model,
             )
         if job["media_type"] == "image":
-            response = await self.provider.generate_image(model=model, prompt=prompt)
+            image_options = (
+                self._workflow_image_options(workflow_projection)
+                if workflow_projection is not None
+                else {}
+            )
+            response = await self.provider.generate_image(
+                model=model,
+                prompt=prompt,
+                **image_options,
+            )
             provider_request_id = validate_optional_provider_identifier(
                 extract_provider_request_id(response, "id", "request_id")
             )
@@ -94,7 +110,16 @@ class GenerationProviderDispatcher:
             job.get("provider_request_id")
         )
         if provider_request_id is None:
-            create_response = await self.provider.generate_video(model=model, prompt=prompt)
+            video_options = (
+                self._workflow_video_options(workflow_projection)
+                if workflow_projection is not None
+                else {}
+            )
+            create_response = await self.provider.generate_video(
+                model=model,
+                prompt=prompt,
+                **video_options,
+            )
             provider_request_id = self._video_id(create_response)
             persist_provider_request_id(provider_request_id)
         video_url = await self._poll_video(
@@ -108,6 +133,96 @@ class GenerationProviderDispatcher:
             provider_request_id=provider_request_id,
             source_model=model,
         )
+
+    @staticmethod
+    def _workflow_projection(
+        input_payload: dict,
+        *,
+        media_type: str,
+        model: str,
+        prompt: str,
+    ) -> WorkflowTemplateProviderProjection | None:
+        workflow_step = input_payload.get("workflow_step")
+        provider_request = input_payload.get("provider_request")
+        if workflow_step is None and provider_request is None:
+            return None
+        if (
+            not isinstance(workflow_step, dict)
+            or workflow_step.get("contract_version") != 1
+            or not isinstance(workflow_step.get("run_id"), str)
+            or not isinstance(workflow_step.get("intent"), str)
+            or not isinstance(provider_request, dict)
+            or set(provider_request) != {"contract_id", "request"}
+        ):
+            raise ValueError("Workflow generation projection is invalid")
+        projection = WorkflowTemplateProviderProjection.model_validate(
+            {
+                "name": "durable workflow-run projection",
+                "projection_version": 1,
+                "provider": "agnes",
+                "contract_id": provider_request["contract_id"],
+                "intent": workflow_step["intent"],
+                "request": provider_request["request"],
+            }
+        )
+        request = projection.request
+        expected_media = (
+            "image"
+            if projection.contract_id.startswith("agnes.image")
+            else "video"
+            if projection.contract_id.startswith("agnes.video")
+            else "script"
+        )
+        if (
+            expected_media != media_type
+            or request.get("model") != model
+            or request.get("prompt") != prompt
+        ):
+            raise ValueError("Workflow generation projection changed")
+        return projection
+
+    @staticmethod
+    def _workflow_image_options(
+        projection: WorkflowTemplateProviderProjection,
+    ) -> dict:
+        request = projection.request
+        extra_body = request["extra_body"]
+        options = {
+            "image": extra_body["image"],
+            "response_format": extra_body["response_format"],
+        }
+        if "size" in request:
+            options["size"] = request["size"]
+        if "ratio" in request:
+            options["ratio"] = request["ratio"]
+        return options
+
+    @staticmethod
+    def _workflow_video_options(
+        projection: WorkflowTemplateProviderProjection,
+    ) -> dict:
+        request = projection.request
+        options = {
+            key: request[key]
+            for key in (
+                "width",
+                "height",
+                "num_frames",
+                "frame_rate",
+                "negative_prompt",
+            )
+            if key in request
+        }
+        if "image" in request:
+            options.update({"image": request["image"], "mode": "img2vid"})
+        elif "extra_body" in request:
+            options.update(
+                {
+                    "extra_images": request["extra_body"]["image"],
+                    "mode": "keyframes",
+                }
+            )
+        return options
 
     @staticmethod
     def _video_id(response: object) -> str:

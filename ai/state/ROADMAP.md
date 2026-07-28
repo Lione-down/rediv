@@ -29,6 +29,7 @@ Deliver backward-compatible Revid-native cinematic director Skills v2 on top of 
 | 19 | T6-022 | Template Library, exact-version configuration, provider-free preflight confirmation, and Canvas instantiate UI | DONE | PASS | T6-021 |
 | 20 | T6-023 | Template-aware Script/Image and old T6-014 same-card/batch-sibling closeout | DONE | PASS | T6-022 |
 | 21 | T6-024 | Provider-valid Video compiler and old T6-015 replacement | DONE | PASS | T6-023 |
+| 22 | T6-025 | Explicit durable WorkflowRun orchestration and dependency-safe generation-job lineage | DONE | PASS | T6-024 |
 
 T6-001 through T6-004 are `DONE / PASS`; their REPORTs remain authoritative. On 2026-07-23, the Human Owner explicitly rejected T6-005's visual and interaction result and requested state closure. T6-005 is terminal `BLOCKED / FAIL`: its machine evidence remains valid, but no REPORT or false `DONE / PASS` is allowed. The committed T6-005 snapshot remains preserved as rejected audit/reference evidence pending an explicit selective-reuse or full-removal decision.
 
@@ -111,8 +112,16 @@ and carries exact template shot lineage through current card/request authorities
 role/instruction/exclusion/source-revision fields and nine-reference payloads fail closed instead of becoming
 keyframes. Related backend passed `67` tests plus `53` subtests; related Chromium passed `43/43`; fresh build
 transformed `5,048` modules; built-artifact/provider-free Chromium passed `14/14`. The attempted full Chromium run
-exceeded `1,200s` without a terminal summary and is not claimed as PASS. T6-025 through T6-027 remain inactive, and
-final Human acceptance remains T6-027.
+exceeded `1,200s` without a terminal summary and is not claimed as PASS. T6-025 is now the sole active implementation
+Task; T6-026 and T6-027 remain inactive, and final Human acceptance remains T6-027.
+
+T6-025 is `DONE / PASS`. It delivers explicit owner-scoped WorkflowRun preflight/start/read/cancel, exact replay and
+conflict semantics, durable dependency scheduling, deterministic run-step/job/card lineage through the existing
+compact generation-job runner, restart-safe reconciliation, and minimal explicit-run UI recovery/cancel. Final
+evidence is focused backend `33/33`, related backend `152 passed` plus `31` subtests, migration/model `10/10`, fresh
+build `5,052` modules, production-preview Chromium `21/21`, and final explicit start/reload/cancel `1/1`. It adds no
+third provider/job/Canvas authority, automatic generation, browser-local execution authority, T6-026
+upgrade/clone/detach behavior, or T6-027 retirement/release/Human acceptance. T6-026 and T6-027 remain inactive.
 
 Unit 6I implementation and machine verification are complete. The selected toolbar is now approximately `900 x 50 CSS px`, professional icons and visible labels share one horizontal row, standard placement remains above the media with `26..34 CSS px` clearance, true top collision still flips below, and the `920px` toolbar has no horizontal overflow. Build `4,972`, related `43/43`, three-axis `7/7` without snapshot updates, full Chromium `596/596`, headed performance `2/2`, dependency audit `0`, state validation, and diff check pass. Renewed Human acceptance is the remaining completion gate.
 

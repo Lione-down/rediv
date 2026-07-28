@@ -4,6 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -94,6 +95,12 @@ class WorkflowRun(Base):
     )
     client_run_id: Mapped[str] = mapped_column(
         String(64), nullable=False, comment="Owner-scoped explicit run idempotency key"
+    )
+    cost_confirmed: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        comment="Exact explicit cost-confirmation fact used for run idempotency",
     )
     quota_estimate: Mapped[dict] = mapped_column(
         JSON, nullable=False, comment="Backend-authoritative quota-unit estimate"

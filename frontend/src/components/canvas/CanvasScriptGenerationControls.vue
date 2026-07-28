@@ -9,9 +9,11 @@ import type {
   ScriptAuthoringLocale,
 } from '../../modules/canvas/script-authoring'
 import type { ScriptGenerationSubmission } from './composables/use-canvas-script-generation'
+import CanvasWorkflowRunControls from './CanvasWorkflowRunControls.vue'
 
 const props = withDefaults(defineProps<{
   active?: boolean
+  canvasId?: string
   capability: ScriptAuthoringCapabilities | null
   capabilityError?: string
   capabilityLoading?: boolean
@@ -21,10 +23,11 @@ const props = withDefaults(defineProps<{
   modelId?: string | null
   node: CanvasNode
   outputKind?: 'script' | 'story_production'
+  projectId?: string
   quota?: number
   readonly?: boolean
   success?: string
-}>(), { active: false, capabilityError: '', capabilityLoading: false, error: '', initialIntent: null, initialValue: '', modelId: null, outputKind: 'script', quota: 0, readonly: false, success: '' })
+}>(), { active: false, canvasId: '', capabilityError: '', capabilityLoading: false, error: '', initialIntent: null, initialValue: '', modelId: null, outputKind: 'script', projectId: '', quota: 0, readonly: false, success: '' })
 
 const emit = defineEmits<{
   cancel: []
@@ -227,6 +230,12 @@ onBeforeUnmount(() => flushBrief())
         <Send v-else :size="15" aria-hidden="true" />
       </button>
     </div>
+    <CanvasWorkflowRunControls
+      :canvas-id="canvasId"
+      :node="node"
+      :project-id="projectId"
+      :readonly="readonly"
+    />
   </section>
 </template>
 

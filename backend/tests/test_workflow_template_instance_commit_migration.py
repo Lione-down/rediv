@@ -14,6 +14,7 @@ from tests.mysql_test_database import MySQLTestDatabase
 
 PARENT_REVISION = "d9e0f1a2b3c4"
 INSTANCE_COMMIT_REVISION = "e0f1a2b3c4d5"
+CURRENT_HEAD_REVISION = "f1a2b3c4d5e6"
 TABLE_NAME = "workflow_template_instance_commits"
 
 
@@ -93,8 +94,8 @@ class WorkflowTemplateInstanceCommitMigrationTests(unittest.TestCase):
         )
         restart = database.restart_runtime()
         self.assertTrue(restart["match"])
-        self.assertEqual(INSTANCE_COMMIT_REVISION, restart["head"])
-        self.assertEqual(INSTANCE_COMMIT_REVISION, restart["current"])
+        self.assertEqual(CURRENT_HEAD_REVISION, restart["head"])
+        self.assertEqual(CURRENT_HEAD_REVISION, restart["current"])
 
 
 if __name__ == "__main__":

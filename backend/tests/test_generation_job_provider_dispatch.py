@@ -57,6 +57,110 @@ def _job(media_type: str) -> dict:
 
 
 class GenerationJobProviderDispatchTests(unittest.IsolatedAsyncioTestCase):
+    async def test_workflow_image_projection_uses_the_existing_dispatch_path(self) -> None:
+        provider = _FakeProvider()
+        dispatcher = GenerationProviderDispatcher(provider)
+        job = _job("image")
+        job["model"] = "agnes-image-2.1-flash"
+        job["request_parameters"]["input"]["prompt"] = "approved image"
+        job["request_parameters"]["input"]["workflow_step"] = {
+            "contract_version": 1,
+            "run_id": "run-1",
+            "intent": "shot-image",
+        }
+        job["request_parameters"]["input"]["provider_request"] = {
+            "contract_id": "agnes.image-2.1.generations.v1",
+            "request": {
+                "model": "agnes-image-2.1-flash",
+                "prompt": "approved image",
+                "size": "2K",
+                "ratio": "1:1",
+                "extra_body": {
+                    "image": ["https://assets.example.test/reference.png"],
+                    "response_format": "url",
+                },
+            },
+        }
+
+        await dispatcher.dispatch(job, lambda _request_id: None)
+
+        self.assertEqual(
+            (
+                "image",
+                {
+                    "model": "agnes-image-2.1-flash",
+                    "prompt": "approved image",
+                    "size": "2K",
+                    "ratio": "1:1",
+                    "image": ["https://assets.example.test/reference.png"],
+                    "response_format": "url",
+                },
+            ),
+            provider.calls[0],
+        )
+
+    async def test_workflow_video_projection_uses_official_keyframes_request(self) -> None:
+        provider = _FakeProvider()
+        dispatcher = GenerationProviderDispatcher(
+            provider,
+            poll_interval_seconds=0,
+            max_poll_attempts=2,
+        )
+        job = _job("video")
+        job["model"] = "agnes-video-v2.0"
+        job["request_parameters"]["input"]["prompt"] = "approved video"
+        job["request_parameters"]["input"]["workflow_step"] = {
+            "contract_version": 1,
+            "run_id": "run-1",
+            "intent": "shot-video",
+        }
+        job["request_parameters"]["input"]["provider_request"] = {
+            "contract_id": "agnes.video-v2.0.v1",
+            "request": {
+                "model": "agnes-video-v2.0",
+                "prompt": "approved video",
+                "width": 1280,
+                "height": 720,
+                "num_frames": 121,
+                "frame_rate": 24,
+                "negative_prompt": "blur",
+                "extra_body": {
+                    "image": [
+                        "https://assets.example.test/start.png",
+                        "https://assets.example.test/end.png",
+                    ],
+                    "mode": "keyframes",
+                },
+            },
+        }
+
+        await dispatcher.dispatch(
+            job,
+            lambda _request_id: None,
+            lambda _progress: None,
+        )
+
+        self.assertEqual(
+            (
+                "video",
+                {
+                    "model": "agnes-video-v2.0",
+                    "prompt": "approved video",
+                    "width": 1280,
+                    "height": 720,
+                    "num_frames": 121,
+                    "frame_rate": 24,
+                    "negative_prompt": "blur",
+                    "extra_images": [
+                        "https://assets.example.test/start.png",
+                        "https://assets.example.test/end.png",
+                    ],
+                    "mode": "keyframes",
+                },
+            ),
+            provider.calls[0],
+        )
+
     async def test_text_and_image_dispatch_return_canonical_results_and_checkpoint_ids(
         self,
     ) -> None:

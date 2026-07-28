@@ -41,10 +41,12 @@ import {
 
 const props = defineProps<{
   assets: readonly ProjectAsset[]
+  canvasId: string
   generationContext: ResolvedGenerationRequestContext | null
   generationQuota: number
   modelOptions: readonly ReplacementModelOption[]
   node: CanvasNode
+  projectId: string
   runtimePresentation: GenerationRuntimePresentation | null
   scriptActive: boolean
   scriptCapability: ScriptAuthoringCapabilities | null
@@ -475,6 +477,7 @@ function openActions(event: MouseEvent, query = '') {
     <template v-if="projection.kind === 'script'">
       <CanvasScriptGenerationControls
         :active="scriptActive"
+        :canvas-id="canvasId"
         :capability="scriptCapability"
         :capability-error="scriptCapabilityError"
         :capability-loading="scriptCapabilityLoading"
@@ -483,6 +486,7 @@ function openActions(event: MouseEvent, query = '') {
         :model-id="cardViewModel.configuration.modelId"
         :node="node"
         output-kind="story_production"
+        :project-id="projectId"
         :quota="scriptQuota"
         :success="scriptSuccess"
         @cancel="emit('cancelScript')"

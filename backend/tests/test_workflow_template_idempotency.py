@@ -120,7 +120,7 @@ class WorkflowTemplateIdempotencyTestCase(
             session.commit()
         restart = self.mysql_database.restart_runtime()
         self.assertTrue(restart["match"])
-        self.assertEqual("e0f1a2b3c4d5", restart["current"])
+        self.assertEqual("f1a2b3c4d5e6", restart["current"])
         after_prune = self._side_effect_counts()
 
         replay = self._instantiate(request)

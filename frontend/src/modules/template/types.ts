@@ -264,13 +264,52 @@ export interface WorkflowTemplateInstantiateResponse extends WorkflowTemplateIns
   mutation: CanvasDocumentPatchResponse
 }
 
+export type WorkflowRunStatus =
+  | 'ready'
+  | 'submitting'
+  | 'queued'
+  | 'running'
+  | 'persisting'
+  | 'succeeded'
+  | 'failed'
+  | 'cancelled'
+
+export type WorkflowRunStepStatus =
+  | 'draft'
+  | 'ready'
+  | 'submitting'
+  | 'queued'
+  | 'running'
+  | 'persisting'
+  | 'succeeded'
+  | 'failed'
+  | 'blocked'
+  | 'cancelled'
+
+export interface WorkflowRunStep {
+  run_step_id: string
+  instance_step_id: string
+  step_id: string
+  node_id: string
+  status: WorkflowRunStepStatus
+  generation_job_id: string | null
+  result_asset_id: string | null
+  error_code: string | null
+}
+
 export interface WorkflowRun {
   run_id: string
   instance_id: string
-  state: 'ready' | 'running' | 'succeeded' | 'failed' | 'blocked'
+  status: WorkflowRunStatus
   preflight_fingerprint: string
-  steps: Array<{
-    step_id: string
-    state: 'pending' | 'ready' | 'running' | 'succeeded' | 'failed' | 'blocked'
-  }>
+  quota_estimate: {
+    text: number
+    image: number
+    video: number
+  }
+  cost_class: string
+  created_at: string
+  updated_at: string
+  completed_at: string | null
+  steps: WorkflowRunStep[]
 }

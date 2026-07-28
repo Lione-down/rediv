@@ -11,6 +11,7 @@ import type {
   WorkflowTemplateLifecycleListResponse,
   WorkflowTemplatePreflightRequest,
   WorkflowTemplatePreflightResponse,
+  WorkflowRun,
 } from './types'
 
 export function fetchTemplates() {
@@ -114,4 +115,76 @@ export function instantiateWorkflowTemplate(
   const path = `/api/projects/${encodeURIComponent(normalizedProjectId)}` +
     `/canvases/${encodeURIComponent(normalizedCanvasId)}/workflow-template-instances`
   return request.post<WorkflowTemplateInstantiateResponse>(path, payload)
+}
+
+function resolveWorkflowRunPath(projectId: string, canvasId: string, instanceId: string) {
+  const values = [projectId, canvasId, instanceId].map((value) => value.trim())
+  if (values.some((value) => !value)) {
+    throw new TypeError('Workflow run scope is required.')
+  }
+  return `/api/projects/${encodeURIComponent(values[0])}` +
+    `/canvases/${encodeURIComponent(values[1])}` +
+    `/workflow-template-instances/${encodeURIComponent(values[2])}/runs`
+}
+
+export function preflightWorkflowRun(
+  projectId: string,
+  canvasId: string,
+  instanceId: string,
+  costConfirmed: boolean,
+) {
+  return request.post<WorkflowTemplatePreflightResponse>(
+    `${resolveWorkflowRunPath(projectId, canvasId, instanceId)}/preflight`,
+    { cost_confirmed: costConfirmed },
+  )
+}
+
+export function startWorkflowRun(
+  projectId: string,
+  canvasId: string,
+  instanceId: string,
+  payload: {
+    client_run_id: string
+    preflight_fingerprint: string
+    cost_confirmed: boolean
+  },
+) {
+  return request.post<WorkflowRun>(
+    resolveWorkflowRunPath(projectId, canvasId, instanceId),
+    payload,
+  )
+}
+
+export function fetchLatestWorkflowRun(
+  projectId: string,
+  canvasId: string,
+  instanceId: string,
+) {
+  return request.get<WorkflowRun>(
+    `${resolveWorkflowRunPath(projectId, canvasId, instanceId)}/latest`,
+  )
+}
+
+export function fetchWorkflowRun(
+  projectId: string,
+  canvasId: string,
+  instanceId: string,
+  runId: string,
+) {
+  return request.get<WorkflowRun>(
+    `${resolveWorkflowRunPath(projectId, canvasId, instanceId)}` +
+    `/${encodeURIComponent(runId)}`,
+  )
+}
+
+export function cancelWorkflowRun(
+  projectId: string,
+  canvasId: string,
+  instanceId: string,
+  runId: string,
+) {
+  return request.post<WorkflowRun>(
+    `${resolveWorkflowRunPath(projectId, canvasId, instanceId)}` +
+    `/${encodeURIComponent(runId)}/cancel`,
+  )
 }

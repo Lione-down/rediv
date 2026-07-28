@@ -17,7 +17,7 @@ from tests.mysql_test_database import MySQLTestDatabase
 
 BASE_REVISION = "b7c8d9e0f1a2"
 FOUNDATION_REVISION = "c8d9e0f1a2b3"
-CURRENT_HEAD_REVISION = "e0f1a2b3c4d5"
+CURRENT_HEAD_REVISION = "f1a2b3c4d5e6"
 FOUNDATION_TABLES = {
     "workflow_template_definitions",
     "workflow_template_versions",

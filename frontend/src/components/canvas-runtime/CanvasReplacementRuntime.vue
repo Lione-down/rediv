@@ -55,6 +55,7 @@ const props = defineProps<{
   canRedo: boolean
   canUndo: boolean
   canvasCount: number
+  canvasId: string
   canvasName: string
   canvases: readonly CanvasMetadataDto[]
   connections: readonly CanvasConnection[]
@@ -64,6 +65,7 @@ const props = defineProps<{
   modelOptions: readonly ReplacementModelOption[]
   nodes: readonly CanvasNode[]
   projectName: string
+  projectId: string
   selectedNodeId: string
   syncLabel: string
   runtimePresentations: ReadonlyMap<string, GenerationRuntimePresentation>
@@ -567,7 +569,9 @@ const {
     <CanvasRuntimeAttachedSurfaces
       v-if="selectedNode"
       :assets="assets"
+      :canvas-id="canvasId"
       :node="selectedNode"
+      :project-id="projectId"
       :generation-context="generationContext"
       :generation-quota="generationQuota"
       :model-options="modelOptions"

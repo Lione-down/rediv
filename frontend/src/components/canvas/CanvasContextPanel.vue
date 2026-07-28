@@ -32,6 +32,7 @@ import type { ScriptGenerationSubmission } from './composables/use-canvas-script
 import { useCanvasCinematicLineage } from './composables/use-canvas-cinematic-lineage'
 import CanvasStoryboardAssetGroupDetails from './CanvasStoryboardAssetGroupDetails.vue'
 import CanvasStoryboardAssetEditor from './CanvasStoryboardAssetEditor.vue'
+import CanvasWorkflowRunControls from './CanvasWorkflowRunControls.vue'
 import type { StoryboardAssetEditIntent } from '../../modules/canvas/storyboard-asset-commands'
 
 const props = withDefaults(defineProps<{
@@ -290,6 +291,12 @@ function requestGeneration() {
       v-if="storyboardAssetEditing && storyboardAssetEditIntent"
       :intent="storyboardAssetEditIntent"
       :node="node"
+      :readonly="readonly"
+    />
+    <CanvasWorkflowRunControls
+      :canvas-id="canvasId"
+      :node="node"
+      :project-id="projectId"
       :readonly="readonly"
     />
     <CanvasScriptGenerationControls
