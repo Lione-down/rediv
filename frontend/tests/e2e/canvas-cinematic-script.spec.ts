@@ -12,9 +12,8 @@ test('explicit cinematic script action creates one atomic version-2 shot graph t
   await openResourceWorkspace(page, state)
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
   await page.getByRole('button', { name: '选择并定位 镜头脚本', exact: true }).click()
-  if (await page.locator('.n-drawer:visible').isVisible()) {
-    await page.getByRole('button', { name: '关闭节点详情' }).click()
-  }
+  const closeDetails = page.getByRole('button', { name: '关闭节点详情' })
+  if (await closeDetails.isVisible().catch(() => false)) await closeDetails.click()
   const stage = page.getByRole('region', { name: 'Revid 无限画布工作区' })
   await stage.focus()
   await page.keyboard.press('/')

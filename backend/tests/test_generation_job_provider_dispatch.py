@@ -57,6 +57,42 @@ def _job(media_type: str) -> dict:
 
 
 class GenerationJobProviderDispatchTests(unittest.IsolatedAsyncioTestCase):
+    async def test_direct_image_projection_uses_the_server_normalized_snapshot(self) -> None:
+        provider = _FakeProvider()
+        dispatcher = GenerationProviderDispatcher(provider)
+        job = _job("image")
+        job["model"] = "agnes-image-2.1-flash"
+        job["request_parameters"]["input"]["provider_request"] = {
+            "contract_id": "agnes.image-2.1.generations.v1",
+            "request": {
+                "model": "agnes-image-2.1-flash",
+                "prompt": "image prompt",
+                "size": "1K",
+                "ratio": "1:1",
+                "extra_body": {
+                    "image": [],
+                    "response_format": "url",
+                },
+            },
+        }
+
+        await dispatcher.dispatch(job, lambda _request_id: None)
+
+        self.assertEqual(
+            (
+                "image",
+                {
+                    "model": "agnes-image-2.1-flash",
+                    "prompt": "image prompt",
+                    "size": "1K",
+                    "ratio": "1:1",
+                    "image": [],
+                    "response_format": "url",
+                },
+            ),
+            provider.calls[0],
+        )
+
     async def test_workflow_image_projection_uses_the_existing_dispatch_path(self) -> None:
         provider = _FakeProvider()
         dispatcher = GenerationProviderDispatcher(provider)
@@ -156,6 +192,48 @@ class GenerationJobProviderDispatchTests(unittest.IsolatedAsyncioTestCase):
                         "https://assets.example.test/end.png",
                     ],
                     "mode": "keyframes",
+                },
+            ),
+            provider.calls[0],
+        )
+
+    async def test_direct_video_projection_uses_the_server_normalized_snapshot(self) -> None:
+        provider = _FakeProvider()
+        dispatcher = GenerationProviderDispatcher(
+            provider,
+            poll_interval_seconds=0,
+            max_poll_attempts=2,
+        )
+        job = _job("video")
+        job["model"] = "agnes-video-v2.0"
+        job["request_parameters"]["input"]["provider_request"] = {
+            "contract_id": "agnes.video-v2.0.v1",
+            "request": {
+                "model": "agnes-video-v2.0",
+                "prompt": "video prompt",
+                "width": 1280,
+                "height": 720,
+                "num_frames": 121,
+                "frame_rate": 24,
+            },
+        }
+
+        await dispatcher.dispatch(
+            job,
+            lambda _request_id: None,
+            lambda _progress: None,
+        )
+
+        self.assertEqual(
+            (
+                "video",
+                {
+                    "model": "agnes-video-v2.0",
+                    "prompt": "video prompt",
+                    "width": 1280,
+                    "height": 720,
+                    "num_frames": 121,
+                    "frame_rate": 24,
                 },
             ),
             provider.calls[0],

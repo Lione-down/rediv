@@ -98,7 +98,7 @@ class ImageGenerationE2ETestCase(unittest.TestCase):
             prompt="Create a bright summer poster",
             image=None,
             size="1K",
-            ratio="4:3",
+            ratio="1:1",
         )
 
     @patch.object(backend_main, "_agnes")
@@ -136,7 +136,7 @@ class ImageGenerationE2ETestCase(unittest.TestCase):
             prompt="Turn this into a neon night scene",
             image=["https://example.com/source-frame.png"],
             size="1K",
-            ratio="4:3",
+            ratio="1:1",
         )
 
     @patch.object(backend_main, "_agnes")

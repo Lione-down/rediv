@@ -17,7 +17,7 @@ import {
 import { resolveScriptAuthoringEligibility, type ScriptAuthoringIntent } from './script-authoring'
 
 export type { ImageGridOutputCount } from './image-grid-split'
-export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation' | 'workflow' | 'video' | 'audio' | 'agent-skill'
+export type ProfessionalCanvasActionCategory = 'create' | 'script' | 'image' | 'storyboard' | 'image-operation' | 'video' | 'audio' | 'agent-skill'
 export type ProfessionalCanvasActionIntent =
   | { type: 'create-node'; nodeType: CanonicalNodeType; subtype: string }
   | { type: 'create-shot-graph' }
@@ -25,7 +25,6 @@ export type ProfessionalCanvasActionIntent =
   | { type: 'create-cinematic-shot-graph'; skillId: 'revid.cinema-script'; skillVersion: 1 }
   | { type: 'create-storyboard-recipe'; recipeId: StoryboardRecipeId; recipeVersion: 1 }
   | { type: 'create-image-operation'; operationId: ImageOperationId; operationVersion: 1 }
-  | { type: 'open-workflow-batch'; templateId: 'canvas-generation-batch'; templateVersion: 1 }
   | { type: 'open-video-edit-preflight'; templateId: 'video-edit-preflight'; templateVersion: 1 }
   | { type: 'open-audio-generation-preflight'; templateId: 'audio-generation-preflight'; templateVersion: 1 }
   | { type: 'open-agent-skill-preflight'; skillId: 'revid.canvas-context'; skillVersion: 1 }
@@ -155,14 +154,6 @@ export const PROFESSIONAL_CANVAS_ACTIONS = [
     description: '使用 revid.cinema-script.v1、当前 Agnes model 和 exact preflight 创建 strict shot document。',
     keywords: ['cinematic', 'script', 'skill', '电影', '脚本', '镜头', '分镜', '优化'],
     intent: { type: 'create-cinematic-shot-graph', skillId: 'revid.cinema-script', skillVersion: 1 },
-  },
-  {
-    id: 'workflow.canvas-generation-batch',
-    category: 'workflow',
-    title: '批处理预检',
-    description: '检查当前选择的生成节点依赖与 quota 单位。',
-    keywords: ['批处理', '工作流', '预检', '依赖', 'quota', 'batch', 'workflow', 'preflight'],
-    intent: { type: 'open-workflow-batch', templateId: 'canvas-generation-batch', templateVersion: 1 },
   },
   {
     id: 'video.edit-preflight',
@@ -325,10 +316,6 @@ function resolveEligibility(
     })
     if (!eligibility.eligible) return { eligible: false, reason: eligibility.reason }
   }
-  if (action.intent.type === 'open-workflow-batch' && !context.selectedNodes.some((node) => (
-    node.type === 'generation' && !node.isLocked &&
-    (node.contentData?.subtype === 'image' || node.contentData?.subtype === 'video')
-  ))) return { eligible: false, reason: '请选择至少一个可用的图片或视频生成节点。' }
   if (action.intent.type === 'open-video-edit-preflight') {
     const eligible = context.selectedNodes.length > 0 && context.selectedNodes.every((node) => {
       const assetId = readString(node.contentData?.asset_id)
@@ -394,8 +381,6 @@ function actionSearchText(action: ProfessionalCanvasActionDefinition) {
           ? `${action.intent.recipeId} storyboard recipe`
           : action.intent.type === 'create-image-operation'
             ? `${action.intent.operationId} image operation edit`
-          : action.intent.type === 'open-workflow-batch'
-            ? `${action.intent.templateId} batch workflow preflight`
           : action.intent.type === 'open-video-edit-preflight'
             ? `${action.intent.templateId} video trim concat preview export`
           : action.intent.type === 'open-agent-skill-preflight'

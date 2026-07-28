@@ -114,7 +114,6 @@ test('professional action definitions keep stable category and intent order', ()
     ['script.refine', 'script', { type: 'open-script-authoring', intent: 'script_refine' }],
     ['script.create-shot-graph', 'script', { type: 'create-shot-graph' }],
     ['script.create-cinematic-shot-graph', 'script', { type: 'create-cinematic-shot-graph', skillId: 'revid.cinema-script', skillVersion: 1 }],
-    ['workflow.canvas-generation-batch', 'workflow', { type: 'open-workflow-batch', templateId: 'canvas-generation-batch', templateVersion: 1 }],
     ['video.edit-preflight', 'video', { type: 'open-video-edit-preflight', templateId: 'video-edit-preflight', templateVersion: 1 }],
     ['audio.generation-preflight', 'audio', { type: 'open-audio-generation-preflight', templateId: 'audio-generation-preflight', templateVersion: 1 }],
     ['agent-skill.canvas-context', 'agent-skill', { type: 'open-agent-skill-preflight', skillId: 'revid.canvas-context', skillVersion: 1 }],
@@ -136,25 +135,6 @@ test('professional action definitions keep stable category and intent order', ()
     ['image.split-16', 'image', { type: 'split-image-grid', outputCount: 16 }],
     ['image.split-25', 'image', { type: 'split-image-grid', outputCount: 25 }],
   ])
-})
-
-test('workflow batch preflight action requires an editable canonical generation selection', () => {
-  const valid = context({ selectedNodes: [generationNode()] })
-  expect(resolveProfessionalCanvasAction(valid, 'workflow.canvas-generation-batch')?.eligibility).toEqual({ eligible: true })
-  expect(resolveProfessionalCanvasActions(valid, 'batch preflight').map((action) => action.id)).toEqual([
-    'workflow.canvas-generation-batch',
-  ])
-
-  for (const invalid of [
-    context(),
-    context({ selectedNodes: [generationNode({ isLocked: true })] }),
-    context({ selectedNodes: [generationNode({ contentData: { subtype: 'audio', serialization_version: 1 } })] }),
-  ]) {
-    expect(resolveProfessionalCanvasAction(invalid, 'workflow.canvas-generation-batch')?.eligibility).toEqual({
-      eligible: false,
-      reason: '请选择至少一个可用的图片或视频生成节点。',
-    })
-  }
 })
 
 test('script authoring actions require one exact editable script and refine requires content', () => {

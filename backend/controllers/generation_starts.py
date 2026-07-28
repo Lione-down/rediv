@@ -63,7 +63,7 @@ def _map_scope_error(error: KeyError | PermissionError) -> GenerationTransaction
     return GenerationForbiddenError(message)
 
 
-def _resolve_input_image_urls(
+def resolve_input_image_urls(
     session,
     *,
     user_id: str,
@@ -134,7 +134,7 @@ def _start_generation_task(
             )
             input_image_urls = None
             if image_ids and existing_request_id is None:
-                input_image_urls = _resolve_input_image_urls(
+                input_image_urls = resolve_input_image_urls(
                     session,
                     user_id=user_id,
                     project_id=scope.project_id,
@@ -164,7 +164,7 @@ def _start_generation_task(
             if quota is None or getattr(quota, f"{media_type}_quota") < 1:
                 raise GenerationQuotaError(media_type)
             if input_image_urls is None:
-                input_image_urls = _resolve_input_image_urls(
+                input_image_urls = resolve_input_image_urls(
                     session,
                     user_id=user_id,
                     project_id=scope.project_id,

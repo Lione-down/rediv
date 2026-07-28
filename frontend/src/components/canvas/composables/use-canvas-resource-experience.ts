@@ -6,8 +6,6 @@ import { getGenerationMediaType } from '../../../modules/canvas/node-registry'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import {
   createAssetInsertCommand,
-  createGeneratedResultCommand,
-  hasResultForTask,
 } from '../../../modules/canvas/resource-commands'
 import type {
   GenerationTask,
@@ -17,7 +15,6 @@ import type {
 } from '../../../modules/canvas/project-resource-types'
 import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
-import type { CanvasNode } from '../../../types/canvas'
 import { createVideoFrameCaptureAction } from './use-video-frame-capture'
 import { createCanvasImageGridSplitAction } from './use-canvas-image-grid-split'
 import { useGenerationCapabilities } from './use-generation-capabilities'
@@ -78,29 +75,6 @@ function latestTasksByNode(tasks: readonly GenerationTask[]) {
   return [...latest.values()]
 }
 
-function isTerminalTask(task: GenerationTask): task is GenerationTask & {
-  status: 'succeeded' | 'failed' | 'timed_out'
-} {
-  return task.status === 'succeeded' || task.status === 'failed' || task.status === 'timed_out'
-}
-
-function isStrictTaskSourceLink(
-  task: GenerationTask,
-  sourceNode: CanvasNode,
-  projectId: string,
-  canvasId: string,
-) {
-  return task.project_id === projectId && task.origin_canvas_id === canvasId &&
-    task.canvas_node_id === sourceNode.id && task.media_type === getGenerationMediaType(sourceNode)
-}
-
-function isStrictTaskAssetLink(task: GenerationTask, asset: ProjectAsset, projectId: string, canvasId: string) {
-  return task.status === 'succeeded' && Boolean(task.result_asset_id) &&
-    asset.id === task.result_asset_id && asset.project_id === projectId &&
-    asset.origin_canvas_id === canvasId && asset.canvas_node_id === task.canvas_node_id &&
-    asset.source === 'generation' && asset.source_task_id === task.id && asset.type === task.media_type
-}
-
 export function useCanvasResourceExperience(options: CanvasResourceExperienceOptions) {
   const authStore = useAuthStore()
   const canvasStore = useCanvasStore()
@@ -115,7 +89,6 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
   const generationErrors = ref<ReadonlyMap<string, string>>(new Map())
   const generationSuccesses = ref<ReadonlyMap<string, string>>(new Map())
   const pendingDirectorPreflights = new Map<string, PreparedCinematicGeneration>()
-  const foregroundResultNodeId = ref('')
   const {
     generationCapabilities,
     generationCapabilitiesError,
@@ -131,7 +104,6 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     isReviewOnly: options.isReviewOnly, isUploading, projectId: options.projectId, resourceStore,
   })
   let resourceOpener: HTMLElement | null = null
-  let reconciliationTransition = Promise.resolve<unknown>(undefined)
   const generationRuntime = useCanvasGenerationRuntime({ canvasId: options.canvasId, projectId: options.projectId })
 
   const selectedNode = computed(() => canvasStore.selectedNodeIds.length === 1 ? canvasStore.selectedNode : null)
@@ -315,73 +287,6 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     }
   }
 
-  async function reconcileCurrentResources() {
-    const projectId = canvasStore.activeProjectId
-    const canvasId = canvasStore.activeCanvasId
-    if (
-      !projectId || !canvasId || !canvasStore.hasLoaded ||
-      resourceStore.projectId !== projectId
-    ) return 0
-    const assetsById = new Map(resourceStore.assets.map((asset) => [asset.id, asset]))
-    const tasks = latestTasksByNode(resourceStore.tasks).filter((task) => (
-      task.origin_canvas_id === canvasId && isTerminalTask(task)
-    ))
-    if (!tasks.length) return 0
-    return canvasStore.reconcileGeneration(projectId, canvasId, async (actions) => {
-      let reconciled = 0
-      for (const task of tasks) {
-        const sourceNode = task.canvas_node_id ? canvasStore.findNodeById(task.canvas_node_id) : null
-        if (!sourceNode || !isStrictTaskSourceLink(task, sourceNode, projectId, canvasId)) continue
-        if (task.status === 'succeeded') {
-          if (sourceNode.contentData?.result_materialized_task_id === task.id) {
-            reconciled += 1
-            continue
-          }
-          const asset = task.result_asset_id ? assetsById.get(task.result_asset_id) : undefined
-          if (!asset || !isStrictTaskAssetLink(task, asset, projectId, canvasId)) continue
-          const alreadyMaterialized = hasResultForTask(canvasStore.nodes, task.id)
-          actions.setNodeGenerationState(sourceNode.id, task.status, task.id, true)
-          if (!alreadyMaterialized) {
-            const selectedIds = [...canvasStore.selectedNodeIds]
-            const primaryNodeId = canvasStore.selectedNodeId
-            await actions.execute({
-              source: 'toolbar',
-              command: createGeneratedResultCommand(
-                sourceNode,
-                asset,
-                task,
-                canvasStore.nodes,
-                generationRuntime.resolveTerminalResultPlacement(task),
-              ),
-            })
-            canvasStore.setSelection(selectedIds, primaryNodeId)
-          }
-        } else {
-          if (
-            sourceNode.contentData?.generation_task_id === task.id &&
-            sourceNode.contentData?.generation_status === task.status
-          ) {
-            reconciled += 1
-            continue
-          }
-          if (task.result_asset_id) continue
-          actions.setNodeGenerationState(sourceNode.id, task.status, task.id)
-        }
-        reconciled += 1
-      }
-      return reconciled
-    })
-  }
-
-  function queueResourceReconciliation() {
-    const result = reconciliationTransition.then(
-      () => reconcileCurrentResources(),
-      () => reconcileCurrentResources(),
-    )
-    reconciliationTransition = result.then(() => undefined, () => undefined)
-    return result
-  }
-
   function setNodeMessage(target: Ref<ReadonlyMap<string, string>>, nodeId: string, message: string) {
     const next = new Map(target.value)
     if (message) next.set(nodeId, message)
@@ -399,9 +304,7 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     isNodeGenerating: generationRuntime.isNodeActive,
     setGenerationError: (nodeId, message) => setNodeMessage(generationErrors, nodeId, message),
     setGenerationSuccess: (nodeId, message) => setNodeMessage(generationSuccesses, nodeId, message),
-    foregroundResultNodeId,
     formatError: errorMessage,
-    queueResourceReconciliation,
     beginRuntimeRequest: generationRuntime.beginRequest,
     requestRuntimeRecoveryPolling: generationRuntime.requestRecoveryPolling,
     settleRuntimeRequest: generationRuntime.settleRequest,
@@ -450,19 +353,6 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
       void resourceStore.loadProject(projectId, { includeTaskHistory: false }).catch(() => undefined)
     }
   }, { immediate: true })
-
-  watch([
-    () => canvasStore.activeProjectId,
-    () => canvasStore.activeCanvasId,
-    () => canvasStore.hasLoaded,
-    () => resourceStore.projectId,
-    () => resourceStore.tasks.map((task) => (
-      `${task.id}:${task.status}:${task.updated_at}:${task.result_asset_id ?? ''}`
-    )).join('|'),
-    () => resourceStore.assets.map((asset) => `${asset.id}:${asset.updated_at}`).join('|'),
-  ], () => {
-    void queueResourceReconciliation().catch(() => undefined)
-  }, { immediate: true, flush: 'post' })
 
   watch(() => selectedNode.value?.id, (nodeId) => {
     if (nodeId && shouldSuppressNextContextAutoOpen) {
@@ -515,7 +405,6 @@ export function useCanvasResourceExperience(options: CanvasResourceExperienceOpt
     generationError,
     generationSuccess,
     storyboardGenerationSummary,
-    foregroundResultNodeId,
     openResources,
     openCardSourceResources,
     closeResources,

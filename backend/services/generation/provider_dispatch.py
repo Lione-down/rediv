@@ -58,7 +58,7 @@ class GenerationProviderDispatcher:
             raise ValueError("Generation job request snapshot is invalid")
         prompt = input_payload["prompt"]
         model = job["model"]
-        workflow_projection = self._workflow_projection(
+        provider_projection = self._provider_projection(
             input_payload,
             media_type=job["media_type"],
             model=model,
@@ -83,8 +83,8 @@ class GenerationProviderDispatcher:
             )
         if job["media_type"] == "image":
             image_options = (
-                self._workflow_image_options(workflow_projection)
-                if workflow_projection is not None
+                self._workflow_image_options(provider_projection)
+                if provider_projection is not None
                 else {}
             )
             response = await self.provider.generate_image(
@@ -111,8 +111,8 @@ class GenerationProviderDispatcher:
         )
         if provider_request_id is None:
             video_options = (
-                self._workflow_video_options(workflow_projection)
-                if workflow_projection is not None
+                self._workflow_video_options(provider_projection)
+                if provider_projection is not None
                 else {}
             )
             create_response = await self.provider.generate_video(
@@ -135,7 +135,7 @@ class GenerationProviderDispatcher:
         )
 
     @staticmethod
-    def _workflow_projection(
+    def _provider_projection(
         input_payload: dict,
         *,
         media_type: str,
@@ -147,21 +147,37 @@ class GenerationProviderDispatcher:
         if workflow_step is None and provider_request is None:
             return None
         if (
-            not isinstance(workflow_step, dict)
-            or workflow_step.get("contract_version") != 1
-            or not isinstance(workflow_step.get("run_id"), str)
-            or not isinstance(workflow_step.get("intent"), str)
-            or not isinstance(provider_request, dict)
+            not isinstance(provider_request, dict)
             or set(provider_request) != {"contract_id", "request"}
+            or (
+                workflow_step is not None
+                and (
+                    not isinstance(workflow_step, dict)
+                    or workflow_step.get("contract_version") != 1
+                    or not isinstance(workflow_step.get("run_id"), str)
+                    or not isinstance(workflow_step.get("intent"), str)
+                )
+            )
         ):
-            raise ValueError("Workflow generation projection is invalid")
+            raise ValueError("Generation provider projection is invalid")
+        intent = (
+            workflow_step["intent"]
+            if isinstance(workflow_step, dict)
+            else "shot-image"
+            if media_type == "image"
+            else "shot-video"
+        )
         projection = WorkflowTemplateProviderProjection.model_validate(
             {
-                "name": "durable workflow-run projection",
+                "name": (
+                    "durable workflow-run projection"
+                    if workflow_step is not None
+                    else "durable direct-card projection"
+                ),
                 "projection_version": 1,
                 "provider": "agnes",
                 "contract_id": provider_request["contract_id"],
-                "intent": workflow_step["intent"],
+                "intent": intent,
                 "request": provider_request["request"],
             }
         )

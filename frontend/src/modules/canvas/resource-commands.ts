@@ -1,12 +1,10 @@
 import type { Asset } from '../../types/asset'
-import type { CanvasConnection, CanvasNode } from '../../types/canvas'
+import type { CanvasNode } from '../../types/canvas'
 import { createCanvasEntityId } from './canvas-autosave'
 import type { InsertGraphCommand } from './canvas-commands'
 import type { GenerationNodeParameters } from './generation-parameters'
-import { resolveGenerationResultPlacement, type GenerationResultPlacement } from './generation-result-projection'
 import { findFirstUnoccupiedPosition } from './graph-placement'
-import { createRegistryNodeDraft, getAuthoringConnectionPorts, getDefaultConnectionPorts, isNodeMutationSupported } from './node-registry'
-import type { GenerationTask } from './project-resource-types'
+import { createRegistryNodeDraft, getAuthoringConnectionPorts, isNodeMutationSupported } from './node-registry'
 import { VISUAL_ASSET_RECIPES, type VisualAssetRecipeId } from './visual-asset-recipes'
 
 export interface ResourceInsertionPoint {
@@ -185,55 +183,4 @@ export function createVideoFrameAssetInsertCommand(
     },
   }
   return { type: 'insert-graph', nodes: [node], connections: [] }
-}
-
-export function createGeneratedResultCommand(
-  sourceNode: CanvasNode,
-  asset: Asset,
-  task: GenerationTask,
-  existingNodes: readonly CanvasNode[] = [],
-  resolvedPlacement?: GenerationResultPlacement | null,
-): InsertGraphCommand {
-  const subtype = task.media_type
-  if (subtype !== 'image' && subtype !== 'video') throw new Error('生成结果媒体类型无效。')
-  const draft = createRegistryNodeDraft('result', subtype, {
-    x: sourceNode.x + sourceNode.width + 96,
-    y: sourceNode.y,
-  })
-  const placement = resolvedPlacement ?? resolveGenerationResultPlacement(sourceNode, subtype, existingNodes)
-  const resultNode: CanvasNode = {
-    id: createCanvasEntityId(),
-    ...draft,
-    x: placement.x,
-    y: placement.y,
-    title: assetTitle(asset),
-    status: 'success',
-    content: asset.content_text ?? undefined,
-    contentData: {
-      ...draft.contentData,
-      asset_id: asset.id,
-      project_id: asset.project_id,
-      origin_canvas_id: asset.origin_canvas_id,
-      source_task_id: task.id,
-      source_model: asset.source_model,
-      url: asset.url,
-    },
-  }
-  const ports = getDefaultConnectionPorts(sourceNode, resultNode, 'out', 'in')
-  if (!ports) throw new Error('生成节点与结果节点端口不兼容。')
-  const connection: CanvasConnection = {
-    id: createCanvasEntityId(),
-    from: sourceNode.id,
-    to: resultNode.id,
-    sourcePort: ports.sourcePort,
-    targetPort: ports.targetPort,
-    status: 'active',
-    active: true,
-    metadata: { source_task_id: task.id },
-  }
-  return { type: 'insert-graph', nodes: [resultNode], connections: [connection] }
-}
-
-export function hasResultForTask(nodes: readonly CanvasNode[], taskId: string) {
-  return nodes.some((node) => node.type === 'result' && node.contentData?.source_task_id === taskId)
 }

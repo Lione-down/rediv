@@ -111,7 +111,6 @@ const canvasListStore = useCanvasListStore()
 const canvasDocumentStore = useCanvasStore()
 const canvasRevisionStore = useCanvasRevisionStore()
 const isReplacementRuntime = computed(() => route.query.canvas_runtime !== 'legacy')
-const CanvasWorkflowBatchOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasWorkflowBatchOverlay.vue'))
 const CanvasVideoEditPreflightOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasVideoEditPreflightOverlay.vue'))
 const CanvasAudioGenerationPreflightOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasAudioGenerationPreflightOverlay.vue'))
 const CanvasAgentSkillPreflightOverlay = defineAsyncComponent(() => import('../../components/canvas/CanvasAgentSkillPreflightOverlay.vue'))
@@ -121,7 +120,6 @@ const isCompact = ref(false)
 const viewMode = ref<CanvasViewMode>('workflow')
 const isRevisionPanelOpen = ref(false)
 const isResultCompareOpen = ref(false)
-const workflowBatchOpen = ref(false)
 const workflowTemplateOpen = ref(false)
 const videoEditPreflightOpen = ref(false)
 const audioGenerationPreflightOpen = ref(false)
@@ -203,7 +201,6 @@ const {
   generationError,
   generationSuccess,
   storyboardGenerationSummary,
-  foregroundResultNodeId,
   openResources,
   openCardSourceResources,
   closeResources,
@@ -628,13 +625,6 @@ const { createImageOperation } = useCanvasImageOperations({
   revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId),
   userId: () => authStore.user?.id ?? '',
 })
-function openWorkflowBatch() {
-  activateContextSurface('workflow-batch')
-  workflowBatchOpen.value = true
-}
-function closeWorkflowBatch() {
-  contextSurfaceController.deactivate('workflow-batch')
-}
 function openVideoEditPreflight(opener?: HTMLElement) {
   activateContextSurface('video-preflight', opener)
   videoEditPreflightOpen.value = true
@@ -665,7 +655,7 @@ function openScriptAuthoring(intent: ScriptAuthoringIntent) {
 const professionalActionsBlocked = computed(() => (
   isRevisionPanelOpen.value || isResultCompareOpen.value || isResourceOpen.value ||
   (!isReplacementRuntime.value && (isContextDrawerOpen.value || isDesktopContextOpen.value)) ||
-  workflowBatchOpen.value || videoEditPreflightOpen.value || audioGenerationPreflightOpen.value ||
+  videoEditPreflightOpen.value || audioGenerationPreflightOpen.value ||
   agentSkillPreflightOpen.value || workflowTemplateOpen.value || viewMode.value !== 'workflow'
 ))
 const {
@@ -694,7 +684,6 @@ const {
   openAudioGenerationPreflight,
   openScriptAuthoring,
   projectId,
-  openWorkflowBatch,
   openVideoEditPreflight,
   splitImageGrid,
   userId: () => authStore.user?.id ?? '',
@@ -714,7 +703,6 @@ const contextSurfaceController = useCanvasContextSurface({
       revision: () => { isRevisionPanelOpen.value = false },
       stage: () => { canvasStageRef.value?.closeTransientInteractions() },
       'video-preflight': () => { videoEditPreflightOpen.value = false },
-      'workflow-batch': () => { workflowBatchOpen.value = false },
       'workflow-template': () => { workflowTemplateOpen.value = false },
     }
     closers[kind]()
@@ -754,7 +742,6 @@ const isDesktopContextVisible = computed(() => (
   !professionalActionsOpen.value &&
   !isRevisionPanelOpen.value &&
   !isResultCompareOpen.value &&
-  !workflowBatchOpen.value &&
   !videoEditPreflightOpen.value &&
   !audioGenerationPreflightOpen.value &&
   !agentSkillPreflightOpen.value &&
@@ -1231,10 +1218,6 @@ watch(() => canvasDocumentStore.saveState, (state) => {
   if (state === 'conflict') openRevisionPanel()
 })
 
-watch(foregroundResultNodeId, (nodeId) => {
-  if (nodeId) void nextTick(() => canvasStageRef.value?.revealNode(nodeId))
-})
-
 onMounted(() => {
   reviewMediaQuery = window.matchMedia('(max-width: 767px)')
   compactMediaQuery = window.matchMedia('(max-width: 1023px)')
@@ -1429,15 +1412,6 @@ onBeforeUnmount(() => {
         @close="closeProfessionalSurface"
         @select="executeProfessionalAction"
         @update:query="professionalActionQuery = $event"
-      />
-
-      <CanvasWorkflowBatchOverlay
-        v-if="workflowBatchOpen"
-        :canvas-id="canvasId"
-        :capabilities="generationCapabilities"
-        :is-review-only="isReviewOnly"
-        :project-id="projectId"
-        @close="closeWorkflowBatch"
       />
 
       <CanvasVideoEditPreflightOverlay

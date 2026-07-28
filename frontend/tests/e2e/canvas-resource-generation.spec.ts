@@ -29,7 +29,9 @@ async function expectNoSeriousAxeFindings(page: Page) {
 }
 
 function generationPosts(state: ResourceMockState) {
-  return state.requests.filter((item) => item.method === 'POST' && item.path === '/api/image-generate')
+  return state.requests.filter((item) => (
+    item.method === 'POST' && item.path === '/api/v2/generation-jobs'
+  ))
 }
 
 test('project resources stay visible across Canvas switches and asset insertion keeps project ownership', async ({ page }) => {
@@ -151,7 +153,7 @@ test('template commit, Canvas switch, and double-click creation share one ordere
   await expect(resources.getByRole('alert')).toHaveCount(0)
 })
 
-test('canonical generation editor persists prompt and creates one linked result from mock success', async ({ page }) => {
+test('canonical generation editor persists prompt and applies compact result to the same card', async ({ page }) => {
   const state = createResourceMockState()
   await openResourceWorkspace(page, state)
   await selectGenerationNode(page)
@@ -164,35 +166,57 @@ test('canonical generation editor persists prompt and creates one linked result 
 
   expect(generationPosts(state)).toHaveLength(1)
   expect(generationPosts(state)[0].body).toEqual({
-    project_id: PROJECT_ID,
-    origin_canvas_id: FIRST_CANVAS_ID,
+    canvas_id: FIRST_CANVAS_ID,
     client_request_id: expect.any(String),
-    canvas_node_id: 'generation-cover',
-    prompt: '新的电影感海边封面',
-    aspect_ratio: '4:3',
+    input: {
+      aspect_ratio: '1:1',
+      image_ids: [],
+      output_count: 1,
+      prompt: '新的电影感海边封面',
+      size: '1K',
+    },
+    media_type: 'image',
+    model_id: 'agnes-image-2.1-flash',
+    node_id: 'generation-cover',
+    project_id: PROJECT_ID,
+    provider_id: 'agnes',
   })
-  await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.filter((item) => (
-    (item.content as Record<string, unknown>).source_task_id === 'task-success'
-  )).length).toBe(1)
-  const resultNode = state.documents[FIRST_CANVAS_ID].nodes.find((item) => (
-    (item.content as Record<string, unknown>).source_task_id === 'task-success'
+  await expect.poll(() => {
+    const content = state.documents[FIRST_CANVAS_ID].nodes.find((item) => (
+      item.id === 'generation-cover'
+    ))?.content as Record<string, unknown>
+    return content.last_generation_job_id
+  }).toBe('job-generation')
+  const generationCard = state.documents[FIRST_CANVAS_ID].nodes.find((item) => (
+    item.id === 'generation-cover'
   ))!
-  expect(resultNode.content).toEqual(expect.objectContaining({ asset_id: 'asset-success', source_task_id: 'task-success', subtype: 'image', serialization_version: 1, url: 'https://media.revid.test/success.png' }))
-  expect(state.documents[FIRST_CANVAS_ID].connections).toContainEqual(expect.objectContaining({ source_node_id: 'generation-cover', target_node_id: resultNode.id, source_port: 'out', target_port: 'in' }))
+  expect(generationCard.content).toEqual(expect.objectContaining({
+    asset_id: 'asset-success',
+    result_asset_id: 'asset-success',
+    url: 'https://media.revid.test/success.png',
+    last_generation_job_id: 'job-generation',
+  }))
+  expect(state.documents[FIRST_CANVAS_ID].nodes.filter((item) => item.node_type === 'result')).toHaveLength(1)
+  expect(state.requests.filter((item) => (
+    item.method === 'POST' &&
+    (item.path === '/api/image-generate' || item.path === '/api/video-generate')
+  ))).toHaveLength(0)
 
   await openResources(page)
   const resources = page.getByRole('complementary', { name: '项目资源' })
   await resources.getByRole('tab', { name: '生成记录' }).click()
-  const taskRow = resources.getByRole('listitem').filter({ hasText: 'task-success' })
-  await expect(taskRow.getByText('task-success', { exact: true })).toBeVisible()
+  const taskRow = resources.getByRole('listitem').filter({ hasText: 'job-generation' })
+  await expect(taskRow.getByText('job-generation', { exact: true })).toBeVisible()
   await expect(taskRow).toContainText('已完成')
 
   await page.reload()
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
-  await expect(page.getByRole('button', { name: '选择并定位 图片生成结果' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '选择并定位 封面生成' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '选择并定位 历史图片生成结果' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '选择并定位 图片生成结果' })).toHaveCount(0)
 })
 
-test('generation may finish after a Canvas switch and reconciles exactly once on the origin Canvas', async ({ page }) => {
+test('compact generation may finish after a Canvas switch and updates only the owning stable card', async ({ page }) => {
   const state = createResourceMockState()
   let releaseGeneration!: () => void
   state.generationGate = new Promise<void>((resolvePromise) => {
@@ -209,50 +233,45 @@ test('generation may finish after a Canvas switch and reconciles exactly once on
   await expect(page).toHaveURL(new RegExp(`/canvases/${SECOND_CANVAS_ID}\\?canvas_runtime=legacy$`))
   await expect.poll(() => state.events.includes(`document-loaded:${SECOND_CANVAS_ID}`)).toBe(true)
   releaseGeneration()
-  await expect.poll(() => state.tasks.some((item) => item.id === 'task-success')).toBe(true)
-  expect(state.documents[FIRST_CANVAS_ID].nodes.some((item) => (
-    (item.content as Record<string, unknown>).source_task_id === 'task-success'
-  ))).toBe(false)
+  await expect.poll(() => state.tasks.some((item) => (
+    item.id === 'job-generation' && item.status === 'succeeded'
+  ))).toBe(true)
+  expect(state.documents[FIRST_CANVAS_ID].nodes.filter((item) => item.node_type === 'result')).toHaveLength(1)
 
   await page.getByRole('button', { name: '分镜', exact: true }).click()
   await page.getByRole('option', { name: /画布 1/ }).click()
   await expect(page).toHaveURL(new RegExp(`/canvases/${FIRST_CANVAS_ID}\\?canvas_runtime=legacy$`))
-  await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.filter((item) => (
-    (item.content as Record<string, unknown>).source_task_id === 'task-success'
-  )).length).toBe(1)
-  await expect.poll(() => (
+  await expect.poll(() => {
+    const content = state.documents[FIRST_CANVAS_ID].nodes.find((item) => (
+      item.id === 'generation-cover'
+    ))?.content as Record<string, unknown>
+    return content.last_generation_job_id
+  }).toBe('job-generation')
+  expect((
     state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')
       ?.content as Record<string, unknown>
-  ).generation_status).toBe('succeeded')
+  )).toEqual(expect.objectContaining({
+    asset_id: 'asset-success',
+    result_asset_id: 'asset-success',
+    url: 'https://media.revid.test/success.png',
+  }))
   const reconciliationPatches = documentPatches(state).filter((request) => {
     const nodeUpserts = (request.body?.node_upserts ?? []) as Array<Record<string, unknown>>
     const connectionUpserts = (request.body?.connection_upserts ?? []) as Array<Record<string, unknown>>
     const sourceNode = nodeUpserts.find((item) => item.id === 'generation-cover')
     const sourceContent = sourceNode?.content as Record<string, unknown> | undefined
-    const resultNode = nodeUpserts.find((item) => (
-      (item.content as Record<string, unknown> | undefined)?.source_task_id === 'task-success'
-    ))
-    return sourceContent?.generation_task_id === 'task-success' &&
-      sourceContent.result_materialized_task_id === 'task-success' &&
-      Boolean(resultNode) && connectionUpserts.some((item) => (
-        item.source_node_id === 'generation-cover' && item.target_node_id === resultNode?.id
-      ))
+    return sourceContent?.last_generation_job_id === 'job-generation' &&
+      sourceContent.result_asset_id === 'asset-success' &&
+      nodeUpserts.length === 1 &&
+      connectionUpserts.length === 0
   })
   expect(reconciliationPatches).toHaveLength(1)
-  await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
-  await page.keyboard.press('Control+z')
-  await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.filter((item) => (
-    (item.content as Record<string, unknown>).source_task_id === 'task-success'
-  )).length).toBe(0)
-  expect((
+  await page.reload()
+  await expect.poll(() => (
     state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')
       ?.content as Record<string, unknown>
-  ).result_materialized_task_id).toBe('task-success')
-  await page.waitForTimeout(700)
-  await page.reload()
-  await expect.poll(() => state.documents[FIRST_CANVAS_ID].nodes.filter((item) => (
-    (item.content as Record<string, unknown>).source_task_id === 'task-success'
-  )).length).toBe(0)
+  ).last_generation_job_id).toBe('job-generation')
+  expect(state.documents[FIRST_CANVAS_ID].nodes.filter((item) => item.node_type === 'result')).toHaveLength(1)
 })
 
 test('mock provider failure remains durable, no-charge, no-result, and never auto-retries', async ({ page }) => {
@@ -278,17 +297,18 @@ test('mock provider failure remains durable, no-charge, no-result, and never aut
   await openResources(page)
   const resources = page.getByRole('complementary', { name: '项目资源' })
   await resources.getByRole('tab', { name: '生成记录' }).click()
-  await expect(resources.getByText('task-failure')).toBeVisible()
+  await expect(resources.getByText('job-generation')).toBeVisible()
   await expect(resources.getByText('mock provider unavailable', { exact: true })).toBeVisible()
   await expect.poll(() => (
     state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')
       ?.content as Record<string, unknown>
-  ).generation_status).toBe('failed')
+  ).active_generation_job_id).toBe('job-generation')
   await page.reload()
   expect((
     state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')
       ?.content as Record<string, unknown>
-  ).generation_task_id).toBe('task-failure')
+  ).active_generation_job_id).toBe('job-generation')
+  expect(state.documents[FIRST_CANVAS_ID].nodes.filter((item) => item.node_type === 'result')).toHaveLength(1)
 })
 
 test('resource and generation drawers are keyboard complete at desktop and 920px', async ({ page }) => {

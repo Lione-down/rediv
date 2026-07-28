@@ -7,7 +7,7 @@ export const GENERATION_CAPABILITIES = {
   image: {
     model: 'agnes-image-2.1-flash', size: '1K',
     aspect_ratios: ['1:1', '3:4', '4:3', '16:9', '9:16', '2:3', '3:2', '21:9'],
-    default_aspect_ratio: '4:3',
+    default_aspect_ratio: '1:1',
     operations: {
       contract_version: 1,
       supported_operations: ['expand', 'inpaint', 'erase', 'cutout', 'upscale', 'region', 'fusion'],

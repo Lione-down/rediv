@@ -7,7 +7,6 @@ import {
   FileText,
   Grid2X2,
   ImagePlus,
-  ListChecks,
   Search,
   StickyNote,
   Video,
@@ -38,7 +37,6 @@ function actionIcon(action: ResolvedProfessionalCanvasAction) {
   if (action.intent.type === 'open-script-authoring') return FileText
   if (action.intent.type === 'create-shot-graph' || action.intent.type === 'create-cinematic-shot-graph' || action.intent.type === 'create-storyboard-recipe') return Clapperboard
   if (action.intent.type === 'create-image-operation') return ImagePlus
-  if (action.intent.type === 'open-workflow-batch') return ListChecks
   if (action.intent.type === 'open-audio-generation-preflight') return AudioLines
   if (action.intent.type === 'open-agent-skill-preflight') return Bot
   if (action.intent.type === 'open-video-edit-preflight') return Video
@@ -54,7 +52,6 @@ function actionCategory(action: ResolvedProfessionalCanvasAction) {
   if (action.category === 'image') return '图片处理'
   if (action.category === 'image-operation') return '专业图片操作'
   if (action.category === 'storyboard') return '故事板配方'
-  if (action.category === 'workflow') return '批处理'
   if (action.category === 'audio') return '音频工作流'
   if (action.category === 'video') return '视频编辑'
   return action.category === 'script' ? '脚本规划' : '画布创建'

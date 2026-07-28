@@ -22,7 +22,6 @@ interface CanvasProfessionalActionsOptions {
   openAgentSkillPreflight?: () => void
   openAudioGenerationPreflight?: () => void
   openScriptAuthoring?: (intent: ScriptAuthoringIntent) => void
-  openWorkflowBatch?: () => void
   openVideoEditPreflight?: () => void
   getInsertionPoint: () => { x: number; y: number }
   getSelectedNodes?: () => readonly CanvasNode[]
@@ -76,7 +75,6 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
       .filter((action) => action.intent.type !== 'open-agent-skill-preflight' || Boolean(options.openAgentSkillPreflight))
       .filter((action) => action.intent.type !== 'open-audio-generation-preflight' || Boolean(options.openAudioGenerationPreflight))
       .filter((action) => action.intent.type !== 'open-script-authoring' || Boolean(options.openScriptAuthoring))
-      .filter((action) => action.intent.type !== 'open-workflow-batch' || Boolean(options.openWorkflowBatch))
       .filter((action) => action.intent.type !== 'open-video-edit-preflight' || Boolean(options.openVideoEditPreflight))
       .filter((action) => action.intent.type !== 'split-image-grid' || Boolean(options.splitImageGrid))
   }
@@ -196,15 +194,6 @@ export function useCanvasProfessionalActions(options: CanvasProfessionalActionsO
       } finally {
         isExecuting.value = false
       }
-      return
-    }
-    if (action.intent.type === 'open-workflow-batch') {
-      if (!options.openWorkflowBatch) {
-        error.value = '批处理预检当前不可用。'
-        return
-      }
-      options.openWorkflowBatch()
-      close()
       return
     }
     if (action.intent.type === 'open-audio-generation-preflight') {

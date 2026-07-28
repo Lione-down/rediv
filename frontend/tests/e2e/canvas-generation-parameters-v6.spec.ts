@@ -47,7 +47,7 @@ test('legacy compatibility: v6 preserves output counts and keyframe-oriented vid
   const image = generationNode('image')
   expect(resolveGenerationRequestContext(image, 'image', [image], [], capabilitiesV6)).toMatchObject({
     outputCount: 1,
-    parameters: { schema_version: 1, image: { aspect_ratio: '4:3', output_count: 1 } },
+    parameters: { schema_version: 1, image: { aspect_ratio: '1:1', output_count: 1 } },
   })
 
   const reference = referenceNode('reference-a')

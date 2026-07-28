@@ -5,10 +5,8 @@ import { request } from '../../src/api/request'
 import { createCanvasAutosave } from '../../src/modules/canvas/canvas-autosave'
 import { createCanvasCommandHistory } from '../../src/modules/canvas/canvas-command-history'
 import { createCanvasHistoryActions } from '../../src/modules/canvas/canvas-history-actions'
-import { applyGenerationNodeState } from '../../src/modules/canvas/generation-node-state'
 import { createCanvasMutationActions } from '../../src/modules/canvas/mutations'
 import type { CanvasCommandEnvelope } from '../../src/modules/canvas/canvas-commands'
-import { createGeneratedResultCommand } from '../../src/modules/canvas/resource-commands'
 import type { CanvasDocumentPatchResponse } from '../../src/modules/canvas/types'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
 
@@ -74,72 +72,6 @@ test('insert-graph command adds one graph fragment through one autosave boundary
   resultConnection.to = 'generation-node'
   expect(nodes.value.find((node) => node.id === 'result-node')?.title).toBe('生成结果')
   expect(connections.value[0].to).toBe('result-node')
-})
-
-test('generation reconciliation atomically marks the source and undo never rematerializes the result', async () => {
-  const nodes = ref<CanvasNode[]>([{
-    id: 'generation-node', type: 'generation', title: '图片生成', x: 80, y: 120,
-    width: 340, height: 220,
-    contentData: { subtype: 'image', serialization_version: 1 },
-  }])
-  const connections = ref<CanvasConnection[]>([])
-  let autosaveCount = 0
-  const mutations = createCanvasMutationActions({
-    activeProjectId: ref('project-a'),
-    activeCanvasId: ref('canvas-a'),
-    selectedNodeId: ref('generation-node'),
-    selectedNodeIds: ref(['generation-node']),
-    nodes,
-    connections,
-    bumpDataRevision: () => undefined,
-    queueAutosave: () => { autosaveCount += 1 },
-    updateNode: (nodeId, updater) => {
-      nodes.value = nodes.value.map((node) => node.id === nodeId ? updater(node) : node)
-    },
-    findNodeById: (nodeId) => nodes.value.find((node) => node.id === nodeId) ?? null,
-    setSelection: () => undefined,
-    selectConnection: () => undefined,
-  })
-  const history = createCanvasCommandHistory({
-    getNodes: () => nodes.value,
-    getConnections: () => connections.value,
-    executeCommand: mutations.executeCommand,
-    applyGraph: mutations.applyGraph,
-  })
-  history.activate('project-a/canvas-a')
-  const command = createGeneratedResultCommand(
-    nodes.value[0],
-    {
-      id: 'asset-task', user_id: 'user-a', project_id: 'project-a',
-      origin_canvas_id: 'canvas-a', canvas_node_id: 'generation-node', type: 'image',
-      url: 'https://media.revid.test/task.png', content_text: null, source: 'generation',
-      source_model: 'mock-image-v1', source_task_id: 'task-a', status: 'active',
-      created_at: '2026-07-14T08:00:00Z', updated_at: '2026-07-14T08:00:00Z',
-    },
-    {
-      id: 'task-a', user_id: 'user-a', project_id: 'project-a',
-      origin_canvas_id: 'canvas-a', canvas_node_id: 'generation-node', media_type: 'image',
-      provider: 'mock', model: 'mock-image-v1', provider_request_id: 'request-a',
-      status: 'succeeded', duration_ms: 10, result_asset_id: 'asset-task',
-      error_code: null, error_message: null, created_at: '2026-07-14T08:00:00Z',
-      updated_at: '2026-07-14T08:00:00Z',
-    },
-  )
-
-  nodes.value = [applyGenerationNodeState(nodes.value[0], 'succeeded', 'task-a', true)]
-  autosaveCount += 1
-  await history.execute({ source: 'toolbar', command })
-
-  expect(autosaveCount).toBe(2)
-  expect(nodes.value).toHaveLength(2)
-  expect(nodes.value[0].contentData).toEqual(expect.objectContaining({
-    generation_status: 'succeeded',
-    generation_task_id: 'task-a',
-    result_materialized_task_id: 'task-a',
-  }))
-  expect(await history.undo()).toBe(true)
-  expect(nodes.value).toHaveLength(1)
-  expect(nodes.value[0].contentData?.result_materialized_task_id).toBe('task-a')
 })
 
 test('insert-graph rejects an invalid fragment without partially mutating the graph', async () => {

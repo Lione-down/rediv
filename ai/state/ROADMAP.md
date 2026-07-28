@@ -31,6 +31,7 @@ Deliver backward-compatible Revid-native cinematic director Skills v2 on top of 
 | 21 | T6-024 | Provider-valid Video compiler and old T6-015 replacement | DONE | PASS | T6-023 |
 | 22 | T6-025 | Explicit durable WorkflowRun orchestration and dependency-safe generation-job lineage | DONE | PASS | T6-024 |
 | 23 | T6-026 | Template instance version diff, compatible upgrade, clone, detach, and local override protection | DONE | PASS | T6-025 |
+| 24 | T6-027 | Compatibility retirement, release proof, old T6-016 closeout, and final Human acceptance handoff | VERIFYING | PENDING | T6-026 |
 
 T6-001 through T6-004 are `DONE / PASS`; their REPORTs remain authoritative. On 2026-07-23, the Human Owner explicitly rejected T6-005's visual and interaction result and requested state closure. T6-005 is terminal `BLOCKED / FAIL`: its machine evidence remains valid, but no REPORT or false `DONE / PASS` is allowed. The committed T6-005 snapshot remains preserved as rejected audit/reference evidence pending an explicit selective-reuse or full-removal decision.
 
@@ -47,8 +48,8 @@ the exact legacy edge Delete boundary passed `1/1` in the fresh closure rerun, b
 
 Old T6-014 through T6-016 were provisional scopes only and never received formal Task files. The approved Revid V3
 workflow-template program supersedes those provisional scopes: old T6-014 value is absorbed into T6-023, old T6-015
-is replaced by provider-valid T6-024, and old T6-016 compatibility retirement is deferred to T6-027. No historical
-`DONE`, `FAIL`, or REPORT is fabricated for those numbers.
+is replaced by provider-valid T6-024, and old T6-016 compatibility retirement is closed by the T6-027 machine
+candidate. No historical `DONE`, `FAIL`, or REPORT is fabricated for those numbers.
 
 T6-017 is `DONE / PASS`. It freezes the approved V1 product defaults, strict declarative schema, behavior matrix,
 cross-language parser/fingerprint contract, portability rules, abuse cases, and provider projection fixtures. Focused
@@ -132,6 +133,16 @@ The broad backend run classified `769` passing tests plus `215` subtests; three 
 and passed, while four untouched image-generation assertions remain independently RED on the existing `4:3` versus
 runtime `1:1` default mismatch. No provider ran, no workflow auto-started, and T6-027 retirement/release/Human
 acceptance was not created or activated.
+
+T6-027 is `VERIFYING / PENDING`. Its executable machine scope retires ordinary Image/Video full-response
+reconciliation, project-wide Canvas polling, browser-local Workflow batch execution, and hidden Result writes; it
+reconciles the Image `1:1` / `output_count: 1` defaults, preserves explicit history/admin and read-only legacy
+boundaries, and closes the useful old T6-016 provisional scope without inventing historical files. Backend
+minus the three known upload-process modules passed `712/712`; fresh build transformed `5,049` modules; focused
+retirement passed `2/2`, Script authority passed `9/9`, and the built-artifact release journey passed `66/66`.
+Migration, state, dependency, and security evidence is recorded in
+`ai/reports/T6-027-RELEASE-CANDIDATE.md`. The only product release condition is the frozen PRD's Human
+visual/interaction/journey acceptance; no successor Task may be created.
 
 Unit 6I implementation and machine verification are complete. The selected toolbar is now approximately `900 x 50 CSS px`, professional icons and visible labels share one horizontal row, standard placement remains above the media with `26..34 CSS px` clearance, true top collision still flips below, and the `920px` toolbar has no horizontal overflow. Build `4,972`, related `43/43`, three-axis `7/7` without snapshot updates, full Chromium `596/596`, headed performance `2/2`, dependency audit `0`, state validation, and diff check pass. Renewed Human acceptance is the remaining completion gate.
 

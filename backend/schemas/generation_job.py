@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
+from schemas.generation import (
+    CinematicGenerationHandoff,
+    ImageBatchSnapshot,
+    ResourceId,
+    VideoReferenceBinding,
+)
+from schemas.story_production import StoryShotTemplateLineage
 
 GenerationJobMediaType = Literal["text", "script", "image", "video"]
 GenerationJobStatusValue = Literal[
@@ -84,9 +91,25 @@ class GenerationJobCinematicLineage(_StrictModel):
 
 
 class GenerationJobInput(_StrictModel):
-    prompt: str = Field(min_length=1, max_length=16_000)
+    prompt: str | None = Field(default=None, min_length=1, max_length=16_000)
     mode: Literal["text-to-video", "image-to-prompt", "text-to-music"] | None = None
     content_revision: int | None = Field(default=None, ge=0)
+    image_ids: list[ResourceId] | None = Field(default=None, max_length=8)
+    size: Literal["1K", "2K", "3K", "4K"] | None = None
+    aspect_ratio: str | None = Field(default=None, max_length=16)
+    output_count: Literal[1, 2, 3, 4] | None = None
+    batch: ImageBatchSnapshot | None = None
+    reference_mode: str | None = Field(default=None, max_length=32)
+    video_references: list[VideoReferenceBinding] | None = Field(default=None, max_length=8)
+    duration_seconds: int | None = None
+    resolution: str | None = Field(default=None, max_length=16)
+    negative_prompt: StrictStr | None = Field(default=None, max_length=2_000)
+    generation_recipe_id: Literal["character-sheet", "scene-multiview"] | None = None
+    generation_recipe_version: int | None = Field(default=None, ge=1)
+    image_operation: dict[str, Any] | None = None
+    shot_controls: dict[str, Any] | None = None
+    template_lineage: StoryShotTemplateLineage | None = None
+    cinematic_handoff: CinematicGenerationHandoff | None = None
 
 
 class GenerationJobSubmitRequest(_StrictModel):

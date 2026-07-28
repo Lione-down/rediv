@@ -142,6 +142,11 @@ class GenerationTaskRepository:
             )
             return generation_task_record(task) if task is not None else None
 
+    def get_quota_revision(self, user_id: str) -> int:
+        with get_session() as session:
+            quota = session.scalar(select(Quota).where(Quota.user_id == user_id))
+            return quota.revision if quota else 0
+
     def get_owned(self, user_id: str, task_id: str) -> dict:
         with get_session() as session:
             task = session.get(GenerationTask, task_id)

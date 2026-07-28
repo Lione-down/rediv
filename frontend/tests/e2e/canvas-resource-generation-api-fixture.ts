@@ -500,45 +500,125 @@ export async function installResourceMockApi(page: Page, state: ResourceMockStat
       state.events.push(`template-committed:${instantiateMatch[1]}`)
       return fulfillJson(route, result, 201)
     }
-    if (method === 'POST' && (path === '/api/image-generate' || path === '/api/video-generate')) {
-      const canvasId = String(body?.origin_canvas_id ?? FIRST_CANVAS_ID)
-      const nodeId = String(body?.canvas_node_id ?? 'generation-cover')
-      const mediaType = path === '/api/video-generate' ? 'video' : 'image'
+    if (method === 'POST' && path === '/api/v2/generation-jobs') {
+      const canvasId = String(body?.canvas_id ?? FIRST_CANVAS_ID)
+      const nodeId = String(body?.node_id ?? 'generation-cover')
+      const mediaType = body?.media_type === 'video' ? 'video' : 'image'
+      const input = (
+        body?.input && typeof body.input === 'object' && !Array.isArray(body.input)
+          ? body.input
+          : {}
+      ) as Record<string, unknown>
+      const requestBody = {
+        ...input,
+        client_request_id: body?.client_request_id,
+      }
       state.events.push(`generation-requested:${nodeId}`)
-      await state.generationGate
-      const batch = body?.batch as Record<string, unknown> | undefined
+      const batch = input.batch as Record<string, unknown> | undefined
       const slotIndex = Number(batch?.slot_index ?? 0)
       const generationCall = state.events.filter((event) => event.startsWith('generation-requested:')).length
-      if (
-        state.generationOutcome === 'success' && !state.generationFailureSlots.includes(slotIndex) &&
-        !state.generationFailureCalls.includes(generationCall)
-      ) {
-        return fulfillJson(route, generationResponse(state, canvasId, nodeId, mediaType, body ?? {}))
-      }
-      const failedTask = generationTask({
-        id: slotIndex ? `task-failure-${nodeId}-${state.generationCount + 1}` : 'task-failure',
+      const jobId = slotIndex
+        ? `job-${nodeId}-${generationCall}`
+        : generationCall === 1
+          ? 'job-generation'
+          : `job-generation-${generationCall}`
+      const queuedTask = generationTask({
+        id: jobId,
         origin_canvas_id: canvasId, canvas_node_id: nodeId, media_type: mediaType,
-        model: `mock-${mediaType}-v1`, status: 'failed', result_asset_id: null,
+        model: String(body?.model_id ?? `mock-${mediaType}-v1`),
+        status: 'queued', result_asset_id: null,
         provider_request_id: null, client_request_id: body?.client_request_id,
-        request_fingerprint: 'b'.repeat(64),
-        request_parameters: createMockGenerationRequestParameters(mediaType, body ?? {}),
-        error_code: 'provider_error', error_message: 'mock provider unavailable',
+        request_fingerprint: 'a'.repeat(64),
+        request_parameters: createMockGenerationRequestParameters(mediaType, requestBody),
       })
-      state.tasks = [failedTask, ...state.tasks.filter((item) => item.id !== failedTask.id)]
-      state.generationJobs[failedTask.id] = {
-        job_id: failedTask.id,
+      state.tasks = [queuedTask, ...state.tasks.filter((item) => item.id !== jobId)]
+      state.generationJobs[jobId] = {
+        job_id: jobId,
         node_id: nodeId,
         media_type: mediaType,
-        status: 'failed',
-        stage: 'provider',
-        progress: null,
-        error: 'mock provider unavailable',
+        status: 'queued',
+        stage: 'queued',
+        progress: 0,
+        error: null,
         result_asset_id: null,
         version: 1,
         updated_at: NOW,
       }
-      state.generationJobCanvasIds[failedTask.id] = canvasId
-      return fulfillJson(route, { detail: 'mock provider unavailable' }, 503)
+      state.generationJobCanvasIds[jobId] = canvasId
+      void Promise.resolve(state.generationGate).then(() => {
+        const succeeds = (
+          state.generationOutcome === 'success' &&
+          !state.generationFailureSlots.includes(slotIndex) &&
+          !state.generationFailureCalls.includes(generationCall)
+        )
+        if (succeeds) {
+          const response = generationResponse(
+            state,
+            canvasId,
+            nodeId,
+            mediaType,
+            requestBody,
+            jobId,
+          )
+          const asset = response.asset as Record<string, unknown>
+          state.generationJobs[jobId] = {
+            job_id: jobId,
+            node_id: nodeId,
+            media_type: mediaType,
+            status: 'succeeded',
+            stage: null,
+            progress: 100,
+            error: null,
+            result_asset_id: asset.id,
+            version: 2,
+            updated_at: NOW,
+          }
+          state.generationJobResults[jobId] = {
+            job_id: jobId,
+            node_id: nodeId,
+            result: {
+              asset_id: asset.id,
+              media_type: mediaType,
+              url: asset.url,
+            },
+            version: 2,
+          }
+          return
+        }
+        const failedTask = generationTask({
+          ...queuedTask,
+          status: 'failed',
+          error_code: 'provider_error',
+          error_message: 'mock provider unavailable',
+        })
+        state.tasks = [failedTask, ...state.tasks.filter((item) => item.id !== jobId)]
+        state.generationJobs[jobId] = {
+          job_id: jobId,
+          node_id: nodeId,
+          media_type: mediaType,
+          status: 'failed',
+          stage: 'provider',
+          progress: null,
+          error: 'mock provider unavailable',
+          result_asset_id: null,
+          version: 2,
+          updated_at: NOW,
+        }
+      })
+      return fulfillJson(route, {
+        job_id: jobId,
+        project_id: PROJECT_ID,
+        canvas_id: canvasId,
+        node_id: nodeId,
+        media_type: mediaType,
+        status: 'queued',
+        model_id: String(body?.model_id ?? `mock-${mediaType}-v1`),
+        quota_revision: state.quotaRevision,
+        version: 1,
+      }, 202)
+    }
+    if (method === 'POST' && (path === '/api/image-generate' || path === '/api/video-generate')) {
+      return fulfillJson(route, { detail: 'legacy media generation retired' }, 410)
     }
     if (method === 'POST' && path === '/api/text-generate') {
       const canvasId = String(body?.origin_canvas_id ?? FIRST_CANVAS_ID)

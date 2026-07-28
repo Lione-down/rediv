@@ -74,8 +74,8 @@ test('runtime presentation bridges local submission and then yields to the newes
   expect(running.get(node.id)).toMatchObject({ phase: 'running', label: '模型生成中' })
   const card = resolveCanvasAuthoringCardPresentation(node, running.get(node.id))!
   expect(card.lifecycle).toMatchObject({ tone: 'progress', label: '模型生成中' })
-  expect(card.visualHeight).toBe(160)
-  expect(card.slots.status).toEqual({ x: 0, y: 130, width: 340, height: 30 })
+  expect(card.visualHeight).toBe(220)
+  expect(card.slots.status).toEqual({ x: 0, y: 190, width: 340, height: 30 })
   expect(changedGenerationRuntimeNodeIds(queued, running)).toEqual(['generation-cover'])
   expect(changedGenerationRuntimeNodeIds(running, new Map(running))).toEqual([])
 })
@@ -103,7 +103,7 @@ async function selectNode(page: Page, title: string) {
 }
 
 for (const mediaType of ['image', 'video'] as const) {
-  test(`held legacy ${mediaType} POST stays indeterminate without project-wide polling or mutations`, async ({ page }) => {
+  test(`held compact ${mediaType} job stays card-bound without project-wide polling or hidden results`, async ({ page }) => {
     const state = createResourceMockState()
     const source = state.documents[FIRST_CANVAS_ID].nodes.find((item) => item.id === 'generation-cover')!
     const sourceContent = source.content as Record<string, unknown>
@@ -115,38 +115,41 @@ for (const mediaType of ['image', 'video'] as const) {
 
     const assetReads = state.requests.filter((item) => item.method === 'GET' && item.path === '/assets').length
     const templateReads = state.requests.filter((item) => item.method === 'GET' && item.path === '/templates').length
-    const generationRequest = page.waitForRequest((request) => request.method() === 'POST' && request.url().endsWith(`/api/${mediaType}-generate`))
+    const generationRequest = page.waitForRequest((request) => (
+      request.method() === 'POST' && request.url().endsWith('/api/v2/generation-jobs')
+    ))
     await page.getByRole('button', { name: `开始${mediaType === 'video' ? '视频' : '图片'}生成` }).click()
     await generationRequest
-    await expect(page.getByLabel('生成状态')).toContainText('正在提交')
-
+    await expect(page.getByLabel('生成状态')).toContainText('排队中')
+    await expect.poll(() => {
+      const content = state.documents[FIRST_CANVAS_ID].nodes.find((item) => (
+        item.id === 'generation-cover'
+      ))?.content as Record<string, unknown>
+      return content.active_generation_job_id
+    }).toBe('job-generation')
     const patchBaseline = documentPatches(state).length
-    const previousTask = state.tasks[0]
-    const runtimeTask = {
-      ...previousTask,
-      id: 'task-runtime', media_type: mediaType, model: `mock-${mediaType}-v1`,
-      status: 'queued', result_asset_id: null, provider_request_id: 'request-runtime',
-      created_at: NOW, updated_at: NOW,
-    }
-    state.tasks = [runtimeTask, ...state.tasks]
     await page.waitForTimeout(2_300)
-    await expect(page.getByLabel('生成状态')).toContainText('正在提交')
+    await expect(page.getByLabel('生成状态')).toContainText('排队中')
     expect(documentPatches(state)).toHaveLength(patchBaseline)
     expect(state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks')).toHaveLength(0)
+    expect(state.requests.filter((item) => (
+      item.method === 'GET' && item.path === '/api/v2/generation-jobs/job-generation'
+    )).length).toBeGreaterThan(0)
 
     await selectNode(page, '镜头脚本')
-    state.tasks = state.tasks.map((item) => item.id === runtimeTask.id
-      ? { ...item, status: 'running', updated_at: '2026-07-14T08:01:00Z' }
-      : item)
     const viewportBeforeReselect = state.requests.filter((item) => item.method === 'PATCH' && item.path.endsWith('/viewport')).length
     await selectNode(page, '封面生成')
-    await expect(page.getByLabel('生成状态')).toContainText('正在提交')
+    await expect(page.getByLabel('生成状态')).toContainText('排队中')
     await expect.poll(() => state.requests.filter((item) => item.method === 'PATCH' && item.path.endsWith('/viewport')).length).toBeGreaterThan(viewportBeforeReselect)
     const viewportBaseline = state.requests.filter((item) => item.method === 'PATCH' && item.path.endsWith('/viewport')).length
 
     expect(state.requests.filter((item) => item.method === 'GET' && item.path === '/assets')).toHaveLength(assetReads)
     expect(state.requests.filter((item) => item.method === 'GET' && item.path === '/templates')).toHaveLength(templateReads)
     expect(state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks')).toHaveLength(0)
+    expect(state.requests.filter((item) => (
+      item.method === 'POST' &&
+      (item.path === '/api/image-generate' || item.path === '/api/video-generate')
+    ))).toHaveLength(0)
     expect(documentPatches(state)).toHaveLength(patchBaseline)
     expect(state.requests.filter((item) => item.method === 'PATCH' && item.path.endsWith('/viewport'))).toHaveLength(viewportBaseline)
     if (mediaType === 'image') {
@@ -156,6 +159,13 @@ for (const mediaType of ['image', 'video'] as const) {
 
     releaseGeneration()
     await expect(page.getByLabel('生成状态')).toContainText('已完成', { timeout: 6_000 })
+    await expect.poll(() => {
+      const content = state.documents[FIRST_CANVAS_ID].nodes.find((item) => (
+        item.id === 'generation-cover'
+      ))?.content as Record<string, unknown>
+      return content.last_generation_job_id
+    }).toBe('job-generation')
+    expect(state.documents[FIRST_CANVAS_ID].nodes.filter((item) => item.node_type === 'result')).toHaveLength(1)
   })
 }
 
@@ -194,29 +204,32 @@ test('legacy task history does not become ordinary readonly Canvas runtime state
   await expect(status).toContainText('准备就绪')
 })
 
-test('legacy task-list failure is irrelevant because request-bound POST does not poll it', async ({ page }) => {
+test('legacy task-list failure is irrelevant because compact bound-job polling does not read it', async ({ page }) => {
   const state = createResourceMockState()
   let releaseGeneration!: () => void
   state.generationGate = new Promise<void>((resolve) => { releaseGeneration = resolve })
   await openResourceWorkspace(page, state)
   await selectNode(page, '封面生成')
 
-  const generationRequest = page.waitForRequest((request) => request.method() === 'POST' && request.url().endsWith('/api/image-generate'))
+  const generationRequest = page.waitForRequest((request) => (
+    request.method() === 'POST' && request.url().endsWith('/api/v2/generation-jobs')
+  ))
   await page.getByRole('button', { name: '开始图片生成' }).click()
   await generationRequest
-  await expect(page.getByLabel('生成状态')).toContainText('正在提交')
+  await expect(page.getByLabel('生成状态')).toContainText('排队中')
   state.taskListOutcome = 'failure'
   const taskReadBaseline = state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks').length
   await page.waitForTimeout(2_300)
   expect(state.requests.filter((item) => item.method === 'GET' && item.path === '/api/generation-tasks')).toHaveLength(taskReadBaseline)
-  await expect(page.getByLabel('生成状态')).toContainText('正在提交')
+  await expect(page.getByLabel('生成状态')).toContainText('排队中')
   await expect(page.getByText('项目资源加载失败，请重试。')).toHaveCount(0)
-  expect(state.requests.filter((item) => item.method === 'POST' && item.path === '/api/image-generate')).toHaveLength(1)
+  expect(state.requests.filter((item) => item.method === 'POST' && item.path === '/api/v2/generation-jobs')).toHaveLength(1)
+  expect(state.requests.filter((item) => item.method === 'POST' && item.path === '/api/image-generate')).toHaveLength(0)
 
   state.taskListOutcome = 'success'
   releaseGeneration()
   await expect(page.getByLabel('生成状态')).toContainText('已完成', { timeout: 6_000 })
-  expect(state.requests.filter((item) => item.method === 'POST' && item.path === '/api/image-generate')).toHaveLength(1)
+  expect(state.requests.filter((item) => item.method === 'POST' && item.path === '/api/v2/generation-jobs')).toHaveLength(1)
 })
 
 test('persisted current-Canvas job sync uses exact compact status and fetches one terminal result', async ({ page }) => {

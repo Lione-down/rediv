@@ -401,10 +401,11 @@ export function generationResponse(
   nodeId: string,
   mediaType: 'image' | 'video',
   requestBody: Record<string, unknown>,
+  taskIdOverride?: string,
 ) {
   state.generationCount += 1
   const suffix = state.generationCount === 1 ? '' : `-${state.generationCount}`
-  const taskId = `task-success${suffix}`
+  const taskId = taskIdOverride ?? `task-success${suffix}`
   const assetId = `asset-success${suffix}`
   const model = `mock-${mediaType}-v1`
   const requestParameters = createMockGenerationRequestParameters(mediaType, requestBody)

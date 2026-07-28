@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from controllers.generation_errors import (
+    GenerationForbiddenError,
+    GenerationScopeNotFoundError,
+    GenerationValidationError,
+)
 from core.security import current_user
 from repositories.generation_tasks import (
     GenerationJobForbiddenError,
@@ -31,6 +36,8 @@ def _service() -> GenerationJobService:
 
 
 def _map_error(error: Exception) -> HTTPException:
+    if isinstance(error, HTTPException):
+        return error
     if isinstance(error, GenerationJobIdempotencyConflictError):
         return HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -43,6 +50,15 @@ def _map_error(error: Exception) -> HTTPException:
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
     if isinstance(error, GenerationJobForbiddenError):
         return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))
+    if isinstance(error, GenerationForbiddenError):
+        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))
+    if isinstance(error, GenerationScopeNotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
+    if isinstance(error, GenerationValidationError):
+        return HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(error),
+        )
     if isinstance(error, GenerationJobResultUnavailableError | GenerationJobStateError):
         return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error))
     if isinstance(error, ValueError):
@@ -69,7 +85,7 @@ def submit_generation_job(
             provider_id=payload.provider_id,
             model_id=payload.model_id,
             client_request_id=payload.client_request_id,
-            input_payload=payload.input.model_dump(mode="json"),
+            input_payload=payload.input.model_dump(mode="json", exclude_none=True),
         )
     except Exception as error:
         raise _map_error(error) from error

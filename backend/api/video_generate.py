@@ -299,7 +299,14 @@ async def video_generate(
         expected_control_parameters={
             "reference_mode": normalized_parameters.reference_mode,
             "duration_seconds": normalized_parameters.duration_seconds,
-            "resolution": normalized_parameters.resolution,
+            **(
+                {"resolution": normalized_parameters.resolution}
+                if payload.resolution is not None or (
+                    payload.cinematic_handoff is not None
+                    and "resolution" in payload.cinematic_handoff.generation_parameters
+                )
+                else {}
+            ),
             **(
                 {"shot_controls": normalized_parameters.request_parameters["shot_controls"]}
                 if "shot_controls" in normalized_parameters.request_parameters else {}

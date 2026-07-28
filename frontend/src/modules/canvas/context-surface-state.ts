@@ -8,7 +8,6 @@ export const CANVAS_CONTEXT_SURFACE_KINDS = [
   'revision',
   'stage',
   'video-preflight',
-  'workflow-batch',
   'workflow-template',
 ] as const
 

@@ -19,8 +19,10 @@ import {
 } from './canvas-resource-generation-fixture'
 import { GENERATION_CAPABILITIES, GENERATION_CAPABILITIES_V6 } from './canvas-generation-parameters-fixture'
 
-const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-075-generation-parameters')
-const shotEvidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-086-shot-controls')
+const evidenceRoot = process.env.REVID_PLAYWRIGHT_EVIDENCE_ROOT ??
+  resolve(process.cwd(), '..', 'output', 'playwright')
+const evidenceDirectory = resolve(evidenceRoot, 't5-075-generation-parameters')
+const shotEvidenceDirectory = resolve(evidenceRoot, 't5-086-shot-controls')
 const capabilities = parseGenerationCapabilities(GENERATION_CAPABILITIES)
 const capabilitiesV6 = parseGenerationCapabilities(GENERATION_CAPABILITIES_V6)
 
@@ -69,8 +71,8 @@ test('capability parsing, legacy defaults, and stale values fail closed', () => 
 
   const image = generationNode('image')
   expect(resolveGenerationRequestContext(image, 'image', [image], [], capabilities)).toMatchObject({
-    aspectRatio: '4:3', parameterError: '',
-    parameters: { schema_version: 1, image: { aspect_ratio: '4:3' } },
+    aspectRatio: '1:1', parameterError: '',
+    parameters: { schema_version: 1, image: { aspect_ratio: '1:1' } },
   })
   const staleImage = generationNode('image', { schema_version: 1, image: { aspect_ratio: '5:4' } })
   expect(resolveGenerationRequestContext(staleImage, 'image', [staleImage], [], capabilities).parameterError)
@@ -226,7 +228,7 @@ test('image ratio persists through one-command undo redo reload and matches requ
   await selectNode(page, '封面生成')
   const controls = page.getByRole('region', { name: '生成参数' })
   await expect(controls.getByRole('radio')).toHaveCount(8)
-  await expect(controls.getByRole('radio', { name: '4:3' })).toBeChecked()
+  await expect(controls.getByRole('radio', { name: '1:1' })).toBeChecked()
 
   await controls.getByRole('radio', { name: '16:9' }).click()
   await expect.poll(() => documentPatches(state).length).toBe(1)
@@ -254,11 +256,11 @@ test('image ratio persists through one-command undo redo reload and matches requ
   await page.getByText('检查最终生成请求').click()
   await expect(page.getByRole('region', { name: '最终生成参数' })).toContainText('比例 16:9')
   await page.getByRole('button', { name: '开始图片生成' }).click()
-  await expect.poll(() => state.requests.filter((item) => item.path === '/api/image-generate').length).toBe(1)
-  expect(state.requests.find((item) => item.path === '/api/image-generate')?.body).toEqual(expect.objectContaining({
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/v2/generation-jobs').length).toBe(1)
+  expect(state.requests.find((item) => item.path === '/api/v2/generation-jobs')?.body?.input).toEqual(expect.objectContaining({
     aspect_ratio: '16:9',
   }))
-  await expect(page.locator('.run-history')).toContainText('16:9 · 1K')
+  await expect(page.locator('.run-history')).toHaveCount(0)
 
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'image-ratio-preflight-1440x900.png'), fullPage: true })
@@ -283,7 +285,7 @@ test('shot controls persist as one reversible parameter command and reach the ex
   }
   expect(savedParameters()).toEqual({
     schema_version: 1,
-    image: { aspect_ratio: '4:3', shot_controls: expectedControls },
+    image: { aspect_ratio: '1:1', shot_controls: expectedControls },
   })
 
   await page.getByRole('region', { name: 'Revid 无限画布工作区' }).focus()
@@ -294,15 +296,15 @@ test('shot controls persist as one reversible parameter command and reach the ex
   await expect.poll(() => documentPatches(state).length).toBe(3)
   expect(savedParameters()).toEqual({
     schema_version: 1,
-    image: { aspect_ratio: '4:3', shot_controls: expectedControls },
+    image: { aspect_ratio: '1:1', shot_controls: expectedControls },
   })
 
   await page.reload()
   await selectNode(page, '封面生成')
   await expect(page.getByLabel('镜头角度', { exact: true })).toHaveValue('high-angle')
   await page.getByRole('button', { name: '开始图片生成' }).click()
-  await expect.poll(() => state.requests.filter((item) => item.path === '/api/image-generate').length).toBe(1)
-  expect(state.requests.find((item) => item.path === '/api/image-generate')?.body).toEqual(expect.objectContaining({
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/v2/generation-jobs').length).toBe(1)
+  expect(state.requests.find((item) => item.path === '/api/v2/generation-jobs')?.body?.input).toEqual(expect.objectContaining({
     shot_controls: expectedControls,
   }))
   const accessibility = await new AxeBuilder({ page }).include('.context-panel').analyze()
@@ -324,7 +326,7 @@ test('v6 controls persist image count and allow one video source in distinct rol
   const cover = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'generation-cover')!
   expect((cover.content as Record<string, unknown>).generation_parameters).toEqual({
     schema_version: 1,
-    image: { aspect_ratio: '4:3', output_count: 4 },
+    image: { aspect_ratio: '1:1', output_count: 4 },
   })
 
   const document = state.documents[FIRST_CANVAS_ID]
@@ -365,8 +367,8 @@ test('v6 controls persist image count and allow one video source in distinct rol
     },
   })
   await page.getByRole('button', { name: '开始视频生成' }).click()
-  await expect.poll(() => state.requests.filter((item) => item.path === '/api/video-generate').length).toBe(1)
-  const request = state.requests.find((item) => item.path === '/api/video-generate')?.body
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/v2/generation-jobs').length).toBe(1)
+  const request = state.requests.find((item) => item.path === '/api/v2/generation-jobs')?.body?.input
   expect(request).toEqual(expect.objectContaining({ video_references: expectedBindings }))
   expect(request).not.toHaveProperty('image_ids')
   expect(request).not.toHaveProperty('reference_mode')
@@ -410,8 +412,8 @@ test('time advance is available only on a single-reference image-to-video branch
     },
   })
   await page.getByRole('button', { name: '开始视频生成' }).click()
-  await expect.poll(() => state.requests.filter((item) => item.path === '/api/video-generate').length).toBe(1)
-  expect(state.requests.find((item) => item.path === '/api/video-generate')?.body).toEqual(expect.objectContaining({
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/v2/generation-jobs').length).toBe(1)
+  expect(state.requests.find((item) => item.path === '/api/v2/generation-jobs')?.body?.input).toEqual(expect.objectContaining({
     reference_mode: 'image-to-video', image_ids: ['asset-generated'], shot_controls: expectedControls,
   }))
 })
@@ -428,7 +430,7 @@ test('multi-reference video stays blocked until keyframes and duration are expli
   await selectNode(page, '双源参数视频')
   await expect(page.getByRole('alert')).toContainText('请先明确选择')
   await expect(page.getByRole('button', { name: '开始视频生成' })).toBeDisabled()
-  expect(state.requests.filter((item) => item.path === '/api/video-generate')).toHaveLength(0)
+  expect(state.requests.filter((item) => item.path === '/api/v2/generation-jobs')).toHaveLength(0)
 
   const controls = page.getByRole('region', { name: '生成参数' })
   await controls.getByRole('radio', { name: '关键帧' }).click()
@@ -446,12 +448,12 @@ test('multi-reference video stays blocked until keyframes and duration are expli
   await expect(page.getByRole('region', { name: '最终生成参数' })).toContainText('241 帧 @ 24fps')
   await expect(page.getByRole('region', { name: '有序媒体请求' })).toContainText('视频关键帧 R2')
   await page.getByRole('button', { name: '开始视频生成' }).click()
-  await expect.poll(() => state.requests.filter((item) => item.path === '/api/video-generate').length).toBe(1)
-  expect(state.requests.find((item) => item.path === '/api/video-generate')?.body).toEqual(expect.objectContaining({
+  await expect.poll(() => state.requests.filter((item) => item.path === '/api/v2/generation-jobs').length).toBe(1)
+  expect(state.requests.find((item) => item.path === '/api/v2/generation-jobs')?.body?.input).toEqual(expect.objectContaining({
     reference_mode: 'keyframes', duration_seconds: 10,
     image_ids: ['asset-generated', 'asset-second-origin'],
   }))
-  await expect(page.locator('.run-history')).toContainText('关键帧 · 10 秒 · 241/24')
+  await expect(page.locator('.run-history')).toHaveCount(0)
 
   await mkdir(evidenceDirectory, { recursive: true })
   await page.screenshot({ path: resolve(evidenceDirectory, 'video-keyframes-preflight-920x900.png'), fullPage: true })
@@ -497,6 +499,6 @@ test('readonly parameters remain reviewable and offline capability loading block
   await selectNode(page, '封面生成')
   await expect(page.getByRole('alert').first()).toContainText('模型服务暂不可用，请重试。')
   await expect(page.getByRole('button', { name: '开始图片生成' })).toBeDisabled()
-  expect(offlineState.requests.filter((item) => item.path === '/api/image-generate')).toHaveLength(0)
+  expect(offlineState.requests.filter((item) => item.path === '/api/v2/generation-jobs')).toHaveLength(0)
   expect(offlineState.quotas.image).toBe(4)
 })

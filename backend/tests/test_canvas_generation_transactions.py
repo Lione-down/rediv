@@ -127,7 +127,8 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
                 "media_type": "image",
                 "model": "agnes-image-2.1-flash",
                 "size": "1K",
-                "aspect_ratio": "4:3",
+                "aspect_ratio": "1:1",
+                "output_count": 1,
                 "image_ids": [],
             },
             task.request_parameters,
@@ -135,7 +136,7 @@ class CanvasGenerationTransactionsTestCase(unittest.TestCase):
         self.assertEqual(task.request_parameters, payload["generation_task"]["request_parameters"])
         self.assertEqual(100, payload["generation_task"]["progress_percent"])
         self.assertEqual("persisting", payload["generation_task"]["progress_stage"])
-        self.assertEqual({"size": "1K", "ratio": "4:3"}, provider.calls[0]["kwargs"])
+        self.assertEqual({"size": "1K", "ratio": "1:1"}, provider.calls[0]["kwargs"])
 
         assets = self.client.get(
             "/assets",

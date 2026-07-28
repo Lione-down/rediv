@@ -277,6 +277,88 @@ class GenerationJobApiV2Tests(unittest.TestCase):
             response.json()["detail"],
         )
 
+    def test_submit_accepts_compact_image_and_video_authoring_inputs(self) -> None:
+        cases = (
+            {
+                "media_type": "image",
+                "model_id": "agnes-image-2.1-flash",
+                "input": {
+                    "prompt": "雨夜车站",
+                    "image_ids": [],
+                    "size": "1K",
+                    "aspect_ratio": "1:1",
+                    "output_count": 1,
+                },
+            },
+            {
+                "media_type": "video",
+                "model_id": "agnes-video-v2.0",
+                "input": {
+                    "prompt": "雨夜车站",
+                    "image_ids": [],
+                    "aspect_ratio": "16:9",
+                    "resolution": "720p",
+                    "reference_mode": "text-to-video",
+                    "duration_seconds": 5,
+                },
+            },
+        )
+
+        for case in cases:
+            with self.subTest(media_type=case["media_type"]):
+                payload = self._payload(client_request_id=str(uuid4()))
+                payload.update(case)
+                response = self.client.post(
+                    "/api/v2/generation-jobs",
+                    json=payload,
+                    headers=self.headers,
+                )
+
+                self.assertEqual(202, response.status_code, response.text)
+                self.assertEqual(case["media_type"], response.json()["media_type"])
+                self.assertNotIn("generation_task", response.json())
+
+    def test_compact_media_submit_rejects_foreign_project_asset_before_job_mutation(self) -> None:
+        foreign_project = store.create_project(self.user["id"], "Foreign project")
+        foreign_canvas_id = store.get_first_canvas_id(foreign_project["id"])
+        foreign_asset = store.create_asset(
+            self.user["id"],
+            "image",
+            "https://assets.example.test/foreign.png",
+            None,
+            project_id=foreign_project["id"],
+            origin_canvas_id=foreign_canvas_id,
+        )
+        _, before_total = store.list_generation_tasks(
+            self.user["id"],
+            media_type="image",
+        )
+        payload = self._payload(client_request_id=str(uuid4()))
+        payload.update({
+            "media_type": "image",
+            "model_id": "agnes-image-2.1-flash",
+            "input": {
+                "prompt": "雨夜车站",
+                "image_ids": [foreign_asset["id"]],
+                "size": "1K",
+                "aspect_ratio": "1:1",
+                "output_count": 1,
+            },
+        })
+
+        response = self.client.post(
+            "/api/v2/generation-jobs",
+            json=payload,
+            headers=self.headers,
+        )
+        _, after_total = store.list_generation_tasks(
+            self.user["id"],
+            media_type="image",
+        )
+
+        self.assertEqual(403, response.status_code, response.text)
+        self.assertEqual(before_total, after_total)
+
     def test_cinematic_lineage_is_compact_and_exactly_scoped_to_project_canvas_node(self) -> None:
         task = store.create_generation_task(
             self.user["id"],

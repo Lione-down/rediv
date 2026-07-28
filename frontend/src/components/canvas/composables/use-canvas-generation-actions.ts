@@ -2,9 +2,8 @@ import type { ComputedRef, Ref } from 'vue'
 import { isAxiosError } from 'axios'
 import { request } from '../../../api/request'
 import {
-  CanvasGenerationError,
   createGenerationClientRequestId,
-  requestCanvasGeneration,
+  submitGenerationJob,
 } from '../../../modules/canvas/generation-service'
 import {
   IMAGE_OPERATIONS,
@@ -21,7 +20,6 @@ import {
 import { resolveVisualAssetRecipe, type VisualAssetRecipeId } from '../../../modules/canvas/visual-asset-recipes'
 import type { ShotControls } from '../../../modules/canvas/shot-controls'
 import type { WorkflowTemplateShotLineage } from '../../../modules/canvas/script-authoring'
-import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
 import type { CanvasNode } from '../../../types/canvas'
@@ -56,9 +54,7 @@ interface CanvasGenerationActionOptions {
   isNodeGenerating: (nodeId: string) => boolean
   setGenerationError: (nodeId: string, message: string) => void
   setGenerationSuccess: (nodeId: string, message: string) => void
-  foregroundResultNodeId: Ref<string>
   formatError: (error: unknown) => string
-  queueResourceReconciliation: () => Promise<number>
   beginRuntimeRequest: (context: GenerationRequestContext, clientRequestId: string) => string | null
   requestRuntimeRecoveryPolling: () => void
   settleRuntimeRequest: (runtimeRequestId: string) => void
@@ -96,7 +92,6 @@ interface ActiveGenerationExecution {
 export function useCanvasGenerationActions(options: CanvasGenerationActionOptions) {
   const authStore = useAuthStore()
   const canvasStore = useCanvasStore()
-  const resourceStore = useProjectResourceStore()
   const imageGenerationBatch = useCanvasImageGenerationBatch()
 
   function isExactGenerationContext(context: GenerationRequestContext) {
@@ -155,44 +150,54 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
         mediaType,
       })
       await canvasStore.flushPendingPersistence()
-      const response = await requestCanvasGeneration({
-        mediaType,
+      const modelId = options.generationCapabilities.value?.[mediaType].model
+      if (!modelId) throw new Error('当前生成 capability 未提供可用模型。')
+      const receipt = await submitGenerationJob({
         clientRequestId,
         projectId: context.projectId,
-        originCanvasId: context.canvasId,
-        canvasNodeId: context.nodeId,
-        prompt: requestContext.prompt,
-        imageIds: requestContext.imageIds,
-        imageSize: requestContext.imageSize,
-        outputCount: requestContext.outputCount,
-        templateLineage: requestContext.templateLineage,
-        imageBatch: requestContext.imageBatch,
-        videoReferences: requestContext.videoReferences,
-        aspectRatio: requestContext.aspectRatio,
-        referenceMode: requestContext.referenceMode,
-        durationSeconds: requestContext.durationSeconds,
-        videoResolution: requestContext.videoResolution,
-        negativePrompt: requestContext.negativePrompt,
-        recipeId: requestContext.recipeId,
-        recipeVersion: requestContext.recipeVersion,
-        imageOperation: requestContext.imageOperation,
-        shotControls: requestContext.shotControls,
-        cinematicHandoff: requestContext.cinematicHandoff,
-      }, authStore, request)
-      if (!response.asset) throw new Error('生成已完成，但响应缺少结果资产。')
-      resourceStore.upsertAsset(response.asset)
-      resourceStore.upsertTask(response.generation_task)
-      await options.queueResourceReconciliation()
+        canvasId: context.canvasId,
+        nodeId: context.nodeId,
+        mediaType,
+        modelId,
+        input: {
+          ...(requestContext.prompt ? { prompt: requestContext.prompt } : {}),
+          ...(!requestContext.videoReferences && requestContext.imageIds
+            ? { image_ids: requestContext.imageIds }
+            : {}),
+          ...(requestContext.imageSize ? { size: requestContext.imageSize } : {}),
+          ...(requestContext.outputCount !== undefined ? { output_count: requestContext.outputCount } : {}),
+          ...(requestContext.templateLineage ? { template_lineage: requestContext.templateLineage } : {}),
+          ...(requestContext.imageBatch ? { batch: requestContext.imageBatch } : {}),
+          ...(requestContext.videoReferences ? { video_references: requestContext.videoReferences } : {}),
+          ...(requestContext.aspectRatio ? { aspect_ratio: requestContext.aspectRatio } : {}),
+          ...(!requestContext.videoReferences && requestContext.referenceMode
+            ? { reference_mode: requestContext.referenceMode }
+            : {}),
+          ...(requestContext.durationSeconds ? { duration_seconds: requestContext.durationSeconds } : {}),
+          ...(requestContext.videoResolution ? { resolution: requestContext.videoResolution } : {}),
+          ...(requestContext.negativePrompt ? { negative_prompt: requestContext.negativePrompt } : {}),
+          ...(requestContext.recipeId ? { generation_recipe_id: requestContext.recipeId } : {}),
+          ...(requestContext.recipeVersion ? { generation_recipe_version: requestContext.recipeVersion } : {}),
+          ...(requestContext.imageOperation ? { image_operation: requestContext.imageOperation } : {}),
+          ...(requestContext.shotControls ? { shot_controls: requestContext.shotControls } : {}),
+          ...(requestContext.cinematicHandoff ? { cinematic_handoff: requestContext.cinematicHandoff } : {}),
+        },
+      }, request)
       if (isExactGenerationContext(context)) {
         await canvasStore.setNodeGenerationState(
           sourceNode.id,
-          'succeeded',
-          response.generation_task.id,
-          true,
+          'running',
+          '',
+          false,
+          {
+            clientRequestId,
+            jobId: receipt.job_id,
+            mediaType,
+          },
         )
-        options.foregroundResultNodeId.value = sourceNode.id
         const recipe = resolveVisualAssetRecipe(sourceNode)
-        options.setGenerationSuccess(sourceNode.id, `${recipe?.title ?? (mediaType === 'video' ? '视频' : '图片')}生成已完成，结果已写入项目资源。`)
+        options.setGenerationSuccess(sourceNode.id, `${recipe?.title ?? (mediaType === 'video' ? '视频' : '图片')}任务已提交，将在当前卡片持续更新。`)
+        shouldPollForRecovery = true
       }
       succeeded = true
     } catch (error) {
@@ -214,8 +219,6 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
             shouldPollForRecovery = true
           } catch {
             const isDefinitiveRejection = (
-              error instanceof CanvasGenerationError && !error.retryable
-            ) || (
               isAxiosError(error) &&
               Boolean(error.response) &&
               Number(error.response?.status) >= 400 &&
