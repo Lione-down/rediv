@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import ValidationError
 
 from controllers import workflow_templates as workflow_template_controller
+from controllers import workflow_template_preflight as preflight_controller
 from core.security import current_user
 from schemas.workflow_template import (
     WorkflowTemplateLifecycleCreateRequest,
@@ -10,12 +11,20 @@ from schemas.workflow_template import (
     WorkflowTemplateLifecycleResponse,
     WorkflowTemplateLifecycleUpdateRequest,
     WorkflowTemplateManifest,
+    WorkflowTemplateCaptureRequest,
+    WorkflowTemplateCaptureResponse,
+    WorkflowTemplatePreflightRequest,
+    WorkflowTemplatePreflightResponse,
 )
 
 
 router = APIRouter(
     prefix="/api/workflow-templates",
     tags=["workflow-templates"],
+)
+capture_router = APIRouter(
+    prefix="/api/projects/{project_id}/canvases/{canvas_id}/workflow-template-captures",
+    tags=["workflow-template-captures"],
 )
 
 
@@ -64,6 +73,50 @@ def _validated_manifest(payload: dict) -> WorkflowTemplateManifest:
                 "message": "Workflow-template manifest is invalid",
             },
         ) from None
+
+
+def _validated_capture(payload: dict) -> WorkflowTemplateCaptureRequest:
+    try:
+        return WorkflowTemplateCaptureRequest.model_validate(payload)
+    except ValidationError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "workflow_template_capture_invalid",
+                "message": "Workflow-template capture request is invalid",
+            },
+        ) from None
+
+
+def _validated_preflight(payload: dict) -> WorkflowTemplatePreflightRequest:
+    try:
+        return WorkflowTemplatePreflightRequest.model_validate(payload)
+    except ValidationError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "workflow_template_preflight_invalid",
+                "message": "Workflow-template preflight request is invalid",
+            },
+        ) from None
+
+
+@capture_router.post("", response_model=WorkflowTemplateCaptureResponse)
+def capture_workflow_template(
+    project_id: str,
+    canvas_id: str,
+    payload: dict,
+    user=Depends(current_user),
+):
+    try:
+        return preflight_controller.capture_workflow_template(
+            project_id,
+            canvas_id,
+            user["id"],
+            _validated_capture(payload),
+        )
+    except workflow_template_controller.WorkflowTemplateLifecycleError as error:
+        raise _map_lifecycle_error(error) from error
 
 
 @router.get("", response_model=WorkflowTemplateLifecycleListResponse)
@@ -182,6 +235,27 @@ def retire_workflow_template_version(
             template_id,
             version,
             user["id"],
+        )
+    except workflow_template_controller.WorkflowTemplateLifecycleError as error:
+        raise _map_lifecycle_error(error) from error
+
+
+@router.post(
+    "/{template_id}/versions/{version}/preflight",
+    response_model=WorkflowTemplatePreflightResponse,
+)
+def preflight_workflow_template(
+    template_id: str,
+    version: int,
+    payload: dict,
+    user=Depends(current_user),
+):
+    try:
+        return preflight_controller.preflight_workflow_template(
+            template_id,
+            version,
+            user["id"],
+            _validated_preflight(payload),
         )
     except workflow_template_controller.WorkflowTemplateLifecycleError as error:
         raise _map_lifecycle_error(error) from error

@@ -43,3 +43,4 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(image_generate.router)
     app.include_router(video_generate.router)
     app.include_router(workflow_templates.router)
+    app.include_router(workflow_templates.capture_router)

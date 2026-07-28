@@ -44,4 +44,6 @@ def classify_workflow_template_field(path: str) -> PortabilityClassification:
         return "server_owned_reference"
     if path.startswith(("generation.", "billing.", "ownership.", "runtime.")):
         return "strip"
-    return "portable"
+    if path == "layout.position":
+        return "portable"
+    raise ValueError("workflow_template_field_unclassified")

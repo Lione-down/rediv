@@ -404,3 +404,79 @@ class WorkflowTemplateLifecycleResponse(StrictContractModel):
 class WorkflowTemplateLifecycleListResponse(StrictContractModel):
     items: list[WorkflowTemplateLifecycleResponse]
     total: int = Field(ge=0)
+
+
+class WorkflowTemplateAssetPromotion(StrictContractModel):
+    asset_id: str = Field(min_length=1, max_length=36)
+    slot: WorkflowTemplateAssetSlot
+
+
+class WorkflowTemplateCaptureRequest(StrictContractModel):
+    template_id: str = Field(pattern=r"^[a-z][a-z0-9.-]{2,127}$")
+    metadata: WorkflowTemplateMetadata
+    variables: list[WorkflowTemplateVariable] = Field(max_length=100)
+    asset_promotions: list[WorkflowTemplateAssetPromotion] = Field(max_length=50)
+    steps: list[WorkflowTemplateStep] = Field(min_length=1, max_length=100)
+    override_policy: WorkflowTemplateOverridePolicy
+    result_policy: WorkflowTemplateResultPolicy
+    security: WorkflowTemplateSecurity
+
+
+class WorkflowTemplateCaptureClassification(StrictContractModel):
+    path: str = Field(min_length=1, max_length=200)
+    classification: Literal[
+        "portable",
+        "remap_local_id",
+        "promote_to_asset_slot",
+        "revalidate_binding",
+        "strip",
+        "server_owned_reference",
+    ]
+
+
+class WorkflowTemplateCaptureBindingCandidate(StrictContractModel):
+    slot_id: str
+    asset_id: str
+    source_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class WorkflowTemplateCaptureResponse(StrictContractModel):
+    manifest: WorkflowTemplateManifest
+    fingerprint: Fingerprint = Field(pattern=r"^[0-9a-f]{64}$")
+    classifications: list[WorkflowTemplateCaptureClassification]
+    binding_candidates: list[WorkflowTemplateCaptureBindingCandidate]
+
+
+class WorkflowTemplateAssetBindingInput(StrictContractModel):
+    asset_id: str = Field(min_length=1, max_length=36)
+    source_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class WorkflowTemplatePreflightRequest(StrictContractModel):
+    project_id: str = Field(min_length=1, max_length=36)
+    canvas_id: str = Field(min_length=1, max_length=36)
+    variable_bindings: dict[str, Any] = Field(default_factory=dict, max_length=100)
+    asset_bindings: dict[str, list[WorkflowTemplateAssetBindingInput]] = Field(
+        default_factory=dict,
+        max_length=50,
+    )
+    cost_confirmed: bool = False
+
+
+class WorkflowTemplatePreflightError(StrictContractModel):
+    code: str = Field(min_length=1, max_length=100)
+    message: str = Field(min_length=1, max_length=200)
+
+
+class WorkflowTemplatePreflightResponse(StrictContractModel):
+    contract_version: Literal[1]
+    template: dict[str, Any]
+    executable: bool
+    errors: list[WorkflowTemplatePreflightError]
+    warnings: list[WorkflowTemplatePreflightError]
+    resolved_slots: list[dict[str, Any]]
+    graph_summary: dict[str, int]
+    capability_snapshot: dict[str, int]
+    quota_estimate: dict[str, int]
+    cost_class: Literal["included", "requires_confirmation"]
+    fingerprint: str = Field(max_length=64)

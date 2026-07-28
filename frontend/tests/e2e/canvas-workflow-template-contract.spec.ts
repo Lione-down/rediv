@@ -85,6 +85,9 @@ test('portable classifier and provider projection fixtures match the frozen matr
   expect(portability.map((fixture) => contract.classifyWorkflowTemplateField(fixture.path))).toEqual(
     portability.map((fixture) => fixture.classification),
   )
+  expect(() => contract.classifyWorkflowTemplateField('content.unreviewed_extension')).toThrow(
+    'workflow_template_field_unclassified',
+  )
   expect(projections.map(contract.parseWorkflowTemplateProviderProjection)).toHaveLength(6)
   expect(JSON.stringify(projections)).not.toContain('"resolution"')
   expect(JSON.stringify(projections)).not.toContain('"tags"')

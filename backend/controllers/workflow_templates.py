@@ -24,6 +24,11 @@ from schemas.workflow_template import WorkflowTemplateManifest
 class WorkflowTemplateLifecycleError(Exception):
     code = "workflow_template_invalid"
 
+    def __init__(self, message: str, *, code: str | None = None) -> None:
+        super().__init__(message)
+        if code is not None:
+            self.code = code
+
 
 class WorkflowTemplateNotFoundError(WorkflowTemplateLifecycleError):
     code = "workflow_template_not_found"

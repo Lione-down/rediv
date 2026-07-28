@@ -457,7 +457,8 @@ export function classifyWorkflowTemplateField(path: string): WorkflowTemplateFie
   ) {
     return 'strip'
   }
-  return 'portable'
+  if (path === 'layout.position') return 'portable'
+  throw new TypeError('workflow_template_field_unclassified')
 }
 
 export function canonicalWorkflowTemplateJson(value: unknown): string {
