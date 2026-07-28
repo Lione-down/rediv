@@ -20,6 +20,7 @@ import {
 } from '../../../modules/canvas/generation-parameters'
 import { resolveVisualAssetRecipe, type VisualAssetRecipeId } from '../../../modules/canvas/visual-asset-recipes'
 import type { ShotControls } from '../../../modules/canvas/shot-controls'
+import type { WorkflowTemplateShotLineage } from '../../../modules/canvas/script-authoring'
 import { useProjectResourceStore } from '../../../modules/canvas/project-resource-store'
 import { useAuthStore } from '../../../store/auth'
 import { useCanvasStore } from '../../../store/canvas'
@@ -69,6 +70,7 @@ interface GenerationExecutionOptions {
   imageIds?: string[]
   imageSize?: string
   outputCount?: number
+  templateLineage?: WorkflowTemplateShotLineage
   imageBatch?: ImageBatchSnapshot
   videoReferences?: VideoReferenceBinding[]
   aspectRatio?: string
@@ -163,6 +165,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
         imageIds: requestContext.imageIds,
         imageSize: requestContext.imageSize,
         outputCount: requestContext.outputCount,
+        templateLineage: requestContext.templateLineage,
         imageBatch: requestContext.imageBatch,
         videoReferences: requestContext.videoReferences,
         aspectRatio: requestContext.aspectRatio,

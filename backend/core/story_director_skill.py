@@ -114,6 +114,7 @@ def merge_story_production(
     if (
         current.source_node_id != candidate.source_node_id
         or current.source_revision != candidate.source_revision
+        or current.template_lineage != candidate.template_lineage
     ):
         raise StoryDirectorSkillError("Story-production regeneration source drifted")
 

@@ -39,6 +39,25 @@ ReferenceRole = Literal[
 ]
 
 
+class StoryTemplateLineage(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    contract_version: Literal[1]
+    template_id: Annotated[
+        str,
+        StringConstraints(pattern=r"^[a-z][a-z0-9.-]{2,127}$"),
+    ]
+    template_version: int = Field(ge=1)
+    instance_id: Identifier
+    instance_step_id: Identifier
+    step_id: Identifier
+    script_node_id: Identifier
+
+
+class StoryShotTemplateLineage(StoryTemplateLineage):
+    shot_id: Identifier
+
+
 class StoryProductionRecord(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -183,6 +202,7 @@ class StoryProductionDocument(BaseModel):
     source_node_id: Identifier
     source_revision: Revision
     model_id: Identifier
+    template_lineage: StoryTemplateLineage | None = None
     story: StorySummary
     references: list[StoryReference] = Field(default_factory=list, max_length=9)
     continuity: StoryContinuity
@@ -191,6 +211,11 @@ class StoryProductionDocument(BaseModel):
 
     @model_validator(mode="after")
     def validate_document_graph(self):
+        if (
+            self.template_lineage is not None
+            and self.template_lineage.script_node_id != self.source_node_id
+        ):
+            raise ValueError("template Script lineage does not match the story source")
         assets = self.assets.all()
         asset_ids = [asset.asset_id for asset in assets]
         if len(set(asset_ids)) != len(asset_ids):

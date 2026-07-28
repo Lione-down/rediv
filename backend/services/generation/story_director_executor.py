@@ -7,7 +7,7 @@ from core.story_director_contract import (
     parse_story_director_output,
 )
 from core.story_director_skill import build_story_director_messages
-from schemas.story_production import StoryProductionDocument
+from schemas.story_production import StoryProductionDocument, StoryTemplateLineage
 
 
 StoryDirectorGenerator = Callable[..., str]
@@ -26,6 +26,7 @@ def execute_story_director(
     model_id: str,
     requested_shot_count: int | None,
     generate: StoryDirectorGenerator,
+    template_lineage: StoryTemplateLineage | None = None,
 ) -> StoryProductionDocument:
     messages = build_story_director_messages(
         source_text=source_text,
@@ -42,6 +43,7 @@ def execute_story_director(
                 source_node_id=source_node_id,
                 source_revision=source_revision,
                 model_id=model_id,
+                template_lineage=template_lineage,
             )
         except StoryDirectorOutputError as error:
             if attempt == 1:
@@ -71,6 +73,7 @@ async def execute_story_director_async(
     model_id: str,
     requested_shot_count: int | None,
     generate: AsyncStoryDirectorGenerator,
+    template_lineage: StoryTemplateLineage | None = None,
 ) -> StoryProductionDocument:
     messages = build_story_director_messages(
         source_text=source_text,
@@ -87,6 +90,7 @@ async def execute_story_director_async(
                 source_node_id=source_node_id,
                 source_revision=source_revision,
                 model_id=model_id,
+                template_lineage=template_lineage,
             )
         except StoryDirectorOutputError as error:
             if attempt == 1:

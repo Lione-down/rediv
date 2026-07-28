@@ -27,6 +27,10 @@ import type {
   VideoResolution,
 } from './generation-capability-contract'
 import { readCanvasCardConfiguration } from './canvas-card-view-model'
+import {
+  parseWorkflowTemplateShotLineage,
+  type WorkflowTemplateShotLineage,
+} from './script-authoring'
 
 export { parseGenerationCapabilities } from './generation-capability-contract'
 export type {
@@ -71,6 +75,7 @@ export interface ResolvedGenerationRequestContext extends ResolvedGenerationCont
   primaryReferenceNodeId?: string
   videoReferences?: VideoReferenceBinding[]
   parameterSummary: string[]
+  templateLineage?: WorkflowTemplateShotLineage
 }
 
 const VIDEO_REFERENCE_MODES = new Set<VideoReferenceMode>([
@@ -263,6 +268,20 @@ export function resolveGenerationRequestContext(
     return failedContext(base, mediaType, capabilities, (error as Error).message)
   }
   if (mediaType === 'image') {
+    let templateLineage: WorkflowTemplateShotLineage | null
+    try {
+      templateLineage = parseWorkflowTemplateShotLineage(
+        generationNode.contentData?.template_lineage,
+        typeof generationNode.contentData?.source_script_node_id === 'string'
+          ? generationNode.contentData.source_script_node_id
+          : '',
+        typeof generationNode.contentData?.shot_id === 'string'
+          ? generationNode.contentData.shot_id
+          : '',
+      )
+    } catch (error) {
+      return failedContext(base, mediaType, capabilities, (error as Error).message)
+    }
     const image = saved?.image
     const imageSize = capabilities.contract_version === 7
       ? saved === null
@@ -357,6 +376,7 @@ export function resolveGenerationRequestContext(
       imageSize,
       ...(targetDimensions ? { targetDimensions } : {}),
       outputCount,
+      ...(templateLineage ? { templateLineage } : {}),
       imageBatch,
       imageOperation,
       shotControls,

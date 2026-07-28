@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.generation_common import fingerprint_generation_request, map_generation_error, resolve_cinematic_generation_handoff
 from controllers import generation_transactions as generation_controller
+from controllers import canvas_documents as document_controller
+from controllers.canvases import CanvasDomainError
 from core.generation_provider import GenerationProvider, get_generation_provider
 from core.generation_parameter_contract import IMAGE_MODEL, normalize_image_parameters
 from core.image_generation_recipes import resolve_image_generation_recipe
@@ -28,11 +30,78 @@ from core.generation_task_utils import (
 )
 from core.security import current_user
 from schemas.generation import ImageGenerateRequest, ImageGenerateResponse
+from services.workflow_templates.story_lineage import (
+    WorkflowTemplateStoryLineageError,
+    resolve_workflow_template_story_lineage,
+)
 
 
 MODEL_NAME = IMAGE_MODEL
 
 router = APIRouter(prefix="/api", tags=["image-generate"])
+
+
+def _resolve_image_template_lineage(
+    payload: ImageGenerateRequest,
+    *,
+    user_id: str,
+) -> dict | None:
+    lineage = payload.template_lineage
+    if lineage is None:
+        return None
+    if payload.origin_canvas_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "workflow_template_image_lineage_stale",
+                "message": "模板图片来源已变化，请刷新 Canvas 后重试。",
+            },
+        )
+    try:
+        resolve_workflow_template_story_lineage(
+            lineage=lineage,
+            owner_user_id=user_id,
+            project_id=payload.project_id,
+            canvas_id=payload.origin_canvas_id,
+            script_node_id=lineage.script_node_id,
+        )
+        document = document_controller.get_document(
+            payload.project_id,
+            payload.origin_canvas_id,
+            user_id,
+        )
+    except (CanvasDomainError, WorkflowTemplateStoryLineageError, KeyError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "workflow_template_image_lineage_stale",
+                "message": "模板图片来源已变化，请刷新 Canvas 后重试。",
+            },
+        ) from error
+    node = next(
+        (
+            candidate
+            for candidate in document["nodes"]
+            if candidate["id"] == payload.canvas_node_id
+        ),
+        None,
+    )
+    content = node.get("content") if isinstance(node, dict) else None
+    snapshot = lineage.model_dump(mode="json")
+    if (
+        not isinstance(content, dict)
+        or content.get("source_script_node_id") != lineage.script_node_id
+        or content.get("shot_id") != lineage.shot_id
+        or content.get("template_lineage") != snapshot
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "workflow_template_image_lineage_stale",
+                "message": "模板图片来源已变化，请刷新 Canvas 后重试。",
+            },
+        )
+    return snapshot
 
 
 @router.post("/image-generate", response_model=ImageGenerateResponse)
@@ -41,6 +110,10 @@ async def image_generate(
     user=Depends(current_user),
     provider: GenerationProvider = Depends(get_generation_provider),
 ):
+    template_lineage = _resolve_image_template_lineage(
+        payload,
+        user_id=user["id"],
+    )
     recipe = (
         resolve_image_generation_recipe(payload.generation_recipe_id, payload.generation_recipe_version)
         if payload.generation_recipe_id else None
@@ -80,6 +153,8 @@ async def image_generate(
         },
     )
     request_parameters = dict(normalized_parameters.request_parameters)
+    if template_lineage is not None:
+        request_parameters["template_lineage"] = template_lineage
     if cinematic_handoff:
         request_parameters["cinematic_skill"] = cinematic_handoff["request_snapshot"]
     try:

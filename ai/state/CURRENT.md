@@ -19,36 +19,31 @@
 - T6-017 through T6-019: `DONE / PASS`; contract, persistence, and lifecycle API are verified.
 - T6-020 and T6-021: `DONE / PASS`; portable preflight plus atomic instantiate/lineage are verified.
 - T6-022: `DONE / PASS`; Template Library/configuration UI is implemented and machine verified.
+- T6-023: `DONE / PASS`; template-aware Script/Image and old T6-014 closeout is delivered.
 - Old T6-014 through T6-016 were provisional scopes superseded before formal Task creation.
 - Database authority remains MySQL-only.
 
 ## Active Delivery
 
-- Latest completed Task: `T6-022 - Template Library and configuration UI`; [TASK-T6-022](../tasks/todo/TASK-T6-022.md).
-- Plan: [TASK-T6-022-PLAN](../tasks/doing/TASK-T6-022-PLAN.md).
-- Progress: [TASK-T6-022-PROGRESS](../tasks/doing/TASK-T6-022-PROGRESS.md).
-- Report: [REPORT-T6-022](../reports/REPORT-T6-022.md).
+- Latest completed Task: `T6-023 - Template-aware Script/Image and old T6-014 closeout`;
+  [TASK-T6-023](../tasks/todo/TASK-T6-023.md).
+- Plan: [TASK-T6-023-PLAN](../tasks/doing/TASK-T6-023-PLAN.md).
+- Progress: [TASK-T6-023-PROGRESS](../tasks/doing/TASK-T6-023-PROGRESS.md).
+- Report: [REPORT-T6-023](../reports/REPORT-T6-023.md).
 
 ## Live Gates
 
-- T6-017 contract authority and V1 defaults remain frozen.
-- T6-018 added only definition/version/slot/instance/binding/step/run persistence, constraints, indexes, comments,
-  migration compatibility, and guarded disposable MySQL evidence.
-- The legacy `templates` table and Graph Template runtime remain unchanged.
-- T6-019 added built-in/private definition/version lifecycle and owner-scoped API on the T6-018 tables.
-- T6-020 adds deterministic topology-only capture, explicit asset-slot promotion, fail-closed classification, and
-  provider-free preflight with zero Canvas/template-instance/quota/job/provider mutation.
-- T6-021 adds exact-version atomic Canvas instantiate and durable instance/binding/step-node lineage through the
-  existing Canvas document patch with zero quota/job/run/provider mutation.
-- T6-022 adds only the owner-scoped Template Library, configuration, pure preflight review/confirmation, and
-  existing-route instantiate adoption. It does not add provider execution or a second Canvas authority.
+- T6-017 contract authority and V1 defaults remain frozen; the legacy `templates` table and Graph Template runtime
+  remain unchanged.
+- T6-018 through T6-021 own persistence, lifecycle, capture/preflight, atomic instantiate, and durable lineage.
+- T6-022 owns only Library/configuration UI and existing-route adoption, without provider execution or a second
+  Canvas authority.
 - Generation, WorkflowRun, upgrade/clone/detach, and release proof remain assigned to T6-023 through T6-027.
 - Program-level final visual, interaction, and journey acceptance remains T6-027.
 
 ## Exact Next Action
 
-Open a new Direct Delivery session for dependency-ready T6-023 template-aware Script/Image closeout; reconstruct
-its exact Task/PLAN/PROGRESS from frozen PRD and redesign authority before any business-code edit.
+Stop. T6-024 is dependency-ready for a new Direct Delivery session but is not active.
 
 ## Worktree Ownership
 
@@ -57,4 +52,5 @@ its exact Task/PLAN/PROGRESS from frozen PRD and redesign authority before any b
 
 ## Completion Gate
 
-- T6-017 through T6-022 are `DONE / PASS`; T6-023 is next, and final Human acceptance remains T6-027.
+- T6-023 is closed `DONE / PASS`; no deferred T6-023 acceptance remains.
+- Final Human visual, interaction, and journey acceptance remains T6-027.

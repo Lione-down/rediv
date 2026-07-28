@@ -14,7 +14,13 @@ import type { ShotControls } from './shot-controls'
 import type { VisualAssetRecipeId, VisualAssetRecipeVersion } from './visual-asset-recipes'
 import type { CinematicGenerationHandoff } from './cinematic-skills'
 import type { CinematicDirectorGenerationHandoff } from './cinematic-director-preflight'
-import type { ScriptAuthoringIntent, ScriptAuthoringLineage, ScriptAuthoringLocale } from './script-authoring'
+import type {
+  ScriptAuthoringIntent,
+  ScriptAuthoringLineage,
+  ScriptAuthoringLocale,
+  WorkflowTemplateStoryLineage,
+  WorkflowTemplateShotLineage,
+} from './script-authoring'
 import {
   submitGenerationJobRequest,
   type GenerationJobSubmitInput,
@@ -70,6 +76,7 @@ export interface CanvasGenerationContext {
   imageIds?: string[]
   imageSize?: string
   outputCount?: number
+  templateLineage?: WorkflowTemplateShotLineage
   imageBatch?: ImageBatchSnapshot
   videoReferences?: VideoReferenceBinding[]
   aspectRatio?: string
@@ -94,6 +101,7 @@ export interface CanvasGenerationContext {
       contractVersion: 1
       requestedShotCount?: number
       sourceNodeIds: string[]
+      templateLineage?: WorkflowTemplateStoryLineage
     }
   }
 }
@@ -420,6 +428,7 @@ export async function requestCanvasGeneration(
         ...(context.imageSize ? { size: context.imageSize } : {}),
         ...(context.aspectRatio ? { aspect_ratio: context.aspectRatio } : {}),
         ...(context.outputCount !== undefined ? { output_count: context.outputCount } : {}),
+        ...(context.templateLineage ? { template_lineage: context.templateLineage } : {}),
         ...(context.imageBatch ? { batch: context.imageBatch } : {}),
         ...(!context.videoReferences && context.referenceMode ? { reference_mode: context.referenceMode } : {}),
         ...(context.videoReferences ? { video_references: context.videoReferences } : {}),
@@ -443,6 +452,9 @@ export async function requestCanvasGeneration(
             story_director: {
               contract_version: scriptAuthoring.storyDirector.contractVersion,
               source_node_ids: scriptAuthoring.storyDirector.sourceNodeIds,
+              ...(scriptAuthoring.storyDirector.templateLineage
+                ? { template_lineage: scriptAuthoring.storyDirector.templateLineage }
+                : {}),
               ...(scriptAuthoring.storyDirector.requestedShotCount
                 ? { requested_shot_count: scriptAuthoring.storyDirector.requestedShotCount }
                 : {}),

@@ -48,12 +48,66 @@ export interface ScriptAuthoringLineage {
   canvas_revision: number
 }
 
+export interface WorkflowTemplateStoryLineage {
+  contract_version: 1
+  template_id: string
+  template_version: number
+  instance_id: string
+  instance_step_id: string
+  step_id: string
+  script_node_id: string
+}
+
+export interface WorkflowTemplateShotLineage extends WorkflowTemplateStoryLineage {
+  shot_id: string
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
 
 function isPositiveInteger(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) > 0
+}
+
+export function parseWorkflowTemplateStoryLineage(
+  value: unknown,
+  scriptNodeId: string,
+): WorkflowTemplateStoryLineage | null {
+  if (value === undefined || value === null) return null
+  if (
+    !isRecord(value) ||
+    value.contract_version !== 1 ||
+    typeof value.template_id !== 'string' ||
+    !/^[a-z][a-z0-9.-]{2,127}$/.test(value.template_id) ||
+    !isPositiveInteger(value.template_version) ||
+    typeof value.instance_id !== 'string' || !value.instance_id.trim() ||
+    typeof value.instance_step_id !== 'string' || !value.instance_step_id.trim() ||
+    typeof value.step_id !== 'string' || !value.step_id.trim() ||
+    value.script_node_id !== scriptNodeId
+  ) throw new Error('模板 Script lineage 已失效，请刷新 Canvas 后重试。')
+  return {
+    contract_version: 1,
+    template_id: value.template_id,
+    template_version: value.template_version,
+    instance_id: value.instance_id,
+    instance_step_id: value.instance_step_id,
+    step_id: value.step_id,
+    script_node_id: value.script_node_id,
+  }
+}
+
+export function parseWorkflowTemplateShotLineage(
+  value: unknown,
+  sourceScriptNodeId: string,
+  shotId: string,
+): WorkflowTemplateShotLineage | null {
+  const lineage = parseWorkflowTemplateStoryLineage(value, sourceScriptNodeId)
+  if (lineage === null) return null
+  if (!isRecord(value) || value.shot_id !== shotId || !shotId.trim()) {
+    throw new Error('模板镜头 lineage 已失效，请重新创建图片生成节点。')
+  }
+  return { ...lineage, shot_id: shotId }
 }
 
 export function parseStoryDirectorCapabilities(value: unknown): StoryDirectorCapabilities {

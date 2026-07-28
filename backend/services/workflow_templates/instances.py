@@ -10,6 +10,7 @@ from core.canvas_document_fingerprint import canonical_json
 from schemas.canvas_document import CanvasDocumentPatchRequest
 from schemas.workflow_template import WorkflowTemplateManifest
 from schemas.workflow_template_instance import WorkflowTemplateInstantiateRequest
+from services.workflow_templates.lineage import workflow_template_lineage_id
 
 
 _NODE_SHAPES = {
@@ -134,6 +135,24 @@ def build_instance_projection(
         }
         if subtype is not None:
             content["subtype"] = subtype
+        matching_steps = [
+            step for step in manifest.steps if step.node_local_id == node.local_id
+        ]
+        if node.node_type == "script" and len(matching_steps) == 1:
+            step = matching_steps[0]
+            content["workflow_template_lineage"] = {
+                "contract_version": 1,
+                "template_id": manifest.template_id,
+                "template_version": manifest.template_version,
+                "instance_id": instance_id,
+                "instance_step_id": workflow_template_lineage_id(
+                    instance_id,
+                    "step",
+                    step.step_id,
+                ),
+                "step_id": step.step_id,
+                "script_node_id": node_id_map[node.local_id],
+            }
         node_upserts.append(
             {
                 "id": node_id_map[node.local_id],

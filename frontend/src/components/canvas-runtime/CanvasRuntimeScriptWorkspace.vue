@@ -143,6 +143,7 @@ const batchDialog = ref<'' | 'image' | 'video'>('')
 const batchShotIds = ref(new Set<string>())
 const imageAspectRatio = ref('16:9')
 const imageSize = ref('2K')
+const imageOutputCount = ref<1 | 2 | 3 | 4>(1)
 const videoAspectRatio = ref('16:9')
 const videoDuration = ref(5)
 const videoResolution = ref<'480p' | '720p' | '1080p'>('720p')
@@ -268,6 +269,7 @@ function createGenerationBatch() {
         mediaType: 'image',
         aspectRatio: imageAspectRatio.value,
         imageSize: imageSize.value,
+        imageOutputCount: imageOutputCount.value,
       }
     : {
         mediaType: 'video',
@@ -516,6 +518,14 @@ function exportJson() {
           <label v-if="batchDialog === 'image'">图片规格
             <select v-model="imageSize" aria-label="图片规格">
               <option v-for="size in ['1K', '2K', '3K', '4K']" :key="size" :value="size">{{ size }}</option>
+            </select>
+          </label>
+          <label v-if="batchDialog === 'image'">每镜头输出
+            <select v-model.number="imageOutputCount" aria-label="每镜头图片输出数量">
+              <option :value="1">1</option>
+              <option :value="2">2</option>
+              <option :value="3">3</option>
+              <option :value="4">4</option>
             </select>
           </label>
           <label v-if="batchDialog === 'video'">视频比例

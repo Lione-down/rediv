@@ -25,7 +25,11 @@ class WorkflowTemplateLineageConflictError(Exception):
     pass
 
 
-def _lineage_id(instance_id: str, kind: str, local_id: str) -> str:
+def workflow_template_lineage_id(
+    instance_id: str,
+    kind: str,
+    local_id: str,
+) -> str:
     return str(uuid5(NAMESPACE_URL, f"revid:{instance_id}:{kind}:{local_id}"))
 
 
@@ -82,7 +86,7 @@ def persist_instance_lineage(
         if resolved["kind"] == "asset" and not resolved["items"]:
             binding_id_map[slot_key] = []
             continue
-        binding_id = _lineage_id(instance_id, "binding", slot_key)
+        binding_id = workflow_template_lineage_id(instance_id, "binding", slot_key)
         if resolved["kind"] == "variable":
             binding = WorkflowTemplateBinding(
                 id=binding_id,
@@ -116,7 +120,7 @@ def persist_instance_lineage(
             for position, item in enumerate(resolved["items"]):
                 session.add(
                     WorkflowTemplateAssetBindingItem(
-                        id=_lineage_id(
+                        id=workflow_template_lineage_id(
                             instance_id,
                             "asset-binding-item",
                             f"{slot_key}:{position}",
@@ -132,7 +136,7 @@ def persist_instance_lineage(
         binding_id_map[slot_key] = [binding_id]
     step_id_map: dict[str, str] = {}
     for step in manifest.steps:
-        step_id = _lineage_id(instance_id, "step", step.step_id)
+        step_id = workflow_template_lineage_id(instance_id, "step", step.step_id)
         session.add(
             WorkflowTemplateInstanceStep(
                 id=step_id,

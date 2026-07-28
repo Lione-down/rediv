@@ -6,6 +6,7 @@ import type { GenerationCapabilities } from '../../../modules/canvas/generation-
 import {
   createScriptAuthoringResultCommand,
   createStoryProductionResultCommand,
+  parseWorkflowTemplateStoryLineage,
   resolveScriptAuthoringEligibility,
   type ScriptAuthoringIntent,
   type ScriptAuthoringLocale,
@@ -114,6 +115,18 @@ export function useCanvasScriptGeneration(options: ScriptGenerationOptions) {
 
     const source = eligibility.source
     const isStoryProduction = submission.outputKind === 'story_production'
+    let templateLineage = null
+    if (isStoryProduction) {
+      try {
+        templateLineage = parseWorkflowTemplateStoryLineage(
+          source.contentData?.workflow_template_lineage,
+          source.id,
+        )
+      } catch (lineageError) {
+        error.value = errorMessage(lineageError)
+        return
+      }
+    }
     if (
       isStoryProduction &&
       capability.value.storyDirectorRequestContractVersion !== 1
@@ -172,6 +185,7 @@ export function useCanvasScriptGeneration(options: ScriptGenerationOptions) {
                 ? { requestedShotCount: submission.requestedShotCount }
                 : {}),
               sourceNodeIds: storySourceNodeIds,
+              ...(templateLineage ? { templateLineage } : {}),
             },
           } : {}),
         },

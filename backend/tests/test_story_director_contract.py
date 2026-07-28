@@ -185,6 +185,95 @@ class StoryDirectorContractTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             model.model_validate(incomplete_continuity)
 
+    def test_document_preserves_exact_template_instance_step_and_script_lineage(self) -> None:
+        model = self._document_model()
+        payload = production_document()
+        payload["template_lineage"] = {
+            "contract_version": 1,
+            "template_id": "revid.product-ad",
+            "template_version": 1,
+            "instance_id": "instance-1",
+            "instance_step_id": "instance-step-1",
+            "step_id": "compile-story",
+            "script_node_id": "script-node-1",
+        }
+
+        dumped = model.model_validate(payload).model_dump(mode="json")
+
+        self.assertEqual(payload["template_lineage"], dumped["template_lineage"])
+        mismatched = production_document()
+        mismatched["template_lineage"] = {
+            **payload["template_lineage"],
+            "script_node_id": "other-script",
+        }
+        with self.assertRaises(ValidationError):
+            model.model_validate(mismatched)
+
+    def test_builtin_script_projection_carries_deterministic_instance_step_lineage(self) -> None:
+        from core.builtin_workflow_templates import BUILTIN_WORKFLOW_TEMPLATES
+        from schemas.workflow_template_instance import WorkflowTemplateInstantiateRequest
+        from services.workflow_templates.instances import build_instance_projection
+        from services.workflow_templates.lineage import workflow_template_lineage_id
+
+        manifest = BUILTIN_WORKFLOW_TEMPLATES["revid.product-ad"]
+        request = WorkflowTemplateInstantiateRequest.model_validate({
+            "template_id": "revid.product-ad",
+            "template_version": 1,
+            "base_revision": 0,
+            "client_mutation_id": "t6-023-lineage",
+            "variable_bindings": {},
+            "asset_bindings": {},
+            "cost_confirmed": True,
+            "preflight_fingerprint": "a" * 64,
+        })
+
+        mutation, node_map, _, instance_id = build_instance_projection(
+            manifest=manifest,
+            canvas_id="canvas-1",
+            request=request,
+        )
+
+        script = next(
+            node for node in mutation["node_upserts"]
+            if node["id"] == node_map["script"]
+        )
+        self.assertEqual({
+            "contract_version": 1,
+            "template_id": "revid.product-ad",
+            "template_version": 1,
+            "instance_id": instance_id,
+            "instance_step_id": workflow_template_lineage_id(
+                instance_id,
+                "step",
+                "compile-story",
+            ),
+            "step_id": "compile-story",
+            "script_node_id": node_map["script"],
+        }, script["content"]["workflow_template_lineage"])
+
+    def test_provider_output_cannot_author_template_lineage(self) -> None:
+        from core.story_director_contract import parse_story_director_output
+
+        payload = production_document()
+        payload["template_lineage"] = {
+            "contract_version": 1,
+            "template_id": "provider.forged",
+            "template_version": 1,
+            "instance_id": "provider-instance",
+            "instance_step_id": "provider-step",
+            "step_id": "compile-story",
+            "script_node_id": "script-node-1",
+        }
+
+        parsed = parse_story_director_output(
+            payload,
+            source_node_id="script-node-1",
+            source_revision=REVISION,
+            model_id="allowed-text-model",
+        )
+
+        self.assertIsNone(parsed.template_lineage)
+
 
 if __name__ == "__main__":
     unittest.main()

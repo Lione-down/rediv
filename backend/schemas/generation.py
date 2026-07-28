@@ -21,6 +21,7 @@ from schemas.cinematic_sequence import (
     TransferExclusion,
 )
 from schemas.generation_task import GenerationTaskItem
+from schemas.story_production import StoryShotTemplateLineage, StoryTemplateLineage
 from core.generation_parameter_contract import (
     IMAGE_OUTPUT_COUNTS,
     normalize_image_parameters,
@@ -125,6 +126,7 @@ class ImageGenerateRequest(ScopedGenerationRequest):
     size: Literal["1K", "2K", "3K", "4K"] | None = None
     aspect_ratio: str | None = Field(default=None, max_length=10)
     output_count: Literal[1, 2, 3, 4] | None = None
+    template_lineage: StoryShotTemplateLineage | None = None
     generation_recipe_id: ImageGenerationRecipeId | None = None
     generation_recipe_version: int | None = Field(default=None, ge=1)
     image_operation: dict[str, Any] | None = None
@@ -243,6 +245,7 @@ class StoryDirectorRequest(BaseModel):
     contract_version: Literal[1]
     source_node_ids: list[ResourceId] = Field(default_factory=list, max_length=8)
     requested_shot_count: int | None = Field(default=None, ge=1, le=25)
+    template_lineage: StoryTemplateLineage | None = None
 
     @field_validator("source_node_ids")
     @classmethod

@@ -51,6 +51,10 @@ from services.generation.story_director_executor import (
     StoryDirectorExecutionError,
     execute_story_director_async,
 )
+from services.workflow_templates.story_lineage import (
+    WorkflowTemplateStoryLineageError,
+    resolve_workflow_template_story_lineage,
+)
 
 
 MODEL_NAME = TEXT_CONTRACT.model
@@ -168,6 +172,8 @@ def _story_director_context(
     payload: TextGenerateRequest,
     document: dict | None,
     source: dict | None,
+    *,
+    user_id: str,
 ) -> dict | None:
     request = payload.story_director
     if request is None:
@@ -221,8 +227,44 @@ def _story_director_context(
             detail={"code": "story_source_required", "message": "Connect usable Prompt/Text content before generating storyboard"},
         )
     source_revision = hashlib.sha256("\n\n".join(revision_parts).encode("utf-8")).hexdigest()
-    current_story = None
     source_content = source.get("content")
+    source_template_lineage = (
+        source_content.get("workflow_template_lineage")
+        if isinstance(source_content, dict)
+        else None
+    )
+    requested_template_lineage = (
+        request.template_lineage.model_dump(mode="json")
+        if request.template_lineage is not None
+        else None
+    )
+    if source_template_lineage != requested_template_lineage:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "workflow_template_story_lineage_stale",
+                "message": "Template Script lineage changed before submission",
+            },
+        )
+    template_lineage = None
+    if request.template_lineage is not None:
+        try:
+            template_lineage = resolve_workflow_template_story_lineage(
+                lineage=request.template_lineage,
+                owner_user_id=user_id,
+                project_id=payload.project_id,
+                canvas_id=payload.origin_canvas_id or "",
+                script_node_id=payload.canvas_node_id,
+            )
+        except WorkflowTemplateStoryLineageError as error:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "workflow_template_story_lineage_stale",
+                    "message": "模板脚本来源已变化，请刷新 Canvas 后重试。",
+                },
+            ) from error
+    current_story = None
     if isinstance(source_content, dict) and source_content.get("story_production") is not None:
         try:
             current_story = StoryProductionDocument.model_validate(source_content["story_production"])
@@ -231,12 +273,21 @@ def _story_director_context(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={"code": "story_production_invalid", "message": "Current storyboard is not valid production state"},
             ) from error
+        if current_story.template_lineage != request.template_lineage:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "workflow_template_story_lineage_stale",
+                    "message": "Template story lineage changed before submission",
+                },
+            )
     return {
         "source_text": source_text,
         "source_revision": source_revision,
         "source_node_ids": actual_source_ids,
         "requested_shot_count": request.requested_shot_count,
         "current_story": current_story,
+        "template_lineage": template_lineage,
     }
 
 
@@ -277,7 +328,12 @@ async def text_generate(
     authoring_snapshot, authoring_document, authoring_source = _resolve_script_authoring_context(
         payload, user["id"]
     )
-    story_context = _story_director_context(payload, authoring_document, authoring_source)
+    story_context = _story_director_context(
+        payload,
+        authoring_document,
+        authoring_source,
+        user_id=user["id"],
+    )
     script_reference_image_urls = (
         _resolve_script_reference_image_urls(payload, user["id"])
         if authoring_snapshot else []
@@ -309,6 +365,15 @@ async def text_generate(
                 "source_revision": story_context["source_revision"],
                 "requested_shot_count": story_context["requested_shot_count"],
                 "instruction_digest": hashlib.sha256(payload.brief.encode("utf-8")).hexdigest(),
+                **(
+                    {
+                        "template_lineage": story_context[
+                            "template_lineage"
+                        ].model_dump(mode="json")
+                    }
+                    if story_context["template_lineage"] is not None
+                    else {}
+                ),
             }
             if story_context else None
         )
@@ -404,6 +469,7 @@ async def text_generate(
                 model_id=model_name,
                 requested_shot_count=story_context["requested_shot_count"],
                 generate=generate_story,
+                template_lineage=story_context["template_lineage"],
             )
             if story_context["current_story"] is not None:
                 story_production = merge_story_production(

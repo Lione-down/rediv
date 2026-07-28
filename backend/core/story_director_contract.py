@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from schemas.provider_storyboard import ProviderStoryboardDocument
-from schemas.story_production import StoryProductionDocument
+from schemas.story_production import StoryProductionDocument, StoryTemplateLineage
 
 
 MAX_STORY_DIRECTOR_OUTPUT_BYTES = 256 * 1024
@@ -225,6 +225,7 @@ def parse_story_director_output(
     source_node_id: str,
     source_revision: str,
     model_id: str,
+    template_lineage: StoryTemplateLineage | None = None,
 ) -> StoryProductionDocument:
     payload = _structured_payload(value)
     try:
@@ -245,6 +246,9 @@ def parse_story_director_output(
                 "source_revision": source_revision,
                 "model_id": model_id,
             })
+        payload.pop("template_lineage", None)
+        if template_lineage is not None:
+            payload["template_lineage"] = template_lineage.model_dump(mode="json")
         return StoryProductionDocument.model_validate(payload)
     except ValidationError as error:
         raise StoryDirectorOutputError("Story director output violates the production schema") from error

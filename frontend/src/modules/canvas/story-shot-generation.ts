@@ -3,6 +3,10 @@ import { resolveCanvasMaterializedCardResult } from '../../components/canvas/can
 import { createCanvasEntityId } from './canvas-autosave'
 import type { InsertGraphCommand } from './canvas-commands'
 import type { VideoReferenceMode, VideoResolution } from './generation-parameters'
+import {
+  parseWorkflowTemplateStoryLineage,
+  type WorkflowTemplateStoryLineage,
+} from './script-authoring'
 import { findFirstUnoccupiedPosition } from './graph-placement'
 import { createRegistryNodeDraft, getAuthoringConnectionPorts } from './node-registry'
 import { resolveCanvasNodeLayoutSize } from './node-layout'
@@ -14,6 +18,7 @@ export interface StoryShotBatchOptions {
   aspectRatio: string
   durationSeconds?: number
   imageSize?: string
+  imageOutputCount?: 1 | 2 | 3 | 4
   mediaType: StoryShotBatchMediaType
   videoMode?: StoryShotVideoMode
   videoResolution?: VideoResolution
@@ -29,6 +34,11 @@ interface StoryShot {
   imagePrompt: string
   title: string
   videoPrompt: string
+}
+
+interface ConfirmedStory {
+  shots: StoryShot[]
+  templateLineage: WorkflowTemplateStoryLineage | null
 }
 
 const IMAGE_RATIOS = new Set(['1:1', '3:4', '4:3', '16:9', '9:16', '2:3', '3:2', '21:9'])
@@ -47,7 +57,21 @@ function text(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function confirmedShots(source: CanvasNode): StoryShot[] | null {
+function sameTemplateLineage(
+  left: WorkflowTemplateStoryLineage | null,
+  right: WorkflowTemplateStoryLineage | null,
+) {
+  if (left === null || right === null) return left === right
+  return left.contract_version === right.contract_version &&
+    left.template_id === right.template_id &&
+    left.template_version === right.template_version &&
+    left.instance_id === right.instance_id &&
+    left.instance_step_id === right.instance_step_id &&
+    left.step_id === right.step_id &&
+    left.script_node_id === right.script_node_id
+}
+
+function confirmedStory(source: CanvasNode): ConfirmedStory | null {
   if (
     source.type !== 'script' ||
     source.contentData?.subtype !== 'script' ||
@@ -82,17 +106,35 @@ function confirmedShots(source: CanvasNode): StoryShot[] | null {
       videoPrompt,
     }]
   })
-  return shots.length === production.shots.length &&
-    new Set(shots.map((shot) => shot.id)).size === shots.length
-    ? shots
-    : null
+  if (
+    shots.length !== production.shots.length ||
+    new Set(shots.map((shot) => shot.id)).size !== shots.length
+  ) return null
+  try {
+    const sourceLineage = parseWorkflowTemplateStoryLineage(
+      source.contentData?.workflow_template_lineage,
+      source.id,
+    )
+    const productionLineage = parseWorkflowTemplateStoryLineage(
+      production.template_lineage,
+      source.id,
+    )
+    if (!sameTemplateLineage(sourceLineage, productionLineage)) return null
+    return {
+      shots,
+      templateLineage: productionLineage,
+    }
+  } catch {
+    return null
+  }
 }
 
 function validOptions(options: StoryShotBatchOptions) {
   if (options.mediaType === 'image') {
     return IMAGE_RATIOS.has(options.aspectRatio) &&
       typeof options.imageSize === 'string' &&
-      IMAGE_SIZES.has(options.imageSize)
+      IMAGE_SIZES.has(options.imageSize) &&
+      [1, 2, 3, 4].includes(options.imageOutputCount ?? 1)
   }
   return VIDEO_RATIOS.has(options.aspectRatio) &&
     typeof options.durationSeconds === 'number' &&
@@ -134,9 +176,9 @@ export function resolveStoryShotSingleFrameIds(input: {
   nodes: readonly CanvasNode[]
   connections: readonly CanvasConnection[]
 }) {
-  const shots = confirmedShots(input.sourceNode)
-  if (!shots) return new Set<string>()
-  return new Set(shots.flatMap((shot) => (
+  const story = confirmedStory(input.sourceNode)
+  if (!story) return new Set<string>()
+  return new Set(story.shots.flatMap((shot) => (
     matchingImageResult(input.sourceNode.id, shot.id, input.nodes, input.connections)
       ? [shot.id]
       : []
@@ -151,8 +193,9 @@ export function createStoryShotGenerationCommand(input: {
   options: StoryShotBatchOptions
   createId?: () => string
 }): InsertGraphCommand | null {
-  const shots = confirmedShots(input.sourceNode)
-  if (!shots || !validOptions(input.options)) return null
+  const story = confirmedStory(input.sourceNode)
+  if (!story || !validOptions(input.options)) return null
+  const shots = story.shots
   const selectedIds = new Set(input.shotIds)
   if (
     !selectedIds.size ||
@@ -196,13 +239,21 @@ export function createStoryShotGenerationCommand(input: {
         shot_id: shot.id,
         shot_index: shot.index,
         shot_title: shot.title,
+        ...(story.templateLineage
+          ? {
+              template_lineage: {
+                ...story.templateLineage,
+                shot_id: shot.id,
+              },
+            }
+          : {}),
         generation_parameters: input.options.mediaType === 'image'
           ? {
               schema_version: 1,
               image: {
                 aspect_ratio: input.options.aspectRatio,
                 size: input.options.imageSize,
-                output_count: 1,
+                output_count: input.options.imageOutputCount ?? 1,
               },
             }
           : {
