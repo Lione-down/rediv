@@ -6,6 +6,11 @@ import type {
   TemplateInstantiateResponse,
   TemplateListResponse,
   TemplateUseResponse,
+  WorkflowTemplateInstantiateRequest,
+  WorkflowTemplateInstantiateResponse,
+  WorkflowTemplateLifecycleListResponse,
+  WorkflowTemplatePreflightRequest,
+  WorkflowTemplatePreflightResponse,
 } from './types'
 
 export function fetchTemplates() {
@@ -70,4 +75,43 @@ export function instantiateCanvasTemplate(
   const path = `${resolveCanvasTemplatePath(projectId, canvasId)}` +
     `/${encodeURIComponent(normalizedTemplateId)}/instantiate`
   return request.post<TemplateInstantiateResponse>(path, payload)
+}
+
+export function fetchWorkflowTemplates() {
+  return request.get<WorkflowTemplateLifecycleListResponse>('/api/workflow-templates')
+}
+
+function resolveWorkflowTemplateVersionPath(templateId: string, version: number) {
+  const normalizedTemplateId = templateId.trim()
+  if (!normalizedTemplateId) throw new TypeError('Workflow template ID is required.')
+  if (!Number.isInteger(version) || version < 1) {
+    throw new TypeError('Workflow template version must be a positive integer.')
+  }
+  return `/api/workflow-templates/${encodeURIComponent(normalizedTemplateId)}` +
+    `/versions/${version}`
+}
+
+export function preflightWorkflowTemplate(
+  templateId: string,
+  version: number,
+  payload: WorkflowTemplatePreflightRequest,
+) {
+  return request.post<WorkflowTemplatePreflightResponse>(
+    `${resolveWorkflowTemplateVersionPath(templateId, version)}/preflight`,
+    payload,
+  )
+}
+
+export function instantiateWorkflowTemplate(
+  projectId: string,
+  canvasId: string,
+  payload: WorkflowTemplateInstantiateRequest,
+) {
+  const normalizedProjectId = projectId.trim()
+  const normalizedCanvasId = canvasId.trim()
+  if (!normalizedProjectId) throw new TypeError('Project ID is required.')
+  if (!normalizedCanvasId) throw new TypeError('Canvas ID is required.')
+  const path = `/api/projects/${encodeURIComponent(normalizedProjectId)}` +
+    `/canvases/${encodeURIComponent(normalizedCanvasId)}/workflow-template-instances`
+  return request.post<WorkflowTemplateInstantiateResponse>(path, payload)
 }

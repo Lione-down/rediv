@@ -16,18 +16,18 @@
 - T6-001 through T6-004 and T6-006 through T6-011: `DONE / PASS`.
 - T6-005 and T6-012: terminal `BLOCKED / FAIL`.
 - T6-013: `DONE / DEFERRED`; baseline `515b8c90097108b05e8cc838e3ba6402e30c366b` is pushed.
-- T6-017 through T6-019: `DONE / PASS`; frozen V1 contract, additive MySQL persistence, and lifecycle API are verified.
-- T6-020: `DONE / PASS`; portable capture/classification and provider-free preflight are verified.
-- T6-020 and T6-021: `DONE / PASS`; preflight plus exact-version atomic instantiate/lineage are verified.
+- T6-017 through T6-019: `DONE / PASS`; contract, persistence, and lifecycle API are verified.
+- T6-020 and T6-021: `DONE / PASS`; portable preflight plus atomic instantiate/lineage are verified.
+- T6-022: `DONE / PASS`; Template Library/configuration UI is implemented and machine verified.
 - Old T6-014 through T6-016 were provisional scopes superseded before formal Task creation.
 - Database authority remains MySQL-only.
 
 ## Active Delivery
 
-- No implementation Task is active after T6-021 closure.
-- Completed Task: [TASK-T6-021](../tasks/todo/TASK-T6-021.md).
-- Report: [REPORT-T6-021](../reports/REPORT-T6-021.md).
-- T6-022 Template Library/configuration UI is the next dependency-ready Task and must start in a separate run.
+- Latest completed Task: `T6-022 - Template Library and configuration UI`; [TASK-T6-022](../tasks/todo/TASK-T6-022.md).
+- Plan: [TASK-T6-022-PLAN](../tasks/doing/TASK-T6-022-PLAN.md).
+- Progress: [TASK-T6-022-PROGRESS](../tasks/doing/TASK-T6-022-PROGRESS.md).
+- Report: [REPORT-T6-022](../reports/REPORT-T6-022.md).
 
 ## Live Gates
 
@@ -40,12 +40,15 @@
   provider-free preflight with zero Canvas/template-instance/quota/job/provider mutation.
 - T6-021 adds exact-version atomic Canvas instantiate and durable instance/binding/step-node lineage through the
   existing Canvas document patch with zero quota/job/run/provider mutation.
-- UI, generation, WorkflowRun, upgrade/clone/detach, and release proof remain assigned to T6-022 through T6-027.
+- T6-022 adds only the owner-scoped Template Library, configuration, pure preflight review/confirmation, and
+  existing-route instantiate adoption. It does not add provider execution or a second Canvas authority.
+- Generation, WorkflowRun, upgrade/clone/detach, and release proof remain assigned to T6-023 through T6-027.
 - Program-level final visual, interaction, and journey acceptance remains T6-027.
 
 ## Exact Next Action
 
-Start a separate Direct Delivery run for dependency-ready T6-022; do not mix it into the T6-021 delivery commit.
+Open a new Direct Delivery session for dependency-ready T6-023 template-aware Script/Image closeout; reconstruct
+its exact Task/PLAN/PROGRESS from frozen PRD and redesign authority before any business-code edit.
 
 ## Worktree Ownership
 
@@ -54,5 +57,4 @@ Start a separate Direct Delivery run for dependency-ready T6-022; do not mix it 
 
 ## Completion Gate
 
-- T6-017 through T6-021 are `DONE / PASS`. T6-022 is not activated. Final Human visual/interaction and journey
-  acceptance remains T6-027.
+- T6-017 through T6-022 are `DONE / PASS`; T6-023 is next, and final Human acceptance remains T6-027.

@@ -185,6 +185,85 @@ export interface WorkflowTemplateInstance {
   node_id_map: Record<string, string>
 }
 
+export interface WorkflowTemplateLifecycleItem {
+  template_id: string
+  scope: WorkflowTemplateManifest['scope']
+  version: number
+  lifecycle: WorkflowTemplateManifest['lifecycle']
+  fingerprint: string
+  manifest: WorkflowTemplateManifest
+  published_at: string
+}
+
+export interface WorkflowTemplateLifecycleListResponse {
+  items: WorkflowTemplateLifecycleItem[]
+  total: number
+}
+
+export interface WorkflowTemplateAssetBindingInput {
+  asset_id: string
+  source_revision: string
+}
+
+export interface WorkflowTemplatePreflightRequest {
+  project_id: string
+  canvas_id: string
+  variable_bindings: Record<string, string | number | boolean | string[]>
+  asset_bindings: Record<string, WorkflowTemplateAssetBindingInput[]>
+  cost_confirmed: boolean
+}
+
+export interface WorkflowTemplatePreflightIssue {
+  code: string
+  message: string
+  field?: string
+}
+
+export interface WorkflowTemplatePreflightResponse {
+  contract_version: number
+  template: {
+    id: string
+    version: number
+    fingerprint: string
+  }
+  executable: boolean
+  errors: WorkflowTemplatePreflightIssue[]
+  warnings: WorkflowTemplatePreflightIssue[]
+  resolved_slots: Array<Record<string, unknown>>
+  graph_summary: {
+    nodes: number
+    connections: number
+  }
+  capability_snapshot: Record<string, unknown>
+  quota_estimate: {
+    text: number
+    image: number
+    video: number
+  }
+  cost_class: string
+  fingerprint: string
+}
+
+export interface WorkflowTemplateInstantiateRequest {
+  template_id: string
+  template_version: number
+  variable_bindings: Record<string, string | number | boolean | string[]>
+  asset_bindings: Record<string, WorkflowTemplateAssetBindingInput[]>
+  preflight_fingerprint: string
+  cost_confirmed: boolean
+  base_revision: number
+  client_mutation_id: string
+}
+
+export interface WorkflowTemplateInstantiateResponse extends WorkflowTemplateInstance {
+  project_id: string
+  canvas_id: string
+  connection_id_map: Record<string, string>
+  binding_id_map: Record<string, string>
+  step_id_map: Record<string, string>
+  mutation: CanvasDocumentPatchResponse
+}
+
 export interface WorkflowRun {
   run_id: string
   instance_id: string

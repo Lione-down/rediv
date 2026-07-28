@@ -408,6 +408,13 @@
   }
 }
 
+@media (max-width: 767px) {
+  .replacement-runtime__utilities {
+    top: 72px;
+    bottom: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .replacement-runtime button {
     transition: none;

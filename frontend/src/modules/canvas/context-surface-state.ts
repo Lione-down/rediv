@@ -9,6 +9,7 @@ export const CANVAS_CONTEXT_SURFACE_KINDS = [
   'stage',
   'video-preflight',
   'workflow-batch',
+  'workflow-template',
 ] as const
 
 export type CanvasContextSurfaceKind = typeof CANVAS_CONTEXT_SURFACE_KINDS[number]

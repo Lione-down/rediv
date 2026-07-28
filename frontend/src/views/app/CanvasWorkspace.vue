@@ -13,6 +13,7 @@ import CanvasRevisionPanel from '../../components/canvas/CanvasRevisionPanel.vue
 import CanvasResultCompareTray from '../../components/canvas/CanvasResultCompareTray.vue'
 import CanvasStage from '../../components/canvas/CanvasStage.vue'
 import CanvasStoryboardView from '../../components/canvas/CanvasStoryboardView.vue'
+import CanvasWorkflowTemplateDrawer from '../../components/canvas/CanvasWorkflowTemplateDrawer.vue'
 import CanvasViewModeSwitch, { type CanvasViewMode } from '../../components/canvas/CanvasViewModeSwitch.vue'
 import CanvasReplacementRuntime from '../../components/canvas-runtime/CanvasReplacementRuntime.vue'
 import AccountSessionMenu from '../../components/layout/account-session-menu.vue'
@@ -121,6 +122,7 @@ const viewMode = ref<CanvasViewMode>('workflow')
 const isRevisionPanelOpen = ref(false)
 const isResultCompareOpen = ref(false)
 const workflowBatchOpen = ref(false)
+const workflowTemplateOpen = ref(false)
 const videoEditPreflightOpen = ref(false)
 const audioGenerationPreflightOpen = ref(false)
 const agentSkillPreflightOpen = ref(false)
@@ -664,7 +666,7 @@ const professionalActionsBlocked = computed(() => (
   isRevisionPanelOpen.value || isResultCompareOpen.value || isResourceOpen.value ||
   (!isReplacementRuntime.value && (isContextDrawerOpen.value || isDesktopContextOpen.value)) ||
   workflowBatchOpen.value || videoEditPreflightOpen.value || audioGenerationPreflightOpen.value ||
-  agentSkillPreflightOpen.value || viewMode.value !== 'workflow'
+  agentSkillPreflightOpen.value || workflowTemplateOpen.value || viewMode.value !== 'workflow'
 ))
 const {
   actions: professionalActions,
@@ -713,6 +715,7 @@ const contextSurfaceController = useCanvasContextSurface({
       stage: () => { canvasStageRef.value?.closeTransientInteractions() },
       'video-preflight': () => { videoEditPreflightOpen.value = false },
       'workflow-batch': () => { workflowBatchOpen.value = false },
+      'workflow-template': () => { workflowTemplateOpen.value = false },
     }
     closers[kind]()
   },
@@ -736,6 +739,15 @@ function openProfessionalActionsExclusive(opener: HTMLElement, initialQuery = ''
 function openReplacementActions(payload: { opener: HTMLElement; query: string }) {
   openProfessionalActionsExclusive(payload.opener, payload.query)
 }
+
+function openWorkflowTemplateLibrary(opener: HTMLElement) {
+  activateContextSurface('workflow-template', opener)
+  workflowTemplateOpen.value = true
+}
+
+function closeWorkflowTemplateLibrary() {
+  contextSurfaceController.deactivate('workflow-template')
+}
 const isDesktopContextVisible = computed(() => (
   isDesktopContextOpen.value &&
   !isStageContextSurfaceOpen.value &&
@@ -745,7 +757,8 @@ const isDesktopContextVisible = computed(() => (
   !workflowBatchOpen.value &&
   !videoEditPreflightOpen.value &&
   !audioGenerationPreflightOpen.value &&
-  !agentSkillPreflightOpen.value
+  !agentSkillPreflightOpen.value &&
+  !workflowTemplateOpen.value
 ))
 const EMPTY_PROFESSIONAL_ACTION_IDS: readonly string[] = Object.freeze([])
 const mediaActionTarget = computed(() => {
@@ -1287,6 +1300,7 @@ onBeforeUnmount(() => {
       @move-node="moveReplacementNode"
       @move-selection="moveReplacementSelection"
       @open-actions="openReplacementActions"
+      @open-templates="openWorkflowTemplateLibrary"
       @redo="canvasDocumentStore.redo()"
       @rename-node="renameReplacementNode"
       @retry-script-capability="reloadGenerationCapabilities"
@@ -1314,6 +1328,14 @@ onBeforeUnmount(() => {
         @close="closeProfessionalSurface"
         @select="executeProfessionalAction"
         @update:query="professionalActionQuery = $event"
+      />
+      <CanvasWorkflowTemplateDrawer
+        v-if="workflowTemplateOpen"
+        :assets="resourceStore.assets"
+        :canvas-id="canvasId"
+        :project-id="projectId"
+        :review-only="isReviewOnly"
+        @close="closeWorkflowTemplateLibrary"
       />
     </template>
     <div

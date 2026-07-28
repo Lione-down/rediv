@@ -121,6 +121,7 @@ const emit = defineEmits<{
     point: { x: number; y: number }
   }]
   openActions: [payload: { opener: HTMLElement; query: string }]
+  openTemplates: [opener: HTMLElement]
   createNode: [toolId: RuntimeContextToolId, point?: { x: number; y: number }]
   deleteSelection: [source: 'keyboard' | 'context-menu']
   generate: []
@@ -552,6 +553,7 @@ const {
         <article
           v-for="(node, index) in visibleNodes.filter(candidate => candidate.type !== 'group')"
           :key="node.id"
+          :data-storyboard-node-id="node.id"
         >
           <span>{{ String(index + 1).padStart(2, '0') }}</span>
           <div>
@@ -652,6 +654,7 @@ const {
       @create-node="emit('createNode', $event)"
       @fit-all="fitAll"
       @open-assist="emit('openActions', { opener: $event, query: '' })"
+      @open-templates="emit('openTemplates', $event)"
       @redo="emit('redo')"
       @switch-canvas="emit('switchCanvas', $event)"
       @undo="emit('undo')"

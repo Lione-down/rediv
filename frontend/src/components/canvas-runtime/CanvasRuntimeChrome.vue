@@ -5,6 +5,7 @@ import {
   Clapperboard,
   FolderOpen,
   Image,
+  LayoutTemplate,
   Maximize2,
   MessageSquareText,
   Minus,
@@ -52,6 +53,7 @@ const emit = defineEmits<{
   createNode: [toolId: ReplacementToolId]
   fitAll: []
   openAssist: [opener: HTMLElement]
+  openTemplates: [opener: HTMLElement]
   redo: []
   switchCanvas: [canvasId: string]
   undo: []
@@ -94,6 +96,11 @@ async function copyCanvasLink() {
 function openAssist(event: MouseEvent) {
   const opener = event.currentTarget
   if (opener instanceof HTMLElement) emit('openAssist', opener)
+}
+
+function openTemplates(event: MouseEvent) {
+  const opener = event.currentTarget
+  if (opener instanceof HTMLElement) emit('openTemplates', opener)
 }
 </script>
 
@@ -161,6 +168,9 @@ function openAssist(event: MouseEvent) {
   </div>
 
   <div class="replacement-runtime__utilities" role="group" aria-label="资源与视图控制">
+    <button type="button" aria-label="打开模板库" @click="openTemplates">
+      <LayoutTemplate :size="17" aria-hidden="true" />
+    </button>
     <button type="button" aria-label="打开素材库" @click="isAssetLibraryOpen = true">
       <FolderOpen :size="17" aria-hidden="true" />
     </button>
