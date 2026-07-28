@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import time
 from uuid import uuid4
 
@@ -49,13 +50,26 @@ def _extract_video_id(response: object) -> str:
 def _extract_video_url(response: object) -> str | None:
     if not isinstance(response, dict):
         raise ProviderResultError("Provider returned invalid video result data")
+    direct_url = response.get("video_url")
+    validated_direct_url = (
+        validate_https_url(direct_url, media_type="video")
+        if isinstance(direct_url, str) and direct_url
+        else None
+    )
+    validated_metadata_url = None
     metadata = response.get("metadata")
     if isinstance(metadata, dict):
         video_url = metadata.get("url")
         if isinstance(video_url, str) and video_url:
-            return validate_https_url(video_url, media_type="video")
+            validated_metadata_url = validate_https_url(video_url, media_type="video")
+    if (
+        validated_direct_url is not None
+        and validated_metadata_url is not None
+        and validated_direct_url != validated_metadata_url
+    ):
+        raise ProviderResultError("Provider returned conflicting video result URLs")
 
-    return None
+    return validated_direct_url or validated_metadata_url
 
 
 async def _poll_video_url(
@@ -97,16 +111,23 @@ async def _poll_video_url(
 
         poll_status = response.get("status")
         normalized_status = normalize_provider_status(poll_status if isinstance(poll_status, str) else None)
+        has_progress = "progress" in response
         progress_percent = extract_provider_progress_percent(response)
-        if progress_percent is None:
+        if has_progress and progress_percent is None:
             raise ProviderResultError("Provider returned invalid video task progress")
-        if normalized_status == "succeeded" and progress_percent != 100:
+        if normalized_status == "succeeded" and progress_percent not in {None, 100}:
             raise ProviderResultError("Provider returned contradictory completed video progress")
-        generation_controller.update_generation_task_state(
-            generation_task_id,
-            progress_percent=progress_percent,
-        )
+        if progress_percent is not None:
+            generation_controller.update_generation_task_state(
+                generation_task_id,
+                progress_percent=progress_percent,
+            )
         if normalized_status == "succeeded":
+            if progress_percent is None:
+                generation_controller.update_generation_task_state(
+                    generation_task_id,
+                    progress_percent=100,
+                )
             video_url = _extract_video_url(response)
             if video_url is None:
                 generation_controller.fail_generation_task(
@@ -187,10 +208,13 @@ async def video_generate(
         if payload.video_references is not None else None
     )
     normalized_parameters = normalize_video_parameters(
+        aspect_ratio=payload.aspect_ratio,
+        resolution=payload.resolution,
         reference_mode=payload.reference_mode,
         duration_seconds=payload.duration_seconds,
         image_ids=payload.image_ids,
         video_references=video_references,
+        negative_prompt=payload.negative_prompt,
         shot_controls=payload.shot_controls,
     )
     request_image_ids = normalized_parameters.request_parameters["image_ids"]
@@ -207,6 +231,7 @@ async def video_generate(
         expected_control_parameters={
             "reference_mode": normalized_parameters.reference_mode,
             "duration_seconds": normalized_parameters.duration_seconds,
+            "resolution": normalized_parameters.resolution,
             **(
                 {"shot_controls": normalized_parameters.request_parameters["shot_controls"]}
                 if "shot_controls" in normalized_parameters.request_parameters else {}
@@ -214,8 +239,14 @@ async def video_generate(
         },
     )
     request_parameters = dict(normalized_parameters.request_parameters)
+    fingerprint_parameters = dict(request_parameters)
+    if normalized_parameters.negative_prompt is not None:
+        fingerprint_parameters["negative_prompt_sha256"] = hashlib.sha256(
+            normalized_parameters.negative_prompt.encode("utf-8")
+        ).hexdigest()
     if cinematic_handoff:
         request_parameters["cinematic_skill"] = cinematic_handoff["request_snapshot"]
+        fingerprint_parameters["cinematic_skill"] = cinematic_handoff["request_snapshot"]
     try:
         start = generation_controller.start_video_generation_request(
             user_id=user["id"],
@@ -237,7 +268,7 @@ async def video_generate(
                 model=MODEL_NAME,
                 prompt=payload.prompt,
                 image_ids=request_image_ids,
-                request_parameters=request_parameters,
+                request_parameters=fingerprint_parameters,
                 cinematic_handoff=payload.cinematic_handoff,
             ),
         )
@@ -263,6 +294,8 @@ async def video_generate(
             "num_frames": normalized_parameters.num_frames,
             "frame_rate": normalized_parameters.frame_rate,
         }
+        if normalized_parameters.negative_prompt is not None:
+            generation_options["negative_prompt"] = normalized_parameters.negative_prompt
         if normalized_parameters.reference_mode == "image-to-video" and input_images:
             generation_options = {"image": input_images[0], "mode": "img2vid"}
             generation_options.update({

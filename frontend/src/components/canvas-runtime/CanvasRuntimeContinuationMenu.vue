@@ -9,6 +9,7 @@ defineProps<{
   direction: ConnectionContinuationDirection
   options: readonly ConnectionContinuationOption[]
   position: { left: number; top: number }
+  sourceCount?: number
 }>()
 
 const emit = defineEmits<{
@@ -36,7 +37,8 @@ const emit = defineEmits<{
         <X :size="15" aria-hidden="true" />
       </button>
     </header>
-    <p>{{ direction === 'downstream' ? '创建下游工作流' : '创建上游工作流' }}</p>
+    <p v-if="sourceCount && sourceCount > 1">引用选中的 {{ sourceCount }} 个节点</p>
+    <p v-else>{{ direction === 'downstream' ? '创建下游工作流' : '创建上游工作流' }}</p>
     <div role="group" aria-label="兼容工作流">
       <button
         v-for="option in options"

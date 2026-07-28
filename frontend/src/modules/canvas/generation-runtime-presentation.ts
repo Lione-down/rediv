@@ -53,6 +53,11 @@ export interface RestoredGenerationJobRuntime {
 }
 
 const PERSISTING_PRESENTATION = { label: '正在保存结果', tone: 'progress', isTerminal: false } as const
+const RESULT_PROJECTION_PRESENTATION = {
+  label: '正在显示结果',
+  tone: 'progress',
+  isTerminal: false,
+} as const
 
 export function normalizeGenerationProgressPercent(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
@@ -273,7 +278,9 @@ export function resolveGenerationJobRuntimePresentations(
       runtime.stage ?? 'none',
       runtime.progress ?? 'none',
     ].join(':')
-    const phasePresentation = runtime.phase === 'running' && runtime.stage === 'queued'
+    const phasePresentation = runtime.phase === 'succeeded'
+      ? RESULT_PROJECTION_PRESENTATION
+      : runtime.phase === 'running' && runtime.stage === 'queued'
       ? PHASE_PRESENTATION.queued
       : runtime.phase === 'running' && runtime.stage === 'persisting'
         ? PERSISTING_PRESENTATION

@@ -204,7 +204,7 @@ export function readCanvasCardConfiguration(content: Record<string, unknown> | u
           typeof stableId !== 'string' || !stableId.trim() ||
           typeof assetId !== 'string' || !assetId.trim() ||
           typeof displayName !== 'string' || !displayName.trim() ||
-          typeof thumbnailUrl !== 'string' || !thumbnailUrl.trim() ||
+          typeof thumbnailUrl !== 'string' ||
           !Number.isSafeInteger(sourceRevision) || (sourceRevision as number) < 0 ||
           typeof role !== 'string' || !role.trim() ||
           !Number.isSafeInteger(order) || (order as number) < 0

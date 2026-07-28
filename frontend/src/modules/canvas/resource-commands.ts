@@ -39,6 +39,7 @@ export function createResultGenerationBranchCommand(
     const parameters: GenerationNodeParameters = {
       schema_version: 1,
       video: {
+        aspect_ratio: '16:9',
         duration_seconds: 5,
         reference_mode: 'image-to-video',
         primary_reference_node_id: sourceNode.id,

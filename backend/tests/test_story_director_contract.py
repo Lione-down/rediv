@@ -30,6 +30,24 @@ def production_document() -> dict[str, object]:
             "summary": "摄影师在雨夜车站寻找失踪的胶卷。",
             "events": [{"event_id": "story-event-1", "summary": "摄影师进入车站。"}],
         },
+        "references": [{
+            "reference_id": "reference-photographer",
+            "asset_id": "role-photographer",
+            "node_id": "image-node-1",
+            "source_revision": REVISION,
+            "role": "identity",
+            "instruction": "Preserve the photographer identity.",
+            "must_not_transfer": ["wardrobe", "scene"],
+            "order": 0,
+        }],
+        "continuity": {
+            "canonical_revision": 1,
+            "identity_locks": ["role-photographer"],
+            "accepted_take_id": None,
+            "accepted_result_node_id": None,
+            "accepted_result_revision": None,
+            "observed_end_state": None,
+        },
         "assets": {
             "roles": [{
                 "asset_id": "role-photographer",
@@ -67,6 +85,9 @@ def production_document() -> dict[str, object]:
             "camera_movement": "缓慢推进",
             "image_prompt": "摄影师进入雨夜车站，中景",
             "video_prompt": "中景缓慢推进，摄影师穿过雨幕进入车站，保持深灰风衣与银色胶卷盒。",
+            "reference_ids": ["reference-photographer"],
+            "continuity_locks": ["role-photographer"],
+            "reserved_beat_ids": [],
             **shared_record,
         }],
     }
@@ -123,6 +144,46 @@ class StoryDirectorContractTests(unittest.TestCase):
             [role["asset_id"] for role in document["assets"]["roles"]],
         )
         self.assertEqual(["摄影师", "摄影师"], [role["name"] for role in document["assets"]["roles"]])
+
+    def test_document_rejects_empty_prompts_duplicate_ids_and_unresolved_references(self) -> None:
+        model = self._document_model()
+
+        empty_prompt = production_document()
+        empty_prompt["shots"][0]["video_prompt"] = " "
+        with self.assertRaises(ValidationError):
+            model.model_validate(empty_prompt)
+
+        duplicate_asset = production_document()
+        duplicate_asset["assets"]["roles"].append({
+            **duplicate_asset["assets"]["roles"][0],
+        })
+        with self.assertRaises(ValidationError):
+            model.model_validate(duplicate_asset)
+
+        unresolved_reference = production_document()
+        unresolved_reference["references"][0]["asset_id"] = "missing-asset"
+        with self.assertRaises(ValidationError):
+            model.model_validate(unresolved_reference)
+
+        unresolved_shot_reference = production_document()
+        unresolved_shot_reference["shots"][0]["reference_ids"] = ["missing-reference"]
+        with self.assertRaises(ValidationError):
+            model.model_validate(unresolved_shot_reference)
+
+    def test_document_rejects_duplicate_shot_ids_and_invalid_continuity_lineage(self) -> None:
+        model = self._document_model()
+        duplicate_shot = production_document()
+        duplicate_shot["shots"].append({
+            **duplicate_shot["shots"][0],
+            "shot_number": 2,
+        })
+        with self.assertRaises(ValidationError):
+            model.model_validate(duplicate_shot)
+
+        incomplete_continuity = production_document()
+        incomplete_continuity["continuity"]["accepted_take_id"] = "take-1"
+        with self.assertRaises(ValidationError):
+            model.model_validate(incomplete_continuity)
 
 
 if __name__ == "__main__":

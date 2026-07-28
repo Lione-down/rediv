@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 type RuntimeContextToolId =
   | 'text'
@@ -11,6 +11,7 @@ type RuntimeContextToolId =
 
 defineProps<{
   allowedAudioModelCount: number
+  canDeleteSelection: boolean
   canRedo: boolean
   canUndo: boolean
   position: { left: number; top: number }
@@ -19,21 +20,35 @@ defineProps<{
 const emit = defineEmits<{
   close: []
   createNode: [toolId: RuntimeContextToolId]
+  deleteSelection: []
   fitAll: []
   redo: []
   undo: []
 }>()
+const menuRef = ref<HTMLElement | null>(null)
 
 function closeOnEscape(event: KeyboardEvent) {
   if (event.key === 'Escape') emit('close')
 }
 
-onMounted(() => window.addEventListener('keydown', closeOnEscape, true))
-onBeforeUnmount(() => window.removeEventListener('keydown', closeOnEscape, true))
+function closeOnOutsidePointer(event: PointerEvent) {
+  if (event.target instanceof Node && menuRef.value?.contains(event.target)) return
+  emit('close')
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', closeOnEscape, true)
+  window.addEventListener('pointerdown', closeOnOutsidePointer, true)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', closeOnEscape, true)
+  window.removeEventListener('pointerdown', closeOnOutsidePointer, true)
+})
 </script>
 
 <template>
   <div
+    ref="menuRef"
     class="runtime-context-menu"
     role="menu"
     aria-label="画布快捷菜单"
@@ -63,6 +78,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', closeOnEscape, true)
     <button role="menuitem" type="button" @click="emit('fitAll')">适应全部内容</button>
     <button role="menuitem" type="button" :disabled="!canUndo" @click="emit('undo')">撤销</button>
     <button role="menuitem" type="button" :disabled="!canRedo" @click="emit('redo')">重做</button>
+    <hr />
+    <button
+      role="menuitem"
+      type="button"
+      :disabled="!canDeleteSelection"
+      @click="emit('deleteSelection')"
+    >
+      删除
+    </button>
   </div>
 </template>
 

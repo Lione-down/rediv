@@ -11,7 +11,11 @@ import httpx
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from core.agnes_contract import AgnesProviderError
-from core.agnes_provider import AgnesProvider, AgnesProviderResponseError
+from core.agnes_provider import (
+    AgnesProvider,
+    AgnesProviderResponseError,
+    normalize_provider_status,
+)
 from core.generation_task_utils import (
     error_code_for_exception,
     provider_failure_http_status,
@@ -21,6 +25,11 @@ from settings.config import settings
 
 
 class AgnesProviderImageContractTestCase(unittest.IsolatedAsyncioTestCase):
+    async def test_video_processing_status_maps_to_running_and_unknown_stays_rejected(self) -> None:
+        self.assertEqual("running", normalize_provider_status("processing"))
+        with self.assertRaisesRegex(AgnesProviderResponseError, "unsupported video task status"):
+            normalize_provider_status("provider-internal-new-state")
+
     async def test_provider_400_raises_safe_actionable_error(self) -> None:
         async def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(

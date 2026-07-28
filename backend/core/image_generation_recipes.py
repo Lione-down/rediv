@@ -19,7 +19,7 @@ IMAGE_GENERATION_RECIPES: dict[tuple[ImageGenerationRecipeId, int], ImageGenerat
     ("character-sheet", 1): ImageGenerationRecipe(
         id="character-sheet",
         version=1,
-        output_size="1024x768",
+        output_size="1K",
         prompt=(
             "Create one coherent horizontal character asset sheet on a clean white background using "
             "the provided image as the sole visual reference. Preserve the same identity, hairstyle, "
@@ -34,7 +34,7 @@ IMAGE_GENERATION_RECIPES: dict[tuple[ImageGenerationRecipeId, int], ImageGenerat
     ("scene-multiview", 1): ImageGenerationRecipe(
         id="scene-multiview",
         version=1,
-        output_size="1024x768",
+        output_size="1K",
         prompt=(
             "Create one coherent horizontal scene multi-view board using the provided image as the sole "
             "visual reference. Preserve scene geometry, architecture, object placement, palette, "
@@ -48,7 +48,7 @@ IMAGE_GENERATION_RECIPES: dict[tuple[ImageGenerationRecipeId, int], ImageGenerat
     ("character-sheet", 2): ImageGenerationRecipe(
         id="character-sheet",
         version=2,
-        output_size="1024x768",
+        output_size="1K",
         prompt=(
             "Create one coherent horizontal character asset sheet on a clean white background using "
             "the provided image as the sole visual reference. First inspect the supplied reference and "
@@ -71,7 +71,7 @@ IMAGE_GENERATION_RECIPES: dict[tuple[ImageGenerationRecipeId, int], ImageGenerat
     ("scene-multiview", 2): ImageGenerationRecipe(
         id="scene-multiview",
         version=2,
-        output_size="1024x768",
+        output_size="1K",
         prompt=(
             "Create one coherent horizontal scene multi-view board using the provided image as the sole "
             "visual reference. First inspect the supplied reference and lock its source medium for every "

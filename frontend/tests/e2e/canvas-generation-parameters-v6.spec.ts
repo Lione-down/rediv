@@ -40,6 +40,9 @@ test('legacy compatibility: v6 preserves output counts and keyframe-oriented vid
   expect(capabilitiesV6.image.default_output_count).toBe(1)
   expect(capabilitiesV6.video.reference_roles).toEqual(['first-frame', 'last-frame', 'reference'])
   expect(capabilitiesV6.video.max_references).toBe(9)
+  expect(capabilitiesV6.video.aspect_ratios).toEqual(['16:9', '9:16', '1:1', '4:3', '3:4'])
+  expect(capabilitiesV6.video.default_aspect_ratio).toBe('16:9')
+  expect(capabilitiesV6.video.aspect_ratio_dimensions['9:16']).toEqual({ width: 648, height: 1152 })
 
   const image = generationNode('image')
   expect(resolveGenerationRequestContext(image, 'image', [image], [], capabilitiesV6)).toMatchObject({
@@ -64,6 +67,7 @@ test('legacy compatibility: v6 preserves output counts and keyframe-oriented vid
   )
   expect(resolved).toMatchObject({
     parameterError: '', referenceMode: 'keyframes',
+    aspectRatio: '16:9',
     imageIds: ['asset-reference-a', 'asset-reference-a'],
     videoReferences: [
       { node_id: reference.id, asset_id: 'asset-reference-a', role: 'first-frame', order: 0 },
@@ -72,7 +76,12 @@ test('legacy compatibility: v6 preserves output counts and keyframe-oriented vid
   })
   expect(resolved.parameters).toEqual({
     schema_version: 1,
-    video: { duration_seconds: 5, reference_bindings: resolved.videoReferences },
+    video: {
+      aspect_ratio: '16:9',
+      duration_seconds: 5,
+      reference_mode: 'keyframes',
+      reference_bindings: resolved.videoReferences,
+    },
   })
 
   const legacy = generationNode('video', {
@@ -85,10 +94,31 @@ test('legacy compatibility: v6 preserves output counts and keyframe-oriented vid
   ).parameters).toEqual({
     schema_version: 1,
     video: {
+      aspect_ratio: '16:9',
       duration_seconds: 5,
+      reference_mode: 'image-to-video',
       reference_bindings: [
         { node_id: reference.id, asset_id: 'asset-reference-a', role: 'first-frame', order: 0 },
       ],
+    },
+  })
+
+  const legacyDimensions = generationNode('video', {
+    schema_version: 1,
+    video: {
+      aspect_ratio: '1152:768',
+      duration_seconds: 18,
+      reference_bindings: [],
+    },
+  })
+  expect(resolveGenerationRequestContext(
+    legacyDimensions, 'video', [legacyDimensions], [], capabilitiesV6,
+  )).toMatchObject({
+    aspectRatio: '16:9',
+    durationSeconds: 18,
+    parameterError: '',
+    parameters: {
+      video: { aspect_ratio: '16:9', duration_seconds: 18 },
     },
   })
 })
@@ -182,6 +212,11 @@ test('canonical card references override stale provider bindings at the request 
   ])
   expect(resolved.parameters).toEqual({
     schema_version: 1,
-    video: { duration_seconds: 5, reference_bindings: resolved.videoReferences },
+    video: {
+      aspect_ratio: '16:9',
+      duration_seconds: 5,
+      reference_mode: 'keyframes',
+      reference_bindings: resolved.videoReferences,
+    },
   })
 })

@@ -2,7 +2,16 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, UUID4, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictStr,
+    StringConstraints,
+    UUID4,
+    field_validator,
+    model_validator,
+)
 
 from schemas.asset import AssetListItem
 from schemas.cinematic_sequence import (
@@ -113,7 +122,9 @@ class ScopedGenerationRequest(BaseModel):
 
 class ImageGenerateRequest(ScopedGenerationRequest):
     image_ids: list[ResourceId] | None = Field(default=None, max_length=8)
+    size: Literal["1K", "2K", "3K", "4K"] | None = None
     aspect_ratio: str | None = Field(default=None, max_length=10)
+    output_count: Literal[1, 2, 3, 4] | None = None
     generation_recipe_id: ImageGenerationRecipeId | None = None
     generation_recipe_version: int | None = Field(default=None, ge=1)
     image_operation: dict[str, Any] | None = None
@@ -138,8 +149,10 @@ class ImageGenerateRequest(ScopedGenerationRequest):
                 prompt=self.prompt,
             )
             normalize_image_parameters(
+                size=self.size,
                 aspect_ratio=self.aspect_ratio,
                 image_ids=self.image_ids,
+                output_count=self.output_count,
                 batch=self.batch.model_dump(mode="json") if self.batch else None,
                 shot_controls=self.shot_controls,
             )
@@ -150,8 +163,10 @@ class ImageGenerateRequest(ScopedGenerationRequest):
             if not self.prompt:
                 raise ValueError("prompt is required without a generation recipe")
             normalize_image_parameters(
+                size=self.size,
                 aspect_ratio=self.aspect_ratio,
                 image_ids=self.image_ids,
+                output_count=self.output_count,
                 batch=self.batch.model_dump(mode="json") if self.batch else None,
                 shot_controls=self.shot_controls,
             )
@@ -167,8 +182,10 @@ class ImageGenerateRequest(ScopedGenerationRequest):
             self.generation_recipe_version,
         )
         normalize_image_parameters(
+            size=self.size,
             aspect_ratio=self.aspect_ratio,
             image_ids=self.image_ids,
+            output_count=self.output_count,
             batch=self.batch.model_dump(mode="json") if self.batch else None,
             recipe_id=recipe.id,
             recipe_version=recipe.version,
@@ -179,24 +196,38 @@ class ImageGenerateRequest(ScopedGenerationRequest):
 
 class VideoGenerateRequest(ScopedGenerationRequest):
     image_ids: list[ResourceId] | None = Field(default=None, max_length=8)
+    aspect_ratio: str | None = Field(default=None, max_length=16)
+    resolution: str | None = Field(default=None, max_length=16)
     reference_mode: str | None = Field(default=None, max_length=32)
     duration_seconds: int | None = None
+    negative_prompt: StrictStr | None = Field(default=None, max_length=2000)
     shot_controls: dict[str, Any] | None = None
-    video_references: list[VideoReferenceBinding] | None = Field(default=None, max_length=9)
+    video_references: list[VideoReferenceBinding] | None = Field(default=None, max_length=8)
 
     @field_validator("image_ids")
     @classmethod
     def deduplicate_image_ids(cls, value: list[str] | None) -> list[str] | None:
         return list(dict.fromkeys(value)) if value is not None else None
 
+    @field_validator("negative_prompt")
+    @classmethod
+    def normalize_empty_negative_prompt(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
     @model_validator(mode="after")
     def require_prompt(self):
         if not self.prompt:
             raise ValueError("prompt is required")
         normalize_video_parameters(
+            aspect_ratio=self.aspect_ratio,
+            resolution=self.resolution,
             reference_mode=self.reference_mode,
             duration_seconds=self.duration_seconds,
             image_ids=self.image_ids,
+            negative_prompt=self.negative_prompt,
             video_references=(
                 [binding.model_dump(mode="json") for binding in self.video_references]
                 if self.video_references is not None else None
@@ -206,6 +237,21 @@ class VideoGenerateRequest(ScopedGenerationRequest):
         return self
 
 
+class StoryDirectorRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    contract_version: Literal[1]
+    source_node_ids: list[ResourceId] = Field(default_factory=list, max_length=8)
+    requested_shot_count: int | None = Field(default=None, ge=1, le=25)
+
+    @field_validator("source_node_ids")
+    @classmethod
+    def require_unique_source_node_ids(cls, value: list[str]) -> list[str]:
+        if len(set(value)) != len(value):
+            raise ValueError("story director source node identities must be unique")
+        return value
+
+
 class TextGenerateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -213,6 +259,7 @@ class TextGenerateRequest(BaseModel):
     project_id: ResourceId
     origin_canvas_id: ResourceId | None = None
     canvas_node_id: ResourceId
+    model_id: str | None = Field(default=None, min_length=1, max_length=96)
     prompt: str | None = Field(default=None, min_length=1, max_length=12_000)
     cinematic_handoff: CinematicGenerationHandoff | None = None
     intent: Literal["freeform", "script_draft", "script_refine"] = "freeform"
@@ -222,6 +269,7 @@ class TextGenerateRequest(BaseModel):
     locale: Literal["zh-CN", "en-US"] = "zh-CN"
     canvas_revision: int | None = Field(default=None, ge=0)
     reference_asset_ids: list[ResourceId] = Field(default_factory=list, max_length=8)
+    story_director: StoryDirectorRequest | None = None
 
     @field_validator("reference_asset_ids")
     @classmethod
@@ -245,7 +293,7 @@ class TextGenerateRequest(BaseModel):
         if self.intent == "freeform":
             if not self.prompt:
                 raise ValueError("prompt is required for freeform text generation")
-            if any(value is not None for value in structured_values):
+            if any(value is not None for value in structured_values) or self.story_director is not None:
                 raise ValueError("freeform text generation cannot use script authoring fields")
             return self
         if self.prompt is not None or self.cinematic_handoff is not None:
@@ -257,6 +305,10 @@ class TextGenerateRequest(BaseModel):
                 raise ValueError("script draft requires only a brief")
         elif not self.source_text or not self.instruction or self.brief is not None:
             raise ValueError("script refine requires source text and instruction")
+        if self.story_director is not None and (
+            self.intent != "script_draft" or self.reference_asset_ids
+        ):
+            raise ValueError("story director requires a script draft without image attachments")
         return self
 
 
@@ -270,6 +322,7 @@ class GenerationResponseBase(BaseModel):
 class TextGenerateResponse(GenerationResponseBase):
     content: str
     script_authoring: dict[str, Any] | None = None
+    story_production: dict[str, Any] | None = None
 
 
 class ImageGenerateResponse(GenerationResponseBase):

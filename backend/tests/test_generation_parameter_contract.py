@@ -21,29 +21,80 @@ from core.image_operation_contract import (
     normalize_image_operation,
 )
 from core.script_authoring_contract import build_script_authoring_capabilities
+from schemas.generation import ImageGenerateRequest, TextGenerateRequest, VideoGenerateRequest
 
 
 class GenerationParameterContractTestCase(unittest.TestCase):
+    def test_advertised_request_extensions_exist_in_the_current_runtime_schema(self) -> None:
+        capabilities = build_generation_capabilities()
+
+        self.assertEqual(
+            1,
+            capabilities["text"]["story_director"]["request_contract_version"],
+        )
+        self.assertIn("story_director", TextGenerateRequest.model_fields)
+        self.assertIn("output_count", ImageGenerateRequest.model_fields)
+        self.assertIn("resolution", VideoGenerateRequest.model_fields)
+
     def test_capability_document_has_exact_backend_owned_values(self) -> None:
         self.assertEqual(
             {
-                "contract_version": 6,
+                "contract_version": 7,
                 "text": {
                     **build_script_authoring_capabilities(model="agnes-2.0-flash"),
                     "contract_version": 2,
+                    "story_director": {
+                        "available": True,
+                        "request_contract_version": 1,
+                    },
                     "models": [
                         {
                             "id": "agnes-2.0-flash",
                             "label": "Agnes 2.0 Flash",
                             "workflow_modes": ["text-to-video"],
-                        }
+                        },
+                        {
+                            "id": "agnes-2.5-flash",
+                            "label": "Agnes 2.5 Flash",
+                            "workflow_modes": ["text-to-video"],
+                        },
+                    ],
+                    "known_models": [
+                        {"id": "agnes-2.0-flash", "availability": "allowed"},
+                        {"id": "agnes-2.5-flash", "availability": "allowed"},
+                        {"id": "agnes-2.5-pro-alpha", "availability": "paid-human-gated"},
                     ],
                 },
                 "image": {
                     "model": "agnes-image-2.1-flash",
+                    "models": [
+                        {"id": "agnes-image-2.1-flash", "label": "agnes-image-2.1-flash"},
+                    ],
+                    "known_models": [
+                        {"id": "agnes-image-2.0-flash", "label": "agnes-image-2.0-flash"},
+                        {"id": "agnes-image-2.1-flash", "label": "agnes-image-2.1-flash"},
+                    ],
                     "size": "1K",
+                    "sizes": ["1K", "2K", "3K", "4K"],
+                    "default_size": "1K",
+                    "size_dimensions": {
+                        size: {
+                            ratio: {"width": width * scale, "height": height * scale}
+                            for ratio, (width, height) in {
+                                "1:1": (1024, 1024),
+                                "3:4": (864, 1152),
+                                "4:3": (1152, 864),
+                                "16:9": (1312, 736),
+                                "9:16": (736, 1312),
+                                "2:3": (832, 1248),
+                                "3:2": (1248, 832),
+                                "21:9": (1568, 672),
+                            }.items()
+                        }
+                        for size, scale in {"1K": 1, "2K": 2, "3K": 3, "4K": 4}.items()
+                    },
                     "aspect_ratios": ["1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9"],
-                    "default_aspect_ratio": "4:3",
+                    "default_aspect_ratio": "1:1",
                     "output_counts": [1, 2, 3, 4],
                     "default_output_count": 1,
                     "operations": build_image_operation_capabilities(),
@@ -51,14 +102,56 @@ class GenerationParameterContractTestCase(unittest.TestCase):
                 },
                 "video": {
                     "model": "agnes-video-v2.0",
+                    "models": [
+                        {"id": "agnes-video-v2.0", "label": "agnes-video-v2.0"},
+                    ],
+                    "known_models": [
+                        {"id": "agnes-video-v2.0", "label": "agnes-video-v2.0"},
+                    ],
                     "width": 1152,
                     "height": 768,
+                    "aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+                    "aspect_ratio_dimensions": {
+                        "16:9": {"width": 1152, "height": 648},
+                        "9:16": {"width": 648, "height": 1152},
+                        "1:1": {"width": 768, "height": 768},
+                        "4:3": {"width": 1024, "height": 768},
+                        "3:4": {"width": 768, "height": 1024},
+                    },
+                    "default_aspect_ratio": "16:9",
+                    "resolutions": ["480p", "720p", "1080p"],
+                    "default_resolution": "720p",
+                    "resolution_dimensions": {
+                        "480p": {
+                            "16:9": {"width": 832, "height": 448},
+                            "9:16": {"width": 448, "height": 832},
+                            "1:1": {"width": 512, "height": 512},
+                            "4:3": {"width": 640, "height": 480},
+                            "3:4": {"width": 480, "height": 640},
+                        },
+                        "720p": {
+                            "16:9": {"width": 1152, "height": 648},
+                            "9:16": {"width": 648, "height": 1152},
+                            "1:1": {"width": 768, "height": 768},
+                            "4:3": {"width": 1024, "height": 768},
+                            "3:4": {"width": 768, "height": 1024},
+                        },
+                        "1080p": {
+                            "16:9": {"width": 1920, "height": 1080},
+                            "9:16": {"width": 1080, "height": 1920},
+                            "1:1": {"width": 1080, "height": 1080},
+                            "4:3": {"width": 1440, "height": 1080},
+                            "3:4": {"width": 1080, "height": 1440},
+                        },
+                    },
                     "reference_modes": ["text-to-video", "image-to-video", "keyframes"],
                     "default_duration_seconds": 5,
                     "min_keyframes": 2,
                     "max_keyframes": 8,
                     "reference_roles": ["first-frame", "last-frame", "reference"],
-                    "max_references": 9,
+                    "max_references": 8,
+                    "negative_prompt_max_length": 2000,
+                    "supports_semantic_multi_reference": False,
                     "duration_presets": [
                         {"duration_seconds": 3, "num_frames": 81, "frame_rate": 24},
                         {"duration_seconds": 5, "num_frames": 121, "frame_rate": 24},
@@ -71,6 +164,36 @@ class GenerationParameterContractTestCase(unittest.TestCase):
             },
             build_generation_capabilities(),
         )
+
+    def test_video_ratio_is_backend_owned_and_normalizes_provider_dimensions(self) -> None:
+        normalized = normalize_video_parameters(
+            aspect_ratio="9:16",
+            resolution="1080p",
+            reference_mode="text-to-video",
+            duration_seconds=10,
+            image_ids=[],
+        )
+
+        self.assertEqual(1080, normalized.width)
+        self.assertEqual(1920, normalized.height)
+        self.assertEqual("9:16", normalized.request_parameters["aspect_ratio"])
+        self.assertEqual("1080p", normalized.request_parameters["resolution"])
+        self.assertEqual(10, normalized.request_parameters["duration_seconds"])
+        with self.assertRaisesRegex(GenerationParameterError, "aspect ratio"):
+            normalize_video_parameters(
+                aspect_ratio="21:9",
+                reference_mode="text-to-video",
+                duration_seconds=5,
+                image_ids=[],
+            )
+        with self.assertRaisesRegex(GenerationParameterError, "resolution"):
+            normalize_video_parameters(
+                aspect_ratio="16:9",
+                resolution="4K",
+                reference_mode="text-to-video",
+                duration_seconds=5,
+                image_ids=[],
+            )
 
     def test_image_batch_snapshot_is_strict_and_canonical(self) -> None:
         batch = {
@@ -102,6 +225,29 @@ class GenerationParameterContractTestCase(unittest.TestCase):
                         batch=invalid,
                     )
 
+    def test_image_output_count_is_canonical_and_matches_the_batch(self) -> None:
+        batch = {
+            "batch_id": str(uuid4()),
+            "slot_index": 2,
+            "slot_count": 4,
+        }
+
+        normalized = normalize_image_parameters(
+            aspect_ratio="16:9",
+            image_ids=["asset-a"],
+            output_count=4,
+            batch=batch,
+        )
+
+        self.assertEqual(4, normalized.request_parameters["output_count"])
+        with self.assertRaisesRegex(GenerationParameterError, "output count"):
+            normalize_image_parameters(
+                aspect_ratio="16:9",
+                image_ids=["asset-a"],
+                output_count=2,
+                batch=batch,
+            )
+
     def test_legacy_compatibility_video_reference_bindings_preserve_keyframe_roles_and_order(self) -> None:
         bindings = [
             {"node_id": "node-a", "asset_id": "asset-a", "role": "first-frame", "order": 0},
@@ -123,7 +269,7 @@ class GenerationParameterContractTestCase(unittest.TestCase):
             normalized.request_parameters["image_ids"],
         )
 
-    def test_video_reference_bindings_fail_closed_at_the_universal_nine_entry_gate(self) -> None:
+    def test_video_reference_bindings_fail_closed_at_the_official_eight_entry_gate(self) -> None:
         reference = {
             "node_id": "node-a",
             "asset_id": "asset-a",
@@ -139,9 +285,9 @@ class GenerationParameterContractTestCase(unittest.TestCase):
                         "role": "reference",
                         "order": index,
                     }
-                    for index in range(10)
+                    for index in range(9)
                 ],
-                "maximum 9",
+                "maximum 8",
             ),
             ([reference, {**reference, "order": 1}], "duplicate"),
             (
@@ -287,14 +433,15 @@ class GenerationParameterContractTestCase(unittest.TestCase):
         normalized = normalize_image_parameters(aspect_ratio=None, image_ids=["asset-a"])
 
         self.assertEqual("1K", normalized.provider_size)
-        self.assertEqual("4:3", normalized.provider_ratio)
+        self.assertEqual("1:1", normalized.provider_ratio)
         self.assertEqual(
             {
                 "contract_version": 1,
                 "media_type": "image",
                 "model": "agnes-image-2.1-flash",
                 "size": "1K",
-                "aspect_ratio": "4:3",
+                "aspect_ratio": "1:1",
+                "output_count": 1,
                 "image_ids": ["asset-a"],
             },
             normalized.request_parameters,
@@ -378,18 +525,19 @@ class GenerationParameterContractTestCase(unittest.TestCase):
             image_ids=["asset-reference"],
             recipe_id="character-sheet",
             recipe_version=2,
-            recipe_size="1024x768",
+            recipe_size="1K",
         )
 
-        self.assertEqual("1024x768", normalized.provider_size)
-        self.assertIsNone(normalized.provider_ratio)
+        self.assertEqual("1K", normalized.provider_size)
+        self.assertEqual("4:3", normalized.provider_ratio)
         self.assertEqual(
             {
                 "contract_version": 1,
                 "media_type": "image",
                 "model": "agnes-image-2.1-flash",
-                "size": "1024x768",
+                "size": "1K",
                 "aspect_ratio": "4:3",
+                "output_count": 1,
                 "image_ids": ["asset-reference"],
                 "generation_recipe_id": "character-sheet",
                 "generation_recipe_version": 2,
@@ -403,7 +551,7 @@ class GenerationParameterContractTestCase(unittest.TestCase):
                 image_ids=["asset-reference"],
                 recipe_id="character-sheet",
                 recipe_version=2,
-                recipe_size="1024x768",
+                recipe_size="1K",
             )
 
     def test_legacy_compatibility_video_modes_validate_keyframe_counts_and_duration_mapping(self) -> None:
@@ -435,8 +583,10 @@ class GenerationParameterContractTestCase(unittest.TestCase):
                 "duration_seconds": 18,
                 "num_frames": 441,
                 "frame_rate": 24,
+                "aspect_ratio": "16:9",
+                "resolution": "720p",
                 "width": 1152,
-                "height": 768,
+                "height": 648,
                 "image_ids": ["asset-a", "asset-b"],
             },
             keyframes.request_parameters,

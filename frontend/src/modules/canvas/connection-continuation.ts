@@ -49,6 +49,33 @@ export function resolveConnectionContinuationOptions(
   ))
 }
 
+export function resolveMultiConnectionContinuationOptions(
+  origins: readonly CanvasNode[],
+): ConnectionContinuationOption[] {
+  const uniqueOrigins = [...new Map(origins.map((origin) => [origin.id, origin])).values()]
+  if (uniqueOrigins.length < 2) return []
+  return getCreatableNodeDefinitions().flatMap((definition) => (
+    definition.subtypes.flatMap((subtype) => {
+      const type = definition.type as CanonicalNodeType
+      const candidate = createRegistryNodeDraft(type, subtype.id, { x: 0, y: 0 })
+      const ports = uniqueOrigins.map((origin) => getAuthoringConnectionPorts(origin, candidate))
+      if (ports.some((resolved) => !resolved)) return []
+      const first = ports[0]!
+      return [{
+        key: `${definition.type}:${subtype.id}:multi-downstream`,
+        type,
+        subtype: subtype.id,
+        label: definition.type === 'script' && subtype.id === 'prompt'
+          ? '文本'
+          : subtype.label,
+        icon: definition.icon,
+        sourcePort: first.sourcePort,
+        targetPort: first.targetPort,
+      }]
+    })
+  ))
+}
+
 export function createConnectionContinuationCommand(
   origin: CanvasNode,
   option: ConnectionContinuationOption,
@@ -79,5 +106,54 @@ export function createConnectionContinuationCommand(
       status: 'active',
       active: true,
     }],
+  }
+}
+
+export function createMultiConnectionContinuationCommand(
+  origins: readonly CanvasNode[],
+  option: ConnectionContinuationOption,
+  point: { x: number; y: number },
+  createId: () => string = createCanvasEntityId,
+  existingNodes: readonly CanvasNode[] = [],
+): InsertGraphCommand | null {
+  const uniqueOrigins = [...new Map(origins.map((origin) => [origin.id, origin])).values()]
+  if (uniqueOrigins.length < 2) return null
+  const nodeId = createId()
+  const definition = getCreatableNodeDefinitions()
+    .find((candidate) => candidate.type === option.type)
+  if (!definition) return null
+  const draft = createRegistryNodeDraft(option.type, option.subtype, {
+    x: point.x + 48,
+    y: point.y - 0.5 * definition.defaultSize.height,
+  })
+  if (existingNodes.length) {
+    Object.assign(
+      draft,
+      findFirstUnoccupiedPosition(
+        draft,
+        draft,
+        existingNodes,
+        uniqueOrigins.map((origin) => origin.id),
+      ),
+    )
+  }
+  const node: CanvasNode = { id: nodeId, ...draft }
+  const resolved = uniqueOrigins.map((origin) => ({
+    origin,
+    ports: getAuthoringConnectionPorts(origin, node),
+  }))
+  if (resolved.some((item) => !item.ports)) return null
+  return {
+    type: 'insert-graph',
+    nodes: [node],
+    connections: resolved.map(({ origin, ports }) => ({
+      id: createId(),
+      from: origin.id,
+      to: nodeId,
+      sourcePort: ports!.sourcePort,
+      targetPort: ports!.targetPort,
+      status: 'active',
+      active: true,
+    })),
   }
 }

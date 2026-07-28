@@ -10,7 +10,10 @@ import {
   PROJECT_ID,
 } from './canvas-resource-generation-fixture'
 
-const evidenceDirectory = resolve(process.cwd(), '..', 'output', 'playwright', 't5-060-multi-origin-video-recovery')
+const evidenceDirectory = resolve(
+  process.env.REVID_T6_013_EVIDENCE_DIRECTORY
+    ?? resolve(process.cwd(), '..', 'output', 'playwright', 't5-060-multi-origin-video-recovery'),
+)
 
 async function selectNode(page: import('@playwright/test').Page, title: string) {
   await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
@@ -105,6 +108,7 @@ test('compact failed request unlocks the same mutable controls after settlement'
 
 test('failed two-origin video preserves inputs and recovers through one explicit retry', async ({ page }) => {
   const state = createResourceMockState()
+  state.capabilityVersion = 6
   addTwoOriginVideo(state)
   state.generationOutcome = 'failure'
   const document = state.documents[FIRST_CANVAS_ID]
@@ -130,9 +134,22 @@ test('failed two-origin video preserves inputs and recovers through one explicit
     client_request_id: expect.any(String),
     canvas_node_id: 'generation-two-origin-merge',
     prompt,
-    image_ids: ['asset-second-origin', 'asset-generated'],
-    reference_mode: 'keyframes',
+    video_references: [
+      {
+        asset_id: 'asset-second-origin',
+        node_id: 'result-second-origin',
+        order: 0,
+        role: 'first-frame',
+      },
+      {
+        asset_id: 'asset-generated',
+        node_id: 'result-existing',
+        order: 1,
+        role: 'last-frame',
+      },
+    ],
     duration_seconds: 5,
+    aspect_ratio: '16:9',
   })
   const cardFailure = page.locator('.canvas-card-work-surface').getByRole('alert')
   await expect(cardFailure).toContainText('mock provider unavailable')

@@ -23,7 +23,14 @@ function scopedTask(mediaType: 'text' | 'image' | 'video', id: string) {
     ? null
     : mediaType === 'image'
       ? { contract_version: 1, media_type: 'image', aspect_ratio: '4:3', image_ids: [] }
-      : { contract_version: 1, media_type: 'video', reference_mode: 'text-to-video', duration_seconds: 5, image_ids: [] }
+      : {
+          contract_version: 1,
+          media_type: 'video',
+          aspect_ratio: '16:9',
+          reference_mode: 'text-to-video',
+          duration_seconds: 5,
+          image_ids: [],
+        }
   return {
     id, user_id: 'user-service', project_id: 'project-service',
     origin_canvas_id: 'canvas-service', canvas_node_id: 'node-service', media_type: mediaType,
@@ -51,6 +58,7 @@ test('generation service serializes structured video roles without legacy dedupl
         request_parameters: {
           contract_version: 1,
           media_type: 'video',
+          aspect_ratio: '16:9',
           reference_mode: 'keyframes',
           duration_seconds: 5,
           image_ids: ['asset-a', 'asset-a'],
@@ -74,6 +82,7 @@ test('generation service serializes structured video roles without legacy dedupl
     originCanvasId: 'canvas-service',
     canvasNodeId: 'node-service',
     prompt: 'structured roles',
+    aspectRatio: '16:9',
     durationSeconds: 5,
     videoReferences,
   }, createQuotaStore({ text: 1, image: 1, video: 1 }), transport)
@@ -85,6 +94,7 @@ test('generation service serializes structured video roles without legacy dedupl
       origin_canvas_id: 'canvas-service',
       canvas_node_id: 'node-service',
       prompt: 'structured roles',
+      aspect_ratio: '16:9',
       duration_seconds: 5,
       video_references: videoReferences,
     },
@@ -133,7 +143,9 @@ test('generation service posts complete Canvas context and replaces quotas for e
       canvasNodeId: 'node-service',
       prompt: `${mediaType} prompt`,
       ...(mediaType === 'image' ? { aspectRatio: '4:3' } : {}),
-      ...(mediaType === 'video' ? { referenceMode: 'text-to-video' as const, durationSeconds: 5 } : {}),
+      ...(mediaType === 'video'
+        ? { aspectRatio: '16:9', referenceMode: 'text-to-video' as const, durationSeconds: 5 }
+        : {}),
     }, quotaStore, transport)
 
     expect(response.asset?.id).toBe(`asset-task-${calls.length}`)
@@ -163,7 +175,7 @@ test('generation service posts complete Canvas context and replaces quotas for e
         client_request_id: '00000000-0000-4000-8000-000000000003',
         project_id: 'project-service', origin_canvas_id: 'canvas-service',
         canvas_node_id: 'node-service', prompt: 'video prompt',
-        reference_mode: 'text-to-video', duration_seconds: 5,
+        aspect_ratio: '16:9', reference_mode: 'text-to-video', duration_seconds: 5,
       },
     },
   ])
@@ -233,6 +245,49 @@ test('generation service classifies deterministic provider rejection as input-ch
     retryable: false,
     message: expect.stringContaining('请修改参数后重试'),
   } satisfies Partial<CanvasGenerationError>)
+})
+
+test('generation service turns story-director 422 details into an actionable Canvas error', async () => {
+  const transport = {
+    post: async () => {
+      throw {
+        response: {
+          status: 422,
+          data: {
+            detail: {
+              code: 'story_source_required',
+              message: 'Connect usable Prompt/Text content before generating storyboard',
+            },
+          },
+        },
+      }
+    },
+  }
+
+  const generation = requestCanvasGeneration({
+    mediaType: 'text',
+    projectId: 'project-service',
+    originCanvasId: 'canvas-service',
+    canvasNodeId: 'node-service',
+    scriptAuthoring: {
+      intent: 'script_draft',
+      locale: 'zh-CN',
+      canvasRevision: 3,
+      instruction: '补全当前分镜。',
+      storyDirector: {
+        contractVersion: 1,
+        sourceNodeIds: [],
+      },
+    },
+  }, createQuotaStore({ text: 2, image: 2, video: 2 }), transport)
+
+  await expect(generation).rejects.toMatchObject({
+    name: 'CanvasGenerationError',
+    code: 'invalid_request',
+    retryable: false,
+    message: expect.stringContaining('填写当前脚本'),
+  } satisfies Partial<CanvasGenerationError>)
+  await expect(generation).rejects.not.toThrow('Request failed with status code 422')
 })
 
 test('generation service exposes manual retry only for transient provider failures', async () => {

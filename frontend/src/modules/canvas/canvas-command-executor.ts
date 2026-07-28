@@ -15,6 +15,7 @@ import {
   createReconnectConnectionCommand,
   createSetNodesLockedCommand,
   createGroupNodesCommand,
+  createMoveNodeMembershipCommand,
   createUngroupNodesCommand,
   isArrangeEligibleNode,
   resolveCanvasDragNodeIds,
@@ -28,6 +29,7 @@ import {
   type GroupNodesCommand,
   type InsertGraphCommand,
   type MoveNodesCommand,
+  type MoveNodeMembershipCommand,
   type RenameNodeCommand,
   type SetTextCardContentCommand,
   type BindTextGenerationJobCommand,
@@ -427,6 +429,36 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
     }
   }
 
+  async function moveNodeMembership(command: MoveNodeMembershipCommand) {
+    const nodes = options.getNodes()
+    const validated = createMoveNodeMembershipCommand(
+      nodes,
+      command.move.nodeId,
+      { x: command.move.to.x, y: command.move.to.y },
+    )
+    const target = nodes.find((node) => node.id === command.move.nodeId)
+    if (
+      !validated ||
+      !target ||
+      target.x !== command.move.from.x ||
+      target.y !== command.move.from.y ||
+      (target.parentNodeId ?? null) !== command.fromParentNodeId ||
+      validated.toParentNodeId !== command.toParentNodeId
+    ) return
+    options.queueNodeMove(target.id, command.move.to.x, command.move.to.y)
+    if (command.fromParentNodeId === command.toParentNodeId) return
+    try {
+      await options.updateNodeParent(target.id, command.toParentNodeId)
+    } catch (error) {
+      options.queueNodeMove(target.id, command.move.from.x, command.move.from.y)
+      const current = options.getNodes().find((node) => node.id === target.id)
+      if ((current?.parentNodeId ?? null) !== command.fromParentNodeId) {
+        await options.updateNodeParent(target.id, command.fromParentNodeId).catch(() => undefined)
+      }
+      throw error
+    }
+  }
+
   async function renameNode(command: RenameNodeCommand) {
     if (!options.updateNodeState) throw new Error('Canvas node renaming is unavailable')
     const validated = createRenameNodeCommand(options.getNodes(), command.nodeId, command.title)
@@ -630,6 +662,9 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
         generation_intent: command.lineage.intent,
         generation_locale: command.lineage.locale,
         script_authoring_contract_version: command.lineage.contract_version,
+        ...(command.storyProduction
+          ? { story_production: structuredClone(command.storyProduction) }
+          : {}),
       },
     })
   }
@@ -678,6 +713,7 @@ export function createCanvasCommandExecutor(options: CanvasCommandExecutorOption
   async function executeCommand(envelope: CanvasCommandEnvelope) {
     const { command } = envelope
     if (command.type === 'move-nodes') return moveNodes(command)
+    if (command.type === 'move-node-membership') return moveNodeMembership(command)
     if (command.type === 'duplicate-nodes') return duplicateNodes(command)
     if (command.type === 'delete-selection') return deleteSelection(command)
     if (command.type === 'group-nodes') return groupNodes(command)

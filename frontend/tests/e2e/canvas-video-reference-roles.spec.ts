@@ -63,12 +63,12 @@ test('video roles enforce one ordered nine-entry budget, persist reorder, and be
   await page.getByRole('button', { name: '选择并定位 九参考视频', exact: true }).click()
   const controls = page.getByRole('region', { name: '生成参数' })
   for (let index = 1; index <= 9; index += 1) {
-    await controls.getByRole('checkbox', { name: `参考图 ${index} 普通参考` }).check()
+    await controls.getByRole('checkbox', { name: `参考图 ${index} 中间关键帧` }).check()
   }
   await expect(controls).toContainText('已用 9/9')
   await expect(controls.getByRole('checkbox', { name: '参考图 1 首帧' })).toBeDisabled()
 
-  await controls.getByRole('button', { name: '前移 参考图 9 普通参考' }).click()
+  await controls.getByRole('button', { name: '前移 参考图 9 中间关键帧' }).click()
   const savedBindings = () => {
     const saved = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === video.id)!
     return (((saved.content as Record<string, unknown>).generation_parameters as { video: { reference_bindings: Array<Record<string, unknown>> } }).video.reference_bindings)
@@ -138,6 +138,6 @@ test('v6 card generation preserves structured roles instead of writing a legacy 
     video: Record<string, unknown>
   }).video)
   expect(persistedVideo.reference_bindings).toEqual(before)
-  expect(persistedVideo).not.toHaveProperty('reference_mode')
+  expect(persistedVideo.reference_mode).toBe('keyframes')
   expect(state.requests.find((item) => item.path === '/api/video-generate')?.body?.video_references).toEqual(before)
 })

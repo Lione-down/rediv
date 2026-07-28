@@ -25,6 +25,8 @@ export const GENERATION_CAPABILITIES = {
   },
   video: {
     model: 'agnes-video-v2.0', width: 1152, height: 768,
+    aspect_ratios: ['16:9', '9:16', '1:1', '4:3', '3:4'],
+    default_aspect_ratio: '16:9',
     reference_modes: ['text-to-video', 'image-to-video', 'keyframes'],
     default_duration_seconds: 5, min_keyframes: 2, max_keyframes: 8,
     duration_presets: [
@@ -65,6 +67,10 @@ export const GENERATION_CAPABILITIES_V6 = {
     output_max_length: 12000,
     creates_media: false,
     runs_cinematic_decomposition: false,
+    story_director: {
+      available: true,
+      request_contract_version: 1,
+    },
   },
   image: {
     ...GENERATION_CAPABILITIES.image,
@@ -73,6 +79,13 @@ export const GENERATION_CAPABILITIES_V6 = {
   },
   video: {
     ...GENERATION_CAPABILITIES.video,
+    aspect_ratio_dimensions: {
+      '16:9': { width: 1152, height: 648 },
+      '9:16': { width: 648, height: 1152 },
+      '1:1': { width: 768, height: 768 },
+      '4:3': { width: 1024, height: 768 },
+      '3:4': { width: 768, height: 1024 },
+    },
     reference_roles: ['first-frame', 'last-frame', 'reference'],
     max_references: 9,
   },
@@ -113,6 +126,7 @@ export function createMockGenerationRequestParameters(
       size: requestBody.generation_recipe_id ? '1024x768' : GENERATION_CAPABILITIES.image.size,
       aspect_ratio: requestBody.generation_recipe_id ? '4:3' : requestBody.aspect_ratio,
       image_ids: imageIds,
+      ...(requestBody.output_count ? { output_count: requestBody.output_count } : {}),
       ...(requestBody.generation_recipe_id ? {
         generation_recipe_id: requestBody.generation_recipe_id,
         generation_recipe_version: requestBody.generation_recipe_version,
@@ -142,6 +156,7 @@ export function createMockGenerationRequestParameters(
     contract_version: 1, media_type: 'video', model: GENERATION_CAPABILITIES.video.model,
     reference_mode: structuredMode, duration_seconds: durationSeconds,
     num_frames: framePreset?.num_frames, frame_rate: framePreset?.frame_rate,
+    aspect_ratio: requestBody.aspect_ratio ?? GENERATION_CAPABILITIES.video.default_aspect_ratio,
     width: GENERATION_CAPABILITIES.video.width, height: GENERATION_CAPABILITIES.video.height,
     image_ids: structuredImageIds,
     ...(videoReferences ? { video_references: videoReferences } : {}),

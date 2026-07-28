@@ -28,6 +28,44 @@
   height: 1px;
 }
 
+.runtime-selection-marquee {
+  position: fixed;
+  z-index: 8;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in oklab, var(--v2-accent-hover) 88%, white);
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--v2-accent) 14%, transparent);
+  box-shadow: 0 0 20px color-mix(in oklab, var(--v2-accent) 22%, transparent);
+  pointer-events: none;
+}
+
+.runtime-selection-toolbar {
+  position: fixed;
+  z-index: 24;
+  top: 76px;
+  left: 50%;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--v2-border-standard);
+  border-radius: var(--v2-radius-md);
+  background: color-mix(in oklab, var(--v2-surface-2) 96%, transparent);
+  box-shadow: var(--v2-shadow-floating);
+  transform: translateX(-50%);
+}
+
+.runtime-selection-toolbar button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--v2-radius-sm);
+  color: var(--v2-text-primary);
+  background: var(--v2-surface-3);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
 .replacement-runtime__project,
 .replacement-runtime__view-switch,
 .replacement-runtime__account,

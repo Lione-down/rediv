@@ -1,4 +1,5 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { resolveCanvasNodeLayoutSize } from '../../modules/canvas/canvas-card-geometry'
 import type { PersistedViewport } from '../../modules/canvas/persistence'
 import type { CanvasNode } from '../../types/canvas'
 
@@ -17,19 +18,20 @@ export function useRuntimeAttachedPlacement(
   const screenRect = computed(() => {
     const node = getNode()
     const viewport = getViewport()
+    const size = resolveCanvasNodeLayoutSize(node)
     return {
       left: viewport.x + node.x * viewport.zoom,
       top: viewport.y + node.y * viewport.zoom,
-      width: Math.max(220, node.width) * viewport.zoom,
-      height: Math.max(140, node.height) * viewport.zoom,
+      width: size.width * viewport.zoom,
+      height: size.height * viewport.zoom,
     }
   })
   const toolbarStyle = computed(() => {
     const rect = screenRect.value
-    const preferredLeft = rect.left + rect.width + 92
+    const preferredLeft = rect.left + rect.width + 16
     const left = preferredLeft + 44 <= windowWidth.value - 16
       ? preferredLeft
-      : Math.max(16, rect.left - 136)
+      : Math.max(16, rect.left - 60)
     return { left: `${left}px`, top: `${Math.max(76, rect.top)}px` }
   })
   const composerStyle = computed(() => {

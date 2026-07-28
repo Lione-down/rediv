@@ -15,24 +15,95 @@ from core.shot_control_contract import (
 from core.script_authoring_contract import build_script_authoring_capabilities
 
 
-CAPABILITY_CONTRACT_VERSION = 6
+CAPABILITY_CONTRACT_VERSION = 7
 CONTRACT_VERSION = 1
 IMAGE_MODEL = AGNES_CONTRACT.media["image"].model
 IMAGE_SIZE = "1K"
+IMAGE_SIZES = ("1K", "2K", "3K", "4K")
 IMAGE_ASPECT_RATIOS = ("1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9")
-IMAGE_DEFAULT_ASPECT_RATIO = "4:3"
+IMAGE_DEFAULT_ASPECT_RATIO = "1:1"
+IMAGE_SIZE_DIMENSIONS = {
+    "1K": {
+        "1:1": (1024, 1024),
+        "3:4": (864, 1152),
+        "4:3": (1152, 864),
+        "16:9": (1312, 736),
+        "9:16": (736, 1312),
+        "2:3": (832, 1248),
+        "3:2": (1248, 832),
+        "21:9": (1568, 672),
+    },
+    "2K": {
+        "1:1": (2048, 2048),
+        "3:4": (1728, 2304),
+        "4:3": (2304, 1728),
+        "16:9": (2624, 1472),
+        "9:16": (1472, 2624),
+        "2:3": (1664, 2496),
+        "3:2": (2496, 1664),
+        "21:9": (3136, 1344),
+    },
+    "3K": {
+        "1:1": (3072, 3072),
+        "3:4": (2592, 3456),
+        "4:3": (3456, 2592),
+        "16:9": (3936, 2208),
+        "9:16": (2208, 3936),
+        "2:3": (2496, 3744),
+        "3:2": (3744, 2496),
+        "21:9": (4704, 2016),
+    },
+    "4K": {
+        "1:1": (4096, 4096),
+        "3:4": (3456, 4608),
+        "4:3": (4608, 3456),
+        "16:9": (5248, 2944),
+        "9:16": (2944, 5248),
+        "2:3": (3328, 4992),
+        "3:2": (4992, 3328),
+        "21:9": (6272, 2688),
+    },
+}
 IMAGE_OUTPUT_COUNTS = (1, 2, 3, 4)
 IMAGE_DEFAULT_OUTPUT_COUNT = 1
 VIDEO_MODEL = AGNES_CONTRACT.media["video"].model
 VIDEO_WIDTH = 1152
 VIDEO_HEIGHT = 768
+VIDEO_RESOLUTION_DIMENSIONS = {
+    "480p": {
+        "16:9": (832, 448),
+        "9:16": (448, 832),
+        "1:1": (512, 512),
+        "4:3": (640, 480),
+        "3:4": (480, 640),
+    },
+    "720p": {
+        "16:9": (1152, 648),
+        "9:16": (648, 1152),
+        "1:1": (768, 768),
+        "4:3": (1024, 768),
+        "3:4": (768, 1024),
+    },
+    "1080p": {
+        "16:9": (1920, 1080),
+        "9:16": (1080, 1920),
+        "1:1": (1080, 1080),
+        "4:3": (1440, 1080),
+        "3:4": (1080, 1440),
+    },
+}
+VIDEO_RESOLUTIONS = tuple(VIDEO_RESOLUTION_DIMENSIONS)
+VIDEO_DEFAULT_RESOLUTION = "720p"
+VIDEO_ASPECT_RATIO_DIMENSIONS = VIDEO_RESOLUTION_DIMENSIONS[VIDEO_DEFAULT_RESOLUTION]
+VIDEO_DEFAULT_ASPECT_RATIO = "16:9"
 VIDEO_FRAME_RATE = 24
 VIDEO_REFERENCE_MODES = ("text-to-video", "image-to-video", "keyframes")
 VIDEO_DEFAULT_DURATION_SECONDS = 5
 VIDEO_MIN_KEYFRAMES = 2
 VIDEO_MAX_KEYFRAMES = 8
 VIDEO_REFERENCE_ROLES = ("first-frame", "last-frame", "reference")
-VIDEO_MAX_REFERENCES = 9
+VIDEO_MAX_REFERENCES = 8
+VIDEO_NEGATIVE_PROMPT_MAX_LENGTH = 2000
 VIDEO_DURATION_FRAMES = {3: 81, 5: 121, 10: 241, 18: 441}
 TEXT_WORKFLOW_MODES = ("text-to-video",)
 TEXT_MODEL_LABELS = {
@@ -55,11 +126,13 @@ class NormalizedImageParameters:
 @dataclass(frozen=True)
 class NormalizedVideoParameters:
     reference_mode: str
+    resolution: str
     duration_seconds: int
     num_frames: int
     frame_rate: int
     width: int
     height: int
+    negative_prompt: str | None
     request_parameters: dict[str, Any]
 
 
@@ -69,6 +142,10 @@ def build_generation_capabilities(*, agnes_contract: AgnesContract = AGNES_CONTR
     )
     model_label = text_capabilities["model_label"]
     text_capabilities["contract_version"] = 2
+    text_capabilities["story_director"] = {
+        "available": True,
+        "request_contract_version": 1,
+    }
     text_capabilities["models"] = [
         {
             "id": model,
@@ -107,6 +184,15 @@ def build_generation_capabilities(*, agnes_contract: AgnesContract = AGNES_CONTR
                 for model in agnes_contract.media["image"].known_models
             ],
             "size": IMAGE_SIZE,
+            "sizes": list(IMAGE_SIZES),
+            "default_size": IMAGE_SIZE,
+            "size_dimensions": {
+                size: {
+                    ratio: {"width": dimensions[0], "height": dimensions[1]}
+                    for ratio, dimensions in ratios.items()
+                }
+                for size, ratios in IMAGE_SIZE_DIMENSIONS.items()
+            },
             "aspect_ratios": list(IMAGE_ASPECT_RATIOS),
             "default_aspect_ratio": IMAGE_DEFAULT_ASPECT_RATIO,
             "output_counts": list(IMAGE_OUTPUT_COUNTS),
@@ -126,12 +212,29 @@ def build_generation_capabilities(*, agnes_contract: AgnesContract = AGNES_CONTR
             ],
             "width": VIDEO_WIDTH,
             "height": VIDEO_HEIGHT,
+            "aspect_ratios": list(VIDEO_ASPECT_RATIO_DIMENSIONS),
+            "aspect_ratio_dimensions": {
+                ratio: {"width": dimensions[0], "height": dimensions[1]}
+                for ratio, dimensions in VIDEO_ASPECT_RATIO_DIMENSIONS.items()
+            },
+            "default_aspect_ratio": VIDEO_DEFAULT_ASPECT_RATIO,
+            "resolutions": list(VIDEO_RESOLUTIONS),
+            "default_resolution": VIDEO_DEFAULT_RESOLUTION,
+            "resolution_dimensions": {
+                resolution: {
+                    ratio: {"width": dimensions[0], "height": dimensions[1]}
+                    for ratio, dimensions in ratios.items()
+                }
+                for resolution, ratios in VIDEO_RESOLUTION_DIMENSIONS.items()
+            },
             "reference_modes": list(VIDEO_REFERENCE_MODES),
             "default_duration_seconds": VIDEO_DEFAULT_DURATION_SECONDS,
             "min_keyframes": VIDEO_MIN_KEYFRAMES,
             "max_keyframes": VIDEO_MAX_KEYFRAMES,
             "reference_roles": list(VIDEO_REFERENCE_ROLES),
             "max_references": VIDEO_MAX_REFERENCES,
+            "negative_prompt_max_length": VIDEO_NEGATIVE_PROMPT_MAX_LENGTH,
+            "supports_semantic_multi_reference": False,
             "duration_presets": [
                 {
                     "duration_seconds": duration_seconds,
@@ -177,7 +280,9 @@ def _normalize_video_references(value: object) -> list[dict[str, Any]] | None:
     if not isinstance(value, list):
         raise GenerationParameterError("video reference bindings must be a list")
     if len(value) > VIDEO_MAX_REFERENCES:
-        raise GenerationParameterError("video reference bindings have a maximum 9 entries")
+        raise GenerationParameterError(
+            f"video reference bindings have a maximum {VIDEO_MAX_REFERENCES} entries"
+        )
     normalized: list[dict[str, Any]] = []
     identities: set[tuple[str, str, str]] = set()
     role_counts = {role: 0 for role in VIDEO_REFERENCE_ROLES}
@@ -213,6 +318,8 @@ def normalize_image_parameters(
     *,
     aspect_ratio: str | None,
     image_ids: list[str] | None,
+    size: str | None = None,
+    output_count: int | None = None,
     batch: object = None,
     recipe_id: str | None = None,
     recipe_version: int | None = None,
@@ -222,19 +329,39 @@ def normalize_image_parameters(
 ) -> NormalizedImageParameters:
     ordered_image_ids = list(dict.fromkeys(image_ids or []))
     normalized_batch = _normalize_image_batch(batch)
+    effective_output_count = (
+        normalized_batch["slot_count"]
+        if output_count is None and normalized_batch is not None
+        else IMAGE_DEFAULT_OUTPUT_COUNT
+        if output_count is None
+        else output_count
+    )
+    if (
+        isinstance(effective_output_count, bool) or
+        effective_output_count not in IMAGE_OUTPUT_COUNTS
+    ):
+        raise GenerationParameterError("image output count is unsupported")
+    if (
+        normalized_batch is not None and
+        normalized_batch["slot_count"] != effective_output_count
+    ):
+        raise GenerationParameterError("image output count does not match batch slot count")
     if recipe_id is not None:
         if shot_controls is not None:
             raise GenerationParameterError("generation recipe cannot use shot controls")
-        if aspect_ratio is not None:
+        if aspect_ratio is not None or size is not None:
             raise GenerationParameterError("generation recipe controls output size")
         if recipe_version is None or recipe_size is None:
             raise GenerationParameterError("generation recipe metadata is incomplete")
+        if recipe_size not in IMAGE_SIZES:
+            raise GenerationParameterError("generation recipe size is unsupported")
         request_parameters = {
             "contract_version": CONTRACT_VERSION,
             "media_type": "image",
             "model": IMAGE_MODEL,
             "size": recipe_size,
             "aspect_ratio": "4:3",
+            "output_count": effective_output_count,
             "image_ids": ordered_image_ids,
             "generation_recipe_id": recipe_id,
             "generation_recipe_version": recipe_version,
@@ -243,10 +370,13 @@ def normalize_image_parameters(
             request_parameters["batch"] = normalized_batch
         return NormalizedImageParameters(
             provider_size=recipe_size,
-            provider_ratio=None,
+            provider_ratio="4:3",
             request_parameters=request_parameters,
         )
 
+    effective_size = IMAGE_SIZE if size is None else size
+    if effective_size not in IMAGE_SIZES:
+        raise GenerationParameterError("unsupported image size")
     effective_ratio = IMAGE_DEFAULT_ASPECT_RATIO if aspect_ratio is None else aspect_ratio
     if effective_ratio not in IMAGE_ASPECT_RATIOS:
         raise GenerationParameterError("unsupported image aspect ratio")
@@ -264,8 +394,9 @@ def normalize_image_parameters(
         "contract_version": CONTRACT_VERSION,
         "media_type": "image",
         "model": IMAGE_MODEL,
-        "size": IMAGE_SIZE,
+        "size": effective_size,
         "aspect_ratio": effective_ratio,
+        "output_count": effective_output_count,
         "image_ids": ordered_image_ids,
     }
     if normalized_shot_controls is not None:
@@ -273,7 +404,7 @@ def normalize_image_parameters(
     if normalized_batch is not None:
         request_parameters["batch"] = normalized_batch
     return NormalizedImageParameters(
-        provider_size=IMAGE_SIZE,
+        provider_size=effective_size,
         provider_ratio=effective_ratio,
         request_parameters=request_parameters,
     )
@@ -284,13 +415,25 @@ def normalize_video_parameters(
     reference_mode: str | None,
     duration_seconds: int | None,
     image_ids: list[str] | None,
+    aspect_ratio: str | None = None,
+    resolution: str | None = None,
     video_references: object = None,
+    negative_prompt: object = None,
     shot_controls: object = None,
     provider_shot_controls: tuple[str, ...] = (),
 ) -> NormalizedVideoParameters:
     normalized_references = _normalize_video_references(video_references)
-    if normalized_references is not None and (reference_mode is not None or image_ids is not None):
+    if normalized_references is not None and image_ids is not None:
         raise GenerationParameterError("legacy and structured video references are mutually exclusive")
+    normalized_negative_prompt: str | None = None
+    if negative_prompt is not None:
+        if not isinstance(negative_prompt, str):
+            raise GenerationParameterError("video negative prompt must be a string")
+        normalized_negative_prompt = negative_prompt.strip()
+        if not normalized_negative_prompt:
+            normalized_negative_prompt = None
+        elif len(normalized_negative_prompt) > VIDEO_NEGATIVE_PROMPT_MAX_LENGTH:
+            raise GenerationParameterError("video negative prompt is too long")
     ordered_image_ids = (
         [binding["asset_id"] for binding in normalized_references]
         if normalized_references is not None
@@ -302,9 +445,22 @@ def normalize_video_parameters(
     num_frames = VIDEO_DURATION_FRAMES.get(effective_duration)
     if num_frames is None:
         raise GenerationParameterError("unsupported video duration")
+    effective_aspect_ratio = (
+        VIDEO_DEFAULT_ASPECT_RATIO if aspect_ratio is None else aspect_ratio
+    )
+    effective_resolution = (
+        VIDEO_DEFAULT_RESOLUTION if resolution is None else resolution
+    )
+    resolution_dimensions = VIDEO_RESOLUTION_DIMENSIONS.get(effective_resolution)
+    if resolution_dimensions is None:
+        raise GenerationParameterError("unsupported video resolution")
+    dimensions = resolution_dimensions.get(effective_aspect_ratio)
+    if dimensions is None:
+        raise GenerationParameterError("unsupported video aspect ratio")
+    width, height = dimensions
 
     effective_mode = reference_mode
-    if normalized_references is not None:
+    if normalized_references is not None and effective_mode is None:
         effective_mode = (
             "text-to-video"
             if not normalized_references
@@ -326,10 +482,29 @@ def normalize_video_parameters(
         raise GenerationParameterError("text-to-video requires zero image references")
     if effective_mode == "image-to-video" and len(ordered_image_ids) != 1:
         raise GenerationParameterError("image-to-video requires exactly one image reference")
-    if normalized_references is None and effective_mode == "keyframes" and not (
+    if effective_mode == "keyframes" and not (
         VIDEO_MIN_KEYFRAMES <= len(ordered_image_ids) <= VIDEO_MAX_KEYFRAMES
     ):
         raise GenerationParameterError("keyframes requires 2 to 8 image references")
+    if normalized_references is not None:
+        if effective_mode == "text-to-video" and normalized_references:
+            raise GenerationParameterError("text-to-video requires zero structured references")
+        if effective_mode == "image-to-video" and (
+            len(normalized_references) != 1 or
+            normalized_references[0]["role"] != "first-frame"
+        ):
+            raise GenerationParameterError("image-to-video requires one first-frame reference")
+        if effective_mode == "keyframes" and (
+            normalized_references[0]["role"] != "first-frame" or
+            normalized_references[-1]["role"] != "last-frame" or
+            any(
+                binding["role"] != "reference"
+                for binding in normalized_references[1:-1]
+            )
+        ):
+            raise GenerationParameterError(
+                "keyframes require first-frame, ordered intermediate frames, and last-frame"
+            )
 
     try:
         normalized_shot_controls = normalize_shot_controls(
@@ -350,20 +525,26 @@ def normalize_video_parameters(
         "duration_seconds": effective_duration,
         "num_frames": num_frames,
         "frame_rate": VIDEO_FRAME_RATE,
-        "width": VIDEO_WIDTH,
-        "height": VIDEO_HEIGHT,
+        "aspect_ratio": effective_aspect_ratio,
+        "resolution": effective_resolution,
+        "width": width,
+        "height": height,
         "image_ids": ordered_image_ids,
     }
     if normalized_references is not None:
         request_parameters["video_references"] = normalized_references
+    if normalized_negative_prompt is not None:
+        request_parameters["negative_prompt_present"] = True
     if normalized_shot_controls is not None:
         request_parameters["shot_controls"] = normalized_shot_controls
     return NormalizedVideoParameters(
         reference_mode=effective_mode,
+        resolution=effective_resolution,
         duration_seconds=effective_duration,
         num_frames=num_frames,
         frame_rate=VIDEO_FRAME_RATE,
-        width=VIDEO_WIDTH,
-        height=VIDEO_HEIGHT,
+        width=width,
+        height=height,
+        negative_prompt=normalized_negative_prompt,
         request_parameters=request_parameters,
     )

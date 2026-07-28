@@ -134,12 +134,17 @@
   font-size: 9px;
 }
 
-.runtime-node-composer__reference-token img {
+.runtime-node-composer__reference-token img,
+.runtime-node-composer__reference-fallback {
+  display: grid;
   width: 26px;
   height: 26px;
+  place-items: center;
   border-radius: 7px;
   object-fit: cover;
   background: var(--v2-surface-3);
+  color: var(--v2-text-secondary);
+  font-size: 10px;
 }
 
 .runtime-node-composer__reference-token em {
@@ -154,6 +159,51 @@
 .runtime-node-composer__reference-token small {
   color: var(--v2-accent-hover);
   font-size: 9px;
+}
+
+.runtime-node-composer__reference-token select {
+  min-width: 68px;
+  border: 0;
+  outline: 0;
+  color: var(--v2-accent-hover);
+  background: transparent;
+  font: inherit;
+  font-size: 9px;
+}
+
+.runtime-node-composer__prompt-shell {
+  overflow: hidden;
+  border-radius: var(--v2-radius-md);
+  background: var(--v2-surface-1);
+}
+
+.runtime-node-composer__prompt-shell:focus-within {
+  box-shadow: 0 0 0 2px var(--v2-focus-ring);
+}
+
+.runtime-node-composer__reference-picker {
+  display: grid;
+  max-height: 152px;
+  gap: 4px;
+  padding: 6px;
+  overflow: auto;
+  border: 1px solid var(--v2-border-standard);
+  border-radius: var(--v2-radius-md);
+  background: var(--v2-surface-2);
+}
+
+.runtime-node-composer__reference-picker button {
+  justify-content: flex-start;
+  min-height: 32px;
+  padding-inline: 8px;
+  background: var(--v2-surface-1);
+}
+
+.runtime-node-composer__reference-picker p {
+  margin: 0;
+  padding: 7px;
+  color: var(--v2-text-muted);
+  font-size: 10px;
 }
 
 .runtime-node-composer label {
@@ -183,6 +233,13 @@
 .runtime-node-composer__model {
   padding: 0 9px;
   border: 1px solid var(--v2-border-subtle) !important;
+}
+
+.runtime-node-composer__blocked-reason {
+  margin: 0;
+  color: var(--v2-danger);
+  font-size: 10px;
+  line-height: 1.5;
 }
 
 .runtime-node-composer__submit {
@@ -230,11 +287,28 @@
 }
 
 .runtime-node-composer__popover.is-parameters {
-  top: 42px;
+  bottom: 48px;
+}
+
+.runtime-node-composer__popover.is-script-settings {
+  top: 10px;
 }
 
 .runtime-node-composer__popover.is-models {
   bottom: 48px;
+}
+
+.runtime-node-composer__popover.is-script-settings > span {
+  padding: 0 6px;
+  color: var(--v2-text-primary);
+  font-size: 12px;
+}
+
+.runtime-node-composer__popover.is-script-settings > small {
+  padding: 0 6px 5px;
+  color: var(--v2-text-muted);
+  font-size: 10px;
+  line-height: 1.5;
 }
 
 .runtime-node-composer__popover > strong {

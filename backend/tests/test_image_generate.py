@@ -163,7 +163,8 @@ class ImageGenerateApiTestCase(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         call = fake_provider.calls[0]
         self.assertEqual(["https://example.com/character-reference.png"], call["image"])
-        self.assertEqual("1024x768", call["kwargs"]["size"])
+        self.assertEqual("1K", call["kwargs"]["size"])
+        self.assertEqual("4:3", call["kwargs"]["ratio"])
         self.assertIn("white background", call["prompt"])
         self.assertIn("front, side, and back", call["prompt"])
         self.assertIn("preserve", call["prompt"].lower())

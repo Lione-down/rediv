@@ -1,6 +1,6 @@
 # Revid Product V2/V3 Direct Delivery Roadmap
 
-Last updated: 2026-07-25
+Last updated: 2026-07-28
 
 ## Active Product V3 / Phase 6 Outcome
 
@@ -19,10 +19,26 @@ Deliver backward-compatible Revid-native cinematic director Skills v2 on top of 
 | 9 | T6-009 | Replace project-wide polling with incremental Canvas job sync | DONE | PASS | T6-008 |
 | 10 | T6-010 | Establish one canonical card view model, geometry authority, and rename command | DONE | PASS | T6-009 |
 | 11 | T6-011 | Replace the complete Canvas frontend and card/workflow runtime from the Human video contract | DONE | PASS | T6-010 |
+| 12 | T6-012 | Implement the automatic project-owned story director and strict story-production contract | BLOCKED | FAIL | T6-011 |
+| 13 | T6-013 | Restore usable Script/storyboard and core Canvas interaction contracts | DONE | DEFERRED | T6-011; T6-012 audit/selective reuse |
 
 T6-001 through T6-004 are `DONE / PASS`; their REPORTs remain authoritative. On 2026-07-23, the Human Owner explicitly rejected T6-005's visual and interaction result and requested state closure. T6-005 is terminal `BLOCKED / FAIL`: its machine evidence remains valid, but no REPORT or false `DONE / PASS` is allowed. The committed T6-005 snapshot remains preserved as rejected audit/reference evidence pending an explicit selective-reuse or full-removal decision.
 
-T6-006 through T6-011 are `DONE / PASS`. On 2026-07-25 the Human Owner recorded `ACCEPT_WITH_DECLARED_BOUNDARIES`: T6-011 is accepted overall, with unspecified minor issues deferred to future independent planning. Final R8N evidence is browser `62/62`, backend compact/job-runner `18/18`, build `5,034`, validator/diff/health PASS. T6-012 is not active and must start in the requested new Codex session after T6-011 remote parity.
+T6-006 through T6-011 are `DONE / PASS`. On 2026-07-25 the Human Owner recorded `ACCEPT_WITH_DECLARED_BOUNDARIES`: T6-011 is accepted overall, with unspecified minor issues deferred to future independent planning. Final R8N evidence is browser `62/62`, backend compact/job-runner `18/18`, build `5,034`, validator/diff/health PASS.
+
+On 2026-07-25 the Human Owner rejected T6-012 because the visible Script function is unusable. T6-012 is terminal `BLOCKED / FAIL`; its machine evidence and dirty contract implementation remain audit/selective-reuse inputs only. No REPORT or accepted-delivery claim is allowed.
+
+T6-013 is `DONE / DEFERRED` under the Human Owner's 2026-07-28 program-level direction to continue from T6-017
+through T6-027 and perform one final unified review. This closes the intermediate per-candidate review stop without
+inventing an `ACCEPT`, `ACCEPT_WITH_DECLARED_BOUNDARIES`, or `PASS`. Units 51-53 remain machine evidence for Script
+workspace scrolling, provider-free selected-shot Image/Video graph authoring, official Video
+ratio/clarity/duration, and opaque `video_id` result alignment. The historical broad-browser result remains `59/60`;
+the exact legacy edge Delete boundary passed `1/1` in the fresh closure rerun, but the full 60-test group was not rerun.
+
+Old T6-014 through T6-016 were provisional scopes only and never received formal Task files. The approved Revid V3
+workflow-template program supersedes those provisional scopes: old T6-014 value is absorbed into T6-023, old T6-015
+is replaced by provider-valid T6-024, and old T6-016 compatibility retirement is deferred to T6-027. No historical
+`DONE`, `FAIL`, or REPORT is fabricated for those numbers.
 
 Unit 6I implementation and machine verification are complete. The selected toolbar is now approximately `900 x 50 CSS px`, professional icons and visible labels share one horizontal row, standard placement remains above the media with `26..34 CSS px` clearance, true top collision still flips below, and the `920px` toolbar has no horizontal overflow. Build `4,972`, related `43/43`, three-axis `7/7` without snapshot updates, full Chromium `596/596`, headed performance `2/2`, dependency audit `0`, state validation, and diff check pass. Renewed Human acceptance is the remaining completion gate.
 

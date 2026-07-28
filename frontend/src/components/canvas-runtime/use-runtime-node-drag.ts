@@ -1,10 +1,11 @@
 import { ref } from 'vue'
+import { resolveCanvasNodeLayoutSize } from '../../modules/canvas/node-layout'
 import type { PersistedViewport } from '../../modules/canvas/persistence'
 import type { CanvasNode } from '../../types/canvas'
 
 interface RuntimeNodeDragOptions {
   moveNode: (payload: { nodeId: string; x: number; y: number }) => void
-  selectNode: (nodeId: string) => void
+  selectNode: (nodeId: string, mode: 'replace' | 'toggle') => void
   setInteractionState: (state: 'idle' | 'card-drag') => void
   updateTransientNode: (payload: { nodeId: string; x: number; y: number } | null) => void
   viewport: () => PersistedViewport
@@ -23,12 +24,12 @@ export function useRuntimeNodeDrag(options: RuntimeNodeDragOptions) {
   } | null>(null)
 
   function nodeStyle(node: CanvasNode) {
-    const drag = dragState.value?.nodeId === node.id ? dragState.value : null
+    const size = resolveCanvasNodeLayoutSize(node)
     return {
-      left: `${node.x + (drag?.deltaX ?? 0) / options.viewport().zoom}px`,
-      top: `${node.y + (drag?.deltaY ?? 0) / options.viewport().zoom}px`,
-      width: `${Math.max(220, node.width)}px`,
-      height: `${Math.max(140, node.height)}px`,
+      left: `${node.x}px`,
+      top: `${node.y}px`,
+      width: `${size.width}px`,
+      height: `${size.height}px`,
       zIndex: node.zIndex ?? 0,
     }
   }
@@ -37,7 +38,10 @@ export function useRuntimeNodeDrag(options: RuntimeNodeDragOptions) {
     if (event.button !== 0 || node.isLocked || isEditing) return
     const handle = event.currentTarget as HTMLElement
     handle.setPointerCapture(event.pointerId)
-    options.selectNode(node.id)
+    options.selectNode(
+      node.id,
+      event.shiftKey || event.ctrlKey || event.metaKey ? 'toggle' : 'replace',
+    )
     dragState.value = {
       deltaX: 0,
       deltaY: 0,

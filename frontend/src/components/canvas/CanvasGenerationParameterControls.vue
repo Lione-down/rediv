@@ -6,6 +6,7 @@ import type {
   VideoReferenceBinding,
   VideoReferenceMode,
   VideoReferenceRole,
+  VideoResolution,
 } from '../../modules/canvas/generation-parameters'
 import CanvasImageOperationControls from './CanvasImageOperationControls.vue'
 import {
@@ -36,14 +37,29 @@ const validMediaSources = computed(() => props.context.mediaSources.filter((sour
 const selectedDuration = computed(() => (
   props.context.durationSeconds ?? props.context.capabilities?.video.default_duration_seconds ?? 0
 ))
+const selectedVideoResolution = computed(() => (
+  props.context.videoResolution ?? props.context.capabilities?.video.default_resolution ?? '720p'
+))
+const selectedVideoDimensions = computed(() => {
+  const capability = props.context.capabilities?.video
+  if (!capability) return null
+  const ratio = props.context.aspectRatio ?? capability.default_aspect_ratio
+  return capability.resolution_dimensions[selectedVideoResolution.value]?.[ratio] ??
+    capability.aspect_ratio_dimensions[ratio] ?? {
+    width: capability.width,
+    height: capability.height,
+  }
+})
 const selectedMode = computed(() => props.context.referenceMode ?? '')
 const selectedPrimaryNodeId = computed(() => props.context.primaryReferenceNodeId ?? '')
-const isStructuredReferenceContract = computed(() => props.context.capabilities?.contract_version === 6)
+const isStructuredReferenceContract = computed(() => (
+  (props.context.capabilities?.contract_version ?? 0) >= 6
+))
 const selectedVideoReferences = computed(() => props.context.videoReferences ?? [])
 const videoReferenceRoleLabels: Record<VideoReferenceRole, string> = {
   'first-frame': '首帧',
   'last-frame': '尾帧',
-  reference: '普通参考',
+  reference: '中间关键帧',
 }
 const activeShotControls = computed(() => (
   props.context.shotControlCapabilities?.supported_controls.map((control) => SHOT_CONTROL_DEFINITIONS[control]) ?? []
@@ -53,10 +69,12 @@ function updateImage(
   aspectRatio: string,
   shotControls: ShotControls | undefined,
   outputCount = props.context.outputCount ?? props.context.capabilities?.image.default_output_count ?? 1,
+  size = props.context.imageSize ?? props.context.capabilities?.image.default_size,
 ) {
   emit('updateParameters', {
     schema_version: 1,
     image: {
+      ...(props.context.capabilities?.contract_version === 7 && size ? { size } : {}),
       aspect_ratio: aspectRatio,
       ...(isStructuredReferenceContract.value ? { output_count: outputCount } : {}),
       ...(props.context.imageOperation ? { operation: props.context.imageOperation } : {}),
@@ -66,19 +84,60 @@ function updateImage(
 }
 
 function updateVideo(change: {
+  aspectRatio?: string
   durationSeconds?: number
   referenceMode?: VideoReferenceMode
   primaryReferenceNodeId?: string
+  videoResolution?: VideoResolution
   shotControls?: ShotControls
+  negativePrompt?: string
 }) {
   const hasShotControlsChange = Object.prototype.hasOwnProperty.call(change, 'shotControls')
   const shotControls = hasShotControlsChange ? change.shotControls : props.context.shotControls
+  const negativePrompt = Object.prototype.hasOwnProperty.call(change, 'negativePrompt')
+    ? change.negativePrompt?.trim()
+    : props.context.negativePrompt
   if (isStructuredReferenceContract.value) {
+    let bindings = selectedVideoReferences.value
+    if (change.referenceMode === 'text-to-video') {
+      bindings = []
+    } else if (change.referenceMode === 'image-to-video') {
+      const selected = bindings.find((binding) => binding.role === 'first-frame')
+        ?? bindings[0]
+        ?? validMediaSources.value.flatMap((source) => source.assetId
+          ? [{
+              node_id: source.nodeId,
+              asset_id: source.assetId,
+              role: 'first-frame' as const,
+              order: 0,
+            }]
+          : [])[0]
+      bindings = selected ? [{ ...selected, role: 'first-frame', order: 0 }] : []
+    } else if (change.referenceMode === 'keyframes') {
+      const candidates = bindings.length >= 2
+        ? bindings
+        : validMediaSources.value.flatMap((source) => source.assetId
+          ? [{
+              node_id: source.nodeId,
+              asset_id: source.assetId,
+              role: 'reference' as const,
+              order: 0,
+            }]
+          : [])
+      bindings = candidates.map((binding, order) => ({ ...binding, order }))
+    }
     emit('updateParameters', {
       schema_version: 1,
       video: {
+        aspect_ratio: change.aspectRatio ?? props.context.aspectRatio
+          ?? props.context.capabilities?.video.default_aspect_ratio ?? '',
         duration_seconds: change.durationSeconds ?? selectedDuration.value,
-        reference_bindings: selectedVideoReferences.value,
+        ...(props.context.capabilities?.contract_version === 7
+          ? { resolution: change.videoResolution ?? selectedVideoResolution.value }
+          : {}),
+        reference_mode: change.referenceMode ?? props.context.referenceMode ?? 'text-to-video',
+        reference_bindings: bindings,
+        ...(negativePrompt ? { negative_prompt: negativePrompt } : {}),
         ...(shotControls ? { shot_controls: shotControls } : {}),
       },
     })
@@ -97,9 +156,15 @@ function updateVideo(change: {
   emit('updateParameters', {
     schema_version: 1,
     video: {
+      aspect_ratio: change.aspectRatio ?? props.context.aspectRatio
+        ?? props.context.capabilities?.video.default_aspect_ratio ?? '',
       duration_seconds: change.durationSeconds ?? selectedDuration.value,
+      ...(props.context.capabilities?.contract_version === 7
+        ? { resolution: change.videoResolution ?? selectedVideoResolution.value }
+        : {}),
       reference_mode: referenceMode,
       ...(primaryReferenceNodeId ? { primary_reference_node_id: primaryReferenceNodeId } : {}),
+      ...(negativePrompt ? { negative_prompt: negativePrompt } : {}),
       ...(normalizedShotControls ? { shot_controls: normalizedShotControls } : {}),
     },
   })
@@ -130,11 +195,23 @@ function toggleVideoReferenceRole(nodeId: string, assetId: string | null, role: 
     }
     bindings.push({ node_id: nodeId, asset_id: assetId, role, order: bindings.length })
   }
+  const referenceMode: VideoReferenceMode = bindings.length === 0
+    ? 'text-to-video'
+    : bindings.length === 1 && bindings[0]?.role === 'first-frame'
+      ? 'image-to-video'
+      : 'keyframes'
   emit('updateParameters', {
     schema_version: 1,
     video: {
+      aspect_ratio: props.context.aspectRatio
+        ?? props.context.capabilities?.video.default_aspect_ratio ?? '',
       duration_seconds: selectedDuration.value,
+      ...(props.context.capabilities?.contract_version === 7
+        ? { resolution: selectedVideoResolution.value }
+        : {}),
+      reference_mode: referenceMode,
       reference_bindings: bindings.map((binding, order) => ({ ...binding, order })),
+      ...(props.context.negativePrompt ? { negative_prompt: props.context.negativePrompt } : {}),
       ...(props.context.shotControls ? { shot_controls: props.context.shotControls } : {}),
     },
   })
@@ -150,11 +227,21 @@ function reorderVideoReference(index: number, direction: -1 | 1) {
   const bindings = selectedVideoReferences.value.map((binding) => ({ ...binding }))
   const [moved] = bindings.splice(index, 1)
   bindings.splice(target, 0, moved)
+  const referenceMode: VideoReferenceMode = bindings.length === 1 && bindings[0]?.role === 'first-frame'
+    ? 'image-to-video'
+    : 'keyframes'
   emit('updateParameters', {
     schema_version: 1,
     video: {
+      aspect_ratio: props.context.aspectRatio
+        ?? props.context.capabilities?.video.default_aspect_ratio ?? '',
       duration_seconds: selectedDuration.value,
+      ...(props.context.capabilities?.contract_version === 7
+        ? { resolution: selectedVideoResolution.value }
+        : {}),
+      reference_mode: referenceMode,
       reference_bindings: bindings.map((binding, order) => ({ ...binding, order })),
+      ...(props.context.negativePrompt ? { negative_prompt: props.context.negativePrompt } : {}),
       ...(props.context.shotControls ? { shot_controls: props.context.shotControls } : {}),
     },
   })
@@ -192,6 +279,21 @@ function isShotControlDisabled(control: ShotControlId) {
     </dl>
 
     <template v-else-if="context.capabilities && context.mediaType === 'image'">
+      <fieldset v-if="context.capabilities.contract_version === 7" :disabled="disabled">
+        <legend>输出规格</legend>
+        <div class="generation-parameters__choices">
+          <label v-for="size in context.capabilities.image.sizes" :key="size">
+            <input
+              type="radio"
+              name="generation-image-size"
+              :checked="context.imageSize === size"
+              :value="size"
+              @change="updateImage(context.aspectRatio ?? context.capabilities.image.default_aspect_ratio, context.shotControls, context.outputCount, size)"
+            />
+            <span>{{ size }}</span>
+          </label>
+        </div>
+      </fieldset>
       <fieldset :disabled="disabled">
         <legend>输出比例</legend>
         <div class="generation-parameters__choices is-ratio">
@@ -207,7 +309,7 @@ function isShotControlDisabled(control: ShotControlId) {
           </label>
         </div>
       </fieldset>
-      <fieldset v-if="context.capabilities.contract_version === 6" :disabled="disabled">
+      <fieldset v-if="context.capabilities.contract_version >= 6" :disabled="disabled">
         <legend>输出数量</legend>
         <div class="generation-parameters__choices">
           <label v-for="count in context.capabilities.image.output_counts" :key="count">
@@ -228,7 +330,37 @@ function isShotControlDisabled(control: ShotControlId) {
     </template>
 
     <template v-else-if="context.capabilities && context.mediaType === 'video'">
-      <fieldset v-if="context.capabilities.contract_version !== 6" :disabled="disabled">
+      <fieldset :disabled="disabled">
+        <legend>比例</legend>
+        <div class="generation-parameters__choices">
+          <label v-for="ratio in context.capabilities.video.aspect_ratios" :key="ratio">
+            <input
+              type="radio"
+              name="generation-video-ratio"
+              :checked="context.aspectRatio === ratio"
+              :value="ratio"
+              @change="updateVideo({ aspectRatio: ratio })"
+            />
+            <span>{{ ratio }}</span>
+          </label>
+        </div>
+      </fieldset>
+      <fieldset v-if="context.capabilities.contract_version === 7" :disabled="disabled">
+        <legend>清晰度</legend>
+        <div class="generation-parameters__choices">
+          <label v-for="resolution in context.capabilities.video.resolutions" :key="resolution">
+            <input
+              type="radio"
+              name="generation-video-resolution"
+              :checked="selectedVideoResolution === resolution"
+              :value="resolution"
+              @change="updateVideo({ videoResolution: resolution })"
+            />
+            <span>{{ resolution }}</span>
+          </label>
+        </div>
+      </fieldset>
+      <fieldset :disabled="disabled">
         <legend>时长</legend>
         <div class="generation-parameters__choices">
           <label v-for="preset in context.capabilities.video.duration_presets" :key="preset.duration_seconds">
@@ -266,7 +398,7 @@ function isShotControlDisabled(control: ShotControlId) {
           </label>
         </div>
       </fieldset>
-      <fieldset v-if="context.capabilities.contract_version !== 6 && selectedMode === 'image-to-video' && validMediaSources.length > 1" :disabled="disabled">
+      <fieldset v-if="context.capabilities.contract_version < 6 && selectedMode === 'image-to-video' && validMediaSources.length > 1" :disabled="disabled">
         <legend>主参考图</legend>
         <div class="generation-parameters__choices is-primary">
           <label v-for="source in validMediaSources" :key="source.nodeId">
@@ -281,8 +413,11 @@ function isShotControlDisabled(control: ShotControlId) {
           </label>
         </div>
       </fieldset>
-      <fieldset v-if="context.capabilities.contract_version === 6" :disabled="disabled">
-        <legend>视频参考角色 · 已用 {{ selectedVideoReferences.length }}/{{ context.capabilities.video.max_references }}</legend>
+      <fieldset
+        v-if="context.capabilities.contract_version >= 6 && (context.capabilities.contract_version < 7 || selectedMode === 'keyframes')"
+        :disabled="disabled"
+      >
+        <legend>关键帧顺序 · 已用 {{ selectedVideoReferences.length }}/{{ context.capabilities.video.max_references }}</legend>
         <div class="generation-parameters__reference-list">
           <div v-for="source in validMediaSources" :key="source.nodeId" class="generation-parameters__reference-source">
             <strong>{{ source.title }}</strong>
@@ -308,8 +443,25 @@ function isShotControlDisabled(control: ShotControlId) {
           </li>
         </ol>
       </fieldset>
+      <label
+        v-if="context.capabilities.contract_version === 7"
+        class="generation-parameters__negative-prompt"
+      >
+        <span>反向提示词（可选）</span>
+        <textarea
+          aria-label="视频反向提示词"
+          :disabled="disabled"
+          :maxlength="context.capabilities.video.negative_prompt_max_length"
+          :value="context.negativePrompt ?? ''"
+          placeholder="描述视频中需要避免的内容"
+          rows="3"
+          @change="updateVideo({ negativePrompt: ($event.target as HTMLTextAreaElement).value })"
+        />
+      </label>
       <p class="generation-parameters__hint">
-        {{ context.capabilities.video.model }} · {{ context.capabilities.video.width }}×{{ context.capabilities.video.height }}
+        {{ context.capabilities.video.model }} ·
+        <template v-if="context.capabilities.contract_version === 7">{{ selectedVideoResolution }} 请求档 · </template>
+        {{ selectedVideoDimensions?.width }}×{{ selectedVideoDimensions?.height }} 目标（实际以结果为准）
       </p>
     </template>
     <fieldset
@@ -374,6 +526,8 @@ label input:checked + span { border-color: var(--v2-accent); color: var(--v2-acc
 label input:focus-visible + span { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 label.disabled, fieldset:disabled label { cursor: not-allowed; opacity: .42; }
 .generation-parameters__hint, .generation-parameters__error { margin: 0; font-size: 10px; line-height: 1.5; }
+.generation-parameters__negative-prompt { display: grid; min-height: 0; gap: 5px; place-items: stretch; color: var(--v2-text-secondary); font-size: 10px; }
+.generation-parameters__negative-prompt textarea { box-sizing: border-box; width: 100%; min-height: 58px; resize: vertical; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); padding: 7px 8px; color: var(--v2-text-primary); background: var(--v2-surface-2); font: inherit; }
 .generation-parameters__hint { color: var(--v2-text-muted); }
 .generation-parameters__error { color: var(--v2-danger); }
 .generation-parameters__summary { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; }

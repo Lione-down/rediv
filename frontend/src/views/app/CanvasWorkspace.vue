@@ -37,8 +37,18 @@ import { resolveGenerationInputLineageBridges } from '../../modules/canvas/gener
 import { projectCanvasStoryboard } from '../../modules/canvas/storyboard-projection'
 import { createReorderStoryboardGroupCommand } from '../../modules/canvas/storyboard-commands'
 import { resolveOwnedMediaActionTarget } from '../../modules/canvas/professional-action-registry'
-import type { ScriptAuthoringIntent } from '../../modules/canvas/script-authoring'
-import type { TextWorkflowMode } from '../../modules/canvas/script-authoring'
+import {
+  createAppendStoryShotCommand,
+  createDeleteStoryShotCommand,
+  createSetStoryPromptsConfirmedCommand,
+  createSetStoryShotsConfirmedCommand,
+  createUpdateStoryAssetCommand,
+  createUpdateStoryShotCommand,
+  type ScriptAuthoringIntent,
+  type StoryAssetEditableField,
+  type StoryShotEditableField,
+  type TextWorkflowMode,
+} from '../../modules/canvas/script-authoring'
 import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
 import {
   resolveCanvasCardVideoBindings,
@@ -46,18 +56,42 @@ import {
 } from '../../components/canvas/canvas-card-work-model'
 import type { CanvasCardConfigurationSnapshot } from '../../modules/canvas/canvas-card-configuration'
 import type { StoryboardAssetEditIntent } from '../../modules/canvas/storyboard-asset-commands'
-import { resolveCanvasMaterializedCardResult } from '../../components/canvas/canvas-materialized-card-projection'
-import type {
-  GenerationNodeParameters,
-  VideoReferenceBinding,
-  VideoReferenceMode,
+import {
+  projectCanvasMaterializedCardFamilies,
+  resolveCanvasMaterializedCardResult,
+} from '../../components/canvas/canvas-materialized-card-projection'
+import {
+  resolveGenerationRequestContext,
+  type GenerationNodeParameters,
+  type VideoReferenceBinding,
+  type VideoReferenceMode,
 } from '../../modules/canvas/generation-parameters'
 import { buildCanvasCardViewModel } from '../../modules/canvas/canvas-card-view-model'
-import { createRegistryNodeDraft } from '../../modules/canvas/node-registry'
+import type {
+  CanvasCardPromptDocument,
+  CanvasCardReference,
+} from '../../modules/canvas/canvas-card-view-model'
+import {
+  createRegistryNodeDraft,
+  isNodeGroupContainer,
+} from '../../modules/canvas/node-registry'
+import {
+  createStoryShotGenerationCommand,
+  type StoryShotBatchOptions,
+} from '../../modules/canvas/story-shot-generation'
 import { createCanvasEntityId } from '../../modules/canvas/canvas-autosave'
-import { createConnectNodesCommand } from '../../modules/canvas/canvas-commands'
+import {
+  createConnectNodesCommand,
+  createDeleteSelectionCommand,
+  createGroupNodesCommand,
+  createMoveNodeMembershipCommand,
+  createMoveNodesByDeltaCommand,
+  createRenameNodeCommand,
+  createUngroupNodesCommand,
+} from '../../modules/canvas/canvas-commands'
 import {
   createConnectionContinuationCommand,
+  createMultiConnectionContinuationCommand,
   type ConnectionContinuationDirection,
   type ConnectionContinuationOption,
 } from '../../modules/canvas/connection-continuation'
@@ -226,6 +260,28 @@ const replacementModelOptions = computed(() => {
   }
   return []
 })
+const replacementMaterializedProjection = computed(() => (
+  projectCanvasMaterializedCardFamilies(
+    canvasDocumentStore.nodes,
+    canvasDocumentStore.connections,
+    canvasDocumentStore.selectedNodeIds,
+  )
+))
+const replacementGenerationContext = computed(() => {
+  const mediaType = selectedMediaType.value
+  if (!mediaType) return null
+  const node = replacementMaterializedProjection.value.nodes.find(
+    (candidate) => candidate.id === canvasDocumentStore.selectedNodeId,
+  )
+  if (!node) return null
+  return resolveGenerationRequestContext(
+    node,
+    mediaType,
+    replacementMaterializedProjection.value.nodes,
+    replacementMaterializedProjection.value.connections,
+    generationCapabilities.value,
+  )
+})
 const scriptGeneration = useCanvasScriptGeneration({
   canvasId,
   generationCapabilities,
@@ -302,6 +358,8 @@ async function generateFromCard(nodeId: string, prompt: string, mode: CanvasCard
         ? 'image-to-video'
         : mode === 'keyframes-video' ? 'keyframes' : null
     if (!referenceMode) return
+    const aspectRatio = selectedGenerationContext.value?.aspectRatio ??
+      generationCapabilities.value?.video.default_aspect_ratio ?? '16:9'
     const durationSeconds = selectedGenerationContext.value?.durationSeconds ??
       generationCapabilities.value?.video.default_duration_seconds ?? 5
     const primaryReferenceNodeId = selectedGenerationContext.value?.primaryReferenceNodeId ??
@@ -330,6 +388,7 @@ async function generateFromCard(nodeId: string, prompt: string, mode: CanvasCard
       schema_version: 1,
       video: generationCapabilities.value?.contract_version === 6
         ? {
+            aspect_ratio: aspectRatio,
             duration_seconds: durationSeconds,
             reference_bindings: referenceBindings,
             ...(selectedGenerationContext.value?.shotControls
@@ -337,6 +396,7 @@ async function generateFromCard(nodeId: string, prompt: string, mode: CanvasCard
               : {}),
           }
         : {
+            aspect_ratio: aspectRatio,
             duration_seconds: durationSeconds,
             reference_mode: referenceMode,
             ...(referenceMode === 'image-to-video' && primaryReferenceNodeId
@@ -441,10 +501,106 @@ async function submitMainComposerScript(brief: string) {
   await scriptGeneration.generate({
     intent: 'script_draft',
     locale: scriptCapability.value?.defaultLocale ?? 'zh-CN',
+    modelId: scriptCapability.value?.model ?? '',
     value: brief,
     referenceAssetIds: composerAttachments.value.map((asset) => asset.id),
   })
   if (scriptGeneration.success.value) scriptAuthoringIntent.value = null
+}
+
+async function addScriptShot(nodeId: string) {
+  const source = canvasDocumentStore.findNodeById(nodeId)
+  if (!source) return
+  const command = createAppendStoryShotCommand({
+    source,
+    shotId: createCanvasEntityId(),
+  })
+  if (!command) return
+  await canvasDocumentStore.dispatchCommand({ source: 'toolbar', command })
+  await canvasDocumentStore.flushPendingPersistence()
+}
+
+async function updateScriptShot(payload: {
+  field: StoryShotEditableField
+  nodeId: string
+  shotId: string
+  value: string | number
+}) {
+  const source = canvasDocumentStore.findNodeById(payload.nodeId)
+  if (!source) return
+  const command = createUpdateStoryShotCommand({ source, ...payload })
+  if (!command) return
+  await canvasDocumentStore.dispatchCommand({ source: 'toolbar', command })
+  await canvasDocumentStore.flushPendingPersistence()
+}
+
+async function updateScriptAsset(payload: {
+  assetId: string
+  field: StoryAssetEditableField
+  nodeId: string
+  value: string
+}) {
+  const source = canvasDocumentStore.findNodeById(payload.nodeId)
+  if (!source) return
+  const command = createUpdateStoryAssetCommand({ source, ...payload })
+  if (!command) return
+  await canvasDocumentStore.dispatchCommand({ source: 'toolbar', command })
+  await canvasDocumentStore.flushPendingPersistence()
+}
+
+async function deleteScriptShot(payload: { nodeId: string; shotId: string }) {
+  const source = canvasDocumentStore.findNodeById(payload.nodeId)
+  if (!source) return
+  const command = createDeleteStoryShotCommand({ source, shotId: payload.shotId })
+  if (!command) return
+  await canvasDocumentStore.dispatchCommand({ source: 'toolbar', command })
+  await canvasDocumentStore.flushPendingPersistence()
+}
+
+async function setScriptShotsConfirmed(payload: { confirmed: boolean; nodeId: string }) {
+  const source = canvasDocumentStore.findNodeById(payload.nodeId)
+  if (!source) return
+  const command = createSetStoryShotsConfirmedCommand({ source, confirmed: payload.confirmed })
+  if (!command) return
+  await canvasDocumentStore.dispatchCommand({ source: 'toolbar', command })
+  await canvasDocumentStore.flushPendingPersistence()
+}
+
+async function setScriptPromptsConfirmed(payload: {
+  confirmed: boolean
+  nodeId: string
+  shotIds: string[]
+}) {
+  const source = canvasDocumentStore.findNodeById(payload.nodeId)
+  if (!source) return
+  const command = createSetStoryPromptsConfirmedCommand({
+    source,
+    confirmed: payload.confirmed,
+    shotIds: payload.shotIds,
+  })
+  if (!command) return
+  await canvasDocumentStore.dispatchCommand({ source: 'toolbar', command })
+  await canvasDocumentStore.flushPendingPersistence()
+}
+
+async function createScriptGenerationBatch(payload: {
+  nodeId: string
+  options: StoryShotBatchOptions
+  shotIds: string[]
+}) {
+  if (isReviewOnly.value || canvasRevisionStore.restoringRevision !== null) return
+  const source = canvasDocumentStore.findNodeById(payload.nodeId)
+  if (!source) return
+  const command = createStoryShotGenerationCommand({
+    sourceNode: source,
+    existingNodes: canvasDocumentStore.nodes,
+    connections: canvasDocumentStore.connections,
+    shotIds: payload.shotIds,
+    options: payload.options,
+  })
+  if (!command) return
+  await canvasDocumentStore.dispatchCommand({ source: 'toolbar', command })
+  await canvasDocumentStore.flushPendingPersistence()
 }
 const { branchFromResult, branchVisualRecipe, reorderGenerationInput } = useCanvasNodeActions({ isReviewOnly, selectedNode, revealNode: (nodeId) => canvasStageRef.value?.revealNode(nodeId) })
 const selectedProfessionalNodes = computed(() => {
@@ -815,8 +971,71 @@ function updateReplacementPrompt(payload: { nodeId: string; prompt: string }) {
   void canvasDocumentStore.setNodeContent(payload.nodeId, payload.prompt)
 }
 
+function renameReplacementNode(payload: { nodeId: string; title: string }) {
+  if (isReviewOnly.value || canvasRevisionStore.restoringRevision !== null) return
+  const command = createRenameNodeCommand(
+    canvasDocumentStore.nodes,
+    payload.nodeId,
+    payload.title,
+  )
+  if (command) void canvasDocumentStore.dispatchCommand({ source: 'accessibility', command })
+}
+
+async function updateReplacementComposition(payload: {
+  generationMode: string | null
+  nodeId: string
+  parameters: GenerationNodeParameters | null
+  prompt: string
+  promptDocument: CanvasCardPromptDocument
+  references: readonly CanvasCardReference[]
+}) {
+  const node = canvasDocumentStore.findNodeById(payload.nodeId)
+  if (!node || isReviewOnly.value) return
+  const card = buildCanvasCardViewModel(node)
+  await canvasDocumentStore.setNodeCardConfiguration(payload.nodeId, {
+    schemaVersion: 1,
+    generationMode: payload.generationMode,
+    modelId: card.configuration.modelId,
+    promptDocument: payload.promptDocument,
+    references: payload.references,
+  }, payload.prompt)
+  if (payload.parameters) {
+    await canvasDocumentStore.setNodeGenerationParameters(payload.nodeId, payload.parameters)
+  }
+}
+
 function moveReplacementNode(payload: { nodeId: string; x: number; y: number }) {
-  void canvasDocumentStore.queueNodeMove(payload.nodeId, payload.x, payload.y)
+  if (isReviewOnly.value || canvasRevisionStore.restoringRevision !== null) return
+  const node = canvasDocumentStore.nodes.find((candidate) => candidate.id === payload.nodeId)
+  if (node && isNodeGroupContainer(node)) {
+    const command = createMoveNodesByDeltaCommand(
+      canvasDocumentStore.nodes,
+      [node.id],
+      { x: payload.x - node.x, y: payload.y - node.y },
+    )
+    if (command) void canvasDocumentStore.dispatchCommand({ source: 'pointer', command })
+    return
+  }
+  const command = createMoveNodeMembershipCommand(
+    canvasDocumentStore.nodes,
+    payload.nodeId,
+    { x: payload.x, y: payload.y },
+  )
+  if (command) void canvasDocumentStore.dispatchCommand({ source: 'pointer', command })
+}
+
+function moveReplacementSelection(payload: {
+  deltaX: number
+  deltaY: number
+  nodeIds: string[]
+}) {
+  if (isReviewOnly.value || canvasRevisionStore.restoringRevision !== null) return
+  const command = createMoveNodesByDeltaCommand(
+    canvasDocumentStore.nodes,
+    payload.nodeIds,
+    { x: payload.deltaX, y: payload.deltaY },
+  )
+  if (command) void canvasDocumentStore.dispatchCommand({ source: 'pointer', command })
 }
 
 function connectReplacementNodes(payload: {
@@ -840,21 +1059,67 @@ function connectReplacementNodes(payload: {
 function continueReplacementConnection(payload: {
   direction: ConnectionContinuationDirection
   option: ConnectionContinuationOption
-  originNodeId: string
+  originNodeIds: string[]
   point: { x: number; y: number }
 }) {
   if (isReviewOnly.value || canvasRevisionStore.restoringRevision !== null) return
-  const origin = canvasDocumentStore.findNodeById(payload.originNodeId)
-  if (!origin) return
-  const command = createConnectionContinuationCommand(
-    origin,
-    payload.option,
-    payload.point,
-    payload.direction,
-    undefined,
+  const origins = payload.originNodeIds.flatMap((nodeId) => {
+    const origin = canvasDocumentStore.findNodeById(nodeId)
+    return origin ? [origin] : []
+  })
+  if (!origins.length || origins.length !== payload.originNodeIds.length) return
+  const command = origins.length > 1
+    ? createMultiConnectionContinuationCommand(
+      origins,
+      payload.option,
+      payload.point,
+      undefined,
+      canvasDocumentStore.nodes,
+    )
+    : createConnectionContinuationCommand(
+      origins[0],
+      payload.option,
+      payload.point,
+      payload.direction,
+      undefined,
+      canvasDocumentStore.nodes,
+    )
+  if (command) void canvasDocumentStore.dispatchCommand({ source: 'pointer', command })
+}
+
+function groupReplacementSelection() {
+  if (isReviewOnly.value || canvasRevisionStore.restoringRevision !== null) return
+  const command = createGroupNodesCommand(
     canvasDocumentStore.nodes,
+    canvasDocumentStore.selectedNodeIds,
   )
-  void canvasDocumentStore.dispatchCommand({ source: 'pointer', command })
+  if (command) void canvasDocumentStore.dispatchCommand({ source: 'toolbar', command })
+}
+
+function ungroupReplacementSelection() {
+  if (isReviewOnly.value || canvasRevisionStore.restoringRevision !== null) return
+  const command = createUngroupNodesCommand(
+    canvasDocumentStore.nodes,
+    canvasDocumentStore.selectedNodeIds,
+    canvasDocumentStore.connections,
+  )
+  if (command) void canvasDocumentStore.dispatchCommand({ source: 'toolbar', command })
+}
+
+function deleteReplacementSelection(source: 'keyboard' | 'context-menu') {
+  if (isReviewOnly.value || canvasRevisionStore.restoringRevision !== null) return
+  const command = createDeleteSelectionCommand(
+    canvasDocumentStore.selectedNodeIds,
+    canvasDocumentStore.selectedConnectionId ? [canvasDocumentStore.selectedConnectionId] : [],
+  )
+  if (command) void canvasDocumentStore.dispatchCommand({ source, command })
+}
+
+function selectReplacementNode(payload: {
+  nodeId: string
+  mode: 'replace' | 'toggle' | 'add'
+}) {
+  canvasDocumentStore.selectNode(payload.nodeId, payload.mode)
 }
 
 function updateReplacementConfiguration(payload: {
@@ -985,31 +1250,59 @@ onBeforeUnmount(() => {
       :canvas-count="canvasListStore.items.length"
       :canvas-name="activeCanvas?.name || '画布'"
       :canvases="canvasListStore.items"
-      :connections="canvasDocumentStore.connections"
+      :connections="replacementMaterializedProjection.connections"
       :document-ready="!canvasDocumentStore.isLoading"
-      :generation-context="selectedGenerationContext"
+      :generation-context="replacementGenerationContext"
+      :generation-quota="replacementGenerationContext
+        ? authStore.quotas[replacementGenerationContext.mediaType]
+        : 0"
       :model-options="replacementModelOptions"
-      :nodes="canvasDocumentStore.nodes"
+      :nodes="replacementMaterializedProjection.nodes"
       :project-name="projectName"
       :selected-node-id="canvasDocumentStore.selectedNodeId"
       :sync-label="syncLabel"
       :runtime-presentations="generationRuntimePresentations"
+      :script-active="scriptGeneration.active.value"
+      :script-capability="scriptGeneration.capability.value"
+      :script-capability-error="composerCapabilityError"
+      :script-capability-loading="isGenerationCapabilitiesLoading"
+      :script-error="scriptGeneration.error.value"
+      :script-quota="authStore.quotas.text"
+      :script-success="scriptGeneration.success.value"
       :viewport="canvasDocumentStore.viewport"
       :view-mode="viewMode"
+      :selected-node-ids="canvasDocumentStore.selectedNodeIds"
+      @add-script-shot="addScriptShot"
+      @cancel-script="scriptGeneration.cancel"
       @clear-selection="canvasDocumentStore.setSelection([])"
       @connect-nodes="connectReplacementNodes"
       @continue-connection="continueReplacementConnection"
       @create-node="createReplacementNode"
+      @create-script-generation-batch="createScriptGenerationBatch"
+      @delete-selection="deleteReplacementSelection"
+      @delete-script-shot="deleteScriptShot"
       @generate="generateFromReplacement"
+      @generate-script="scriptGeneration.generate"
+      @group-selection="groupReplacementSelection"
       @move-node="moveReplacementNode"
+      @move-selection="moveReplacementSelection"
       @open-actions="openReplacementActions"
       @redo="canvasDocumentStore.redo()"
-      @select-node="canvasDocumentStore.selectNode"
+      @rename-node="renameReplacementNode"
+      @retry-script-capability="reloadGenerationCapabilities"
+      @select-node="selectReplacementNode"
+      @set-selection="canvasDocumentStore.setSelection($event)"
+      @set-script-prompts-confirmed="setScriptPromptsConfirmed"
+      @set-script-shots-confirmed="setScriptShotsConfirmed"
       @switch-canvas="switchReplacementCanvas"
+      @ungroup-selection="ungroupReplacementSelection"
       @undo="canvasDocumentStore.undo()"
       @update-configuration="updateReplacementConfiguration"
+      @update-composition="updateReplacementComposition"
       @update-generation-parameters="updateGenerationParameters"
       @update-prompt="updateReplacementPrompt"
+      @update-script-asset="updateScriptAsset"
+      @update-script-shot="updateScriptShot"
       @update-viewport="canvasDocumentStore.updateViewport"
       @update:view-mode="setViewMode"
       />

@@ -109,7 +109,7 @@ class VideoGenerationE2ETestCase(unittest.TestCase):
             model="agnes-video-v2.0",
             prompt="Create a high-energy product teaser",
             width=1152,
-            height=768,
+            height=648,
             num_frames=121,
             frame_rate=24,
         )

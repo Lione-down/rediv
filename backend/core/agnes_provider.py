@@ -36,6 +36,7 @@ class AgnesProviderResponseError(RuntimeError):
 PROVIDER_STATUS_MAP = {
     "queued": "queued",
     "in_progress": "running",
+    "processing": "running",
     "completed": "succeeded",
     "failed": "failed",
 }
@@ -107,6 +108,8 @@ class AgnesProvider:
         messages: list[dict],
         *,
         temperature: float | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
     ) -> dict:
         """文本生成 / 图片理解 / 工具调用。
 
@@ -122,6 +125,8 @@ class AgnesProvider:
             model=model,
             messages=messages,
             temperature=temperature,
+            tools=tools,
+            tool_choice=tool_choice,
         )
         resp = await self._client.post(TEXT_CONTRACT.submit_path, json=payload)
         return self._response_json(resp)

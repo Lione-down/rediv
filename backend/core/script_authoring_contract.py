@@ -10,6 +10,10 @@ ScriptAuthoringLocale = Literal["zh-CN", "en-US"]
 SCRIPT_BRIEF_MAX_LENGTH = 4_000
 SCRIPT_SOURCE_MAX_LENGTH = 12_000
 SCRIPT_OUTPUT_MAX_LENGTH = 12_000
+SCRIPT_MODEL_LABELS = {
+    "agnes-2.0-flash": "Agnes 2.0 Flash",
+    "agnes-2.5-flash": "Agnes 2.5 Flash",
+}
 
 
 class ScriptAuthoringOutputError(ValueError):
@@ -21,7 +25,7 @@ def build_script_authoring_capabilities(*, model: str) -> dict:
         "contract_version": 1,
         "available": True,
         "model": model,
-        "model_label": "Agnes 2.0 Flash",
+        "model_label": SCRIPT_MODEL_LABELS.get(model, model),
         "intents": ["script_draft", "script_refine"],
         "locales": ["zh-CN", "en-US"],
         "default_locale": "zh-CN",
@@ -30,6 +34,13 @@ def build_script_authoring_capabilities(*, model: str) -> dict:
         "output_max_length": SCRIPT_OUTPUT_MAX_LENGTH,
         "creates_media": False,
         "runs_cinematic_decomposition": False,
+        "director": {
+            "skill_id": "revid.story-director",
+            "skill_version": 1,
+            "user_selectable": False,
+            "schema_id": "revid.story-production",
+            "schema_version": 1,
+        },
     }
 
 

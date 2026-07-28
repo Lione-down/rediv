@@ -204,6 +204,7 @@ test('new result and selection creation paths persist explicit video intent', ()
     .toEqual({
       schema_version: 1,
       video: {
+        aspect_ratio: '16:9',
         duration_seconds: 5, reference_mode: 'image-to-video', primary_reference_node_id: 'result-a',
       },
     })
@@ -211,7 +212,7 @@ test('new result and selection creation paths persist explicit video intent', ()
   expect(createSelectionGenerationCommand([result, second], 'video', () => crypto.randomUUID())?.nodes[0]
     .contentData?.generation_parameters).toEqual({
       schema_version: 1,
-      video: { duration_seconds: 5, reference_mode: 'keyframes' },
+      video: { aspect_ratio: '16:9', duration_seconds: 5, reference_mode: 'keyframes' },
     })
   expect(formatGenerationRequestParameters({ media_type: 'image', aspect_ratio: '16:9', size: '1K' }))
     .toBe('16:9 · 1K')
@@ -346,7 +347,7 @@ test('v6 controls persist image count and allow one video source in distinct rol
   await selectNode(page, '角色绑定视频')
   const videoControls = page.getByRole('region', { name: '生成参数' })
   await expect(videoControls).toContainText('已用 1/9')
-  await videoControls.getByRole('checkbox', { name: '历史图片生成结果 普通参考' }).check()
+  await videoControls.getByRole('checkbox', { name: '历史图片生成结果 中间关键帧' }).check()
   await expect.poll(() => documentPatches(state).length).toBe(2)
   await expect(videoControls).toContainText('已用 2/9')
   const savedVideo = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === video.id)!
@@ -356,7 +357,12 @@ test('v6 controls persist image count and allow one video source in distinct rol
   ]
   expect((savedVideo.content as Record<string, unknown>).generation_parameters).toEqual({
     schema_version: 1,
-    video: { duration_seconds: 5, reference_bindings: expectedBindings },
+    video: {
+      aspect_ratio: '16:9',
+      duration_seconds: 5,
+      reference_mode: 'keyframes',
+      reference_bindings: expectedBindings,
+    },
   })
   await page.getByRole('button', { name: '开始视频生成' }).click()
   await expect.poll(() => state.requests.filter((item) => item.path === '/api/video-generate').length).toBe(1)
@@ -398,6 +404,7 @@ test('time advance is available only on a single-reference image-to-video branch
   expect((savedVideo.content as Record<string, unknown>).generation_parameters).toEqual({
     schema_version: 1,
     video: {
+      aspect_ratio: '16:9',
       duration_seconds: 5, reference_mode: 'image-to-video', primary_reference_node_id: 'result-existing',
       shot_controls: expectedControls,
     },
@@ -429,7 +436,10 @@ test('multi-reference video stays blocked until keyframes and duration are expli
   await expect.poll(() => {
     const content = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'generation-two-origin-merge')?.content
     return (content as Record<string, unknown>).generation_parameters
-  }).toEqual({ schema_version: 1, video: { duration_seconds: 5, reference_mode: 'keyframes' } })
+  }).toEqual({
+    schema_version: 1,
+    video: { aspect_ratio: '16:9', duration_seconds: 5, reference_mode: 'keyframes' },
+  })
   await controls.getByRole('radio', { name: '10s' }).click()
   await expect.poll(() => documentPatches(state).length).toBe(2)
   await page.getByText('检查最终生成请求').click()

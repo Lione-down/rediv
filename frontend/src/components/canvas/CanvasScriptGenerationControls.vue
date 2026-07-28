@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { CircleAlert, LoaderCircle, RefreshCw, Send, UserRound, X } from 'lucide-vue-next'
 import type { CanvasNode } from '../../types/canvas'
 import { readScriptReferenceAssetIds } from '../../modules/canvas/script-reference-assets'
@@ -16,37 +16,109 @@ const props = withDefaults(defineProps<{
   capabilityError?: string
   capabilityLoading?: boolean
   error?: string
+  initialValue?: string
   initialIntent?: ScriptAuthoringIntent | null
+  modelId?: string | null
   node: CanvasNode
+  outputKind?: 'script' | 'story_production'
   quota?: number
   readonly?: boolean
   success?: string
-}>(), { active: false, capabilityError: '', capabilityLoading: false, error: '', initialIntent: null, quota: 0, readonly: false, success: '' })
+}>(), { active: false, capabilityError: '', capabilityLoading: false, error: '', initialIntent: null, initialValue: '', modelId: null, outputKind: 'script', quota: 0, readonly: false, success: '' })
 
 const emit = defineEmits<{
   cancel: []
   generate: [submission: ScriptGenerationSubmission]
   retryCapability: []
+  selectModel: [modelId: string]
+  updateBrief: [payload: { nodeId: string; value: string }]
 }>()
 const intent = ref<ScriptAuthoringIntent>('script_draft')
 const locale = ref<ScriptAuthoringLocale>('zh-CN')
+const selectedModelId = ref('')
 const value = ref('')
+const requestedShotCount = ref(10)
+let activeNodeId = props.node.id
+let persistedValue = ''
+let briefTimer: ReturnType<typeof setTimeout> | null = null
 const sourceText = computed(() => {
   const raw = props.node.content ?? props.node.contentData?.text
   return typeof raw === 'string' ? raw.trim() : ''
 })
 const canRefine = computed(() => Boolean(sourceText.value))
 const referenceAssetIds = computed(() => readScriptReferenceAssetIds(props.node))
+const storyDirectorUnavailableReason = computed(() => (
+  props.outputKind === 'story_production' &&
+  props.capability &&
+  props.capability.storyDirectorRequestContractVersion !== 1
+    ? '当前 backend runtime 未声明分镜请求 contract，请重启当前 backend 后再试。'
+    : ''
+))
 const canSubmit = computed(() => Boolean(
   props.capability && props.quota > 0 && !props.readonly && !props.active && value.value.trim() &&
+  selectedModelId.value &&
+  !storyDirectorUnavailableReason.value &&
+  (props.outputKind !== 'story_production' || (
+    Number.isInteger(requestedShotCount.value) &&
+    requestedShotCount.value >= 1 &&
+    requestedShotCount.value <= 25
+  )) &&
   (intent.value === 'script_draft' || canRefine.value),
 ))
 
-watch(() => props.node.id, () => {
-  intent.value = props.initialIntent ?? (sourceText.value ? 'script_refine' : 'script_draft')
-  value.value = intent.value === 'script_draft' ? sourceText.value : ''
+function flushBrief(nodeId = activeNodeId) {
+  if (briefTimer) {
+    clearTimeout(briefTimer)
+    briefTimer = null
+  }
+  if (props.outputKind !== 'story_production' || value.value === persistedValue) return
+  emit('updateBrief', { nodeId, value: value.value })
+  persistedValue = value.value
+}
+
+function scheduleBrief() {
+  if (props.outputKind !== 'story_production') return
+  if (briefTimer) clearTimeout(briefTimer)
+  briefTimer = setTimeout(() => flushBrief(), 400)
+}
+
+watch(() => props.node.id, (nodeId, previousNodeId) => {
+  if (previousNodeId) flushBrief(previousNodeId)
+  activeNodeId = nodeId
+  intent.value = props.outputKind === 'story_production'
+    ? 'script_draft'
+    : props.initialIntent ?? (sourceText.value ? 'script_refine' : 'script_draft')
+  value.value = props.outputKind === 'story_production'
+    ? props.initialValue
+    : intent.value === 'script_draft' ? sourceText.value : ''
+  persistedValue = value.value
   locale.value = props.capability?.defaultLocale ?? 'zh-CN'
 }, { immediate: true })
+
+watch(() => props.initialValue, (initialValue) => {
+  if (props.outputKind !== 'story_production' || briefTimer || value.value !== persistedValue) return
+  value.value = initialValue
+  persistedValue = initialValue
+})
+
+watch(
+  () => [
+    props.node.id,
+    props.modelId,
+    props.capability?.model,
+    props.capability?.models.map((model) => model.id).join('|'),
+  ],
+  () => {
+    const configuredModelId = props.modelId?.trim()
+    selectedModelId.value = (
+      configuredModelId &&
+      props.capability?.models.some((model) => model.id === configuredModelId)
+    )
+      ? configuredModelId
+      : props.capability?.model ?? ''
+  },
+  { immediate: true },
+)
 
 watch(() => props.initialIntent, (nextIntent) => {
   if (!nextIntent) return
@@ -64,17 +136,32 @@ function selectIntent(next: ScriptAuthoringIntent) {
   value.value = ''
 }
 
+function selectModel(event: Event) {
+  const modelId = (event.target as HTMLSelectElement).value
+  if (!props.capability?.models.some((model) => model.id === modelId)) return
+  selectedModelId.value = modelId
+  emit('selectModel', modelId)
+}
+
 function submit() {
   if (!canSubmit.value) return
+  flushBrief()
   emit('generate', {
     intent: intent.value,
     locale: locale.value,
+    modelId: selectedModelId.value,
     value: value.value.trim(),
+    outputKind: props.outputKind,
+    ...(props.outputKind === 'story_production'
+      ? { requestedShotCount: requestedShotCount.value }
+      : {}),
     ...(intent.value === 'script_draft' && referenceAssetIds.value.length
       ? { referenceAssetIds: referenceAssetIds.value }
       : {}),
   })
 }
+
+onBeforeUnmount(() => flushBrief())
 </script>
 
 <template>
@@ -87,25 +174,55 @@ function submit() {
       <span class="visually-hidden">{{ intent === 'script_draft' ? '创意 Brief' : '优化要求' }}</span>
       <textarea
         v-model="value"
-        :aria-label="intent === 'script_draft' ? '创意 Brief' : '脚本优化要求'"
+        @input="scheduleBrief"
+        @blur="flushBrief()"
+        :aria-label="outputKind === 'story_production' ? '分镜生成要求' : (intent === 'script_draft' ? '创意 Brief' : '脚本优化要求')"
         :disabled="active"
         :maxlength="capability?.briefMaxLength ?? 4000"
-        :placeholder="intent === 'script_draft' ? '例如：雨夜车站，一名摄影师寻找失踪的胶卷……' : '例如：提升节奏，保留人物关系和结局……'"
+        :placeholder="outputKind === 'story_production' ? '例如：生成完整分镜，保持人物关系和结局……' : (intent === 'script_draft' ? '例如：雨夜车站，一名摄影师寻找失踪的胶卷……' : '例如：提升节奏，保留人物关系和结局……')"
         rows="4"
       />
     </label>
+    <label v-if="!readonly && outputKind === 'story_production'" class="script-authoring__shot-count">
+      <span>镜头数量</span>
+      <input
+        v-model.number="requestedShotCount"
+        aria-label="镜头数量"
+        :disabled="active"
+        type="number"
+        min="1"
+        max="25"
+      />
+      <small>1–25</small>
+    </label>
     <div v-else class="script-authoring__readonly" role="status">只读审阅模式不能调用 Agnes 或修改脚本。</div>
     <p v-if="quota <= 0" class="script-authoring__message is-error"><CircleAlert :size="14" aria-hidden="true" />文本 quota 不足。</p>
+    <p v-else-if="storyDirectorUnavailableReason" class="script-authoring__message is-error" role="alert"><CircleAlert :size="14" aria-hidden="true" />{{ storyDirectorUnavailableReason }}</p>
     <p v-else-if="capabilityError" class="script-authoring__message is-error" role="alert"><CircleAlert :size="14" aria-hidden="true" />{{ capabilityError }}</p>
     <p v-else-if="error" class="script-authoring__message is-error" role="alert"><CircleAlert :size="14" aria-hidden="true" />{{ error }}</p>
     <p v-else-if="success" class="script-authoring__message" role="status">{{ success }}</p>
     <div class="script-authoring__actions">
       <button v-if="!capability && !capabilityLoading" type="button" class="secondary" aria-label="重试加载模型" @click="emit('retryCapability')"><RefreshCw :size="15" aria-hidden="true" />重试模型</button>
-      <strong>{{ capability?.modelLabel ?? (capabilityLoading ? '正在加载模型…' : '模型未就绪') }}</strong>
-      <span v-if="quota > 0" class="script-authoring__quota">{{ quota }}</span>
+      <label class="script-authoring__model">
+        <strong>当前模型</strong>
+        <select
+          :value="selectedModelId"
+          aria-label="选择脚本模型"
+          :disabled="active || readonly || !capability"
+          @change="selectModel"
+        >
+          <option v-if="!capability" value="">{{ capabilityLoading ? '正在加载模型…' : '模型未就绪' }}</option>
+          <option
+            v-for="model in capability?.models ?? []"
+            :key="model.id"
+            :value="model.id"
+          >{{ model.label }}</option>
+        </select>
+      </label>
+      <span v-if="quota > 0" class="script-authoring__quota">剩余 {{ quota }} quota</span>
       <span class="script-authoring__spacer" />
       <button v-if="active" type="button" class="secondary is-icon" aria-label="取消脚本生成" @click="emit('cancel')"><X :size="15" aria-hidden="true" /></button>
-      <button type="button" class="script-authoring__submit" :disabled="!canSubmit" :aria-label="intent === 'script_draft' ? '生成新脚本' : '优化当前脚本'" @click="submit">
+      <button type="button" class="script-authoring__submit" :disabled="!canSubmit" :aria-label="outputKind === 'story_production' ? '生成分镜' : (intent === 'script_draft' ? '生成新脚本' : '优化当前脚本')" @click="submit">
         <LoaderCircle v-if="active" class="spin" :size="15" aria-hidden="true" />
         <Send v-else :size="15" aria-hidden="true" />
       </button>
@@ -117,13 +234,18 @@ function submit() {
 .script-authoring { display: grid; min-height: 154px; gap: 8px; padding: 8px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-lg); background: var(--canvas-composer-surface); }
 .script-authoring__actions, .script-authoring__message { display: flex; align-items: center; gap: 7px; }
 .script-authoring__references { display: inline-flex; width: max-content; min-height: 24px; align-items: center; gap: 6px; padding: 0 8px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: var(--v2-surface-2); font-size: 11px; }
+.script-authoring__shot-count { display: grid; grid-template-columns: auto 72px auto; align-items: center; gap: 8px; width: max-content; color: var(--v2-text-secondary); font-size: 11px; }
+.script-authoring__shot-count input { width: 72px; min-height: 32px; padding: 0 8px; border: 1px solid var(--v2-border-standard); border-radius: var(--v2-radius-sm); color: var(--v2-text-primary); background: var(--v2-surface-2); }
+.script-authoring__shot-count small { color: var(--v2-text-muted); }
 .script-authoring button { min-height: 32px; border: 0; border-radius: var(--v2-radius-sm); color: var(--v2-text-secondary); background: transparent; }
 .script-authoring button:disabled { cursor: not-allowed; opacity: .48; }
 .script-authoring__field { display: grid; min-height: 96px; color: var(--v2-text-secondary); font-size: var(--v2-font-size-caption); }
 .script-authoring__field textarea { box-sizing: border-box; min-height: 96px; resize: none; border: 0; border-radius: var(--v2-radius-md); padding: 9px 10px; color: var(--v2-text-primary); background: var(--v2-surface-1); font: inherit; font-size: 13px; line-height: 1.75; }
-.script-authoring__field textarea:focus-visible, .script-authoring button:focus-visible, .script-authoring input:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
+.script-authoring__field textarea:focus-visible, .script-authoring button:focus-visible, .script-authoring input:focus-visible, .script-authoring select:focus-visible { outline: 2px solid var(--v2-focus-ring); outline-offset: 2px; }
 .script-authoring__actions { min-height: 34px; }
-.script-authoring__actions strong { padding-inline: 8px; color: var(--v2-text-primary); font-size: 13px; font-weight: 600; }
+.script-authoring__model { display: inline-flex; min-width: 0; align-items: center; gap: 6px; padding-inline: 8px; color: var(--v2-text-primary); }
+.script-authoring__model strong { flex: none; font-size: 13px; font-weight: 600; }
+.script-authoring__model select { min-width: 124px; min-height: 30px; border: 1px solid var(--v2-border-subtle); border-radius: var(--v2-radius-sm); padding: 0 28px 0 8px; color: var(--v2-text-secondary); background: var(--v2-surface-2); font: inherit; font-size: 11px; }
 .script-authoring__quota { color: var(--v2-text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .script-authoring__spacer { flex: 1; }
 .script-authoring__actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 11px; }

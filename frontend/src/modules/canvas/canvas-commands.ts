@@ -61,6 +61,13 @@ export interface MoveNodesCommand {
   moves: CanvasNodeMove[]
 }
 
+export interface MoveNodeMembershipCommand {
+  type: 'move-node-membership'
+  move: CanvasNodeMove
+  fromParentNodeId: string | null
+  toParentNodeId: string | null
+}
+
 export interface DuplicateNodesCommand {
   type: 'duplicate-nodes'
   nodeIds: string[]
@@ -165,10 +172,12 @@ export interface ApplyScriptAuthoringResultCommand {
   expectedContent: string
   content: string
   lineage: ScriptAuthoringLineage
+  storyProduction?: Record<string, unknown>
 }
 
 export type CanvasCommand =
   | MoveNodesCommand
+  | MoveNodeMembershipCommand
   | DuplicateNodesCommand
   | DeleteSelectionCommand
   | GroupNodesCommand
@@ -240,6 +249,107 @@ export function createMoveNodesCommand(
     if (moves.some((move) => move.to.x - move.from.x !== delta.x || move.to.y - move.from.y !== delta.y)) return null
   }
   return moves.length ? { type: 'move-nodes', moves } : null
+}
+
+export function createMoveNodesByDeltaCommand(
+  nodes: readonly CanvasNode[],
+  nodeIds: readonly string[],
+  delta: { x: number; y: number },
+): MoveNodesCommand | null {
+  if (
+    !Number.isFinite(delta.x) ||
+    !Number.isFinite(delta.y) ||
+    (delta.x === 0 && delta.y === 0)
+  ) return null
+  const resolvedIds = resolveCanvasDragNodeIds(nodes, nodeIds)
+  if (!resolvedIds) return null
+  const nodesById = new Map(nodes.map((node) => [node.id, node]))
+  return {
+    type: 'move-nodes',
+    moves: resolvedIds.map((nodeId) => {
+      const node = nodesById.get(nodeId)!
+      return {
+        nodeId,
+        from: { nodeId, x: node.x, y: node.y },
+        to: { nodeId, x: node.x + delta.x, y: node.y + delta.y },
+      }
+    }),
+  }
+}
+
+function isSpatialGroup(node: CanvasNode) {
+  return (
+    node.type === 'group' &&
+    node.contentData?.subtype === 'group' &&
+    !node.isLocked &&
+    isNodeMutationSupported(node)
+  )
+}
+
+export function resolveSpatialGroupParent(
+  nodes: readonly CanvasNode[],
+  nodeId: string,
+  position: { x: number; y: number },
+) {
+  const target = nodes.find((node) => node.id === nodeId)
+  if (!target || !Number.isFinite(position.x) || !Number.isFinite(position.y)) return null
+  const currentParent = target.parentNodeId ?? null
+  if (currentParent && !nodes.some((node) => node.id === currentParent && isSpatialGroup(node))) {
+    return currentParent
+  }
+  const targetRight = position.x + target.width
+  const targetBottom = position.y + target.height
+  const containingGroups = nodes.filter((candidate) => (
+    candidate.id !== nodeId &&
+    isSpatialGroup(candidate) &&
+    position.x >= candidate.x &&
+    position.y >= candidate.y &&
+    targetRight <= candidate.x + candidate.width &&
+    targetBottom <= candidate.y + candidate.height
+  )).sort((left, right) => (
+    (right.zIndex ?? 0) - (left.zIndex ?? 0) ||
+    left.width * left.height - right.width * right.height ||
+    left.id.localeCompare(right.id)
+  ))
+  if (containingGroups[0]) return containingGroups[0].id
+  const currentGroup = currentParent
+    ? nodes.find((node) => node.id === currentParent && isSpatialGroup(node))
+    : null
+  if (
+    currentGroup &&
+    position.x < currentGroup.x + currentGroup.width &&
+    targetRight > currentGroup.x &&
+    position.y < currentGroup.y + currentGroup.height &&
+    targetBottom > currentGroup.y
+  ) return currentGroup.id
+  return null
+}
+
+export function createMoveNodeMembershipCommand(
+  nodes: readonly CanvasNode[],
+  nodeId: string,
+  position: { x: number; y: number },
+): MoveNodeMembershipCommand | null {
+  const target = nodes.find((node) => node.id === nodeId)
+  if (
+    !target ||
+    target.isLocked ||
+    isNodeGroupContainer(target) ||
+    !isNodeMutationSupported(target) ||
+    !Number.isFinite(position.x) ||
+    !Number.isFinite(position.y) ||
+    (target.x === position.x && target.y === position.y)
+  ) return null
+  return {
+    type: 'move-node-membership',
+    move: {
+      nodeId,
+      from: { nodeId, x: target.x, y: target.y },
+      to: { nodeId, x: position.x, y: position.y },
+    },
+    fromParentNodeId: target.parentNodeId ?? null,
+    toParentNodeId: resolveSpatialGroupParent(nodes, nodeId, position),
+  }
 }
 
 export function createDuplicateNodesCommand(

@@ -51,10 +51,16 @@ function createTokenElement(
   token.dataset.referenceAssetId = assetId
   token.setAttribute('role', 'img')
   token.setAttribute('aria-label', reference ? `引用 ${reference.displayName}` : '已失效引用')
-  if (reference?.thumbnailUrl) {
+  if (reference?.thumbnailUrl && !reference.thumbnailUrl.startsWith('canvas-asset:')) {
     const image = document.createElement('img')
     image.src = reference.thumbnailUrl
     image.alt = ''
+    image.addEventListener('error', () => {
+      const placeholder = document.createElement('span')
+      placeholder.textContent = reference.displayName.slice(0, 1) || '!'
+      placeholder.setAttribute('aria-hidden', 'true')
+      image.replaceWith(placeholder)
+    }, { once: true })
     token.append(image)
   } else {
     const placeholder = document.createElement('span')

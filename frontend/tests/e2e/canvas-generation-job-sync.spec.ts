@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import * as generationJobApi from '../../src/modules/canvas/generation-job-api'
 import * as generationJobStore from '../../src/modules/canvas/generation-job-store'
 import * as generationJobRuntime from '../../src/modules/canvas/generation-job-runtime'
+import * as generationRuntimePresentation from '../../src/modules/canvas/generation-runtime-presentation'
 import type { CanvasNode } from '../../src/types/canvas'
 
 type FetchGenerationJobDelta = (
@@ -45,6 +46,7 @@ type SyncGenerationJobs = (input: {
 type HasGenerationJobPollingWork = (
   nodes: readonly CanvasNode[],
   statuses: ReadonlyMap<string, Record<string, unknown>>,
+  results?: ReadonlyMap<string, Record<string, unknown>>,
 ) => boolean
 
 function requireContractFunction<T extends (...args: never[]) => unknown>(
@@ -328,6 +330,114 @@ test('reload sync restores a persisted job then fetches its successful result on
     { path: '/api/v2/generation-jobs/job-one', params: undefined },
     { path: '/api/v2/generation-jobs/job-one/result', params: undefined },
   ])
+})
+
+test('terminal success remains result-recovery work without polling compact status again', async () => {
+  const node: CanvasNode = {
+    id: 'node-one',
+    type: 'generation',
+    title: 'Video card',
+    x: 0,
+    y: 0,
+    width: 340,
+    height: 220,
+    contentData: {
+      subtype: 'video',
+      serialization_version: 1,
+      active_generation_job_id: 'job-one',
+      active_generation_media_type: 'video',
+    },
+  }
+  const scope = { projectId: 'project-one', canvasId: 'canvas-one' }
+  const store = generationJobStore.createGenerationJobStore()
+  store.applyDelta(scope, {
+    items: [compactStatus({
+      media_type: 'video',
+      status: 'succeeded',
+      stage: 'persisting',
+      progress: 100,
+      result_asset_id: 'asset-one',
+      version: 5,
+    })],
+    next_cursor: 'cursor-one',
+  })
+  const before = store.snapshot(scope)
+  expect(generationJobRuntime.hasGenerationJobPollingWork(
+    [node],
+    before.statuses,
+    before.results,
+  ), 'T6-013 RED [terminal-result-recovery-is-not-scheduled]').toBe(true)
+
+  const calls: string[] = []
+  const after = await generationJobRuntime.syncGenerationJobs({
+    ...scope,
+    nodes: [node],
+    store,
+    transport: {
+      async get(path) {
+        calls.push(path)
+        if (path.endsWith('/result')) {
+          return {
+            data: {
+              job_id: 'job-one',
+              node_id: 'node-one',
+              result: {
+                asset_id: 'asset-one',
+                media_type: 'video',
+                url: 'https://media.revid.test/asset-one.mp4',
+              },
+              version: 5,
+            },
+          }
+        }
+        throw new Error(`Terminal status must not be polled again: ${path}`)
+      },
+    },
+  })
+
+  expect(calls).toEqual(['/api/v2/generation-jobs/job-one/result'])
+  expect(generationJobRuntime.hasGenerationJobPollingWork(
+    [node],
+    after.statuses,
+    after.results,
+  )).toBe(false)
+})
+
+test('terminal success stays in boundary-loading presentation until the owning card applies its exact result', () => {
+  const node: CanvasNode = {
+    id: 'node-one',
+    type: 'generation',
+    title: 'Image card',
+    x: 0,
+    y: 0,
+    width: 320,
+    height: 200,
+    contentData: {
+      subtype: 'image',
+      serialization_version: 1,
+      active_generation_job_id: 'job-one',
+      active_generation_media_type: 'image',
+    },
+  }
+  const presentation = generationRuntimePresentation.resolveGenerationJobRuntimePresentations(
+    [node],
+    [compactStatus({
+      status: 'succeeded',
+      stage: 'persisting',
+      progress: 100,
+      result_asset_id: 'asset-one',
+      version: 5,
+    }) as generationJobApi.GenerationJobStatus],
+  ).get(node.id)
+
+  expect(
+    presentation,
+    'T6-013 RED [terminal-placeholder-claims-completed]',
+  ).toMatchObject({
+    label: '正在显示结果',
+    tone: 'progress',
+    isTerminal: false,
+  })
 })
 
 test('bound nonterminal job refreshes direct compact status without reading the Canvas delta', async () => {

@@ -92,7 +92,18 @@ class GenerationProviderValidationTestCase(unittest.TestCase):
             )
 
         self.assertEqual(500, response.status_code)
-        self.assertEqual("Agnes text generation failed", response.json()["detail"])
+        self.assertEqual(
+            {
+                "code": "provider_result_invalid",
+                "message": "模型返回的脚本或分镜结构无效，请调整生成要求后重试。",
+                "retryable": False,
+                "diagnostic": {
+                    "stage": "provider_response_validation",
+                    "contract": "text-generation.v1",
+                },
+            },
+            response.json()["detail"],
+        )
         self._assert_failed_without_asset_or_charge("text", original_quota)
 
     def test_overlong_image_provider_id_fails_before_asset_or_charge(self) -> None:
@@ -155,10 +166,15 @@ class GenerationProviderValidationTestCase(unittest.TestCase):
         self.assertEqual(401, unauthenticated.status_code)
         self.assertEqual(200, authenticated.status_code)
         payload = authenticated.json()
-        self.assertEqual(6, payload["contract_version"])
+        self.assertEqual(7, payload["contract_version"])
         self.assertEqual("agnes-2.0-flash", payload["text"]["model"])
         self.assertEqual(["script_draft", "script_refine"], payload["text"]["intents"])
-        self.assertEqual("4:3", payload["image"]["default_aspect_ratio"])
+        self.assertEqual(
+            {"available": True, "request_contract_version": 1},
+            payload["text"]["story_director"],
+        )
+        self.assertEqual("1:1", payload["image"]["default_aspect_ratio"])
+        self.assertEqual(["1K", "2K", "3K", "4K"], payload["image"]["sizes"])
         self.assertEqual([1, 2, 3, 4], payload["image"]["output_counts"])
         self.assertEqual(1, payload["image"]["default_output_count"])
         self.assertEqual(["region"], payload["image"]["operations"]["supported_operations"])
@@ -166,7 +182,9 @@ class GenerationProviderValidationTestCase(unittest.TestCase):
         self.assertEqual([], payload["image"]["shot_controls"]["supported_controls"])
         self.assertEqual([], payload["video"]["shot_controls"]["provider_controls"])
         self.assertEqual(["first-frame", "last-frame", "reference"], payload["video"]["reference_roles"])
-        self.assertEqual(9, payload["video"]["max_references"])
+        self.assertEqual(8, payload["video"]["max_references"])
+        self.assertEqual(2000, payload["video"]["negative_prompt_max_length"])
+        self.assertFalse(payload["video"]["supports_semantic_multi_reference"])
         self.assertEqual([81, 121, 241, 441], [item["num_frames"] for item in payload["video"]["duration_presets"]])
         self.assertEqual("unavailable", payload["audio"]["execution_mode"])
         self.assertEqual([], payload["audio"]["generation_modes"])
@@ -337,6 +355,29 @@ class GenerationProviderValidationTestCase(unittest.TestCase):
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(["https://example.com/source.png"], provider.image_calls[0]["image"])
+
+    def test_image_output_count_is_persisted_with_each_single_slot_request(self) -> None:
+        provider = _Provider(image_response={"data": [{"url": "https://example.com/out.png"}]})
+        payload = {
+            **self._payload("Generate slot one of four"),
+            "output_count": 4,
+            "batch": {
+                "batch_id": str(uuid4()),
+                "slot_index": 1,
+                "slot_count": 4,
+            },
+        }
+
+        with patch.object(backend_main, "_agnes", provider):
+            response = self.client.post("/api/image-generate", json=payload, headers=self.headers)
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(1, len(provider.image_calls))
+        self.assertEqual(4, response.json()["generation_task"]["request_parameters"]["output_count"])
+        self.assertEqual(
+            payload["batch"],
+            response.json()["generation_task"]["request_parameters"]["batch"],
+        )
 
     def _assert_failed_without_asset_or_charge(self, media_type: str, original_quota: int) -> None:
         with get_session() as session:

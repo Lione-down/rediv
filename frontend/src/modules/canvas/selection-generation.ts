@@ -100,6 +100,7 @@ export function createSelectionGenerationCommand(
     const parameters: GenerationNodeParameters = {
       schema_version: 1,
       video: {
+        aspect_ratio: '16:9',
         duration_seconds: 5,
         reference_mode: referenceMode,
         ...(primaryReferenceNodeId ? { primary_reference_node_id: primaryReferenceNodeId } : {}),

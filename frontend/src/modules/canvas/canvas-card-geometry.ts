@@ -69,12 +69,28 @@ function readAspectRatio(content: Record<string, unknown> | undefined) {
   return null
 }
 
+function readGenerationAspectRatio(node: CanvasNode) {
+  if (node.type !== 'generation' || readString(node.contentData, 'subtype') !== 'image') return null
+  const parameters = node.contentData?.generation_parameters
+  if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) return null
+  const image = (parameters as Record<string, unknown>).image
+  if (!image || typeof image !== 'object' || Array.isArray(image)) return null
+  const value = (image as Record<string, unknown>).aspect_ratio
+  if (typeof value !== 'string') return null
+  const [width, height, ...rest] = value.split(':').map((part) => Number(part))
+  if (rest.length || !Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return null
+  }
+  const ratio = width / height
+  return ratio >= 0.1 && ratio <= 10 ? ratio : null
+}
+
 export function resolveCanvasAuthoringCardVisualHeight(node: CanvasNode) {
   if (node.type !== 'script' && node.type !== 'note' && node.type !== 'generation') return null
   if (resolveNodeDefinition(node.type, node.contentData).kind !== 'canonical') return null
   if (node.type === 'generation') {
     if (typeof node.contentData?.materialized_result_node_id === 'string') return null
-    return Math.min(node.height, 160)
+    return node.height
   }
   const contentLength = (node.content ?? '').trim().length
   const contentHeight = contentLength > 160 ? 220 : contentLength > 80 ? 190 : 160
@@ -96,11 +112,11 @@ export function resolveCanvasNodeMediaLayoutAspectRatio(node: CanvasNode) {
 }
 
 export function resolveCanvasNodeLayoutSize(node: CanvasNode): CanvasNodeLayoutSize {
+  const ratio = resolveCanvasNodeMediaLayoutAspectRatio(node) ?? readGenerationAspectRatio(node)
   const authoringHeight = resolveCanvasAuthoringCardVisualHeight(node)
-  if (authoringHeight !== null) return { width: node.width, height: authoringHeight }
-  const ratio = resolveCanvasNodeMediaLayoutAspectRatio(node)
+  if (!ratio && authoringHeight !== null) return { width: node.width, height: authoringHeight }
   if (!ratio) return { width: node.width, height: node.height }
-  const longEdge = Math.max(node.width, Math.min(node.height, node.width))
+  const longEdge = Math.max(node.width, node.height)
   return ratio >= 1
     ? { width: longEdge, height: longEdge / ratio }
     : { width: longEdge * ratio, height: longEdge }

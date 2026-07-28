@@ -268,6 +268,42 @@ test('canonical card geometry derives visible title selection composer and ports
   ])
 })
 
+test('selected image generation ratio owns visible geometry before media exists', () => {
+  const resolveCanvasCardGeometry = requireContractFunction<
+    (node: CanvasNode) => {
+      visible: { left: number; top: number; width: number; height: number }
+    }
+  >(
+    canvasGeometry,
+    'resolveCanvasCardGeometry',
+    'T6-013 RED [selected-image-ratio-geometry-absent]: generation parameters do not own pre-result geometry',
+  )
+  const node: CanvasNode = {
+    id: 'portrait-generation-card',
+    type: 'generation',
+    title: '竖版人物',
+    x: 100,
+    y: 200,
+    width: 340,
+    height: 220,
+    contentData: {
+      subtype: 'image',
+      serialization_version: 1,
+      generation_parameters: {
+        schema_version: 1,
+        image: { aspect_ratio: '9:16' },
+      },
+    },
+  }
+
+  expect(resolveCanvasCardGeometry(node).visible).toEqual({
+    left: 100,
+    top: 200,
+    width: 191.25,
+    height: 340,
+  })
+})
+
 test('attached work surface clamps inside the actual stage rectangle and panel insets', () => {
   const resolveCanvasAttachedSurfacePlacement = requireContractFunction<
     (input: {

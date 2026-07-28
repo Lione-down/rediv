@@ -16,6 +16,7 @@ export type RuntimeNodeKind =
 export interface RuntimeNodeProjection {
   bodyLabel: string
   content: string
+  error: string | null
   identityMeta: string
   identityTitle: string
   kind: RuntimeNodeKind
@@ -113,6 +114,7 @@ export function projectRuntimeNode(
   return {
     bodyLabel: typeLabel,
     content: viewModel.content,
+    error: runtimePresentation?.error ?? null,
     identityMeta: node.title.trim() === typeLabel ? '' : typeLabel,
     identityTitle: node.title.trim() || typeLabel,
     inputPortCount: viewModel.inputPorts.length,

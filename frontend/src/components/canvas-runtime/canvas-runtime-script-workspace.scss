@@ -1,0 +1,680 @@
+.runtime-script-workspace {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 64px 74px minmax(0, 1fr);
+  overflow: hidden;
+  color: var(--v2-text-primary);
+  background: var(--v2-canvas);
+}
+
+button,
+input,
+textarea {
+  box-sizing: border-box;
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  min-height: 34px;
+  border: 1px solid var(--v2-border-standard);
+  border-radius: var(--v2-radius-sm);
+  background: var(--v2-surface-2);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .46;
+}
+
+.is-primary {
+  color: var(--v2-text-on-accent);
+  background: var(--v2-accent);
+}
+
+.is-danger {
+  color: var(--v2-danger);
+}
+
+.runtime-script-workspace__header {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--v2-border-subtle);
+  background: var(--v2-surface-1);
+}
+
+.runtime-script-workspace__header > button {
+  width: 40px;
+}
+
+.runtime-script-workspace__header > div:nth-child(2) {
+  display: grid;
+  gap: 2px;
+}
+
+.runtime-script-workspace__header span,
+.runtime-script-workspace__header small {
+  color: var(--v2-text-muted);
+  font-size: 10px;
+}
+
+.runtime-script-workspace__header strong {
+  font-size: 13px;
+}
+
+.runtime-script-workspace__header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.runtime-script-workspace__header-actions > div {
+  position: relative;
+}
+
+.runtime-script-workspace__header-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+}
+
+.runtime-script-workspace__menu {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  min-width: 160px;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--v2-border-standard);
+  border-radius: var(--v2-radius-sm);
+  background: var(--v2-surface-2);
+  box-shadow: var(--v2-shadow-prominent);
+}
+
+.runtime-script-workspace__menu label {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.runtime-script-workspace__stages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--v2-border-subtle);
+  background: var(--v2-surface-1);
+}
+
+.runtime-script-workspace__stages > i {
+  width: 90px;
+  height: 1px;
+  background: var(--v2-border-standard);
+}
+
+.runtime-script-workspace__stages button {
+  display: flex;
+  min-width: 154px;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border-color: transparent;
+  text-align: left;
+}
+
+.runtime-script-workspace__stages button[aria-current='step'] {
+  border-color: var(--v2-border-accent);
+  background: var(--v2-accent-soft);
+}
+
+.runtime-script-workspace__stages b {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid var(--v2-border-standard);
+  border-radius: 50%;
+}
+
+.runtime-script-workspace__stages span {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.runtime-script-workspace__stages small {
+  color: var(--v2-text-muted);
+  font-size: 10px;
+}
+
+.runtime-script-workspace main {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 22px 26px;
+  overflow: hidden;
+}
+
+.runtime-script-workspace__summary,
+.runtime-script-workspace__stage-panel,
+.runtime-script-workspace__assets {
+  width: min(1840px, 100%);
+  margin: 0 auto;
+}
+
+.runtime-script-workspace__summary {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px;
+  border: 1px solid var(--v2-border-subtle);
+  border-radius: var(--v2-radius-md);
+  background: var(--v2-surface-1);
+}
+
+.runtime-script-workspace__summary small,
+.runtime-script-workspace__summary p {
+  margin: 0;
+  color: var(--v2-text-muted);
+  font-size: 11px;
+}
+
+.runtime-script-workspace__summary p {
+  margin-top: 5px;
+  color: var(--v2-text-secondary);
+  font-size: 12px;
+}
+
+.runtime-script-workspace__summary button,
+.runtime-script-workspace__footer button,
+.runtime-script-workspace__drawer > button,
+.runtime-script-workspace__prompt-dialog footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+}
+
+.runtime-script-workspace__message,
+.runtime-script-workspace__notice {
+  width: min(1180px, 100%);
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 9px 12px;
+  border-radius: var(--v2-radius-sm);
+  color: var(--v2-text-secondary);
+  background: var(--v2-accent-soft);
+  font-size: 11px;
+}
+
+.runtime-script-workspace__message.is-error {
+  color: var(--v2-danger);
+  background: var(--v2-surface-1);
+}
+
+.runtime-script-workspace__stage-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--v2-border-subtle);
+  border-radius: var(--v2-radius-md);
+  background: var(--v2-surface-1);
+}
+
+.runtime-script-workspace__table-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+table {
+  width: 100%;
+  min-width: 1580px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+table.is-prompts {
+  min-width: 1320px;
+}
+
+th,
+td {
+  padding: 10px;
+  border-right: 1px solid var(--v2-border-subtle);
+  border-bottom: 1px solid var(--v2-border-subtle);
+  color: var(--v2-text-secondary);
+  font-size: 11px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--v2-text-muted);
+  background: var(--v2-surface-2);
+  font-weight: var(--v2-font-weight-medium);
+}
+
+th:first-child,
+td:first-child {
+  width: 58px;
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+  width: 74px;
+}
+
+th:last-child,
+td:last-child {
+  width: 94px;
+  border-right: 0;
+}
+
+textarea,
+input {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  outline: 0;
+  background: transparent;
+  line-height: 1.55;
+}
+
+textarea:hover,
+input:hover,
+textarea:focus,
+input:focus {
+  border-color: var(--v2-border-standard);
+  background: var(--v2-surface-2);
+}
+
+textarea:disabled,
+input:disabled {
+  opacity: .7;
+}
+
+.runtime-script-workspace__footer {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+}
+
+.runtime-script-workspace__footer > span {
+  color: var(--v2-text-muted);
+  font-size: 11px;
+}
+
+.runtime-script-workspace__assets {
+  display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  gap: 22px;
+  padding-bottom: 72px;
+  overflow: auto;
+}
+
+.runtime-script-workspace__batch-actions {
+  display: flex;
+  width: min(1840px, 100%);
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 auto;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--v2-border-subtle);
+  border-radius: var(--v2-radius-md);
+  background: var(--v2-surface-1);
+}
+
+.runtime-script-workspace__batch-actions p {
+  margin: 0;
+  color: var(--v2-text-muted);
+  font-size: 11px;
+}
+
+.runtime-script-workspace__batch-actions > div {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.runtime-script-workspace__batch-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+}
+
+.runtime-script-workspace__asset-group {
+  display: grid;
+  gap: 10px;
+}
+
+.runtime-script-workspace__asset-group > header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.runtime-script-workspace__asset-group h2 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.runtime-script-workspace__asset-group small {
+  color: var(--v2-text-muted);
+  font-size: 10px;
+}
+
+.runtime-script-workspace__asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.runtime-script-workspace__asset-grid > button {
+  display: grid;
+  min-height: 220px;
+  align-content: start;
+  gap: 8px;
+  padding: 10px;
+  text-align: left;
+}
+
+.runtime-script-workspace__asset-grid > p {
+  color: var(--v2-text-muted);
+  font-size: 11px;
+}
+
+.runtime-script-workspace__asset-preview {
+  display: grid;
+  min-height: 150px;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  border: 1px dashed var(--v2-border-standard);
+  border-radius: var(--v2-radius-sm);
+  color: var(--v2-text-muted);
+}
+
+.runtime-script-workspace__asset-grid strong {
+  font-size: 12px;
+}
+
+.runtime-script-workspace__asset-grid button > small {
+  overflow: hidden;
+  color: var(--v2-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runtime-script-workspace__drawer {
+  position: fixed;
+  z-index: 58;
+  inset: 0 0 0 auto;
+  display: grid;
+  width: min(470px, 92vw);
+  box-sizing: border-box;
+  align-content: start;
+  gap: 14px;
+  padding: 18px;
+  overflow: auto;
+  border-left: 1px solid var(--v2-border-standard);
+  background: var(--v2-surface-2);
+  box-shadow: var(--v2-shadow-prominent);
+}
+
+.runtime-script-workspace__drawer header,
+.runtime-script-workspace__prompt-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.runtime-script-workspace__drawer header button,
+.runtime-script-workspace__prompt-dialog header button {
+  width: 34px;
+  padding: 0;
+}
+
+.runtime-script-workspace__drawer label {
+  display: grid;
+  gap: 7px;
+  color: var(--v2-text-secondary);
+  font-size: 11px;
+}
+
+.runtime-script-workspace__drawer label input,
+.runtime-script-workspace__drawer label textarea {
+  padding: 9px;
+  border-color: var(--v2-border-standard);
+  background: var(--v2-surface-3);
+}
+
+.runtime-script-workspace__asset-image {
+  display: grid;
+  min-height: 210px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px dashed var(--v2-border-standard);
+  border-radius: var(--v2-radius-md);
+  color: var(--v2-text-muted);
+}
+
+.runtime-script-workspace__asset-image small {
+  max-width: 280px;
+  text-align: center;
+}
+
+.runtime-script-workspace__backdrop {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: oklch(2% .01 292 / .76);
+}
+
+.runtime-script-workspace__prompt-dialog {
+  display: grid;
+  width: min(820px, 100%);
+  max-height: min(720px, 88vh);
+  gap: 14px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid var(--v2-border-standard);
+  border-radius: var(--v2-radius-lg);
+  background: var(--v2-surface-2);
+  box-shadow: var(--v2-shadow-prominent);
+}
+
+.runtime-script-workspace__batch-dialog {
+  display: grid;
+  width: min(920px, 100%);
+  max-height: min(760px, 90vh);
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  gap: 14px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid var(--v2-border-standard);
+  border-radius: var(--v2-radius-lg);
+  background: var(--v2-surface-2);
+  box-shadow: var(--v2-shadow-prominent);
+}
+
+.runtime-script-workspace__batch-dialog > header,
+.runtime-script-workspace__batch-dialog > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.runtime-script-workspace__batch-dialog > header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.runtime-script-workspace__batch-dialog > header small,
+.runtime-script-workspace__batch-dialog > footer span,
+.runtime-script-workspace__batch-list small,
+.runtime-script-workspace__batch-modes small {
+  color: var(--v2-text-muted);
+  font-size: 11px;
+}
+
+.runtime-script-workspace__batch-list {
+  display: grid;
+  overflow: auto;
+  border: 1px solid var(--v2-border-subtle);
+  border-radius: var(--v2-radius-sm);
+}
+
+.runtime-script-workspace__batch-list label {
+  display: grid;
+  grid-template-columns: 20px 82px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--v2-border-subtle);
+  font-size: 11px;
+}
+
+.runtime-script-workspace__batch-list input,
+.runtime-script-workspace__batch-modes input {
+  width: 16px;
+}
+
+.runtime-script-workspace__batch-list span {
+  overflow: hidden;
+  color: var(--v2-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runtime-script-workspace__batch-modes {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--v2-border-subtle);
+  border-radius: var(--v2-radius-sm);
+}
+
+.runtime-script-workspace__batch-modes legend {
+  padding: 0 6px;
+  color: var(--v2-text-muted);
+  font-size: 11px;
+}
+
+.runtime-script-workspace__batch-modes label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.runtime-script-workspace__batch-modes small {
+  margin-left: auto;
+}
+
+.runtime-script-workspace__batch-parameters {
+  display: flex;
+  gap: 12px;
+}
+
+.runtime-script-workspace__batch-parameters label {
+  display: grid;
+  min-width: 170px;
+  gap: 6px;
+  color: var(--v2-text-muted);
+  font-size: 11px;
+}
+
+.runtime-script-workspace__batch-parameters select {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--v2-border-standard);
+  border-radius: var(--v2-radius-sm);
+  color: var(--v2-text-primary);
+  background: var(--v2-surface-1);
+}
+
+.runtime-script-workspace__batch-dialog > footer button,
+.runtime-script-workspace__batch-dialog > header button {
+  padding: 0 12px;
+}
+
+.runtime-script-workspace__prompt-list {
+  display: grid;
+  overflow: auto;
+  border: 1px solid var(--v2-border-subtle);
+}
+
+.runtime-script-workspace__prompt-list label {
+  display: grid;
+  grid-template-columns: 20px 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid var(--v2-border-subtle);
+  font-size: 11px;
+}
+
+.runtime-script-workspace__prompt-list input {
+  width: 16px;
+}
+
+.runtime-script-workspace__prompt-list span {
+  overflow: hidden;
+  color: var(--v2-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runtime-script-workspace__prompt-dialog footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--v2-text-muted);
+  font-size: 11px;
+}
+
+.runtime-script-workspace :focus-visible {
+  outline: 2px solid var(--v2-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .runtime-script-workspace__stages > i {
+    width: 20px;
+  }
+
+  .runtime-script-workspace__stages button {
+    min-width: auto;
+  }
+}

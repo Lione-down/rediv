@@ -93,6 +93,7 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
     return hasGenerationJobPollingWork(
       canvasStore.nodes,
       generationJobSnapshot.value.statuses,
+      generationJobSnapshot.value.results,
     )
   }
 
@@ -182,15 +183,19 @@ export function useCanvasGenerationRuntime(options: CanvasGenerationRuntimeOptio
         if (hasUnboundRecoveryWork()) await recoverUnboundJobs(context)
         const requests: Promise<unknown>[] = []
         if (hasCompactPollingWork()) {
-          requests.push(syncGenerationJobs({
-            projectId: context.projectId,
-            canvasId: context.canvasId,
-            nodes: canvasStore.nodes,
-            store: generationJobStore,
-            transport: request,
-          }).then(() => {
-            generationJobRevision.value += 1
-          }))
+          requests.push((async () => {
+            try {
+              await syncGenerationJobs({
+                projectId: context.projectId,
+                canvasId: context.canvasId,
+                nodes: canvasStore.nodes,
+                store: generationJobStore,
+                transport: request,
+              })
+            } finally {
+              generationJobRevision.value += 1
+            }
+          })())
         }
         await Promise.all(requests)
         pollingErrorCount = 0

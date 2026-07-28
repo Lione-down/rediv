@@ -7,11 +7,14 @@ import CanvasRuntimeContinuationMenu from './CanvasRuntimeContinuationMenu.vue'
 import CanvasRuntimeChrome from './CanvasRuntimeChrome.vue'
 import CanvasRuntimeContextMenu from './CanvasRuntimeContextMenu.vue'
 import CanvasRuntimeMinimap from './CanvasRuntimeMinimap.vue'
+import CanvasRuntimeSelectionHull from './CanvasRuntimeSelectionHull.vue'
 import {
   useRuntimeCanvasShell,
   type RuntimeContextToolId,
 } from './use-runtime-canvas-shell'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRuntimeMarqueeSelection } from './use-runtime-marquee-selection'
+import { useRuntimeConnectionDrag } from './use-runtime-connection-drag'
 import type { PersistedViewport } from '../../modules/canvas/persistence'
 import type { CanvasCardConfigurationSnapshot } from '../../modules/canvas/canvas-card-configuration'
 import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
@@ -23,12 +26,22 @@ import type { CanvasConnection, CanvasNode } from '../../types/canvas'
 import type { CanvasMetadataDto } from '../../modules/canvas/types'
 import type { ProjectAsset } from '../../modules/canvas/project-resource-types'
 import { buildCanvasCardViewModel } from '../../modules/canvas/canvas-card-view-model'
+import { resolveCanvasDragNodeIds } from '../../modules/canvas/canvas-drag-resolution'
+import { canDeleteCanvasNode } from '../../modules/canvas/canvas-commands'
+import { isNodeGroupContainer } from '../../modules/canvas/node-registry'
 import {
   resolveConnectionContinuationOptions,
+  resolveMultiConnectionContinuationOptions,
   type ConnectionContinuationDirection,
   type ConnectionContinuationOption,
 } from '../../modules/canvas/connection-continuation'
-import { resolveVisibleAcquisitionConnectionPorts } from '../../modules/canvas/node-registry'
+import type { ScriptGenerationSubmission } from '../canvas/composables/use-canvas-script-generation'
+import type {
+  ScriptAuthoringCapabilities,
+  StoryAssetEditableField,
+  StoryShotEditableField,
+} from '../../modules/canvas/script-authoring'
+import type { StoryShotBatchOptions } from '../../modules/canvas/story-shot-generation'
 
 export type ReplacementCanvasView = 'workflow' | 'storyboard'
 export interface ReplacementModelOption {
@@ -47,17 +60,53 @@ const props = defineProps<{
   connections: readonly CanvasConnection[]
   documentReady: boolean
   generationContext: ResolvedGenerationRequestContext | null
+  generationQuota: number
   modelOptions: readonly ReplacementModelOption[]
   nodes: readonly CanvasNode[]
   projectName: string
   selectedNodeId: string
   syncLabel: string
   runtimePresentations: ReadonlyMap<string, GenerationRuntimePresentation>
+  scriptActive: boolean
+  scriptCapability: ScriptAuthoringCapabilities | null
+  scriptCapabilityError: string
+  scriptCapabilityLoading: boolean
+  scriptError: string
+  scriptQuota: number
+  scriptSuccess: string
   viewport: PersistedViewport
   viewMode: ReplacementCanvasView
+  selectedNodeIds: readonly string[]
 }>()
 
+const scriptActiveNodeId = ref('')
+
 const emit = defineEmits<{
+  addScriptShot: [nodeId: string]
+  createScriptGenerationBatch: [payload: {
+    nodeId: string
+    options: StoryShotBatchOptions
+    shotIds: string[]
+  }]
+  deleteScriptShot: [payload: { nodeId: string; shotId: string }]
+  setScriptPromptsConfirmed: [payload: {
+    confirmed: boolean
+    nodeId: string
+    shotIds: string[]
+  }]
+  setScriptShotsConfirmed: [payload: { confirmed: boolean; nodeId: string }]
+  updateScriptAsset: [payload: {
+    assetId: string
+    field: StoryAssetEditableField
+    nodeId: string
+    value: string
+  }]
+  updateScriptShot: [payload: {
+    field: StoryShotEditableField
+    nodeId: string
+    shotId: string
+    value: string | number
+  }]
   clearSelection: []
   connectNodes: [payload: {
     sourceNodeId: string
@@ -68,26 +117,58 @@ const emit = defineEmits<{
   continueConnection: [payload: {
     direction: ConnectionContinuationDirection
     option: ConnectionContinuationOption
-    originNodeId: string
+    originNodeIds: string[]
     point: { x: number; y: number }
   }]
   openActions: [payload: { opener: HTMLElement; query: string }]
   createNode: [toolId: RuntimeContextToolId, point?: { x: number; y: number }]
+  deleteSelection: [source: 'keyboard' | 'context-menu']
   generate: []
+  cancelScript: []
+  generateScript: [submission: ScriptGenerationSubmission]
+  groupSelection: []
   redo: []
-  selectNode: [nodeId: string]
+  retryScriptCapability: []
+  selectNode: [payload: { nodeId: string; mode: 'replace' | 'toggle' | 'add' }]
+  setSelection: [nodeIds: string[]]
   switchCanvas: [canvasId: string]
+  ungroupSelection: []
   moveNode: [payload: { nodeId: string; x: number; y: number }]
+  moveSelection: [payload: { deltaX: number; deltaY: number; nodeIds: string[] }]
+  renameNode: [payload: { nodeId: string; title: string }]
   updateViewport: [viewport: PersistedViewport]
   updatePrompt: [payload: { nodeId: string; prompt: string }]
   updateConfiguration: [payload: {
     configuration: CanvasCardConfigurationSnapshot
     nodeId: string
   }]
+  updateComposition: [payload: {
+    generationMode: string | null
+    nodeId: string
+    parameters: GenerationNodeParameters | null
+    prompt: string
+    promptDocument: import('../../modules/canvas/canvas-card-view-model').CanvasCardPromptDocument
+    references: readonly import('../../modules/canvas/canvas-card-view-model').CanvasCardReference[]
+  }]
   updateGenerationParameters: [parameters: GenerationNodeParameters]
   'update:viewMode': [mode: ReplacementCanvasView]
   undo: []
 }>()
+
+watch(
+  () => props.scriptActive,
+  (active) => {
+    if (!active) {
+      scriptActiveNodeId.value = ''
+      return
+    }
+    const nodeId = scriptWorkspaceNodeId.value || props.selectedNodeId
+    const node = props.nodes.find((candidate) => candidate.id === nodeId)
+    scriptActiveNodeId.value = (
+      node?.type === 'script' && node.contentData?.subtype === 'script'
+    ) ? node.id : ''
+  },
+)
 
 const visibleNodes = computed(() => props.nodes.filter((node) => node.type !== 'result'))
 const transientNodePositions = ref(new Map<string, { x: number; y: number }>())
@@ -96,22 +177,25 @@ const edgeNodes = computed(() => visibleNodes.value.map((node) => {
   return transient ? { ...node, ...transient } : node
 }))
 const selectedNode = computed(() => (
-  edgeNodes.value.find((node) => node.id === props.selectedNodeId) ?? null
+  props.selectedNodeIds.length === 1
+    ? edgeNodes.value.find((node) => node.id === props.selectedNodeId) ?? null
+    : null
+))
+const canDeleteSelection = computed(() => (
+  props.selectedNodeIds.length > 0 &&
+  props.selectedNodeIds.every((nodeId) => (
+    canDeleteCanvasNode(props.nodes, props.connections, nodeId)
+  ))
 ))
 const interactionState = ref<
-  'idle' | 'card-drag' | 'canvas-pan' | 'direct-edit' | 'port-drag'
+  'idle' | 'card-drag' | 'canvas-pan' | 'direct-edit' | 'marquee' | 'port-drag'
 >('idle')
-const draftEdge = ref<{
-  current: { x: number; y: number }
-  start: { x: number; y: number }
-} | null>(null)
 const elasticPortPositions = ref(new Map<string, { x: number; y: number }>())
 const scriptWorkspaceNodeId = ref('')
-const lastPortDrop = ref('none')
 const continuation = ref<{
   direction: ConnectionContinuationDirection
   options: ConnectionContinuationOption[]
-  originNodeId: string
+  originNodeIds: string[]
   point: { x: number; y: number }
   position: { left: number; top: number }
 } | null>(null)
@@ -119,13 +203,55 @@ const scriptWorkspaceNode = computed(() => (
   props.nodes.find((node) => node.id === scriptWorkspaceNodeId.value) ?? null
 ))
 
+function isTextOrControlTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+  return Boolean(target.closest(
+    'input, textarea, select, button, a, [contenteditable="true"], [role="textbox"], [role="dialog"], [role="menu"]',
+  ))
+}
+
+function handleRuntimeKeyDown(event: KeyboardEvent) {
+  if (
+    event.key !== 'Delete' ||
+    event.defaultPrevented ||
+    isTextOrControlTarget(event.target) ||
+    !canDeleteSelection.value
+  ) return
+  event.preventDefault()
+  emit('deleteSelection', 'keyboard')
+}
+
 function updateDraggedNode(payload: { nodeId: string; x: number; y: number } | null) {
   if (!payload) {
     transientNodePositions.value = new Map()
     return
   }
-  transientNodePositions.value = new Map(transientNodePositions.value)
-    .set(payload.nodeId, { x: payload.x, y: payload.y })
+  const origin = props.nodes.find((node) => node.id === payload.nodeId)
+  if (!origin || !isNodeGroupContainer(origin)) {
+    transientNodePositions.value = new Map([[payload.nodeId, { x: payload.x, y: payload.y }]])
+    return
+  }
+  const resolvedIds = resolveCanvasDragNodeIds(props.nodes, [origin.id])
+  if (!resolvedIds) {
+    transientNodePositions.value = new Map()
+    return
+  }
+  const delta = { x: payload.x - origin.x, y: payload.y - origin.y }
+  transientNodePositions.value = new Map(resolvedIds.map((nodeId) => {
+    const node = props.nodes.find((candidate) => candidate.id === nodeId)!
+    return [nodeId, { x: node.x + delta.x, y: node.y + delta.y }]
+  }))
+}
+
+function updateDraggedSelection(
+  positions: Array<{ nodeId: string; x: number; y: number }> | null,
+) {
+  transientNodePositions.value = positions
+    ? new Map(positions.map((position) => [
+      position.nodeId,
+      { x: position.x, y: position.y },
+    ]))
+    : new Map()
 }
 
 function setNodeInteractionState(state: 'idle' | 'card-drag' | 'direct-edit' | 'port-drag') {
@@ -150,33 +276,30 @@ function updateDirectContent(payload: { nodeId: string; content: string }) {
 }
 
 function openScriptWorkspace(nodeId: string) {
-  emit('selectNode', nodeId)
+  emit('selectNode', { nodeId, mode: 'replace' })
   scriptWorkspaceNodeId.value = nodeId
 }
 
-function acquirePortDropTarget(
-  x: number,
-  y: number,
-  direction: 'input' | 'output',
-  originNodeId: string,
-) {
-  const oppositeDirection = direction === 'output' ? 'input' : 'output'
-  return [...document.querySelectorAll<HTMLElement>(
-    `[data-visible-port="${oppositeDirection}"]`,
-  )]
-    .filter((candidate) => candidate.dataset.nodeId !== originNodeId)
-    .map((candidate) => {
-      const rect = candidate.getBoundingClientRect()
-      const centerX = rect.left + rect.width / 2
-      const centerY = rect.top + rect.height / 2
-      return {
-        candidate,
-        distance: Math.hypot(centerX - x, centerY - y),
-        radius: Math.max(28, Math.max(rect.width, rect.height) * 1.5),
-      }
-    })
-    .filter(({ distance, radius }) => distance <= radius)
-    .sort((left, right) => left.distance - right.distance)[0]?.candidate ?? null
+function completeScriptStoryboard(nodeId: string) {
+  const node = props.nodes.find((candidate) => candidate.id === nodeId)
+  const configuredModelId = node
+    ? buildCanvasCardViewModel(node).configuration.modelId
+    : null
+  const modelId = (
+    configuredModelId &&
+    props.scriptCapability?.models.some((model) => model.id === configuredModelId)
+  )
+    ? configuredModelId
+    : props.scriptCapability?.model ?? ''
+  emit('selectNode', { nodeId, mode: 'replace' })
+  emit('generateScript', {
+    intent: 'script_draft',
+    locale: props.scriptCapability?.defaultLocale ?? 'zh-CN',
+    modelId,
+    value: '自主创建完整可拍摄分镜，保留已有故事事实、人物关系、结局和用户编辑字段。',
+    outputKind: 'story_production',
+    requestedShotCount: 10,
+  })
 }
 
 function continuationOptions(
@@ -211,7 +334,32 @@ function openContinuation(payload: {
   continuation.value = {
     direction,
     options,
-    originNodeId: origin.id,
+    originNodeIds: [origin.id],
+    point: {
+      x: (payload.x - props.viewport.x) / props.viewport.zoom,
+      y: (payload.y - props.viewport.y) / props.viewport.zoom,
+    },
+    position: {
+      left: Math.min(Math.max(16, payload.x + 12), window.innerWidth - 280),
+      top: Math.min(Math.max(76, payload.y - 24), window.innerHeight - 360),
+    },
+  }
+}
+
+function openSelectionContinuation(payload: {
+  nodeIds: string[]
+  x: number
+  y: number
+}) {
+  const selectedIds = new Set(payload.nodeIds)
+  const origins = props.nodes.filter((node) => selectedIds.has(node.id))
+  const options = resolveMultiConnectionContinuationOptions(origins)
+    .filter((option) => option.subtype !== 'audio' || props.allowedAudioModelCount > 0)
+  if (origins.length < 2 || !options.length) return
+  continuation.value = {
+    direction: 'downstream',
+    options,
+    originNodeIds: origins.map((origin) => origin.id),
     point: {
       x: (payload.x - props.viewport.x) / props.viewport.zoom,
       y: (payload.y - props.viewport.y) / props.viewport.zoom,
@@ -229,76 +377,26 @@ function chooseContinuation(option: ConnectionContinuationOption) {
   emit('continueConnection', {
     direction: state.direction,
     option,
-    originNodeId: state.originNodeId,
+    originNodeIds: state.originNodeIds,
     point: state.point,
   })
   continuation.value = null
 }
 
-function handlePortDrag(payload: {
-  direction: 'input' | 'output'
-  logicalPortId: string | null
-  nodeId: string
-  phase: 'start' | 'move' | 'end'
-  x: number
-  y: number
-}) {
-  if (payload.phase === 'start') {
-    draftEdge.value = {
-      start: { x: payload.x, y: payload.y },
-      current: { x: payload.x, y: payload.y },
-    }
-    interactionState.value = 'port-drag'
-    return
-  }
-  if (payload.phase === 'move' && draftEdge.value) {
-    draftEdge.value = {
-      ...draftEdge.value,
-      current: { x: payload.x, y: payload.y },
-    }
-    return
-  }
-  const target = acquirePortDropTarget(
-    payload.x,
-    payload.y,
-    payload.direction,
-    payload.nodeId,
-  )
-  const targetNodeId = target?.dataset.nodeId
-  const targetDirection = target?.dataset.visiblePort
-  lastPortDrop.value = targetNodeId && targetDirection
-    ? `${payload.nodeId}:${payload.direction}->${targetNodeId}:${targetDirection}`
-    : 'miss'
-  if (
-    targetNodeId &&
-    targetNodeId !== payload.nodeId &&
-    targetDirection &&
-    targetDirection !== payload.direction
-  ) {
-    const sourceNodeId = payload.direction === 'output' ? payload.nodeId : targetNodeId
-    const targetConnectionNodeId = payload.direction === 'output' ? targetNodeId : payload.nodeId
-    const sourceNode = props.nodes.find((node) => node.id === sourceNodeId)
-    const targetNode = props.nodes.find((node) => node.id === targetConnectionNodeId)
-    const ports = sourceNode && targetNode
-      ? resolveVisibleAcquisitionConnectionPorts(sourceNode, targetNode)
-      : null
-    if (ports) {
-      emit('connectNodes', {
-        sourceNodeId,
-        sourcePort: ports.sourcePort,
-        targetNodeId: targetConnectionNodeId,
-        targetPort: ports.targetPort,
-      })
-      continuation.value = null
-    } else {
-      lastPortDrop.value = 'incompatible'
-    }
-  } else {
-    openContinuation(payload)
-  }
-  draftEdge.value = null
-  interactionState.value = 'idle'
-}
+const {
+  connectionTarget,
+  draftEdge,
+  handlePortDrag,
+  lastPortDrop,
+} = useRuntimeConnectionDrag({
+  connectNodes: (payload) => {
+    emit('connectNodes', payload)
+    continuation.value = null
+  },
+  nodes: () => props.nodes,
+  openContinuation,
+  setInteractionState: (state) => { interactionState.value = state },
+})
 
 const {
   beginCanvasPan,
@@ -320,6 +418,29 @@ const {
   viewport: () => props.viewport,
 })
 
+const {
+  beginWorldPointer,
+  cancelWorldPointer,
+  canGroupSelection,
+  canUngroupSelection,
+  finishWorldPointer,
+  marquee,
+  marqueeStyle,
+  moveWorldPointer,
+} = useRuntimeMarqueeSelection({
+  beginCanvasPan,
+  cancelCanvasPan: finishCanvasPan,
+  connections: () => props.connections,
+  finishCanvasPan,
+  groupSelection: () => emit('groupSelection'),
+  moveCanvas,
+  nodes: () => props.nodes,
+  selectedNodeIds: () => props.selectedNodeIds,
+  setInteractionState: (state) => { interactionState.value = state },
+  setSelection: (nodeIds) => emit('setSelection', nodeIds),
+  ungroupSelection: () => emit('ungroupSelection'),
+})
+
 </script>
 
 <template>
@@ -330,16 +451,17 @@ const {
     :data-interaction-state="interactionState"
     :data-last-port-drop="lastPortDrop"
     aria-label="Revid Canvas"
+    @keydown.capture="handleRuntimeKeyDown"
   >
     <div
       v-show="viewMode === 'workflow'"
       class="replacement-runtime__world"
       data-canvas-world
       aria-label="画布世界"
-      @pointerdown="beginCanvasPan"
-      @pointermove="moveCanvas"
-      @pointerup="finishCanvasPan"
-      @pointercancel="finishCanvasPan"
+      @pointerdown="beginWorldPointer"
+      @pointermove="moveWorldPointer"
+      @pointerup="finishWorldPointer"
+      @pointercancel="cancelWorldPointer"
       @contextmenu="openCanvasContextMenu"
       @wheel="handleCanvasWheel"
     >
@@ -359,9 +481,12 @@ const {
         @update-viewport="emit('updateViewport', $event)"
       />
       <CanvasRuntimeNodeLayer
-        :nodes="visibleNodes"
+        :connection-target="connectionTarget"
+        :nodes="edgeNodes"
         :runtime-presentations="runtimePresentations"
+        :script-active-node-id="scriptActiveNodeId"
         :selected-node-id="selectedNodeId"
+        :selected-node-ids="selectedNodeIds"
         :viewport="viewport"
         @drag-node="updateDraggedNode"
         @interaction-state="setNodeInteractionState"
@@ -369,9 +494,47 @@ const {
         @open-script="openScriptWorkspace"
         @port-drag="handlePortDrag"
         @port-position="updatePortPosition"
+        @rename-node="emit('renameNode', $event)"
         @select-node="emit('selectNode', $event)"
         @update-content="updateDirectContent"
       />
+      <CanvasRuntimeSelectionHull
+        :nodes="edgeNodes"
+        :selected-node-ids="selectedNodeIds"
+        :viewport="viewport"
+        @interaction-state="interactionState = $event"
+        @move-selection="emit('moveSelection', $event)"
+        @open-continuation="openSelectionContinuation"
+        @preview-move="updateDraggedSelection"
+      />
+      <div
+        v-if="marquee"
+        class="runtime-selection-marquee"
+        data-runtime-marquee
+        :style="marqueeStyle"
+        aria-hidden="true"
+      ></div>
+    </div>
+
+    <div
+      v-if="canGroupSelection || canUngroupSelection"
+      class="runtime-selection-toolbar"
+      data-runtime-selection-toolbar
+      role="toolbar"
+      :aria-label="`${selectedNodeIds.length} 个已选节点的操作`"
+    >
+      <button
+        v-if="canGroupSelection"
+        type="button"
+        aria-label="组合"
+        @click="emit('groupSelection')"
+      >组合</button>
+      <button
+        v-if="canUngroupSelection"
+        type="button"
+        aria-label="取消组合"
+        @click="emit('ungroupSelection')"
+      >取消组合</button>
     </div>
 
     <section
@@ -401,22 +564,49 @@ const {
 
     <CanvasRuntimeAttachedSurfaces
       v-if="selectedNode"
+      :assets="assets"
       :node="selectedNode"
       :generation-context="generationContext"
+      :generation-quota="generationQuota"
       :model-options="modelOptions"
       :runtime-presentation="runtimePresentations.get(selectedNode.id) ?? null"
+      :script-active="scriptActive"
+      :script-capability="scriptCapability"
+      :script-capability-error="scriptCapabilityError"
+      :script-capability-loading="scriptCapabilityLoading"
+      :script-error="scriptError"
+      :script-quota="scriptQuota"
+      :script-success="scriptSuccess"
       :viewport="viewport"
+      @cancel-script="emit('cancelScript')"
       @generate="emit('generate')"
+      @generate-script="emit('generateScript', $event)"
       @open-actions="emit('openActions', $event)"
+      @open-script-workspace="openScriptWorkspace"
+      @retry-script-capability="emit('retryScriptCapability')"
       @update-configuration="emit('updateConfiguration', $event)"
+      @update-composition="emit('updateComposition', $event)"
       @update-generation-parameters="emit('updateGenerationParameters', $event)"
       @update-prompt="emit('updatePrompt', $event)"
     />
 
     <CanvasRuntimeScriptWorkspace
       v-if="scriptWorkspaceNode"
+      :active="scriptActive"
+      :connections="connections"
+      :error="scriptError"
       :node="scriptWorkspaceNode"
+      :nodes="nodes"
+      :success="scriptSuccess"
+      @add-shot="emit('addScriptShot', $event)"
       @close="scriptWorkspaceNodeId = ''"
+      @complete-storyboard="completeScriptStoryboard"
+      @create-generation-batch="emit('createScriptGenerationBatch', $event)"
+      @delete-shot="emit('deleteScriptShot', $event)"
+      @set-prompts-confirmed="emit('setScriptPromptsConfirmed', $event)"
+      @set-shots-confirmed="emit('setScriptShotsConfirmed', $event)"
+      @update-asset="emit('updateScriptAsset', $event)"
+      @update-shot="emit('updateScriptShot', $event)"
     />
 
     <CanvasRuntimeContinuationMenu
@@ -424,6 +614,7 @@ const {
       :direction="continuation.direction"
       :options="continuation.options"
       :position="continuation.position"
+      :source-count="continuation.originNodeIds.length"
       @close="continuation = null"
       @select="chooseContinuation"
     />
@@ -431,11 +622,13 @@ const {
     <CanvasRuntimeContextMenu
       v-if="contextMenu"
       :allowed-audio-model-count="allowedAudioModelCount"
+      :can-delete-selection="canDeleteSelection"
       :can-redo="canRedo"
       :can-undo="canUndo"
       :position="contextMenu.position"
       @close="contextMenu = null"
       @create-node="createNodeFromContext"
+      @delete-selection="contextMenu = null; emit('deleteSelection', 'context-menu')"
       @fit-all="contextMenu = null; fitAll()"
       @redo="contextMenu = null; emit('redo')"
       @undo="contextMenu = null; emit('undo')"

@@ -46,8 +46,10 @@ async def image_generate(
         if payload.generation_recipe_id else None
     )
     normalized_parameters = normalize_image_parameters(
+        size=payload.size,
         aspect_ratio=payload.aspect_ratio,
         image_ids=payload.image_ids,
+        output_count=payload.output_count,
         batch=payload.batch.model_dump(mode="json") if payload.batch else None,
         recipe_id=recipe.id if recipe else None,
         recipe_version=recipe.version if recipe else None,

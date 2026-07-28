@@ -23,6 +23,7 @@ export interface ConnectedMediaContext {
   nodeId: string
   title: string
   assetId: string | null
+  thumbnailUrl?: string
   order: number
   requestOrder: number | null
   state: ConnectedMediaState
@@ -113,6 +114,19 @@ export function resolveGenerationContext(
       nodeId: source.id,
       title: source.title,
       assetId,
+      ...([
+        source.contentData?.thumbnail_url,
+        source.contentData?.preview_url,
+        source.contentData?.url,
+      ].find((value): value is string => typeof value === 'string' && Boolean(value.trim()))
+        ? {
+            thumbnailUrl: [
+              source.contentData?.thumbnail_url,
+              source.contentData?.preview_url,
+              source.contentData?.url,
+            ].find((value): value is string => typeof value === 'string' && Boolean(value.trim()))!.trim(),
+          }
+        : {}),
       order: mediaSources.length + 1,
       requestOrder: state === 'included' ? imageIds.length : null,
       state,

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import type { CanvasConnection, CanvasNode } from '../../src/types/canvas'
 import { createImageGenerationBatchPlan } from '../../src/modules/canvas/image-generation-batch'
@@ -12,6 +12,13 @@ import {
 } from './canvas-resource-generation-fixture'
 
 const EVIDENCE_DIRECTORY = resolve(process.cwd(), '..', 'output', 'playwright', 't6-004')
+const T6_013_EVIDENCE_DIRECTORY = resolve(
+  process.cwd(),
+  '..',
+  'output',
+  'playwright',
+  't6-013-ninth-candidate',
+)
 
 function generationNode(): CanvasNode {
   return {
@@ -91,6 +98,7 @@ test('four-output image generation persists four slots and sends independent sin
     expect.objectContaining({ slot_index: 3, slot_count: 4 }),
     expect.objectContaining({ slot_index: 4, slot_count: 4 }),
   ])
+  expect(requests.map((body) => body.output_count)).toEqual([4, 4, 4, 4])
   expect(new Set(requests.map((body) => (body.batch as Record<string, unknown>).batch_id)).size).toBe(1)
 
   const batchNodes = state.documents[FIRST_CANVAS_ID].nodes.filter((node) => {
@@ -100,6 +108,22 @@ test('four-output image generation persists four slots and sends independent sin
   expect(batchNodes).toHaveLength(4)
   expect(batchNodes.find((node) => node.id === 'generation-cover')).toBeTruthy()
   expect(batchNodes.map((node) => ((node.content as Record<string, unknown>).generation_parameters as { image: { batch: { slot_index: number } } }).image.batch.slot_index).sort()).toEqual([1, 2, 3, 4])
+  await mkdir(T6_013_EVIDENCE_DIRECTORY, { recursive: true })
+  await writeFile(
+    resolve(T6_013_EVIDENCE_DIRECTORY, 'multi-image-request-and-projection.json'),
+    JSON.stringify({
+      requests: requests.map((body) => ({
+        canvas_node_id: body.canvas_node_id,
+        output_count: body.output_count,
+        batch: body.batch,
+      })),
+      projectedSlots: batchNodes.map((node) => ({
+        nodeId: node.id,
+        parameters: (node.content as Record<string, unknown>).generation_parameters,
+      })),
+    }, null, 2),
+    'utf8',
+  )
 
   const accessibility = await new AxeBuilder({ page }).include('.canvas-workspace').analyze()
   expect(accessibility.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([])
@@ -110,6 +134,10 @@ test('four-output image generation persists four slots and sends independent sin
   await stage.focus()
   await page.keyboard.press('Control+0')
   await page.screenshot({ path: resolve(EVIDENCE_DIRECTORY, 'image-batch-four-cards-1440x900.png'), fullPage: true })
+  await page.screenshot({
+    path: resolve(T6_013_EVIDENCE_DIRECTORY, 'multi-image-four-card-projection-1440x900.png'),
+    fullPage: true,
+  })
 
   await page.reload()
   await expect(page.getByRole('region', { name: 'Revid 无限画布工作区' })).toBeVisible()
@@ -160,6 +188,7 @@ test('a failed batch slot retries only its own card with a new request id after 
   const retry = state.requests.filter((item) => item.path === '/api/image-generate').at(-1)!.body!
   expect(retry.canvas_node_id).toBe(failedNodeId)
   expect(retry.batch).toEqual(expect.objectContaining({ slot_index: 3, slot_count: 4 }))
+  expect(retry.output_count).toBe(4)
   expect(retry.client_request_id).not.toBe(firstFailedRequestId)
   expect(state.documents[FIRST_CANVAS_ID].nodes).toHaveLength(nodeCount)
   for (const slotIndex of [1, 2, 4]) {

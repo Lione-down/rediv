@@ -114,6 +114,94 @@ test('succeeded compact video result replaces the original card placeholder', as
   expect(generationRequests.some((request) => request.includes('/api/generation-tasks'))).toBe(false)
 })
 
+test('terminal compact video recovers a briefly unavailable result without polling status again', async ({
+  page,
+}) => {
+  const state = createVisualState()
+  const source = state.canvasNodes.find((node) => node.id === 'node-image')!
+  source.status = 'running'
+  source.content = {
+    ...source.content,
+    title: 'Video Generation',
+    subtype: 'video',
+    content_revision: 0,
+    active_generation_client_request_id: 'client-video-race',
+    active_generation_job_id: 'job-video-race',
+    active_generation_media_type: 'video',
+  }
+  let exactStatusCalls = 0
+  let resultCalls = 0
+  const fixturePath = fileURLToPath(new URL('../fixtures/t6-011-playable.mp4', import.meta.url))
+  const media = await readFile(fixturePath)
+  await page.route(MEDIA_URL, (route) => route.fulfill({
+    status: 200,
+    contentType: 'video/mp4',
+    body: media,
+  }))
+  await installMockApi(page, state)
+  await page.route(
+    'http://localhost:8000/api/v2/generation-jobs/job-video-race',
+    (route) => {
+      exactStatusCalls += 1
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          job_id: 'job-video-race',
+          node_id: 'node-image',
+          media_type: 'video',
+          status: 'succeeded',
+          stage: null,
+          progress: 100,
+          error: null,
+          result_asset_id: 'asset-video-race',
+          version: 2,
+          updated_at: '2026-07-26T03:00:00Z',
+        }),
+      })
+    },
+  )
+  await page.route(
+    'http://localhost:8000/api/v2/generation-jobs/job-video-race/result',
+    (route) => {
+      resultCalls += 1
+      if (resultCalls === 1) {
+        return route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({ detail: 'result is still being published' }),
+        })
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          job_id: 'job-video-race',
+          node_id: 'node-image',
+          result: {
+            asset_id: 'asset-video-race',
+            media_type: 'video',
+            url: MEDIA_URL,
+          },
+          version: 2,
+        }),
+      })
+    },
+  )
+  await page.addInitScript(() => {
+    window.localStorage.setItem('revid_token', 'mock-session-token')
+  })
+  await page.goto(REPLACEMENT_URL)
+
+  const sourceCard = page.locator('[data-runtime-node="node-image"]')
+  await expect(sourceCard.locator('video')).toHaveAttribute('src', MEDIA_URL, { timeout: 10_000 })
+  expect(exactStatusCalls).toBe(1)
+  expect(resultCalls).toBe(2)
+  await page.waitForTimeout(2_500)
+  expect(exactStatusCalls).toBe(1)
+  expect(resultCalls).toBe(2)
+})
+
 test('running bound job polls exact compact status without repeating Canvas discovery', async ({ page }) => {
   const state = createVisualState()
   const source = state.canvasNodes.find((node) => node.id === 'node-image')!
@@ -160,9 +248,10 @@ test('running bound job polls exact compact status without repeating Canvas disc
 
   await expect.poll(() => exactStatusCalls, { timeout: 8_000 }).toBeGreaterThanOrEqual(2)
   expect(canvasDeltaCalls).toBe(0)
-  await expect(
-    page.locator('[data-runtime-node="node-image"] [data-runtime-lifecycle] progress'),
-  ).toHaveAttribute('value', '48')
+  const runningCard = page.locator('[data-runtime-node="node-image"]')
+  await expect(runningCard).toHaveAttribute('data-boundary-loading', 'true')
+  await expect(runningCard.locator('[data-runtime-lifecycle]')).toHaveCount(0)
+  await expect(runningCard.locator('[data-runtime-loading-status]')).toContainText('模型生成中')
 })
 
 test('image shows its complete frame and playable video controls stay unobstructed', async ({ page }) => {

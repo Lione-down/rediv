@@ -66,8 +66,14 @@ function captureCommandStart(
   connections: readonly CanvasConnection[],
 ) {
   const snapshot = captureGraph(nodes, connections)
-  if (envelope.command.type !== 'move-nodes') return snapshot
-  const origins = new Map(envelope.command.moves.map((move) => [move.nodeId, move.from]))
+  if (
+    envelope.command.type !== 'move-nodes' &&
+    envelope.command.type !== 'move-node-membership'
+  ) return snapshot
+  const moves = envelope.command.type === 'move-nodes'
+    ? envelope.command.moves
+    : [envelope.command.move]
+  const origins = new Map(moves.map((move) => [move.nodeId, move.from]))
   snapshot.nodes = snapshot.nodes.map((node) => {
     const origin = origins.get(node.id)
     return origin ? { ...node, x: origin.x, y: origin.y } : node

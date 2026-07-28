@@ -4,11 +4,12 @@ import {
   Clapperboard,
   FileText,
   Image as ImageIcon,
+  Pencil,
   ScrollText,
   Sparkles,
   Video,
 } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import {
   CANVAS_PORT_VISUAL_WORLD_SIZE,
   resolveCanvasElasticPortPosition,
@@ -20,14 +21,25 @@ import {
   type RuntimeNodeProjection,
 } from '../../modules/canvas-runtime/canvas-runtime-node-projection'
 import type { PersistedViewport } from '../../modules/canvas/persistence'
-import type { GenerationRuntimePresentation } from '../../modules/canvas/generation-runtime-presentation'
+import {
+  formatGenerationFailureMessage,
+  type GenerationRuntimePresentation,
+} from '../../modules/canvas/generation-runtime-presentation'
 import type { CanvasNode } from '../../types/canvas'
+import { resolveCanvasNodeLayoutSize } from '../../modules/canvas/node-layout'
 import { VISIBLE_ACQUISITION_PORT_KEY } from '../../modules/canvas-runtime/canvas-runtime-geometry'
 import { useRuntimeNodeDrag } from './use-runtime-node-drag'
 const props = defineProps<{
+  connectionTarget: {
+    nodeId: string
+    side: 'input' | 'output'
+    state: 'compatible' | 'incompatible'
+  } | null
   nodes: readonly CanvasNode[]
   runtimePresentations: ReadonlyMap<string, GenerationRuntimePresentation>
+  scriptActiveNodeId: string
   selectedNodeId: string
+  selectedNodeIds: readonly string[]
   viewport: PersistedViewport
 }>()
 
@@ -40,7 +52,7 @@ const emit = defineEmits<{
     direction: 'input' | 'output'
     logicalPortId: string | null
     nodeId: string
-    phase: 'start' | 'move' | 'end'
+    phase: 'start' | 'move' | 'end' | 'cancel'
     x: number
     y: number
   }]
@@ -50,7 +62,8 @@ const emit = defineEmits<{
     nodeId: string
     point: { x: number; y: number } | null
   }]
-  selectNode: [nodeId: string]
+  renameNode: [payload: { nodeId: string; title: string }]
+  selectNode: [payload: { nodeId: string; mode: 'replace' | 'toggle' | 'add' }]
   updateContent: [payload: { nodeId: string; content: string }]
 }>()
 
@@ -59,6 +72,8 @@ const projectedNodes = computed(() => props.nodes.map((node) => (
 )))
 const editingNodeId = ref('')
 const editingDraft = ref('')
+const renamingNodeId = ref('')
+const renameDraft = ref('')
 const videoStates = ref(new Map<string, 'loading' | 'ready' | 'error'>())
 const portDragState = ref<{
   direction: 'input' | 'output'
@@ -90,7 +105,7 @@ function worldStyle() {
 
 function beginDirectEdit(projection: RuntimeNodeProjection) {
   if (projection.kind !== 'text') return
-  emit('selectNode', projection.node.id)
+  emit('selectNode', { nodeId: projection.node.id, mode: 'replace' })
   editingNodeId.value = projection.node.id
   editingDraft.value = projection.content
   emit('interactionState', 'direct-edit')
@@ -111,12 +126,74 @@ function cancelDirectEdit() {
   emit('interactionState', 'idle')
 }
 
+function beginRename(projection: RuntimeNodeProjection) {
+  if (projection.node.isLocked) return
+  emit('selectNode', { nodeId: projection.node.id, mode: 'replace' })
+  renamingNodeId.value = projection.node.id
+  renameDraft.value = projection.node.title
+  emit('interactionState', 'direct-edit')
+  void nextTick(() => {
+    const input = document.querySelector<HTMLInputElement>('[data-node-title-editor]')
+    input?.focus()
+    input?.select()
+  })
+}
+
+function commitRename(projection: RuntimeNodeProjection) {
+  if (renamingNodeId.value !== projection.node.id) return
+  const title = renameDraft.value.trim()
+  renamingNodeId.value = ''
+  emit('interactionState', 'idle')
+  if (title && title !== projection.node.title.trim()) {
+    emit('renameNode', { nodeId: projection.node.id, title })
+  }
+}
+
+function cancelRename() {
+  renamingNodeId.value = ''
+  emit('interactionState', 'idle')
+}
+
 function setVideoState(nodeId: string, state: 'loading' | 'ready' | 'error') {
   videoStates.value = new Map(videoStates.value).set(nodeId, state)
 }
 
 function videoState(nodeId: string) {
   return videoStates.value.get(nodeId) ?? 'loading'
+}
+
+function hasBoundaryLoading(projection: RuntimeNodeProjection) {
+  return (
+    (projection.kind === 'image' || projection.kind === 'video') &&
+    projection.lifecycle?.tone === 'progress'
+  )
+}
+
+function runtimeNodeSize(node: CanvasNode) {
+  return resolveCanvasNodeLayoutSize(node)
+}
+
+function showsLifecycleFooter(projection: RuntimeNodeProjection) {
+  if (!projection.lifecycle || hasBoundaryLoading(projection) || projection.media.kind === 'video') {
+    return false
+  }
+  return !(projection.lifecycle.tone === 'success' && projection.media.kind === 'image')
+}
+
+function groupMemberCount(groupId: string) {
+  return props.nodes.filter((node) => node.parentNodeId === groupId).length
+}
+
+function selectNodeForContextMenu(nodeId: string) {
+  if (!props.selectedNodeIds.includes(nodeId)) {
+    emit('selectNode', { nodeId, mode: 'replace' })
+  }
+}
+
+function nodeAriaLabel(projection: RuntimeNodeProjection) {
+  return projection.node.type === 'group'
+    ? `分组 ${groupMemberCount(projection.node.id)} 个节点`
+    : `${projection.identityTitle}，${projection.identityMeta || projection.bodyLabel}`
 }
 
 const {
@@ -128,7 +205,7 @@ const {
   nodeStyle,
 } = useRuntimeNodeDrag({
   moveNode: (payload) => emit('moveNode', payload),
-  selectNode: (nodeId) => emit('selectNode', nodeId),
+  selectNode: (nodeId, mode) => emit('selectNode', { nodeId, mode }),
   setInteractionState: (state) => emit('interactionState', state),
   updateTransientNode: (payload) => emit('dragNode', payload),
   viewport: () => props.viewport,
@@ -145,7 +222,7 @@ function portAcquisitionStyle(
 ) {
   const rect = resolveCanvasPortAcquisitionWorldRect(
     direction,
-    { width: Math.max(220, node.width), height: Math.max(140, node.height) },
+    runtimeNodeSize(node),
     index,
     count,
     props.viewport.zoom,
@@ -165,7 +242,7 @@ function visiblePortStyle(
   index: number,
   count: number,
 ) {
-  const nodeSize = { width: Math.max(220, node.width), height: Math.max(140, node.height) }
+  const nodeSize = runtimeNodeSize(node)
   const acquisition = resolveCanvasPortAcquisitionWorldRect(
     direction,
     nodeSize,
@@ -208,7 +285,7 @@ function updateElasticPort(
   const position = resolveCanvasElasticPortPosition(
     direction,
     pointer,
-    { width: Math.max(220, node.width), height: Math.max(140, node.height) },
+    runtimeNodeSize(node),
     index,
     count,
     props.viewport.zoom,
@@ -250,7 +327,7 @@ function beginPortDrag(
   const visible = control.querySelector<HTMLElement>('[data-visible-port]')
   const rect = (visible ?? control).getBoundingClientRect()
   control.setPointerCapture(event.pointerId)
-  emit('selectNode', nodeId)
+  emit('selectNode', { nodeId, mode: 'replace' })
   portDragState.value = { direction, logicalPortId, nodeId, pointerId: event.pointerId }
   emit('interactionState', 'port-drag')
   emit('portDrag', {
@@ -287,6 +364,24 @@ function finishPortDrag(event: PointerEvent) {
     x: event.clientX,
     y: event.clientY,
   })
+  clearPortDrag(drag)
+}
+
+function cancelPortDrag(event: PointerEvent) {
+  const drag = portDragState.value
+  if (!drag || drag.pointerId !== event.pointerId) return
+  emit('portDrag', {
+    direction: drag.direction,
+    logicalPortId: drag.logicalPortId,
+    nodeId: drag.nodeId,
+    phase: 'cancel',
+    x: event.clientX,
+    y: event.clientY,
+  })
+  clearPortDrag(drag)
+}
+
+function clearPortDrag(drag: NonNullable<typeof portDragState.value>) {
   portDragState.value = null
   const positions = new Map(elasticPortPositions.value)
   positions.delete(portKey(drag.nodeId, drag.direction, drag.logicalPortId ?? ''))
@@ -312,32 +407,129 @@ function finishPortDrag(event: PointerEvent) {
       :style="nodeStyle(projection.node)"
       :data-runtime-node="projection.node.id"
       :data-node-kind="projection.kind"
+      :data-node-type="projection.node.type"
+      :data-group-member-count="projection.node.type === 'group'
+        ? groupMemberCount(projection.node.id)
+        : undefined"
       :data-node-ownership="projection.ownership"
       :data-runtime-phase="projection.phase"
+      :data-boundary-loading="hasBoundaryLoading(projection) ? 'true' : undefined"
+      :data-script-loading="scriptActiveNodeId === projection.node.id ? 'true' : undefined"
       :data-dragging="dragState?.nodeId === projection.node.id ? 'true' : undefined"
       :data-creatable="projection.ownership === 'generated-result' ? 'false' : undefined"
-      :data-selected="selectedNodeId === projection.node.id ? 'true' : undefined"
-      :aria-label="`${projection.identityTitle}，${projection.identityMeta || projection.bodyLabel}`"
+      :data-selected="selectedNodeIds.includes(projection.node.id) ? 'true' : undefined"
+      :data-connection-target="connectionTarget?.nodeId === projection.node.id ? connectionTarget.state : undefined"
+      :data-connection-side="connectionTarget?.nodeId === projection.node.id ? connectionTarget.side : undefined"
+      :aria-label="nodeAriaLabel(projection)"
       :tabindex="selectedNodeId === projection.node.id ? 0 : -1"
-      @click.stop="emit('selectNode', projection.node.id)"
+      @click.stop="emit('selectNode', {
+        nodeId: projection.node.id,
+        mode: $event.shiftKey || $event.ctrlKey || $event.metaKey ? 'toggle' : 'replace',
+      })"
       @dblclick.stop="beginDirectEdit(projection)"
+      @contextmenu="selectNodeForContextMenu(projection.node.id)"
       @pointerdown.stop="beginCardDrag($event, projection.node)"
       @pointermove.stop="moveCard"
       @pointerup.stop="finishCardDrag"
       @pointercancel.stop="cancelCardDrag"
-      @keydown.enter.prevent="emit('selectNode', projection.node.id)"
+      @keydown.enter.prevent="emit('selectNode', { nodeId: projection.node.id, mode: 'replace' })"
     >
       <header
         class="runtime-node__identity"
         data-node-identity
         data-node-drag-handle
+        @dblclick.stop="beginRename(projection)"
       >
         <span aria-hidden="true">
           <component :is="nodeIcon(projection.kind)" :size="14" />
         </span>
-        <strong>{{ projection.identityTitle }}</strong>
-        <small v-if="projection.identityMeta">{{ projection.identityMeta }}</small>
+        <input
+          v-if="renamingNodeId === projection.node.id"
+          v-model="renameDraft"
+          class="runtime-node__title-editor"
+          data-node-title-editor
+          :aria-label="`重命名 ${projection.identityTitle}`"
+          @blur="commitRename(projection)"
+          @click.stop
+          @dblclick.stop
+          @pointerdown.stop
+          @keydown.enter.prevent="commitRename(projection)"
+          @keydown.escape.prevent="cancelRename"
+        />
+        <template v-else>
+          <button
+            type="button"
+            class="runtime-node__rename-control"
+            data-node-rename-control
+            :aria-label="`重命名 ${projection.identityTitle}`"
+            :aria-disabled="projection.node.isLocked ? 'true' : undefined"
+            :disabled="projection.node.isLocked"
+            title="重命名节点"
+            @click.stop="beginRename(projection)"
+            @dblclick.stop
+            @pointerdown.stop
+            @keydown.f2.prevent.stop="beginRename(projection)"
+          >
+            <Pencil :size="12" aria-hidden="true" />
+          </button>
+          <strong>{{ projection.identityTitle }}</strong>
+          <small v-if="projection.node.type === 'group'">
+            {{ groupMemberCount(projection.node.id) }} 个节点
+          </small>
+          <small v-else-if="projection.identityMeta">{{ projection.identityMeta }}</small>
+        </template>
       </header>
+
+      <span
+        v-if="scriptActiveNodeId === projection.node.id"
+        class="runtime-node__script-loading-layer"
+        data-script-loading-layer
+        aria-hidden="true"
+      >
+        <span
+          class="runtime-node__script-loading-sweep"
+          data-script-loading-sweep
+        ></span>
+      </span>
+
+      <svg
+        v-if="hasBoundaryLoading(projection)"
+        class="runtime-node__boundary-loading"
+        :viewBox="`0 0 ${Math.max(1, runtimeNodeSize(projection.node).width)} ${Math.max(1, runtimeNodeSize(projection.node).height)}`"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <rect
+          class="runtime-node__boundary-rail"
+          data-boundary-loading-rail
+          x="3"
+          y="3"
+          :width="Math.max(1, runtimeNodeSize(projection.node).width - 6)"
+          :height="Math.max(1, runtimeNodeSize(projection.node).height - 6)"
+          rx="14"
+          pathLength="100"
+        />
+        <rect
+          class="runtime-node__boundary-halo"
+          data-boundary-loading-halo
+          x="3"
+          y="3"
+          :width="Math.max(1, runtimeNodeSize(projection.node).width - 6)"
+          :height="Math.max(1, runtimeNodeSize(projection.node).height - 6)"
+          rx="14"
+          pathLength="100"
+        />
+        <rect
+          class="runtime-node__boundary-runner"
+          data-boundary-loading-track
+          x="3"
+          y="3"
+          :width="Math.max(1, runtimeNodeSize(projection.node).width - 6)"
+          :height="Math.max(1, runtimeNodeSize(projection.node).height - 6)"
+          rx="14"
+          pathLength="100"
+        />
+      </svg>
 
       <div
         class="runtime-node__body"
@@ -400,6 +592,11 @@ function finishPortDrag(event: PointerEvent) {
             @pointerdown.stop
           >Video unavailable. Open media.</a>
         </div>
+        <div
+          v-else-if="projection.node.type === 'group'"
+          class="runtime-node__group-surface"
+          aria-hidden="true"
+        ></div>
         <div v-else-if="projection.kind === 'script'" class="runtime-node__script-summary">
           <div>
             <ScrollText :size="20" aria-hidden="true" />
@@ -421,7 +618,7 @@ function finishPortDrag(event: PointerEvent) {
           <span v-if="projection.content">{{ projection.content }}</span>
         </div>
         <div
-          v-if="projection.lifecycle && projection.media.kind !== 'video'"
+          v-if="projection.lifecycle && showsLifecycleFooter(projection)"
           class="runtime-node__lifecycle"
           data-runtime-lifecycle
           :data-runtime-tone="projection.lifecycle.tone"
@@ -434,7 +631,19 @@ function finishPortDrag(event: PointerEvent) {
           ></progress>
           <span v-else-if="projection.lifecycle.isIndeterminate" aria-hidden="true">•••</span>
         </div>
+        <p
+          v-if="projection.error"
+          class="runtime-node__failure"
+          data-runtime-failure
+          role="alert"
+        >{{ formatGenerationFailureMessage(projection.error) }}</p>
       </div>
+      <span
+        v-if="hasBoundaryLoading(projection)"
+        class="sr-only"
+        data-runtime-loading-status
+        role="status"
+      >{{ projection.lifecycle?.label }}</span>
       <button
         v-if="projection.inputPorts.length"
         :key="`input:${VISIBLE_ACQUISITION_PORT_KEY}`"
@@ -452,7 +661,7 @@ function finishPortDrag(event: PointerEvent) {
         @pointerdown.stop="beginPortDrag($event, projection.node.id, 'input', null)"
         @pointermove.stop="updateElasticPort($event, projection.node, 'input', VISIBLE_ACQUISITION_PORT_KEY, 0, 1); movePortDrag($event)"
         @pointerup.stop="finishPortDrag"
-        @pointercancel.stop="finishPortDrag"
+        @pointercancel.stop="cancelPortDrag"
       >
         <span
           class="runtime-node__port"
@@ -481,7 +690,7 @@ function finishPortDrag(event: PointerEvent) {
         @pointerdown.stop="beginPortDrag($event, projection.node.id, 'output', null)"
         @pointermove.stop="updateElasticPort($event, projection.node, 'output', VISIBLE_ACQUISITION_PORT_KEY, 0, 1); movePortDrag($event)"
         @pointerup.stop="finishPortDrag"
-        @pointercancel.stop="finishPortDrag"
+        @pointercancel.stop="cancelPortDrag"
       >
         <span
           class="runtime-node__port"

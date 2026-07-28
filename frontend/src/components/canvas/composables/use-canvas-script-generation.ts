@@ -5,6 +5,7 @@ import { createGenerationClientRequestId, requestCanvasGeneration } from '../../
 import type { GenerationCapabilities } from '../../../modules/canvas/generation-parameters'
 import {
   createScriptAuthoringResultCommand,
+  createStoryProductionResultCommand,
   resolveScriptAuthoringEligibility,
   type ScriptAuthoringIntent,
   type ScriptAuthoringLocale,
@@ -23,8 +24,11 @@ interface ScriptGenerationOptions {
 export interface ScriptGenerationSubmission {
   intent: ScriptAuthoringIntent
   locale: ScriptAuthoringLocale
+  modelId: string
   value: string
   referenceAssetIds?: string[]
+  outputKind?: 'script' | 'story_production'
+  requestedShotCount?: number
 }
 
 function errorMessage(error: unknown) {
@@ -34,6 +38,9 @@ function errorMessage(error: unknown) {
       const message = (detail as Record<string, unknown>).message
       if (typeof message === 'string' && message.trim()) return message.trim()
     }
+    if (Number(error.response?.status) >= 500) {
+      return '脚本生成服务暂时不可用，请稍后重试。'
+    }
   }
   return error instanceof Error ? error.message : '脚本生成失败，请稍后重试。'
 }
@@ -41,6 +48,25 @@ function errorMessage(error: unknown) {
 function nodeText(node: { content?: string; contentData?: Record<string, unknown> }) {
   const value = node.content ?? node.contentData?.text
   return typeof value === 'string' ? value : ''
+}
+
+function connectedPromptNodeIds(canvasStore: ReturnType<typeof useCanvasStore>, targetNodeId: string) {
+  const nodesById = new Map(canvasStore.nodes.map((node) => [node.id, node]))
+  const seen = new Set<string>()
+  return canvasStore.connections.flatMap((connection) => {
+    if (
+      connection.to !== targetNodeId || connection.sourcePort !== 'out' ||
+      connection.targetPort !== 'in' || connection.status === 'deleted' ||
+      seen.has(connection.from)
+    ) return []
+    const source = nodesById.get(connection.from)
+    if (
+      !source || source.type !== 'script' || source.contentData?.subtype !== 'prompt' ||
+      !nodeText(source).trim()
+    ) return []
+    seen.add(source.id)
+    return [source.id]
+  })
 }
 
 export function useCanvasScriptGeneration(options: ScriptGenerationOptions) {
@@ -80,8 +106,40 @@ export function useCanvasScriptGeneration(options: ScriptGenerationOptions) {
       error.value = `请输入 1–${limit} 个字符。`
       return
     }
+    const selectedModel = capability.value.models.find((model) => model.id === submission.modelId)
+    if (!selectedModel) {
+      error.value = '所选脚本模型当前不可用，请重新选择。'
+      return
+    }
 
     const source = eligibility.source
+    const isStoryProduction = submission.outputKind === 'story_production'
+    if (
+      isStoryProduction &&
+      capability.value.storyDirectorRequestContractVersion !== 1
+    ) {
+      error.value = '当前 backend runtime 未声明分镜请求 contract，请重启当前 backend 后再试。'
+      return
+    }
+    if (
+      isStoryProduction &&
+      submission.requestedShotCount !== undefined &&
+      (
+        !Number.isInteger(submission.requestedShotCount) ||
+        submission.requestedShotCount < 1 ||
+        submission.requestedShotCount > 25
+      )
+    ) {
+      error.value = '镜头数量必须是 1–25 的整数。'
+      return
+    }
+    const storySourceNodeIds = isStoryProduction
+      ? connectedPromptNodeIds(canvasStore, source.id)
+      : []
+    if (isStoryProduction && !storySourceNodeIds.length && !nodeText(source).trim()) {
+      error.value = '请先连接包含故事内容的提示词文本框，再生成分镜。'
+      return
+    }
     const expectedProjectId = options.projectId.value
     const expectedCanvasId = options.canvasId.value
     const sourceTextAtRequest = nodeText(source)
@@ -96,6 +154,7 @@ export function useCanvasScriptGeneration(options: ScriptGenerationOptions) {
       const response = await requestCanvasGeneration({
         mediaType: 'text',
         clientRequestId: createGenerationClientRequestId(),
+        modelId: selectedModel.id,
         projectId: expectedProjectId,
         originCanvasId: expectedCanvasId,
         canvasNodeId: source.id,
@@ -106,6 +165,15 @@ export function useCanvasScriptGeneration(options: ScriptGenerationOptions) {
           ...(submission.intent === 'script_draft'
             ? { brief: value, referenceAssetIds: submission.referenceAssetIds }
             : { sourceText: sourceTextAtRequest, instruction: value }),
+          ...(isStoryProduction ? {
+            storyDirector: {
+              contractVersion: 1,
+              ...(submission.requestedShotCount
+                ? { requestedShotCount: submission.requestedShotCount }
+                : {}),
+              sourceNodeIds: storySourceNodeIds,
+            },
+          } : {}),
         },
       }, authStore, request, requestController.signal)
       if (response.asset) resourceStore.upsertAsset(response.asset)
@@ -121,19 +189,29 @@ export function useCanvasScriptGeneration(options: ScriptGenerationOptions) {
         error.value = 'Canvas 或源脚本已变化；生成文本已保存在项目资源中，未自动应用。'
         return
       }
-      const command = createScriptAuthoringResultCommand({
-        source: currentSource,
-        sourceTextAtRequest,
-        generatedText: response.content,
-        lineage: response.script_authoring,
-      })
+      const command = isStoryProduction
+        ? createStoryProductionResultCommand({
+            source: currentSource,
+            sourceTextAtRequest,
+            generatedText: response.content,
+            storyProduction: response.story_production,
+            lineage: response.script_authoring,
+          })
+        : createScriptAuthoringResultCommand({
+            source: currentSource,
+            sourceTextAtRequest,
+            generatedText: response.content,
+            lineage: response.script_authoring,
+          })
       if (!command) {
         error.value = '源脚本已变化；生成文本已保存在项目资源中，未自动应用。'
         return
       }
       await canvasStore.dispatchCommand({ source: 'toolbar', command })
       await canvasStore.flushPendingPersistence()
-      success.value = '当前脚本已替换，可撤销。'
+      success.value = isStoryProduction
+        ? '分镜已生成并保存到当前脚本卡片，可撤销。'
+        : '当前脚本已替换，可撤销。'
     } catch (generationError) {
       if (requestController.signal.aborted) error.value = '脚本生成已取消；不会自动应用迟到结果。'
       else error.value = errorMessage(generationError)

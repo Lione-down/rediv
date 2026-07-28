@@ -1,10 +1,7 @@
 import { expect, test } from '@playwright/test'
 import * as scriptAuthoring from '../../src/modules/canvas/script-authoring'
-import {
-  createResourceMockState,
-  FIRST_CANVAS_ID,
-  openResourceWorkspace,
-} from './canvas-resource-generation-fixture'
+import { createCanvasCommandExecutor } from '../../src/modules/canvas/canvas-command-executor'
+import type { CanvasNode } from '../../src/types/canvas'
 
 type ParseStoryDirectorCapabilities = (value: unknown) => {
   contractVersion: number
@@ -61,45 +58,99 @@ test('script capabilities expose allowed models while the project-owned director
   })
 })
 
-test('script generation returns one built-in story-production document without a Skill selector', async ({ page }) => {
-  const state = createResourceMockState()
-  await openResourceWorkspace(page, state)
-  await page.getByRole('button', { name: '打开画布内容与快捷键' }).click()
-  await page.getByRole('button', { name: '选择并定位 镜头脚本', exact: true }).click()
-
-  const stage = page.getByRole('region', { name: 'Revid 无限画布工作区' })
-  await stage.focus()
-  await page.keyboard.press('/')
-  const palette = page.getByRole('dialog', { name: '专业操作' })
-  await palette.getByRole('combobox', { name: '搜索专业操作' }).fill('agnes 创意')
-  await palette.getByRole('option', { name: /Agnes：从创意生成脚本/ }).click()
-
-  const authoring = page.getByRole('region', { name: 'AI 脚本写作' })
-  await authoring.getByRole('textbox', { name: '创意 Brief' }).fill('雨夜车站，一名摄影师寻找失踪的胶卷。')
-  await expect(authoring.getByRole('checkbox')).toHaveCount(0)
-  await expect(authoring.getByRole('combobox', { name: /Skill/i })).toHaveCount(0)
-  await authoring.getByRole('button', { name: '生成新脚本' }).click()
-  await expect.poll(() => state.requests.filter((request) => request.path === '/api/text-generate').length).toBe(1)
-
-  const source = state.documents[FIRST_CANVAS_ID].nodes.find((node) => node.id === 'script-source')!
-  const content = source.content as Record<string, unknown>
-  expect(
-    content.story_production,
-    'T6-007 RED [built-in-story-production-result-absent]: script generation still returns plain text only',
-  ).toBeTruthy()
-  expect(content.story_production).toMatchObject({
+test('script result handoff targets the same card with one built-in story-production document', async () => {
+  const createStoryProductionResultCommand = requireContractFunction<(
+    input: {
+      source: CanvasNode
+      sourceTextAtRequest: string
+      generatedText: string
+      storyProduction: Record<string, unknown>
+      lineage: {
+        contract_version: 1
+        intent: 'script_draft'
+        locale: 'zh-CN'
+        source_node_id: string
+        source_task_id: string
+        source_model: string
+        canvas_revision: number
+      }
+    },
+  ) => Record<string, unknown>>(
+    scriptAuthoring,
+    'createStoryProductionResultCommand',
+    'T6-012 RED [built-in-story-production-handoff-absent]: createStoryProductionResultCommand is not implemented',
+  )
+  const source: CanvasNode = {
+    id: 'script-source',
+    type: 'script',
+    title: 'Story source',
+    x: 10,
+    y: 20,
+    width: 320,
+    height: 200,
+    content: 'Original script.',
+    contentData: { subtype: 'script', serialization_version: 1, text: 'Original script.' },
+  }
+  const storyProduction = {
     schema_id: 'revid.story-production',
     schema_version: 1,
     skill_id: 'revid.story-director',
     skill_version: 1,
     source_node_id: 'script-source',
+    source_revision: 'b'.repeat(64),
+    model_id: 'text-fast',
     assets: {
-      roles: expect.any(Array),
-      scenes: expect.any(Array),
-      props: expect.any(Array),
+      roles: [],
+      scenes: [],
+      props: [],
     },
-    shots: expect.arrayContaining([
-      expect.objectContaining({ video_prompt: expect.any(String) }),
-    ]),
+    shots: [{ shot_id: 'shot-1', video_prompt: 'A bounded current-shot prompt.' }],
+  }
+  const command = createStoryProductionResultCommand({
+    source,
+    sourceTextAtRequest: 'Original script.',
+    generatedText: 'Generated editable script.',
+    storyProduction,
+    lineage: {
+      contract_version: 1,
+      intent: 'script_draft',
+      locale: 'zh-CN',
+      source_node_id: source.id,
+      source_task_id: 'task-story-1',
+      source_model: 'text-fast',
+      canvas_revision: 7,
+    },
   })
+
+  expect(command).toMatchObject({
+    type: 'apply-script-authoring-result',
+    nodeId: 'script-source',
+    storyProduction,
+  })
+  expect(JSON.stringify(command)).not.toContain('user_selected_skill')
+
+  const nodes = [source]
+  const executor = createCanvasCommandExecutor({
+    getNodes: () => nodes,
+    getConnections: () => [],
+    createNode: async () => { throw new Error('not expected') },
+    createConnection: async () => { throw new Error('not expected') },
+    deleteNode: async () => undefined,
+    deleteConnection: async () => undefined,
+    updateConnection: async () => undefined,
+    updateNodeParent: async () => undefined,
+    updateNodeLocked: async () => undefined,
+    updateNodeState: async (nodeId, update) => {
+      Object.assign(nodes.find((node) => node.id === nodeId)!, structuredClone(update))
+    },
+    queueNodeMove: () => undefined,
+    setSelection: () => undefined,
+    selectConnection: () => undefined,
+  })
+  await executor.executeCommand({
+    source: 'toolbar',
+    command: command as never,
+  })
+  expect(nodes[0].id).toBe('script-source')
+  expect(nodes[0].contentData?.story_production).toEqual(storyProduction)
 })

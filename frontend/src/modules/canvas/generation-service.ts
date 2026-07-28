@@ -8,6 +8,7 @@ import {
   type ImageBatchSnapshot,
   type VideoReferenceBinding,
   type VideoReferenceMode,
+  type VideoResolution,
 } from './generation-parameters'
 import type { ShotControls } from './shot-controls'
 import type { VisualAssetRecipeId, VisualAssetRecipeVersion } from './visual-asset-recipes'
@@ -61,16 +62,21 @@ export class CanvasGenerationError extends Error {
 export interface CanvasGenerationContext {
   mediaType: GenerationMediaType
   clientRequestId?: string
+  modelId?: string
   projectId: string
   originCanvasId: string
   canvasNodeId?: string | null
   prompt?: string
   imageIds?: string[]
+  imageSize?: string
+  outputCount?: number
   imageBatch?: ImageBatchSnapshot
   videoReferences?: VideoReferenceBinding[]
   aspectRatio?: string
   referenceMode?: VideoReferenceMode
   durationSeconds?: number
+  videoResolution?: VideoResolution
+  negativePrompt?: string
   recipeId?: VisualAssetRecipeId
   recipeVersion?: VisualAssetRecipeVersion
   imageOperation?: ImageOperationContract
@@ -84,6 +90,11 @@ export interface CanvasGenerationContext {
     sourceText?: string
     instruction?: string
     referenceAssetIds?: string[]
+    storyDirector?: {
+      contractVersion: 1
+      requestedShotCount?: number
+      sourceNodeIds: string[]
+    }
   }
 }
 
@@ -95,6 +106,7 @@ export interface CanvasGenerationResponse {
   quotas: QuotaBalance
   quota_revision: number
   script_authoring?: ScriptAuthoringLineage | null
+  story_production?: Record<string, unknown> | null
 }
 
 interface GenerationQuotaStore {
@@ -168,13 +180,49 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
 
+const STORY_DIRECTOR_ERROR_MESSAGES: Readonly<Record<string, string>> = {
+  script_source_unavailable: '当前脚本内容已不可用，请重新选择 Script 后再试。',
+  script_source_stale: '当前脚本在提交前已发生变化，请确认最新内容后再试。',
+  story_source_required: '未找到可用于分镜的正文。请填写当前脚本，或连接包含正文的 Prompt/Text 后再试。',
+  story_source_unavailable: '连接的分镜来源已不可用，请返回画布确认来源后再试。',
+  story_source_stale: '连接的分镜来源已发生变化，请返回画布确认最新连线后再试。',
+  story_production_invalid: '当前分镜数据不完整，无法继续补全。请重新自主创建分镜。',
+}
+
 function normalizeGenerationFailure(error: unknown) {
   if (!isRecord(error)) return error
   const response = isRecord(error.response) ? error.response : null
   const data = response && isRecord(response.data) ? response.data : null
-  const detail = data && isRecord(data.detail) ? data.detail : null
+  const rawDetail = data?.detail
+  const detail = isRecord(rawDetail) ? rawDetail : null
   const code = detail?.code
-  if (typeof code !== 'string' || !GENERATION_ERROR_CODES.has(code as CanvasGenerationErrorCode)) return error
+  if (typeof code === 'string' && STORY_DIRECTOR_ERROR_MESSAGES[code]) {
+    return new CanvasGenerationError(
+      'invalid_request',
+      STORY_DIRECTOR_ERROR_MESSAGES[code],
+      null,
+      false,
+    )
+  }
+  if (typeof code !== 'string' || !GENERATION_ERROR_CODES.has(code as CanvasGenerationErrorCode)) {
+    const status = typeof response?.status === 'number' ? response.status : null
+    if (status !== 422) return error
+    const detailMessage = typeof rawDetail === 'string' && rawDetail.trim()
+      ? rawDetail.trim()
+      : Array.isArray(rawDetail)
+        ? rawDetail.flatMap((item) => (
+          isRecord(item) && typeof item.msg === 'string' ? [item.msg.trim()] : []
+        )).filter(Boolean).join('；')
+        : ''
+    return new CanvasGenerationError(
+      'invalid_request',
+      detailMessage
+        ? `生成请求格式无效：${detailMessage}。请检查当前脚本内容后再试。`
+        : '生成请求格式无效。请检查当前脚本内容后再试。',
+      null,
+      false,
+    )
+  }
   const typedCode = code as CanvasGenerationErrorCode
   const providerMessage = typeof detail?.message === 'string' && detail.message.trim()
     ? detail.message.trim()
@@ -257,7 +305,11 @@ function assertGenerationRequestParameters(context: CanvasGenerationContext, tas
     return
   }
   if (context.mediaType === 'image') {
-    if (!context.aspectRatio || parameters.aspect_ratio !== context.aspectRatio) {
+    if (
+      !context.aspectRatio ||
+      parameters.aspect_ratio !== context.aspectRatio ||
+      (context.imageSize !== undefined && parameters.size !== context.imageSize)
+    ) {
       throw new Error('Generation response parameter snapshot mismatch')
     }
     if (context.imageOperation) {
@@ -277,10 +329,17 @@ function assertGenerationRequestParameters(context: CanvasGenerationContext, tas
     if (JSON.stringify(parameters.batch) !== JSON.stringify(context.imageBatch)) {
       throw new Error('Generation response parameter snapshot mismatch')
     }
+    if (
+      context.outputCount !== undefined &&
+      parameters.output_count !== context.outputCount
+    ) {
+      throw new Error('Generation response parameter snapshot mismatch')
+    }
     return
   }
   if (
     !context.durationSeconds ||
+    !context.aspectRatio ||
     parameters.reference_mode !== (
       context.videoReferences
         ? context.videoReferences.length === 0
@@ -290,7 +349,10 @@ function assertGenerationRequestParameters(context: CanvasGenerationContext, tas
             : 'keyframes'
         : context.referenceMode
     ) ||
-    parameters.duration_seconds !== context.durationSeconds
+    parameters.duration_seconds !== context.durationSeconds ||
+    parameters.aspect_ratio !== context.aspectRatio ||
+    parameters.resolution !== context.videoResolution ||
+    Boolean(parameters.negative_prompt_present) !== Boolean(context.negativePrompt)
   ) throw new Error('Generation response parameter snapshot mismatch')
   if (context.videoReferences) {
     if (JSON.stringify(parameters.video_references) !== JSON.stringify(context.videoReferences)) {
@@ -352,13 +414,18 @@ export async function requestCanvasGeneration(
         project_id: context.projectId,
         origin_canvas_id: context.originCanvasId,
         canvas_node_id: context.canvasNodeId ?? null,
+        ...(context.modelId ? { model_id: context.modelId } : {}),
         ...(prompt ? { prompt } : {}),
         ...(!context.videoReferences && context.imageIds?.length ? { image_ids: context.imageIds } : {}),
+        ...(context.imageSize ? { size: context.imageSize } : {}),
         ...(context.aspectRatio ? { aspect_ratio: context.aspectRatio } : {}),
+        ...(context.outputCount !== undefined ? { output_count: context.outputCount } : {}),
         ...(context.imageBatch ? { batch: context.imageBatch } : {}),
         ...(!context.videoReferences && context.referenceMode ? { reference_mode: context.referenceMode } : {}),
         ...(context.videoReferences ? { video_references: context.videoReferences } : {}),
         ...(context.durationSeconds ? { duration_seconds: context.durationSeconds } : {}),
+        ...(context.videoResolution ? { resolution: context.videoResolution } : {}),
+        ...(context.negativePrompt ? { negative_prompt: context.negativePrompt } : {}),
         ...(context.recipeId ? { generation_recipe_id: context.recipeId } : {}),
         ...(context.recipeVersion ? { generation_recipe_version: context.recipeVersion } : {}),
         ...(context.imageOperation ? { image_operation: context.imageOperation } : {}),
@@ -372,6 +439,15 @@ export async function requestCanvasGeneration(
           ...(scriptAuthoring.sourceText ? { source_text: scriptAuthoring.sourceText } : {}),
           ...(scriptAuthoring.instruction ? { instruction: scriptAuthoring.instruction } : {}),
           ...(scriptAuthoring.referenceAssetIds?.length ? { reference_asset_ids: scriptAuthoring.referenceAssetIds } : {}),
+          ...(scriptAuthoring.storyDirector ? {
+            story_director: {
+              contract_version: scriptAuthoring.storyDirector.contractVersion,
+              source_node_ids: scriptAuthoring.storyDirector.sourceNodeIds,
+              ...(scriptAuthoring.storyDirector.requestedShotCount
+                ? { requested_shot_count: scriptAuthoring.storyDirector.requestedShotCount }
+                : {}),
+            },
+          } : {}),
         } : {}),
       },
       { timeout: 0, ...(signal ? { signal } : {}) },
@@ -391,6 +467,9 @@ export async function requestCanvasGeneration(
       lineage.source_model !== response.data.generation_task.model ||
       lineage.canvas_revision !== scriptAuthoring.canvasRevision
     ) throw new Error('Generation response script authoring lineage mismatch')
+    if (scriptAuthoring.storyDirector && !response.data.story_production) {
+      throw new Error('Generation response story production is missing')
+    }
   }
   quotaStore.applyQuotaSnapshot(response.data.quotas, response.data.quota_revision)
   return response.data

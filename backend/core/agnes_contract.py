@@ -84,12 +84,18 @@ def build_text_request(
     messages: list[dict[str, Any]],
     temperature: float | None = None,
     stream: bool = False,
+    tools: list[dict[str, Any]] | None = None,
+    tool_choice: str | dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {"model": model, "messages": messages}
     if temperature is not None:
         payload["temperature"] = temperature
     if stream:
         payload["stream"] = True
+    if tools is not None:
+        payload["tools"] = tools
+    if tool_choice is not None:
+        payload["tool_choice"] = tool_choice
     return payload
 
 

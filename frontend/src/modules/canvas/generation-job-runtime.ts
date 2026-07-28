@@ -2,6 +2,7 @@ import type { CanvasNode } from '../../types/canvas'
 import {
   fetchGenerationJobResult,
   fetchGenerationJobStatus,
+  type GenerationJobResult,
   type GenerationJobMediaType,
   type GenerationJobReadTransport,
   type GenerationJobStatus,
@@ -55,13 +56,16 @@ const TERMINAL_JOB_STATUSES = new Set(['succeeded', 'failed', 'timed_out', 'canc
 export function hasGenerationJobPollingWork(
   nodes: readonly CanvasNode[],
   statuses: ReadonlyMap<string, GenerationJobStatus>,
+  results?: ReadonlyMap<string, GenerationJobResult>,
 ) {
   return persistedJobBindings(nodes).some((binding) => {
     const status = statuses.get(binding.jobId)
-    return !status || (
-      matchesBinding(binding, status) &&
-      !TERMINAL_JOB_STATUSES.has(status.status)
-    )
+    if (!status) return true
+    if (!matchesBinding(binding, status)) return false
+    if (!TERMINAL_JOB_STATUSES.has(status.status)) return true
+    if (status.status !== 'succeeded' || !results) return false
+    const result = results.get(binding.jobId)
+    return !result || result.node_id !== binding.nodeId || result.version < status.version
   })
 }
 

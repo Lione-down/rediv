@@ -16,11 +16,28 @@ class ScriptAuthoringContractTests(unittest.TestCase):
 
         self.assertEqual(1, capability["contract_version"])
         self.assertEqual("text-current", capability["model"])
-        self.assertEqual("Agnes 2.0 Flash", capability["model_label"])
+        self.assertEqual("text-current", capability["model_label"])
         self.assertEqual(["script_draft", "script_refine"], capability["intents"])
         self.assertEqual(4_000, capability["brief_max_length"])
         self.assertEqual(12_000, capability["source_max_length"])
         self.assertEqual(12_000, capability["output_max_length"])
+        self.assertIn("director", capability)
+        self.assertEqual(
+            {
+                "skill_id": "revid.story-director",
+                "skill_version": 1,
+                "user_selectable": False,
+                "schema_id": "revid.story-production",
+                "schema_version": 1,
+            },
+            capability["director"],
+        )
+
+    def test_capability_label_follows_the_backend_selected_model(self) -> None:
+        capability = build_script_authoring_capabilities(model="agnes-2.5-flash")
+
+        self.assertEqual("agnes-2.5-flash", capability["model"])
+        self.assertEqual("Agnes 2.5 Flash", capability["model_label"])
 
     def test_draft_and_refine_messages_are_backend_owned(self) -> None:
         draft = build_script_authoring_messages(

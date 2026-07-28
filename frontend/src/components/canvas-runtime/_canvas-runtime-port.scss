@@ -1,0 +1,14 @@
+@mixin visual {
+  position: absolute;
+  display: grid;
+  box-sizing: border-box;
+  place-items: center;
+  border: 1px solid var(--v2-border-strong);
+  border-radius: 50%;
+  color: var(--v2-text-primary);
+  background: var(--v2-surface-3);
+  box-shadow: 0 4px 12px oklch(3% 0.01 292 / 0.35);
+  font: inherit;
+  line-height: 1;
+  pointer-events: none;
+}

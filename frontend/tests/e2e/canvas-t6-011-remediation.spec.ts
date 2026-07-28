@@ -163,10 +163,10 @@ test('T6-011 bound original card shows provider progress without Canvas delta po
   const sourceCard = page.locator(
     '[data-canvas-runtime="replacement"] [data-runtime-node="node-image"]',
   )
-  await expect(sourceCard.locator('[data-runtime-lifecycle]')).toContainText('模型生成中')
-  await expect.poll(async () => Number(
-    await sourceCard.locator('[data-runtime-lifecycle] progress').getAttribute('value'),
-  ), { timeout: 8_000 }).toBe(47)
+  await expect.poll(() => exactStatusReads, { timeout: 8_000 }).toBeGreaterThanOrEqual(2)
+  await expect(sourceCard).toHaveAttribute('data-boundary-loading', 'true')
+  await expect(sourceCard.locator('[data-runtime-lifecycle]')).toHaveCount(0)
+  await expect(sourceCard.locator('[data-runtime-loading-status]')).toContainText('模型生成中')
   expect(exactStatusReads).toBeGreaterThanOrEqual(2)
   expect(generationRequests.some((request) => (
     request.includes('/api/v2/projects/project-e2e/generation-jobs?canvas_id=canvas-first')

@@ -1,7 +1,11 @@
 import type { ComputedRef, Ref } from 'vue'
 import { isAxiosError } from 'axios'
 import { request } from '../../../api/request'
-import { createGenerationClientRequestId, requestCanvasGeneration } from '../../../modules/canvas/generation-service'
+import {
+  CanvasGenerationError,
+  createGenerationClientRequestId,
+  requestCanvasGeneration,
+} from '../../../modules/canvas/generation-service'
 import {
   IMAGE_OPERATIONS,
   type ImageOperationContract,
@@ -12,6 +16,7 @@ import {
   type GenerationNodeParameters,
   type ImageBatchSnapshot,
   type VideoReferenceBinding,
+  type VideoResolution,
 } from '../../../modules/canvas/generation-parameters'
 import { resolveVisualAssetRecipe, type VisualAssetRecipeId } from '../../../modules/canvas/visual-asset-recipes'
 import type { ShotControls } from '../../../modules/canvas/shot-controls'
@@ -62,11 +67,15 @@ interface CanvasGenerationActionOptions {
 interface GenerationExecutionOptions {
   prompt?: string
   imageIds?: string[]
+  imageSize?: string
+  outputCount?: number
   imageBatch?: ImageBatchSnapshot
   videoReferences?: VideoReferenceBinding[]
   aspectRatio?: string
   referenceMode?: 'text-to-video' | 'image-to-video' | 'keyframes'
   durationSeconds?: number
+  videoResolution?: VideoResolution
+  negativePrompt?: string
   recipeId?: VisualAssetRecipeId
   recipeVersion?: 1 | 2
   imageOperation?: ImageOperationContract
@@ -152,11 +161,15 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
         canvasNodeId: context.nodeId,
         prompt: requestContext.prompt,
         imageIds: requestContext.imageIds,
+        imageSize: requestContext.imageSize,
+        outputCount: requestContext.outputCount,
         imageBatch: requestContext.imageBatch,
         videoReferences: requestContext.videoReferences,
         aspectRatio: requestContext.aspectRatio,
         referenceMode: requestContext.referenceMode,
         durationSeconds: requestContext.durationSeconds,
+        videoResolution: requestContext.videoResolution,
+        negativePrompt: requestContext.negativePrompt,
         recipeId: requestContext.recipeId,
         recipeVersion: requestContext.recipeVersion,
         imageOperation: requestContext.imageOperation,
@@ -197,10 +210,14 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
             options.setGenerationError(sourceNode.id, '')
             shouldPollForRecovery = true
           } catch {
-            const isDefinitiveRejection = isAxiosError(error) &&
+            const isDefinitiveRejection = (
+              error instanceof CanvasGenerationError && !error.retryable
+            ) || (
+              isAxiosError(error) &&
               Boolean(error.response) &&
               Number(error.response?.status) >= 400 &&
               Number(error.response?.status) < 500
+            )
             if (isDefinitiveRejection) {
               await canvasStore.setNodeGenerationState(sourceNode.id, 'failed')
               options.setGenerationError(sourceNode.id, options.formatError(error))
@@ -261,6 +278,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
       await Promise.allSettled(executions.map(({ node, execution, slot }) => executeGeneration(node, 'image', {
         prompt: context.prompt,
         imageIds: context.imageIds,
+        outputCount: slot.batch.slot_count,
         imageBatch: slot.batch,
         aspectRatio: context.aspectRatio,
         imageOperation: operation,
@@ -294,6 +312,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
             : {
                 reference_mode: context.referenceMode,
                 duration_seconds: context.durationSeconds,
+                resolution: context.videoResolution,
               }),
           ...(context.shotControls ? { shot_controls: context.shotControls } : {}),
         }
@@ -314,11 +333,15 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
     return executeGeneration(sourceNode, mediaType, {
       prompt: prepared?.optimizedPrompt ?? context.prompt,
       imageIds: prepared?.imageIds ?? context.imageIds,
+      imageSize: mediaType === 'image' ? context.imageSize : undefined,
+      outputCount: mediaType === 'image' ? context.outputCount : undefined,
       imageBatch: context.imageBatch,
       videoReferences: prepared ? undefined : context.videoReferences,
       aspectRatio: context.aspectRatio,
       referenceMode: context.referenceMode,
       durationSeconds: context.durationSeconds,
+      videoResolution: context.videoResolution,
+      negativePrompt: context.negativePrompt,
       imageOperation: operation,
       shotControls: context.shotControls,
       parameters: prepared ? null : context.parameters,
@@ -384,7 +407,7 @@ export function useCanvasGenerationActions(options: CanvasGenerationActionOption
             displayName: source?.title?.trim() || binding.node_id,
             thumbnailUrl: typeof thumbnail === 'string' && thumbnail.trim()
               ? thumbnail.trim()
-              : `canvas-asset:${binding.asset_id}`,
+              : '',
             sourceRevision: typeof source?.contentData?.content_revision === 'number'
               ? source.contentData.content_revision
               : 0,

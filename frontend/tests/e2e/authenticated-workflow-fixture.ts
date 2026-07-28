@@ -159,7 +159,11 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
   })
 }
 
-export async function installMockApi(page: Page, state: MockState) {
+export async function installMockApi(
+  page: Page,
+  state: MockState,
+  generationCapabilities: unknown = GENERATION_CAPABILITIES_V6,
+) {
   await page.route(`${API_ORIGIN}/**`, async (route) => {
     const request = route.request()
     const url = new URL(request.url())
@@ -290,8 +294,8 @@ export async function installMockApi(page: Page, state: MockState) {
       await fulfillJson(route, task
         ? {
             job_id: task.id,
-            node_id: 'node-image',
-            media_type: 'image',
+            node_id: task.canvas_node_id,
+            media_type: task.media_type,
             status: task.status,
             stage: 'provider',
             progress: null,
@@ -305,7 +309,7 @@ export async function installMockApi(page: Page, state: MockState) {
     }
 
     if (request.method() === 'GET' && pathname === '/api/generation-capabilities') {
-      await fulfillJson(route, GENERATION_CAPABILITIES_V6)
+      await fulfillJson(route, generationCapabilities)
       return
     }
 

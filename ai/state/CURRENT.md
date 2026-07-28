@@ -1,54 +1,57 @@
 # Revid Current Project State
 
-Last updated: 2026-07-25
+- State: `DONE`
+- Verification outcome: `DEFERRED`
+- Last updated: `2026-07-28`
 
 ## Delivery Mode
 
-- Mode: `CODEX_DIRECT_DELIVERY`.
-- Engineering owner: Codex Project Lead Engineer.
-- Human Owner gates: product direction, real or paid provider calls, real secrets, destructive data/filesystem operations, irreversible migrations, and external-account changes.
+- Mode: `CODEX_DIRECT_DELIVERY`; Codex is the single engineering owner.
+- Human gates remain real/paid provider calls, secrets, external accounts, destructive user data/filesystem operations,
+  arbitrary-code templates, and public/team marketplace scope.
 - Decision: [ADR-2026-07-10-CODEX-DIRECT-DELIVERY](../decisions/ADR-2026-07-10-CODEX-DIRECT-DELIVERY.md).
 
 ## Product State
 
-- Phase 4 initial version and Product V2 / Phase 5: `DONE / PASS`.
-- Product V3 / Phase 6 Tasks T6-001 through T6-004 and T6-006 through T6-011: `DONE / PASS`.
-- T6-005: `BLOCKED / FAIL` after explicit Human visual/interaction rejection on 2026-07-23.
-- T6-011: `DONE / PASS` by Human `ACCEPT_WITH_DECLARED_BOUNDARIES` on 2026-07-25.
-- Database authority: MySQL-only.
+- T6-001 through T6-004 and T6-006 through T6-011: `DONE / PASS`.
+- T6-005 and T6-012: terminal `BLOCKED / FAIL`.
+- T6-013: `DONE / DEFERRED`; implementation and classified machine evidence are complete, while final visual,
+  interaction, and journey acceptance is aggregated into T6-027.
+- Old T6-014 through T6-016 were provisional scopes before formal Task creation. They were superseded by the Revid V3
+  reusable workflow-template PRD and must not receive fabricated Task files, REPORTs, `DONE`, or `FAIL` states.
+- Database authority remains MySQL-only.
 
 ## Active Delivery
 
-- Active implementation Task: none; T6-011 is closed and the next dependency-ready Task must activate in the requested new Codex session.
-- State: `DONE`
-- Verification outcome: `PASS`
-- Task: [TASK-T6-011](../tasks/todo/TASK-T6-011.md).
-- Plan: [TASK-T6-011-PLAN](../tasks/doing/TASK-T6-011-PLAN.md).
-- Progress: [TASK-T6-011-PROGRESS](../tasks/doing/TASK-T6-011-PROGRESS.md).
-- Report: [REPORT-T6-011](../reports/REPORT-T6-011.md).
-- Architecture: [REVID-T6-006-FULL-STACK-MODULAR-REFACTOR](../architecture/REVID-T6-006-FULL-STACK-MODULAR-REFACTOR.md).
+- No implementation Task is active during the bounded post-T6-013 baseline commit/push transition.
+- Closed Task: [TASK-T6-013](../tasks/todo/TASK-T6-013.md).
+- Plan: [TASK-T6-013-PLAN](../tasks/doing/TASK-T6-013-PLAN.md).
+- Progress: [TASK-T6-013-PROGRESS](../tasks/doing/TASK-T6-013-PROGRESS.md).
+- Report: [REPORT-T6-013](../reports/REPORT-T6-013.md).
 
 ## Live Gates
 
-- T6-005 and the earlier rejected T6-011 delivery remain audit/reference evidence and create no reuse presumption.
-- T6-011 replaced the visible Canvas shell/card runtime while retaining Leafer world/camera authority, MySQL, stable IDs, graph/history/autosave, durable jobs, provider/quota admission, and legacy readability.
-- Human accepted the overall result; unspecified minor issues are deferred to a future independently planned Task and are not silently included in T6-012.
-- Final R8N evidence is browser `62/62`, backend compact/job-runner `18/18`, build `5,034`, state/diff/sensitive-path audit PASS, and local `5173/8000` HTTP `200`.
-- Normal persisted-card polling uses exact compact bound-job status/result routes and makes zero current-Canvas delta-list calls.
-- Director is absent; Video Composition and capability-gated Audio Generation remain retained product boundaries.
-- Tests used mock/local fixtures and disposable data only; no real/paid provider call or secret/environment-file access occurred.
-- Automated evidence remains distinct from the Human acceptance decision.
+- Human program direction on 2026-07-28 authorizes sequential T6-017 through T6-027 goal-mode delivery, normal
+  implementation/testing/browser QA, the planned T6-018 expand-first additive migration, one scoped commit/push per
+  Task, and creation of the next session after remote parity.
+- This authorization does not create historical T6-013 `ACCEPT/PASS`; machine evidence remains distinct from Human
+  acceptance.
+- Fresh closure evidence: backend `51 + 43 subtests`, `32 + 9 subtests`, and `20 + 5 subtests`; preview-backed frontend
+  `63/63`; exact historical legacy edge Delete case `1/1`; fresh build `5,041`; validator and diff check passed.
+- The historical broad browser record remains `59/60`; the complete 60-test group was not rerun.
+- No real/paid provider call, migration, runtime-data mutation, or secret access occurred in Unit 0.
 
 ## Exact Next Action
 
-Commit and push the exact accepted T6-011 delivery, verify `HEAD == origin/main`, then create a new Codex session that defines and activates only the next dependency-ready Task before business-code edits.
+Precisely stage and push the official T6-012/T6-013 baseline. After `HEAD == origin/main`, create and activate only
+T6-017 Task/PLAN/PROGRESS for PRD V1 and workflow-template contract freeze.
 
 ## Worktree Ownership
 
-- Preserve user-owned untracked `.codex/`, `.hermes/plans/`, `output/`, `storage/`, and `test-results/`.
-- Preserve unrelated concurrent work and stop if a future owned path overlaps unknown changes.
+- Preserve untracked `.codex/`, `.hermes/`, `ai/evidence/t6-012/`, `output/`, `storage/`, and `test-results/`.
+- Do not read, stage, commit, or push environment, secret, provider-raw, prompt, source-content, or user-owned evidence.
 
-## Boundaries And Human Gates
+## Completion Gate
 
-- Revid retains the approved technology stack, MySQL-only runtime, multi-canvas scope, graph/history/persistence/provider contracts, accessibility, and review-only mobile unless a new ADR explicitly changes them.
-- Real/paid provider calls, secrets, destructive operations, irreversible migrations, external accounts, framework/runtime replacements, and incompatible contracts remain Human gates.
+- T6-013 is closed as `DONE / DEFERRED`.
+- T6-017 may activate only after the baseline commit is pushed and remote parity is verified.

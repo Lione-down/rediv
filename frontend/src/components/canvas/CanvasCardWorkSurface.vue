@@ -170,7 +170,7 @@ const mentionReferences = computed<CanvasCardMentionOption[]>(() => {
         stableId: candidate.id,
         assetId,
         displayName: candidate.title,
-        thumbnailUrl: candidate.previewUrl || `canvas-asset:${assetId}`,
+        thumbnailUrl: candidate.previewUrl || '',
         sourceRevision: 0,
         role: candidate.role ?? 'reference',
         order,
@@ -186,13 +186,13 @@ const presentedSelectedReferences = computed(() => props.selectedReferences.map(
 }))
 const isStructuredVideoReference = computed(() => (
   props.generationContext?.mediaType === 'video' &&
-  props.generationContext.capabilities?.contract_version === 6 &&
+  (props.generationContext.capabilities?.contract_version ?? 0) >= 6 &&
   Boolean(props.generationContext.parameters && 'video' in props.generationContext.parameters)
 ))
 const videoRoleLabels: Record<VideoReferenceRole, string> = {
   'first-frame': '首帧',
   'last-frame': '尾帧',
-  reference: '普通参考',
+  reference: '中间关键帧',
 }
 
 watch(() => props.node.id, () => {
@@ -247,6 +247,8 @@ function emitVideoReferences(bindings: VideoReferenceBinding[]) {
   emit('updateParameters', {
     schema_version: 1,
     video: {
+      aspect_ratio: context.aspectRatio
+        ?? context.capabilities?.video.default_aspect_ratio ?? '16:9',
       duration_seconds: context.durationSeconds ?? context.capabilities?.video.default_duration_seconds ?? 5,
       reference_bindings: bindings.map((binding, order) => ({ ...binding, order })),
       ...(context.shotControls ? { shot_controls: context.shotControls } : {}),

@@ -35,7 +35,7 @@ export function useRuntimeCanvasShell(options: RuntimeCanvasShellOptions) {
   const zoomPercent = computed(() => `${Math.round(options.viewport().zoom * 100)}%`)
 
   function beginCanvasPan(event: PointerEvent) {
-    if (event.button !== 0 || event.target !== event.currentTarget) return
+    if ((event.button !== 0 && event.button !== 1) || event.target !== event.currentTarget) return
     contextMenu.value = null
     const world = event.currentTarget as HTMLElement
     world.setPointerCapture(event.pointerId)

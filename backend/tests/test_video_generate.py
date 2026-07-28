@@ -119,6 +119,57 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         self.assertEqual("Create a dramatic cinematic shot", fake_provider.generate_calls[0]["prompt"])
         self.assertEqual(["video-1", "video-1"], fake_provider.poll_calls)
 
+    def test_video_generate_accepts_processing_and_direct_video_url_without_fake_progress(self) -> None:
+        generated_url = "https://example.com/generated-video-direct.mp4"
+        fake_provider = _FakeAgnesProvider(
+            poll_responses=[
+                {"status": "processing"},
+                {"status": "completed", "video_url": generated_url},
+            ],
+        )
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            with patch.object(video_generate_module.asyncio, "sleep", new=self._fake_sleep):
+                response = self.client.post(
+                    "/api/video-generate",
+                    json=self._payload("Accept the verified Agnes polling shape"),
+                    headers=self._auth_headers(self.user["id"]),
+                )
+
+        self.assertEqual(200, response.status_code, response.text)
+        payload = response.json()
+        self.assertEqual(generated_url, payload["url"])
+        self.assertEqual("succeeded", payload["generation_task"]["status"])
+        self.assertEqual(100, payload["generation_task"]["progress_percent"])
+        self.assertEqual(["video-1", "video-1"], fake_provider.poll_calls)
+
+    def test_video_generate_rejects_conflicting_completed_result_urls(self) -> None:
+        fake_provider = _FakeAgnesProvider(
+            poll_responses=[{
+                "status": "completed",
+                "progress": 100,
+                "video_url": "https://example.com/direct.mp4",
+                "metadata": {"url": "https://example.com/metadata.mp4"},
+            }],
+        )
+        original_quota = store.quotas[self.user["id"]]["video"]
+
+        with patch.object(backend_main, "_agnes", fake_provider):
+            response = self.client.post(
+                "/api/video-generate",
+                json=self._payload("Reject conflicting provider result URLs"),
+                headers=self._auth_headers(self.user["id"]),
+            )
+
+        self.assertEqual(500, response.status_code)
+        self.assertEqual(original_quota, store.quotas[self.user["id"]]["video"])
+        _assets, total = store.list_assets(
+            self.user["id"],
+            asset_type="video",
+            project_id=self.project["id"],
+        )
+        self.assertEqual(0, total)
+
     def test_provider_progress_extraction_accepts_only_finite_bounded_numbers(self) -> None:
         self.assertEqual(12, extract_provider_progress_percent({"progress": 12}))
         self.assertIsNone(extract_provider_progress_percent({"data": {"progress": 47}}))
@@ -154,6 +205,7 @@ class VideoGenerateApiTestCase(unittest.TestCase):
                     image_ids=[source_a["id"]],
                     reference_mode="image-to-video",
                     duration_seconds=10,
+                    resolution="1080p",
                 ),
                 headers=self._auth_headers(self.user["id"]),
             )
@@ -162,8 +214,8 @@ class VideoGenerateApiTestCase(unittest.TestCase):
             {
                 "image": "https://example.com/source-a.png",
                 "mode": "img2vid",
-                "width": 1152,
-                "height": 768,
+                "width": 1920,
+                "height": 1080,
                 "num_frames": 241,
                 "frame_rate": 24,
             },
@@ -178,8 +230,10 @@ class VideoGenerateApiTestCase(unittest.TestCase):
                 "duration_seconds": 10,
                 "num_frames": 241,
                 "frame_rate": 24,
-                "width": 1152,
-                "height": 768,
+                "aspect_ratio": "16:9",
+                "resolution": "1080p",
+                "width": 1920,
+                "height": 1080,
                 "image_ids": [source_a["id"]],
             },
             single_response.json()["generation_task"]["request_parameters"],
@@ -203,7 +257,7 @@ class VideoGenerateApiTestCase(unittest.TestCase):
                 "extra_images": ["https://example.com/source-a.png", "https://example.com/source-b.png"],
                 "mode": "keyframes",
                 "width": 1152,
-                "height": 768,
+                "height": 648,
                 "num_frames": 441,
                 "frame_rate": 24,
             },
@@ -391,6 +445,7 @@ class VideoGenerateApiTestCase(unittest.TestCase):
         image_ids: list[str] | None = None,
         reference_mode: str | None = None,
         duration_seconds: int | None = None,
+        resolution: str | None = None,
     ) -> dict:
         payload = {
             "project_id": self.project["id"],
@@ -404,6 +459,8 @@ class VideoGenerateApiTestCase(unittest.TestCase):
             payload["reference_mode"] = reference_mode
         if duration_seconds is not None:
             payload["duration_seconds"] = duration_seconds
+        if resolution is not None:
+            payload["resolution"] = resolution
         return payload
 
     def _register_user(self, openid: str):

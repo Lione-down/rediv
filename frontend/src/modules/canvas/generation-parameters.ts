@@ -24,6 +24,7 @@ import type {
   VideoReferenceBinding,
   VideoReferenceMode,
   VideoReferenceRole,
+  VideoResolution,
 } from './generation-capability-contract'
 import { readCanvasCardConfiguration } from './canvas-card-view-model'
 
@@ -35,6 +36,7 @@ export type {
   VideoReferenceBinding,
   VideoReferenceMode,
   VideoReferenceRole,
+  VideoResolution,
 } from './generation-capability-contract'
 
 export function replaceImageOperationParameters(
@@ -55,13 +57,17 @@ export interface ResolvedGenerationRequestContext extends ResolvedGenerationCont
   parameterError: string
   parameters: GenerationNodeParameters | null
   aspectRatio?: string
+  imageSize?: string
+  targetDimensions?: { width: number; height: number }
   outputCount?: number
   imageBatch?: ImageBatchSnapshot
   durationSeconds?: number
+  videoResolution?: VideoResolution
   imageOperation?: ImageOperationContract
   shotControls?: ShotControls
   shotControlCapabilities?: ShotControlCapabilities
   referenceMode?: VideoReferenceMode
+  negativePrompt?: string
   primaryReferenceNodeId?: string
   videoReferences?: VideoReferenceBinding[]
   parameterSummary: string[]
@@ -99,6 +105,17 @@ function parseImageBatch(value: unknown, outputCount: number): ImageBatchSnapsho
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && Boolean(value.trim())
+}
+
+function normalizePersistedVideoAspectRatio(
+  value: string,
+  capabilities: GenerationCapabilities['video'],
+) {
+  if (capabilities.aspect_ratios.includes(value)) return value
+  if (value === `${capabilities.width}:${capabilities.height}`) {
+    return capabilities.default_aspect_ratio
+  }
+  return value
 }
 
 function readParameters(node: CanvasNode) {
@@ -247,13 +264,21 @@ export function resolveGenerationRequestContext(
   }
   if (mediaType === 'image') {
     const image = saved?.image
+    const imageSize = capabilities.contract_version === 7
+      ? saved === null
+        ? capabilities.image.default_size
+        : isRecord(image) && isNonEmptyString(image.size) ? image.size : ''
+      : capabilities.image.default_size
+    if (!capabilities.image.sizes.includes(imageSize)) {
+      return failedContext(base, mediaType, capabilities, '节点保存的图片规格不受当前 capability 支持，请重新选择。')
+    }
     const aspectRatio = saved === null
       ? capabilities.image.default_aspect_ratio
       : isRecord(image) && isNonEmptyString(image.aspect_ratio) ? image.aspect_ratio : ''
     if (!capabilities.image.aspect_ratios.includes(aspectRatio)) {
       return failedContext(base, mediaType, capabilities, '节点保存的图片比例不受当前 capability 支持，请重新选择。')
     }
-    const outputCount = capabilities.contract_version === 6
+    const outputCount = capabilities.contract_version >= 6
       ? isRecord(image) && image.output_count !== undefined
         ? Number(image.output_count)
         : capabilities.image.default_output_count
@@ -312,13 +337,15 @@ export function resolveGenerationRequestContext(
     const parameters: GenerationNodeParameters = {
       schema_version: 1,
       image: {
+        ...(capabilities.contract_version === 7 ? { size: imageSize } : {}),
         aspect_ratio: aspectRatio,
-        ...(capabilities.contract_version === 6 ? { output_count: outputCount } : {}),
+        ...(capabilities.contract_version >= 6 ? { output_count: outputCount } : {}),
         ...(imageBatch ? { batch: imageBatch } : {}),
         ...(imageOperation ? { operation: imageOperation } : {}),
         ...(shotControls ? { shot_controls: shotControls } : {}),
       },
     }
+    const targetDimensions = capabilities.image.size_dimensions[imageSize]?.[aspectRatio]
     return {
       ...base,
       capabilities,
@@ -327,6 +354,8 @@ export function resolveGenerationRequestContext(
       parameterError: '',
       parameters,
       aspectRatio,
+      imageSize,
+      ...(targetDimensions ? { targetDimensions } : {}),
       outputCount,
       imageBatch,
       imageOperation,
@@ -336,25 +365,50 @@ export function resolveGenerationRequestContext(
         ...(imageOperation ? [`操作 ${IMAGE_OPERATIONS[imageOperation.id].title}`] : []),
         ...formatShotControls(shotControls),
         `比例 ${aspectRatio}`,
-        ...(capabilities.contract_version === 6 ? [`输出 ${outputCount} 张`] : []),
-        `规格 ${capabilities.image.size}`,
+        ...(capabilities.contract_version >= 6 ? [`输出 ${outputCount} 张`] : []),
+        `规格 ${imageSize}`,
+        ...(targetDimensions
+          ? [`目标 ${targetDimensions.width}×${targetDimensions.height}（实际以结果为准）`]
+          : []),
       ],
     }
   }
 
   const video = saved?.video
   const validSources = base.mediaSources.filter((source) => source.state === 'included')
+  const persistedAspectRatio = saved === null
+    ? capabilities.video.default_aspect_ratio
+    : isRecord(video) && isNonEmptyString(video.aspect_ratio)
+      ? video.aspect_ratio
+      : capabilities.video.default_aspect_ratio
+  const aspectRatio = normalizePersistedVideoAspectRatio(
+    persistedAspectRatio,
+    capabilities.video,
+  )
+  if (!capabilities.video.aspect_ratios.includes(aspectRatio)) {
+    return failedContext(base, mediaType, capabilities, '节点保存的视频比例不受当前 capability 支持，请重新选择。')
+  }
   const durationSeconds = saved === null
     ? capabilities.video.default_duration_seconds
     : isRecord(video) && isPositiveInteger(video.duration_seconds) ? video.duration_seconds : 0
   if (!capabilities.video.duration_presets.some((preset) => preset.duration_seconds === durationSeconds)) {
     return failedContext(base, mediaType, capabilities, '节点保存的视频时长不受当前 capability 支持，请重新选择。')
   }
+  const videoResolution = capabilities.contract_version === 7
+    ? saved === null
+      ? capabilities.video.default_resolution
+      : isRecord(video) && typeof video.resolution === 'string'
+        ? video.resolution as VideoResolution
+        : capabilities.video.default_resolution
+    : undefined
+  if (videoResolution && !capabilities.video.resolutions.includes(videoResolution)) {
+    return failedContext(base, mediaType, capabilities, '节点保存的视频清晰度不受当前 capability 支持，请重新选择。')
+  }
 
   let referenceMode: VideoReferenceMode | null = null
   let primaryReferenceNodeId: string | undefined
   let videoReferences: VideoReferenceBinding[] | undefined
-  const hasCanonicalReferences = capabilities.contract_version === 6 &&
+  const hasCanonicalReferences = capabilities.contract_version >= 6 &&
     isRecord(generationNode.contentData?.card_configuration) &&
     generationNode.contentData.card_configuration.schema_version === 1
   const canonicalReferences = hasCanonicalReferences
@@ -365,7 +419,7 @@ export function resolveGenerationRequestContext(
         order: reference.order,
       }))
     : undefined
-  const hasStructuredReferences = capabilities.contract_version === 6 && (
+  const hasStructuredReferences = capabilities.contract_version >= 6 && (
     canonicalReferences !== undefined ||
     (isRecord(video) && video.reference_bindings !== undefined)
   )
@@ -379,11 +433,22 @@ export function resolveGenerationRequestContext(
     } catch (error) {
       return failedContext(base, mediaType, capabilities, (error as Error).message)
     }
-    referenceMode = videoReferences.length === 0
-      ? 'text-to-video'
-      : videoReferences.length === 1 && videoReferences[0]?.role === 'first-frame'
-        ? 'image-to-video'
-        : 'keyframes'
+    const configuredMode = readCanvasCardConfiguration(
+      generationNode.contentData,
+    ).configuration.generationMode
+    const persistedMode = isRecord(video) && typeof video.reference_mode === 'string'
+      ? video.reference_mode
+      : configuredMode
+    referenceMode = typeof persistedMode === 'string' &&
+      VIDEO_REFERENCE_MODES.has(persistedMode as VideoReferenceMode)
+      ? persistedMode as VideoReferenceMode
+      : capabilities.contract_version === 7
+        ? null
+        : videoReferences.length === 0
+          ? 'text-to-video'
+          : videoReferences.length === 1 && videoReferences[0]?.role === 'first-frame'
+            ? 'image-to-video'
+            : 'keyframes'
   } else if (saved === null) {
     if (!validSources.length) referenceMode = 'text-to-video'
     else if (validSources.length === 1) {
@@ -399,7 +464,26 @@ export function resolveGenerationRequestContext(
       : undefined
   }
   if (!referenceMode || !capabilities.video.reference_modes.includes(referenceMode)) {
-    return failedContext(base, mediaType, capabilities, '节点保存的视频参考模式无效，请重新选择。')
+    return failedContext(base, mediaType, capabilities, '请明确选择文生视频、单图图生视频或关键帧模式。')
+  }
+  if (videoReferences && capabilities.contract_version === 7) {
+    const officialBindingsValid = referenceMode === 'text-to-video'
+      ? videoReferences.length === 0
+      : referenceMode === 'image-to-video'
+        ? videoReferences.length === 1 && videoReferences[0]?.role === 'first-frame'
+        : videoReferences.length >= capabilities.video.min_keyframes &&
+          videoReferences.length <= capabilities.video.max_keyframes &&
+          videoReferences[0]?.role === 'first-frame' &&
+          videoReferences.at(-1)?.role === 'last-frame' &&
+          videoReferences.slice(1, -1).every((binding) => binding.role === 'reference')
+    if (!officialBindingsValid) {
+      return failedContext(
+        base,
+        mediaType,
+        capabilities,
+        'Agnes Video 仅支持单张图生视频或按顺序声明首帧、中间关键帧、尾帧；角色与场景语义融合不可用。',
+      )
+    }
   }
 
   let selectedNodeIds = new Set<string>()
@@ -423,7 +507,7 @@ export function resolveGenerationRequestContext(
     }
     selectedNodeIds = new Set(validSources.map((source) => source.nodeId))
   }
-  if (capabilities.contract_version === 6 && !videoReferences) {
+  if (capabilities.contract_version >= 6 && !videoReferences) {
     videoReferences = legacyVideoBindings(referenceMode, validSources, primaryReferenceNodeId)
   }
   const mediaSelection = applyMediaSelection(base, selectedNodeIds)
@@ -443,20 +527,38 @@ export function resolveGenerationRequestContext(
       return failedContext(base, mediaType, capabilities, (error as Error).message)
     }
   }
+  let negativePrompt: string | undefined
+  if (isRecord(video) && video.negative_prompt !== undefined) {
+    if (
+      capabilities.contract_version !== 7 ||
+      typeof video.negative_prompt !== 'string' ||
+      !video.negative_prompt.trim() ||
+      video.negative_prompt.length > capabilities.video.negative_prompt_max_length
+    ) {
+      return failedContext(base, mediaType, capabilities, '节点保存的反向提示词无效，请重新输入。')
+    }
+    negativePrompt = video.negative_prompt.trim()
+  }
   const framePreset = capabilities.video.duration_presets.find((preset) => (
     preset.duration_seconds === durationSeconds
   ))!
   const parameters: GenerationNodeParameters = {
     schema_version: 1,
     video: {
+      aspect_ratio: aspectRatio,
       duration_seconds: durationSeconds,
-      ...(capabilities.contract_version === 6
-        ? { reference_bindings: videoReferences ?? [] }
+      ...(videoResolution ? { resolution: videoResolution } : {}),
+      ...(capabilities.contract_version >= 6
+        ? {
+            reference_mode: referenceMode,
+            reference_bindings: videoReferences ?? [],
+          }
         : {
             reference_mode: referenceMode,
             ...(primaryReferenceNodeId ? { primary_reference_node_id: primaryReferenceNodeId } : {}),
           }),
       ...(shotControls ? { shot_controls: shotControls } : {}),
+      ...(negativePrompt ? { negative_prompt: negativePrompt } : {}),
     },
   }
   return {
@@ -467,20 +569,25 @@ export function resolveGenerationRequestContext(
     isRecipe: false,
     parameterError: '',
     parameters,
+    aspectRatio,
     durationSeconds,
+    ...(videoResolution ? { videoResolution } : {}),
     referenceMode,
     primaryReferenceNodeId,
-    ...(capabilities.contract_version === 6 ? { videoReferences: videoReferences ?? [] } : {}),
+    ...(capabilities.contract_version >= 6 ? { videoReferences: videoReferences ?? [] } : {}),
+    ...(negativePrompt ? { negativePrompt } : {}),
     shotControls,
     shotControlCapabilities: capabilities.video.shotControls ?? undefined,
     parameterSummary: [
       `模式 ${referenceMode}`,
-      ...(capabilities.contract_version === 6
+      ...(capabilities.contract_version >= 6
         ? [`已用 ${(videoReferences ?? []).length}/${capabilities.video.max_references}`]
         : []),
+      ...(negativePrompt ? ['反向提示 已设置'] : []),
       `时长 ${durationSeconds}s`,
+      `比例 ${aspectRatio}`,
+      ...(videoResolution ? [`清晰度 ${videoResolution}（实际以结果为准）`] : []),
       `${framePreset.num_frames} 帧 @ ${framePreset.frame_rate}fps`,
-      `${capabilities.video.width}×${capabilities.video.height}`,
       ...formatShotControls(shotControls),
     ],
   }

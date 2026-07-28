@@ -1,0 +1,451 @@
+# TASK-T6-013 Progress
+
+- State: `DONE`
+- Verification outcome: `DEFERRED`
+- Active unit: `Closed - program-level Human journey acceptance deferred to T6-027`
+- Task: [TASK-T6-013](../todo/TASK-T6-013.md).
+- Plan: [TASK-T6-013-PLAN](TASK-T6-013-PLAN.md).
+
+## Completed work
+
+- The Human Owner rejected the fifteenth machine candidate and supplied nine new screenshots. Units 51-53 now own Script detail scrolling, provider-free per-shot batch Image/Video graph creation, live Chrome diagnosis of Script/Image failures, and the current official Agnes Video task/result contract. T6-014 remains frozen.
+- Live re-entry preserves the complete 71-path dirty checkout and protected untracked paths. `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`; validator PASS; backend PID `42380` on `8000` is healthy with MySQL/Alembic ready; frontend PID `17976` on `5173` returns HTTP `200`.
+- The Human-open Chrome was claimed without inspecting browser storage or triggering generation. At 1366x768, `.runtime-script-workspace__stage-panel` is about `446px` high with `overflow-y: hidden`, while its table child is about `624px` high and reports `scrollHeight == clientHeight`; wheel input changes no scroll owner and clips shot rows/footer. This is the observed scrolling RED root cause.
+- Chrome reload recorded healthy `200` responses for current user, Canvas list/document, capabilities, assets, and exact compact-job reads; Console contains no current error. The visible Script failure remains `provider_result_invalid`, the visible Image failure is a historical upstream disconnect, and the visible Video failure is the persisted unsupported-status classification. No automatic retry or provider call occurred.
+- The current official Video page differs materially from the earlier local attachment: it recommends retaining opaque `video_id`, querying `/agnesapi?video_id=...`, defines only `queued / in_progress / completed / failed`, and places final media in `metadata.url`; the current Revid adapter/persistence path must be audited against these fields before GREEN.
+- The Human Owner rejected the fourteenth machine candidate. The latest original-resolution screenshots require a looping left-to-right Script execution light, still show text/number fallbacks instead of reference thumbnails, and show no discoverable rename affordance beside node titles. Units 48-50 now own this bounded remediation; T6-014 remains frozen.
+- Unit 48 live re-entry confirms `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`, validator PASS, backend PID `42380` healthy on `8000` with MySQL/Alembic ready, frontend PID `17976` HTTP `200` on `5173`, and all dirty/protected paths preserved.
+- Unit 48 source evidence shows `scriptGeneration.active` reaches only attached composer/workspace surfaces; `CanvasRuntimeNodeLayer` receives no Script active node and its loading predicate is limited to Image/Video lifecycle progress. The existing title editor is hidden behind double-click/Enter/F2 with no visible edit control.
+- Unit 48 read-only MySQL evidence hashes IDs and records presence only: current generation references persist non-empty `canvas-asset:*` thumbnail tokens, while the same `asset_id` rows have usable HTTPS URLs. `resolvedReferences` trusts any non-empty persisted thumbnail before project assets, so the internal token is assigned to `<img src>` and the real image remains broken.
+- Unit 48 focused observed RED is exactly `3 failed`: the active Script card has no loading state/sweep, the real internal-token reference shape renders `0` thumbnail images, and representative node families have no explicit rename control.
+- Unit 49 captures the owning stable Script node when the existing active lifecycle begins and renders one pointer-passive CSS light sweeping left to right. The layer is removed at terminal/cancel; reduced motion keeps a visible non-animated light.
+- Reference display now resolves exact `asset_id` through the already-loaded project asset collection first, then bounded usable persisted/materialized URLs. `canvas-asset:*` and opaque values never reach `<img src>`; unavailable or broken media retains the intentional fallback without rewriting reference identity, role, order, or persistence.
+- Every unlocked replacement node now shows a 20px pencil beside its top-left title. The control opens the existing editor and dispatches only `rename-node`; five-family undo/redo/reload and autosave-failure proof remain green. One observed regression showed the first pencil placement covering a header drag point; moving it before the title restored the unchanged drag contract.
+- Unit 49 focused GREEN is `3/3`; the complete official-contract browser group is `10/10`. Related replacement, Script workflow, and rename/history/autosave regression is `44/44`, excluding only the already-recorded unrelated elastic-acquisition boundary.
+- Unit 50 fresh production build transformed `5,040` modules. Provider-free final focused proof is `10/10` under `output/playwright/t6-013-fifteenth-human-remediation/final-focused-v2/`; original-resolution inspection confirms the Script light, decoded reference thumbnails, visible five-family pencils, reduced motion, reload, and autosave-failure presentation.
+- Final validator and `git diff --check` pass; CURRENT is `35/60` lines; staged and sensitive changed paths are `0`; added debug/secret-like markers are `0`; HEAD/origin remain `214b7c202ecb00b6504cdda849421ada3f04c38e`. Backend PID `42380` is healthy on `8000` with MySQL/Alembic ready and frontend PID `17976` returns HTTP `200` on `5173`. No provider call, migration, runtime-data rewrite, stage, commit, push, REPORT, or T6-014 activation occurred.
+- The Human Owner rejected the thirteenth machine candidate: two new original-resolution screenshots show persisted/materialized reference tokens still falling back to numbers/text instead of thumbnails, and all replacement-runtime nodes have lost their rename entry point. This is now Units 45-47 of T6-013; T6-014 remains frozen.
+- Live re-entry facts: `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`; backend PID `42380` on `8000` reports MySQL ready and Alembic current=head; frontend PID `17976` on `5173` returns HTTP `200`; the complete dirty checkout and protected untracked paths remain present.
+- Unit 45 source trace found two coverage gaps before new production edits: the thumbnail browser fixture injects a direct `data:` URL into the source node, while the real replacement runtime displays a materialized result projection but computes connected generation context from the unprojected document; additionally, persisted canonical references with an empty thumbnail override any later resolved media URL. The canonical `rename-node` command remains present, but `CanvasRuntimeNodeLayer` exposes only text-body direct editing and emits no rename event.
+- Unit 45 focused observed RED is exactly `2 failed`: a realistic generation-source plus hidden result fixture renders `0` thumbnail images because the raw source has no asset URL, and double-clicking the replacement identity produces no `[data-node-title-editor]`. Root cause: the replacement view and its composer consume different node snapshots, and the replacement node layer omitted the already-established rename command entry point.
+- Units 46-47 are implemented as a new machine candidate. Replacement generation context now resolves from the same materialized node/connection projection that is visible on Canvas, and an existing empty persisted reference thumbnail is display-merged with the resolved media URL while preserving stable node/asset identity and refusing internal asset tokens.
+- Every unlocked visible replacement node family now exposes a keyboard-accessible and double-click title editor. Image, Script, Video, Asset, and Group use the existing `rename-node` command/history/autosave path; locked nodes remain disabled. Focused proof covers undo/redo, reload, unchanged stable IDs/content, and an explicit autosave-failure state that retains the local command without claiming persistence.
+- Fresh production build transformed `5,040` modules. Final isolated focused browser evidence is `13/13` under `output/playwright/t6-013-fourteenth-human-remediation/final-focused-v2/`, including materialized thumbnails, five-family rename-after-reload, and visible autosave-failure screenshots. Direct replacement regression is `28/28` after excluding one separately retained acquisition test; the broader mixed set is `45/46`.
+- Two independently repeated regression boundaries remain visible and were not silently reclassified: the legacy canonical-card reference test does not dispatch its final selected-edge `Delete` PATCH (`45/46` mixed run), and the pre-existing replacement elastic acquisition test stays `idle` when pointer-down occurs at the acquisition center after the visible port has moved (`28/29` complete replacement file). Neither path is changed by Units 45-46; widening into a sixth production area was not folded into this bounded fix.
+- Final `git diff --check`, project-state validator, unstaged/staged-path audit, mock-token-only security scan, HEAD/origin comparison, and live health are clean. Backend PID `42380` remains healthy on `8000` with MySQL/Alembic ready; frontend PID `17976` serves the current fresh build on `5173`. No real/paid provider call, runtime-data rewrite, migration, stage, commit, push, or REPORT occurred.
+- Opened the new Human remediation in the current dirty checkout. Read the complete official Agnes index, the 440-line Video V2.0 attachment (`SHA-256 F604DB59...3C86`), the 459-line Image 2.1 Flash attachment (`SHA-256 79CFCC0C...E538`), and the original Script composer screenshot. No provider call occurred.
+- Live startup remains healthy: `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`; validator PASS; backend PID `12428` on `8000` reports MySQL ready and Alembic current=head; frontend PID `17976` on `5173` returns HTTP `200`; `npx 11.13.0` is available.
+- Official-contract inventory found four concrete boundaries before business-code edits: Video `negative_prompt` exists only in `agnes_contract`/`agnes_provider`; multi-reference UI/normalization turns arbitrary multi-image bindings into keyframes and exposes an undocumented ordinary-reference semantic; Image provider body is already nested correctly and sends no `tags`, but capability defaults to `4:3` and omits selectable size tiers/dimension table; the Script generation requirement is a local component `ref` reset to empty on stable-node change.
+- The current Image provider-operation capability already advertises zero provider operations, so multi-image `fusion` is unavailable/fail-closed. This remains the required boundary until official Image 2.1 documentation proves a composition request contract.
+- Unit 40 observed RED is complete. Backend focused test produced `5 failed, 1 passed`: capability remains v6, Image `size` and Video `negative_prompt` are absent from schemas/normalizers, and structured keyframes reject an explicit official mode; the already-correct nested Image body/no-`tags` and top-level Video negative-prompt builder baseline passed.
+- Frontend focused RED produced `3 failed`: v7 capability is rejected, persisted Image size/Video negative prompt cannot resolve, and Script node A's entered requirement becomes empty after switching to B and back. The browser trace confirms no canonical Script/story text mutation; the missing path is card-configuration persistence.
+- The Human Owner added four defects to this same remediation: inconsistent Image/Video right-toolbar clearance, broken reference-chip thumbnails, a persisted Video `unsupported video task status` failure, and a Script `provider_result_invalid` failure. Supplied screenshots were inspected at original resolution; Unit 42 source/evidence trace and focused RED are in progress.
+- Units 41–43 are implemented. Capability v7 now owns official Image `1K|2K|3K|4K` tiers, ratio/dimension targets, default `1:1`, Video `negative_prompt`, an eight-keyframe boundary, and `supports_semantic_multi_reference: false`. Recipe images now send `size=1K` plus `ratio=4:3`, never monitor dimensions.
+- Video negative prompt persists through the existing generation-parameter command/history/autosave/Canvas document path, is restored per stable node, is omitted when empty, is strictly bounded to 2,000 characters, reaches Agnes only as top-level `negative_prompt`, and leaves only a presence flag plus a SHA-256 fingerprint in compact/idempotency state.
+- Video UI and normalization now require explicit text, single-image, or ordered keyframe semantics under capability v7. User-visible `普通参考`/semantic-role wording is replaced by `中间关键帧`; arbitrary character-plus-scene fusion remains unavailable and Image provider operations remain fail closed.
+- Script generation brief now uses existing `card_configuration.prompt_document` and `set-card-configuration`, with a 400ms component buffer plus blur/node-switch/unmount/submit flush. Focused browser proof covers stable-node isolation, immediate switch flush, undo/redo, reload, and preservation of canonical Script text/story production.
+- Script Story Director requests now use Agnes Text's documented forced function tool contract `submit_revid_storyboard`. Controlled integration validates `tool_calls.arguments` against the existing strict storyboard schema; the bounded content fallback remains only for providers that ignore the declared tool. No real provider call occurred.
+- Unit 42 read-only MySQL evidence confirmed the supplied Video failure was an unknown first-poll status after a provider request ID, not the already-supported repository `processing` fixture; raw historical status was intentionally not persisted. Unknown status therefore remains fail closed/no-charge rather than being guessed. The supplied Script failures reached bounded validation repair and failed `provider_result_invalid`.
+- Unit 42 browser RED measured the Image toolbar gap at `72px` against the intended `12..24px` band, and both reference thumbnails used broken `canvas-asset:*` sources. Unit 43 now resolves placement from projected visible card geometry with a shared 16-world-pixel clearance, resolves authoritative media thumbnails, and renders an intentional fallback instead of assigning internal asset tokens to `<img src>`.
+- Focused GREEN is backend `24 passed + 39 subtests`, Script API integration `13/13`, and fresh-build browser `6/6`. The browser cases cover v7 boundaries, negative-prompt history/reload, Script brief persistence, toolbar geometry, and loaded/fallback thumbnails.
+- Related backend regression is `97 passed + 54 subtests`. An initial system-Python collection failure (`annotated_doc` missing), one validator venv without pytest, and one frontend-working-directory backend invocation were environment-only and were rerun with `backend/.venv`.
+- Frontend broad regression initially produced `66/73`; all failures were stale v6 expectations or a discovered mode-persistence bug. The bounded fix keeps v6 documents readable, hides v7-only Image size controls from v6, saves explicit `image-to-video`/`keyframes` mode after role edits, and retains strict v7 official validation. Focused reruns are green; the final full rerun remains in Unit 44.
+- Unit 44 final frontend broad regression is `73/73`; the final fresh-build focused trace is `6/6` under `output/playwright/t6-013-thirteenth-human-remediation/final-focused/`. The current production build transformed `5,040` modules.
+- Current-checkout runtime is live: backend PID `42380` on `8000` reports health `ok`, MySQL ready, Alembic current=head, and current OpenAPI fields for Video `negative_prompt` and Image `size`; frontend preview PID `17976` on `5173` returns HTTP `200`. The restart preserved the inherited 51-character credential over the stale 13-character env value without outputting either value.
+- Final validator, `git diff --check`, HEAD/origin comparison, staged-path check, and CURRENT 50-line budget are clean. HEAD and origin/main remain `214b7c202ecb00b6504cdda849421ada3f04c38e`; no stage, commit, push, REPORT, migration, real provider call, or runtime-data rewrite occurred.
+- Completed Units 37-39 as a provider-free twelfth machine candidate. The focused observed RED was exactly `6 failed`: one whole-response JSON fence was rejected, sync and async repair received synthetic `{}`, `processing` was unsupported, direct `video_url` could not complete, and conflicting result URLs were accepted.
+- The minimal strict GREEN accepts only a single fence covering the complete JSON response, passes the actual bounded assistant output into the one allowed repair, maps only the repository-verified Video `processing` state, accepts direct or metadata result URLs, skips absent non-terminal progress instead of inventing it, sets terminal completion to 100, and rejects invalid progress, conflicting URLs, and unknown statuses.
+- Focused GREEN is `6/6`. Related backend regression is `67 passed, 8 subtests`; the security/provider boundary group is `21 passed, 23 subtests`. The existing Video E2E now completes the verified `processing -> completed + video_url` fixture while current `16:9` dimensions remain `1152x648`.
+- Fresh frontend production build transformed `5,040` modules. Provider-free Chromium proof passed the connected Prompt/Text same-card Script projection and the current capability-v6 Video failure/no-charge/explicit-retry flow. Isolated evidence is under `output/playwright/t6-013-twelfth-candidate/`, including the exact Script request schema, same-card success, Video failure/readonly/retry-success screenshots, and fresh runtime logs.
+- Restarted only the verified current-checkout listeners after the fresh build. Backend PID `12428` listens on `8000`; frontend production preview PID `17976` listens on `5173`. Health is `ok`, MySQL is ready, Alembic `b7c8d9e0f1a2 == head`, and frontend HTTP is `200`.
+- Final hygiene before the Human gate: `git diff --check` is clean; staged paths `0`; sensitive changed paths `0`; added secret-like lines `0`; no provider call, migration, runtime-data mutation, stage, commit, push, REPORT, or T6-014 activation occurred.
+- Recorded the repeated 2026-07-27 Human rejection for Script invalid structure and Video unsupported provider status. Read-only MySQL evidence shows the newest Script task reached bounded repair and failed `provider_result_invalid` after `173272ms`; the newest two Video tasks obtained real `task_*` provider IDs and failed on the first poll after `2447ms` and `7182ms` with `Provider returned an unsupported video task status`.
+- Root-cause source trace found two concrete contract defects before business-code edits: `story_director_executor` replaces the actual invalid assistant output with synthetic `{}` during its only repair turn, while `agnes_provider.PROVIDER_STATUS_MAP` rejects the repository-verified `processing` status and `video_generate._extract_video_url` rejects the existing verified direct `video_url` result shape. No new provider call was made.
+- Diagnosed the post-restart Human Script failure without making another provider call. The latest two persisted ten-shot tasks correctly reached `/api/text-generate`, used `agnes-2.0-flash`, and failed after `140586ms` and `146054ms` with the identical safe fingerprint `network_error / Server disconnected without sending a response`; the preceding attempt was `provider_unavailable / upstream error`. Backend health, MySQL/Alembic, frontend HTTP/CORS, and an unauthenticated Agnes DNS/TCP/TLS/base-endpoint probe remain healthy. Agnes currently resolves through the machine's Meta Tunnel, so the evidence localizes the fault to the long-lived Agnes/upstream tunnel path rather than Script binding, request count, credential validation, or local service availability. Automatic replay remains intentionally absent because a disconnected paid request has no provider idempotency proof.
+- Restarted the current checkout after the Human resolved the external port conflict. Only verified Revid listeners were stopped. Backend now listens on `8000` at PID `3424`; frontend production preview listens on `5173` at PID `16684`. Health reports MySQL ready and Alembic `b7c8d9e0f1a2 == head`; frontend returns HTTP 200 and backend CORS allows `http://localhost:5173`. Startup preserved the 51-character parent Agnes credential, used `.env` only to fill missing settings, and generated an in-memory-only JWT because the project value is a prohibited placeholder. No provider call, migration, runtime-data mutation, business-code edit, stage, commit, or push occurred.
+- Completed Units 35 and 36 as a renewed machine candidate. The Script workspace now has three directly selectable stages: editable/deletable/confirmable shots; role/scene/prop cards with a labelled right edit drawer; and bilingual prompt editing plus a modal selected-shot confirmation flow. All mutations use the existing story-production command/history/autosave authority and preserve stable asset/shot IDs.
+- Added explicit `1–25` requested shot count to the Script authoring surface, defaulting to `10`; both the brief action and workspace autonomous action send `requested_shot_count: 10` through the current Story Director contract without a real provider call.
+- Provider fixtures now accept optional truthful Chinese framing/image/video prompt fields, retain provider-language originals, normalize Chinese values only into bounded editable metadata, and continue rejecting malformed or extra provider shapes.
+- Video capability projection now advertises and displays exact per-ratio dimensions; `9:16` visibly resolves to `648x1152`, while the verified legacy `1152:768` marker reads as supported `16:9`. Terminal runtime errors are projected onto the same card, sanitized through the existing formatter, and visually separated from the lifecycle footer.
+- Fresh production evidence is isolated under `output/playwright/t6-013-tenth-candidate/libtv-script-video-20260727/`: three Script stages, asset drawer, prompt modal, readable Video failure, `648x1152` parameters, more than two clockwise boundary cycles with top/right/bottom/left samples, and reduced-motion static behavior.
+- Verification results: frontend related `58/58`; full replacement runtime `29/29`; backend related `69/69` plus `50` subtests; final production build `5,040` modules; focused Script/Video/browser evidence `3/3`; `git diff --check` clean. One interim broad assertion expected the old readonly storyboard and was updated to the Human-required editable contract before the clean `29/29` rerun.
+- Inspected all six Human-supplied LibTV Script references at original resolution. They establish a three-stage interaction oracle: every stage is directly selectable; `确认镜头` owns the editable shot table; `准备资产` groups role/scene/prop cards and edits a selected stable asset in a right drawer; `合成提示词` reuses the shot table and opens a dimmed batch-selection modal. This is an interaction reference only, not authority to copy branding, private implementation, prompts, or introduce a new provider.
+- Recorded the additional 2026-07-27 Human scope: role/scene/prop asset panel, explicit shot confirmation, shot deletion, editable generated storyboard fields, Chinese framing/final-prompt presentation, and continuation of the bounded Video repair.
+- Inspected the supplied workspace screenshot at original `3840x2160`. The third progress step is non-interactive, the strict document's assets are absent, every table input is `readonly`, the only row action is prompt viewing, and no delete action exists.
+- Root cause sentence: the replacement Script workspace is a deliberate read-only projection with only add/regenerate events, while the replacement Video projection omits the existing runtime error and renders static capability dimensions before legacy-ratio fail-closed validation.
+- Recorded the 2026-07-27 live Script/video Human rejection and completed Unit 34 diagnosis without business-code edits. Backend `8000` and fresh production frontend `5173` remained healthy; HEAD/origin and all dirty/protected paths were preserved.
+- Confirmed the Prompt node `a4539430-939b-4737-943d-c1af0090793b` is connected to Script node `1a3499c5-3871-4271-84f6-1b67aa8faba9`. Failed and successful tasks persisted that source ID, so the Script error is not caused by a missing graph binding.
+- The Human-authorized real Script action created task `8519009c-4049-4685-b925-55a2452578a8`, succeeded in about 11 seconds, and projected seven validated shots onto the same stable Script card. The result intentionally remains seven because the autonomous action sent `requested_shot_count: null`; the enabled ten-shot brief entry produced no Network event or database task in the observed production attempt.
+- Prior Script failures are `provider_result_invalid` after bounded repair. Agnes text requests have no structured-output mode, the provider is prompted to emit strict JSON manually, and the repair turn uses a synthetic empty assistant object rather than the actual invalid output. Only a generic safe error is persisted, so the exact historical malformed field cannot be recovered.
+- The latest three 18-second Video tasks for node `aac93b1e-5316-41a4-aa5e-89c618119e14` sent `9:16`, `648x1152`, 24 fps, 441 frames, keyframes, and two references, then failed `provider_unavailable` with sanitized `video queue is full, please retry later`. Earlier 18-second attempts failed on an unsupported Agnes task status; the adapter currently accepts only four exact status strings.
+- Current-canvas 10-second tasks have previously succeeded. The recorded 10-second failures found were `network_error`; no new 10-second backend task appeared for the latest report, so duration support is not the identified cause.
+- The replacement card does not present the compact task error and can retain a persisted `running` marker after the bound task failed, explaining the missing visible reason. The Video parameter footer always shows capability base `1152x768`, even when `9:16` is selected and the request sends `648x1152`. Another active node retains legacy `1152:768`, which is outside the current supported ratio set.
+- A temporary eighth placeholder shot caused by a browser click-through was removed through Canvas undo. The final persisted Script document and visible workspace both contain the seven provider-generated shots at Canvas revision `1507`.
+- Recorded the tenth explicit Human rejection on 2026-07-26 and inspected all three supplied screenshots at original resolution.
+- Confirmed three bounded defect groups: selecting `9:16` leaves the stable Image Generation node landscape and crops portrait media while a visible `已完成` footer remains; the boundary appears as static glow rather than an obvious clockwise runner; and the supplied valid story input is rejected as an invalid Script/storyboard structure while the same content yields ten shots in the Human LibTV reference.
+- Reopened T6-013 from `VERIFYING` to the sole active `DOING / PENDING` state before business-code edits. Added Units 31 through 33 for root-cause/RED, minimal coherent GREEN, and fresh-build/browser/audit. Every earlier automated candidate remains Human-rejected evidence only.
+- Re-ran the required live baseline: `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`; validator PASS; port `8000` is healthy at live PID `24220`; MySQL and Alembic are ready. All dirty T6-012/T6-013 code and protected untracked roots remain preserved.
+- Completed Unit 31 source/runtime trace without a real provider call. The selected Image ratio is already persisted by `update-generation-parameters` through command history/autosave, but replacement layout, boundary SVG, and port geometry still read raw node width/height; canonical layout also prioritizes the 160px authoring shell before the selected ratio. A materialized portrait result carries actual dimensions into the projected stable card, yet replacement still ignores them and renders the persisted success lifecycle footer.
+- Confirmed the live Chromium media query is `prefers-reduced-motion: no-preference`; reduced motion does not explain the Human-observed static appearance in this checkout. The runner animates, but the 2px rail and 3px same-hue runner have insufficient visual separation. The prior timing test inferred perimeter sides from dashoffset and did not require a visibly distinct halo/core at each sampled side.
+- Confirmed Agnes 2.5 uses the OpenAI-compatible `POST /v1/chat/completions` envelope and returns generated text at `choices[].message.content`. Revid extracts that envelope correctly, then rejects any legal compact storyboard unless the model reproduces the complete internal `revid.story-production.v1` graph, metadata, stable IDs, continuity, and relation IDs exactly. The prompt does not provide that complete internal schema, and there is no bounded provider-storyboard normalizer.
+- Captured focused observed REDs: canonical geometry returned `340x160` instead of `191.25x340`; browser ratio remained `1.545` instead of `0.5625`; the successful portrait retained one `data-runtime-lifecycle`; the required visible boundary halo was absent; the ten-shot compact provider fixture failed with missing internal fields plus `extra_forbidden`; and invalid provider output omitted the bounded diagnostic contract. Unit 31 is complete and Unit 32 owns the minimal coherent GREEN.
+- Completed Unit 32 minimal coherent GREEN without direct node mutation or a real provider call. Canonical geometry now prefers actual media dimensions, then the persisted Image `generation_parameters.image.aspect_ratio`, before the compact authoring fallback. Replacement node body, boundary SVG, ports, drag, selection, and attached surfaces consume that same layout authority; the existing typed parameter command remains the sole persistence/history/autosave path.
+- Successful usable Image media now suppresses only the redundant success lifecycle footer. Running boundary status remains screen-reader accessible, and failed/retry lifecycle states remain visible.
+- Loading now paints a persistent 2.5px rail plus a synchronized 8px luminous halo and 4px bright core. Fresh screenshots visibly place the runner on top, right, bottom, and left; 40 computed dashoffset samples include screen-space boundary points and retain clockwise order across more than two 1.6s cycles. `prefers-reduced-motion: reduce` disables both animations and retains a static full boundary.
+- Added strict `revid.provider-storyboard.v1` Pydantic input and deterministic normalization into the existing `revid.story-production.v1` authority. Only exact versioned JSON with resolved scene/role/prop names, contiguous shots, bounded text, and non-empty prompts is accepted; invalid or extra fields remain fail closed. Project-owned stable IDs, record metadata, continuity, source/model lineage, and persisted projection are created locally rather than demanded from the provider. API mock evidence normalizes and returns ten shots, while invalid provider output returns fixed diagnostic stage/contract fields without provider raw.
+- Focused GREEN: frontend geometry `1/1`; fresh production build `5,040` modules; fresh-build core browser `3/3` plus reruns; backend Director/API `8/8`. Unit 33 owns relevant regression, final build/runtime checks, diff/security/state audit, and candidate handoff.
+- Completed Unit 33 regression and fresh proof. Frontend clean related coverage is `74/74` after one observed canonical no-ratio geometry regression was corrected; backend related Director/Script/provider coverage is `43/43`; the final fresh production build transformed `5,040` modules. No real/paid provider call occurred.
+- Retained independent tenth-candidate proof under `output/playwright/t6-013-tenth-candidate/`: immediate persisted `9:16` geometry with stable ID plus undo/redo/reload, portrait contain projection with no successful footer, obvious no-preference top/right/bottom/left runner screenshots and 40 computed samples across more than two cycles, and the reduced-motion static boundary.
+- Final audit keeps `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`, `0` staged paths, `0` sensitive changed paths, `0` added debug markers, and all protected untracked roots. `git diff --check` and project-state validation pass.
+- The prior port `8000` process exited before final audit. A plain current-checkout restart failed closed on the required JWT setting; a second attempt used a cryptographically generated in-memory-only JWT and then exited before health because this shell does not possess the prior process's DB/runtime settings. No env file was read, no secret was printed or persisted, and no database/runtime data was created, migrated, or mutated. Port `8000` remains without a listener.
+- On 2026-07-27 the Human Owner explicitly authorized project-local `.env` access and full MySQL `revid_db` use, then requested a frontend/backend restart. A read-only preflight confirmed exact database identity `revid_db`, `SELECT 1`, and `0` claimable durable generation jobs, so startup could not automatically dispatch a provider task.
+- Restarted the current checkout without changing business code or schema. Backend now listens on `8000` at PID `25608`; two health checks separated by five seconds returned `ok`, MySQL ready, and Alembic `b7c8d9e0f1a2 == head`. Current OpenAPI contains Text `model_id`/`story_director` and Image `output_count`.
+- Rebuilt the frontend production bundle with `VITE_API_BASE_URL=http://localhost:8000`; Vite transformed `5,040` modules. The fresh preview listens on `5173` at PID `25516`, returns HTTP 200 with the app root, and backend CORS allows `http://localhost:5173`.
+- Diagnosed the post-restart Agnes rejection reported by the Human Owner. The latest two text tasks failed in under three seconds with `provider_rejected` and the sanitized provider message `无效的令牌`; earlier tasks reached provider output validation, so Script schema was not the cause of this screenshot.
+- Root cause was the manual launcher precedence: `env.update(dotenv_values(.env))` replaced a configured 51-character parent-process Agnes credential with the stale 13-character project-local value. The `.env` file was not modified, and interpolation produced the same stale value.
+- Rechecked `0` claimable durable generation jobs, stopped only verified backend PID `25608`, and restarted with parent environment precedence plus `.env` fill-only semantics. The launcher asserted that the 51-character parent Agnes credential was preserved. New backend PID `37824` passed two health checks separated by five seconds; MySQL/Alembic remain ready. Frontend PID `25516` remains HTTP 200. No Agnes/provider call occurred during the correction.
+- Recorded the ninth explicit Human rejection on 2026-07-26 and inspected the three supplied screenshots at original resolution.
+- Confirmed four newly bounded visible defects: the image/video boundary shows a stationary lower/right glow instead of visible clockwise travel around the complete card; Image Generation displays `已完成` while only the placeholder remains; Script repeatedly collapses to `脚本生成服务暂时不可用，请稍后重试。`; and advertised `Agnes 2.5 Flash` has no selectable control.
+- Reopened T6-013 from `VERIFYING` to the sole active `DOING / PENDING` state before business-code edits. Added Units 28 through 30 for root-cause/RED, coherent GREEN, and fresh-build/live proof; all earlier candidate automation remains Human-rejected evidence only.
+- Re-ran the required live baseline: `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`; validator PASS; port `8000` is healthy at PID `37592`; current OpenAPI contains Script `story_director` and Image `output_count`; all dirty T6-012/T6-013 code and protected untracked paths remain preserved.
+- Captured the ninth-rejection focused observed RED before production edits. Backend `4/4` failed with exact fingerprints: `model_id` is rejected by `TextGenerateRequest` as `extra_forbidden`; an unsupported model cannot reach an authority-aware rejection because the field is absent; generic provider and invalid-result failures collapse to plain `Agnes text generation failed`. Replacement browser `4/4` failed: structured Script `detail.message` is overwritten by the status-first generic 500 copy; a materialized legacy result remains a placeholder because replacement receives the raw graph; Agnes 2.5 has no combobox; and there is no real boundary track to sample.
+- Root cause is bounded. Text generation hardcodes `TEXT_CONTRACT.model` through task/fingerprint/provider/lineage and has no request model field; the frontend checks `status >= 500` before structured detail; replacement does not apply the existing materialized-card projection; and the conic pseudo-element exposes only an animated custom property, not a clearly visible full-perimeter runner. Unit 28 is complete; Unit 29 owns the minimal coherent GREEN.
+- Completed Unit 29 without provider calls or runtime-data mutation. Script now accepts one capability-allowlisted `model_id`; the selected model is persisted in the card configuration and remains identical through request, task, provider dispatch, asset, and lineage. Safe structured backend error detail now survives the frontend 5xx boundary.
+- The replacement runtime now applies the existing retained-task materialized-card projection before rendering, so a completed legacy Image result replaces the initiating stable card's placeholder without mutating graph/history authority.
+- Replaced the subtle conic pseudo-element with an explicit SVG rounded-rectangle rail and runner. Under `no-preference`, the dash traverses the complete clockwise perimeter indefinitely; under `reduce`, a visible static full perimeter remains with no animation.
+- Focused GREEN is backend `4/4` and fresh-build replacement browser `4/4`. The production build transformed `5,040` modules. Independent ninth-candidate evidence is under `output/playwright/t6-013-ninth-candidate/`; 24 samples across about `4.83s` visit `top -> right -> bottom -> left` repeatedly, while reduced motion records `animationName: none`.
+- Unit 30 retained regression is complete: related fresh-build browser `70/70`, broad Canvas command/history/autosave/generation/T6-011 `81/81`, backend Script/Image/parameter/Director authority `57/57`, final production build `5,040`, and final production-preview replacement/image-batch `32/32`.
+- The final diff review corrected one model-authority gap: `补全分镜` now reuses the stable Script card's persisted allowed model instead of silently falling back to Agnes 2.0.
+- Backend restart is complete. The verified old listener/launcher were stopped; one no-config retry failed closed and one incompatible PowerShell RNG attempt was immediately terminated before use. The final launcher uses a cryptographically generated in-memory-only JWT secret plus explicit development/mock-auth/loopback guards. Port `8000` now listens at PID `24220`, health/MySQL/Alembic are ready, and live strict OpenAPI exposes Text `model_id`/`story_director` and Image `output_count`.
+- Final audit keeps `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`, `0` staged paths, `0` sensitive changed paths, `0` added debug markers, and all protected untracked roots. `git diff --check` and project-state validation pass. This is machine candidate evidence only; Human acceptance remains pending.
+- Recorded the eighth explicit Human rejection on 2026-07-26 and inspected the three supplied screenshots at original resolution.
+- Confirmed four bounded visible defects: Image Generation displays `已完成` while the card still has only a placeholder and no boundary loading; Script exposes `Request failed with status code 500` plus contradictory Agnes/model/count metadata; the context menu remains open after outside interaction; and context-menu deletion requires a prior left-click selection instead of targeting the right-clicked node.
+- Reopened T6-013 from `VERIFYING` to the sole active `DOING / PENDING` state before business-code edits. T6-014 and all provider/migration/engine work remain frozen.
+- Added Units 25 through 27 for observed RED, minimal coherent GREEN, and fresh-build/runtime proof. Prior candidate automation remains rejection evidence only.
+- Re-ran the required startup baseline: `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`; validator PASS; all dirty T6-012/T6-013 code and protected untracked paths remain preserved.
+- Captured four focused frontend REDs: terminal `succeeded` projected `已完成 / success / terminal` over a still-bound placeholder; Script displayed unlabeled primary/available models and bare quota; outside pointer left the context menu mounted; and right-clicking an unselected node left the previous selection authoritative. Backend RED proved `agnes-2.5-flash` was mislabeled `Agnes 2.0 Flash`.
+- Traced the shared causes before production edits: compact presentation treated every `succeeded` status as final before exact-result application removed the active binding; Script error normalization handled only object `detail.message` and capability labels were hardcoded; context-menu lifecycle had only Escape teardown and node contextmenu never established a canonical target.
+- Terminal media success now remains `正在显示结果 / progress / non-terminal` while the owning node is still bound. Exact-result 503 recovery keeps the clockwise boundary and suppresses completion copy; after the result command projects media on the same stable card, the binding clears and boundary loading stops.
+- Script 5xx responses now render `脚本生成服务暂时不可用，请稍后重试。`, preserve the previous validated Script, and never leak raw Axios copy. Model and quota metadata are labeled `当前模型`, `可用`, and `剩余 N quota`; backend model labels follow the selected Agnes model ID.
+- The context menu now closes on outside pointer, Escape, and completed actions. Right-clicking an unselected node first replaces canonical selection with that exact stable node; already-selected multi-selection remains intact, and visible Delete continues through the existing typed command/history/autosave authority.
+- Focused GREEN is `4/4`; backend Script contract is `4/4` plus `3` subtests. Related frontend regression is `58/58` plus broad command/history/generation/T6-011 regression `63/63`; backend related regression is `30/30` plus `42` subtests.
+- Final fresh frontend production build transformed `5,040` modules. Fresh-build proof is `6/6`, including exact-result recovery/media projection, Script 500/model/quota presentation, outside dismissal, exact right-click targeting, and retained multi-cycle/reduced-motion boundary timing.
+- Inspected five eighth-candidate screenshots at original resolution under `output/playwright/t6-013-eighth-candidate/`: recovery placeholder with boundary loading, same-card projected image, actionable Script 500, context menu before outside click, and unselected-node right-click target.
+- Revalidated and restarted the authorized current-checkout backend after the final model-label authority audit. Old listeners were verified before stop; the final listener is PID `37592`, `/health` returns `ok`, and live OpenAPI contains Script `story_director` plus Image `output_count`. The env file was not inspected, printed, or modified; old tokens require re-login because the JWT remains in-memory-only.
+
+- Recorded the second explicit Human rejection of the T6-013 candidate on 2026-07-25 and inspected all three supplied screenshots at original resolution.
+- Confirmed the rejected behaviors: connected Prompt/Text content was not used as Script/storyboard input; the returned text was an unrelated inability/apology response; `列设置`, `导出`, `补全分镜`, and `添加镜头` were unusable; and selected Script toolbar controls did not perform truthful Script actions.
+- Reopened T6-013 from `VERIFYING` to `DOING` as the sole active implementation Task. T6-012 remains terminal `BLOCKED / FAIL` and may be selectively reused only at its validated contract boundary.
+- Refreshed Task and PLAN before further business-code edits. Script crop is classified as a media-only action and must not be shown as a fake Script control; Script configuration and workspace expansion remain required working actions.
+- Recorded the 2026-07-25 Human rejection and inspected the supplied screenshot at original resolution: the visible Script run control was inactive; marquee, group/ungroup, and whole-card target acquisition were absent.
+- Activated T6-013 as the sole implementation Task before business-code edits; T6-012 remains terminal `BLOCKED / FAIL` with no acceptance presumption.
+- Observed four focused browser RED fingerprints: `replacement-script-authoring-unwired`, `script-workspace-demo-rows`, `replacement-marquee-absent`, and `whole-card-connection-target-absent`.
+- Reused the existing Script authoring authority in the replacement runtime. The visible Script control now exposes capability/quota/loading/error/success truthfully, submits through the existing request boundary, and applies the validated result to the initiating stable card.
+- Replaced hard-coded Script workspace rows with persisted `story_production.shots`. Removed fake add/export/partial/edit affordances and presents the persisted projection explicitly as read-only.
+- Reconnected replacement Canvas selection to canonical `selectedNodeIds`; empty left-drag renders an intersection marquee, modifier drag adds to selection, Space/middle drag retains pan ownership, and card/direct-edit/port gestures stay isolated.
+- Reused typed group/ungroup commands through the document store. Two valid cards expose `组合`; a selected group exposes `取消组合`; `Ctrl/Cmd+G` and `Ctrl/Cmd+Shift+G` use the same history/autosave authority.
+- Made the entire target card participate in connection acquisition. Output-origin gestures resolve to the target's left input; input-origin gestures resolve to the target's right output; compatible and incompatible full-card states are distinct and clear after leave/drop.
+- Preserved fixed visible `+` start controls, typed port compatibility, stable IDs, graph/history/autosave, replacement world/camera authority, Video Composition, capability-gated Audio, Director absence, legacy readability, and the frozen later-task boundaries.
+- Split the added interaction responsibilities into bounded modules; `CanvasReplacementRuntime.vue` is now 470 lines.
+- Captured fresh browser evidence in protected untracked output:
+  - `output/playwright/t6-013-script-same-card-success-1440x900.png`
+  - `output/playwright/t6-013-additive-marquee-1440x900.png`
+  - `output/playwright/t6-013-group-toolbar-1440x900.png`
+  - `output/playwright/t6-013-whole-card-target-input-1440x900.png`
+- Observed the new Script/storyboard browser RED: the request omitted `story_director.source_node_ids`, validated production was not applied to the Script card, Script-specific toolbar actions were absent, and `列设置`/`导出`/`添加镜头`/`补全分镜` did not satisfy the current interaction contract.
+- Added the backend-owned connected-source execution boundary. The API resolves exact active upstream Prompt/Text connections from the persisted Canvas document, fingerprints source revision without persisting raw source text in the compact request snapshot, invokes the automatic non-selectable Story Director with one bounded repair, validates strict `revid.story-production.v1`, and preserves same-card lineage/idempotent replay.
+- Connected Script generation now sends the exact upstream stable node IDs, rejects missing usable story input explicitly, applies only structured validated production through the existing typed Script result command, and leaves the current Script document intact on failure.
+- Made the Script toolbar type-aware: configuration opens a Script-specific truthful popover, workspace expansion opens the structured workspace, and the generic media model/crop surface is not projected for Script.
+- Made the structured workspace operational: column settings toggle optional view columns without graph mutation; JSON export downloads the current document; `添加镜头` appends one stable `needs_review` shot through history/autosave; `补全分镜` reuses the connected validated Story Director path.
+- Fixed the runtime-only reactive-proxy failure in shot insertion by cloning `toRaw(story_production)` before constructing the typed update. A reactive-input contract test now protects this behavior.
+- Fresh diff audit found and corrected one cross-layer snapshot mismatch before handoff: Story Director task parameters now retain both compact `script_authoring` and `story_director` snapshots, matching the frontend authority check without storing raw connected source text.
+- Reconciled superseded regression assertions with the Human-directed contract and verified the revised candidate: focused browser `5/5`, related Canvas/Script browser `48/48`, backend related `30/30`, fresh build `5,037`, validator and diff check PASS.
+- Recorded the third explicit Human rejection and inspected the four new screenshots at original resolution.
+- Confirmed the newly missing contract: the marquee disappears after selection instead of becoming a persistent draggable hull; selected nodes cannot be moved as one bounded set; the hull has no right-side multi-source continuation `+`; Script completion returns a raw HTTP 422 and cannot autonomously create storyboard from current Script text; the workspace lacks the reference production columns.
+- Reopened T6-013 from `VERIFYING` to `DOING / PENDING` before further business-code edits. Previous automation remains evidence for the rejected second candidate only.
+- Observed five third-candidate focused RED failures: raw Story Director 422 propagation, missing ten-column workspace, missing autonomous no-connection action, missing persistent hull, and missing multi-source continuation. Two subsequent visual-audit REDs proved that a stale single-card composer obscured the multi-selection gesture and the old 1180px workspace cap hid the rightmost columns even at 1920px.
+- Normalized Story Director and generic FastAPI 422 responses into actionable Chinese `CanvasGenerationError` messages. The raw Axios `Request failed with status code 422` string no longer reaches the Script workspace.
+- Added autonomous storyboard completion from a non-empty current Script when no usable upstream Prompt/Text exists. Connected Prompt/Text remains authoritative when present, and both paths retain the strict automatic Story Director validation and same-card result boundary.
+- Expanded the persisted Script projection to 镜号、时长、画面描述、景别、光影氛围、对白/旁白、音效、运镜、最终提示词、操作. `查看提示词` opens the actual persisted final prompt; unavailable strict fields remain empty. Column settings, JSON export, stable-shot insertion, and autonomous generation are operational.
+- Added a persistent selection hull backed by canonical `selectedNodeIds`. Dragging it previews all selected positions, then dispatches one existing `move-nodes` history/autosave command; undo restores every node and stable ID.
+- Added a right-side hull continuation handle. Pointer drag draws one visible preview curve per selected source; release opens only actions compatible with the entire typed selection. Choosing an action inserts one stable target plus all compatible connections atomically. Audio stays absent when capability authority reports zero compatible models; Video Composition remains present.
+- Multi-selection now suppresses the stale single-card attached composer so the hull and fan-out interaction remain unobstructed. Single-card composer, drag, whole-card target acquisition, Script workflow, and prior T6-011 boundaries remain intact.
+- Fresh browser evidence was captured with local/mock data only:
+  - `output/playwright/t6-013-persistent-selection-hull-moved-1440x900.png`
+  - `output/playwright/t6-013-multi-source-preview-1440x900.png`
+  - `output/playwright/t6-013-multi-source-menu-1440x900.png`
+  - `output/playwright/t6-013-script-ten-columns-1920x1000.png`
+- Recorded the fourth explicit Human rejection and inspected both supplied screenshots: after `组合`, dragging the visible group container did not move its child nodes; the selection-hull continuation `+` used a visibly oversized presentation instead of the node output `+` visual language.
+- Reopened T6-013 from `VERIFYING` to `DOING / PENDING` before further business-code edits. The third-candidate screenshots and automation remain evidence for the rejected candidate only.
+- Observed the fourth-candidate RED fingerprints: group persistence moved only the container `(84, 48)` while both stable children stayed `(0, 0)`; the pointer-held live preview had the same split; the hull had no node-style visible port layer.
+- Group pointer preview now expands the existing group root through canonical drag resolution and projects the same delta onto the container and every stable child before mouseup. Pointer release dispatches one existing typed `move-nodes` command; one undo restores all three positions.
+- The hull continuation control now separates a pointer-friendly acquisition button from a fixed-size visible `+`. Both hull and node visible ports compile from one shared SCSS presentation; the hull `+` remains at the requested right-center position.
+- Fresh browser evidence uses local/mock data only:
+  - `output/playwright/t6-013-group-unit-live-preview-1440x900.png`
+  - `output/playwright/t6-013-group-unit-moved-1440x900.png`
+  - `output/playwright/t6-013-selection-hull-node-matched-plus-1440x900.png`
+- Fourth-candidate focused browser is `3/3`; related replacement/group/history/port regression is `47/47`; command/history/connection broad regression is `40/40`; fresh production build transformed `5,040` modules.
+- Recorded the fifth explicit Human rejection on 2026-07-26 and reopened T6-013 to `DOING / PENDING` before further business-code edits.
+- Inspected the supplied video-generation and group reference screenshots. The newly bounded defects are: unavailable existing image-reference/mode/role/ratio/duration controls; redundant `模型生成中` body chrome; a compact `succeeded` job with `result_asset_id` that continues polling and does not project video until refresh; and group membership/count that does not follow spatial containment.
+- Confirmed from the frozen T6-011 contract and T6-009 REPORT that these video controls and exact terminal result/stop behavior are existing accepted boundaries, not authorization for a new provider adapter or future semantic-video execution.
+- Defined deterministic group membership for this candidate as full visible-node containment inside the group content area at individual-node pointer release. Partial overlap does not change membership; group movement itself retains the current unit.
+- Re-ran the required restart baseline: `HEAD == 214b7c202ecb00b6504cdda849421ada3f04c38e`, project-state validator PASS, `npx` available, no staged paths, and all existing dirty/protected paths preserved.
+- Completed the fifth-candidate root-cause audit. The replacement video composer used a plain textarea, its `添加素材` control had no handler, v6 deliberately hid duration, and its display-mode buttons did not update canonical semantic bindings. The backend video snapshot also exposed only one fixed width/height and accepted no ratio.
+- Confirmed the terminal-result race: a terminal compact status is written into the store before exact result retrieval, but a result-read error prevents the reactive revision from advancing. The polling predicate cannot distinguish terminal status from a still-missing exact result, so status presentation, result recovery, and stop decisions can diverge.
+- Confirmed the group cause: individual drag release called `queueNodeMove` directly, bypassing typed command/history and never reconciling `parentNodeId`; the runtime also projected no canonical member count.
+- Observed focused RED before production edits:
+  - backend video ratio contract: unexpected `aspect_ratio` keyword;
+  - frontend capability/parameter contract: video aspect values absent;
+  - terminal result recovery predicate: returned false while a succeeded bound job still lacked its exact result;
+  - spatial membership command: required exports absent;
+  - replacement browser: inline `@` reference editor absent, boundary loading absent, and group member count absent.
+- Restored the existing Video Generation contract end to end: capability-owned ratios and defaults, persisted `aspect_ratio`/duration, connected image `@` tokens, explicit text/image/keyframe modes, and per-image first-frame/last-frame/reference roles. Unsupported modes remain disabled before submission and no provider adapter was added.
+- Fixed one browser-only self-update race found during GREEN verification: prompt persistence no longer closes the `@` picker; only switching to a different stable node resets attached UI state.
+- Made compact-job polling result-aware. A cached terminal status is not requested again; a temporarily unavailable exact result is retried until its matching version arrives, the same stable card publishes the video immediately, and polling then stops.
+- Replaced visible image/video progress body chrome with a clockwise conic-gradient card-boundary state. The progress label remains screen-reader accessible, and `prefers-reduced-motion` disables the animation.
+- Added one typed individual-node move/membership command with executor rollback and history capture. Normal spatial groups reconcile full containment at pointer release, preserve the current membership during partial overlap, and expose live `分组 N 个节点` counts including zero; group-root movement still moves the existing unit.
+- Fifth-candidate focused GREEN now covers backend normalization `2/2`, frontend parameter/job/membership contracts `16/16`, and browser interaction for `@` references, ratio/duration/roles, boundary loading and reduced motion, terminal result recovery without refresh or repeated status polling, and spatial membership `2 -> 1 -> 0 -> 1`.
+- Captured local/mock browser evidence in protected untracked output:
+  - `output/playwright/t6-013-spatial-group-live-membership-1440x900.png`
+- Closed two final browser-audit defects through observed RED and smallest GREEN: composition/parameter persistence is now serialized so a Video mode cannot be overwritten by a stale parameter update, and the parameter popover no longer intercepts the model control.
+- Fresh visual inspection found that the accessible running label was still visibly rendered and that rotating the complete pseudo-element distorted the glowing rectangle into a diamond. New browser assertions observed both REDs; the label is now visually hidden but accessible, and only the conic-gradient angle moves clockwise while the card geometry remains fixed.
+- Captured final local/mock fifth-candidate visual evidence:
+  - `output/playwright/t6-013-video-reference-parameters-1440x900.png`
+  - `output/playwright/t6-013-card-boundary-loading-1440x900.png`
+- Completed Unit 18 machine verification. Current frontend regression is `108/108` across replacement, Script/workspace, parameters/service, spatial group, compact polling, card work surface, and retained T6-011 behavior. Current backend regression is `62` pytest cases plus `61` subtests across video parameters/API, Script/Story Director, text generation, compact jobs, and API v2.
+- Final production build transformed `5,040` modules. Fresh-build browser proof, visual inspection, state validation, diff check, sensitive-path-name audit, staged-path audit, and debug-marker audit pass.
+- Recorded the sixth explicit Human rejection on 2026-07-26: the Human Owner did not accept the fifth candidate and supplied one original-resolution Script screenshot.
+- Confirmed the screenshot fingerprint is `生成请求格式无效: Extra inputs are not permitted. 请检查当前脚本内容后重试。`; this is a real request/schema validation failure and is not classified as a provider error or copy-only defect.
+- Reopened T6-013 from `VERIFYING` to `DOING / PENDING` before further business-code edits. The fifth-candidate automation and screenshots remain rejected-candidate evidence only.
+- Added three bounded remediation units: exact Script request/runtime-schema alignment, capability-to-result multi-image output count, and sustained clockwise boundary loading with multi-cycle browser timing plus reduced-motion proof.
+- Re-ran the live startup baseline before edits: `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`; project-state validator PASS; all dirty T6-012/T6-013 code and protected untracked paths remain preserved.
+- Traced the exact Script failure to runtime contract drift, not provider behavior: live port `8000` OpenAPI omits `TextGenerateRequest.story_director`, while the current checkout schema includes it. The running backend process started on 2026-07-24, before the schema source changed on 2026-07-26, so the new frontend field is rejected by the stale Pydantic runtime as `extra_forbidden`.
+- Traced multi-image end to end. Capability v6 advertises `[1,2,3,4]`, persisted `generation_parameters.image.output_count` and four-slot same-card/sibling projection already exist, but every outbound `/api/image-generate` request omits `output_count`; the replacement attached submit also exposes no count-aware quota blocked reason, so its click can appear inert.
+- Captured focused RED before production edits:
+  - backend capability lacks the Story Director request-contract marker and `normalize_image_parameters` rejects the new `output_count` argument;
+  - four image slot requests and a failed-slot retry all have `output_count === undefined`;
+  - stale backend capability exposes no alert and leaves Story Director submit enabled;
+  - replacement multi-image submit exposes no count-aware quota reason.
+- Added the required multi-cycle browser regression before production edits. Under isolated `prefers-reduced-motion: no-preference`, the current source changes both computed angle and rendered conic gradient throughout samples extending beyond three 1.25-second periods; under the live desktop's `reduce` preference the pseudo-element correctly computes `animation: none`. The Human-observed one-cycle stop remains the rejection RED and still requires fresh-production-build timing proof.
+- Added a backend-owned Story Director request marker to the authenticated generation capability and made the frontend fail closed when an older runtime omits it. The visible Script composer now explains that the backend must be restarted and sends no invalid request; the current schema and capability tests assert the same contract version and field.
+- Made image `output_count` canonical across Pydantic request schema, backend normalization/snapshot, frontend request context, every four-slot request, failed-slot retry, and response snapshot validation. Legacy omitted batch counts infer the persisted batch slot count; supported values are exactly `1..4`.
+- Added count-aware quota authority to the replacement composer. A four-output request with only three remaining quota now shows `图片生成需要 4 quota，当前剩余 3`, disables the submit button, and sends nothing; sufficient quota dispatches four unique requests with `output_count: 4` and projects all four stable batch slots.
+- Hardened the angle-only boundary loop against equivalent `0deg -> 1turn` endpoint optimization by using an explicit `0deg -> 359.999deg` iteration. Card geometry remains fixed, the animation remains infinite only under no-preference, and reduced motion remains non-animated.
+- Completed fresh-production evidence using local/mock routes only:
+  - `output/playwright/t6-013-sixth-candidate/script-request-schema.json`
+  - `output/playwright/t6-013-sixth-candidate/script-same-card-success-1440x900.png`
+  - `output/playwright/t6-013-sixth-candidate/script-stale-runtime-blocked-1440x900.png`
+  - `output/playwright/t6-013-sixth-candidate/multi-image-request-and-projection.json`
+  - `output/playwright/t6-013-sixth-candidate/multi-image-four-card-projection-1440x900.png`
+  - `output/playwright/t6-013-sixth-candidate/multi-image-quota-blocked-reason-1440x900.png`
+  - `output/playwright/t6-013-sixth-candidate/boundary-loading-computed-samples.json`
+  - `output/playwright/t6-013-sixth-candidate/boundary-loading-cycle-0-1440x900.png`
+  - `output/playwright/t6-013-sixth-candidate/boundary-loading-after-three-cycles-1440x900.png`
+- Sixth-candidate machine verification is complete. Backend related authority is `57/57`; frontend focused/related regression is `113/113`; final fresh production build transformed `5,040` modules; fresh-build evidence tests are `5/5`. Visual inspection confirms the same-card Script result, visible stale-runtime and multi-image quota reasons, and four-card projection.
+- The live backend on port `8000` remains the pre-schema process started on 2026-07-24. It was intentionally not killed or replaced because this run may not disrupt the user's runtime; the new frontend blocks Story Director against that stale capability instead of sending the rejected field. Human retest release condition is a normal backend restart from the current checkout.
+- Recorded the seventh explicit Human rejection on 2026-07-26: a selected node cannot be deleted with the keyboard `Delete` key or the visible right-click `删除` action.
+- Reopened T6-013 from `VERIFYING` to `DOING / PENDING` before deletion business-code edits. The sixth-candidate automation remains candidate evidence only.
+- Added three bounded units for focused deletion RED, one shared typed-command GREEN, and fresh-build browser proof plus the explicitly requested backend restart.
+- Re-ran the live startup baseline: `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`; validator PASS; the port `8000` listener is PID `36644`; dirty T6-012/T6-013 work and protected untracked paths remain preserved.
+- Traced the deletion root cause: the replacement runtime exposes no delete event or keyboard handler, and its replacement context menu contains no delete item, so neither Human entry point can reach the already-existing `delete-selection` typed command/executor/history/autosave authority.
+- Captured focused browser RED before production edits: keyboard `Delete` left `node-image` and its incident connection intact, while right-click exposed no `删除` menuitem. The active-text-input guard remains a separate regression boundary.
+- Added one replacement-runtime deletion event carrying `keyboard` or `context-menu` source. Canvas-owned `Delete` and the visible context-menu `删除` action now converge on `createDeleteSelectionCommand` and the existing executor/history/autosave boundary.
+- Preserved focus safety by ignoring text inputs, editable content, controls, dialogs, and menus. Locked/unsupported selections keep the context action disabled through `canDeleteCanvasNode`.
+- Focused GREEN is `3/3`: click-selected node plus `Delete`, right-click `删除`, incident-edge cleanup, exactly one persisted document mutation, undo restoration, and active-text-input non-interception all pass.
+- Related replacement/command/history/autosave regression is `61/61`; final fresh production build transformed `5,040` modules; fresh-build deletion evidence is `3/3`.
+- Retained local/mock evidence under `output/playwright/t6-013-seventh-candidate/`: keyboard/context-menu document mutation JSON, visible context-menu screenshot, and post-keyboard-delete screenshot. Original-resolution inspection confirms the enabled `删除` action and removed selected card.
+- Safely stopped the verified stale port `8000` listener PID `36644`. A restart without env-file access immediately exited because the required runtime configuration was unavailable in the current process environment; port `8000` currently has no listener.
+- Did not open or pass the env file. The old parent process had already exited, so its injected environment could not be reused.
+- After explicit Human authorization, loaded the existing env file without inspecting or outputting its content. Startup diagnostics identified the fail-closed JWT placeholder and development-auth profile guards.
+- Restarted the current checkout with an in-memory-only cryptographic JWT secret plus the source-defined development profile/mock-auth/loopback guards. The env file remained unmodified; old login tokens are invalid and require re-login.
+- Live port `8000` listener PID `29344` is healthy: `/health` returns `ok`, and current OpenAPI includes both `TextGenerateRequest.story_director` and `ImageGenerateRequest.output_count`.
+
+## Remaining work
+
+- No T6-013 implementation work remains.
+- Final cross-task visual, interaction, and journey acceptance is deferred to T6-027 by the 2026-07-28 Human program
+  direction; no historical candidate is reclassified as accepted.
+- A real Agnes Script/Image/Video generation was not called in the closure verification. Machine evidence does not claim
+  current external-provider health or fidelity.
+- The historical broad-browser result remains `59/60`. The exact previously failing legacy structured-reference edge
+  Delete case passed `1/1` in the fresh closure rerun, but the complete broad suite was not rerun and is not claimed
+  `60/60`.
+
+## Exact next action
+
+Precisely stage the official T6-012/T6-013 candidate code and documents plus `REPORT-T6-013.md`, excluding protected
+untracked evidence and environment/secret paths; create one baseline commit, push it, verify `HEAD == origin/main`, then
+create and activate T6-017 from that clean remote baseline.
+
+## T6-013 files changed
+
+- `frontend/src/views/app/CanvasWorkspace.vue`
+- `frontend/src/components/canvas-runtime/CanvasReplacementRuntime.vue`
+- `frontend/src/components/canvas-runtime/CanvasRuntimeAttachedSurfaces.vue`
+- `frontend/src/components/canvas-runtime/CanvasRuntimeNodeLayer.vue`
+- `frontend/src/components/canvas-runtime/canvas-runtime-node-layer.scss`
+- `frontend/src/components/canvas-runtime/CanvasRuntimeScriptWorkspace.vue`
+- `frontend/src/components/canvas-runtime/canvas-runtime-script-workspace.scss`
+- `frontend/src/components/canvas-runtime/CanvasRuntimeSelectionHull.vue`
+- `frontend/src/components/canvas-runtime/_canvas-runtime-port.scss`
+- `frontend/src/components/canvas-runtime/CanvasRuntimeContinuationMenu.vue`
+- `frontend/src/components/canvas-runtime/CanvasRuntimeContextMenu.vue`
+- `frontend/src/components/canvas-runtime/canvas-replacement-runtime.scss`
+- `frontend/src/components/canvas-runtime/canvas-runtime-node-layer.scss`
+- `frontend/src/components/canvas-runtime/canvas-runtime-attached-popovers.scss`
+- `frontend/src/components/canvas-runtime/runtime-whole-card-connection.ts`
+- `frontend/src/components/canvas-runtime/use-runtime-canvas-shell.ts`
+- `frontend/src/components/canvas-runtime/use-runtime-connection-drag.ts`
+- `frontend/src/components/canvas-runtime/use-runtime-marquee-selection.ts`
+- `frontend/src/components/canvas-runtime/use-runtime-node-drag.ts`
+- `frontend/src/components/canvas/CanvasScriptGenerationControls.vue`
+- `frontend/src/components/canvas/CanvasGenerationParameterControls.vue`
+- `frontend/src/components/canvas/CanvasCardWorkSurface.vue`
+- `frontend/src/components/canvas/composables/use-canvas-script-generation.ts`
+- `frontend/src/components/canvas/composables/use-canvas-generation-runtime.ts`
+- `frontend/src/modules/canvas/canvas-command-executor.ts`
+- `frontend/src/modules/canvas/canvas-command-history.ts`
+- `frontend/src/modules/canvas/canvas-commands.ts`
+- `frontend/src/modules/canvas/connection-continuation.ts`
+- `frontend/src/modules/canvas/generation-capability-contract.ts`
+- `frontend/src/modules/canvas/generation-job-runtime.ts`
+- `frontend/src/modules/canvas/generation-parameters.ts`
+- `frontend/src/modules/canvas/generation-service.ts`
+- `frontend/src/modules/canvas/resource-commands.ts`
+- `frontend/src/modules/canvas/selection-generation.ts`
+- `frontend/src/modules/canvas/story-shot-generation.ts`
+- `frontend/src/modules/canvas/script-authoring.ts`
+- `frontend/src/views/app/CanvasWorkspace.vue`
+- `frontend/tests/e2e/canvas-frontend-replacement.spec.ts`
+- `frontend/tests/e2e/canvas-generation-job-sync.spec.ts`
+- `frontend/tests/e2e/canvas-generation-parameters-fixture.ts`
+- `frontend/tests/e2e/canvas-generation-parameters-v6.spec.ts`
+- `frontend/tests/e2e/canvas-generation-service.spec.ts`
+- `frontend/tests/e2e/canvas-node-deletion-remediation.spec.ts`
+- `frontend/tests/e2e/canvas-selection-hull-remediation.spec.ts`
+- `frontend/tests/e2e/canvas-spatial-group-membership.spec.ts`
+- `frontend/tests/e2e/canvas-t6-011-restored-behaviors.spec.ts`
+- `frontend/tests/e2e/canvas-script-director-contract.spec.ts`
+- `frontend/tests/e2e/canvas-script-generation.spec.ts`
+- `frontend/tests/e2e/canvas-script-workflow-remediation.spec.ts`
+- `backend/api/text_generate.py`
+- `backend/api/video_generate.py`
+- `backend/core/generation_parameter_contract.py`
+- `backend/core/script_authoring_contract.py`
+- `backend/schemas/generation.py`
+- `backend/services/generation/story_director_executor.py`
+- `backend/tests/test_generation_parameter_contract.py`
+- `backend/tests/test_script_authoring_contract.py`
+- `backend/tests/test_story_director_contract.py`
+- `backend/tests/test_text_generate.py`
+- `ai/tasks/todo/TASK-T6-013.md`
+- `ai/tasks/doing/TASK-T6-013-PLAN.md`
+- `ai/tasks/doing/TASK-T6-013-PROGRESS.md`
+- `ai/state/CURRENT.md`
+- `ai/state/ROADMAP.md`
+
+The pre-existing dirty T6-012 backend/contracts/tests remain preserved and are not represented as accepted T6-013 work.
+
+## Commands run and summarized results
+
+- Unit 34 live browser trace: connected Prompt/Script IDs and full source were present; the enabled ten-shot brief produced no Network request, while the autonomous action produced successful task `8519009c-4049-4685-b925-55a2452578a8` and seven same-card shots.
+- Unit 34 read-only MySQL trace: latest 18-second tasks sent `9:16`/`648x1152`/441 frames and failed on queue saturation; earlier 18-second tasks hit unsupported provider status; recorded 10-second failures were network errors and historical 10-second successes remain.
+- Unit 34 source trace: strict manual JSON Script boundary, generic bounded repair, narrow Video status allowlist, hidden task-error presentation, static capability dimensions, and legacy ratio incompatibility identified. No real Video call or business-code edit occurred.
+- Rejection restart reads: AGENTS, CURRENT, complete ROADMAP, T6-013 Task/PLAN/PROGRESS, both linked requirements, Canvas architecture, T6-012 rejected Task/PLAN/PROGRESS, and REPORT-T6-007 frozen RED evidence.
+- Rejection restart Git baseline: `HEAD == 214b7c202ecb00b6504cdda849421ada3f04c38e`; dirty T6-012/T6-013 work and protected untracked paths preserved.
+- Rejection restart validator: PASS. Playwright prerequisite `npx` is available.
+- Required startup reads/Git baseline: `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`; protected untracked paths preserved.
+- Startup and post-activation `backend\.venv-ci-check\Scripts\python.exe scripts\validate-project-state.py`: PASS.
+- Focused observed RED: intended `4/4` failures with the fingerprints recorded above.
+- Focused browser GREEN: `6/6`; includes Script same-card success, persisted rows, normal/additive marquee, visible and keyboard group/ungroup, input/output side resolution, 70% zoom, and incompatible fail-closed behavior.
+- Full replacement regression: `23/23` PASS.
+- Related Script/selection/history/autosave/connection regression: `40/40` PASS.
+- Backend focused contract suite through `scripts/run-backend-tests.py`: `29/29` PASS. Direct pytest was unavailable in the locked validator environment and made no source change.
+- Fresh frontend production build: PASS, Vite transformed `5,037` modules.
+- Browser proof uses local/mock routes only; no real or paid provider call occurred.
+- Final project-state validator, `git diff --check`, changed-sensitive-path-name audit, and debug-marker audit: PASS.
+- New focused Script/storyboard observed RED: `4/4` expected failures before implementation.
+- New focused Script/storyboard GREEN: `5/5` PASS, including reactive-proxy stable-shot insertion.
+- Revised related Canvas/Script/connection browser regression: `48/48` PASS.
+- Revised backend related suite: `30/30` PASS.
+- Latest fresh frontend production build: PASS, Vite transformed `5,037` modules.
+- Latest project-state validator and `git diff --check`: PASS at `HEAD 214b7c202ecb00b6504cdda849421ada3f04c38e`.
+- Third-candidate focused observed RED: `5` expected failures with `16` unaffected passes; the two later visual-audit assertions each failed before their targeted fixes.
+- Third-candidate focused GREEN: generation-service `13/13` and Script/hull browser `8/8` PASS. A browser 422 regression separately proves the raw Axios string is absent.
+- Related Canvas/Script/command/connection regression: `77/77` PASS before visual audit; final replacement/Script/hull regression after the two visual fixes: `31/31` PASS.
+- Backend Story Director/Script related suite through `scripts/run-backend-tests.py`: `30/30` PASS. One initial invocation used the wrong `backend.tests.*` module root and produced four import-only errors with zero tests executed; corrected `tests.*` modules passed.
+- Fresh frontend production build: PASS, Vite transformed `5,040` modules. Browser proof used the built production preview and local/mock routes only.
+- Fourth-candidate focused observed RED: group commit and live preview each moved only the container `(84, 48)` while both children stayed `(0, 0)`; the hull lacked a reusable visible-port layer.
+- Fourth-candidate focused GREEN: `3/3` PASS, including pointer-held equal-delta group preview, one-command persisted movement/undo, visible-port style/size parity, fan-out, menu, and atomic continuation.
+- Related replacement/group/history/port browser regression: `47/47` PASS.
+- Broader command/history/connection target/continuation regression: `40/40` PASS.
+- Final fresh frontend production build: PASS, Vite transformed `5,040` modules.
+- Visual inspection PASS for the three new fourth-candidate screenshots; `git diff --check` PASS with warning-only existing LF-to-CRLF notices.
+- Final project-state validator PASS with CURRENT within its 60-line rolling-snapshot budget.
+- Final path audit: `31` tracked changed paths, `0` sensitive-path matches, `0` staged paths, and `0` added debug markers; HEAD remains `214b7c202ecb00b6504cdda849421ada3f04c38e`.
+- Fifth-candidate focused observed RED: backend ratio `TypeError`; frontend contracts `3` expected failures with `11` unaffected passes; spatial-command import failure; replacement UI/group `3/3` expected failures.
+- Fifth-candidate backend focused GREEN: `2/2` PASS for advertised/default/explicit video aspect normalization.
+- Fifth-candidate frontend focused contract GREEN: `16/16` PASS for capability/parameter persistence, result-aware compact polling, and spatial membership.
+- Fifth-candidate browser GREEN: video composer `@`/ratio/duration/role, loading boundary/reduced motion, spatial `2 -> 1 -> 0 -> 1`, and terminal result race/stop checks PASS. The first browser rerun used a stale pre-change `dist` and repeated the intended UI RED; a fresh build then exposed and fixed the prompt self-update picker race.
+- A later stale-build rerun of two replacement tests repeated the pre-fix Video-mode/popover failures; the required fresh build then passed both and the complete replacement file `24/24`.
+- Final visual-audit REDs proved that the screen-reader loading label was still visible (`position: static`) and the complete pseudo-element was rotating (`transform: matrix(...)`). Both are closed by visually hidden status CSS plus angle-only boundary animation.
+- Final frontend regression: replacement `24/24`; selection/spatial group `6/6`; compact job sync `11/11`; retained T6-011 behavior `11/11`; generation parameters/service/Script contracts `34/34`; card work surface and Script workflow `22/22`.
+- Backend authority regression through `backend\.venv\Scripts\python.exe`: `41` cases plus `42` subtests, then Story Director/compact-job/API-v2 `21` cases plus `19` subtests. The locked validator interpreter has no `pytest` module; one corrected filename-only invocation executed zero tests before the exact existing test paths passed.
+- Final fresh frontend production build: PASS, Vite transformed `5,040` modules. Fresh-build visual screenshots were inspected at original resolution.
+- The first final validator invocation correctly rejected CURRENT at `61/60` lines; removing one redundant snapshot line restored the rolling-state budget without changing Task facts.
+- Final project-state validator, `git diff --check`, changed-sensitive-path-name audit, staged-path audit, and added-debug-marker audit: PASS at unchanged HEAD `214b7c202ecb00b6504cdda849421ada3f04c38e`.
+- Sixth-rejection startup screenshot inspection: original-resolution visual confirms the exact Script `extra_forbidden` product error.
+- Sixth-rejection startup Git/validator baseline: `HEAD == origin/main == 214b7c202ecb00b6504cdda849421ada3f04c38e`; project-state validator PASS; protected dirty and untracked paths preserved.
+- Sixth-rejection backend focused RED: `2/2` intended failures (`story_director` capability missing; unexpected `output_count` keyword).
+- Sixth-rejection multi-image browser RED: `2/2` intended failures; all four initial slot requests and the failed-slot retry omitted `output_count`.
+- Sixth-rejection stale-Script and replacement quota browser RED: `2/2` intended failures; no stale-runtime alert/disable and no count-aware submit reason.
+- Sixth-rejection loading timing guard: `1/1` PASS under explicit no-preference across more than three animation periods, with the existing reduced-motion assertion retained; live Chrome reports `prefers-reduced-motion: reduce` and correctly computes no animation.
+- Sixth-candidate focused frontend GREEN: generation/Script/multi-image `34/34`; complete replacement runtime `25/25`.
+- Sixth-candidate retained Canvas regression: selection/spatial group, compact jobs, T6-011 restoration, card work surface, Human card contract, and durable generation `54/54`.
+- Sixth-candidate backend related authority regression: `57/57` PASS across generation parameters/provider validation, image generation/e2e, text generation, and Script authoring.
+- Final fresh frontend production build: PASS, Vite transformed `5,040` modules. Fresh-build Script/multi-image/loading evidence checks: `5/5` PASS.
+- Final evidence inspection confirms exact Script request fields, four requests with `output_count: 4`, four stable projected slots, visible quota/stale-runtime blocks, and eight changing boundary samples extending beyond three periods; reduced motion records `animationName: none`.
+- Seventh-candidate focused RED: keyboard left the selected node intact and right-click exposed no `删除` item.
+- Seventh-candidate focused GREEN: `3/3`; related replacement/command/history/autosave regression: `61/61`.
+- Seventh-candidate final fresh build: PASS, `5,040` modules; fresh-build deletion proof: `3/3`.
+- Final validator, `git diff --check`, changed-sensitive-path, staged-path, debug-marker, HEAD/origin, and CURRENT line-budget audits pass.
+- Units 51-53 live Chrome inventory: at `1366x768`, the pre-fix Script table had no scroll owner and clipped the footer. After GREEN, the table reports `clientHeight 355`, `scrollHeight 609`, and reaches `scrollTop 253.6 / max 254`; shot 7 and the footer are visible. The existing Human canvas was returned to its normal canvas view without document mutation.
+- Units 51-53 focused observed RED: `2/2` browser failures before production edits, proving the lower shot stayed outside the viewport and the batch action was absent.
+- Units 51-53 focused GREEN: `3/3`; complete Script workflow regression `15/15`; official Agnes/Script persistence/reference/rename/loading contract regression `10/10`.
+- Units 51-53 backend provider-free regressions: Video/Agnes dispatch `35/35` plus `4` subtests; Script/Image validation `44/44` plus `14` subtests. No real or paid provider call occurred.
+- Units 51-53 fresh frontend production build: PASS, Vite transformed `5,041` modules. Fresh-build broad browser run is `59/60`; the sole failure is the later legacy edge Delete cleanup described above, while that test's thumbnail/name/reload assertions already passed.
+- Units 51-53 final `git diff --check`, project-state validator, live health, HEAD/origin, and protected dirty-worktree audits pass. Evidence is isolated under `output/playwright/t6-013-human-remediation-20260727/`.
+- Final clarity RED: backend `3/3` intended failures for absent schema/capability/normalization; frontend `2/2` intended failures for the missing node snapshot and dialog control.
+- Final clarity GREEN: fresh-build frontend generation/Script/official-contract regression `51/51`; backend Agnes/Video/dispatch/parameter regression `51/51` plus `43` subtests; retained Script/Image regression `44/44` plus `14` subtests.
+- Final production build transformed `5,041` modules. Live backend restarted from the current checkout at PID `44148`; health is `ok`, OpenAPI exposes `VideoGenerateRequest.resolution`, the 51-character parent Agnes credential was preserved without output, and no provider call occurred. The in-memory JWT changed, so existing browser auth tokens require re-login.
+- Eighth-candidate focused observed RED: frontend `4/4` intended failures and backend `1` intended model-authority failure with `3` unaffected cases.
+- Eighth-candidate focused GREEN: frontend `4/4`; backend Script contract `4/4` plus `3` subtests.
+- Eighth-candidate related frontend regression: `58/58`; broad command/history/generation/T6-011 regression: `63/63`.
+- Eighth-candidate backend related regression: `30/30` plus `42` subtests.
+- Final fresh frontend production build: PASS, Vite transformed `5,040` modules; fresh-build browser proof: `6/6`.
+- Authorized backend restart: live PID `37592`, health `ok`, Script `story_director` and Image `output_count` present in OpenAPI.
+- Ninth-rejection focused backend RED: `4/4` intended failures after one corrected working-directory invocation; no real provider call occurred.
+- Ninth-rejection focused replacement browser RED: `4/4` intended failures for structured Script detail, materialized image projection, Agnes 2.5 selector/request, and perimeter-track timing.
+- Ninth-candidate backend focused GREEN: `4/4` for selected Agnes 2.5 authority, unsupported-model fail-closed behavior, safe generic provider failure, and actionable invalid-result detail.
+- Ninth-candidate fresh production build succeeded; Vite transformed `5,040` modules.
+- Ninth-candidate fresh-build browser GREEN: `4/4`; retained-task image media is visible on the initiating card, the selected Agnes 2.5 request contains `model_id`, structured Script detail remains visible, and the perimeter runner changes through more than three clockwise cycles with the reduced-motion boundary retained.
+- Ninth-candidate related fresh-build browser regression: `70/70`; broad retained Canvas regression: `81/81`; backend authority regression: `57/57`.
+- Final fresh production build succeeded; Vite transformed `5,040` modules; final production-preview replacement/image-batch proof: `32/32`.
+- Authorized restart final state: listener PID `24220`, health `ok`, MySQL ready, Alembic current=head, strict Text schema has `model_id` and `story_director`, and Image schema has `output_count`.
+- Final state/diff/security audit: validator and `git diff --check` succeeded; HEAD/origin unchanged; staged/sensitive/debug counts are all zero.
+- Tenth-candidate frontend regression: `74/74`; backend related Director/Script/provider regression: `43/43`; final fresh production build: `5,040` transformed modules.
+- Tenth-candidate browser evidence: core `3/3` plus reruns; 40 no-preference samples span more than two `1.6s` cycles and retain clockwise top/right/bottom/left order; reduced motion records a visible static non-animated boundary.
+- Final live check: prior PID `24220` was absent. Plain startup failed closed on missing JWT; in-memory-JWT startup exited before health because the existing DB/runtime settings were unavailable to this shell. No env file, secret output, migration, or runtime-data mutation was used; port `8000` remains without a listener.
+- Authorized 2026-07-27 restart preflight: exact database identity `revid_db`, read probe `1`, claimable durable generation jobs `0`.
+- Authorized 2026-07-27 backend restart: PID `25608`, repeated health `ok`, MySQL ready, Alembic current=head, current Text/Image OpenAPI fields present.
+- Authorized 2026-07-27 frontend restart: fresh production build `5,040` modules, preview PID `25516`, root HTTP 200, app root present, and localhost:5173 CORS allowed.
+- Agnes credential correction: latest task evidence recorded `provider_rejected / 无效的令牌`; parent credential length `51` versus stale `.env` length `13`; parser values equal, proving precedence rather than parsing was the defect.
+- Corrected backend restart: claimable jobs `0`, parent credential preserved, new PID `37824`, repeated health `ok`, MySQL/Alembic ready, frontend PID `25516` still HTTP 200, and no provider call.
+
+## Blockers and release conditions
+
+- No blocker prevents the scoped baseline commit and push.
+- Every prior Human rejection remains historical fact; automation and screenshots do not become Human acceptance.
+- Final program-level Human visual, interaction, and journey acceptance is deferred to T6-027.
+- Real/paid provider calls, secret access, external accounts, destructive user data/filesystem operations, arbitrary-code
+  templates, and public/team marketplace work remain unauthorized and fail closed.
